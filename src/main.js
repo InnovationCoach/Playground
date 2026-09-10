@@ -202,14 +202,19 @@ subscribeToAuth(async (user) => {
       localStorage.setItem(`user_role_${user.uid}`, 'teacher');
     }
 
-    // Async profile sync in background
-    const profilePromise = getUserProfile(user.uid).then(p => {
-      if (p?.role === 'teacher' || p?.role === 'coach') {
-        window.currentUserRole = 'teacher';
-        localStorage.setItem(`user_role_${user.uid}`, 'teacher');
-      }
-      return p;
-    });
+    // Sync profile from Firestore
+    let profile = null;
+    try {
+      profile = await getUserProfile(user.uid);
+    } catch (e) {
+      console.warn("[Auth] Error fetching profile:", e);
+    }
+
+    if (profile?.role === 'teacher' || profile?.role === 'coach') {
+      userRole = 'teacher';
+      window.currentUserRole = 'teacher';
+      localStorage.setItem(`user_role_${user.uid}`, 'teacher');
+    }
 
     // Scenario 4: Student tries coach login / dashboard access
     if (fullHash.includes('/coach') && userRole !== 'teacher' && userRole !== 'coach') {
@@ -272,9 +277,15 @@ subscribeToAuth(async (user) => {
           if (!coachDashboardInstance) {
             coachDashboardInstance = new CoachDashboard({
               containerId: 'coach-dashboard-card',
-              coachUser: { uid: user.uid, email: user.email, displayName: profile?.displayName || 'Coach' }
+              coachUser: {
+                uid: user.uid,
+                email: user.email,
+                displayName: profile?.displayName || user.displayName || (user.email ? user.email.split('@')[0] : 'Coach')
+              }
             });
             await coachDashboardInstance.init();
+          } else {
+            coachDashboardInstance.render();
           }
           console.log('[Coach] Coach dashboard initialized successfully');
           window.location.hash = "#/coach/dashboard";

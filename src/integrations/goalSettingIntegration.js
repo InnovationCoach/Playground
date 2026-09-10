@@ -29,7 +29,7 @@ export async function initializeGoalSettingForUser(userId) {
       const userRef = doc(db, 'users', userId);
       const userSnap = await getDoc(userRef);
 
-      if (userSnap.exists()) {
+      if (userSnap.exists) {
         const userData = userSnap.data();
 
         // Sync goals from Firestore if available

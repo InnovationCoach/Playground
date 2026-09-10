@@ -26,7 +26,7 @@ export async function migrateUserToNewSchema(uid) {
     const userRef = doc(db, 'users', uid);
     const userDoc = await getDoc(userRef);
 
-    if (!userDoc.exists()) {
+    if (!userDoc.exists) {
       console.warn(`User ${uid} does not exist`);
       return { success: false, message: 'User not found' };
     }
@@ -170,7 +170,7 @@ export async function ensureUserHasNewSchema(uid) {
   const userRef = doc(db, 'users', uid);
   const userDoc = await getDoc(userRef);
 
-  if (!userDoc.exists()) {
+  if (!userDoc.exists) {
     return false;
   }
 
@@ -302,7 +302,7 @@ export async function exportUserData(uid) {
     const userRef = doc(db, 'users', uid);
     const userDoc = await getDoc(userRef);
 
-    if (!userDoc.exists()) {
+    if (!userDoc.exists) {
       return null;
     }
 

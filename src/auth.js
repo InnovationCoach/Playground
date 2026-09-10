@@ -59,7 +59,7 @@ export async function getUserProfile(userId) {
     const userEmail = (auth.currentUser?.email || "").toLowerCase();
     const isEmailCoach = userEmail.includes("coach") || userEmail.includes("teacher");
 
-    if (docSnap.exists()) {
+    if (docSnap.exists) {
       const data = docSnap.data();
       let role = data.role;
       if (isEmailCoach || role === "teacher" || role === "coach") {
