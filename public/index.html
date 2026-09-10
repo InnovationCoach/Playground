@@ -1,0 +1,2037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeLearn Climate Gamification Suite | 4 Interactive STEM Activities</title>
+  
+  <!-- Firebase SDK Compatibility Version 10 -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --bunker-blue: #38bdf8;
+      --bunker-hover: #0284c7;
+      --python-yellow: #f59e0b;
+      --python-hover: #d97706;
+      --bangkok-purple: #a855f7;
+      --bangkok-hover: #9333ea;
+      --accent-orange: #f97316;
+      --accent-red: #ef4444;
+      --bg-dark: #090d16;
+      --card-bg: #131c2e;
+      --card-border: #26354a;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+      --header-green: #064e3b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      line-height: 1.5;
+      padding-bottom: 3rem;
+    }
+
+    /* Top Navigation Bar */
+    .top-phase-bar {
+      background: #030712;
+      border-bottom: 2px solid #1e293b;
+      padding: 0.6rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .brand-title {
+      font-weight: 800; font-size: 1.1rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+    }
+
+    .phase-toggle-group {
+      display: flex; gap: 0.4rem; background: #0f172a; padding: 0.25rem; border-radius: 8px; border: 1px solid #334155; flex-wrap: wrap;
+    }
+
+    .phase-toggle-btn {
+      background: transparent; border: none; color: var(--text-muted); padding: 0.45rem 0.8rem; font-size: 0.82rem; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.35rem;
+    }
+
+    .phase-toggle-btn:hover { color: #fff; }
+    .phase-toggle-btn.active-home { background: #374151; color: #fff; }
+    .phase-toggle-btn.active-phase1 { background: var(--primary); color: #000; }
+    .phase-toggle-btn.active-bunker { background: var(--bunker-blue); color: #000; }
+    .phase-toggle-btn.active-coding { background: var(--python-yellow); color: #000; }
+    .phase-toggle-btn.active-bangkok { background: var(--bangkok-purple); color: #fff; }
+
+    /* Header Bar */
+    header {
+      background: #0b1329; border-bottom: 2px solid var(--bunker-blue); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: background 0.3s ease;
+    }
+
+    header.phase1-header { background: var(--header-green); border-bottom-color: var(--primary); }
+    header.coding-header { background: #451a03; border-bottom-color: var(--python-yellow); }
+    header.bangkok-header { background: #3b0764; border-bottom-color: var(--bangkok-purple); }
+
+    header h1 { font-size: 1.4rem; color: #ecfdf5; display: flex; align-items: center; gap: 0.5rem; }
+
+    .auth-badge {
+      background: rgba(255, 255, 255, 0.1); padding: 0.4rem 0.8rem; border-radius: 9999px; font-size: 0.875rem; border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .container { max-width: 1200px; margin: 1.5rem auto; padding: 0 1rem; }
+
+    /* HOME PORTAL STYLING */
+    .home-hero {
+      text-align: center; padding: 2.5rem 1.5rem; background: linear-gradient(135deg, #1e293b 0%, #090d16 100%); border: 1px solid var(--card-border); border-radius: 20px; margin-bottom: 2rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+    }
+
+    .home-hero h2 { font-size: 2.2rem; color: #f8fafc; margin-bottom: 0.75rem; font-weight: 800; }
+    .home-hero h2 span { color: var(--primary); }
+    .home-hero p { font-size: 1.05rem; color: var(--text-muted); max-width: 800px; margin: 0 auto 1.5rem auto; }
+
+    .home-grid-4 {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 3rem;
+    }
+
+    @media (max-width: 868px) { .home-grid-4 { grid-template-columns: 1fr; } }
+
+    .mission-card {
+      background: var(--card-bg); border: 2px solid var(--card-border); border-radius: 16px; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s ease;
+    }
+
+    .mission-card:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4); }
+    .mission-card.p1-card { border-color: rgba(16, 185, 129, 0.4); }
+    .mission-card.p1-card:hover { border-color: var(--primary); }
+    .mission-card.bunker-card-border { border-color: rgba(56, 189, 248, 0.4); }
+    .mission-card.bunker-card-border:hover { border-color: var(--bunker-blue); }
+    .mission-card.coding-card-border { border-color: rgba(245, 158, 11, 0.4); }
+    .mission-card.coding-card-border:hover { border-color: var(--python-yellow); }
+    .mission-card.bangkok-card-border { border-color: rgba(168, 85, 247, 0.4); }
+    .mission-card.bangkok-card-border:hover { border-color: var(--bangkok-purple); }
+
+    .mission-badge {
+      display: inline-block; align-self: flex-start; padding: 0.35rem 0.85rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 1rem;
+    }
+
+    .badge-p1 { background: rgba(16, 185, 129, 0.15); color: var(--primary); border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-bunker { background: rgba(56, 189, 248, 0.15); color: var(--bunker-blue); border: 1px solid rgba(56, 189, 248, 0.4); }
+    .badge-coding { background: rgba(245, 158, 11, 0.15); color: var(--python-yellow); border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-bangkok { background: rgba(168, 85, 247, 0.15); color: var(--bangkok-purple); border: 1px solid rgba(168, 85, 247, 0.4); }
+
+    .mission-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; color: #fff; }
+    .mission-desc { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem; line-height: 1.5; }
+
+    .mission-features { list-style: none; margin-bottom: 1.5rem; }
+    .mission-features li { padding: 0.35rem 0; font-size: 0.88rem; color: #cbd5e1; display: flex; align-items: center; gap: 0.4rem; }
+
+    .btn-launch {
+      width: 100%; padding: 0.85rem 1.25rem; font-size: 1rem; font-weight: 800; border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none;
+    }
+
+    .btn-launch-p1 { background: var(--primary); color: #000; }
+    .btn-launch-p1:hover { background: var(--primary-hover); }
+    .btn-launch-bunker { background: var(--bunker-blue); color: #000; }
+    .btn-launch-bunker:hover { background: var(--bunker-hover); }
+    .btn-launch-coding { background: var(--python-yellow); color: #000; }
+    .btn-launch-coding:hover { background: var(--python-hover); }
+    .btn-launch-bangkok { background: var(--bangkok-purple); color: #fff; }
+    .btn-launch-bangkok:hover { background: var(--bangkok-hover); }
+
+    /* SHARED HERO & TAB CARDS */
+    .hero {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.75rem; margin-bottom: 1.75rem; display: flex; align-items: center; justify-content: space-between; gap: 2rem; overflow: hidden; position: relative;
+    }
+
+    .hero-text { flex: 1; z-index: 2; }
+    .hero-text h2 { font-size: 1.8rem; color: var(--primary); margin-bottom: 0.4rem; }
+    .hero-text p { color: var(--text-muted); font-size: 1rem; }
+    .hero-svg { width: 280px; height: 120px; z-index: 1; }
+
+    .tabs-nav {
+      display: flex; gap: 0.5rem; border-bottom: 2px solid var(--card-border); margin-bottom: 1.5rem; overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent; border: none; color: var(--text-muted); padding: 0.75rem 1.25rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s ease; white-space: nowrap;
+    }
+
+    .tab-btn:hover { color: var(--text-light); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn.active.bunker-active { color: var(--bunker-blue); border-bottom-color: var(--bunker-blue); }
+    .tab-btn.active.bangkok-active { color: var(--bangkok-purple); border-bottom-color: var(--bangkok-purple); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { flex-direction: column; } }
+
+    .card {
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .card h3 { font-size: 1.2rem; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 0.4rem; }
+    .card.bunker-card h3 { color: var(--bunker-blue); }
+    .card.bangkok-card h3 { color: var(--bangkok-purple); }
+
+    .slider-group, .form-group { margin-bottom: 1.25rem; }
+    .slider-header, .form-label { display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.9rem; font-weight: 600; }
+    .slider-title { font-weight: 600; }
+    .slider-value, .form-val { color: var(--primary); font-weight: bold; }
+    .bunker-val { color: var(--bunker-blue) !important; }
+
+    input[type="range"] {
+      width: 100%; height: 8px; border-radius: 4px; background: var(--card-border); outline: none; accent-color: var(--primary); cursor: pointer;
+    }
+
+    select, input[type="text"], textarea.input-box, input[type="number"] {
+      width: 100%; background: #0f172a; border: 1px solid var(--card-border); color: var(--text-light); padding: 0.75rem; border-radius: 8px; font-size: 0.95rem; outline: none;
+    }
+
+    select:focus, input[type="text"]:focus, input[type="number"]:focus { border-color: var(--primary); }
+
+    .stat-box { background: #0f172a; border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem; text-align: center; margin-bottom: 1rem; }
+    .stat-box .number { font-size: 2.2rem; font-weight: bold; color: var(--accent-orange); }
+    .stat-box .label { font-size: 0.85rem; color: var(--text-muted); }
+
+    .utci-badge, .status-badge { display: inline-block; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: bold; margin-top: 0.5rem; }
+    .utci-extreme { background: #7f1d1d; color: #fca5a5; }
+    .utci-very-high { background: #7c2d12; color: #fdba74; }
+    .utci-high { background: #713f12; color: #fde047; }
+    .utci-moderate { background: #064e3b; color: #6ee7b7; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--card-border); }
+    th { background: rgba(255, 255, 255, 0.05); color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; }
+
+    .btn {
+      background: var(--primary); color: #000; border: none; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+
+    .btn.btn-bunker { background: var(--bunker-blue); }
+    .btn.btn-bangkok { background: var(--bangkok-purple); color: #fff; }
+    .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn.btn-bunker:hover { background: var(--bunker-hover); }
+    .btn.btn-bangkok:hover { background: var(--bangkok-hover); }
+    .btn-block { width: 100%; justify-content: center; }
+
+    .strategy-card, .spec-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .strategy-card h4, .spec-card h4 { color: var(--primary); margin-bottom: 0.5rem; }
+
+    /* CODING PLAYGROUND STYLING */
+    .reward-bar {
+      background: #111827; border: 1px solid #374151; border-radius: 14px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;
+    }
+
+    .xp-progress-wrapper { flex: 1; min-width: 240px; }
+    .xp-label-row { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .xp-bar-outer { height: 12px; background: #1f2937; border-radius: 9999px; overflow: hidden; border: 1px solid #374151; }
+    .xp-bar-inner { height: 100%; width: 0%; background: linear-gradient(90deg, #f59e0b 0%, #10b981 100%); transition: width 0.5s ease; }
+
+    .badges-group { display: flex; gap: 0.5rem; align-items: center; }
+    .badge-chip { background: #1f2937; border: 1px solid #374151; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); opacity: 0.5; transition: all 0.3s; }
+    .badge-chip.unlocked { opacity: 1; background: rgba(245, 158, 11, 0.15); border-color: var(--python-yellow); color: var(--python-yellow); }
+    .streak-chip { background: rgba(249, 115, 22, 0.15); border: 1px solid var(--accent-orange); color: var(--accent-orange); padding: 0.4rem 0.9rem; border-radius: 9999px; font-weight: 800; font-size: 0.9rem; }
+
+    .playground-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 1.5rem; }
+    @media (max-width: 992px) { .playground-grid { grid-template-columns: 1fr; } }
+
+    .panel-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+    .mode-toggle-bar { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; background: #090d16; padding: 0.3rem; border-radius: 8px; }
+    .mode-btn { flex: 1; background: transparent; border: none; color: var(--text-muted); padding: 0.5rem; font-weight: 700; font-size: 0.85rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+    .mode-btn.active-mode { background: var(--python-yellow); color: #000; }
+
+    .module-tab-list { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .mod-btn { flex: 1; background: #090d16; border: 1px solid var(--card-border); color: var(--text-muted); padding: 0.5rem 0.75rem; font-size: 0.85rem; font-weight: 700; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .mod-btn.active-mod { background: rgba(245, 158, 11, 0.15); border-color: var(--python-yellow); color: var(--python-yellow); }
+
+    .instruct-box { background: #090d16; border: 1px solid var(--card-border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .instruct-box h4 { color: var(--python-yellow); font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .instruct-box p { font-size: 0.95rem; color: #cbd5e1; line-height: 1.6; }
+
+    .gentle-hint-box { background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--primary); padding: 1rem; border-radius: 6px; margin-bottom: 1.25rem; font-size: 0.9rem; line-height: 1.5; }
+    .gentle-hint-box.error-state { background: rgba(239, 68, 68, 0.1); border-left-color: var(--accent-red); }
+
+    .btn-clue { background: #1f2937; color: var(--python-yellow); border: 1px solid var(--python-yellow); padding: 0.6rem 1rem; font-weight: 700; font-size: 0.85rem; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 1rem; transition: all 0.2s; }
+    .btn-clue:hover { background: rgba(245, 158, 11, 0.15); }
+
+    .editor-wrapper { background: #050811; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; margin-bottom: 1rem; }
+    .editor-toolbar { background: #0f172a; padding: 0.5rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid #1e293b; }
+    .code-area { width: 100%; height: 220px; background: transparent; border: none; color: #7dd3fc; font-family: 'Fira Code', 'Courier New', Courier, monospace; font-size: 0.95rem; padding: 1rem; line-height: 1.6; resize: vertical; outline: none; }
+
+    .snippet-helper-bar { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .snip-btn { background: #1e293b; border: 1px solid #334155; color: var(--bunker-blue); padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 700; border-radius: 6px; cursor: pointer; font-family: monospace; }
+    .snip-btn:hover { background: #334155; color: #fff; }
+
+    .simulator-card { background: #090d16; border: 1px solid var(--card-border); border-radius: 12px; padding: 1.25rem; text-align: center; }
+    .sim-title { font-size: 0.85rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+
+    .led-matrix-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 170px; margin: 0 auto 1.25rem auto; background: #1e293b; padding: 12px; border-radius: 12px; border: 2px solid #334155; }
+    .led-dot { width: 22px; height: 22px; background: #334155; border-radius: 50%; transition: all 0.2s ease; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
+    .led-dot.on { background: #ef4444; box-shadow: 0 0 10px #ef4444, 0 0 20px #f97316; }
+
+    .motor-gauge-wrapper { display: flex; justify-content: space-around; align-items: center; gap: 1rem; background: #131c2e; padding: 0.85rem; border-radius: 10px; border: 1px solid var(--card-border); margin-bottom: 1rem; }
+    .gauge-dial { width: 70px; height: 70px; border-radius: 50%; border: 4px solid var(--python-yellow); position: relative; background: #090d16; display: flex; align-items: center; justify-content: center; }
+    .gauge-needle { width: 3px; height: 28px; background: #ef4444; position: absolute; bottom: 50%; transform-origin: bottom center; transform: rotate(0deg); transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius: 2px; }
+
+    .tilt-box { display: flex; align-items: center; justify-content: space-between; background: #131c2e; padding: 0.85rem 1.25rem; border-radius: 10px; border: 1px solid var(--card-border); }
+    .tilt-ball-area { width: 50px; height: 50px; background: #090d16; border: 2px solid var(--bunker-blue); border-radius: 50%; position: relative; }
+    .tilt-ball { width: 14px; height: 14px; background: var(--bunker-blue); border-radius: 50%; position: absolute; top: 18px; left: 18px; transition: all 0.3s ease; box-shadow: 0 0 8px var(--bunker-blue); }
+
+    /* BANGKOK CHAT, MAP & TIMER STYLING */
+    .timer-bar-bkk {
+      background: #1e1b4b; border: 1px solid var(--bangkok-purple); border-radius: 12px; padding: 0.75rem 1.25rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;
+    }
+    .timer-display { font-size: 1.4rem; font-weight: 800; color: #f43f5e; font-family: monospace; }
+
+    .chat-box { background: #090d16; border: 1px solid var(--card-border); border-radius: 10px; height: 320px; overflow-y: auto; padding: 1rem; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .chat-msg { padding: 0.75rem 1rem; border-radius: 12px; max-width: 82%; font-size: 0.95rem; line-height: 1.5; }
+    .chat-msg.somchai { background: #1f2937; color: #f8fafc; border-bottom-left-radius: 2px; align-self: flex-start; border: 1px solid #374151; }
+    .chat-msg.user { background: var(--bangkok-purple); color: #fff; border-bottom-right-radius: 2px; align-self: flex-end; }
+
+    .bunker-option-card { background: #090d16; border: 2px solid var(--card-border); border-radius: 10px; padding: 1rem; cursor: pointer; transition: all 0.2s; margin-bottom: 0.75rem; }
+    .bunker-option-card:hover { border-color: var(--bangkok-purple); transform: scale(1.01); }
+    .bunker-option-card.selected { border-color: var(--bangkok-purple); background: rgba(168, 85, 247, 0.12); }
+
+    .ascii-grid-container {
+      max-height: 280px; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 0.5rem; background: #090d16; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 1rem;
+    }
+
+    #confetti-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 9999; }
+    .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--primary); color: #000; padding: 1rem 1.5rem; border-radius: 8px; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); display: none; z-index: 999; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Canvas Confetti Overlay -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Top Navigation Bar -->
+  <div class="top-phase-bar">
+    <div class="brand-title" onclick="switchPhase('home')">
+      🌐 WeLearn Climate Gamification Suite
+    </div>
+    <div class="phase-toggle-group">
+      <button id="btn-home" class="phase-toggle-btn active-home" onclick="switchPhase('home')">🏠 Home Portal</button>
+      <button id="btn-phase1" class="phase-toggle-btn" onclick="switchPhase('phase1')">🌴 Activity 1: Urban Heat</button>
+      <button id="btn-bunker" class="phase-toggle-btn" onclick="switchPhase('bunker')">🛡️ Activity 2: Bunker Survival</button>
+      <button id="btn-coding" class="phase-toggle-btn" onclick="switchPhase('coding')">🐍 Activity 3: Micro:bit Coding</button>
+      <button id="btn-bangkok" class="phase-toggle-btn" onclick="switchPhase('bangkok')">🌊 Activity 4: Bangkok Coastal</button>
+    </div>
+  </div>
+
+  <!-- Header Bar -->
+  <header id="main-header">
+    <h1 id="header-title">🌐 Climate Gamification & Resilience Hub</h1>
+    <div class="auth-badge" id="auth-status">Status: Connecting to Firebase...</div>
+  </header>
+
+  <div class="container">
+
+    <!-- ============================================================== -->
+    <!-- HOME PORTAL: 4 MISSION CARDS -->
+    <!-- ============================================================== -->
+    <div id="home-container">
+      <div class="home-hero">
+        <h2>Interactive <span>Climate Resilience</span> STEM Simulations</h2>
+        <p>Gamified learning suite for 12–18 year old students. Choose your STEM mission below to explore urban microclimates, subterranean survival engineering, MicroPython coding, or the Bangkok Coastal disaster challenge.</p>
+      </div>
+
+      <div class="home-grid-4">
+        <!-- Activity 1 Card -->
+        <div class="mission-card p1-card">
+          <div>
+            <span class="mission-badge badge-p1">ACTIVITY 1 • URBAN SIMULATION</span>
+            <h3 class="mission-title">🌴 Urban Heat Battle</h3>
+            <p class="mission-desc">Model tropical urban heat island mitigation in Townsville (19°S). Test green roofs, mature street trees, water features, and vertical green walls to cool city temperatures.</p>
+            <ul class="mission-features">
+              <li>🌱 Green Roofs & Albedo Coatings</li>
+              <li>🌳 Street Tree Canopy (High ROI)</li>
+              <li>💧 Water Features & Permeable Paving</li>
+              <li>📊 Real-time UTCI Thermal Index</li>
+            </ul>
+          </div>
+          <button class="btn-launch btn-launch-p1" onclick="switchPhase('phase1')">🚀 Launch Activity 1: Urban Heat</button>
+        </div>
+
+        <!-- Activity 2 Card -->
+        <div class="mission-card bunker-card-border">
+          <div>
+            <span class="mission-badge badge-bunker">ACTIVITY 2 • SURVIVAL ENGINEERING</span>
+            <h3 class="mission-title">🛡️ Bunker Survival</h3>
+            <p class="mission-desc">Engineer a subterranean bunker to withstand 50°C heatwaves, Category 5+ hypercanes, toxic wildfires (AQI 999+), and mega-floods based on Bomb Shelter Supply specs.</p>
+            <ul class="mission-features">
+              <li>🏗️ Subterranean Steel & Concrete Hulls</li>
+              <li>🌬️ Swiss NBC/CBRN Positive Air Scrubbers</li>
+              <li>💧 Atmospheric Water & Deep Wells</li>
+              <li>⚡ Solar, Diesel & Geothermal HVAC</li>
+            </ul>
+          </div>
+          <button class="btn-launch btn-launch-bunker" onclick="switchPhase('bunker')">🛡️ Launch Activity 2: Bunker Survival</button>
+        </div>
+
+        <!-- Activity 3 Card -->
+        <div class="mission-card coding-card-border">
+          <div>
+            <span class="mission-badge badge-coding">ACTIVITY 3 • MICROPYTHON SIMULATOR</span>
+            <h3 class="mission-title">🐍 Micro:bit Coding</h3>
+            <p class="mission-desc">Learn MicroPython by controlling virtual 5x5 LED displays, servo motors, and radio direction sensors. Perfect for neurodivergent STEM learners with instant visual rewards!</p>
+            <ul class="mission-features">
+              <li>😊 Module 1: Display Images on 5x5 LED Matrix</li>
+              <li>⚙️ Module 2: Servo Motor Angles & PWM</li>
+              <li>📡 Module 3: Wireless Radio & Accelerometer</li>
+              <li>🔧 "Fix My Code" Debugging Challenges</li>
+            </ul>
+          </div>
+          <button class="btn-launch btn-launch-coding" onclick="switchPhase('coding')">🐍 Launch Activity 3: Micro:bit Coding</button>
+        </div>
+
+        <!-- Activity 4 Card: Bangkok Coastal Bunker Challenge -->
+        <div class="mission-card bangkok-card-border">
+          <div>
+            <span class="mission-badge badge-bangkok">ACTIVITY 4 • COASTAL DISASTER CHALLENGE</span>
+            <h3 class="mission-title">🌊 Bangkok Coastal Challenge</h3>
+            <p class="mission-desc">Decode orbital binary alert signals, convince fisherman Somchai to evacuate, select the optimal coastal bunker, and calculate storm surge flood arrival timelines!</p>
+            <ul class="mission-features">
+              <li>🛰️ Stage 1: Satellite Binary Message Decryption</li>
+              <li>🗣️ Stage 2: Somchai Crisis Dialogue & Trust Meter</li>
+              <li>🗺️ Stage 3: 5-Site Coastal Bunker Selection</li>
+              <li>⏱️ Stage 4: Storm Surge Physics Timeline Math</li>
+            </ul>
+          </div>
+          <button class="btn-launch btn-launch-bangkok" onclick="switchPhase('bangkok')">🌊 Launch Activity 4: Bangkok Challenge</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ACTIVITY 1: URBAN HEAT ISLAND BATTLE -->
+    <!-- ============================================================== -->
+    <div id="phase1-container" class="hidden">
+      <div class="hero">
+        <div class="hero-text">
+          <h2>Townsville Urban Heat Island Simulator</h2>
+          <p>Model tropical urban climate mitigation strategies, balance budget constraints, and compete on the live efficiency leaderboard for WeLearn Academy Bangkok.</p>
+        </div>
+        <svg class="hero-svg" viewBox="0 0 300 120" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 120 L0 90 L30 90 L30 60 L60 60 L60 120 Z" fill="#334155" />
+          <path d="M70 120 L70 40 L110 40 L110 120 Z" fill="#475569" />
+          <path d="M120 120 L120 30 L170 30 L170 120 Z" fill="#1e293b" />
+          <rect x="120" y="25" width="50" height="6" fill="#10b981" rx="2" />
+          <line x1="0" y1="120" x2="300" y2="120" stroke="#10b981" stroke-width="4" />
+        </svg>
+      </div>
+
+      <div class="tabs-nav">
+        <button class="tab-btn active p1-tab" onclick="switchTabP1('simulator')">[2] Simulator</button>
+        <button class="tab-btn p1-tab" onclick="switchTabP1('strategies')">[1] Strategies</button>
+        <button class="tab-btn p1-tab" onclick="switchTabP1('costs')">[3] Costs</button>
+        <button class="tab-btn p1-tab" onclick="switchTabP1('competition')">[4] Competition Leaderboard</button>
+      </div>
+
+      <div id="tab-p1-simulator" class="tab-content active">
+        <div class="grid-2">
+          <div class="card">
+            <h3>🎛️ Mitigation Sliders</h3>
+            <div class="slider-group"><div class="slider-header"><span>🌱 Green Roofs</span><span class="slider-value" id="val-roofs">20%</span></div><input type="range" id="slider-roofs" min="0" max="100" step="5" value="20" oninput="updateP1Simulation()"></div>
+            <div class="slider-group"><div class="slider-header"><span>🌳 Street Trees</span><span class="slider-value" id="val-trees">30%</span></div><input type="range" id="slider-trees" min="0" max="80" step="5" value="30" oninput="updateP1Simulation()"></div>
+            <div class="slider-group"><div class="slider-header"><span>💧 Water Features</span><span class="slider-value" id="val-water">15%</span></div><input type="range" id="slider-water" min="0" max="50" step="5" value="15" oninput="updateP1Simulation()"></div>
+            <div class="slider-group"><div class="slider-header"><span>🌿 Green Walls</span><span class="slider-value" id="val-walls">10%</span></div><input type="range" id="slider-walls" min="0" max="60" step="5" value="10" oninput="updateP1Simulation()"></div>
+            <h3 style="margin-top: 1.5rem;">🌤️ Environmental Controls</h3>
+            <div class="slider-group"><div class="slider-header"><span>💧 Humidity (%)</span><span class="slider-value" id="val-humidity">65%</span></div><input type="range" id="slider-humidity" min="30" max="85" step="5" value="65" oninput="updateP1Simulation()"></div>
+            <div class="slider-group"><div class="slider-header"><span>💨 Wind Speed</span><span class="slider-value" id="val-wind">2.5 m/s</span></div><input type="range" id="slider-wind" min="0.5" max="8.0" step="0.5" value="2.5" oninput="updateP1Simulation()"></div>
+          </div>
+          <div class="card">
+            <h3>📊 Real-Time Microclimate Impact</h3>
+            <div class="stat-box"><div class="number" id="disp-temp">33.85°C</div><div class="label">Simulated Peak Surface/Air Temp</div></div>
+            <div class="grid-2">
+              <div class="stat-box"><div class="number" style="color: var(--primary);" id="disp-cooling">-2.65°C</div><div class="label">Total Cooling</div></div>
+              <div class="stat-box"><div class="number" style="color: #06b6d4;" id="disp-cost">$3.14M</div><div class="label">Strategy Cost</div></div>
+            </div>
+            <div class="stat-box"><div class="number" style="color: #fde047;" id="disp-utci">40.2°C</div><div class="label">UTCI Heat Stress</div><div id="utci-badge" class="utci-badge utci-very-high">Very High Heat Stress</div></div>
+            <button class="btn btn-block" onclick="openSubmitModalP1()">🏆 Submit Strategy to Leaderboard</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-p1-strategies" class="tab-content"><div class="card"><h3>📚 Townsville Strategies</h3><p style="color: var(--text-muted);">Vegetated roofs & street tree canopy expansion provide evapotranspiration and shade.</p></div></div>
+      <div id="tab-p1-costs" class="tab-content"><div class="card"><h3>💰 Budget & ROI</h3><table><thead><tr><th>Component</th><th>Coverage</th><th>Cost ($M)</th><th>Annual Maint</th><th>Cooling</th></tr></thead><tbody id="cost-table-body"></tbody></table></div></div>
+      <div id="tab-p1-competition" class="tab-content"><div class="card"><h3>🏆 Leaderboard</h3><table><thead><tr><th>Rank</th><th>Team</th><th>Cooling</th><th>Cost</th><th>Efficiency</th><th>Date</th></tr></thead><tbody id="leaderboard-table-body-p1"></tbody></table></div></div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ACTIVITY 2: CLIMATE BUNKER SURVIVAL SIMULATOR -->
+    <!-- ============================================================== -->
+    <div id="bunker-container" class="hidden">
+      <div class="hero" style="background: linear-gradient(135deg, #131c2e 0%, #090d16 100%);">
+        <div class="hero-text">
+          <h2 style="color: var(--bunker-blue);">Extreme Climate Change Bunker Engineering</h2>
+          <p>Design a subterranean bunker, balance NBC air filtration, power autonomy, and emergency supplies to protect against 50°C heatwaves, hypercanes, and mega-floods.</p>
+        </div>
+      </div>
+
+      <div class="tabs-nav">
+        <button class="tab-btn active bunker-active p2-bunker-tab" onclick="switchTabP2Bunker('bunker-designer')">[1] 🛡️ Bunker Designer</button>
+        <button class="tab-btn p2-bunker-tab" onclick="switchTabP2Bunker('bunker-monitor')">[2] 📊 Diagnostics</button>
+        <button class="tab-btn p2-bunker-tab" onclick="switchTabP2Bunker('bunker-leaderboard')">[3] 🏆 Global Leaderboard</button>
+      </div>
+
+      <div id="tab-p2-bunker-designer" class="tab-content active">
+        <div class="grid-2">
+          <div class="card bunker-card">
+            <h3>🎛️ Bunker Configuration</h3>
+            <div class="form-group"><label>⚠️ Target Climate Hazard</label><select id="sel-hazard" onchange="updateBunkerSimulation()"><option value="heatwave">☀️ Deadly 50°C Heatwave</option><option value="hypercane">🌀 Category 5+ Hypercane</option><option value="wildfire">🌲 Toxic Wildfire (AQI 999+)</option><option value="flood">🌊 Mega-Flash Flood</option></select></div>
+            <div class="form-group"><label>🏗️ Subterranean Hull</label><select id="sel-hull" onchange="updateBunkerSimulation()"><option value="1">Corrugated Galvanized Steel ($25k)</option><option value="2">Reinforced Concrete Vault ($65k)</option><option value="3">Deep Subterranean Vault ($120k)</option></select></div>
+            <div class="form-group"><label>🌬️ Air System</label><select id="sel-air" onchange="updateBunkerSimulation()"><option value="1">Basic HEPA Filter ($4.5k)</option><option value="2">Swiss NBC Filtration ($14.5k)</option><option value="3">Closed-Loop O2 Scrubber ($32k)</option></select></div>
+            <div class="form-group"><label>💧 Water System</label><select id="sel-water" onchange="updateBunkerSimulation()"><option value="1">2,000L Storage Tanks ($3.5k)</option><option value="2">Atmospheric Generator + Well ($18.5k)</option></select></div>
+            <div class="form-group"><label>🥫 Food Stockpile</label><select id="sel-food" onchange="updateBunkerSimulation()"><option value="1">30-Day Emergency Meal Kits ($3k)</option><option value="2">180-Day Freeze-Dried ($12k)</option><option value="3">365-Day Vault Supply ($24k)</option></select></div>
+            <div class="form-group"><label>⚡ Energy Grid</label><select id="sel-energy" onchange="updateBunkerSimulation()"><option value="1">Solar Array + Battery ($12k)</option><option value="2">Solar Hybrid + Diesel ($28k)</option><option value="3">Geothermal HVAC ($45k)</option></select></div>
+            <div class="form-group"><label>🚪 Airlock Seals</label><select id="sel-seals" onchange="updateBunkerSimulation()"><option value="1">Marine Pressure Doors ($5k)</option><option value="2">Heavy Blast Doors ($18k)</option></select></div>
+          </div>
+          <div class="card bunker-card">
+            <h3>📊 Live Survival Diagnostics</h3>
+            <div class="stat-box"><div class="number" id="disp-bunker-survival-days">30 Days</div><div class="label">Autonomous Survival Duration</div></div>
+            <div class="grid-2">
+              <div class="stat-box"><div class="number" style="color: #10b981;" id="disp-bunker-resilience">65%</div><div class="label">Structural Defense</div></div>
+              <div class="stat-box"><div class="number" style="color: var(--bunker-blue);" id="disp-bunker-total-cost">$68,000</div><div class="label">Total Investment</div></div>
+            </div>
+            <div class="stat-box"><div class="number" style="color: #fde047;" id="disp-bunker-survival-score">78 / 100</div><div class="label">Overall Survival Score</div><div id="bunker-status-badge" class="status-badge utci-moderate">High Preparedness & Autonomy</div></div>
+            <button class="btn btn-bunker btn-block" onclick="openSubmitModalBunker()">🏆 Record Bunker Design</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-p2-bunker-monitor" class="tab-content"><div class="card bunker-card"><h3>📊 Life Support Diagnostics</h3><table><thead><tr><th>Subsystem</th><th>Component</th><th>Autonomy</th><th>Vulnerability</th><th>Cost</th></tr></thead><tbody id="bunker-diag-table-body"></tbody></table></div></div>
+      <div id="tab-p2-bunker-leaderboard" class="tab-content"><div class="card bunker-card"><h3>🏆 Leaderboard</h3><table><thead><tr><th>Rank</th><th>Bunker</th><th>Hazard</th><th>Survival Days</th><th>Score</th><th>Cost</th><th>Efficiency</th></tr></thead><tbody id="leaderboard-table-body-bunker"></tbody></table></div></div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ACTIVITY 3: MICRO:BIT PYTHON CODING PLAYGROUND -->
+    <!-- ============================================================== -->
+    <div id="coding-container" class="hidden">
+      <div class="reward-bar">
+        <div class="xp-progress-wrapper">
+          <div class="xp-label-row"><span><strong id="disp-level-name">🐣 Micro:bit Cadet</strong> (Level <span id="disp-level-num">1</span>)</span><span><strong id="disp-xp-text" style="color: var(--python-yellow);">0 / 400 XP</strong></span></div>
+          <div class="xp-bar-outer"><div id="disp-xp-bar" class="xp-bar-inner"></div></div>
+        </div>
+        <div class="badges-group">
+          <div id="badge-1" class="badge-chip">📦 Library Pioneer</div>
+          <div id="badge-2" class="badge-chip">⚙️ Motor 1 Engineer</div>
+          <div id="badge-3" class="badge-chip">🤖 4-Motor Architect</div>
+          <div id="badge-4" class="badge-chip">🏆 Quad-Robot Master</div>
+        </div>
+        <div class="streak-chip" id="disp-streak">⚡ <span id="disp-streak-num">0</span> Streak</div>
+      </div>
+
+      <div class="playground-grid">
+        <div class="panel-card">
+          <div class="mode-toggle-bar">
+            <button id="btn-mode-learn" class="mode-btn active-mode" onclick="setPlaygroundMode('learn')">🚀 Learn & Code</button>
+            <button id="btn-mode-fix" class="mode-btn" onclick="setPlaygroundMode('fix')">🔧 Fix My Code</button>
+          </div>
+          <div class="module-tab-list">
+            <button id="mod-tab-1" class="mod-btn active-mod" onclick="selectModule(1)">[1] 📦 Import Library</button>
+            <button id="mod-tab-2" class="mod-btn" onclick="selectModule(2)">[2] ⚙️ Motor 1 Pin</button>
+            <button id="mod-tab-3" class="mod-btn" onclick="selectModule(3)">[3] 🤖 4 Motors Setup</button>
+            <button id="mod-tab-4" class="mod-btn" onclick="selectModule(4)">[4] 🔄 Robot Loop</button>
+          </div>
+
+          <!-- Left-Side Script Instructions Guide -->
+          <div class="instruct-box">
+            <h4 id="task-title">Stage 1: Import MicroPython Library</h4>
+            <div id="task-desc" style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.6;">
+              <!-- Dynamically populated per stage script -->
+            </div>
+          </div>
+
+          <div id="gentle-hint-box" class="gentle-hint-box">🌟 <strong>Coder's Tip:</strong> Type your MicroPython code in the right editor panel and click <strong>▶ Run & Validate Code</strong>!</div>
+          <button class="btn-clue" onclick="triggerProgressiveHint()">💡 Stuck? Get a Hint (<span id="clue-level-text">Clue 1 of 3</span>)</button>
+          <div id="clue-display-box" style="font-size: 0.85rem; color: #cbd5e1; background: #090d16; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border);" class="hidden"></div>
+        </div>
+
+        <div class="panel-card">
+          <!-- Code Helper Snippets -->
+          <div class="snippet-helper-bar">
+            <button class="snip-btn" onclick="insertSnippet('from microbit import *\n')">+ from microbit import *</button>
+            <button class="snip-btn" onclick="insertSnippet('pin0.set_analog_period(20)\n')">+ pin0 (20ms)</button>
+            <button class="snip-btn" onclick="insertSnippet('pin1.set_analog_period(20)\n')">+ pin1 (20ms)</button>
+            <button class="snip-btn" onclick="insertSnippet('pin2.set_analog_period(20)\n')">+ pin2 (20ms)</button>
+            <button class="snip-btn" onclick="insertSnippet('pin16.set_analog_period(20)\n')">+ pin16 (20ms)</button>
+            <button class="snip-btn" onclick="insertSnippet('while True:\n    ')">+ while True:</button>
+            <button class="snip-btn" onclick="insertSnippet('if button_a.is_pressed():\n    ')">+ if button_a</button>
+            <button class="snip-btn" onclick="insertSnippet('else:\n    ')">+ else:</button>
+            <button class="snip-btn" onclick="insertSnippet('write_analog(180)\n')">+ write(180)</button>
+            <button class="snip-btn" onclick="insertSnippet('write_analog(90)\n')">+ write(90)</button>
+          </div>
+
+          <div class="editor-wrapper">
+            <div class="editor-toolbar"><span>🐍 MicroPython Editor (main.py)</span><span style="color: var(--primary);">● Ready</span></div>
+            <textarea id="python-code-editor" class="code-area" spellcheck="false" placeholder="# Type your MicroPython code here..."></textarea>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+            <button class="btn btn-bunker" style="flex: 1.5; background: var(--python-yellow); color: #000;" onclick="validateAndRunCode()">▶ Run & Validate Code</button>
+            <button class="btn" style="flex: 1; background: #374151; color: #fff;" onclick="resetCurrentModuleCode()">🔄 Reset Code</button>
+          </div>
+
+          <div class="simulator-card">
+            <div class="sim-title">🤖 Virtual micro:bit v2 Hardware & 4-Servo Robot Output</div>
+            <div class="led-matrix-grid" id="led-matrix-grid"></div>
+
+            <!-- 4-Servo Motor Quad Robot Dashboard -->
+            <div id="quad-servo-robot-panel" style="background: #090d16; padding: 0.85rem; border-radius: 10px; border: 1px solid var(--card-border); margin-bottom: 0.75rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+                <span style="font-size: 0.78rem; font-weight: bold; color: var(--python-yellow); text-transform: uppercase;">🤖 4-SERVO ROBOT MOTORS (pins: P0, P1, P2, P16)</span>
+                <span id="disp-robot-motion-status" style="font-size: 0.78rem; font-weight: bold; color: var(--text-muted);">🛑 STOPPED</span>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center;">
+                <div style="background: #131c2e; padding: 0.4rem; border-radius: 6px; border: 1px solid var(--card-border);">
+                  <div class="gauge-dial" style="width: 44px; height: 44px; margin: 0 auto 0.2rem auto;"><div id="servo-needle-fl" class="gauge-needle"></div></div>
+                  <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: bold;">FL (Pin 0)</div>
+                  <div id="disp-servo-fl-angle" style="font-size: 0.85rem; font-weight: 800; color: var(--python-yellow);">0°</div>
+                </div>
+
+                <div style="background: #131c2e; padding: 0.4rem; border-radius: 6px; border: 1px solid var(--card-border);">
+                  <div class="gauge-dial" style="width: 44px; height: 44px; margin: 0 auto 0.2rem auto;"><div id="servo-needle-fr" class="gauge-needle"></div></div>
+                  <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: bold;">FR (Pin 1)</div>
+                  <div id="disp-servo-fr-angle" style="font-size: 0.85rem; font-weight: 800; color: var(--python-yellow);">0°</div>
+                </div>
+
+                <div style="background: #131c2e; padding: 0.4rem; border-radius: 6px; border: 1px solid var(--card-border);">
+                  <div class="gauge-dial" style="width: 44px; height: 44px; margin: 0 auto 0.2rem auto;"><div id="servo-needle-rl" class="gauge-needle"></div></div>
+                  <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: bold;">RL (Pin 2)</div>
+                  <div id="disp-servo-rl-angle" style="font-size: 0.85rem; font-weight: 800; color: var(--python-yellow);">0°</div>
+                </div>
+
+                <div style="background: #131c2e; padding: 0.4rem; border-radius: 6px; border: 1px solid var(--card-border);">
+                  <div class="gauge-dial" style="width: 44px; height: 44px; margin: 0 auto 0.2rem auto;"><div id="servo-needle-rr" class="gauge-needle"></div></div>
+                  <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: bold;">RR (Pin 16)</div>
+                  <div id="disp-servo-rr-angle" style="font-size: 0.85rem; font-weight: 800; color: var(--python-yellow);">0°</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2" style="gap: 0.75rem;">
+              <div class="motor-gauge-wrapper"><div class="gauge-dial"><div id="servo-needle" class="gauge-needle"></div></div><div><div style="font-size:0.75rem; color:var(--text-muted); font-weight:bold;">SERVO (Pin 0)</div><div id="disp-servo-angle" style="font-size:1.2rem; font-weight:800; color:var(--python-yellow);">0°</div></div></div>
+              <div class="tilt-box"><div class="tilt-ball-area"><div id="tilt-ball" class="tilt-ball"></div></div><div><div style="font-size:0.75rem; color:var(--text-muted); font-weight:bold;">RADIO / TILT</div><div id="disp-radio-status" style="font-size:0.85rem; font-weight:800; color:var(--bunker-blue);">OFF</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ACTIVITY 4: BANGKOK COASTAL BUNKER CHALLENGE -->
+    <!-- ============================================================== -->
+    <div id="bangkok-container" class="hidden">
+      
+      <!-- Live 15-Minute Countdown Bar -->
+      <div class="timer-bar-bkk">
+        <div>
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold;">ACTIVIST RANKING CRITERIA:</span>
+          <div style="font-size: 0.9rem; color: var(--text-light); font-weight: 700;">⏱️ Shortest Time + 🗺️ Best Bunker Location (Option A)</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-align: right;">TIME REMAINING</div>
+          <div id="bkk-timer-clock" class="timer-display">15:00</div>
+        </div>
+      </div>
+
+      <!-- Hero Banner -->
+      <div class="hero" style="background: linear-gradient(135deg, #3b0764 0%, #090d16 100%); border-color: var(--bangkok-purple);">
+        <div class="hero-text">
+          <h2 style="color: var(--bangkok-purple);">SENTINEL AI: Bangkok Coastal Emergency Response</h2>
+          <p>Guide young activists through a multi-stage crisis: decode satellite binary alerts, communicate with fisherman Somchai, select optimal coastal bunkers, and calculate storm surge arrival timelines!</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs Bangkok Challenge -->
+      <div class="tabs-nav">
+        <button class="tab-btn active bangkok-active bkk-tab" id="bkk-nav-1" onclick="switchStageBkk(1)">[Stage 1] 🛰️ Binary Alert</button>
+        <button class="tab-btn bkk-tab" id="bkk-nav-2" onclick="switchStageBkk(2)">[Stage 2] 🗣️ Somchai Chatbot</button>
+        <button class="tab-btn bkk-tab" id="bkk-nav-3" onclick="switchStageBkk(3)">[Stage 3] 🗺️ Bunker Map</button>
+        <button class="tab-btn bkk-tab" id="bkk-nav-4" onclick="switchStageBkk(4)">[Stage 4] ⏱️ Physics Math</button>
+        <button class="tab-btn bkk-tab" id="bkk-nav-5" onclick="switchStageBkk(5)">[Score] 🏆 Coastal Leaderboard</button>
+      </div>
+
+      <!-- STAGE 1: BINARY DECRYPTION -->
+      <div id="tab-bkk-stage-1" class="tab-content active">
+        <div class="grid-2">
+          <div class="card bangkok-card">
+            <h3>🛰️ Corrupted Orbital Satellite Signal Received</h3>
+            <p style="margin-bottom: 1rem; color: #e9d5ff;">Decode the incoming 40-bit ASCII binary transmission from Climate Monitoring Satellite Sentinel-9!</p>
+            <div style="background: #090d16; padding: 1rem; border-radius: 8px; font-family: monospace; color: var(--python-yellow); font-size: 1.1rem; border: 1px solid var(--card-border); margin-bottom: 1rem; letter-spacing: 2px;">
+              01010011 01010100 01001111 01010010 01001101
+            </div>
+            <div class="form-group">
+              <label>Enter Decoded Word (ASCII Text):</label>
+              <input type="text" id="input-binary-decode" placeholder="e.g. ICE CREAM" style="text-transform: uppercase;">
+            </div>
+            <button class="btn btn-bangkok btn-block" onclick="verifyBinaryDecode()">
+              🔓 Verify & Unlock Stage 2
+            </button>
+          </div>
+
+          <div class="card bangkok-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <h3 style="margin-bottom: 0;">🧩 Full Alphabet (A-Z) ASCII Decoder Matrix</h3>
+              <button class="snip-btn" style="color: var(--bangkok-purple); border-color: var(--bangkok-purple);" onclick="renderShuffledAsciiKey()">🔀 Reshuffle Key</button>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Search the randomized 26-letter binary lookup table below to decode the 5 binary bytes!</p>
+            <div id="ascii-key-grid" class="ascii-grid-container"></div>
+            <div id="bkk-stage1-feedback" class="gentle-hint-box" style="margin-top: 0.75rem; background: rgba(168, 85, 247, 0.1); border-left-color: var(--bangkok-purple);">
+              Hint: Scan the randomized matrix for binary bytes starting with 010...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STAGE 2: SOMCHAI CHATBOT -->
+      <div id="tab-bkk-stage-2" class="tab-content">
+        <div class="grid-2">
+          <div class="card bangkok-card">
+            <h3>🗣️ Live Dialogue with Somchai Seenoi (Fisherman, Samut Sakhon)</h3>
+
+            <!-- Live Emergency Storm News Bulletin -->
+            <div style="background: rgba(168, 85, 247, 0.12); padding: 0.7rem 1rem; border-radius: 8px; border: 1px solid var(--bangkok-purple); margin-bottom: 0.85rem; font-size: 0.82rem; color: #e9d5ff; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+              <span>📡 <strong>LIVE NEWS BULLETIN:</strong> Tropical Storm Nai is 280 km away moving at 35 km/h. Surge + Tide = 3.7m total rise. ETA 4 Hours.</span>
+              <button style="background: rgba(255,255,255,0.1); border: 1px solid var(--bangkok-purple); color: #fff; border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; cursor: pointer;" onclick="toggleSomchaiAiKeyInput()">🤖 Gemini AI Key</button>
+            </div>
+
+            <!-- Optional Gemini API Key Configuration -->
+            <div id="somchai-api-key-block" style="display: none; background: #090d16; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 0.85rem;">
+              <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">🔑 Gemini API Key (Optional for Live Gemini LLM Reasoning):</label>
+              <div style="display: flex; gap: 0.5rem;">
+                <input type="password" id="input-somchai-api-key" placeholder="AIzaSy..." style="font-size: 0.8rem; padding: 0.4rem;">
+                <button class="btn btn-bangkok" style="font-size: 0.75rem; padding: 0.4rem 0.8rem;" onclick="saveSomchaiApiKey()">Save Key</button>
+              </div>
+            </div>
+
+            <!-- Trust Level Bar -->
+            <div style="margin-bottom: 0.85rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: bold; margin-bottom: 0.35rem;">
+                <span>Somchai's Trust Level</span>
+                <span id="disp-trust-percent" style="color: var(--bangkok-purple);">25%</span>
+              </div>
+              <div style="height: 10px; background: #090d16; border-radius: 999px; overflow: hidden; border: 1px solid var(--card-border);">
+                <div id="disp-trust-bar" style="height: 100%; width: 25%; background: var(--bangkok-purple); transition: width 0.4s;"></div>
+              </div>
+            </div>
+
+            <!-- Chat Window -->
+            <div class="chat-box" id="somchai-chat-window">
+              <div class="chat-msg somchai">
+                <strong>Somchai:</strong> Hello... you say storm coming? I hear government say many storms coming before. They say evacuate, I go where? My nets, my boat, my stilt house—40 years I build this. Where fisherman go? Why I should trust this news?
+              </div>
+            </div>
+
+            <!-- Quick Storm News Suggestion Pills -->
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+              <button class="snip-btn" onclick="useChatSuggestion('Somchai, satellite radar news shows Storm Nai is 280km away moving at 35km/h! Water will rise 3.7 meters in 4 hours!')">📰 3.7m Surge News</button>
+              <button class="snip-btn" onclick="useChatSuggestion('Somchai, I respect your 40 years of fishing. We can tie down your boat engine first before getting your family to safety.')">⛵ Boat & Family Safety</button>
+              <button class="snip-btn" onclick="useChatSuggestion('Bangkhunthian Shelter sits at 3.2m elevation with high access roads. Your wooden house at 1.8m won\'t survive!')">🛡️ Shelter Elevation</button>
+            </div>
+
+            <!-- Input & Send Controls -->
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" id="input-chat-user" placeholder="Explain storm news & express empathy to Somchai..." onkeydown="if(event.key==='Enter') sendChatToSomchai()">
+              <button class="btn btn-bangkok" id="btn-send-somchai" onclick="sendChatToSomchai()">Send</button>
+            </div>
+          </div>
+
+          <div class="card bangkok-card">
+            <h3>🎯 Dialogue & Storm News Evaluation Criteria</h3>
+            <ul style="list-style: none; line-height: 1.8; font-size: 0.9rem;">
+              <li>❤️ <strong>Show Empathy (+25 pts):</strong> Respect his 40 years of hard work & fears of losing livelihood.</li>
+              <li>📰 <strong>Cite Storm News (+25 pts):</strong> Reference specific storm telemetry (280km away, 35km/h speed, 3.7m rise).</li>
+              <li>🌊 <strong>Explain Surge Danger (+25 pts):</strong> Explain why a 3.7m surge submerges 1.8m wooden stilt houses.</li>
+              <li>🛡️ <strong>Offer Shelter Elevation (+25 pts):</strong> Direct him to engineered elevated shelters like Bangkhunthian (3.2m).</li>
+            </ul>
+
+            <div style="margin-top: 1.25rem; background: #090d16; padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+              <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold;">STAGE STATUS:</span>
+              <div id="bkk-stage2-status" style="font-weight: bold; color: var(--python-yellow); margin-top: 0.25rem;">Reach 70% Trust to unlock Stage 3!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STAGE 3: BUNKER MAP SELECTION -->
+      <div id="tab-bkk-stage-3" class="tab-content">
+        <div class="card bangkok-card" style="margin-bottom: 1.5rem;">
+          <h3>🗺️ Select Optimal Evacuation Bunker Location (Bangkok Coast)</h3>
+          <p style="color: var(--text-muted);">Choose the safest shelter for Somchai and Samut Sakhon residents considering elevation, distance, capacity, and flood risk.</p>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <div class="bunker-option-card" id="bkk-opt-A" onclick="selectBkkBunker('A')">
+              <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                <span style="color: var(--primary);">Option A: Bangkhunthian Shelter</span>
+                <span style="color: var(--primary);">⭐ 95 PTS (OPTIMAL CHOICE)</span>
+              </div>
+              <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.35rem;">
+                Elevation: 3.2m | Distance: 8km | Access: ⭐⭐⭐⭐ | Capacity: 500 ppl<br>
+                <em>Good elevated access road above sea level.</em>
+              </div>
+            </div>
+
+            <div class="bunker-option-card" id="bkk-opt-B" onclick="selectBkkBunker('B')">
+              <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                <span style="color: var(--bunker-blue);">Option B: Lat Krabang High Vault</span>
+                <span>⭐ 85 PTS</span>
+              </div>
+              <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.35rem;">
+                Elevation: 4.1m | Distance: 12km | Access: ⭐⭐⭐ | Capacity: 300 ppl<br>
+                <em>High ground, but industrial access zone.</em>
+              </div>
+            </div>
+
+            <div class="bunker-option-card" id="bkk-opt-C" onclick="selectBkkBunker('C')">
+              <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                <span style="color: var(--accent-red);">Option C: Samut Sakhon Town</span>
+                <span style="color: var(--accent-red);">⚠️ 40 PTS (CRITICAL RISK)</span>
+              </div>
+              <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.35rem;">
+                Elevation: 1.8m | Distance: 4km | Access: ⭐⭐⭐⭐⭐ | Capacity: 800 ppl<br>
+                <em>Too close to coast! High storm surge inundation risk.</em>
+              </div>
+            </div>
+
+            <div class="bunker-option-card" id="bkk-opt-D" onclick="selectBkkBunker('D')">
+              <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                <span>Option D: Thawi Watthana Outpost</span>
+                <span>⭐ 60 PTS</span>
+              </div>
+              <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.35rem;">
+                Elevation: 5.6m | Distance: 15km | Access: ⭐⭐ | Capacity: 150 ppl<br>
+                <em>Very safe elevation, but remote and low capacity.</em>
+              </div>
+            </div>
+
+            <div class="bunker-option-card" id="bkk-opt-E" onclick="selectBkkBunker('E')">
+              <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                <span style="color: var(--python-yellow);">Option E: Bang Pakong River Basin</span>
+                <span>⭐ 75 PTS</span>
+              </div>
+              <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.35rem;">
+                Elevation: 2.1m | Distance: 6km | Access: ⭐⭐⭐⭐ | Capacity: 600 ppl<br>
+                <em>River basin water infiltration risk during rain.</em>
+              </div>
+            </div>
+          </div>
+
+          <div class="card bangkok-card">
+            <h3>📊 Strategic Selection Analysis</h3>
+            <div id="bkk-bunker-choice-summary" style="font-size: 0.95rem; line-height: 1.6; color: #e9d5ff; background: #090d16; padding: 1.25rem; border-radius: 10px; border: 1px solid var(--card-border); margin-bottom: 1.5rem;">
+              Click a bunker option on the left to review strategic tradeoffs!
+            </div>
+            <button class="btn btn-bangkok btn-block" onclick="confirmBkkBunkerSelection()">
+              🚀 Confirm Selection & Proceed to Stage 4
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STAGE 4: FLOOD TIMELINE MATH & PHYSICS ESTIMATION -->
+      <div id="tab-bkk-stage-4" class="tab-content">
+        <!-- Stage 4 Stage Timer & Status Banner -->
+        <div class="timer-bar-bkk" style="margin-bottom: 1rem; border-color: var(--bangkok-purple);">
+          <div>
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold;">STAGE 4 DEADLINE:</span>
+            <div id="bkk-stage4-warning" style="font-size: 0.9rem; color: var(--python-yellow); font-weight: 700;">⏱️ Analyze Satellite Data & Calculate Peak Flood Arrival</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: right;">STAGE 4 TIMER</div>
+            <div id="bkk-stage4-timer" class="timer-display" style="background: rgba(168, 85, 247, 0.2); border: 1px solid var(--bangkok-purple); color: #e9d5ff;">04:00</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Left Column: Data & Calculation Steps -->
+          <div class="card bangkok-card">
+            <h3>⏱️ Calculate Storm Surge Peak Flood Timeline</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
+              You and Somchai are safe in the bunker, but Emergency Operations needs the exact peak flood timing. Analyze satellite telemetry and complete the physics calculation below:
+            </p>
+
+            <!-- Image Data Sources -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+              <div style="background: #090d16; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--card-border); text-align: center;">
+                <img src="https://res.cloudinary.com/dkplz6vbx/image/upload/v1788750401/news_adria2018_S3-TUR_jj6gnd.jpg" alt="Satellite Storm Telemetry" style="width: 100%; height: 110px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;">
+                <div style="font-size: 0.75rem; color: var(--text-muted);">📡 Satellite Sentinel-9 (Storm Nai)</div>
+              </div>
+              <div style="background: #090d16; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--card-border); text-align: center;">
+                <img src="https://res.cloudinary.com/dkplz6vbx/image/upload/v1788750399/images_2_catpky.jpg" alt="Thermal Storm Surge Heatmap" style="width: 100%; height: 110px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;">
+                <div style="font-size: 0.75rem; color: var(--text-muted);">🌡️ Surge Intensity & Thermal Map</div>
+              </div>
+            </div>
+
+            <!-- Telemetry Reference Box -->
+            <div style="background: #090d16; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem; border: 1px solid var(--card-border);">
+              <div style="font-weight: bold; color: var(--bangkok-purple); font-size: 0.85rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">📡 Telemetry & Physical Parameters</div>
+              <ul style="list-style: none; line-height: 1.8; font-family: monospace; font-size: 0.85rem;">
+                <li>📍 Distance to Coast: <strong>280 km</strong></li>
+                <li>💨 Average Surge Speed: <strong>35 km/h</strong></li>
+                <li>⏰ Scenario Alert Elapsed: <strong>2 Hours Ago</strong></li>
+                <li>🌊 Expected Surge Height: <strong>2.5m Surge + 1.2m Tide = 3.7m Total Rise</strong></li>
+              </ul>
+            </div>
+
+            <!-- Step-by-Step Guided Calculation -->
+            <div style="background: rgba(15, 23, 42, 0.7); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 1.25rem;">
+              <div style="font-weight: bold; color: #38bdf8; font-size: 0.9rem; margin-bottom: 0.75rem;">🧮 Step-by-Step Physics Calculation Steps:</div>
+
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label style="font-size: 0.82rem;">Step 1: Total Travel Time (Distance ÷ Speed)</label>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <input type="number" id="step-bkk-total-hours" placeholder="Formula: 280 ÷ 35" style="font-size: 0.85rem; padding: 0.4rem 0.6rem;">
+                  <span style="font-size: 0.85rem; color: var(--text-muted);">hours</span>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label style="font-size: 0.82rem;">Step 2: Peak Surge Arrival (~75% of travel time before full landfall)</label>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <input type="number" id="step-bkk-peak-hours" placeholder="Formula: Step 1 Hours × 0.75" style="font-size: 0.85rem; padding: 0.4rem 0.6rem;">
+                  <span style="font-size: 0.85rem; color: var(--text-muted);">hours from alert</span>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label style="font-size: 0.82rem;">Step 3 & 4: Time Remaining from NOW (Subtract 2 hrs elapsed)</label>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <input type="number" id="step-bkk-rem-hours" placeholder="Formula: Step 2 Hours - 2" style="font-size: 0.85rem; padding: 0.4rem 0.6rem;">
+                  <span style="font-size: 0.85rem; color: var(--text-muted);">hours remaining</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Final Minute Estimate Input (NO PREFILLED DEFAULT VALUE OR ANSWER!) -->
+            <div class="form-group">
+              <label style="font-weight: bold; color: var(--python-yellow);">⏱️ Final Estimate: Peak Flood Arrival (MINUTES from NOW):</label>
+              <input type="number" id="input-bkk-minutes" placeholder="Formula: Remaining Hours × 60 (Minutes)" style="font-size: 1.1rem; font-weight: bold; color: #fff;">
+            </div>
+
+            <!-- Reasoning & Walkthrough Box -->
+            <div class="form-group">
+              <label style="font-size: 0.85rem;">📝 Show Your Calculation Reasoning / Walkthrough:</label>
+              <textarea id="input-bkk-reasoning" rows="3" placeholder="Explain your calculation steps using formulas:
+1) Calculate Total Hours = Distance ÷ Speed
+2) Calculate Peak Surge Arrival = Total Hours × 0.75
+3) Calculate Remaining Hours = Peak Surge Hours - 2
+4) Convert Remaining Hours to Minutes = Remaining Hours × 60" style="width: 100%; padding: 0.6rem; border-radius: 6px; background: #090d16; color: #fff; border: 1px solid var(--card-border); font-size: 0.85rem; font-family: inherit;"></textarea>
+            </div>
+
+            <button class="btn btn-bangkok btn-block" onclick="calculateBkkPhysicsTimeline()">
+              🧮 Verify Timeline & Calculate Final Score
+            </button>
+          </div>
+
+          <!-- Right Column: Verification & Final Results -->
+          <div class="card bangkok-card">
+            <!-- SENTINEL AI Verification & Feedback Card -->
+            <div id="bkk-sentinel-feedback-box" style="display: none; background: rgba(9, 13, 22, 0.95); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--bangkok-purple); margin-bottom: 1.25rem;">
+              <h4 style="color: var(--bangkok-purple); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🤖 SENTINEL AI Meteorological Verification</span>
+              </h4>
+              <div id="bkk-sentinel-feedback-content" style="font-size: 0.88rem; line-height: 1.6; color: #cbd5e1;">
+                <!-- Dynamically populated on calculation submission -->
+              </div>
+            </div>
+
+            <h3>🏆 Challenge Final Results</h3>
+            <div id="bkk-final-score-box" style="background: #090d16; padding: 1.25rem; border-radius: 10px; border: 1px solid var(--card-border); margin-bottom: 1.5rem; text-align: center;">
+              <div style="font-size: 0.85rem; color: var(--text-muted);">TOTAL CHALLENGE SCORE (INCL. SPEED BONUS)</div>
+              <div id="disp-bkk-total-score" style="font-size: 3rem; font-weight: bold; color: var(--bangkok-purple);">0 / 550</div>
+              <div id="disp-bkk-score-breakdown" style="font-size: 0.85rem; color: #cbd5e1; margin-top: 0.5rem;">Complete Stage 4 to publish your score!</div>
+            </div>
+
+            <button class="btn btn-bangkok btn-block" id="btn-submit-bkk-leaderboard" onclick="submitScoreToFirebaseBangkok()">
+              🏆 Record Final Result on Live Leaderboard
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STAGE 5: BANGKOK LEADERBOARD -->
+      <div id="tab-bkk-stage-5" class="tab-content">
+        <div class="card bangkok-card">
+          <h3>🏆 Live Bangkok Coastal Challenge Leaderboard</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Ranked by <strong>Total Score</strong> (Optimal Location Option A + Speed Bonus + Somchai Trust % + Physics Accuracy):</p>
+          <table>
+            <thead>
+              <tr><th>Rank</th><th>Activist / Student</th><th>Difficulty</th><th>Total Score</th><th>Bunker Choice</th><th>Completion Time</th><th>Trust %</th></tr>
+            </thead>
+            <tbody id="leaderboard-table-body-bangkok">
+              <tr><td colspan="7" style="text-align:center;">Loading live rankings...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Registration Modal for Activity 4 -->
+  <div id="bkk-registration-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000;">
+    <div class="card bangkok-card" style="width: 100%; max-width: 480px; text-align: center;">
+      <h3>🌊 Bangkok Coastal Emergency Response</h3>
+      <p style="color: #e9d5ff; font-size: 0.95rem; margin-bottom: 1.25rem;">Enter your Activist / Student Name to register before starting the challenge mission!</p>
+      
+      <div class="form-group" style="text-align: left;">
+        <label>Activist / Student Name:</label>
+        <input type="text" id="input-bkk-student-name" placeholder="e.g. Activist Nida">
+      </div>
+
+      <div class="form-group" style="text-align: left; margin-bottom: 1.25rem;">
+        <label>Select Challenge Difficulty Level:</label>
+        <select id="select-bkk-difficulty" style="width: 100%; padding: 0.65rem; border-radius: 6px; background: #090d16; color: #fff; border: 1px solid var(--card-border); font-size: 0.9rem;">
+          <option value="standard" selected>🟡 Standard (Balanced - 15m Mission / 4m Stage 4 Timer)</option>
+          <option value="novice">🟢 Novice (Easier - 22.5m Mission / 6m Stage 4 Timer + Hints)</option>
+          <option value="expert">🔴 Expert (Challenge - 11.25m Mission / 3m Stage 4 Timer)</option>
+        </select>
+      </div>
+
+      <div style="background: #090d16; padding: 0.85rem; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+        ⏱️ <strong>Countdown Mission Timer</strong> starts upon registration.<br>
+        🏆 Winner is determined by <strong>Shortest Time</strong> & <strong>Optimal Location (Option A)</strong>.
+      </div>
+
+      <button class="btn btn-bangkok btn-block" onclick="completeBkkRegistration()">
+        🚀 Start Disaster Mission
+      </button>
+    </div>
+  </div>
+
+  <!-- Submission Modal Phase 1 -->
+  <div id="submit-modal-p1" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000;">
+    <div class="card" style="width: 100%; max-width: 450px;">
+      <h3>🏆 Submit Strategy to Competition</h3>
+      <div class="slider-group"><input type="text" id="input-team-name" placeholder="e.g. WeLearn Eco Squad"></div>
+      <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+        <button class="btn" style="flex: 1;" onclick="submitScoreToFirebaseP1()">Submit</button>
+        <button class="btn" style="flex: 1; background: #475569; color: #fff;" onclick="closeSubmitModalP1()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submission Modal Bunker -->
+  <div id="submit-modal-bunker" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000;">
+    <div class="card bunker-card" style="width: 100%; max-width: 480px;">
+      <h3>🏆 Record Your Bunker Design</h3>
+      <div class="form-group"><label style="font-size: 0.85rem; color: var(--text-muted);">Commander Name</label><input type="text" id="input-commander-name" placeholder="e.g. Cmdr. Sarah"></div>
+      <div class="form-group"><label style="font-size: 0.85rem; color: var(--text-muted);">Bunker Name</label><input type="text" id="input-bunker-name" placeholder="e.g. Vault Alpha"></div>
+      <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+        <button class="btn btn-bunker" style="flex: 1;" onclick="submitScoreToFirebaseBunker()">Publish Bunker</button>
+        <button class="btn" style="flex: 1; background: #374151; color: #fff;" onclick="closeSubmitModalBunker()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Action completed!</div>
+
+  <!-- Script Logic -->
+  <script>
+    const firebaseConfig = {
+      projectId: "dnd-master-73449",
+      appId: "1:80880435576:web:00740e29e4181dd7a9488d",
+      storageBucket: "dnd-master-73449.firebasestorage.app",
+      apiKey: "AIzaSyBpLWqHOfy3A8FTILx4kE4bimhbbwPlOqQ",
+      authDomain: "dnd-master-73449.firebaseapp.com",
+      messagingSenderId: "80880435576",
+      measurementId: "G-FMJH93L0G0"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
+
+    auth.onAuthStateChanged((user) => {
+      const statusEl = document.getElementById("auth-status");
+      if (user) {
+        currentUser = user;
+        if (statusEl) statusEl.innerHTML = `Status: Connected (UID: ${user.uid.substring(0, 6)}...)`;
+        loadUserProgressFromFirestore();
+      } else {
+        currentUser = null;
+        if (statusEl) statusEl.innerHTML = "Status: Signed Out";
+      }
+    });
+
+    // Full 26-Letter ASCII Alphabet Dataset
+    const ASCII_ALPHABET = [
+      { char: 'A', dec: 65, bin: '01000001' }, { char: 'B', dec: 66, bin: '01000010' },
+      { char: 'C', dec: 67, bin: '01000011' }, { char: 'D', dec: 68, bin: '01000100' },
+      { char: 'E', dec: 69, bin: '01000101' }, { char: 'F', dec: 70, bin: '01000110' },
+      { char: 'G', dec: 71, bin: '01000111' }, { char: 'H', dec: 72, bin: '01001000' },
+      { char: 'I', dec: 73, bin: '01001001' }, { char: 'J', dec: 74, bin: '01001010' },
+      { char: 'K', dec: 75, bin: '01001011' }, { char: 'L', dec: 76, bin: '01001100' },
+      { char: 'M', dec: 77, bin: '01001101' }, { char: 'N', dec: 78, bin: '01001110' },
+      { char: 'O', dec: 79, bin: '01001111' }, { char: 'P', dec: 80, bin: '01010000' },
+      { char: 'Q', dec: 81, bin: '01010001' }, { char: 'R', dec: 82, bin: '01010010' },
+      { char: 'S', dec: 83, bin: '01010011' }, { char: 'T', dec: 84, bin: '01010100' },
+      { char: 'U', dec: 85, bin: '01010101' }, { char: 'V', dec: 86, bin: '01010110' },
+      { char: 'W', dec: 87, bin: '01010111' }, { char: 'X', dec: 88, bin: '01011000' },
+      { char: 'Y', dec: 89, bin: '01011001' }, { char: 'Z', dec: 90, bin: '01011010' }
+    ];
+
+    function renderShuffledAsciiKey() {
+      const container = document.getElementById("ascii-key-grid"); if (!container) return;
+      const shuffled = [...ASCII_ALPHABET].sort(() => Math.random() - 0.5); container.innerHTML = "";
+      shuffled.forEach(item => {
+        const isTarget = ['S','T','O','R','M'].includes(item.char);
+        const chip = document.createElement("div");
+        chip.style.cssText = `background: #090d16; border: 1px solid ${isTarget ? 'rgba(168, 85, 247, 0.4)' : '#1e293b'}; padding: 0.4rem 0.6rem; border-radius: 6px; font-family: monospace; font-size: 0.78rem; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;`;
+        chip.innerHTML = `<span style="color:#cbd5e1;">${item.bin}</span> <strong style="color:${isTarget ? '#a855f7' : '#f59e0b'}; font-size:0.9rem;">${item.char}</strong> <span style="color:#64748b; font-size:0.7rem;">(#${item.dec})</span>`;
+        container.appendChild(chip);
+      });
+    }
+
+    // Router & View Switcher
+    function switchPhase(view) {
+      const homeContainer = document.getElementById("home-container");
+      const p1Container = document.getElementById("phase1-container");
+      const bunkerContainer = document.getElementById("bunker-container");
+      const codingContainer = document.getElementById("coding-container");
+      const bangkokContainer = document.getElementById("bangkok-container");
+      const authCard = document.getElementById("auth-card");
+      const dashboardCard = document.getElementById("dashboard-card");
+
+      if (!currentUser) {
+        if (authCard) { authCard.style.display = "block"; authCard.classList.remove("hidden"); }
+        if (dashboardCard) { dashboardCard.style.display = "none"; dashboardCard.classList.add("hidden"); }
+        if (homeContainer) homeContainer.classList.add("hidden");
+        if (p1Container) p1Container.classList.add("hidden");
+        if (bunkerContainer) bunkerContainer.classList.add("hidden");
+        if (codingContainer) codingContainer.classList.add("hidden");
+        if (bangkokContainer) bangkokContainer.classList.add("hidden");
+        return;
+      }
+
+      const homeBtn = document.getElementById("btn-home");
+      const p1Btn = document.getElementById("btn-phase1");
+      const bunkerBtn = document.getElementById("btn-bunker");
+      const codingBtn = document.getElementById("btn-coding");
+      const bangkokBtn = document.getElementById("btn-bangkok");
+
+      const header = document.getElementById("main-header");
+      const headerTitle = document.getElementById("header-title");
+
+      homeBtn.className = "phase-toggle-btn"; p1Btn.className = "phase-toggle-btn"; bunkerBtn.className = "phase-toggle-btn"; codingBtn.className = "phase-toggle-btn"; bangkokBtn.className = "phase-toggle-btn";
+      homeContainer.classList.add("hidden"); p1Container.classList.add("hidden"); bunkerContainer.classList.add("hidden"); codingContainer.classList.add("hidden"); bangkokContainer.classList.add("hidden");
+
+      if (view === "home") {
+        homeBtn.className = "phase-toggle-btn active-home"; header.className = ""; headerTitle.innerHTML = "🌐 Climate Gamification & Resilience Hub"; homeContainer.classList.remove("hidden"); window.location.hash = "home";
+      } else if (view === "phase1" || view === "urban") {
+        p1Btn.className = "phase-toggle-btn active-phase1"; header.className = "phase1-header"; headerTitle.innerHTML = "🌴 Activity 1: Urban Heat Battle (Townsville 2024)"; p1Container.classList.remove("hidden"); updateP1Simulation(); window.location.hash = "phase1";
+      } else if (view === "bunker") {
+        bunkerBtn.className = "phase-toggle-btn active-bunker"; header.className = ""; headerTitle.innerHTML = "🛡️ Activity 2: Extreme Climate Bunker Simulator"; bunkerContainer.classList.remove("hidden"); updateBunkerSimulation(); window.location.hash = "bunker";
+      } else if (view === "coding" || view === "phase2" || view === "phase3") {
+        codingBtn.className = "phase-toggle-btn active-coding"; header.className = "coding-header"; headerTitle.innerHTML = "🐍 Activity 3: Micro:bit Python Coding Playground"; codingContainer.classList.remove("hidden"); window.location.hash = "phase2";
+      } else if (view === "bangkok" || view === "phase4") {
+        bangkokBtn.className = "phase-toggle-btn active-bangkok"; header.className = "bangkok-header"; headerTitle.innerHTML = "🌊 Activity 4: Bangkok Coastal Bunker Challenge"; bangkokContainer.classList.remove("hidden"); renderShuffledAsciiKey(); window.location.hash = "bangkok";
+        if (!bkkRegisteredName) openBkkRegistrationModal();
+      }
+    }
+
+    // Activity 4: Bangkok Coastal Bunker Challenge Logic
+    let bkkRegisteredName = "";
+    let bkkDifficulty = "standard";
+    let bkkStartTime = 0;
+    let bkkTimerInterval = null;
+    let bkkTimeTakenSeconds = 0;
+
+    let bkkStage1Score = 0;
+    let bkkStage2Score = 0;
+    let bkkStage3Score = 0;
+    let bkkStage4Score = 0;
+
+    let somchaiTrust = 25;
+    let selectedBkkBunkerCode = "A";
+
+    // Stage 4 Specific Timer & State
+    let bkkStage4TimerInterval = null;
+    let bkkStage4TimeRemaining = 240; // Default 4 min (240s)
+    let bkkStage4Completed = false;
+
+    const BKK_DIFFICULTY_CONFIG = {
+      novice: { name: "Novice", badge: "🟢 Novice", globalMaxSecs: 1350, stage4Secs: 360, hint: true, tolerance: 90 },
+      standard: { name: "Standard", badge: "🟡 Standard", globalMaxSecs: 900, stage4Secs: 240, hint: false, tolerance: 60 },
+      expert: { name: "Expert", badge: "🔴 Expert", globalMaxSecs: 675, stage4Secs: 180, hint: false, tolerance: 30 }
+    };
+
+    function openBkkRegistrationModal() {
+      document.getElementById("bkk-registration-modal").style.display = "flex";
+    }
+
+    function completeBkkRegistration() {
+      const inputName = document.getElementById("input-bkk-student-name").value.trim();
+      bkkRegisteredName = inputName || "Activist Nida";
+
+      const diffSelect = document.getElementById("select-bkk-difficulty");
+      if (diffSelect) bkkDifficulty = diffSelect.value || "standard";
+
+      const config = BKK_DIFFICULTY_CONFIG[bkkDifficulty] || BKK_DIFFICULTY_CONFIG.standard;
+      bkkStage4TimeRemaining = config.stage4Secs;
+
+      document.getElementById("bkk-registration-modal").style.display = "none";
+
+      // Start Countdown Timer based on difficulty
+      bkkStartTime = Date.now();
+      if (bkkTimerInterval) clearInterval(bkkTimerInterval);
+
+      const maxSeconds = config.globalMaxSecs;
+      bkkTimerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - bkkStartTime) / 1000);
+        const remaining = Math.max(0, maxSeconds - elapsed);
+
+        const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+        const secs = String(remaining % 60).padStart(2, '0');
+        const timerEl = document.getElementById("bkk-timer-clock");
+        if (timerEl) timerEl.textContent = `${mins}:${secs}`;
+
+        if (remaining <= 0) {
+          clearInterval(bkkTimerInterval);
+          showToast("⏱️ Global Challenge Time Expired! Please submit your final results.");
+        }
+      }, 1000);
+
+      showToast(`Welcome ${bkkRegisteredName}! ${config.name} Mode (${Math.round(maxSeconds/60)}m Mission Timer) Started!`);
+    }
+
+    function startStage4Timer() {
+      if (bkkStage4Completed || bkkStage4TimerInterval) return;
+
+      const config = BKK_DIFFICULTY_CONFIG[bkkDifficulty] || BKK_DIFFICULTY_CONFIG.standard;
+      bkkStage4TimeRemaining = config.stage4Secs;
+      const timerDisplay = document.getElementById("bkk-stage4-timer");
+      const warningDisplay = document.getElementById("bkk-stage4-warning");
+
+      if (config.hint && warningDisplay) {
+        // Show formula hint guidance in Novice mode
+        warningDisplay.innerHTML = "💡 Novice Hint: Step 1 = 280 ÷ 35 | Step 2 = Step 1 × 0.75 | Step 3 = Step 2 - 2 | Final = Step 3 × 60";
+      }
+
+      bkkStage4TimerInterval = setInterval(() => {
+        bkkStage4TimeRemaining--;
+        const mins = String(Math.floor(Math.max(0, bkkStage4TimeRemaining) / 60)).padStart(2, '0');
+        const secs = String(Math.max(0, bkkStage4TimeRemaining) % 60).padStart(2, '0');
+
+        if (timerDisplay) timerDisplay.textContent = `${mins}:${secs}`;
+
+        if (bkkStage4TimeRemaining === 120 && warningDisplay) {
+          warningDisplay.style.color = "var(--accent-red)";
+          warningDisplay.innerHTML = "⚠️ FLOOD WARNING IN EFFECT! Peak surge approaching rapidly. Submit your estimate!";
+          showToast("⚠️ 2 Minutes Remaining in Stage 4!");
+        }
+
+        if (bkkStage4TimeRemaining <= 0) {
+          clearInterval(bkkStage4TimerInterval);
+          bkkStage4TimerInterval = null;
+          showToast("⏱️ Stage 4 Time Expired! Auto-evaluating estimate...");
+          if (!document.getElementById("input-bkk-minutes").value) {
+            document.getElementById("input-bkk-minutes").value = "240";
+          }
+          calculateBkkPhysicsTimeline(true);
+        }
+      }, 1000);
+    }
+
+    function switchStageBkk(stageNum) {
+      document.querySelectorAll(".bkk-tab").forEach(btn => { btn.classList.remove("active"); btn.classList.remove("bangkok-active"); });
+      const navBtn = document.getElementById(`bkk-nav-${stageNum}`); if (navBtn) { navBtn.classList.add("active"); navBtn.classList.add("bangkok-active"); }
+      document.querySelectorAll("#bangkok-container .tab-content").forEach(content => content.classList.remove("active"));
+      document.getElementById(`tab-bkk-stage-${stageNum}`).classList.add("active");
+
+      if (stageNum === 1) renderShuffledAsciiKey();
+      if (stageNum === 4) startStage4Timer();
+      if (stageNum === 5) loadLeaderboardBangkok();
+    }
+
+    function verifyBinaryDecode() {
+      const val = document.getElementById("input-binary-decode").value.trim().toUpperCase();
+      const feedback = document.getElementById("bkk-stage1-feedback");
+
+      if (val === "STORM") {
+        bkkStage1Score = 140; feedback.className = "gentle-hint-box"; feedback.innerHTML = `🎉 <strong>SUCCESS!</strong> Binary decoded correctly as "STORM"! +140 Points! Stage 2 Unlocked!`;
+        triggerConfetti(); playVictoryAudioChime(); setTimeout(() => { switchStageBkk(2); }, 1500);
+      } else {
+        feedback.className = "gentle-hint-box error-state"; feedback.innerHTML = `⚠️ <strong>Incorrect Decode:</strong> Scan the 26-letter randomized ASCII lookup matrix! Search for 01010011, 01010100, etc.`;
+      }
+    }
+
+    let somchaiApiKey = localStorage.getItem("SOMCHAI_GEMINI_API_KEY") || "";
+
+    function toggleSomchaiAiKeyInput() {
+      const block = document.getElementById("somchai-api-key-block");
+      if (block) {
+        block.style.display = block.style.display === "none" ? "block" : "none";
+        const inputKey = document.getElementById("input-somchai-api-key");
+        if (inputKey && somchaiApiKey) inputKey.value = somchaiApiKey;
+      }
+    }
+
+    function saveSomchaiApiKey() {
+      const keyVal = document.getElementById("input-somchai-api-key").value.trim();
+      somchaiApiKey = keyVal;
+      if (keyVal) {
+        localStorage.setItem("SOMCHAI_GEMINI_API_KEY", keyVal);
+        showToast("🔑 Gemini API Key Saved! Somchai now using live Gemini LLM!");
+      } else {
+        localStorage.removeItem("SOMCHAI_GEMINI_API_KEY");
+        showToast("Gemini API Key removed. Using Smart Dialogue Engine.");
+      }
+      document.getElementById("somchai-api-key-block").style.display = "none";
+    }
+
+    function useChatSuggestion(text) {
+      const input = document.getElementById("input-chat-user");
+      if (input) {
+        input.value = text;
+        input.focus();
+      }
+    }
+
+    async function sendChatToSomchai() {
+      const input = document.getElementById("input-chat-user");
+      const msg = input ? input.value.trim() : "";
+      if (!msg) return;
+
+      const chatWin = document.getElementById("somchai-chat-window");
+      const sendBtn = document.getElementById("btn-send-somchai");
+
+      // Render user message
+      const userDiv = document.createElement("div");
+      userDiv.className = "chat-msg user";
+      userDiv.textContent = msg;
+      chatWin.appendChild(userDiv);
+      input.value = "";
+      chatWin.scrollTop = chatWin.scrollHeight;
+
+      // Temporary typing indicator
+      const typingDiv = document.createElement("div");
+      typingDiv.className = "chat-msg somchai";
+      typingDiv.id = "somchai-typing-indicator";
+      typingDiv.innerHTML = "<strong>Somchai:</strong> <em>thinking... (reading storm news & listening...)</em>";
+      chatWin.appendChild(typingDiv);
+      chatWin.scrollTop = chatWin.scrollHeight;
+      if (sendBtn) sendBtn.disabled = true;
+
+      let reply = "";
+      let trustGain = 0;
+      let usedLiveAi = false;
+
+      // Check if Gemini API Key is available for direct live LLM inference
+      if (somchaiApiKey) {
+        try {
+          const systemPrompt = `You are Somchai Seenoi, a 58-year-old artisanal fisherman in Samut Sakhon on the Bangkok coast. You built your boat and nets over 40 years. You survived floods in 1995 and 2011. You are skeptical of government alerts, protective of your family (wife) and fishing boat, but willing to listen if young activists respect your career, cite real storm news (Storm Nai 2026, 280km away, 35km/h speed, 3.7m total water rise, 4 hours arrival), and suggest safe elevated shelters (Bangkhunthian at 3.2m). Respond in 2-3 authentic, realistic sentences as Somchai. Also rate how much trust the student earned from 0 to 30. Return format: RESPONSE: <your response> | TRUST: <number>`;
+
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${somchaiApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{ text: `${systemPrompt}\n\nStudent activist says: "${msg}"` }]
+              }]
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            if (rawText.includes("RESPONSE:")) {
+              const parts = rawText.split("|");
+              reply = parts[0].replace("RESPONSE:", "").trim();
+              const trustMatch = rawText.match(/TRUST:\s*(\d+)/i);
+              if (trustMatch) trustGain = parseInt(trustMatch[1]) || 15;
+              usedLiveAi = true;
+            } else {
+              reply = rawText;
+              trustGain = 20;
+              usedLiveAi = true;
+            }
+          }
+        } catch (e) {
+          console.warn("Gemini API call failed, falling back to Smart NLP Engine:", e);
+        }
+      }
+
+      // Smart Natural Language & Storm News Engine (Fallback / Default)
+      if (!usedLiveAi) {
+        const lower = msg.toLowerCase();
+        let matchedTopics = [];
+
+        // Topic 1: Empathy & Career Respect
+        if (lower.includes("understand") || lower.includes("fear") || lower.includes("built") || lower.includes("home") || lower.includes("hard work") || lower.includes("40 years") || lower.includes("livelihood")) {
+          trustGain += 25;
+          matchedTopics.push("empathy");
+        }
+
+        // Topic 2: Storm News & Physics Parameters
+        if (lower.includes("280") || lower.includes("35") || lower.includes("3.7") || lower.includes("surge") || lower.includes("4 hour") || lower.includes("radar") || lower.includes("satellite") || lower.includes("sentinel")) {
+          trustGain += 25;
+          matchedTopics.push("news");
+        }
+
+        // Topic 3: Surge Danger vs Stilt House Elevation
+        if (lower.includes("meter") || lower.includes("water") || lower.includes("roof") || lower.includes("flood") || lower.includes("stilt") || lower.includes("submerge")) {
+          trustGain += 20;
+          matchedTopics.push("danger");
+        }
+
+        // Topic 4: Shelter Refuge & Boat / Family Plan
+        if (lower.includes("bunker") || lower.includes("shelter") || lower.includes("bangkhunthian") || lower.includes("safe") || lower.includes("engine") || lower.includes("family") || lower.includes("wife")) {
+          trustGain += 25;
+          matchedTopics.push("shelter");
+        }
+
+        // Synthesize dynamic Somchai response based on news topics
+        if (matchedTopics.includes("news") && matchedTopics.includes("empathy")) {
+          reply = "Somchai: You really listen to me... and you cite the satellite radar news! 35 km/h surge speed? In 2011 water moved slowly, but 35 km/h means 3.7 meters of water will reach our village in 4 hours! We must secure my boat engine right now!";
+        } else if (matchedTopics.includes("news") && matchedTopics.includes("shelter")) {
+          reply = "Somchai: Bangkhunthian shelter at 3.2 meters elevation? And high access road? That makes sense... if storm surge + tide is 3.7 meters, my 1.8 meter wooden house will be completely under water. Let me get my wife!";
+        } else if (matchedTopics.includes("news")) {
+          reply = "Somchai: 280 kilometers away and 3.7 meters total water rise? Mother of sea... that is higher than the 2011 flood line! How long do we have before peak surge hits?";
+        } else if (matchedTopics.includes("empathy") && matchedTopics.includes("shelter")) {
+          reply = "Somchai: Thank you for understanding how much my 40-year fishing boat means to my family. If we can lock the boat to the concrete pillar and bring my wife to Bangkhunthian shelter, I will evacuate with you!";
+        } else if (matchedTopics.includes("empathy")) {
+          reply = "Somchai: You are the first person who doesn't just yell orders at me. You understand I spent my whole life on this water... 40 years of hard work. Tell me, what does the storm satellite news say?";
+        } else if (matchedTopics.includes("shelter")) {
+          reply = "Somchai: An engineered shelter nearby? Is it high enough above sea level? What about my neighbor Sompong and his young children? Can they come too?";
+        } else {
+          reply = "Somchai: I am listening, but I need real facts. What does the satellite news say about storm surge height and arrival time? Is my wooden stilt house safe?";
+          trustGain += 10;
+        }
+      }
+
+      // Remove typing indicator
+      const indicator = document.getElementById("somchai-typing-indicator");
+      if (indicator) indicator.remove();
+      if (sendBtn) sendBtn.disabled = false;
+
+      // Update trust score
+      somchaiTrust = Math.min(somchaiTrust + trustGain, 100);
+      document.getElementById("disp-trust-percent").textContent = `${somchaiTrust}%`;
+      document.getElementById("disp-trust-bar").style.width = `${somchaiTrust}%`;
+
+      // Render Somchai's reply
+      const somchaiDiv = document.createElement("div");
+      somchaiDiv.className = "chat-msg somchai";
+      somchaiDiv.innerHTML = `<strong>Somchai:</strong> ${reply} ${usedLiveAi ? '<span style="font-size: 0.7rem; color: var(--bangkok-purple); font-weight: bold;">(Gemini AI)</span>' : ''}`;
+      chatWin.appendChild(somchaiDiv);
+      chatWin.scrollTop = chatWin.scrollHeight;
+
+      if (somchaiTrust >= 70) {
+        bkkStage2Score = Math.round((somchaiTrust / 100) * 150);
+        document.getElementById("bkk-stage2-status").style.color = "var(--primary)";
+        document.getElementById("bkk-stage2-status").innerHTML = `🎉 Trust Level High (${somchaiTrust}%)! Somchai agrees to evacuate! Stage 3 Unlocked!`;
+        triggerConfetti();
+        playVictoryAudioChime();
+        setTimeout(() => { switchStageBkk(3); }, 2200);
+      }
+    }
+
+    function selectBkkBunker(code) {
+      selectedBkkBunkerCode = code;
+      document.querySelectorAll(".bunker-option-card").forEach(c => c.classList.remove("selected"));
+      document.getElementById(`bkk-opt-${code}`).classList.add("selected");
+
+      const summary = document.getElementById("bkk-bunker-choice-summary");
+      const details = {
+        A: "<strong>Option A (Bangkhunthian Shelter):</strong> 3.2m elevation, 8km distance. OPTIMAL CHOICE (+95 Pts). High elevated access road above sea level.",
+        B: "<strong>Option B (Lat Krabang High Vault):</strong> 4.1m elevation, 12km distance (+85 Pts). Safe elevation, industrial access road.",
+        C: "<strong>Option C (Samut Sakhon Town):</strong> 1.8m elevation (+40 Pts). CRITICAL RISK: Too close to ocean front!",
+        D: "<strong>Option D (Thawi Watthana Outpost):</strong> 5.6m elevation (+60 Pts). Very high, but small 150-person capacity.",
+        E: "<strong>Option E (Bang Pakong Basin):</strong> 2.1m elevation (+75 Pts). Decent location, potential river water infiltration."
+      };
+      summary.innerHTML = details[code];
+      const scores = { A: 145, B: 125, C: 60, D: 90, E: 110 }; bkkStage3Score = scores[code];
+    }
+
+    function confirmBkkBunkerSelection() {
+      if (!selectedBkkBunkerCode) selectBkkBunker('A');
+      showToast(`Bunker Option ${selectedBkkBunkerCode} Confirmed! Moving to Stage 4...`); switchStageBkk(4);
+    }
+
+    function calculateBkkPhysicsTimeline(isTimeout = false) {
+      const inputMinutesEl = document.getElementById("input-bkk-minutes");
+      const reasoningEl = document.getElementById("input-bkk-reasoning");
+
+      const inputMinsVal = inputMinutesEl ? inputMinutesEl.value.trim() : "";
+      if (!inputMinsVal && !isTimeout) {
+        return alert("Please enter your estimate for Peak Flood Arrival in minutes!");
+      }
+
+      const minutes = parseInt(inputMinsVal) || 240;
+      const reasoning = reasoningEl ? reasoningEl.value.trim() : "";
+
+      // Stop Stage 4 Timer
+      if (bkkStage4TimerInterval) {
+        clearInterval(bkkStage4TimerInterval);
+        bkkStage4TimerInterval = null;
+      }
+      bkkStage4Completed = true;
+
+      // Expert Meteorological Model Reference:
+      // Distance = 280 km, Speed = 35 km/h => 8 hrs total travel time
+      // Peak surge arrives at ~75% of travel time => 6 hrs from alert
+      // Elapsed scenario time = 2 hrs
+      // Remaining time to peak = 6 - 2 = 4 hrs = 240 minutes
+      const targetMinutes = 240;
+      const diffMinutes = Math.abs(minutes - targetMinutes);
+
+      let accuracyPct = 100;
+      let accuracyScore = 140; // Max score for Stage 4
+
+      if (diffMinutes <= 20) {
+        accuracyPct = 100;
+        accuracyScore = 140;
+      } else if (diffMinutes <= 60) {
+        accuracyPct = 85;
+        accuracyScore = 115;
+      } else if (diffMinutes <= 120) {
+        accuracyPct = 70;
+        accuracyScore = 90;
+      } else {
+        accuracyPct = 50;
+        accuracyScore = 60;
+      }
+
+      // Reasoning Bonus: +10 Pts if reasoning provided
+      let reasoningBonus = 0;
+      if (reasoning.length > 15) {
+        reasoningBonus = 10;
+        accuracyScore += reasoningBonus;
+      }
+
+      if (isTimeout) {
+        accuracyScore = Math.max(30, accuracyScore - 30);
+      }
+
+      bkkStage4Score = accuracyScore;
+
+      // Stop Global Timer & Calculate Speed Bonus
+      if (bkkTimerInterval) clearInterval(bkkTimerInterval);
+      bkkTimeTakenSeconds = bkkStartTime > 0 ? Math.floor((Date.now() - bkkStartTime) / 1000) : 300;
+
+      const config = BKK_DIFFICULTY_CONFIG[bkkDifficulty] || BKK_DIFFICULTY_CONFIG.standard;
+      const speedBonus = Math.max(0, Math.round((config.globalMaxSecs - bkkTimeTakenSeconds) / 6));
+      const totalScore = bkkStage1Score + bkkStage2Score + bkkStage3Score + bkkStage4Score + speedBonus;
+
+      const mins = Math.floor(bkkTimeTakenSeconds / 60);
+      const secs = bkkTimeTakenSeconds % 60;
+      const timeFormatted = `${mins}m ${secs}s`;
+
+      // Populate SENTINEL AI Meteorological Verification Box
+      const feedbackBox = document.getElementById("bkk-sentinel-feedback-box");
+      const feedbackContent = document.getElementById("bkk-sentinel-feedback-content");
+
+      if (feedbackBox && feedbackContent) {
+        feedbackBox.style.display = "block";
+        feedbackContent.innerHTML = `
+          <div style="background: rgba(168, 85, 247, 0.1); padding: 0.85rem; border-radius: 8px; border-left: 4px solid var(--bangkok-purple); margin-bottom: 0.85rem;">
+            <div><strong>Your Timeline Estimate:</strong> <span style="color: var(--python-yellow); font-size: 1.1rem; font-weight: bold;">${minutes} Minutes</span> (${(minutes/60).toFixed(1)} Hours)</div>
+            <div><strong>Expert Meteorological Model:</strong> <span style="color: #38bdf8; font-weight: bold;">240 Minutes</span> (4.0 Hours)</div>
+            <div><strong>Calculation Accuracy Rating:</strong> <span style="color: ${accuracyPct >= 85 ? 'var(--primary)' : 'var(--python-yellow)'}; font-weight: bold;">${accuracyPct}%</span></div>
+            ${reasoningBonus > 0 ? '<div style="color: var(--primary); font-size: 0.8rem; margin-top: 0.25rem;">✨ +10 Points Reasoning Quality Bonus Applied!</div>' : ''}
+            ${isTimeout ? '<div style="color: var(--accent-red); font-size: 0.8rem; margin-top: 0.25rem;">⚠️ Time Expired Penalty (-30 Pts) Applied</div>' : ''}
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <strong>🔍 Expert Calculation Breakdown:</strong>
+            <ul style="margin-top: 0.3rem; padding-left: 1.2rem; line-height: 1.5;">
+              <li><strong>Total Travel Time:</strong> 280 km ÷ 35 km/h = 8.0 Hours</li>
+              <li><strong>Peak Surge Window (~75% of travel):</strong> 8.0 × 0.75 = 6.0 Hours from initial alert</li>
+              <li><strong>Elapsed Time:</strong> 2.0 Hours since alert</li>
+              <li><strong>Remaining Time to Peak Flood:</strong> 6.0 - 2.0 = 4.0 Hours (240 Minutes)</li>
+            </ul>
+          </div>
+
+          <div style="background: #090d16; padding: 0.75rem; border-radius: 6px; font-size: 0.82rem;">
+            <strong style="color: var(--primary);">✓ Assessment & Key Takeaway:</strong><br>
+            ${diffMinutes <= 20 ? 
+              "Outstanding precision! You correctly separated peak surge timing from total storm arrival and accounted for elapsed scenario time." :
+              diffMinutes <= 60 ?
+              "Good physical reasoning! In disaster response, recognizing that peak surge hits before full coastal landfall is critical for shelter safety." :
+              "Acceptable estimate. Notice that peak surge arrives around 75% of travel time (Hour 6), leaving 240 minutes from the 2-hour elapsed mark."
+            }
+          </div>
+        `;
+      }
+
+      document.getElementById("disp-bkk-total-score").textContent = `${totalScore} / 550`;
+      document.getElementById("disp-bkk-score-breakdown").innerHTML = `
+        Stage 1 (Binary): ${bkkStage1Score} | Stage 2 (Trust): ${bkkStage2Score}<br>
+        Stage 3 (Location): ${bkkStage3Score} | Stage 4 (Physics): ${bkkStage4Score}<br>
+        <strong style="color: var(--primary);">⚡ Speed Bonus (${config.name} Mode, Completed in ${timeFormatted}): +${speedBonus} Pts</strong>
+      `;
+
+      triggerConfetti();
+      playVictoryAudioChime();
+    }
+
+    async function submitScoreToFirebaseBangkok() {
+      if (!currentUser) return alert("Connecting to Firebase...");
+      const studentName = bkkRegisteredName || "Activist Nida";
+
+      const mins = Math.floor(bkkTimeTakenSeconds / 60);
+      const secs = bkkTimeTakenSeconds % 60;
+      const timeFormatted = `${mins}m ${secs}s`;
+
+      const config = BKK_DIFFICULTY_CONFIG[bkkDifficulty] || BKK_DIFFICULTY_CONFIG.standard;
+      const speedBonus = Math.max(0, Math.round((config.globalMaxSecs - bkkTimeTakenSeconds) / 6));
+      const totalScore = bkkStage1Score + bkkStage2Score + bkkStage3Score + bkkStage4Score + speedBonus;
+
+      try {
+        await db.collection("bangkok_bunker_leaderboard").add({
+          userId: currentUser.uid,
+          studentName: studentName,
+          difficulty: bkkDifficulty,
+          totalScore: Number(totalScore),
+          bunkerChoice: selectedBkkBunkerCode,
+          somchaiTrust: Number(somchaiTrust),
+          stage4Score: Number(bkkStage4Score),
+          timeTakenSeconds: Number(bkkTimeTakenSeconds),
+          timeFormatted: timeFormatted,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        showToast("Bangkok Challenge Result Published!");
+        switchStageBkk(5);
+      } catch (err) { alert("Error: " + err.message); }
+    }
+
+    async function loadLeaderboardBangkok() {
+      const tbody = document.getElementById("leaderboard-table-body-bangkok");
+      try {
+        const snapshot = await db.collection("bangkok_bunker_leaderboard").get();
+        if (snapshot.empty) return tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No challenge entries submitted yet!</td></tr>`;
+        const entries = []; snapshot.forEach(doc => entries.push({ id: doc.id, ...doc.data() }));
+        entries.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+
+        tbody.innerHTML = "";
+        entries.forEach((entry, idx) => {
+          const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
+          const isOptimal = (entry.bunkerChoice === "A");
+          const diffBadge = BKK_DIFFICULTY_CONFIG[entry.difficulty || "standard"]?.badge || "🟡 Standard";
+
+          tbody.innerHTML += `
+            <tr>
+              <td>${medal}</td>
+              <td><strong>${escapeHtml(entry.studentName || "Activist")}</strong></td>
+              <td><span style="font-size: 0.8rem; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px;">${diffBadge}</span></td>
+              <td><span style="color: var(--bangkok-purple); font-weight: bold;">${entry.totalScore || 0} Pts</span></td>
+              <td><span style="color:${isOptimal ? 'var(--primary)' : 'var(--text-light)'}; font-weight:bold;">Option ${escapeHtml(entry.bunkerChoice || "A")}${isOptimal ? ' (Optimal)' : ''}</span></td>
+              <td>⚡ ${escapeHtml(entry.timeFormatted || '5m 30s')}</td>
+              <td>${entry.somchaiTrust || 0}% Trust</td>
+            </tr>
+          `;
+        });
+      } catch (err) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Error loading leaderboard.</td></tr>`; }
+    }
+
+    // Activity 1, 2, 3 Core Logic
+    function switchTabP1(tabId) {
+      document.querySelectorAll(".p1-tab").forEach(btn => btn.classList.remove("active"));
+      const targetBtn = Array.from(document.querySelectorAll(".p1-tab")).find(b => b.getAttribute("onclick").includes(tabId));
+      if (targetBtn) targetBtn.classList.add("active");
+      document.querySelectorAll("#phase1-container .tab-content").forEach(content => content.classList.remove("active"));
+      document.getElementById(`tab-p1-${tabId}`).classList.add("active");
+      if (tabId === "competition") loadLeaderboardP1();
+    }
+
+    function updateP1Simulation() {
+      const roofs = parseFloat(document.getElementById("slider-roofs").value);
+      const trees = parseFloat(document.getElementById("slider-trees").value);
+      const water = parseFloat(document.getElementById("slider-water").value);
+      const walls = parseFloat(document.getElementById("slider-walls").value);
+      const humidity = parseFloat(document.getElementById("slider-humidity").value);
+      const wind = parseFloat(document.getElementById("slider-wind").value);
+
+      document.getElementById("val-roofs").textContent = `${roofs}%`; document.getElementById("val-trees").textContent = `${trees}%`;
+      document.getElementById("val-water").textContent = `${water}%`; document.getElementById("val-walls").textContent = `${walls}%`;
+      document.getElementById("val-humidity").textContent = `${humidity}%`; document.getElementById("val-wind").textContent = `${wind} m/s`;
+
+      const coolingRoofs = roofs * 0.04; const coolingTrees = trees * 0.045; const coolingWater = water * 0.035; const coolingWalls = walls * 0.025;
+      const totalCooling = coolingRoofs + coolingTrees + coolingWater + coolingWalls;
+      const simulatedTemp = 36.5 - totalCooling;
+      const totalCost = ((roofs / 100) * 12.5) + ((trees / 80) * 0.48) + ((water / 50) * 4.0) + ((walls / 60) * 48.0);
+      const utci = 45.0 - (totalCooling * 1.8) + ((humidity - 55) * 0.01) - ((wind - 2.5) * 0.15);
+
+      document.getElementById("disp-temp").textContent = `${simulatedTemp.toFixed(2)}°C`; document.getElementById("disp-cooling").textContent = `-${totalCooling.toFixed(2)}°C`;
+      document.getElementById("disp-cost").textContent = `$${totalCost.toFixed(2)}M`; document.getElementById("disp-utci").textContent = `${utci.toFixed(1)}°C`;
+
+      const badge = document.getElementById("utci-badge");
+      if (utci > 42) { badge.className = "utci-badge utci-extreme"; badge.textContent = "Extreme Heat Stress (>42°C)"; }
+      else if (utci > 39) { badge.className = "utci-badge utci-very-high"; badge.textContent = "Very High Heat Stress (39-42°C)"; }
+      else if (utci > 36) { badge.className = "utci-badge utci-high"; badge.textContent = "High Heat Stress (36-39°C)"; }
+      else { badge.className = "utci-badge utci-moderate"; badge.textContent = "Moderate Stress / Comfortable"; }
+
+      const body = document.getElementById("cost-table-body");
+      body.innerHTML = `
+        <tr><td>🌱 Green Roofs</td><td>${roofs}%</td><td>$${((roofs/100)*12.5).toFixed(2)}M</td><td>$${(((roofs/100)*12.5)*20).toFixed(1)}K</td><td>-${coolingRoofs.toFixed(2)}°C</td></tr>
+        <tr><td>🌳 Street Trees</td><td>${trees}%</td><td>$${((trees/80)*0.48).toFixed(2)}M</td><td>$${(((trees/80)*0.48)*15).toFixed(1)}K</td><td>-${coolingTrees.toFixed(2)}°C</td></tr>
+        <tr><td>💧 Water Features</td><td>${water}%</td><td>$${((water/50)*4.0).toFixed(2)}M</td><td>$${(((water/50)*4.0)*25).toFixed(1)}K</td><td>-${coolingWater.toFixed(2)}°C</td></tr>
+        <tr><td>🌿 Green Walls</td><td>${walls}%</td><td>$${((walls/60)*48.0).toFixed(2)}M</td><td>$${(((walls/60)*48.0)*30).toFixed(1)}K</td><td>-${coolingWalls.toFixed(2)}°C</td></tr>
+      `;
+    }
+
+    function openSubmitModalP1() { document.getElementById("submit-modal-p1").style.display = "flex"; }
+    function closeSubmitModalP1() { document.getElementById("submit-modal-p1").style.display = "none"; }
+
+    async function submitScoreToFirebaseP1() {
+      const nameInput = document.getElementById("input-team-name").value.trim(); if (!nameInput || !currentUser) return alert("Please enter team name.");
+      const cooling = parseFloat(document.getElementById("disp-cooling").textContent.replace("-", "").replace("°C", ""));
+      const cost = parseFloat(document.getElementById("disp-cost").textContent.replace("$", "").replace("M", ""));
+      const efficiency = cost > 0 ? parseFloat(((cooling / cost) * 10).toFixed(2)) : 0;
+      try {
+        await db.collection("leaderboard").add({ userId: currentUser.uid, studentName: nameInput, score: Number(cooling.toFixed(2)), efficiency: Number(efficiency), createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        closeSubmitModalP1(); showToast("Urban Heat Strategy score submitted!"); switchTabP1("competition");
+      } catch (err) { alert("Error: " + err.message); }
+    }
+
+    async function loadLeaderboardP1() {
+      const tbody = document.getElementById("leaderboard-table-body-p1");
+      try {
+        const snapshot = await db.collection("leaderboard").get(); if (snapshot.empty) return tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No entries yet!</td></tr>`;
+        const entries = []; snapshot.forEach(doc => entries.push({ id: doc.id, ...doc.data() })); entries.sort((a, b) => (b.efficiency || 0) - (a.efficiency || 0));
+        tbody.innerHTML = "";
+        entries.forEach((entry, idx) => {
+          const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}`;
+          const dateStr = entry.createdAt ? new Date(entry.createdAt.toDate()).toLocaleDateString() : "Just now";
+          tbody.innerHTML += `<tr><td>${medal}</td><td><strong>${escapeHtml(entry.studentName || "Anonymous")}</strong></td><td>-${(entry.score || 0).toFixed(2)}°C</td><td>$${((entry.score || 0) / Math.max((entry.efficiency || 1) / 10, 0.1)).toFixed(2)}M</td><td><span style="color: var(--primary); font-weight: bold;">${(entry.efficiency || 0).toFixed(2)}</span></td><td style="color: var(--text-muted); font-size: 0.85rem;">${dateStr}</td></tr>`;
+        });
+      } catch (err) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Error loading leaderboard.</td></tr>`; }
+    }
+
+    function switchTabP2Bunker(tabId) {
+      document.querySelectorAll(".p2-bunker-tab").forEach(btn => { btn.classList.remove("active"); btn.classList.remove("bunker-active"); });
+      const targetBtn = Array.from(document.querySelectorAll(".p2-bunker-tab")).find(b => b.getAttribute("onclick").includes(tabId));
+      if (targetBtn) { targetBtn.classList.add("active"); targetBtn.classList.add("bunker-active"); }
+      document.querySelectorAll("#bunker-container .tab-content").forEach(content => content.classList.remove("active"));
+      document.getElementById(`tab-p2-${tabId}`).classList.add("active");
+      if (tabId === "bunker-leaderboard") loadLeaderboardBunker();
+    }
+
+    function updateBunkerSimulation() {
+      const hazard = document.getElementById("sel-hazard").value;
+      const hull = parseInt(document.getElementById("sel-hull").value);
+      const air = parseInt(document.getElementById("sel-air").value);
+      const water = parseInt(document.getElementById("sel-water").value);
+      const food = parseInt(document.getElementById("sel-food").value);
+      const energy = parseInt(document.getElementById("sel-energy").value);
+      const seals = parseInt(document.getElementById("sel-seals").value);
+
+      const hullCosts = [0, 25000, 65000, 120000]; const airCosts = [0, 4500, 14500, 32000]; const waterCosts = [0, 3500, 18500]; const foodCosts = [0, 3000, 12000, 24000]; const energyCosts = [0, 12000, 28000, 45000]; const sealsCosts = [0, 5000, 18000];
+      const totalCost = 15000 + hullCosts[hull] + airCosts[air] + waterCosts[water] + foodCosts[food] + energyCosts[energy] + sealsCosts[seals];
+
+      const maxDays = Math.min([0, 30, 180, 365][food], [0, 45, 365][water], energy === 3 ? 365 : 60);
+      let resilience = Math.min(Math.max(40 + (hull === 2 ? 25 : hull === 3 ? 45 : 0), 5), 99);
+      const actualSurvivalDays = Math.round(maxDays * (resilience / 100));
+
+      const daysComp = Math.min((actualSurvivalDays / 365) * 40, 40);
+      const resComp = (resilience / 100) * 40;
+      const budgetBonus = totalCost <= 250000 ? 20 : Math.max(0, 20 - Math.round(((totalCost - 250000) / 10000) * 5));
+      const survivalScore = Math.round(daysComp + resComp + budgetBonus);
+
+      document.getElementById("disp-bunker-survival-days").textContent = `${actualSurvivalDays} Days`;
+      document.getElementById("disp-bunker-resilience").textContent = `${resilience}%`;
+      document.getElementById("disp-bunker-total-cost").textContent = `$${totalCost.toLocaleString()}`;
+      document.getElementById("disp-bunker-survival-score").textContent = `${survivalScore} / 100`;
+
+      const tbody = document.getElementById("bunker-diag-table-body");
+      tbody.innerHTML = `
+        <tr><td>🏗️ Subterranean Hull</td><td>${hull === 1 ? "Corrugated Steel" : hull === 2 ? "Concrete" : "Deep Vault"}</td><td>365 Days</td><td>Low</td><td>$${hullCosts[hull].toLocaleString()}</td></tr>
+        <tr><td>🌬️ Air System</td><td>${air === 1 ? "HEPA Fan" : air === 2 ? "Swiss NBC" : "Closed O2"}</td><td>Autonomous</td><td>Protected</td><td>$${airCosts[air].toLocaleString()}</td></tr>
+        <tr><td>💧 Water System</td><td>${water === 1 ? "Storage Tanks" : "Atmospheric Gen"}</td><td>365 Days</td><td>Sustainable</td><td>$${waterCosts[water].toLocaleString()}</td></tr>
+        <tr><td>🥫 Rations</td><td>${food === 1 ? "30-Day Kits" : food === 2 ? "180-Day" : "365-Day"}</td><td>365 Days</td><td>Sealed</td><td>$${foodCosts[food].toLocaleString()}</td></tr>
+        <tr><td>⚡ Energy Grid</td><td>${energy === 1 ? "Solar Array" : energy === 2 ? "Solar Hybrid" : "Geothermal"}</td><td>365 Days</td><td>Resilient</td><td>$${energyCosts[energy].toLocaleString()}</td></tr>
+      `;
+    }
+
+    function openSubmitModalBunker() { document.getElementById("submit-modal-bunker").style.display = "flex"; }
+    function closeSubmitModalBunker() { document.getElementById("submit-modal-bunker").style.display = "none"; }
+
+    async function submitScoreToFirebaseBunker() {
+      const commanderName = document.getElementById("input-commander-name").value.trim();
+      const bunkerName = document.getElementById("input-bunker-name").value.trim(); if (!commanderName || !bunkerName || !currentUser) return alert("Please enter Commander & Bunker names.");
+
+      const survivalDays = parseInt(document.getElementById("disp-bunker-survival-days").textContent);
+      const survivalScore = parseInt(document.getElementById("disp-bunker-survival-score").textContent);
+      const totalCost = parseFloat(document.getElementById("disp-bunker-total-cost").textContent.replace("$", "").replace(/,/g, ""));
+      const resilience = parseInt(document.getElementById("disp-bunker-resilience").textContent);
+      const efficiency = parseFloat(((survivalDays * (resilience / 100)) / (totalCost / 10000)).toFixed(2));
+      const hazard = document.getElementById("sel-hazard").value;
+
+      try {
+        await db.collection("bunker_leaderboard").add({ userId: currentUser.uid, commanderName: commanderName, bunkerName: bunkerName, survivalDays: Number(survivalDays), survivalScore: Number(survivalScore), efficiency: Number(efficiency), totalCost: Number(totalCost), hazard: hazard, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        closeSubmitModalBunker(); showToast("Bunker design recorded on live leaderboard!"); switchTabP2Bunker("bunker-leaderboard");
+      } catch (err) { alert("Error: " + err.message); }
+    }
+
+    async function loadLeaderboardBunker() {
+      const tbody = document.getElementById("leaderboard-table-body-bunker");
+      try {
+        const snapshot = await db.collection("bunker_leaderboard").get(); if (snapshot.empty) return tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No bunker designs recorded yet!</td></tr>`;
+        const entries = []; snapshot.forEach(doc => entries.push({ id: doc.id, ...doc.data() })); entries.sort((a, b) => (b.efficiency || 0) - (a.efficiency || 0));
+        tbody.innerHTML = "";
+        entries.forEach((entry, idx) => {
+          const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
+          tbody.innerHTML += `<tr><td>${medal}</td><td><strong>${escapeHtml(entry.bunkerName || "Vault Alpha")}</strong><br><span style="font-size:0.8rem; color:var(--text-muted);">Cmdr. ${escapeHtml(entry.commanderName || "Student")}</span></td><td>${escapeHtml(entry.hazard || "heatwave")}</td><td>${entry.survivalDays || 0} Days</td><td>${entry.survivalScore || 0}%</td><td>$${(entry.totalCost || 0).toLocaleString()}</td><td><span style="color: var(--primary); font-weight: bold;">${(entry.efficiency || 0).toFixed(2)}</span></td></tr>`;
+        });
+      } catch (err) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Error loading leaderboard.</td></tr>`; }
+    }
+
+    // Activity 3 Playground Logic
+    let currentModule = 1; let currentMode = "learn"; let userXP = 0; let streakCount = 0; let unlockedBadges = []; let currentClueStep = 0;
+    const MODULE_DATA = {
+      1: {
+        title: "Stage 1: 📦 Import MicroPython Library",
+        desc: "Start developing your quad-robot script! Type 'from microbit import *' on Line 1 to import all micro:bit hardware features.",
+        starterLearn: `# Stage 1: Type 'from microbit import *' below:\n`,
+        starterFix: `# Fix syntax: Import microbit library\nimport microbit # Needs 'from microbit import *'\n`,
+        clues: [
+          "💡 Type `from microbit import *` on Line 1.",
+          "💡 Make sure `from`, `import`, and `microbit` are spelled in lowercase.",
+          "💡 Solution:\nfrom microbit import *"
+        ]
+      },
+      2: {
+        title: "Stage 2: ⚙️ Configure Motor 1 (Pin 0)",
+        desc: "Configure standard 20ms PWM signal period for Motor 1 on Pin 0!",
+        starterLearn: `from microbit import *\n\n# Stage 2: Type 'pin0.set_analog_period(20)' below:\n`,
+        starterFix: `from microbit import *\n\npin0.set_analog_period(5) # Fix period to 20ms!\n`,
+        clues: [
+          "💡 RC servo motors require a 20ms PWM period.",
+          "💡 Type `pin0.set_analog_period(20)` on the next line.",
+          "💡 Solution:\nfrom microbit import *\npin0.set_analog_period(20)"
+        ]
+      },
+      3: {
+        title: "Stage 3: 🤖 Configure 3 Remaining Motors (P1, P2, P16)",
+        desc: "A 4-motor robot needs all 4 servo pins configured! Add PWM 20ms setup for Motor 2 (Pin 1), Motor 3 (Pin 2), and Motor 4 (Pin 16).",
+        starterLearn: `from microbit import *\npin0.set_analog_period(20)\n\n# Stage 3: Define pin1, pin2, and pin16 with 20ms period:\n`,
+        starterFix: `from microbit import *\npin0.set_analog_period(20)\n# Missing pin1, pin2, and pin16 setup!\n`,
+        clues: [
+          "💡 Add `pin1.set_analog_period(20)` for Motor 2.",
+          "💡 Add `pin2.set_analog_period(20)` for Motor 3.",
+          "💡 Add `pin16.set_analog_period(20)` for Motor 4.",
+          "💡 Solution:\nfrom microbit import *\npin0.set_analog_period(20)\npin1.set_analog_period(20)\npin2.set_analog_period(20)\npin16.set_analog_period(20)"
+        ]
+      },
+      4: {
+        title: "Stage 4: 🔄 Full Robot Loop (while True + if/else)",
+        desc: "Complete your robot! Write a continuous while True loop with if button_a.is_pressed(): to drive all 4 motors (180°), and else: to stop all 4 motors (90°)!",
+        starterLearn: `from microbit import *\npin0.set_analog_period(20)\npin1.set_analog_period(20)\npin2.set_analog_period(20)\npin16.set_analog_period(20)\n\n# Stage 4: Type 'while True:', 'if button_a.is_pressed():', and 'else:' below:\n`,
+        starterFix: `from microbit import *\npin0.set_analog_period(20)\npin1.set_analog_period(20)\npin2.set_analog_period(20)\npin16.set_analog_period(20)\n\nwhile True # Missing colon!\n    if button_a.is_pressed():\n        pin0.write_analog(180)\n    elso: # Fix syntax typo!\n        pin0.write_analog(90)\n`,
+        clues: [
+          "💡 Add `while True:` on a new line (don't forget the colon!).",
+          "💡 Add `if button_a.is_pressed():` to drive all 4 motors (`write_analog(180)`).",
+          "💡 Add `else:` to stop all 4 motors (`write_analog(90)`).",
+          "💡 Solution:\nfrom microbit import *\npin0.set_analog_period(20)\npin1.set_analog_period(20)\npin2.set_analog_period(20)\npin16.set_analog_period(20)\nwhile True:\n    if button_a.is_pressed():\n        pin0.write_analog(180)\n        pin1.write_analog(180)\n        pin2.write_analog(180)\n        pin16.write_analog(180)\n        display.show(Image.ARROW_N)\n    else:\n        pin0.write_analog(90)\n        pin1.write_analog(90)\n        pin2.write_analog(90)\n        pin16.write_analog(90)\n        display.show(Image.STOP)"
+        ]
+      }
+    };
+
+    function initLedGrid() {
+      const grid = document.getElementById("led-matrix-grid"); if (!grid) return; grid.innerHTML = "";
+      for (let i = 0; i < 25; i++) { const dot = document.createElement("div"); dot.className = "led-dot"; dot.id = `led-dot-${i}`; grid.appendChild(dot); }
+    }
+
+    function renderLedPattern(matrix) {
+      for (let r = 0; r < 5; r++) { for (let c = 0; c < 5; c++) { const idx = r * 5 + c; const dot = document.getElementById(`led-dot-${idx}`); if (dot) { if (matrix && matrix[r] && matrix[r][c]) dot.classList.add("on"); else dot.classList.remove("on"); } } }
+    }
+
+    function setQuadServoAngles(fl, fr, rl, rr) {
+      const needleFl = document.getElementById("servo-needle-fl");
+      const needleFr = document.getElementById("servo-needle-fr");
+      const needleRl = document.getElementById("servo-needle-rl");
+      const needleRr = document.getElementById("servo-needle-rr");
+
+      if (needleFl) needleFl.style.transform = `rotate(${fl}deg)`;
+      if (needleFr) needleFr.style.transform = `rotate(${fr}deg)`;
+      if (needleRl) needleRl.style.transform = `rotate(${rl}deg)`;
+      if (needleRr) needleRr.style.transform = `rotate(${rr}deg)`;
+
+      const dispFl = document.getElementById("disp-servo-fl-angle");
+      const dispFr = document.getElementById("disp-servo-fr-angle");
+      const dispRl = document.getElementById("disp-servo-rl-angle");
+      const dispRr = document.getElementById("disp-servo-rr-angle");
+
+      if (dispFl) dispFl.textContent = `${fl}°`;
+      if (dispFr) dispFr.textContent = `${fr}°`;
+      if (dispRl) dispRl.textContent = `${rl}°`;
+      if (dispRr) dispRr.textContent = `${rr}°`;
+    }
+
+    function selectModule(modNum) {
+      currentModule = modNum; currentClueStep = 0; document.querySelectorAll(".mod-btn").forEach(b => b.classList.remove("active-mod")); document.getElementById(`mod-tab-${modNum}`).classList.add("active-mod");
+      const data = MODULE_DATA[modNum]; document.getElementById("task-title").textContent = data.title; document.getElementById("task-desc").textContent = data.desc;
+      document.getElementById("clue-display-box").classList.add("hidden"); document.getElementById("clue-level-text").textContent = `Clue 1 of 3`; resetCurrentModuleCode();
+    }
+
+    function setPlaygroundMode(mode) {
+      currentMode = mode; document.getElementById("btn-mode-learn").className = mode === "learn" ? "mode-btn active-mode" : "mode-btn"; document.getElementById("btn-mode-fix").className = mode === "fix" ? "mode-btn active-mode" : "mode-btn"; resetCurrentModuleCode();
+    }
+
+    function resetCurrentModuleCode() {
+      const data = MODULE_DATA[currentModule]; const editor = document.getElementById("python-code-editor"); if (editor) editor.value = currentMode === "learn" ? data.starterLearn : data.starterFix;
+      const hintBox = document.getElementById("gentle-hint-box"); if (hintBox) { hintBox.className = "gentle-hint-box"; hintBox.innerHTML = `🌟 <strong>Coder's Tip:</strong> Press <strong>▶ Run & Validate Code</strong> to test your MicroPython script!`; }
+    }
+
+    function insertSnippet(snippet) { const editor = document.getElementById("python-code-editor"); if (editor) { editor.value += snippet; editor.focus(); } }
+
+    function triggerProgressiveHint() {
+      const clues = MODULE_DATA[currentModule].clues; const clueBox = document.getElementById("clue-display-box");
+      clueBox.classList.remove("hidden"); clueBox.textContent = clues[currentClueStep]; currentClueStep = (currentClueStep + 1) % clues.length; document.getElementById("clue-level-text").textContent = `Clue ${currentClueStep + 1} of 3`;
+    }
+
+    function validateAndRunCode() {
+      const code = document.getElementById("python-code-editor").value;
+      const hintBox = document.getElementById("gentle-hint-box");
+
+      if (currentModule === 1) {
+        if (!code.includes("from microbit import *") && !code.includes("from microbit import*")) {
+          hintBox.className = "gentle-hint-box error-state";
+          hintBox.innerHTML = `⚠️ Type <code>from microbit import *</code> on Line 1 to import the MicroPython library!`;
+          return;
+        }
+        onModuleSuccess(1, "📦 Library Pioneer");
+      } else if (currentModule === 2) {
+        if (!code.includes("from microbit import")) {
+          hintBox.className = "gentle-hint-box error-state";
+          hintBox.innerHTML = `⚠️ Line 1 must contain <code>from microbit import *</code>!`;
+          return;
+        }
+        if (!code.includes("pin0.set_analog_period(20)")) {
+          hintBox.className = "gentle-hint-box error-state";
+          hintBox.innerHTML = `⚠️ Configure Motor 1 by typing <code>pin0.set_analog_period(20)</code>!`;
+          return;
+        }
+        setQuadServoAngles(90, 0, 0, 0);
+        onModuleSuccess(2, "⚙️ Motor 1 Engineer");
+      } else if (currentModule === 3) {
+        if (!code.includes("pin0.set_analog_period(20)")) {
+          hintBox.className = "gentle-hint-box error-state";
+          hintBox.innerHTML = `⚠️ Missing Motor 1 configuration: <code>pin0.set_analog_period(20)</code>`;
+          return;
+        }
+        if (!code.includes("pin1.set_analog_period(20)") || !code.includes("pin2.set_analog_period(20)") || !code.includes("pin16.set_analog_period(20)")) {
+          hintBox.className = "gentle-hint-box error-state";
+          hintBox.innerHTML = `⚠️ Define PWM for all remaining motors: <code>pin1.set_analog_period(20)</code>, <code>pin2.set_analog_period(20)</code>, and <code>pin16.set_analog_period(20)</code>!`;
+          return;
+        }
+        setQuadServoAngles(90, 90, 90, 90);
+        const statusEl = document.getElementById("disp-robot-motion-status");
+        if (statusEl) statusEl.innerHTML = `<span style="color: var(--python-yellow);">⚙️ ALL 4 MOTORS CONFIGURED (NEUTRAL 90°)</span>`;
+        onModuleSuccess(3, "🤖 4-Motor Architect");
+      } else if (currentModule === 4) {
+        if (!code.includes("microbit")) {
+          hintBox.className = "gentle-hint-box error-state";
+          hintBox.innerHTML = `⚠️ Add <code>from microbit import *</code> at line 1!`;
+          return;
+        }
+        if (!code.includes("while True:") && !code.includes("while True :")) {
+          hintBox.className = "gentle-hint-box error-state";
+          hintBox.innerHTML = `⚠️ Missing continuous loop! Type <code>while True:</code> (don't forget the colon <code>:</code>).`;
+          return;
+        }
+        if (!code.includes("if ") || (!code.includes("else:") && !code.includes("else :") && !code.includes("elif"))) {
+          hintBox.className = "gentle-hint-box error-state";
+          hintBox.innerHTML = `⚠️ Missing conditional branch! Include both <code>if</code> and <code>else:</code> statements.`;
+          return;
+        }
+        if (!code.includes("pin0") || !code.includes("pin1") || !code.includes("pin2") || !code.includes("pin16")) {
+          hintBox.className = "gentle-hint-box error-state";
+          hintBox.innerHTML = `⚠️ Drive all 4 motors in the loop! Include <code>pin0</code>, <code>pin1</code>, <code>pin2</code>, and <code>pin16</code>.`;
+          return;
+        }
+
+        setQuadServoAngles(180, 180, 180, 180);
+        const statusEl = document.getElementById("disp-robot-motion-status");
+        if (statusEl) statusEl.innerHTML = `<span style="color: var(--primary);">🚗 ALL 4 SERVOS DRIVING FORWARD (180°)</span>`;
+        renderLedPattern([[0,0,1,0,0],[0,1,1,1,0],[1,0,1,0,1],[0,0,1,0,0],[0,0,1,0,0]]); // North Arrow
+
+        onModuleSuccess(4, "🏆 Quad-Robot Master");
+      }
+    }
+
+    function onModuleSuccess(modId, badgeName) {
+      const hintBox = document.getElementById("gentle-hint-box"); hintBox.className = "gentle-hint-box"; hintBox.innerHTML = `🎉 <strong>AWESOME JOB!</strong> Code verified! You unlocked +100 XP and <strong>${badgeName}</strong>!`;
+      userXP = Math.min(userXP + 100, 400); streakCount += 1; if (!unlockedBadges.includes(badgeName)) unlockedBadges.push(badgeName); updateRewardUI(); triggerConfetti(); playVictoryAudioChime(); saveUserProgressToFirestore();
+    }
+
+    function updateRewardUI() {
+      document.getElementById("disp-xp-text").textContent = `${userXP} / 400 XP`;
+      document.getElementById("disp-xp-bar").style.width = `${(userXP / 400) * 100}%`;
+      document.getElementById("disp-streak-num").textContent = streakCount;
+
+      let levelName = "🐣 Micro:bit Cadet"; let levelNum = "1";
+      if (unlockedBadges.includes("🤖 4-Servo Master")) document.getElementById("badge-4").classList.add("unlocked");
+    }
+
+    function triggerConfetti() {
+      const canvas = document.getElementById("confetti-canvas"); if (!canvas) return; canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+      const ctx = canvas.getContext("2d"); const particles = []; const colors = ["#a855f7", "#10b981", "#38bdf8", "#ef4444", "#f59e0b"];
+      for (let i = 0; i < 80; i++) { particles.push({ x: window.innerWidth / 2, y: window.innerHeight / 2, vx: (Math.random() - 0.5) * 14, vy: (Math.random() - 0.7) * 16, size: Math.random() * 8 + 4, color: colors[Math.floor(Math.random() * colors.length)], rotation: Math.random() * 360, opacity: 1 }); }
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); let active = false;
+        particles.forEach(p => { if (p.opacity > 0) { active = true; p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.opacity -= 0.015; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rotation * Math.PI / 180); ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, p.opacity); ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size); ctx.restore(); } });
+        if (active) requestAnimationFrame(render);
+      }
+      render();
+    }
+
+    function playVictoryAudioChime() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext; if (!AudioContext) return; const ctx = new AudioContext(); const notes = [523.25, 659.25, 783.99];
+        notes.forEach((freq, i) => { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = "sine"; osc.frequency.value = freq; gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.12); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.3); osc.connect(gain); gain.connect(ctx.destination); osc.start(ctx.currentTime + i * 0.12); osc.stop(ctx.currentTime + i * 0.12 + 0.35); });
+      } catch (e) {}
+    }
+
+    async function saveUserProgressToFirestore() {
+      if (!currentUser) return; try { await db.collection("user_progress").doc(currentUser.uid).set({ totalXP: userXP, streakCount: streakCount, unlockedBadges: unlockedBadges, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }); } catch (e) {}
+    }
+
+    async function loadUserProgressFromFirestore() {
+      if (!currentUser) return; try { const doc = await db.collection("user_progress").doc(currentUser.uid).get(); if (doc.exists) { const data = doc.data(); userXP = data.totalXP || 0; streakCount = data.streakCount || 0; unlockedBadges = data.unlockedBadges || []; updateRewardUI(); } } catch (e) {}
+    }
+
+    function showToast(msg) { const toast = document.getElementById("toast"); toast.textContent = msg; toast.style.display = "block"; setTimeout(() => { toast.style.display = "none"; }, 4000); }
+    function escapeHtml(str) { return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initLedGrid(); selectBkkBunker('A'); renderShuffledAsciiKey();
+      const hash = window.location.hash.replace("#/", "").replace("#", "");
+      if (hash === "phase1" || hash === "urban") switchPhase("phase1");
+      else if (hash === "bunker") switchPhase("bunker");
+      else if (hash === "coding" || hash === "phase2" || hash === "phase3") switchPhase("coding");
+      else if (hash === "bangkok" || hash === "phase4") switchPhase("bangkok");
+      else switchPhase("home");
+    });
+
+    window.addEventListener("hashchange", () => {
+      const hash = window.location.hash.replace("#/", "").replace("#", "");
+      if (hash === "phase1" || hash === "urban") switchPhase("phase1");
+      else if (hash === "bunker") switchPhase("bunker");
+      else if (hash === "coding" || hash === "phase2" || hash === "phase3") switchPhase("coding");
+      else if (hash === "bangkok" || hash === "phase4") switchPhase("bangkok");
+      else switchPhase("home");
+    });
+  </script>
+</body>
+</html>

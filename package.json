@@ -1,0 +1,25 @@
+{
+  "name": "hear-island",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server:dev": "node server/gemini-index.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "firebase": "^10.8.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-firebase-hooks": "^5.1.1"
+  },
+  "devDependencies": {
+    "firebase-admin": "^14.3.0",
+    "vite": "^6.4.3"
+  }
+}
