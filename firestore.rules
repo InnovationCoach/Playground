@@ -19,7 +19,7 @@ service cloud.firestore {
 
     // User profiles & subcollections
     match /users/{userId} {
-      allow read: if isOwner(userId);
+      allow read: if isAuthenticated();
       allow create, update, delete: if isOwner(userId);
 
       match /notes/{noteId} {
@@ -30,9 +30,29 @@ service cloud.firestore {
         allow read, create, update, delete: if isOwner(userId);
       }
 
+      match /goals/{goalId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isOwner(userId);
+      }
+
+      match /dailyStats/{docId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isOwner(userId);
+      }
+
+      match /activityProgress/{docId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isOwner(userId);
+      }
+
       match /activityPreferences/{document=**} {
         allow read, write: if isOwner(userId);
       }
+    }
+
+    // Weekly Tasks collection for Coach Dashboard
+    match /weeklyTasks/{taskId} {
+      allow read, write: if isAuthenticated();
     }
 
     // Solar Car Prototypes Collection
@@ -44,7 +64,8 @@ service cloud.firestore {
 
     // User Progress Collection (Micro:bit Python Playground)
     match /user_progress/{userId} {
-      allow read, create, update, delete: if isOwner(userId);
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isOwner(userId);
     }
 
     // Leaderboard Collection (Townsville Urban Heat Simulator)
@@ -70,7 +91,8 @@ service cloud.firestore {
 
     // Student Profiles Collection
     match /students/{userId} {
-      allow read, create, update, delete: if isOwner(userId);
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isOwner(userId);
     }
   }
 }

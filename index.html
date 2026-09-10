@@ -3097,7 +3097,14 @@
     function escapeHtml(str) { return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
     function handleHashRouting() {
-      const isCoachRole = window.currentUserRole === 'teacher' || window.currentUserRole === 'coach';
+      const user = firebase.auth().currentUser;
+      const userEmail = (user?.email || "").toLowerCase();
+      const isCoachEmail = userEmail.includes("coach") || userEmail.includes("teacher");
+      const cachedRole = user ? localStorage.getItem(`user_role_${user.uid}`) : null;
+
+      const isCoachRole = window.currentUserRole === 'teacher' || window.currentUserRole === 'coach' || isCoachEmail || cachedRole === 'teacher' || cachedRole === 'coach';
+      if (isCoachRole) window.currentUserRole = 'teacher';
+
       const fullHash = window.location.hash || '';
       const hash = fullHash.replace("#/", "").replace("#", "");
 

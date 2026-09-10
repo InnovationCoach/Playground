@@ -193,10 +193,23 @@ subscribeToAuth(async (user) => {
     if (modal) modal.remove();
 
     startTimeTracking(user.uid);
-    const profile = await getUserProfile(user.uid);
     const isCoachEmail = user.email && (user.email.toLowerCase().includes('coach') || user.email.toLowerCase().includes('teacher'));
-    const userRole = isCoachEmail ? 'teacher' : (profile?.role || 'student');
-    console.log('[Auth] User logged in:', user.email, 'Role evaluated:', userRole, 'Profile:', profile);
+    const cachedRole = localStorage.getItem(`user_role_${user.uid}`);
+    let userRole = (isCoachEmail || cachedRole === 'teacher' || cachedRole === 'coach') ? 'teacher' : 'student';
+    window.currentUserRole = userRole;
+
+    if (isCoachEmail) {
+      localStorage.setItem(`user_role_${user.uid}`, 'teacher');
+    }
+
+    // Async profile sync in background
+    const profilePromise = getUserProfile(user.uid).then(p => {
+      if (p?.role === 'teacher' || p?.role === 'coach') {
+        window.currentUserRole = 'teacher';
+        localStorage.setItem(`user_role_${user.uid}`, 'teacher');
+      }
+      return p;
+    });
 
     // Scenario 4: Student tries coach login / dashboard access
     if (fullHash.includes('/coach') && userRole !== 'teacher' && userRole !== 'coach') {
@@ -205,8 +218,6 @@ subscribeToAuth(async (user) => {
       window.location.hash = "#/coach/login";
       return;
     }
-
-    window.currentUserRole = userRole;
     const btnCoachPortal = document.getElementById("btn-coach-portal");
     const senToggle = document.getElementById("sen-preference-toggle");
 
@@ -319,9 +330,38 @@ subscribeToAuth(async (user) => {
       if (userEmailSpan) userEmailSpan.textContent = user.email;
       if (logoutBtn) logoutBtn.style.display = "inline-block";
 
-      // Show home container for students only
+      // Show all activity containers for students
       const homeContainer = document.getElementById("home-container");
-      if (homeContainer) homeContainer.style.display = "block";
+      const p1Container = document.getElementById("phase1-container");
+      const bunkerContainer = document.getElementById("bunker-container");
+      const codingContainer = document.getElementById("coding-container");
+      const bangkokContainer = document.getElementById("bangkok-container");
+      const solarContainer = document.getElementById("solar-container");
+
+      if (homeContainer) {
+        homeContainer.style.display = "block";
+        homeContainer.classList.remove("hidden");
+      }
+      if (p1Container) {
+        p1Container.style.display = "block";
+        p1Container.classList.remove("hidden");
+      }
+      if (bunkerContainer) {
+        bunkerContainer.style.display = "block";
+        bunkerContainer.classList.remove("hidden");
+      }
+      if (codingContainer) {
+        codingContainer.style.display = "block";
+        codingContainer.classList.remove("hidden");
+      }
+      if (bangkokContainer) {
+        bangkokContainer.style.display = "block";
+        bangkokContainer.classList.remove("hidden");
+      }
+      if (solarContainer) {
+        solarContainer.style.display = "block";
+        solarContainer.classList.remove("hidden");
+      }
 
       initializeSENGlobally({
         userId: user.uid,
