@@ -6,20 +6,40 @@
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server:dev": "node server/gemini-index.js"
+    "server:dev": "node server/gemini-index.js",
+    "server:dev:emulator": "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GOOGLE_CLOUD_PROJECT=demo-hearisland-local GCLOUD_PROJECT=demo-hearisland-local node server/gemini-index.js",
+    "seed": "node scripts/seed-coach-data.js",
+    "seed:dry": "node scripts/seed-coach-data.js --dry-run",
+    "test": "firebase emulators:exec --only firestore --project demo-hearisland-rules \"vitest run\"",
+    "test:api": "firebase emulators:exec --only firestore,auth --project demo-hearisland-api-test \"vitest run tests/api/\"",
+    "test:watch": "firebase emulators:exec --only firestore --project demo-hearisland-rules \"vitest\"",
+    "test:unit": "vitest run tests/solar-car-model.test.js tests/so2-model.test.js tests/plant-lab-model.test.js tests/hex-grid-model.test.js tests/junior-explorers.test.js tests/activity-search.test.js tests/growth-hub-phase0.test.js",
+    "migrate:classes": "node scripts/migrate-to-classes.js",
+    "migrate:classes:dry": "node scripts/migrate-to-classes.js --dry-run",
+    "migrate:agebands": "node scripts/migrate-age-bands.js",
+    "migrate:agebands:dry": "node scripts/migrate-age-bands.js --dry-run",
+    "emulators": "firebase emulators:start --only firestore,auth --project demo-hearisland-local",
+    "seed:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node scripts/seed-emulator.js",
+    "codes": "node scripts/class-codes.js",
+    "codes:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GCLOUD_PROJECT=demo-hearisland-local node scripts/class-codes.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "firebase": "^10.8.0",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.3.0",
+    "lucide-react": "^1.48.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-firebase-hooks": "^5.1.1"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "firebase-admin": "^14.3.0",
-    "vite": "^6.4.3"
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^29.1.1",
+    "puppeteer-core": "^25.10.0",
+    "vite": "^6.4.3",
+    "vitest": "^5.0.1"
   }
 }
