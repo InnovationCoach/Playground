@@ -11,6 +11,8 @@ export function createGoalSettingModal(userId = null) {
     <div class="goal-modal-overlay">
       <div class="goal-modal-content">
         <div class="goal-modal-header">
+          <button type="button" class="goal-modal-close" id="goal-modal-close"
+                  aria-label="Close goal setting">&times;</button>
           <h2>🎯 Let's Set Your Learning Goals</h2>
           <p>Working with SEN Chatbot to plan your project</p>
         </div>
@@ -89,8 +91,42 @@ export function createGoalSettingModal(userId = null) {
   document.body.appendChild(modal);
   addGoalModalStyles();
   attachGoalEventHandlers(userId);
+  attachDismissHandlers(modal);
 
   return modal;
+}
+
+/**
+ * Make the wizard dismissible.
+ *
+ * It previously had no close button, ignored Escape and swallowed backdrop
+ * clicks, so a student who reached it could not get to the rest of the app until
+ * they completed every step. It opens automatically on first sign-in, which made
+ * that a hard trap rather than an inconvenience - and a modal with no keyboard
+ * escape is an accessibility failure regardless.
+ *
+ * Dismissing is not the same as finishing: nothing is saved, and the wizard
+ * reopens next session because the user is still flagged first-time. The goals
+ * button in the nav reopens it on demand.
+ */
+function attachDismissHandlers(modal) {
+  const close = () => {
+    document.removeEventListener('keydown', onKeydown);
+    modal.remove();
+  };
+
+  function onKeydown(e) {
+    if (e.key === 'Escape') close();
+  }
+
+  modal.querySelector('#goal-modal-close')?.addEventListener('click', close);
+
+  // Click the backdrop, but not the dialog itself.
+  modal.querySelector('.goal-modal-overlay')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) close();
+  });
+
+  document.addEventListener('keydown', onKeydown);
 }
 
 function addGoalModalStyles() {
@@ -99,6 +135,33 @@ function addGoalModalStyles() {
   const style = document.createElement('style');
   style.id = 'goal-modal-styles';
   style.textContent = `
+    .goal-modal-close {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.9rem;
+      background: transparent;
+      border: none;
+      color: #e9d5ff;
+      font-size: 1.6rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      opacity: 0.75;
+      transition: opacity 0.2s, background 0.2s;
+    }
+
+    .goal-modal-close:hover,
+    .goal-modal-close:focus-visible {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.12);
+      outline: none;
+    }
+
+    .goal-modal-header {
+      position: relative;
+    }
+
     .goal-setting-modal {
       position: fixed;
       inset: 0;
@@ -559,7 +622,6 @@ function attachGoalEventHandlers(userId = null) {
       if (userId) {
         localStorage.setItem(`userGoals_${userId}`, JSON.stringify(goalData));
       }
-      localStorage.setItem('userGoals', JSON.stringify(goalData));
       console.log('[Goals] Goals saved to localStorage:', goalData);
     } catch (e) {
       console.warn('[Goals] Could not save goals to localStorage:', e.message);

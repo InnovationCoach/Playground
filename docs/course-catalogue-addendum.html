@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>WeLearn Growth Hub — Addendum: Course Catalogue</title>
+<style>
+  @page { size: A4; margin: 15mm 14mm 16mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+         color: #1a2233; line-height: 1.5; font-size: 10pt; background: #fff; }
+  h1 { font-size: 26pt; letter-spacing: -0.5px; line-height: 1.15; }
+  h2 { font-size: 14.5pt; margin: 22px 0 9px; padding-bottom: 5px;
+       border-bottom: 2px solid #0f766e; color: #0f766e; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 14px 0 5px; color: #12354d; break-after: avoid; }
+  p { margin-bottom: 7px; }
+  ul, ol { margin: 5px 0 9px 18px; }
+  li { margin-bottom: 3px; }
+  .page-break { break-before: page; }
+
+  .cover { padding: 30px 0 20px; border-bottom: 4px solid #0f766e; margin-bottom: 20px; }
+  .eyebrow { font-size: 9pt; letter-spacing: 2.4px; text-transform: uppercase;
+             color: #0f766e; font-weight: 700; margin-bottom: 10px; }
+  .subtitle { font-size: 12pt; color: #4a5568; margin-top: 8px; }
+  .meta { margin-top: 16px; font-size: 9pt; color: #5a6678; }
+  .meta strong { color: #1a2233; }
+
+  .callout { background: #f0fdfa; border-left: 4px solid #0f766e;
+             padding: 10px 14px; margin: 12px 0; border-radius: 0 5px 5px 0; break-inside: avoid; }
+  .callout.warn { background: #fffbeb; border-left-color: #d97706; }
+  .callout.risk { background: #fef2f2; border-left-color: #dc2626; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 9pt; break-inside: auto; }
+  tr { break-inside: avoid; }
+  th { background: #0f766e; color: #fff; text-align: left; padding: 6px 8px; font-weight: 600; }
+  td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  td.nowrap { white-space: nowrap; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; break-inside: avoid; }
+  .card h3 { margin-top: 0; }
+  .card.us { border-top: 4px solid #0f766e; }
+  .card.you { border-top: 4px solid #d97706; }
+
+  .tag { display: inline-block; font-size: 7.5pt; font-weight: 700; letter-spacing: .5px;
+         padding: 1px 6px; border-radius: 3px; text-transform: uppercase; }
+  .t-now { background: #ccfbf1; color: #115e59; }
+  .t-block { background: #fee2e2; color: #991b1b; }
+  .t-wait { background: #fef3c7; color: #92400e; }
+  .t-done { background: #dbeafe; color: #1e40af; }
+
+  .phase { border: 1px solid #cbd5e1; border-left: 5px solid #0f766e; border-radius: 0 6px 6px 0;
+           padding: 9px 12px; margin: 9px 0; break-inside: avoid; }
+  .phase .head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .phase .head strong { font-size: 10.5pt; color: #12354d; }
+  .phase .dur { font-size: 8.5pt; color: #5a6678; white-space: nowrap; }
+  .phase ul { margin-bottom: 4px; }
+  .phase .needs { font-size: 8.8pt; color: #7c2d12; margin-top: 3px; }
+
+  .timeline { display: grid; grid-template-columns: 150px repeat(24, minmax(0,1fr)); gap: 2px 0;
+              font-size: 8pt; margin: 10px 0 4px; }
+  .timeline .lbl { grid-column: 1; padding-right: 6px; overflow: hidden; white-space: nowrap; align-self: center; }
+  .timeline .wk { text-align: center; color: #5a6678; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; }
+  .bar { height: 14px; border-radius: 3px; background: #0f766e; align-self: center; }
+  .bar.ext { background: repeating-linear-gradient(45deg,#d97706,#d97706 4px,#fbbf24 4px,#fbbf24 8px); }
+  .bar.lite { background: #5eead4; }
+  .legend { font-size: 8pt; color: #5a6678; margin-bottom: 10px; }
+  .legend span { display: inline-block; width: 12px; height: 9px; border-radius: 2px; vertical-align: middle; margin: 0 4px 0 10px; }
+
+  svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .foot { margin-top: 18px; font-size: 8pt; color: #718096; border-top: 1px solid #e2e8f0; padding-top: 6px; }
+  .toc { margin: 6px 0 0; }
+  .toc h2 { border-bottom: 2px solid #0f766e; }
+  .toc ol { list-style: none; margin: 10px 0 0; padding: 0; }
+  .toc li { display: flex; align-items: baseline; font-size: 11pt; padding: 7px 0; border-bottom: 1px solid #e2e8f0; margin: 0; }
+  .toc .n { width: 34px; color: #0f766e; font-weight: 700; }
+  .toc a { color: #1a2233; text-decoration: none; }
+  .toc .dots { flex: 1; }
+  .toc .pg { color: #5a6678; font-variant-numeric: tabular-nums; }
+  body { font-size: 9.3pt; line-height: 1.38; }
+  h1 { font-size: 20pt !important; }
+  h2 { margin: 14px 0 7px; font-size: 13pt; }
+  td, th { padding: 4px 7px; }
+  .callout { margin: 9px 0; padding: 8px 12px; }
+</style>
+</head><body>
+<div class="cover" style="padding:4px 0 10px;margin-bottom:10px">
+  <div class="eyebrow">Addendum to the Implementation Plan</div>
+  <h1 style="font-size:22pt">Course catalogue and public guidebook</h1>
+  <p class="meta"><strong>To:</strong> David Doran, Founder &amp; CEO &nbsp;·&nbsp; <strong>From:</strong> Mani Golzary, Platform Lead
+    &nbsp;·&nbsp; <strong>Date:</strong> 25 September 2026 &nbsp;·&nbsp; <strong>Accompanies:</strong> Implementation Plan, version 2</p>
+</div>
+
+<h2 style="margin-top:0">Why this addendum</h2>
+<p>After reviewing the walkthrough of our previous WeLearn course system, the plan now also includes our
+  <strong>course catalogue</strong>: around 1,030 courses from partner schools such as Florida Virtual School and
+  Brigham Young University, a full course editor for staff, and a <strong>public course guidebook</strong> that families
+  can search. The updated plan (version 2) is attached.</p>
+
+<h2>What is added</h2>
+<table>
+  <tr><th style="width:40%">Feature</th><th style="width:30%">When</th><th>Effect on go-live date</th></tr>
+  <tr><td><strong>Course editor</strong>: provider, year levels, subjects, length, delivery type, credits, prerequisites, fees, accreditations, review status; every text field translatable</td><td>Phase C</td><td>None: part of the catalogue already planned</td></tr>
+  <tr><td><strong>Import of our existing ~1,030 courses</strong> into a review queue. AI drafts the clean-up and Thai/Chinese translations; staff approve each course</td><td>Phase C, alongside the Edmentum work</td><td>None</td></tr>
+  <tr><td><strong>Public course guidebook</strong>: search, filters (provider, subject, grade, accreditation, length) and a page for every course</td><td>Weeks 9–13, alongside the Edmentum work</td><td>None</td></tr>
+  <tr><td><strong>Buy Course, Add to Path</strong> (a student's personal study plan), enquiries and course bookings</td><td>New Phase G, after the pilot</td><td>Go-live unchanged; Phase G adds 3–4 weeks afterwards</td></tr>
+</table>
+
+<div class="callout">
+  <p><strong>Timeline.</strong> Go-live stays at an estimated <strong>5–6 months</strong>. The catalogue and guidebook are
+    built in parallel with the Edmentum connection. Buying courses and study paths follow as Phase G once the platform
+    is live and proven with the pilot.</p>
+</div>
+
+<h2>What we need</h2>
+<table>
+  <tr><th style="width:52%">Item</th><th style="width:26%">Who</th><th>When</th></tr>
+  <tr><td>Export of the existing course data from the previous system</td><td>Platform Lead with the previous developer</td><td>Before Phase C</td></tr>
+  <tr><td>Staff time to approve imported courses, and confirmation from partner schools that courses and prices are current</td><td>Course coordinators</td><td>Phase C onward</td></tr>
+  <tr><td>How "Buy Course" works (online payment or enquiry) and what a study path contains</td><td>Platform Lead, for your approval</td><td>Before Phase G</td></tr>
+</table>
+
+<h2>Cost impact</h2>
+<p>No new licence and no change to the running costs in the plan. The only additions are staff time to review
+  imported courses and, if "Buy Course" takes payments online, the payment provider's per-transaction fees. All durations are estimates.</p>
+
+</body></html>

@@ -632,8 +632,12 @@ router.post('/:uid/suspend', requireClaims, requireAdmin, async (req, res) => {
 
   const nowStr = new Date().toISOString();
 
-  await getAuth().updateUser(user.uid, { disabled: true });
-  await getAuth().revokeRefreshTokens(user.uid);
+  try {
+    await getAuth().updateUser(user.uid, { disabled: true });
+    await getAuth().revokeRefreshTokens(user.uid);
+  } catch (err) {
+    console.warn(`[Auth] Warning updating auth user ${user.uid}:`, err.message);
+  }
 
   await userRef.update({
     status: 'suspended',

@@ -312,7 +312,7 @@ export function createApp() {
   });
 
   // Catch-all 404 handler for unknown /api routes matching contract error shape
-  app.use('/api/*', (req, res) => {
+  app.use('/api', (req, res) => {
     return sendError(res, 404, 'NOT_FOUND', `No route ${req.method} ${req.originalUrl}`);
   });
 

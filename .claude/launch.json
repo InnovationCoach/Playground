@@ -1,0 +1,64 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hearisland-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "start"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "hearisland-web-5174",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "hearisland-api-emulator",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "server:dev:emulator"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "hearisland-web-live",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "VITE_API_MODE=live",
+        "npx",
+        "vite",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "activity6-standalone",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--config", "vite.activity6.config.js", "--port", "5176", "--strictPort"],
+      "port": 5176
+    },
+    {
+      "name": "hearisland-web-5175",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+/* Activity search in the navigation bar (light theme, see admin.css). */
+
+.as { position: relative; flex: 1; min-width: 12rem; font-family: 'Inter', system-ui, sans-serif; }
+.as-field {
+  display: flex; align-items: center; gap: 0.5rem; height: 2.4rem; padding: 0 0.75rem;
+  background: #f5f6fa; border: 1px solid #e4e6ee; border-radius: 10px; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.as-field:hover { border-color: #cfd3df; }
+.as-field.is-open, .as-field:focus-within { background: #fff; border-color: #8250a0; box-shadow: 0 0 0 3px rgba(130, 80, 160, 0.15); }
+.as-icon { color: #737d93; flex-shrink: 0; }
+.as-field input {
+  flex: 1; min-width: 0; height: 100%; background: transparent; border: 0; outline: none;
+  color: #14213a; font: inherit; font-size: 0.9rem;
+}
+.as-field input::placeholder { color: #9aa2b4; }
+.as-kbd {
+  font: 600 0.72rem/1 ui-monospace, monospace; color: #737d93; background: #fff; border: 1px solid #e4e6ee;
+  border-radius: 5px; padding: 0.2rem 0.45rem;
+}
+@media (hover: none) { .as-kbd { display: none; } }
+
+.as-list {
+  position: absolute; top: calc(100% + 0.4rem); left: 0; right: 0; z-index: 1000; min-width: 300px;
+  list-style: none; margin: 0; padding: 0.35rem; max-height: min(70vh, 34rem); overflow-y: auto;
+  background: #fff; border: 1px solid #e4e6ee; border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.14), 0 4px 8px rgba(16, 24, 40, 0.06); -webkit-overflow-scrolling: touch;
+}
+.as-item {
+  display: flex; align-items: center; gap: 0.75rem; min-height: 3.25rem; padding: 0.45rem 0.6rem;
+  border-radius: 9px; cursor: pointer; color: #14213a;
+}
+.as-item.is-active { background: #f5f6fa; }
+.as-item-text { display: flex; flex-direction: column; min-width: 0; }
+.as-item-name { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+.as-item-num { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #737d93; }
+.as-item-desc { font-size: 0.8rem; color: #737d93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.as-here { font-size: 0.68rem; font-weight: 700; color: #6e3f8b; background: #f5eefa; border-radius: 999px; padding: 0.1rem 0.5rem; }
+.as-empty { padding: 0.9rem; color: #4b5670; font-size: 0.88rem; }
+
+@media (max-width: 768px) {
+  .as { flex-basis: 100%; }
+}

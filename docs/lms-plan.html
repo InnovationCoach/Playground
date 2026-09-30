@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WeLearn Growth Hub — Implementation Plan</title>
+<style>
+  @page { size: A4; margin: 15mm 14mm 16mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+         color: #1a2233; line-height: 1.5; font-size: 10pt; background: #fff; }
+  h1 { font-size: 26pt; letter-spacing: -0.5px; line-height: 1.15; }
+  h2 { font-size: 14.5pt; margin: 22px 0 9px; padding-bottom: 5px;
+       border-bottom: 2px solid #0f766e; color: #0f766e; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 14px 0 5px; color: #12354d; break-after: avoid; }
+  p { margin-bottom: 7px; }
+  ul, ol { margin: 5px 0 9px 18px; }
+  li { margin-bottom: 3px; }
+  .page-break { break-before: page; }
+
+  .cover { padding: 30px 0 20px; border-bottom: 4px solid #0f766e; margin-bottom: 20px; }
+  .eyebrow { font-size: 9pt; letter-spacing: 2.4px; text-transform: uppercase;
+             color: #0f766e; font-weight: 700; margin-bottom: 10px; }
+  .subtitle { font-size: 12pt; color: #4a5568; margin-top: 8px; }
+  .meta { margin-top: 16px; font-size: 9pt; color: #5a6678; }
+  .meta strong { color: #1a2233; }
+
+  .callout { background: #f0fdfa; border-left: 4px solid #0f766e;
+             padding: 10px 14px; margin: 12px 0; border-radius: 0 5px 5px 0; break-inside: avoid; }
+  .callout.warn { background: #fffbeb; border-left-color: #d97706; }
+  .callout.risk { background: #fef2f2; border-left-color: #dc2626; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 9pt; break-inside: auto; }
+  tr { break-inside: avoid; }
+  th { background: #0f766e; color: #fff; text-align: left; padding: 6px 8px; font-weight: 600; }
+  td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  td.nowrap { white-space: nowrap; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; break-inside: avoid; }
+  .card h3 { margin-top: 0; }
+  .card.us { border-top: 4px solid #0f766e; }
+  .card.you { border-top: 4px solid #d97706; }
+
+  .tag { display: inline-block; font-size: 7.5pt; font-weight: 700; letter-spacing: .5px;
+         padding: 1px 6px; border-radius: 3px; text-transform: uppercase; }
+  .t-now { background: #ccfbf1; color: #115e59; }
+  .t-block { background: #fee2e2; color: #991b1b; }
+  .t-wait { background: #fef3c7; color: #92400e; }
+  .t-done { background: #dbeafe; color: #1e40af; }
+
+  .phase { border: 1px solid #cbd5e1; border-left: 5px solid #0f766e; border-radius: 0 6px 6px 0;
+           padding: 9px 12px; margin: 9px 0; break-inside: avoid; }
+  .phase .head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .phase .head strong { font-size: 10.5pt; color: #12354d; }
+  .phase .dur { font-size: 8.5pt; color: #5a6678; white-space: nowrap; }
+  .phase ul { margin-bottom: 4px; }
+  .phase .needs { font-size: 8.8pt; color: #7c2d12; margin-top: 3px; }
+
+  .timeline { display: grid; grid-template-columns: 150px repeat(24, minmax(0,1fr)); gap: 2px 0;
+              font-size: 8pt; margin: 10px 0 4px; }
+  .timeline .lbl { grid-column: 1; padding-right: 6px; overflow: hidden; white-space: nowrap; align-self: center; }
+  .timeline .wk { text-align: center; color: #5a6678; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; }
+  .bar { height: 14px; border-radius: 3px; background: #0f766e; align-self: center; }
+  .bar.ext { background: repeating-linear-gradient(45deg,#d97706,#d97706 4px,#fbbf24 4px,#fbbf24 8px); }
+  .bar.lite { background: #5eead4; }
+  .legend { font-size: 8pt; color: #5a6678; margin-bottom: 10px; }
+  .legend span { display: inline-block; width: 12px; height: 9px; border-radius: 2px; vertical-align: middle; margin: 0 4px 0 10px; }
+
+  svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .foot { margin-top: 18px; font-size: 8pt; color: #718096; border-top: 1px solid #e2e8f0; padding-top: 6px; }
+  .toc { margin: 6px 0 0; }
+  .toc h2 { border-bottom: 2px solid #0f766e; }
+  .toc ol { list-style: none; margin: 10px 0 0; padding: 0; }
+  .toc li { display: flex; align-items: baseline; font-size: 11pt; padding: 7px 0; border-bottom: 1px solid #e2e8f0; margin: 0; }
+  .toc .n { width: 34px; color: #0f766e; font-weight: 700; }
+  .toc a { color: #1a2233; text-decoration: none; }
+  .toc .dots { flex: 1; }
+  .toc .pg { color: #5a6678; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="eyebrow">Implementation Plan</div>
+  <h1>WeLearn Growth Hub</h1>
+  <p class="subtitle">One learning platform for every WeLearn cohort, bringing together Edmentum, the PBL/STEAM
+    simulations and other learning materials: what we will build, what we need, and in what order.</p>
+  <p class="meta"><strong>Version 2</strong> &nbsp;·&nbsp; <strong>Date:</strong> 25 September 2026 &nbsp;·&nbsp;
+    <strong>Status:</strong> Proposal for school review &nbsp;·&nbsp;
+    <strong>Audience:</strong> School leadership, IT, teaching leads</p>
+</div>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span class="n">1</span><a href="#s1">Summary</a><span class="dots"></span><span class="pg" data-sec="1">2</span></li>
+    <li><span class="n">2</span><a href="#s2">Where WeLearn is today</a><span class="dots"></span><span class="pg" data-sec="2">2</span></li>
+    <li><span class="n">3</span><a href="#s3">Review of the supplied wireframes</a><span class="dots"></span><span class="pg" data-sec="3">3</span></li>
+    <li><span class="n">4</span><a href="#s4">How it fits together</a><span class="dots"></span><span class="pg" data-sec="4">4</span></li>
+    <li><span class="n">5</span><a href="#s5">Who does what</a><span class="dots"></span><span class="pg" data-sec="5">4</span></li>
+    <li><span class="n">6</span><a href="#s6">Implementation phases</a><span class="dots"></span><span class="pg" data-sec="6">4</span></li>
+    <li><span class="n">7</span><a href="#s7">What the school needs to do</a><span class="dots"></span><span class="pg" data-sec="7">7</span></li>
+    <li><span class="n">8</span><a href="#s8">Questions for Edmentum</a><span class="dots"></span><span class="pg" data-sec="8">8</span></li>
+    <li><span class="n">9</span><a href="#s9">Costs</a><span class="dots"></span><span class="pg" data-sec="9">8</span></li>
+    <li><span class="n">10</span><a href="#s10">Main risks</a><span class="dots"></span><span class="pg" data-sec="10">8</span></li>
+    <li><span class="n">11</span><a href="#s11">Next steps</a><span class="dots"></span><span class="pg" data-sec="11">9</span></li>
+  </ol>
+</nav>
+
+<h2 id="s1" style="break-before: page">1. Summary</h2>
+<p>WeLearn Growth Hub will be a single learning platform for all of our cohorts. Students open their Edmentum
+  courses, the WeLearn PBL/STEAM simulations and other materials in one place, and staff, teachers and parents
+  each see what they need.</p>
+<table>
+  <tr><th style="width:18%">Cohort</th><th style="width:26%">Learners</th><th>What the platform provides for them</th></tr>
+  <tr><td><strong>W2E</strong></td><td>Twice-exceptional (2e) learners, secondary</td><td>A learning profile per student with accommodations (extended time, reduced visual load, text-to-speech, tasks broken into steps), stretch challenges that build on strengths, and support notes visible only to that student's teachers.</td></tr>
+  <tr><td><strong>WPR</strong></td><td>International students, primary</td><td>A simpler, age-appropriate interface; accounts activated only after verified parental consent; English/Chinese/Thai throughout; AI tutor limited or off by default for younger children.</td></tr>
+  <tr><td><strong>All cohorts</strong></td><td>Every learner</td><td>One sign-in, My Courses, gradebook and transcripts, parent portal, mobile-friendly and accessible design.</td></tr>
+</table>
+<div class="callout">
+  <p><strong>Dual programme: Thai Diploma.</strong> Every cohort can also take the Thai Diploma alongside
+    their main programme. It is taught by a Thai Diploma teacher: students open WeLearn Growth Hub and access
+    the learning materials, lessons and assignments the teacher publishes, in Thai. Each student's record shows
+    their main programme and the Thai Diploma side by side, with a separate Thai Diploma transcript.</p>
+</div>
+<div class="callout">
+  <p><strong>Recommendation.</strong> Build these LMS functions into WeLearn itself and roll them out in stages,
+    starting with a one-class pilot. The build takes an estimated
+    <strong>5–6 months</strong>, needs <strong>no outside development company</strong>, and needs no LMS
+    licence. In exchange, the school takes on ownership: a named staff member, a hosting bill, and a
+    security review before launch.</p>
+</div>
+<div class="grid2">
+  <div class="card us">
+    <h3>What we (the build team) deliver</h3>
+    <ul>
+      <li>Admin console: staff, student and parent accounts, schools, classes</li>
+      <li>Student "My Courses" home: Edmentum, simulations and materials together</li>
+      <li>One-click Edmentum launch with grades returned (LTI 1.3)</li>
+      <li>Teacher gradebook, terms and transcripts</li>
+      <li>Public course guidebook: our full catalogue of partner-school courses, searchable by families</li>
+      <li>Parent portal, English/Chinese/Thai, mobile-friendly</li>
+    </ul>
+  </div>
+  <div class="card you">
+    <h3>What the school must provide</h3>
+    <ul>
+      <li>Approval of this plan and funding for its costs</li>
+      <li>Confirmation of the Platform Lead role, with protected time</li>
+      <li>Firebase <strong>Blaze</strong> billing plan</li>
+      <li>A sending mailbox in our existing Microsoft 365</li>
+      <li>Edmentum registration details for WeLearn (LTI 1.3)</li>
+      <li>A security &amp; privacy review before launch</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="s2">2. Where WeLearn is today</h2>
+<table>
+  <tr><th style="width:34%">Area</th><th style="width:16%">Status</th><th>Notes</th></tr>
+  <tr><td>Student and coach dashboards (React)</td><td><span class="tag t-done">Built</span></td><td>Modern component-based front end.</td></tr>
+  <tr><td>Secure roles and class-level data privacy</td><td><span class="tag t-done">Built</span></td><td>Roles cannot be faked; teachers see only their own classes. Covered by automated tests.</td></tr>
+  <tr><td>Class join codes</td><td><span class="tag t-done">Built</span></td><td>Students enrol themselves safely with a code like <code>G7PR-Q966</code>.</td></tr>
+  <tr><td>PBL/STEAM simulations</td><td><span class="tag t-done">Built</span></td><td>Solar Car (real measurements) and SO₂ model among six activities.</td></tr>
+  <tr><td>AI tutor and hints</td><td><span class="tag t-wait">Local only</span></td><td>Works on a developer machine; <strong>not live</strong>, because no backend is deployed.</td></tr>
+  <tr><td>Backend server in production</td><td><span class="tag t-block">Missing</span></td><td>Blocks the admin console, Edmentum and AI. Needs the Blaze plan.</td></tr>
+  <tr><td>Admin console, schools, parents, gradebook, Edmentum</td><td><span class="tag t-block">Missing</span></td><td>The subject of this plan.</td></tr>
+</table>
+
+<h2 id="s3">3. Review of the supplied wireframes</h2>
+<p>The 20 "EduBiz Gateway System" wireframes were reviewed. They are a good specification for the
+  <strong>admin side</strong>, but they describe an education-agency back office (enquiries, course bookings,
+  accreditations, student balances), not an LMS. They contain no student course view, no Edmentum launch,
+  no assignments and no gradebook, which are the parts students and teachers use most.</p>
+<table>
+  <tr><th style="width:18%">Decision</th><th>Wireframe screens</th></tr>
+  <tr><td><strong>Keep</strong></td><td>Staff / student / parent account lists, create, edit, suspend, account history, change email, settings, password reset, language settings (extended to English, Chinese and Thai).</td></tr>
+  <tr><td><strong>Redesign</strong></td><td>Parent linking (typing an email lets anyone attach to any child → replace with one-time invite codes). Student photos (optional, off by default, location data stripped). Public "Client Viewable" reviews (moderated, with consent, or removed).</td></tr>
+  <tr><td><strong>Keep, with the catalogue</strong></td><td>Education Providers, Accreditations and course reviews: part of the course catalogue and public guidebook (Phase C).</td></tr>
+  <tr><td><strong>Later (Phase G)</strong></td><td>Enquiries, Course Bookings and student balances: part of buying courses and study paths after go-live.</td></tr>
+  <tr><td><strong>Add</strong></td><td>My Courses, Edmentum launch, assignments, gradebook, terms/transcripts, teacher class view, parent portal.</td></tr>
+</table>
+<p>Data inconsistencies in the mock-ups have been fixed in our designs. Examples: the same User ID assigned
+  to three different people, a parent shown with 0 students who has 2, and "page 1 of 3" for 129 records.
+  One mock-up student is 12: with the WPR primary cohort, under-13 learners are in scope, and the plan provides
+  the parental consent this requires (Phase E).</p>
+
+
+<h2 id="s4">4. How it fits together</h2>
+<svg viewBox="0 0 720 250" width="100%" role="img" aria-label="Architecture overview">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker></defs>
+  <g font-size="11">
+    <rect x="10" y="20" width="150" height="190" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="85" y="42" text-anchor="middle" font-weight="700" fill="#12354d">People</text>
+    <text x="85" y="66" text-anchor="middle">Students: W2E, WPR</text>
+    <text x="85" y="81" text-anchor="middle" font-size="9.5" fill="#5a6678">+ Thai Diploma (dual)</text>
+    <text x="85" y="108" text-anchor="middle">Teachers</text>
+    <text x="85" y="134" text-anchor="middle">Supervisors</text>
+    <text x="85" y="160" text-anchor="middle">Admins</text>
+    <text x="85" y="186" text-anchor="middle">Parents</text>
+
+    <rect x="215" y="20" width="250" height="190" rx="8" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+    <text x="340" y="42" text-anchor="middle" font-weight="700" fill="#0f766e">WeLearn platform</text>
+    <rect x="232" y="54" width="216" height="30" rx="4" fill="#fff" stroke="#99f6e4"/>
+    <text x="340" y="74" text-anchor="middle" font-size="10">Web app: Guidebook · My Courses · Admin · Gradebook</text>
+    <rect x="232" y="92" width="216" height="30" rx="4" fill="#fff" stroke="#99f6e4"/>
+    <text x="340" y="112" text-anchor="middle">PBL/STEAM simulations</text>
+    <rect x="232" y="130" width="216" height="30" rx="4" fill="#fff" stroke="#99f6e4"/>
+    <text x="340" y="150" text-anchor="middle">Backend API (Cloud Functions)</text>
+    <rect x="232" y="168" width="216" height="30" rx="4" fill="#fff" stroke="#99f6e4"/>
+    <text x="340" y="188" text-anchor="middle">Firebase: accounts, data, security rules</text>
+
+    <rect x="520" y="20" width="190" height="56" rx="8" fill="#fffbeb" stroke="#d97706"/>
+    <text x="615" y="43" text-anchor="middle" font-weight="700" fill="#92400e">Edmentum Courseware</text>
+    <text x="615" y="62" text-anchor="middle" font-size="10">launch + grades via LTI 1.3</text>
+    <rect x="520" y="97" width="190" height="50" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="615" y="118" text-anchor="middle" font-weight="700" fill="#12354d">Google Gemini AI</text>
+    <text x="615" y="136" text-anchor="middle" font-size="10">tutor, hints (safety-filtered)</text>
+    <rect x="520" y="168" width="190" height="42" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="615" y="194" text-anchor="middle" font-weight="700" fill="#12354d">Microsoft 365 email</text>
+
+    <line x1="160" y1="115" x2="213" y2="115" stroke="#475569" stroke-width="1.5" marker-end="url(#a)"/>
+    <line x1="465" y1="60" x2="518" y2="50" stroke="#475569" stroke-width="1.5" marker-end="url(#a)"/>
+    <line x1="465" y1="140" x2="518" y2="124" stroke="#475569" stroke-width="1.5" marker-end="url(#a)"/>
+    <line x1="465" y1="160" x2="518" y2="186" stroke="#475569" stroke-width="1.5" marker-end="url(#a)"/>
+  </g>
+</svg>
+<p><strong>LTI 1.3</strong> is the published education standard that lets an LMS open an outside course tool with
+  one click (no second login) and receive grades back. Edmentum states it supports "any LMS that supports
+  LTI 1.3". WeLearn will implement the LMS side of that standard.</p>
+
+<h2 id="s5">5. Who does what</h2>
+<table>
+  <tr><th style="width:24%">Role</th><th>Responsibilities</th></tr>
+  <tr><td><strong>David Doran</strong><br>Founder &amp; CEO, Project Sponsor</td><td>Approves the plan, oversees the build through milestone updates, and funds the project and its running costs.</td></tr>
+  <tr><td><strong>Mani Golzary</strong><br>AI Learning Architect &amp; Platform Lead</td><td>Designs the platform and its learning experience, and leads the build end to end: sets the architecture and roadmap, directs and reviews the AI build team, and approves every production release and data migration. Accountable day to day for student data security; manages Edmentum and service providers; reports progress to the CEO at each milestone; trains teachers and turns their feedback into product decisions.</td></tr>
+  <tr><td><strong>Claude</strong> (AI, front end)</td><td>All screens and user experience: admin console, My Courses, gradebook, parent portal, accessibility, mobile, English/Chinese/Thai. Verifies features against the running system, not just a successful build.</td></tr>
+  <tr><td><strong>Gemini</strong> (AI, back end)</td><td>Server API, deployment, database rules, data migration, Edmentum LTI connection, email delivery. Works to a written API contract so both sides fit.</td></tr>
+  <tr><td><strong>Outside specialists</strong> (one-off)</td><td>Independent security test and privacy/legal review before real student data goes live.</td></tr>
+</table>
+<div class="callout warn">
+  <p><strong>Why human accountability is essential.</strong> On this project, AI-built features have been reported as
+    working when they were not: data was silently failing to save, and only checking the live system caught
+    it. AI does the building; a person must approve releases and answer for the platform.</p>
+</div>
+
+
+<h2 id="s6">6. Implementation phases</h2>
+<p>Durations are estimates for the build team and assume the school's inputs (section 7) arrive on time.
+  Edmentum registration runs in parallel and should be started early.</p>
+
+<div class="phase">
+  <div class="head"><strong>Phase 0 · Front-end groundwork</strong><span class="dur">Weeks 1–4 · <span class="tag t-now">Can start now</span></span></div>
+  <ul>
+    <li>Admin console layout with WeLearn branding, role-aware navigation and a reusable data table</li>
+    <li>Staff, student and parent account screens, built against test data until the backend is live</li>
+    <li>Settings (change password, language) and password reset. These <strong>work for real immediately</strong>.</li>
+    <li>First version of the student "My Courses" page and the parent portal screens</li>
+  </ul>
+</div>
+<div class="phase">
+  <div class="head"><strong>Phase A · Backend, roles, cohorts and schools</strong><span class="dur">3–4 weeks once Blaze is on</span></div>
+  <ul>
+    <li>Deploy the backend server; the AI tutor becomes live in production</li>
+    <li>Roles: admin, supervisor, course coordinator (teacher), student, parent</li>
+    <li>Organisation → cohorts (W2E, WPR) → schools → classes structure, with a safe migration of existing accounts</li>
+    <li>Dual enrolment: any student in any cohort can also be enrolled in the Thai Diploma</li>
+    <li>Admin actions (create, edit, suspend, change email) with a tamper-proof account history</li>
+  </ul>
+  <div class="needs">Needs: Blaze plan · Microsoft 365 sending mailbox · Platform Lead approval before production migration</div>
+</div>
+<div class="phase">
+  <div class="head"><strong>Phase B · Edmentum connection (LTI 1.3)</strong><span class="dur">3–4 weeks</span></div>
+  <ul>
+    <li>Built and tested first against the free official LTI reference tool, so work is not blocked on Edmentum</li>
+    <li>One-click launch from My Courses; teachers place Edmentum content into WeLearn courses</li>
+    <li>Edmentum scores flow back into WeLearn automatically</li>
+  </ul>
+  <div class="needs">Needs: Edmentum registration details · confirmation that licences cover our students</div>
+</div>
+<div class="phase">
+  <div class="head"><strong>Phase C · Course catalogue, My Courses and cohort experiences</strong><span class="dur">about 5 weeks</span></div>
+  <ul>
+    <li>Courses, subjects and year levels as data, not hard-coded pages</li>
+    <li>Each course has a provider (Edmentum, WeLearn PBL, or teacher-led) and curriculum standards (e.g. NGSS, and the Thai national curriculum for the Thai Diploma)</li>
+    <li>Standards-coverage report for leadership</li>
+    <li>Full course editor: education provider, year levels, subjects, length, delivery type, credits, prerequisites, fees, accreditations, teachers, "featured", and a review status, with every text field translatable</li>
+    <li>Import of our existing catalogue of about 1,030 partner-school courses into a review queue: AI drafts the clean-up and Thai/Chinese translations, and a staff member approves each course</li>
+    <li>Public course guidebook: search and filters (provider, subject, grade, accreditation, length) and a page for every course</li>
+    <li>Primary-friendly student interface for WPR: larger targets, simpler navigation, read-aloud</li>
+    <li>W2E learning profiles and accommodations applied automatically across courses and simulations</li>
+    <li>Teacher-led courses: teachers upload learning materials (documents, videos, links), organise them into units and lessons, and set assignments. The Thai Diploma is the first, with a full Thai-language interface</li>
+  </ul>
+</div>
+<div class="phase">
+  <div class="head"><strong>Phase D · Gradebook, terms and transcripts</strong><span class="dur">about 4 weeks</span></div>
+  <ul>
+    <li>Terms (the wireframes' "transcript periods"), teacher gradebook combining Edmentum scores and PBL rubric scores</li>
+    <li>Transcript export per student: main programme and a separate Thai Diploma transcript in the format it requires</li>
+  </ul>
+</div>
+<div class="phase">
+  <div class="head"><strong>Phase E · Parent portal and parental consent</strong><span class="dur">about 3 weeks</span></div>
+  <ul>
+    <li>Verified parental consent before any primary (WPR) account is activated, with consent records kept</li>
+    <li>Parents link to a child with a one-time invite code from the school; read-only progress and grades</li>
+    <li>Optional weekly email summary in English or Chinese</li>
+  </ul>
+</div>
+<div class="phase">
+  <div class="head"><strong>Phase F · Launch readiness</strong><span class="dur">2–3 weeks</span></div>
+  <ul>
+    <li>Independent security test and fixes; privacy review; staff training material</li>
+    <li>Pilot with one W2E class first; WPR primary classes join once parental consent is live; then all cohorts after sign-off</li>
+  </ul>
+</div>
+<div class="phase" style="border-left-color:#d97706">
+  <div class="head"><strong>Phase G · Buy Course and study paths (after go-live)</strong><span class="dur">3–4 weeks, after the pilot</span></div>
+  <ul>
+    <li>"Buy Course" on the guidebook: online payment or an enquiry to our team, as the school decides</li>
+    <li>"Add to Path": each student's personal study plan combining courses, e.g. partner-school courses alongside the Thai Diploma</li>
+    <li>Enquiries and course bookings managed in the admin console</li>
+  </ul>
+</div>
+
+<div style="break-inside: avoid"><h3>Indicative timeline (weeks)</h3>
+<div class="timeline">
+  <div></div>
+  <div class="wk">1</div><div class="wk">2</div><div class="wk">3</div><div class="wk">4</div><div class="wk">5</div>
+  <div class="wk">6</div><div class="wk">7</div><div class="wk">8</div><div class="wk">9</div><div class="wk">10</div>
+  <div class="wk">11</div><div class="wk">12</div><div class="wk">13</div><div class="wk">14</div><div class="wk">15</div>
+  <div class="wk">16</div><div class="wk">17</div><div class="wk">18</div><div class="wk">19</div><div class="wk">20</div><div class="wk">21</div><div class="wk">22</div><div class="wk">23</div><div class="wk">24</div>
+
+  <div class="lbl" style="grid-row:2">0 · Front-end groundwork</div><div class="bar lite" style="grid-row:2; grid-column: 2 / span 4"></div>
+  <div class="lbl" style="grid-row:3">A · Backend &amp; cohorts</div><div class="bar" style="grid-row:3; grid-column: 4 / span 4"></div>
+  <div class="lbl" style="grid-row:4">Edmentum registration</div><div class="bar ext" style="grid-row:4; grid-column: 2 / span 8"></div>
+  <div class="lbl" style="grid-row:5">B · Edmentum LTI</div><div class="bar" style="grid-row:5; grid-column: 8 / span 4"></div>
+  <div class="lbl" style="grid-row:7">Guidebook &amp; import</div><div class="bar lite" style="grid-row:7; grid-column: 10 / span 5"></div>
+  <div class="lbl" style="grid-row:6">C · Catalogue &amp; cohorts</div><div class="bar" style="grid-row:6; grid-column: 12 / span 5"></div>
+  <div class="lbl" style="grid-row:8">D · Gradebook</div><div class="bar" style="grid-row:8; grid-column: 17 / span 4"></div>
+  <div class="lbl" style="grid-row:9">E · Parents &amp; consent</div><div class="bar" style="grid-row:9; grid-column: 20 / span 3"></div>
+  <div class="lbl" style="grid-row:10">F · Launch readiness</div><div class="bar" style="grid-row:10; grid-column: 22 / span 3"></div>
+  <div class="lbl" style="grid-row:11">Pilot → go-live</div><div class="bar lite" style="grid-row:11; grid-column: 24 / span 2"></div>
+</div>
+<div class="legend"><span style="background:#0f766e"></span>Build team <span style="background:#5eead4"></span>Front end / rollout <span style="background:#d97706"></span>Outside party (Edmentum)</div></div>
+
+
+<div style="break-inside: avoid"><h2 id="s7">7. What the school needs to do</h2>
+<table>
+  <tr><th style="width:4%">#</th><th style="width:34%">Action</th><th style="width:22%">Who</th><th style="width:14%">When</th><th>It unblocks</th></tr>
+  <tr><td>1</td><td><strong>Approve the plan and budget</strong>, and confirm Mani Golzary as Platform Lead with agreed terms and protected time</td><td>David Doran (CEO)</td><td class="nowrap">Now</td><td>Every production release</td></tr>
+  <tr><td>2</td><td><strong>Upgrade Firebase to the Blaze plan</strong> (pay-as-you-go billing)</td><td>Firebase billing owner</td><td class="nowrap">Before Phase A</td><td>Backend, admin console, AI in production</td></tr>
+  <tr><td>3</td><td><strong>Register WeLearn with Edmentum</strong> as an LTI 1.3 LMS and obtain the connection details; get written answers to the questions in section 8; confirm licence numbers; sign a data-processing agreement</td><td>Edmentum account contact</td><td class="nowrap">Now</td><td>Phase B</td></tr>
+  <tr><td>4</td><td><strong>Set up sending from Microsoft 365</strong>: a no-reply shared mailbox and an app registration allowed to send only from it (Microsoft Graph)</td><td>Microsoft 365 admin</td><td class="nowrap">Before Phase A ends</td><td>Account activation emails</td></tr>
+  <tr><td>5</td><td><strong>Supply the Firebase admin key</strong> securely to the platform lead (never by email or chat)</td><td>Firebase owner</td><td class="nowrap">Phase A</td><td>Setting up first admin accounts</td></tr>
+  <tr><td>6</td><td><strong>List the tools and features teachers rely on daily</strong></td><td>Teaching leads</td><td class="nowrap">Within 2 weeks</td><td>Build order; go-live readiness</td></tr>
+  <tr><td>7</td><td><strong>Commission a security test and privacy review</strong>, covering parental consent for primary learners and 2e support data</td><td>Leadership</td><td class="nowrap">Book by week 12</td><td>Go-live</td></tr>
+  <tr><td>8</td><td><strong>Define the Thai Diploma course</strong>: subjects, credits, grading, assessment and transcript requirements, and who awards the diploma</td><td>Academic lead with the Thai Diploma teacher</td><td class="nowrap">Before Phase C</td><td>Thai Diploma catalogue and transcripts</td></tr>
+  <tr><td>9</td><td><strong>Native Thai speaker review</strong> of the Thai interface and messages</td><td>Thai-speaking staff member</td><td class="nowrap">Phase C</td><td>Thai Diploma go-live</td></tr>
+  <tr><td>10</td><td><strong>Export the existing course data</strong> (about 1,030 courses) from the previous WeLearn course system</td><td>Platform Lead with the previous developer</td><td class="nowrap">Before Phase C</td><td>Course import</td></tr>
+  <tr><td>11</td><td><strong>Staff time to approve imported courses</strong>, and confirm with partner schools which courses and prices are still current</td><td>Course coordinators</td><td class="nowrap">Phase C onward</td><td>Public guidebook</td></tr>
+  <tr><td>12</td><td><strong>Decide how "Buy Course" works</strong> (online payment or enquiry) and what a study path contains</td><td>Platform Lead, approved by the CEO</td><td class="nowrap">Before Phase G</td><td>Phase G</td></tr>
+</table></div>
+
+<div style="break-inside: avoid"><h2 id="s8">8. Questions for Edmentum</h2>
+<p>To confirm in writing with our Edmentum contact as part of action 3.</p>
+<table>
+  <tr><th style="width:5%">#</th><th style="width:48%">Question</th><th>Why it matters</th></tr>
+  <tr><td>1</td><td><strong>Grade return:</strong> does LTI Assignment and Grade Services work with a custom LTI 1.3 platform such as WeLearn?</td><td>Lets Edmentum scores appear in the WeLearn gradebook automatically (Phase D).</td></tr>
+  <tr><td>2</td><td><strong>Content selection:</strong> does LTI Deep Linking work with a custom LTI 1.3 platform?</td><td>Lets teachers choose Edmentum lessons and place them inside WeLearn courses (Phase B).</td></tr>
+  <tr><td>3</td><td><strong>Primary learners:</strong> which Edmentum products for primary-age students are available over LTI?</td><td>Courseware is designed for grades 6–12; this decides what our WPR cohort can use.</td></tr>
+</table></div>
+
+<h2 id="s9">9. Costs</h2>
+<table>
+  <tr><th style="width:32%">Item</th><th style="width:20%">Type</th><th>Notes</th></tr>
+  <tr><td>LMS licence</td><td>None</td><td>WeLearn is the school's own platform; no per-user licence fee.</td></tr>
+  <tr><td>Firebase hosting, database, server</td><td>Monthly, usage-based</td><td>Small at a single school's scale; the back-end team will provide an estimate for 500 students.</td></tr>
+  <tr><td>Google Gemini AI</td><td>Monthly, usage-based</td><td>Rate-limited per student to cap spend.</td></tr>
+  <tr><td>Microsoft 365 email</td><td>Existing</td><td>Uses our current Microsoft 365; a shared no-reply mailbox needs no extra licence.</td></tr>
+  <tr><td>Edmentum Courseware</td><td>Existing</td><td>Unchanged; licences are bought from Edmentum as today.</td></tr>
+  <tr><td>Online payment fees (Phase G)</td><td>Per transaction</td><td>Only if "Buy Course" takes payments online; set by the payment provider chosen.</td></tr>
+  <tr><td>File storage for learning materials</td><td>Monthly, usage-based</td><td>Documents and videos uploaded by teachers (Firebase Storage); small unless large volumes of video are hosted.</td></tr>
+  <tr><td>Security test and privacy review</td><td>One-off</td><td>Obtain quotes; the main external spend of the project.</td></tr>
+  <tr><td>Platform Lead time</td><td>Ongoing</td><td>Protected time during the build; ongoing maintenance and support afterwards.</td></tr>
+</table>
+
+<h2 id="s10">10. Main risks</h2>
+<table>
+  <tr><th style="width:30%">Risk</th><th>Mitigation</th></tr>
+  <tr><td>Primary learners' data and 2e support notes are especially sensitive</td><td>Parental consent before activation; support notes visible only to the learner's own teachers; privacy review covers both.</td></tr>
+  <tr><td>Children's data exposed by a defect</td><td>Automated security-rule tests, server-side audit log, independent security test before go-live.</td></tr>
+  <tr><td>Features reported done that do not work</td><td>"Done" means verified on the running system; Platform Lead approves every release; CEO receives milestone updates; pilot with one class first.</td></tr>
+  <tr><td>Outside services change (AI model retired, library updates)</td><td>Settings, not code, control the AI model; monthly maintenance by the Platform Lead.</td></tr>
+  <tr><td>The platform depends on one person</td><td>Documentation and handover material maintained throughout, so another engineer could take over.</td></tr>
+</table>
+
+<h2 id="s11">11. Next steps</h2>
+<ol>
+  <li>School reviews and approves this plan.</li>
+  <li>School starts actions 1 and 3 now; these have the longest lead times.</li>
+  <li>Build team starts <strong>Phase 0</strong> immediately, since it needs nothing from the school.</li>
+  <li>Phase A starts as soon as the Blaze plan is active.</li>
+</ol>
+
+<p class="foot">Source: Edmentum integrations (edmentum.com/support/integrations). Timeline and effort
+  figures are estimates, not commitments.</p>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WeLearn Growth Hub — Project Summary</title>
+<style>
+  @page { size: A4; margin: 15mm 14mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+         color: #1a2233; line-height: 1.55; font-size: 10.5pt; background: #fff; }
+  h1 { font-size: 26pt; letter-spacing: -0.5px; line-height: 1.15; }
+  h2 { font-size: 15pt; margin: 24px 0 10px; padding-bottom: 6px;
+       border-bottom: 2px solid #0f766e; color: #0f766e; }
+  h3 { font-size: 11.5pt; margin: 16px 0 5px; color: #12354d; }
+  h4 { font-size: 10.5pt; margin: 12px 0 3px; color: #0f766e; }
+  p { margin-bottom: 8px; }
+  ul, ol { margin: 6px 0 10px 20px; }
+  li { margin-bottom: 4px; }
+  .page-break { page-break-before: always; }
+
+  .cover { padding: 36px 0 22px; border-bottom: 4px solid #0f766e; margin-bottom: 24px; }
+  .eyebrow { font-size: 9pt; letter-spacing: 2.4px; text-transform: uppercase;
+             color: #0f766e; font-weight: 700; margin-bottom: 12px; }
+  .subtitle { font-size: 12.5pt; color: #4a5568; margin-top: 10px; }
+  .meta { margin-top: 20px; font-size: 9.5pt; color: #5a6678; }
+  .meta strong { color: #1a2233; }
+
+  .callout { background: #f0fdfa; border-left: 4px solid #0f766e;
+             padding: 12px 16px; margin: 14px 0; border-radius: 0 5px 5px 0; }
+  .callout.warn { background: #fffbeb; border-left-color: #d97706; }
+  .callout h3 { margin-top: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9.5pt; }
+  th { background: #12354d; color: #fff; text-align: left; padding: 7px 10px; font-weight: 600; }
+  td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 11px;
+          font-size: 8pt; font-weight: 700; white-space: nowrap; }
+  .ok { background: #d1fae5; color: #065f46; }
+  .part { background: #fef3c7; color: #92400e; }
+  .none { background: #e2e8f0; color: #475569; }
+
+  figure { margin: 14px 0; page-break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; display: block; }
+  figcaption { font-size: 8.5pt; color: #5a6678; margin-top: 5px; font-style: italic; }
+  .half { max-width: 58%; margin: 14px auto; }
+  .two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; page-break-inside: avoid; }
+  .two-up figure { margin: 0; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .kpi { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 11px 14px; }
+  .kpi .n { font-size: 19pt; font-weight: 800; color: #0f766e; line-height: 1.1; }
+  .kpi .l { font-size: 8.5pt; color: #5a6678; text-transform: uppercase; letter-spacing: 0.6px; }
+
+  .feature { border-left: 3px solid #cbd5e1; padding-left: 13px; margin-bottom: 13px;
+             page-break-inside: avoid; }
+  .feature h4 { margin-top: 0; }
+  .feature p { margin-bottom: 4px; }
+  .who { font-size: 8.5pt; color: #7a8699; font-style: italic; }
+
+  .flow { counter-reset: step; margin: 10px 0; }
+  .flow li { list-style: none; position: relative; padding-left: 32px; margin-bottom: 8px; }
+  .flow li::before { counter-increment: step; content: counter(step);
+    position: absolute; left: 0; top: 1px; width: 22px; height: 22px;
+    background: #0f766e; color: #fff; border-radius: 50%; font-size: 9pt; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; }
+  .wk { font-weight: 700; color: #0f766e; white-space: nowrap; }
+  footer { margin-top: 26px; padding-top: 11px; border-top: 1px solid #e2e8f0;
+           font-size: 8.5pt; color: #7a8699; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="eyebrow">Project Summary &middot; Prepared for the CEO</div>
+  <h1>WeLearn Growth Hub</h1>
+  <p class="subtitle">Platform walkthrough, feature reference, and the plan to enterprise release</p>
+  <div class="meta">
+    <strong>Prepared by:</strong> Mani Golzary — AI Learning Architect &amp; Marketing Strategist<br>
+    <strong>Date:</strong> 11 September 2026 &nbsp;|&nbsp;
+    <strong>Environment:</strong> dnd-master-73449.web.app<br>
+    <strong>Stack:</strong> Vanilla JS + Vite, Firebase Authentication &amp; Firestore, Google Gemini<br>
+    <strong>Status:</strong> Working prototype, tested end to end — awaiting a first classroom pilot
+  </div>
+</div>
+
+<h2>1. Executive Summary</h2>
+
+<p>WeLearn Growth Hub is a gamified STEM learning platform for students aged 12–18, paired with a
+monitoring portal for the coaches who teach them. Students set their own project goals with AI
+guidance, work through five interactive climate and engineering missions, and track progress
+daily. Coaches see the whole class in one view, rate work, leave feedback, set assignments, and
+export progress reports.</p>
+
+<p>Both halves are live and functioning. A defect review during this period closed a
+privilege-escalation flaw, four features that reported success to the user while silently failing
+to save, and two charts that displayed invented figures where data was missing. Every fix was
+confirmed against the running system rather than inferred from a successful build.</p>
+
+<div class="grid2">
+  <div class="kpi"><div class="n">5</div><div class="l">Interactive STEM missions</div></div>
+  <div class="kpi"><div class="n">0</div><div class="l">Classroom pilots run to date</div></div>
+  <div class="kpi"><div class="n">8</div><div class="l">Defects closed this period</div></div>
+  <div class="kpi"><div class="n">10</div><div class="l">Weeks to enterprise release</div></div>
+</div>
+
+<p style="margin-top:12px;">One point of context matters for reading everything that follows:
+<strong>no real class has used the platform yet.</strong> Every account created to date is a test
+account, so the features described here are demonstrated rather than proven in a classroom. The
+remaining gap is therefore not capability but <em>evidence and assurance</em>. The plan in
+Section 7 puts a genuine pilot first, then widens reach — mobile devices, the Thai language —
+and finally puts testing and compliance controls around the platform before it holds real
+student records.</p>
+
+<h2>2. How the Platform Works</h2>
+
+<p>One web address serves both audiences. A single sign-in routes each person to the right
+experience based on the role held against their account.</p>
+
+<ol class="flow">
+  <li><strong>Sign in.</strong> The visitor chooses Student Portal or Coach Portal. Credentials are
+      handled by Firebase Authentication; the platform never stores passwords itself.</li>
+  <li><strong>Role routing.</strong> The application reads the account's role and presents either
+      the student dashboard or the coach dashboard. Roles cannot be self-assigned.</li>
+  <li><strong>Goal setting.</strong> A student new to the platform is guided through a four-step
+      wizard establishing what they will learn, on what topic, over what period, and which
+      specific goals they are committing to.</li>
+  <li><strong>Learning.</strong> The student works through the five missions, with an AI companion
+      available throughout for hints, explanations and accessibility support.</li>
+  <li><strong>Monitoring.</strong> Coaches see every student in their classes with live progress,
+      goals, time on task and project telemetry.</li>
+  <li><strong>Intervention.</strong> Coaches rate work, write feedback, and send notifications that
+      reach the student on their own dashboard.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2>3. The Student Experience</h2>
+
+<figure class="half">
+  <img src="screenshots/opt/01-portal-login.png" alt="Sign-in portal">
+  <figcaption>Figure 1 — One entry point. The student or coach choice determines everything that follows.</figcaption>
+</figure>
+
+<figure>
+  <img src="screenshots/opt/02-student-dashboard.png" alt="Student dashboard">
+  <figcaption>Figure 2 — The student dashboard. Navigation across the top gives direct access to
+  goal setting and all five missions.</figcaption>
+</figure>
+
+<div class="feature">
+  <h4>Goal-setting wizard</h4>
+  <p>A four-step guided flow: choose a learning path (climate or coding), pick a project topic from
+  a curated list, set a project length, then write the specific goals to be achieved. An AI helper
+  comments at each step, so a student who is unsure is not left staring at a blank field.</p>
+  <p class="who">Reachable any time from the "Goal Setting" tab, not only at first sign-in.</p>
+</div>
+
+<div class="two-up">
+  <figure>
+    <img src="screenshots/opt/08-goal-wizard-step1.png" alt="Goal wizard step 1">
+    <figcaption>Figure 3 — Step 1: learning path.</figcaption>
+  </figure>
+  <figure>
+    <img src="screenshots/opt/09-goal-wizard-topics.png" alt="Goal wizard topic selection">
+    <figcaption>Figure 4 — Step 2: project topic.</figcaption>
+  </figure>
+</div>
+
+<figure class="half">
+  <img src="screenshots/opt/10-goal-wizard-goals.png" alt="Goal wizard goal entry">
+  <figcaption>Figure 5 — Step 4: the student writes their own goals, which become their checklist.</figcaption>
+</figure>
+
+<div class="feature">
+  <h4>Learning Project Goals</h4>
+  <p>Once set, goals become the student's home base: a progress percentage, a countdown of days
+  remaining to the project deadline, and a tick-box checklist of each goal. Editing is one click
+  away via "Set / Edit Goals".</p>
+  <p class="who">Goals are stored centrally, so they follow the student to any device — and the same
+  records are what the coach sees.</p>
+</div>
+
+<div class="feature">
+  <h4>Daily Goal &amp; Focus Reminder</h4>
+  <p>A standing prompt showing days remaining and the project deadline, with two actions: "Mark
+  Today's Learning Done" to record the day, or "Snooze 24h" to defer it. The intent is a light
+  daily habit rather than a notification that gets ignored.</p>
+</div>
+
+<div class="feature">
+  <h4>Gemini AI STEM Learning Companion</h4>
+  <p>An always-available assistant for questions about any mission — urban microclimates, bunker
+  engineering, MicroPython, coastal defence, solar car design. Four one-tap prompts cover the most
+  common questions; free text handles the rest.</p>
+</div>
+
+<div class="feature">
+  <h4>Accessibility support</h4>
+  <p>Detects when a learner appears stuck and offers help unprompted, rather than requiring them to
+  recognise they need it and ask. Built for students with additional learning needs, useful to
+  everyone.</p>
+</div>
+
+<div class="feature">
+  <h4>Quick Notes and personalisation</h4>
+  <p>A private notebook attached to the account, plus "Manage My Activities" to choose which
+  missions appear and an AI recommendation for what to attempt next.</p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>4. The Five Missions</h2>
+
+<figure>
+  <img src="screenshots/opt/03-student-activities.png" alt="Mission catalogue">
+  <figcaption>Figure 6 — The mission catalogue. Each card carries its curriculum position,
+  difficulty, an AI-supported badge, and what the student will actually do.</figcaption>
+</figure>
+
+<table>
+  <tr><th style="width:22%">Mission</th><th style="width:13%">Level</th><th>What the student does</th></tr>
+  <tr><td><strong>Urban Heat Battle</strong></td><td>Beginner</td><td>Models heat-island mitigation for a tropical city — green roofs, street tree canopy, water features, permeable paving — against a live thermal comfort index and a fixed budget.</td></tr>
+  <tr><td><strong>Bunker Survival</strong></td><td>Intermediate</td><td>Engineers a subterranean shelter against 50°C heatwaves, Category 5+ storms, toxic wildfire smoke and flooding: structure, air filtration, water, power and supplies.</td></tr>
+  <tr><td><strong>Micro:bit Coding</strong></td><td>Beginner</td><td>Writes real MicroPython against a simulated micro:bit — LED matrix, servo motors and PWM, wireless radio and accelerometer — plus "fix my code" debugging challenges.</td></tr>
+  <tr><td><strong>Bangkok Coastal Challenge</strong></td><td>Intermediate</td><td>A four-stage crisis: decode a satellite binary alert, persuade a reluctant fisherman to evacuate, choose the best shelter site, then calculate storm-surge arrival times.</td></tr>
+  <tr><td><strong>Solar Car Challenge</strong></td><td>Advanced</td><td>Designs a solar vehicle from modular components, receives AI aerodynamic and drag analysis, iterates across versions, and competes on a class leaderboard.</td></tr>
+</table>
+
+<p>The sequence is deliberate — beginner modelling, then engineering, then coding, then applied
+crisis response, then open-ended design. Coaches can reorder it per class from the
+"Activities Position &amp; Curriculum" view.</p>
+
+<div class="page-break"></div>
+
+<h2>5. The Coach Experience</h2>
+
+<figure>
+  <img src="screenshots/opt/06-coach-dashboard.png" alt="Coach dashboard">
+  <figcaption>Figure 7 — The coach dashboard: class-wide counts, three views, and every student below.</figcaption>
+</figure>
+
+<div class="feature">
+  <h4>Class overview</h4>
+  <p>Four headline counts — students, students with goals set, active projects, and open
+  assignments — filtered by class or group. "Register Student" enrols a learner directly;
+  "Refresh" re-reads live data.</p>
+</div>
+
+<div class="feature">
+  <h4>Three views</h4>
+  <p><strong>Student Progress</strong> — every student with their work and metrics.
+  <strong>Activities Position &amp; Curriculum</strong> — the order missions are presented in.
+  <strong>Student Goals</strong> — goals across the class with status, for comment. A search box
+  filters by student name.</p>
+</div>
+
+<div class="feature">
+  <h4>Class analytics</h4>
+  <p>Active platform time per student and solar car score distribution. Where a student has no
+  recorded data the chart says so explicitly rather than substituting a placeholder figure — a
+  coach must never mistake an invented number for a real one.</p>
+</div>
+
+<div class="feature">
+  <h4>Student cards and work rating</h4>
+  <p>Each student shows their group, points, project telemetry (iteration, weight, motor) and total
+  time spent, with a five-star control to rate the quality of their work. Ratings save to the
+  student's record.</p>
+</div>
+
+<div class="feature">
+  <h4>Student detail and coach feedback</h4>
+  <p>"View Details &amp; Provide Feedback" opens full solar car telemetry and specifications, the
+  student's goals, and a free-text box. Feedback appears directly on that student's dashboard.</p>
+</div>
+
+<div class="feature">
+  <h4>Assignments and progress export</h4>
+  <p>Coaches set assignments with deadlines against a class, and export a fourteen-column progress
+  report — activities started and completed, goals by status, time on task, active days,
+  last-active date and engagement level — for reporting or parent communication.</p>
+</div>
+
+<h2>6. Platform Status</h2>
+
+<table>
+  <tr><th style="width:38%">Capability</th><th style="width:14%">Status</th><th>Note</th></tr>
+  <tr><td>Sign-in and role routing</td><td><span class="pill ok">Working</span></td><td>Roles are server-controlled and cannot be self-assigned.</td></tr>
+  <tr><td>Goal-setting wizard</td><td><span class="pill ok">Working</span></td><td>Four steps; reachable at any time.</td></tr>
+  <tr><td>Goals, checklist and daily reminder</td><td><span class="pill ok">Working</span></td><td>Stored centrally and visible to the coach.</td></tr>
+  <tr><td>Five STEM missions</td><td><span class="pill ok">Working</span></td><td>All launch and run.</td></tr>
+  <tr><td>AI companion and accessibility support</td><td><span class="pill ok">Working</span></td><td>Available throughout.</td></tr>
+  <tr><td>Coach dashboard and class metrics</td><td><span class="pill ok">Working</span></td><td>Load time reduced from 6.1s to 3.3s.</td></tr>
+  <tr><td>Ratings, feedback and notifications</td><td><span class="pill ok">Working</span></td><td>Verified saving end to end.</td></tr>
+  <tr><td>Assignments with deadlines</td><td><span class="pill ok">Working</span></td><td>Coach-authored, student-readable, forgery-resistant.</td></tr>
+  <tr><td>Progress export</td><td><span class="pill ok">Working</span></td><td>Fourteen columns.</td></tr>
+  <tr><td>Recorded learning activity</td><td><span class="pill none">None yet</span></td><td>All accounts to date are test accounts. No class has used the platform, so no genuine learning data exists and the analytics have nothing to describe.</td></tr>
+  <tr><td>Class analytics charts</td><td><span class="pill part">Partial</span></td><td>Two of the four planned charts.</td></tr>
+  <tr><td>Thai language</td><td><span class="pill none">Not built</span></td><td>A translation module exists but is not yet connected to any screen.</td></tr>
+  <tr><td>Mobile and tablet layouts</td><td><span class="pill none">Not built</span></td><td>Breakpoints exist but are unverified on real devices.</td></tr>
+  <tr><td>Automated test coverage</td><td><span class="pill none">Not built</span></td><td>The absence of tests is why the defects above went undetected.</td></tr>
+</table>
+
+<h2>7. Operating Cost</h2>
+
+<p>Estimated running cost for a single cohort of up to 30 students, based on the platform's
+observed behaviour. These are infrastructure and service costs only; they exclude people.</p>
+
+<table>
+  <tr><th style="width:34%">Service</th><th style="width:18%">Monthly</th><th>Basis</th></tr>
+  <tr><td>Authentication</td><td>$0</td><td>Free to 50,000 monthly active users.</td></tr>
+  <tr><td>Database</td><td>$0–3</td><td>~10,000 reads and 400 writes per day against a 50,000 read / 20,000 write daily allowance.</td></tr>
+  <tr><td>Hosting and SSL</td><td>$0–2</td><td>~31 MB per day against a 360 MB daily allowance.</td></tr>
+  <tr><td>AI (Gemini)</td><td>$2–15</td><td>Roughly 4.7M input and 2.7M output tokens per month across all students.</td></tr>
+  <tr><td>Server-side AI proxy</td><td>$0–5</td><td>Within the free invocation allowance at this volume.</td></tr>
+  <tr><td>Custom domain</td><td>~$1.50</td><td>Annual registration, amortised.</td></tr>
+  <tr><td><strong>Total</strong></td><td><strong>$5–25</strong></td><td><strong>Central estimate $10–15 per month, or $150–200 per year.</strong></td></tr>
+</table>
+
+<div class="callout warn">
+  <h3>Two cost decisions worth taking deliberately</h3>
+  <p><strong>Use the paid AI tier, not the free one.</strong> Free-tier terms have historically
+  permitted prompts to be used for model improvement. With minors' schoolwork passing through the
+  service that is the wrong trade at any price — and at these volumes the paid tier costs single
+  digits per month, so there is no meaningful saving to defend.</p>
+  <p style="margin-bottom:0;"><strong>Cost scales with class size, not linearly.</strong> The coach
+  dashboard reads every student's records on each refresh. At 30 students this consumes about 1% of
+  the free allowance. At 500 students across a full staff room it becomes both slow and billable.
+  That is addressed in the Week 3 performance work and is a future concern, not a present one.</p>
+</div>
+
+<p>These figures are estimates derived from how the application behaves, not measurements of real
+classroom use. A month of pilot data would convert the range into a defensible number.</p>
+
+<div class="page-break"></div>
+
+<h2>8. Ten-Week Plan to Enterprise Release</h2>
+
+<p>Sequenced so that real usage data exists before analytics are built on top of it, reach is
+widened before the platform goes in front of a whole school, and assurance is in place before it
+holds student records at scale.</p>
+
+<table>
+  <tr><th style="width:12%">Week</th><th style="width:28%">Workstream</th><th>Outcome</th></tr>
+  <tr><td class="wk">Week 1</td><td>Credential hygiene</td><td>Rotate the exposed AI key at the provider, purge it from repository history, and move AI calls behind a server-side proxy so no key ever reaches the browser.</td></tr>
+  <tr><td class="wk">Week 2</td><td>Activity telemetry</td><td>Every mission records progress, scores and time on task as the student works. Without this the coach portal has little to report, which is its single largest limitation today.</td></tr>
+  <tr><td class="wk">Week 3</td><td>Pilot with a real class</td><td>One class runs end to end for a week. Produces genuine data and surfaces the workflow problems that only appear in a classroom.</td></tr>
+  <tr><td class="wk">Week 4</td><td>Coach portal depth</td><td>Individual student drill-down with intervention flagging, assignment submission and grading, and class-versus-class comparison.</td></tr>
+  <tr><td class="wk">Week 5</td><td>Analytics</td><td>Completion trend over time and class-versus-cohort benchmarking added to the two existing charts. PDF and Excel export.</td></tr>
+  <tr><td class="wk">Week 6</td><td>Mobile and tablet</td><td>Verified layouts at 320/768/1024/1440px on real devices, with touch targets and mobile navigation — the devices students actually use.</td></tr>
+  <tr><td class="wk">Week 7</td><td>Accessibility</td><td>WCAG AA conformance: contrast, keyboard navigation, screen-reader labelling. Independently audited.</td></tr>
+  <tr><td class="wk">Week 8</td><td>Thai language</td><td>Full interface in Thai with locale-aware dates and numbers, reviewed by a native speaker.</td></tr>
+  <tr><td class="wk">Week 9</td><td>Testing and compliance</td><td>Automated tests above 80% coverage, covering every save path. Audit logging, data retention and access records for FERPA alignment.</td></tr>
+  <tr><td class="wk">Week 10</td><td>Launch</td><td>Coach acceptance testing, load testing at full school scale, staging sign-off, training materials, production release.</td></tr>
+</table>
+
+<h3>Definition of done</h3>
+<ul>
+  <li>No credential in source control or reachable from the browser</li>
+  <li>Every student action recorded; every coach action verified saving under test</li>
+  <li>Dashboard interactive within 3 seconds at full school scale</li>
+  <li>WCAG AA confirmed by independent audit; Lighthouse above 85 across all categories</li>
+  <li>Full interface available in Thai</li>
+  <li>Ten teachers complete acceptance testing without a blocking defect</li>
+</ul>
+
+<h3>Assumptions</h3>
+<ul>
+  <li>Two full-stack engineers, with part-time QA and design from Week 4</li>
+  <li>A class and its teacher are available for the Week 3 pilot</li>
+  <li>A Thai-speaking reviewer is available in Week 8</li>
+  <li>Teacher availability is secured in advance for Week 10 acceptance testing</li>
+</ul>
+
+<div class="callout">
+  <h3>Recommendation</h3>
+  <p>Approve Weeks 1 to 3 as a single block. They convert the platform from something that works
+  into something with evidence behind it: credentials secured, real learning activity recorded,
+  and one class having actually used it. That evidence should then inform whether the remaining
+  seven weeks are worth the investment — a far better basis for that decision than this document
+  alone.</p>
+</div>
+
+<footer>
+  WeLearn Growth Hub — Project Summary, 11 September 2026. Feature status confirmed by direct
+  observation of the running application. Screenshots are unmodified captures of the live platform.
+</footer>
+
+</body>
+</html>

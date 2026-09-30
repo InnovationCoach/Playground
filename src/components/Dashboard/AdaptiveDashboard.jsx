@@ -19,7 +19,8 @@ export function AdaptiveDashboard() {
       try {
         const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
 
-        if (!userDoc.exists()) {
+        const docExists = typeof userDoc?.exists === 'function' ? userDoc.exists() : !!userDoc?.exists;
+        if (!docExists) {
           setError('User profile not found');
           setLoading(false);
           return;

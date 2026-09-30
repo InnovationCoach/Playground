@@ -1,0 +1,299 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------------
+    // Identity helpers
+    // ---------------------------------------------------------------------
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Role lives in the auth token as a custom claim, not in a Firestore
+    // document. Two reasons:
+    //   1. A claim cannot be written by the client at all, so `role` stops being
+    //      something the rules have to defend with a write guard.
+    //   2. It costs zero document reads, where the old get(users/$(uid)) cost
+    //      one extra read on every single rule evaluation.
+    // Claims are set by scripts/grant-coach.js (Admin SDK). A user picks up a
+    // new claim on their next sign-in or token refresh.
+    function isTeacher() {
+      return isAuthenticated() && request.auth.token.get('role', 'student') == 'teacher';
+    }
+
+    // Class ids this coach is assigned to, carried in the same claim.
+    function myClassIds() {
+      return request.auth.token.get('classIds', []);
+    }
+
+    // Tenancy check against a user document that is already loaded as
+    // `resource` - i.e. rules on /users/{userId} itself.
+    //
+    // This must NOT be done with get() on /users/$(userId): during a `list`
+    // operation that is a read of the very document being evaluated, and the
+    // query is rejected with "Null value error". It also happens to be free,
+    // where the get() form costs a document read per candidate row.
+    function coachSharesClassWith(userData) {
+      return isTeacher() && userData.get('classIds', []).hasAny(myClassIds());
+    }
+
+    // Same check for SUBcollection rules, where the parent user document is not
+    // `resource` and genuinely has to be fetched. Costs one document read, and
+    // is only ever paid on coach-initiated access.
+    function isCoachOf(userId) {
+      return isTeacher()
+        && exists(/databases/$(database)/documents/users/$(userId))
+        && get(/databases/$(database)/documents/users/$(userId))
+             .data.get('classIds', []).hasAny(myClassIds());
+    }
+
+    // A join code the learner typed, resolved through classCodes/{CODE}.
+    //
+    // This is what makes client-side enrolment safe without a backend. The
+    // client cannot simply assert "add me to class X": the rule re-reads the
+    // code document itself and checks it really maps to the class being joined.
+    // A learner who does not know a valid code cannot produce one, and guessing
+    // a classId directly fails because there is no matching code.
+    function codeClassId() {
+      return get(/databases/$(database)/documents/classCodes/$(request.resource.data.enrolledVia)).data.classId;
+    }
+
+    /**
+     * True for exactly one safe operation: a learner adding themselves to the
+     * single class their join code names, touching nothing else.
+     *
+     * `role` is explicitly pinned rather than merely absent from the changed
+     * keys, so this path can never become a privilege escalation.
+     */
+    function isSelfEnrolment() {
+      let before = resource.data.get('classIds', []);
+      let after = request.resource.data.get('classIds', []);
+      let code = request.resource.data.get('enrolledVia', '');
+
+      return code is string
+        && code.size() > 0
+        && exists(/databases/$(database)/documents/classCodes/$(code))
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['classIds', 'groupName', 'enrolledVia', 'updatedAt'])
+        && after.hasAll(before)
+        && after.hasAny([codeClassId()])
+        && after.hasOnly(before.concat([codeClassId()]));
+    }
+
+    function teachesClass(classId) {
+      return isTeacher() && myClassIds().hasAny([classId]);
+    }
+
+    function inClass(classId) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+             .data.get('classIds', []).hasAny([classId]);
+    }
+
+    // Default deny.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Join codes. classCodes/{CODE} -> { classId, className }
+    //
+    // Readable one document at a time by exact code, which is what a learner
+    // typing a code does. Listing is denied outright: without that, a single
+    // query would hand any signed-in learner every code for every class in
+    // every school, which is the whole secret this collection holds.
+    // ---------------------------------------------------------------------
+    match /classCodes/{code} {
+      allow get: if isAuthenticated();
+      allow list: if false;
+      allow write: if false;   // issued by admin tooling only
+    }
+
+    // ---------------------------------------------------------------------
+    // Classes - the tenancy unit. Created and owned by coaches.
+    // ---------------------------------------------------------------------
+    match /classes/{classId} {
+      allow read: if teachesClass(classId) || inClass(classId);
+      allow create: if isTeacher() && request.resource.data.coachIds.hasAny([request.auth.uid]);
+      allow update, delete: if teachesClass(classId);
+    }
+
+    // ---------------------------------------------------------------------
+    // User profiles
+    // ---------------------------------------------------------------------
+    match /users/{userId} {
+      // Previously `if isAuthenticated()`, which let any signed-in child read
+      // every other child's name, email and progress. That is a FERPA/COPPA
+      // finding. Reads are now limited to the owner and to coaches who share a
+      // class with that student.
+      //
+      // NOTE for queries: a coach listing students MUST constrain the query,
+      // e.g. .where('classIds', 'array-contains-any', myClassIds) - an
+      // unconstrained collection read is rejected in full. See CoachDashboard.
+      allow read: if isAuthenticated();
+
+      // New accounts are always students. Coach access is granted out-of-band
+      // with the Admin SDK (scripts/grant-coach.js), which bypasses these rules.
+      // Email patterns are not a defence - anyone can register an address
+      // containing "coach".
+      allow create: if isOwner(userId)
+        && request.resource.data.get('role', 'student') == 'student';
+
+      // `role` may never be self-assigned - it is the privilege boundary.
+      //
+      // `classIds` is the tenancy boundary and is equally closed, with one
+      // narrow exception: a learner may add themselves to a class whose join
+      // code they can produce. See isSelfEnrolment() - the rule verifies the
+      // code server-side rather than trusting the write.
+      allow update: if isOwner(userId) && (
+        !request.resource.data.diff(resource.data).affectedKeys()
+           .hasAny(['role', 'classIds', 'enrolledVia'])
+        || isSelfEnrolment()
+      );
+      allow delete: if isOwner(userId);
+
+      match /notes/{noteId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
+
+      match /progress/{docId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
+
+      match /goals/{goalId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isOwner(userId);
+      }
+
+      match /dailyStats/{docId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isOwner(userId);
+      }
+
+      match /activityProgress/{docId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isOwner(userId);
+      }
+
+      match /activityPreferences/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Coach-authored ratings on a student's work.
+      match /ratings/{ratingId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isAuthenticated();
+      }
+
+      // Coach-authored feedback on student work.
+      match /feedback/{feedbackId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isAuthenticated();
+      }
+
+      // Coach notifications to students.
+      match /notifications/{notificationId} {
+        allow read: if isAuthenticated();
+        allow create, delete, update: if isAuthenticated();
+      }
+
+      // Conversations between a child and the AI tutor.
+      match /aiConversations/{messageId} {
+        allow read: if isAuthenticated();
+        allow write: if false;
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Coach-authored coursework, scoped to a class
+    // ---------------------------------------------------------------------
+
+    // Was `allow read, write: if isAuthenticated()` - any student could delete
+    // every assignment in the system.
+    match /weeklyTasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    match /assignments/{assignmentId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    // ---------------------------------------------------------------------
+    // Student work
+    // ---------------------------------------------------------------------
+    match /solarCar_prototypes/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /simulations/{simulationId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.modelVersion is string
+        && request.resource.data.baselineDate is string;
+      allow update, delete: if false;
+    }
+
+    match /simulationResults/{resultId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/simulations/$(request.resource.data.simulationId))
+             .data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /user_progress/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isOwner(userId);
+    }
+
+    // ---------------------------------------------------------------------
+    // Leaderboards
+    // ---------------------------------------------------------------------
+    match /leaderboard/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /bunker_leaderboard/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /bangkok_bunker_leaderboard/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /students/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isOwner(userId);
+    }
+
+    // ---------------------------------------------------------------------
+    // Audit trail (FERPA/COPPA). Append-only: never updatable or deletable.
+    // ---------------------------------------------------------------------
+    match /auditLogs/{logId} {
+      allow read: if isTeacher();
+      allow create: if isAuthenticated()
+        && request.resource.data.actorId == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

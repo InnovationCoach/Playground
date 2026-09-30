@@ -18,7 +18,7 @@ router.get('/me', requireClaims, async (req, res) => {
     classIds: userData.classIds || req.caller.classIds || [],
     status: userData.status || 'active',
     displayName: userData.displayName || req.caller.displayName,
-    email: req.caller.email,
+    email: userData.email || req.caller.email || null,
     locale: userData.locale || 'en'
   });
 });

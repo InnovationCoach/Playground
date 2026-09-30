@@ -54,6 +54,7 @@ export async function requireClaims(req, res, next) {
 
     next();
   } catch (err) {
+    console.error('[requireClaims Auth Error]:', err.message, err.code);
     if (err.code === 'auth/id-token-revoked' || err.code === 'auth/user-disabled') {
       return sendError(res, 401, 'UNAUTHENTICATED', 'Your session has been revoked.');
     }

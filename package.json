@@ -13,7 +13,7 @@
     "test": "firebase emulators:exec --only firestore --project demo-hearisland-rules \"vitest run\"",
     "test:api": "firebase emulators:exec --only firestore,auth --project demo-hearisland-api-test \"vitest run tests/api/\"",
     "test:watch": "firebase emulators:exec --only firestore --project demo-hearisland-rules \"vitest\"",
-    "test:unit": "vitest run tests/solar-car-model.test.js tests/so2-model.test.js tests/plant-lab-model.test.js tests/hex-grid-model.test.js tests/junior-explorers.test.js tests/activity-search.test.js tests/growth-hub-phase0.test.js",
+    "test:unit": "vitest run tests/solar-car-model.test.js tests/so2-model.test.js tests/plant-lab-model.test.js tests/hex-grid-model.test.js tests/junior-explorers.test.js tests/activity-search.test.js tests/growth-hub-phase0.test.js tests/primary-worksheets.test.js tests/pbl.test.js tests/so2-filter.test.js",
     "migrate:classes": "node scripts/migrate-to-classes.js",
     "migrate:classes:dry": "node scripts/migrate-to-classes.js --dry-run",
     "migrate:agebands": "node scripts/migrate-age-bands.js",

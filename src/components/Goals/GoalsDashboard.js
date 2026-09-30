@@ -9,8 +9,8 @@ export function createGoalsDashboard(containerId = 'goals-dashboard', userId = n
 
   let goalData = null;
   try {
-    const userScoped = userId ? localStorage.getItem(`userGoals_${userId}`) : null;
-    const stored = userScoped || localStorage.getItem('userGoals');
+    // No unscoped fallback: on a shared device it was the previous learner's goals.
+    const stored = userId ? localStorage.getItem(`userGoals_${userId}`) : null;
     goalData = stored ? JSON.parse(stored) : null;
   } catch (e) {
     console.warn('[GoalsDashboard] Could not load goals from localStorage:', e.message);
@@ -18,18 +18,28 @@ export function createGoalsDashboard(containerId = 'goals-dashboard', userId = n
 
   if (!goalData) {
     container.innerHTML = `
-      <div class="goals-empty-state">
-        <div class="empty-icon">🎯</div>
-        <h3>No goals set yet</h3>
-        <p>Set your learning goals to get started on your project!</p>
+      <div class="goals-empty-state" style="background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%); border: 1px solid #4338ca; border-radius: 16px; padding: 2rem; text-align: center; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+        <div class="empty-icon" style="font-size: 3rem; margin-bottom: 0.5rem;">🎯</div>
+        <h3 style="color: #c084fc; font-size: 1.4rem; margin: 0 0 0.5rem 0;">Set Your Learning & Project Goals</h3>
+        <p style="color: #a5b4fc; max-width: 500px; margin: 0 auto 1.25rem auto; font-size: 0.95rem; line-height: 1.5;">
+          Plan your project milestones with SEN AI Chatbot guidance to track daily STEM progress, deadlines, and learning achievements!
+        </p>
+        <button id="btn-open-goals-modal-empty" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; border: none; padding: 0.75rem 1.75rem; border-radius: 10px; font-weight: 800; font-size: 1rem; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+          ✨ Set Your Goals Now
+        </button>
       </div>
     `;
     addDashboardStyles();
+    document.getElementById('btn-open-goals-modal-empty')?.addEventListener('click', () => {
+      if (typeof window.openGoalSettingWizard === 'function') {
+        window.openGoalSettingWizard();
+      }
+    });
     return;
   }
 
   const createdDate = new Date(goalData.createdAt);
-  const durationMs = goalData.durationDays * 24 * 60 * 60 * 1000;
+  const durationMs = (goalData.durationDays || 14) * 24 * 60 * 60 * 1000;
   const deadlineDate = new Date(createdDate.getTime() + durationMs);
   const daysRemaining = Math.max(0, Math.ceil((deadlineDate - new Date()) / (24 * 60 * 60 * 1000)));
   const progressPercent = goalData.completedGoals.length > 0
@@ -37,79 +47,75 @@ export function createGoalsDashboard(containerId = 'goals-dashboard', userId = n
     : 0;
 
   container.innerHTML = `
-    <div class="goals-dashboard">
+    <div class="goals-dashboard" style="background: #1e1b4b; border: 1px solid #4338ca; border-radius: 16px; padding: 1.75rem; color: white;">
       <!-- Header -->
-      <div class="goals-header">
+      <div class="goals-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
         <div class="goals-title">
-          <h2>🎯 Your Learning Project</h2>
-          <p class="goals-topic">${goalData.topic}</p>
+          <h2 style="margin: 0; color: #e9d5ff; font-size: 1.5rem;">🎯 Your Learning Project Goals</h2>
+          <p class="goals-topic" style="margin: 0.25rem 0 0 0; color: #a78bfa; font-weight: 600;">${goalData.topic || 'STEM Innovation Project'}</p>
         </div>
-        <div class="goals-timer">
-          <div class="timer-value">${daysRemaining}d</div>
-          <div class="timer-label">remaining</div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <button id="btn-edit-goals-header" style="background: rgba(168, 85, 247, 0.25); color: #e9d5ff; border: 1px solid #a855f7; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(168, 85, 247, 0.4)'" onmouseout="this.style.background='rgba(168, 85, 247, 0.25)'">
+            ✏️ Set / Edit Goals
+          </button>
+          <div class="goals-timer" style="background: rgba(0,0,0,0.3); padding: 0.5rem 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
+            <div class="timer-value" style="font-size: 1.2rem; font-weight: 800; color: #34d399;">${daysRemaining}d</div>
+            <div class="timer-label" style="font-size: 0.75rem; color: #94a3b8;">remaining</div>
+          </div>
         </div>
       </div>
 
       <!-- Progress Bar -->
-      <div class="goals-progress-section">
-        <div class="progress-info">
-          <span class="progress-label">Progress</span>
-          <span class="progress-percent">${progressPercent}%</span>
+      <div class="goals-progress-section" style="margin-bottom: 1.5rem;">
+        <div class="progress-info" style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">
+          <span class="progress-label">Project Progress</span>
+          <span class="progress-percent" style="color: #34d399; font-weight: 800;">${progressPercent}%</span>
         </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: ${progressPercent}%"></div>
+        <div class="progress-bar" style="width: 100%; height: 12px; background: rgba(0,0,0,0.4); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+          <div class="progress-fill" style="width: ${progressPercent}%; height: 100%; background: linear-gradient(90deg, #10b981 0%, #34d399 100%); transition: width 0.3s ease;"></div>
         </div>
-        <div class="progress-detail">${goalData.completedGoals.length} of ${goalData.goals.length} goals completed</div>
+        <div class="progress-detail" style="margin-top: 0.4rem; font-size: 0.8rem; color: #94a3b8;">${goalData.completedGoals.length} of ${goalData.goals.length} goals completed</div>
       </div>
 
       <!-- Goals List -->
-      <div class="goals-list-section">
-        <h3>📋 Your Goals</h3>
-        <div class="goals-checklist" id="goals-checklist">
+      <div class="goals-list-section" style="margin-bottom: 1.5rem;">
+        <h3 style="color: #e9d5ff; font-size: 1.1rem; margin: 0 0 1rem 0;">📋 Goal Checklist</h3>
+        <div class="goals-checklist" id="goals-checklist" style="display: flex; flex-direction: column; gap: 0.75rem;">
           ${goalData.goals.map((goal, idx) => `
-            <div class="goal-checkbox-item" data-goal-index="${idx}">
+            <div class="goal-checkbox-item ${goalData.completedGoals.includes(idx) ? 'completed' : ''}" data-goal-index="${idx}" style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem 1rem; border-radius: 10px; display: flex; align-items: center; gap: 0.75rem; transition: background 0.2s;">
               <input type="checkbox" class="goal-checkbox" id="goal-${idx}"
-                ${goalData.completedGoals.includes(idx) ? 'checked' : ''} />
-              <label for="goal-${idx}" class="goal-checkbox-label">${goal}</label>
-              ${goalData.completedGoals.includes(idx) ? '<span class="goal-completed">✅</span>' : ''}
+                ${goalData.completedGoals.includes(idx) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer; accent-color: #10b981;" />
+              <label for="goal-${idx}" class="goal-checkbox-label" style="flex: 1; cursor: pointer; font-size: 0.95rem; color: ${goalData.completedGoals.includes(idx) ? '#94a3b8' : '#f8fafc'}; text-decoration: ${goalData.completedGoals.includes(idx) ? 'line-through' : 'none'};">${goal}</label>
+              ${goalData.completedGoals.includes(idx) ? '<span class="goal-completed" style="color: #34d399; font-weight: 800;">✅ Done</span>' : ''}
             </div>
           `).join('')}
         </div>
       </div>
 
-      <!-- Upcoming Milestones -->
-      <div class="goals-milestones">
-        <h3>📅 Timeline</h3>
-        <div class="milestone-item">
-          <div class="milestone-dot"></div>
-          <div class="milestone-content">
-            <div class="milestone-date">${createdDate.toLocaleDateString()}</div>
-            <div class="milestone-label">Project Start</div>
+      <!-- Daily Reminder Card -->
+      <div class="goals-reminder" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.25) 100%); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 12px; padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 1rem;">
+        <div class="reminder-icon" style="font-size: 2rem;">🔔</div>
+        <div class="reminder-content" style="flex: 1;">
+          <h4 style="margin: 0 0 0.25rem 0; color: #fbbf24; font-size: 1.1rem;">🔔 Daily Goal & Focus Reminder</h4>
+          <p style="margin: 0 0 0.75rem 0; color: #fde68a; font-size: 0.9rem; line-height: 1.4;">
+            Keep tracking your daily STEM learning! You have <strong>${daysRemaining} days remaining</strong> before your project deadline on ${deadlineDate.toLocaleDateString()}.
+          </p>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button class="btn-snooze-reminder" id="btn-snooze-reminder" style="background: rgba(0,0,0,0.3); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.4); padding: 0.45rem 0.9rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+              ⏱️ Snooze 24h
+            </button>
+            <button id="btn-mark-daily-done" style="background: #f59e0b; color: black; border: none; padding: 0.45rem 0.9rem; border-radius: 6px; font-weight: 800; cursor: pointer; font-size: 0.85rem;">
+              ✨ Mark Today's Learning Done
+            </button>
           </div>
-        </div>
-        <div class="milestone-line"></div>
-        <div class="milestone-item deadline">
-          <div class="milestone-dot"></div>
-          <div class="milestone-content">
-            <div class="milestone-date">${deadlineDate.toLocaleDateString()}</div>
-            <div class="milestone-label">Deadline</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Daily Reminder -->
-      <div class="goals-reminder">
-        <div class="reminder-icon">🔔</div>
-        <div class="reminder-content">
-          <h4>Daily Reminder</h4>
-          <p>Keep tracking your progress. You're ${daysRemaining} days away from your deadline!</p>
-          <button class="btn-snooze-reminder" id="btn-snooze-reminder">Snooze for 24h</button>
         </div>
       </div>
 
       <!-- Actions -->
-      <div class="goals-actions">
-        <button class="btn-reset-goals" id="btn-reset-goals">Reset Goals</button>
+      <div class="goals-actions" style="display: flex; justify-content: flex-end;">
+        <button class="btn-reset-goals" id="btn-reset-goals" style="background: transparent; color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); padding: 0.45rem 0.9rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+          🔄 Reset Goals
+        </button>
       </div>
     </div>
   `;
@@ -138,7 +144,6 @@ function attachDashboardEventHandlers(goalData, userId = null) {
       // Save updated goals to localStorage safely
       try {
         if (userId) localStorage.setItem(`userGoals_${userId}`, JSON.stringify(goalData));
-        localStorage.setItem('userGoals', JSON.stringify(goalData));
         console.log('[Goals] Goals updated in localStorage:', goalData.completedGoals);
       } catch (e) {
         console.warn('[Goals] Could not save goals to localStorage:', e.message);
@@ -160,13 +165,30 @@ function attachDashboardEventHandlers(goalData, userId = null) {
     });
   });
 
+  // Edit / Set Goals from Header
+  document.getElementById('btn-edit-goals-header')?.addEventListener('click', () => {
+    if (typeof window.openGoalSettingWizard === 'function') {
+      window.openGoalSettingWizard();
+    }
+  });
+
+  // Mark Daily Learning Done
+  document.getElementById('btn-mark-daily-done')?.addEventListener('click', () => {
+    const btn = document.getElementById('btn-mark-daily-done');
+    if (btn) {
+      btn.textContent = '🎉 Awesome Job! Today Completed';
+      btn.style.background = '#10b981';
+      btn.style.color = '#ffffff';
+      btn.disabled = true;
+    }
+  });
+
   // Snooze reminder
   document.getElementById('btn-snooze-reminder')?.addEventListener('click', () => {
     const snoozeUntil = new Date();
     snoozeUntil.setDate(snoozeUntil.getDate() + 1);
     try {
       if (userId) localStorage.setItem(`reminderSnoozedUntil_${userId}`, snoozeUntil.toISOString());
-      localStorage.setItem('reminderSnoozedUntil', snoozeUntil.toISOString());
     } catch (e) {
       console.warn('[Goals] Could not save snooze time');
     }

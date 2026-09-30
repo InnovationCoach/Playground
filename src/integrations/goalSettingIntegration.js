@@ -7,6 +7,40 @@ import { createGoalSettingModal } from '../components/Goals/GoalSettingModal.js'
 import { createGoalsDashboard } from '../components/Goals/GoalsDashboard.js';
 import { db, doc, getDoc, updateDoc, setDoc } from '../firebase.js';
 
+/**
+ * The wizard stores its own state as a `goals` object on the user document, but
+ * the coach dashboard reads one document per goal from users/{uid}/goals. Without
+ * this the two never meet and every coach sees "0 students with goals".
+ */
+async function writeGoalsSubcollection(userId, goalData) {
+  const list = Array.isArray(goalData?.goals) ? goalData.goals : [];
+  if (!list.length) return;
+
+  const createdAt = Date.parse(goalData.createdAt) || Date.now();
+  const targetDate = new Date(createdAt + (goalData.durationDays || 30) * 86400000)
+    .toISOString().slice(0, 10);
+  const done = new Set((goalData.completedGoals || []).map(String));
+
+  await Promise.all(list.map((entry, i) => {
+    const title = typeof entry === 'string' ? entry : (entry?.title || entry?.text || `Goal ${i + 1}`);
+    const goalId = `goal_${createdAt}_${i}`;
+    const achieved = done.has(String(i)) || done.has(title);
+    return setDoc(doc(db, 'users', userId, 'goals', goalId), {
+      goalId,
+      title,
+      learningPath: goalData.learningPath || null,
+      topic: goalData.topic || null,
+      status: achieved ? 'achieved' : 'on_track',
+      progress: achieved ? 1 : 0,
+      targetDate,
+      createdAt,
+      source: 'goal-setting-wizard'
+    }, { merge: true });
+  }));
+
+  console.log(`[GoalSetting] Mirrored ${list.length} goal(s) to users/${userId}/goals`);
+}
+
 export async function initializeGoalSettingForUser(userId) {
   console.log('[GoalSetting] Initializing goal setting for user:', userId);
 
@@ -15,9 +49,9 @@ export async function initializeGoalSettingForUser(userId) {
 
   // 1. First check user-scoped localStorage
   try {
-    const userScopedGoals = localStorage.getItem(`userGoals_${userId}`);
-    const generalGoals = localStorage.getItem('userGoals');
-    const stored = userScopedGoals || generalGoals;
+    // Scoped to the user only: the old unscoped 'userGoals' fallback showed the
+    // previous learner's goals on a shared device. See utils/deviceData.js.
+    const stored = userId ? localStorage.getItem(`userGoals_${userId}`) : null;
     goalData = stored ? JSON.parse(stored) : null;
   } catch (e) {
     console.warn('[GoalSetting] Could not read goals from localStorage:', e.message);
@@ -37,10 +71,13 @@ export async function initializeGoalSettingForUser(userId) {
           goalData = userData.goals;
           try {
             localStorage.setItem(`userGoals_${userId}`, JSON.stringify(goalData));
-            localStorage.setItem('userGoals', JSON.stringify(goalData));
           } catch (e) {
             console.warn('[GoalSetting] Syncing to localStorage failed:', e.message);
           }
+          // Backfill for accounts that set goals before the subcollection existed.
+          // setDoc is merge-based, so re-running this is harmless.
+          writeGoalsSubcollection(userId, goalData)
+            .catch(e => console.warn('[GoalSetting] Goal backfill failed:', e.message));
         }
 
         // Determine first-time status from Firestore
@@ -57,18 +94,13 @@ export async function initializeGoalSettingForUser(userId) {
       console.warn('[GoalSetting] Error checking Firestore user doc:', err.message);
       // Fallback to localStorage
       try {
-        isFirstTime = localStorage.getItem(`firstTimeUser_${userId}`) !== 'false' &&
-                      localStorage.getItem('firstTimeUser') !== 'false';
+        isFirstTime = localStorage.getItem(`firstTimeUser_${userId}`) !== 'false';
       } catch (e) {
         isFirstTime = !goalData;
       }
     }
   } else if (!goalData) {
-    try {
-      isFirstTime = localStorage.getItem('firstTimeUser') !== 'false';
-    } catch (e) {
-      isFirstTime = true;
-    }
+    isFirstTime = true;
   }
 
   // 3. If goals are set and user is not marked as first time, load dashboard
@@ -111,6 +143,7 @@ function showGoalSettingFlow(userId) {
           goals: goalData,
           updatedAt: new Date().toISOString()
         }, { merge: true });
+        await writeGoalsSubcollection(userId, goalData);
         console.log('[GoalSetting] Saved isFirstTimeUser: false and goals to Firestore');
       } catch (err) {
         console.error('[GoalSetting] Error updating Firestore for goal setting:', err.message);
@@ -120,7 +153,6 @@ function showGoalSettingFlow(userId) {
     // Save to localStorage safely
     try {
       if (userId) localStorage.setItem(`firstTimeUser_${userId}`, 'false');
-      localStorage.setItem('firstTimeUser', 'false');
     } catch (e) {
       console.warn('[GoalSetting] LocalStorage write failed:', e.message);
     }

@@ -1,0 +1,277 @@
+/* Solar Car challenge.
+   Uses the palette already defined on :root in index.html so the activity sits
+   inside the existing app rather than beside it. Everything is scoped under .sc
+   to keep it away from the four legacy activities that share the page. */
+
+.sc { --sc: var(--python-yellow); --sc-dim: rgba(245, 158, 11, 0.12); }
+
+.sc-hero {
+  background: linear-gradient(135deg, #78350f 0%, #090d16 70%);
+  border: 1px solid var(--sc);
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.sc-hero h2 { color: var(--sc); font-size: 1.6rem; margin-bottom: 0.35rem; }
+.sc-hero p { color: var(--text-muted); max-width: 70ch; }
+
+/* --- stage navigation ---------------------------------------------------- */
+.sc-stages { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; margin-bottom: 1.25rem; }
+.sc-stage-btn {
+  flex: 1 0 auto; min-width: 8.5rem; text-align: left; cursor: pointer;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: 10px; padding: 0.6rem 0.85rem; color: var(--text-muted);
+  transition: border-color 0.15s, color 0.15s;
+}
+.sc-stage-btn:hover { border-color: #475569; color: var(--text-light); }
+.sc-stage-btn.is-active { border-color: var(--sc); color: var(--text-light); background: var(--sc-dim); }
+.sc-stage-btn .sc-stage-n { display: block; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; }
+.sc-stage-btn .sc-stage-t { display: block; font-weight: 700; font-size: 0.92rem; }
+.sc-stage-btn .sc-stage-done { color: var(--primary); }
+
+/* --- the readout that follows you between stages ------------------------- */
+.sc-readout {
+  position: sticky; top: 0; z-index: 20;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 1px;
+  background: var(--card-border); border: 1px solid var(--card-border);
+  border-radius: 10px; overflow: hidden; margin-bottom: 1.25rem;
+}
+.sc-readout div { background: #0f172a; padding: 0.6rem 0.75rem; }
+.sc-readout .v { font-size: 1.15rem; font-weight: 700; color: var(--text-light); line-height: 1.2; }
+.sc-readout .k { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.sc-readout .v.good { color: var(--primary); }
+.sc-readout .v.warn { color: var(--sc); }
+.sc-readout .v.bad { color: var(--accent-red); }
+.sc-readout .v.none { color: #475569; }
+
+/* --- forms --------------------------------------------------------------- */
+.sc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 1.25rem; align-items: start; }
+.sc-field { margin-bottom: 0.9rem; }
+.sc-field > label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem; font-weight: 600; }
+.sc-field .sc-hint { font-size: 0.74rem; color: #64748b; margin-top: 0.25rem; display: block; }
+.sc input[type="number"], .sc input[type="text"], .sc select, .sc textarea {
+  width: 100%; background: #0f172a; border: 1px solid var(--card-border);
+  color: var(--text-light); border-radius: 8px; padding: 0.55rem 0.7rem;
+  font-size: 0.95rem; font-family: inherit;
+}
+.sc input:focus, .sc select:focus, .sc textarea:focus { outline: 2px solid var(--sc); outline-offset: -1px; }
+.sc input::placeholder { color: #475569; }
+.sc-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+.sc-toggle { display: inline-flex; background: #0f172a; border: 1px solid var(--card-border); border-radius: 8px; padding: 2px; gap: 2px; }
+.sc-toggle button {
+  background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+  padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;
+}
+.sc-toggle button.is-on { background: var(--sc); color: #000; }
+
+/* --- parts table --------------------------------------------------------- */
+.sc-parts { width: 100%; border-collapse: collapse; }
+.sc-parts th {
+  text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); padding: 0.4rem 0.4rem; border-bottom: 1px solid var(--card-border); background: none;
+}
+.sc-parts td { padding: 0.3rem 0.4rem; border-bottom: 1px solid #1e293b; }
+.sc-parts input { padding: 0.4rem 0.5rem; font-size: 0.88rem; }
+.sc-parts .sc-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sc-parts tfoot td { border-bottom: none; padding-top: 0.7rem; font-weight: 700; font-size: 1rem; }
+.sc-del {
+  background: none; border: none; color: #475569; cursor: pointer; font-size: 1.1rem;
+  line-height: 1; padding: 0.2rem 0.4rem; border-radius: 4px;
+}
+.sc-del:hover { color: var(--accent-red); background: rgba(239, 68, 68, 0.1); }
+
+.sc-catbar { display: flex; height: 0.6rem; border-radius: 999px; overflow: hidden; background: #0f172a; margin: 0.75rem 0 0.4rem; }
+.sc-catbar span { display: block; }
+.sc-catkey { display: flex; flex-wrap: wrap; gap: 0.9rem; font-size: 0.76rem; color: var(--text-muted); }
+.sc-catkey i { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 2px; margin-right: 0.35rem; }
+
+/* --- derived value panels ------------------------------------------------ */
+.sc-derived { background: #0f172a; border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem; }
+.sc-derived dl { display: grid; grid-template-columns: 1fr auto; gap: 0.45rem 1rem; margin: 0; }
+.sc-derived dt { color: var(--text-muted); font-size: 0.86rem; }
+.sc-derived dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+
+.sc-flag { border-radius: 8px; padding: 0.7rem 0.85rem; font-size: 0.85rem; margin-top: 0.85rem; border-left: 3px solid; }
+.sc-flag.ok   { background: rgba(16, 185, 129, 0.08); border-color: var(--primary); color: #6ee7b7; }
+.sc-flag.warn { background: rgba(245, 158, 11, 0.08); border-color: var(--sc); color: #fde047; }
+.sc-flag.bad  { background: rgba(239, 68, 68, 0.08); border-color: var(--accent-red); color: #fca5a5; }
+
+/* --- gauges -------------------------------------------------------------- */
+.sc-gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1rem; }
+.sc-gauge { background: #0f172a; border: 1px solid var(--card-border); border-radius: 10px; padding: 0.9rem; text-align: center; }
+.sc-gauge .n { font-size: 1.9rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.sc-gauge .t { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-top: 0.3rem; }
+.sc-gauge .bar { height: 4px; border-radius: 999px; background: #1e293b; margin-top: 0.55rem; overflow: hidden; }
+.sc-gauge .bar span { display: block; height: 100%; border-radius: 999px; }
+
+/* --- the gearing window -------------------------------------------------- */
+.sc-window { margin: 1rem 0 0.5rem; }
+.sc-window-track {
+  position: relative; height: 2.6rem; background: #0f172a;
+  border: 1px solid var(--card-border); border-radius: 8px; overflow: hidden;
+}
+.sc-window-zone { position: absolute; top: 0; bottom: 0; background: rgba(16, 185, 129, 0.18); border-left: 1px solid var(--primary); border-right: 1px solid var(--primary); }
+.sc-window-ideal { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--primary); }
+.sc-window-you { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--sc); box-shadow: 0 0 8px var(--sc); }
+.sc-window-labels { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem; font-variant-numeric: tabular-nums; }
+
+/* --- coaching notes ------------------------------------------------------ */
+.sc-notes { display: grid; gap: 0.75rem; }
+.sc-note { background: #0f172a; border: 1px solid var(--card-border); border-left-width: 3px; border-radius: 8px; padding: 0.85rem 1rem; }
+.sc-note h4 { font-size: 0.95rem; margin-bottom: 0.25rem; color: var(--text-light); }
+.sc-note p { font-size: 0.87rem; color: var(--text-muted); margin: 0; }
+.sc-note.act   { border-left-color: var(--accent-red); }
+.sc-note.check { border-left-color: var(--sc); }
+.sc-note.good  { border-left-color: var(--primary); }
+.sc-note.idea  { border-left-color: var(--bunker-blue); }
+.sc-note .sc-note-tag { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; margin-bottom: 0.3rem; display: block; }
+.sc-note.act   .sc-note-tag { color: #fca5a5; }
+.sc-note.check .sc-note-tag { color: #fde047; }
+.sc-note.good  .sc-note-tag { color: #6ee7b7; }
+.sc-note.idea  .sc-note-tag { color: #7dd3fc; }
+
+/* --- checklist ----------------------------------------------------------- */
+.sc-todo { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.sc-todo li { padding: 0.35rem 0; font-size: 0.87rem; color: var(--text-muted); display: flex; gap: 0.5rem; }
+.sc-todo li::before { content: '○'; color: var(--sc); }
+.sc-todo li.done { color: #475569; text-decoration: line-through; }
+.sc-todo li.done::before { content: '●'; color: var(--primary); }
+
+/* --- test runs ----------------------------------------------------------- */
+.sc-runs { display: grid; gap: 0.6rem; }
+.sc-run { display: grid; grid-template-columns: 2.5rem 1fr auto auto; gap: 0.6rem; align-items: center; }
+.sc-run .lbl { font-size: 0.8rem; color: var(--text-muted); }
+.sc-run .spd { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--text-light); min-width: 5.5rem; text-align: right; }
+
+.sc-compare { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center; text-align: center; margin: 1rem 0; }
+.sc-compare .big { font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sc-compare .vs { color: var(--text-muted); font-size: 0.8rem; }
+
+/* --- review -------------------------------------------------------------- */
+.sc-drop {
+  border: 2px dashed var(--card-border); border-radius: 12px; padding: 1.5rem;
+  text-align: center; color: var(--text-muted); cursor: pointer; transition: border-color 0.15s;
+}
+.sc-drop:hover { border-color: var(--sc); color: var(--text-light); }
+.sc-preview { max-width: 100%; max-height: 16rem; border-radius: 10px; border: 1px solid var(--card-border); display: block; margin: 0 auto; }
+.sc-review-body { font-size: 0.92rem; line-height: 1.65; color: var(--text-light); white-space: pre-wrap; }
+.sc-review-body strong { color: var(--sc); }
+.sc-source {
+  display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em; padding: 0.25rem 0.6rem; border-radius: 999px;
+}
+.sc-source.ai { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
+.sc-source.local { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
+
+/* --- misc ---------------------------------------------------------------- */
+.sc-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.25rem; }
+.sc-btn {
+  background: var(--sc); color: #000; border: none; border-radius: 8px; cursor: pointer;
+  padding: 0.7rem 1.3rem; font-weight: 700; font-size: 0.95rem;
+}
+.sc-btn:hover:not(:disabled) { background: var(--python-hover); }
+.sc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sc-btn.ghost { background: transparent; border: 1px solid var(--card-border); color: var(--text-muted); }
+.sc-btn.ghost:hover { border-color: var(--text-muted); color: var(--text-light); background: transparent; }
+.sc-sync { font-size: 0.72rem; color: var(--text-muted); }
+.sc-muted { color: var(--text-muted); font-size: 0.87rem; }
+.sc h3 { color: var(--sc); font-size: 1.1rem; margin-bottom: 0.9rem; }
+.sc h4 { font-size: 0.95rem; margin-bottom: 0.4rem; }
+.sc .card + .card { margin-top: 1.25rem; }
+
+@media (max-width: 640px) {
+  .sc-row { grid-template-columns: 1fr; }
+  .sc-compare { grid-template-columns: 1fr; }
+  .sc-parts th:nth-child(2), .sc-parts td:nth-child(2) { display: none; }
+}
+
+/* --- Show the maths ------------------------------------------------------ */
+.sc-workings { margin: 0.75rem 0 1.25rem; }
+
+.sc-workings-toggle {
+  width: 100%;
+  text-align: left;
+  background: #0f172a;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.sc-workings-toggle:hover { color: var(--text-light); border-color: #475569; }
+
+.sc-workings-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.sc-working {
+  background: #0b1220;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+}
+.sc-working-label {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); margin-bottom: 0.35rem;
+}
+/* Monospace so a substituted formula lines up and reads as maths, not prose. */
+.sc-working-formula,
+.sc-working-sub {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #cbd5e1;
+  word-break: break-word;
+}
+.sc-working-sub { color: var(--text-muted); margin-top: 0.15rem; }
+.sc-working-eq { color: var(--sc); font-weight: 700; }
+.sc-working-result {
+  margin-top: 0.4rem;
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 0.95rem;
+}
+.sc-working-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* --- Predicted run (sc-runpred: NOT .sc-run, which is a Stage 5 test-run row) ------------------------------------------------------- */
+.sc-runpred {
+  background: #0b1220;
+  border: 1px solid var(--card-border);
+  border-left: 3px solid var(--primary);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1.25rem;
+}
+.sc-runpred-warn { border-left-color: var(--sc); }
+.sc-runpred-bad  { border-left-color: var(--accent-red); }
+.sc-runpred h4 { margin: 0 0 0.75rem; font-size: 1rem; }
+.sc-runpred p { margin: 0.75rem 0 0; font-size: 0.84rem; line-height: 1.6; color: var(--text-muted); }
+
+.sc-runpred-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.6rem;
+}
+.sc-runpred-grid > div {
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+}
+.sc-runpred-grid strong { display: block; font-size: 1.2rem; color: var(--text-light); line-height: 1.2; }
+.sc-runpred-grid span {
+  display: block; margin-top: 0.15rem;
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-muted);
+}

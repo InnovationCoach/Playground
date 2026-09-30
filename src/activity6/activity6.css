@@ -1,0 +1,20 @@
+/* Shell for the standalone Activity 6 page. The activity brings its own styles. */
+.a6-bar { display: flex; align-items: center; gap: 1rem; padding: 0.6rem 16px; background: var(--surface-sunken); border-bottom: 2px solid var(--card-border); margin-bottom: 1rem; }
+.a6-brand { font-weight: 800; color: var(--brand-lavender); }
+.a6-user { margin-left: auto; color: var(--text-muted); font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a6-link { background: none; border: none; color: var(--link); cursor: pointer; font: inherit; font-size: 0.9rem; text-decoration: underline; padding: 0; }
+.a6-loading { padding: 3rem 16px; text-align: center; color: var(--text-muted); }
+
+.a6-signin { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.a6-signin form { width: min(26rem, 100%); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 1.6rem; display: grid; gap: 0.8rem; }
+.a6-eyebrow { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: #e8b923; font-weight: 800; }
+.a6-signin h1 { font-size: 1.35rem; line-height: 1.25; }
+.a6-signin p { color: var(--text-muted); font-size: 0.92rem; }
+.a6-signin label { display: grid; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; }
+.a6-signin input { background: var(--surface-input); color: var(--text-light); border: 1px solid var(--card-border); border-radius: 8px; padding: 0.6rem 0.7rem; font: inherit; }
+.a6-signin input:focus { outline: 2px solid var(--brand-sky); outline-offset: 1px; }
+.a6-signin button[type="submit"] { background: var(--primary); color: var(--on-primary); border: none; border-radius: 8px; padding: 0.7rem; font-weight: 800; font-size: 1rem; cursor: pointer; }
+.a6-signin button[type="submit"]:disabled { opacity: 0.6; cursor: wait; }
+.a6-signin .a6-link { justify-self: start; }
+.a6-err { color: #fca5a5 !important; }
+.a6-info { color: #bbf7d0 !important; }

@@ -11,12 +11,23 @@ const firebaseConfig = {
   measurementId: "G-FMJH93L0G0"
 };
 
-// Initialize Firebase (compat SDK from CDN)
+// index.html's inline script owns initializeApp and the emulator wiring: it is a
+// classic script and therefore runs before this module, so it would win any
+// contest anyway. Duplicating the config here produced a real bug - the module's
+// projectId override was silently discarded, sign-in succeeded against the
+// emulator while every document read landed in an empty project namespace.
+const USE_EMULATORS = window.__hearIslandUseEmulators === true;
+
+// Fallback only: index.html has normally initialised the app already. This keeps
+// the module usable in isolation, e.g. from a test harness.
 if (!firebase.apps || !firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
+
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+export const usingEmulators = USE_EMULATORS;
 
 // Auth helper functions (Compat SDK instance wrappers)
 export function createUserWithEmailAndPassword(authInstance, email, password) {
@@ -86,6 +97,11 @@ export function deleteDoc(docRef) {
   return docRef.delete();
 }
 
+/** Atomic multi-document write. Compat: batch.set(ref, data), then batch.commit(). */
+export function writeBatch(dbInstance) {
+  return ((dbInstance && dbInstance.batch) ? dbInstance : db).batch();
+}
+
 export function serverTimestamp() {
   return firebase.firestore.FieldValue.serverTimestamp();
 }
@@ -98,5 +114,83 @@ export function arrayUnion(...elements) {
   return firebase.firestore.FieldValue.arrayUnion(...elements);
 }
 
+/**
+ * Modular-style query builders over the compat SDK.
+ *
+ * Needed so callers can constrain a collection read. Under the hardened rules an
+ * unconstrained read of `users` is rejected outright - a coach must ask only for
+ * students in their own classes. See CoachDashboard.loadData.
+ */
+export function query(ref, ...constraints) {
+  return constraints.reduce((q, apply) => apply(q), ref);
+}
+
+export function where(field, op, value) {
+  return (q) => q.where(field, op, value);
+}
+
+export function orderBy(field, direction = 'asc') {
+  return (q) => q.orderBy(field, direction);
+}
+
+export function limit(n) {
+  return (q) => q.limit(n);
+}
+
+/**
+ * Custom claims from the signed-in user's ID token.
+ *
+ * `role` and `classIds` live here rather than in Firestore: a claim is signed by
+ * Firebase Auth and cannot be forged or edited by the client, and reading it
+ * costs no document reads. Claims are set by scripts/grant-coach.js and refresh
+ * on next sign-in, or immediately with forceRefresh.
+ */
+export async function getAuthClaims(forceRefresh = false) {
+  const user = auth.currentUser;
+  if (!user) return {};
+  try {
+    const result = await user.getIdTokenResult(forceRefresh);
+    return result?.claims || {};
+  } catch (err) {
+    console.warn('[Firebase] Could not read auth claims:', err.message);
+    return {};
+  }
+}
+
 export { auth, db };
+
+export async function registerStudentAccount(email, password, displayName, groupName) {
+  const appName = "StudentReg_" + Date.now();
+  const secondaryApp = firebase.initializeApp(firebaseConfig, appName);
+  try {
+    const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+    const studentUser = userCredential.user;
+
+    if (displayName) {
+      await studentUser.updateProfile({ displayName });
+    }
+
+    const studentData = {
+      uid: studentUser.uid,
+      email: email,
+      displayName: displayName || email.split('@')[0],
+      role: 'student',
+      groupName: groupName || 'Climate Champions 7A',
+      createdAt: Date.now()
+    };
+
+    const secondaryDb = secondaryApp.firestore();
+    await secondaryDb.collection('users').doc(studentUser.uid).set(studentData);
+    await secondaryDb.collection('students').doc(studentUser.uid).set(studentData);
+
+    await secondaryApp.auth().signOut();
+    await secondaryApp.delete();
+
+    return studentData;
+  } catch (err) {
+    try { await secondaryApp.delete(); } catch(e) {}
+    throw err;
+  }
+}
+
 

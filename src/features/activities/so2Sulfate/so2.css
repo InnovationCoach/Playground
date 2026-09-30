@@ -1,0 +1,205 @@
+/* SO₂ → Sulfate simulation (Activity 6).
+   Scoped under .so2. Uses the app's :root palette from index.html for surfaces
+   and text; adds a dark-blue "instrument" header tone of its own. The app is
+   dark-only, so there is no light variant to select. */
+
+.so2 {
+  --so2-navy: #0b2545;
+  --so2-navy-2: #13315c;
+  --so2-accent: #8db3e2;
+  --so2-surface: #0f172a;
+  --so2-line: #26354a;
+  --so2-gold: #d4a017;
+  padding-top: 1.25rem;
+  padding-bottom: 3rem;
+}
+/* An instrument needs the width: the app's default container leaves the
+   molecular view and six charts too cramped to read. */
+.so2.container { max-width: 1440px; }
+.so2 h2, .so2 h3, .so2 h4 { color: var(--text-light); }
+.so2 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; color: var(--so2-accent); }
+.so2-muted { color: var(--text-muted); }
+
+/* --- header ------------------------------------------------------------- */
+.so2-hero {
+  display: flex; gap: 1.5rem; justify-content: space-between; align-items: flex-start; flex-wrap: wrap;
+  background: linear-gradient(135deg, var(--so2-navy-2) 0%, var(--so2-navy) 55%, #07162b 100%);
+  border: 1px solid #1f4679; border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem;
+}
+.so2-hero-text { flex: 1 1 32rem; }
+.so2-eyebrow { display: block; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--so2-accent); font-weight: 700; margin-bottom: 0.35rem; }
+.so2-hero h2 { font-size: 1.65rem; line-height: 1.2; margin-bottom: 0.5rem; }
+.so2-hero p { color: #cbd5e1; max-width: 70ch; }
+.so2-hero-meta { display: grid; gap: 0.5rem; min-width: 15rem; margin: 0; }
+.so2-hero-meta div { background: rgba(7, 22, 43, 0.7); border: 1px solid #1f4679; border-radius: 8px; padding: 0.45rem 0.75rem; }
+.so2-hero-meta dt { font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+.so2-hero-meta dd { margin: 0; font-weight: 700; color: var(--text-light); }
+.so2-status { color: #7dd3fc !important; letter-spacing: 0.04em; }
+
+.so2-warning {
+  display: flex; gap: 0.75rem; align-items: baseline; flex-wrap: wrap;
+  background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.45); border-left-width: 4px;
+  color: #fecaca; border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1rem; font-size: 0.92rem;
+}
+.so2-warning strong { color: #fca5a5; white-space: nowrap; }
+
+/* --- dashboard cards ---------------------------------------------------- */
+.so2-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.6rem; margin-bottom: 1rem; }
+.so2-card { background: var(--card-bg); border: 1px solid var(--card-border); border-top: 3px solid var(--so2-navy-2); border-radius: 10px; padding: 0.7rem 0.85rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.so2-card span { font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+.so2-card b { font-size: 1.45rem; color: var(--text-light); line-height: 1.15; }
+.so2-card b.so2-card-text { font-size: 0.98rem; }
+.so2-card small { color: var(--text-muted); font-size: 0.75rem; }
+
+/* --- mode tabs ---------------------------------------------------------- */
+.so2-modes { display: flex; gap: 0.4rem; flex-wrap: wrap; background: var(--so2-navy); border: 1px solid #1f4679; border-radius: 10px; padding: 0.35rem; }
+.so2-modes button {
+  flex: 1 1 12rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  background: transparent; border: 1px solid transparent; color: #cbd5e1; border-radius: 7px;
+  padding: 0.55rem 0.8rem; font-weight: 700; cursor: pointer; font-size: 0.9rem;
+}
+.so2-modes button:hover { background: rgba(141, 179, 226, 0.08); }
+.so2-modes button.is-active { background: var(--so2-navy-2); border-color: var(--so2-accent); color: #fff; }
+.so2-modes i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.so2-mode-blurb { color: var(--text-muted); font-size: 0.9rem; margin: 0.55rem 0.2rem 1rem; max-width: 90ch; }
+
+/* --- layout ------------------------------------------------------------- */
+.so2-layout { display: grid; grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
+@media (max-width: 960px) { .so2-layout { grid-template-columns: 1fr; } }
+
+.so2-params { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem; position: sticky; top: 0.75rem; max-height: calc(100vh - 1.5rem); overflow-y: auto; }
+@media (max-width: 960px) { .so2-params { position: static; max-height: none; } }
+.so2-params-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.so2-params-head h3 { font-size: 0.85rem; letter-spacing: 0.1em; color: var(--so2-accent); }
+.so2-params-note { font-size: 0.78rem; color: var(--text-muted); margin: 0.35rem 0 0.75rem; }
+.so2-group { border: 1px solid var(--so2-line); border-radius: 9px; padding: 0.4rem 0.7rem 0.2rem; margin: 0 0 0.75rem; }
+.so2-group legend { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); padding: 0 0.3rem; font-weight: 700; }
+.so2-param { margin: 0.35rem 0 0.6rem; }
+.so2-param.is-off { opacity: 0.4; }
+.so2-param-head { display: flex; justify-content: space-between; gap: 0.5rem; align-items: baseline; }
+.so2-param label { font-size: 0.8rem; color: #cbd5e1; font-weight: 600; }
+.so2-param output { font-size: 0.82rem; font-weight: 700; color: var(--text-light); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.so2-param output small { color: var(--text-muted); font-weight: 500; font-size: 0.7rem; }
+.so2-param input[type="range"] { width: 100%; accent-color: var(--so2-accent); margin-top: 0.2rem; }
+.so2-param-why { font-size: 0.74rem; color: var(--text-muted); margin: 0 0 0.5rem; font-style: italic; }
+
+.so2-main { min-width: 0; }
+
+/* --- controls ----------------------------------------------------------- */
+.so2-controls { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; background: var(--so2-navy); border: 1px solid #1f4679; border-radius: 10px 10px 0 0; padding: 0.6rem; }
+.so2-btn { background: #16263f; color: #e2e8f0; border: 1px solid #2c4468; border-radius: 7px; padding: 0.5rem 0.8rem; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+.so2-btn:hover:not(:disabled) { border-color: var(--so2-accent); }
+.so2-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.so2-btn.primary { background: #2563eb; border-color: #3b82f6; color: #fff; }
+.so2-btn.is-on { background: var(--so2-navy-2); border-color: var(--so2-accent); color: #fff; }
+.so2-clock { margin-left: auto; display: flex; align-items: baseline; gap: 0.45rem; background: #07162b; border: 1px solid #1f4679; border-radius: 7px; padding: 0.35rem 0.75rem; font-variant-numeric: tabular-nums; }
+.so2-clock span { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.so2-clock b { font-family: ui-monospace, Menlo, monospace; color: #7dd3fc; font-size: 1.05rem; }
+.so2-clock small { color: var(--text-muted); }
+.so2-progress { height: 4px; background: #16263f; border-radius: 0 0 4px 4px; overflow: hidden; margin-bottom: 0.75rem; }
+.so2-progress div { height: 100%; background: var(--so2-accent); }
+
+.so2-link { background: none; border: none; color: var(--so2-accent); cursor: pointer; font-size: 0.8rem; text-decoration: underline; padding: 0; }
+
+/* --- molecular scene ---------------------------------------------------- */
+.so2-scenes { display: grid; gap: 0.75rem; }
+.so2-scenes.is-split { grid-template-columns: 1fr 1fr; }
+@media (max-width: 1100px) { .so2-scenes.is-split { grid-template-columns: 1fr; } }
+.so2-scene { margin: 0; background: #081224; border: 1px solid #1f4679; border-radius: 10px; overflow: hidden; }
+.so2-scene svg { display: block; width: 100%; height: auto; }
+.so2-scene figcaption { font-size: 0.72rem; color: var(--text-muted); padding: 0.4rem 0.75rem; border-top: 1px solid #16263f; }
+.so2-scene figcaption b { color: #cbd5e1; }
+.so2-zone { fill: #e2e8f0; font-size: 15px; font-weight: 700; }
+.so2-zone-sub { fill: #94a3b8; font-size: 11px; }
+.so2-divider { stroke: #1f3556; stroke-dasharray: 3 5; }
+.so2-flow { fill: none; stroke: #64748b; stroke-width: 1.5; stroke-dasharray: 5 5; }
+.so2-slab-label { fill: #cbd5e1; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; }
+.so2-np-label { fill: #fde68a; font-size: 12px; font-weight: 700; }
+.so2-interface { fill: rgba(212, 160, 23, 0.12); stroke: #f59e0b; stroke-width: 1.5; stroke-dasharray: 4 3; }
+.so2-charge { fill: #e2e8f0; font-size: 10px; font-weight: 700; }
+.so2-e { fill: #082f49; font-size: 7px; font-weight: 800; }
+.so2-drift { animation: so2-drift 4s ease-in-out infinite alternate; }
+.so2-bob { animation: so2-bob 3.2s ease-in-out infinite alternate; }
+@keyframes so2-drift { from { transform: translate(-4px, 0); } to { transform: translate(8px, -5px); } }
+@keyframes so2-bob { from { transform: translateY(-3px); } to { transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .so2-drift, .so2-bob { animation: none; } }
+
+.so2-scene-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; align-items: center; font-size: 0.76rem; color: var(--text-muted); margin: 0.55rem 0.2rem 0.9rem; }
+.so2-atom-key { display: inline-flex; align-items: center; gap: 0.3rem; color: #cbd5e1; }
+.so2-swatch-support { display: inline-block; width: 14px; height: 10px; background: #4b5d78; border-radius: 2px; }
+.so2-swatch-e { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: #38bdf8; }
+.so2-legend-sep { width: 1px; height: 14px; background: var(--so2-line); }
+.so2-dashed { border: 1px dashed #94a3b8; border-radius: 999px; padding: 0 0.3rem; }
+
+/* --- live readouts ------------------------------------------------------ */
+.so2-readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 0.6rem; margin-bottom: 1rem; }
+.so2-readout { background: var(--card-bg); border: 1px solid var(--card-border); border-left: 3px solid var(--so2-series); border-radius: 10px; padding: 0.6rem 0.8rem; }
+.so2-readout-head { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; font-weight: 700; font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.4rem; }
+.so2-readout dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin: 0; }
+@media (max-width: 560px) { .so2-readout dl { grid-template-columns: repeat(2, 1fr); } }
+.so2-readout dt { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.so2-readout dd { margin: 0; font-weight: 700; color: var(--text-light); font-variant-numeric: tabular-nums; }
+.so2-readout dd small { color: var(--text-muted); font-weight: 500; }
+.so2-sim-tag { display: inline-block; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #7dd3fc; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 4px; padding: 0.05rem 0.35rem; white-space: nowrap; }
+
+/* --- charts ------------------------------------------------------------- */
+.so2-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: 0.75rem; }
+.so2-chart { margin: 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 0.65rem 0.75rem 0.55rem; min-width: 0; }
+.so2-chart figcaption { display: flex; justify-content: space-between; gap: 0.5rem; align-items: baseline; }
+.so2-chart-title { font-weight: 700; color: var(--text-light); font-size: 0.88rem; }
+.so2-chart-unit { font-size: 0.72rem; color: var(--text-muted); }
+.so2-legend { display: flex; gap: 0.8rem; font-size: 0.74rem; color: #cbd5e1; margin-top: 0.2rem; }
+.so2-legend span, .so2-tooltip div { display: inline-flex; align-items: center; gap: 0.3rem; }
+.so2-legend i, .so2-tooltip i { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
+.so2-chart-plot { position: relative; }
+.so2-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.so2-grid { stroke: #1e2b3f; stroke-width: 1; }
+.so2-axis { stroke: #475569; stroke-width: 1; }
+.so2-tick { fill: #94a3b8; font-size: 10px; font-variant-numeric: tabular-nums; }
+.so2-axis-label { fill: #94a3b8; font-size: 10px; }
+.so2-now { stroke: #475569; stroke-dasharray: 2 3; }
+.so2-crosshair { stroke: #94a3b8; stroke-width: 1; }
+.so2-tooltip { position: absolute; top: 4px; pointer-events: none; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.74rem; color: #e2e8f0; white-space: nowrap; z-index: 2; display: flex; flex-direction: column; gap: 0.1rem; }
+.so2-tooltip-t { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.so2-tooltip-note { color: #7dd3fc; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.so2-chart-foot { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: baseline; margin-top: 0.25rem; }
+.so2-chart-note { font-size: 0.7rem; color: var(--text-muted); }
+
+.so2-table { margin: 0.9rem 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 0.6rem 0.8rem; }
+.so2-table summary { cursor: pointer; font-size: 0.85rem; color: #cbd5e1; font-weight: 600; }
+.so2-table-scroll { overflow-x: auto; margin-top: 0.5rem; }
+.so2-table table, .so2-balance { border-collapse: collapse; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.so2-table caption { text-align: left; color: #7dd3fc; font-size: 0.72rem; padding-bottom: 0.3rem; }
+.so2-table th, .so2-table td, .so2-balance th, .so2-balance td { border-bottom: 1px solid var(--so2-line); padding: 0.3rem 0.6rem; text-align: right; color: #cbd5e1; }
+.so2-table th:first-child, .so2-table td:first-child, .so2-balance th:first-child, .so2-balance td:first-child { text-align: left; }
+.so2-table th, .so2-balance th { color: var(--text-muted); font-weight: 600; }
+
+/* --- save --------------------------------------------------------------- */
+.so2-save { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 0.9rem 1rem; margin-bottom: 0.75rem; }
+.so2-save > div { flex: 1 1 22rem; }
+.so2-save h3, .so2-saved h3 { font-size: 0.95rem; margin-bottom: 0.2rem; }
+.so2-save p { font-size: 0.82rem; color: var(--text-muted); }
+.so2-ok { color: var(--primary) !important; font-weight: 700; }
+.so2-err { color: #fca5a5 !important; font-size: 0.85rem; }
+.so2-saved { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 0.9rem 1rem; }
+.so2-saved ul { list-style: none; padding: 0; margin: 0.4rem 0 0; }
+.so2-saved li { border-top: 1px solid var(--so2-line); padding: 0.55rem 0; font-size: 0.84rem; display: grid; gap: 0.2rem; }
+.so2-saved li code { margin-left: 0.5rem; }
+.so2-saved li code.so2-old { color: #fbbf24; }
+.so2-saved .so2-link { justify-self: start; }
+
+/* --- info panels -------------------------------------------------------- */
+.so2-info { margin-top: 1.25rem; display: grid; gap: 0.6rem; }
+.so2-callout { background: linear-gradient(135deg, rgba(212, 160, 23, 0.1), rgba(19, 49, 92, 0.4)); border: 1px solid rgba(212, 160, 23, 0.4); border-radius: 10px; padding: 0.85rem 1rem; color: #fde68a; font-size: 0.95rem; }
+.so2-panel { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; overflow: hidden; }
+.so2-panel summary { cursor: pointer; background: var(--so2-navy); color: #fff; font-weight: 800; letter-spacing: 0.02em; padding: 0.7rem 1rem; }
+.so2-panel[open] summary { border-bottom: 1px solid #1f4679; }
+.so2-panel-body { padding: 0.9rem 1.1rem 1.1rem; color: #cbd5e1; font-size: 0.9rem; display: grid; gap: 0.55rem; }
+.so2-panel-body h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--so2-accent); margin-top: 0.5rem; }
+.so2-panel-body ul, .so2-panel-body ol { padding-left: 1.2rem; display: grid; gap: 0.35rem; }
+.so2-eq { font-family: 'Cambria Math', 'STIX Two Math', Georgia, serif; font-size: 1.12rem; color: #f8fafc; background: #07162b; border: 1px solid #1f4679; border-radius: 7px; padding: 0.45rem 0.8rem; overflow-x: auto; }
+.so2-caveat { font-size: 0.82rem; color: #fbbf24; border-left: 3px solid rgba(245, 158, 11, 0.6); padding-left: 0.7rem; }
+.so2-code { font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; background: #07162b; border: 1px solid #1f4679; border-radius: 7px; padding: 0.7rem 0.9rem; color: #e2e8f0; overflow-x: auto; white-space: pre; }
+.so2-sources li p { margin: 0 0 0.2rem; }
+.so2-sources a { color: var(--so2-accent); }
+.so2-balance { width: auto; min-width: min(100%, 22rem); }

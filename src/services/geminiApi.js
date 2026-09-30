@@ -5,7 +5,38 @@
  * for hints, feedback, explanations, and recommendations
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+import { auth } from '../firebase.js';
+import { API_BASE as API_BASE_URL } from './apiBase.js';
+
+/**
+ * Attach the caller's Firebase ID token.
+ *
+ * The server used to trust a `userId` field in the body, so any caller could act
+ * as any child. The uid now comes from this verified token instead.
+ */
+async function authHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  try {
+    const token = await auth.currentUser?.getIdToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch (err) {
+    console.warn('[GeminiAPI] Could not attach auth token:', err.message);
+  }
+  return headers;
+}
+
+/**
+ * The age band drives reading level and vocabulary server-side. Set from the
+ * profile at sign-in; falls back to the younger supported band. The server
+ * re-resolves it either way and never trusts it as a privilege signal.
+ */
+export function getAgeBand() {
+  try {
+    return localStorage.getItem('ageBand') || '13-15';
+  } catch {
+    return '13-15';
+  }
+}
 
 export const geminiApi = {
   /**
@@ -21,7 +52,7 @@ export const geminiApi = {
     try {
       const response = await fetch(`${API_BASE_URL}/api/hint`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           userId,
           challengeId,
@@ -58,7 +89,7 @@ export const geminiApi = {
     try {
       const response = await fetch(`${API_BASE_URL}/api/feedback`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           userId,
           challengeId,
@@ -94,7 +125,7 @@ export const geminiApi = {
     try {
       const response = await fetch(`${API_BASE_URL}/api/explain`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           userId,
           concept,
@@ -128,7 +159,7 @@ export const geminiApi = {
     try {
       const response = await fetch(`${API_BASE_URL}/api/recommendation`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           userId,
           learningPath,
@@ -162,7 +193,7 @@ export const geminiApi = {
     try {
       const response = await fetch(`${API_BASE_URL}/api/challenge-brief`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           userId,
           learningPath,
@@ -184,47 +215,57 @@ export const geminiApi = {
   },
 
   /**
-   * Directly call Gemini model with prompt and fallback models
+   * Free-form tutor turn.
+   *
+   * This used to call generativelanguage.googleapis.com straight from the
+   * browser with `import.meta.env.VITE_GEMINI_API_KEY`. Two problems: any
+   * VITE_-prefixed variable is inlined into the public bundle at build time, so
+   * turning the tutor on would have published the API key; and with the key
+   * unset it silently returned one hardcoded sentence about drag coefficients,
+   * so the "AI tutor" was not an AI at all.
+   *
+   * It now goes through the server, which holds the key and applies safety
+   * settings, age banding and the safeguarding transcript.
    */
-  async generateContextualResponse(promptText, systemInstruction = '') {
-    const apiKey = process.env.REACT_APP_GEMINI_API_KEY || 'AIzaSyC1pcad4Rff4-PMf7LcoZr-3kAZJF0LK9Y';
-    const models = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
-    let lastErr = null;
+  async generateContextualResponse(promptText, activityContext = '', ageBand = null) {
+    const response = await fetch(`${API_BASE_URL}/api/tutor`, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({
+        message: promptText,
+        activityContext,
+        ageBand: ageBand || getAgeBand()
+      })
+    });
 
-    for (const model of models) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const payload = {
-          contents: [{ parts: [{ text: promptText }] }]
-        };
-
-        if (systemInstruction) {
-          payload.systemInstruction = {
-            parts: [{ text: systemInstruction }]
-          };
-        }
-
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) return text.trim();
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          console.warn(`[geminiApi] ${model} returned HTTP ${res.status}:`, errData.error?.message);
-        }
-      } catch (err) {
-        console.warn(`[geminiApi] Error invoking ${model}:`, err.message);
-        lastErr = err;
-      }
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'The tutor is unavailable right now.');
     }
 
-    throw lastErr || new Error('All Gemini AI endpoints failed');
+    const data = await response.json();
+    return data.reply;
+  },
+
+  /**
+   * PBL project co-pilot: unlike the tutor, it may write complete, commented
+   * code for the learner's own project. Contract in
+   * docs/BACKEND-PBL-COPILOT-PROMPT-FOR-GEMINI.md. The error carries `status`
+   * so the caller can tell "endpoint not deployed yet" (404) from a failure.
+   */
+  async pblCopilot({ message, phase, problem, impact, language, ageBand = null }) {
+    const response = await fetch(`${API_BASE_URL}/api/pbl-copilot`, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ message, phase, problem, impact, language, ageBand: ageBand || getAgeBand() })
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      const err = new Error(body.error?.message || body.error || 'The co-pilot is unavailable right now.');
+      err.status = response.status;
+      throw err;
+    }
+    return response.json();
   },
 
   /**

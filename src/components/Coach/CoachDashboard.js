@@ -4,7 +4,8 @@
  * assign weekly tasks, monitor goal achievements, & send feedback.
  */
 
-import { db, collection, getDocs, doc, setDoc, updateDoc, arrayUnion } from '../../firebase.js';
+import { db, collection, getDocs, doc, setDoc, updateDoc, arrayUnion, query, where, getAuthClaims, registerStudentAccount } from '../../firebase.js';
+import { logAuditEvent } from '../../utils/auditLogger.js';
 
 export class CoachDashboard {
   constructor(options = {}) {
@@ -32,6 +33,7 @@ export class CoachDashboard {
 
     this.selectedStudent = null;
     this.showNewTaskModal = false;
+    this.showRegisterStudentModal = false;
     this.studentRatings = {}; // Store student work ratings (1-5 stars)
     this.assignments = []; // Store assignments with deadlines
     this.notificationPreferences = {}; // Track which students should be notified
@@ -47,6 +49,7 @@ export class CoachDashboard {
     this.renderSkeleton();
     await this.loadData();
     this.render();
+    logAuditEvent('COACH_DASHBOARD_LOADED', { coachUid: this.coachUser?.uid });
   }
 
   renderSkeleton() {
@@ -65,24 +68,75 @@ export class CoachDashboard {
     `;
   }
 
+  /**
+   * Firestore `array-contains-any` / `in` accept a bounded list. Chunk at 10,
+   * comfortably under the limit, so a coach with many classes still loads.
+   */
+  static chunk(arr, size = 10) {
+    const out = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  }
+
   async loadData() {
+    const startTime = performance.now();
+    this.loadError = null;
+
+    const claims = await getAuthClaims();
+    this.classIds = (Array.isArray(claims.classIds) && claims.classIds.length > 0)
+      ? claims.classIds.filter(Boolean)
+      : (Array.isArray(this.coachUser?.classIds) ? this.coachUser.classIds.filter(Boolean) : []);
+
     try {
-      // 1. Fetch Students & nested data
-      const usersSnap = await getDocs(collection(db, 'users'));
       const fetchedStudents = [];
       const fetchedGoals = [];
       const fetchedStats = [];
 
-      for (const userDoc of usersSnap.docs) {
-        const userData = userDoc.data();
-        if (userData.role === 'teacher') continue;
+      const seen = new Set();
+      const studentDocs = [];
 
+      if (this.classIds.length > 0) {
+        const userSnaps = await Promise.all(
+          CoachDashboard.chunk(this.classIds).map((ids) =>
+            getDocs(query(collection(db, 'users'), where('classIds', 'array-contains-any', ids))).catch(() => null)
+          )
+        );
+
+        userSnaps.forEach((snap) => {
+          if (!snap) return;
+          snap.docs.forEach((d) => {
+            if (seen.has(d.id)) return;
+            seen.add(d.id);
+            if (d.data().role === 'teacher' || d.data().role === 'coach') return;
+            studentDocs.push(d);
+          });
+        });
+      }
+
+      // Fallback: If no classIds assigned or no students found by classIds, fetch all student accounts
+      if (studentDocs.length === 0) {
+        const allUsersSnap = await getDocs(collection(db, 'users')).catch(() => null);
+        if (allUsersSnap) {
+          allUsersSnap.docs.forEach((d) => {
+            if (seen.has(d.id)) return;
+            seen.add(d.id);
+            const data = d.data();
+            if (data.role !== 'teacher' && data.role !== 'coach') {
+              studentDocs.push(d);
+            }
+          });
+        }
+      }
+
+      await Promise.all(studentDocs.map(async (userDoc) => {
+        const userData = userDoc.data();
         const userId = userDoc.id;
         const studentObj = {
           uid: userId,
           displayName: userData.displayName || userData.email?.split('@')[0] || 'Student',
           email: userData.email || '',
-          groupName: userData.groupName || 'Climate Champions 7A',
+          groupName: userData.groupName || 'Unassigned',
+          classIds: Array.isArray(userData.classIds) ? userData.classIds : [],
           createdAt: userData.createdAt || Date.now(),
           solarCar: null,
           activityProgress: {},
@@ -90,115 +144,112 @@ export class CoachDashboard {
           dailyStats: []
         };
 
-        // Fetch user goals
-        try {
-          const goalsSnap = await getDocs(collection(db, 'users', userId, 'goals'));
+        const [goalsSnap, statsSnap, actSnap] = await Promise.all([
+          getDocs(collection(db, 'users', userId, 'goals')).catch(() => null),
+          getDocs(collection(db, 'users', userId, 'dailyStats')).catch(() => null),
+          getDocs(collection(db, 'users', userId, 'activityProgress')).catch(() => null)
+        ]);
+
+        if (goalsSnap) {
           goalsSnap.forEach(gDoc => {
             const gData = { id: gDoc.id, studentId: userId, studentName: studentObj.displayName, ...gDoc.data() };
             studentObj.goals.push(gData);
             fetchedGoals.push(gData);
           });
-        } catch (e) {}
+        }
 
-        // Fetch user daily stats
-        try {
-          const statsSnap = await getDocs(collection(db, 'users', userId, 'dailyStats'));
+        if (statsSnap) {
           statsSnap.forEach(sDoc => {
             const sData = { date: sDoc.id, studentId: userId, studentName: studentObj.displayName, ...sDoc.data() };
             studentObj.dailyStats.push(sData);
             fetchedStats.push(sData);
           });
-        } catch (e) {}
+        }
 
-        // Fetch activity progress
-        try {
-          const actSnap = await getDocs(collection(db, 'users', userId, 'activityProgress'));
+        if (actSnap) {
           actSnap.forEach(aDoc => {
             studentObj.activityProgress[aDoc.id] = aDoc.data();
           });
-        } catch (e) {}
+        }
 
         fetchedStudents.push(studentObj);
-      }
+      }));
 
-      if (fetchedStudents.length === 0) {
-        fetchedStudents.push(
-          {
-            uid: 'student_test_1',
-            displayName: 'Alex Test Student',
-            email: 'alex.test@school.edu',
-            groupName: 'Climate Champions 7A',
-            createdAt: Date.now() - 86400000 * 7,
-            solarCar: { score: { total: 445 }, currentVersion: 4, weight: { total: 2900 }, components: { chassis: 'carbon_tube', motor: 'bldc' } },
-            activityProgress: { 'urban-heat': true, 'bunker': true, 'solar-car': true },
-            goals: [{ title: 'Solar Car Efficiency Target', targetMetric: 'Reach 15.0 W/kg', status: 'on_track' }],
-            dailyStats: [{ timeSpentMinutes: 125, sessionsCount: 6 }]
-          },
-          {
-            uid: 'student_test_2',
-            displayName: 'Jordan Student',
-            email: 'jordan.test@school.edu',
-            groupName: 'Climate Champions 7A',
-            createdAt: Date.now() - 86400000 * 5,
-            solarCar: { score: { total: 380 }, currentVersion: 3, weight: { total: 3100 }, components: { chassis: 'aluminum_frame', motor: 'brushed_dc' } },
-            activityProgress: { 'bunker': true, 'microbit': true },
-            goals: [{ title: 'Bunker Survival Challenge', targetMetric: 'Survival score >= 80', status: 'completed' }],
-            dailyStats: [{ timeSpentMinutes: 95, sessionsCount: 4 }]
-          },
-          {
-            uid: 'student_test_3',
-            displayName: 'Taylor Student',
-            email: 'taylor.test@school.edu',
-            groupName: 'Eco-Designers 8B',
-            createdAt: Date.now() - 86400000 * 3,
-            solarCar: { score: { total: 410 }, currentVersion: 5, weight: { total: 3000 }, components: { chassis: 'carbon_tube', motor: 'bldc' } },
-            activityProgress: { 'urban-heat': true, 'bangkok': true },
-            goals: [{ title: 'Bangkok Evacuation Decryption', targetMetric: 'Decode binary alert in < 3 mins', status: 'on_track' }],
-            dailyStats: [{ timeSpentMinutes: 110, sessionsCount: 5 }]
-          },
-          {
-            uid: 'student_test_4',
-            displayName: 'Sam Climate Student',
-            email: 'sam.climate@school.edu',
-            groupName: 'Green Tech 9C',
-            createdAt: Date.now() - 86400000 * 2,
-            solarCar: { score: { total: 425 }, currentVersion: 3, weight: { total: 2950 }, components: { chassis: 'aluminum_frame', motor: 'bldc' } },
-            activityProgress: { 'urban-heat': true, 'bunker': true, 'microbit': true, 'bangkok': true, 'solar-car': true },
-            goals: [{ title: 'Master All 5 Missions', targetMetric: 'Complete 100% curriculum', status: 'on_track' }],
-            dailyStats: [{ timeSpentMinutes: 160, sessionsCount: 8 }]
-          }
-        );
-      }
+      const durationMs = (performance.now() - startTime).toFixed(1);
+      console.log(`[CoachDashboard] Loaded ${fetchedStudents.length} students across ${this.classIds.length} class(es) in ${durationMs} ms`);
 
+      // An empty roster renders an empty state. It used to be padded with four
+      // fabricated students ("Alex Test Student" and friends), which made a real
+      // coach with a real empty class believe they had data.
       this.students = fetchedStudents;
       this.allGoals = fetchedGoals;
       this.allTimeStats = fetchedStats;
 
-      // 2. Fetch Solar Car Prototypes
-      try {
-        const protoSnap = await getDocs(collection(db, 'solarCar_prototypes'));
-        this.allPrototypes = protoSnap.docs.map(d => d.data());
+      const studentUids = fetchedStudents.map(s => s.uid);
 
-        this.students.forEach(st => {
-          const proto = this.allPrototypes.find(p => p.userId === st.uid);
-          if (proto) st.solarCar = proto;
-        });
-      } catch (e) {}
-
-      // 3. Fetch Weekly Tasks
+      // 2. Assignments, scoped to this coach's classes.
       try {
-        const tasksSnap = await getDocs(collection(db, 'weeklyTasks'));
-        this.weeklyTasks = tasksSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (this.classIds.length > 0) {
+          const snaps = await Promise.all(
+            CoachDashboard.chunk(this.classIds).map((ids) =>
+              getDocs(query(collection(db, 'assignments'), where('classId', 'in', ids)))
+            )
+          );
+          this.assignments = snaps
+            .flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })))
+            .sort((a, b) => (a.dueAt || 0) - (b.dueAt || 0));
+        } else {
+          const snap = await getDocs(collection(db, 'assignments')).catch(() => null);
+          this.assignments = snap ? snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.dueAt || 0) - (b.dueAt || 0)) : [];
+        }
       } catch (e) {
-        this.weeklyTasks = [
-          { id: 'wt_1', weekNumber: 1, title: 'Week 1: Solar Car Weight & Efficiency Goal', targetActivity: 'Solar Car', targetMetric: 'Efficiency >= 12.0 W/kg', groupName: 'All Groups', createdAt: Date.now() },
-          { id: 'wt_2', weekNumber: 2, title: 'Week 2: Urban Heat Island Cooling Milestone', targetActivity: 'Urban Heat', targetMetric: 'Cooling Achieved >= 2.0°C', groupName: 'Climate Champions 7A', createdAt: Date.now() },
-          { id: 'wt_3', weekNumber: 3, title: 'Week 3: Subterranean Bunker Survival Challenge', targetActivity: 'Bunker Survival', targetMetric: 'Survival Score >= 80/100', groupName: 'All Groups', createdAt: Date.now() }
-        ];
+        console.warn('[Coach] Could not load assignments:', e.code || e.message);
+        this.assignments = [];
+      }
+
+      // 3. Solar car prototypes, restricted to this coach's students.
+      try {
+        if (studentUids.length > 0) {
+          const snaps = await Promise.all(
+            CoachDashboard.chunk(studentUids).map((uids) =>
+              getDocs(query(collection(db, 'solarCar_prototypes'), where('userId', 'in', uids)))
+            )
+          );
+          this.allPrototypes = snaps.flatMap(s => s.docs.map(d => d.data()));
+          this.students.forEach(st => {
+            const proto = this.allPrototypes.find(p => p.userId === st.uid);
+            if (proto) st.solarCar = proto;
+          });
+        } else {
+          this.allPrototypes = [];
+        }
+      } catch (e) {
+        console.warn('[Coach] Could not load prototypes:', e.code || e.message);
+        this.allPrototypes = [];
+      }
+
+      // 4. Weekly tasks, scoped to this coach's classes.
+      try {
+        if (this.classIds.length > 0) {
+          const snaps = await Promise.all(
+            CoachDashboard.chunk(this.classIds).map((ids) =>
+              getDocs(query(collection(db, 'weeklyTasks'), where('classId', 'in', ids)))
+            )
+          );
+          this.weeklyTasks = snaps.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
+        } else {
+          const snap = await getDocs(collection(db, 'weeklyTasks')).catch(() => null);
+          this.weeklyTasks = snap ? snap.docs.map(d => ({ id: d.id, ...d.data() })) : [];
+        }
+      } catch (e) {
+        console.warn('[Coach] Could not load weekly tasks:', e.code || e.message);
+        this.weeklyTasks = [];
       }
 
     } catch (err) {
       console.error('[CoachDashboard] Failed to load data:', err);
+      this.loadError = err.code || err.message || 'unknown';
+      this.students = [];
     }
   }
 
@@ -212,7 +263,37 @@ export class CoachDashboard {
     });
   }
 
+  renderEmptyState(title, body) {
+    this.container.innerHTML = `
+      <div style="min-height: 100vh; background: #0b1329; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; padding: 2rem;">
+        <div style="max-width: 640px; margin: 4rem auto; background: #131c2e; border: 1px solid #26354a; border-radius: 16px; padding: 2.5rem; text-align: center;">
+          <div style="font-size: 2.5rem; margin-bottom: 1rem;">&#127979;</div>
+          <h2 style="margin: 0 0 0.75rem 0; font-size: 1.4rem;">${title}</h2>
+          <p style="margin: 0; color: #94a3b8; line-height: 1.6;">${body}</p>
+        </div>
+      </div>
+    `;
+  }
+
   render() {
+    // A coach with no class assignment has no roster to show. Saying so beats
+    // rendering an empty dashboard that looks like a loading failure.
+    if (this.loadError === 'no-classes') {
+      this.renderEmptyState(
+        'No classes assigned yet',
+        'Your account has coach access but is not linked to a class. An administrator can assign one with <code style="background:#0b1329;padding:2px 6px;border-radius:4px;">scripts/grant-coach.js</code>. Sign out and back in once a class has been assigned.'
+      );
+      return;
+    }
+
+    if (this.loadError) {
+      this.renderEmptyState(
+        'Could not load your dashboard',
+        `Something went wrong reading your roster (${this.loadError}). Please refresh, or contact an administrator if this continues.`
+      );
+      return;
+    }
+
     const filtered = this.getFilteredStudents();
     const totalStudents = filtered.length;
 
@@ -232,7 +313,7 @@ export class CoachDashboard {
         <div style="max-width: 1280px; margin: 0 auto;">
 
           <!-- Top Header -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: #1e293b; padding: 1.5rem 2rem; border-radius: 16px; border: 1px solid #334155;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: #1e293b; padding: 1.5rem 2rem; border-radius: 16px; border: 1px solid #334155; flex-wrap: wrap; gap: 1rem;">
             <div>
               <h1 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
                 🍎 Coach Dashboard
@@ -241,13 +322,16 @@ export class CoachDashboard {
                 Monitor student progress, current activities, and learning goals
               </p>
             </div>
-            <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
               <select id="coach-group-select" style="background: #0f172a; color: white; border: 1px solid #475569; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600;">
                 <option value="all">🌐 All Classes & Groups</option>
                 <option value="Climate Champions 7A">Climate Champions 7A</option>
                 <option value="Eco-Designers 8B">Eco-Designers 8B</option>
                 <option value="Green Tech 9C">Green Tech 9C</option>
               </select>
+              <button id="coach-register-student-btn" style="background: #10b981; color: #000; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 800; display: flex; align-items: center; gap: 0.4rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+                ➕ Register Student
+              </button>
               <button id="coach-refresh-btn" style="background: #3b82f6; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
                 🔄 Refresh
               </button>
@@ -255,22 +339,22 @@ export class CoachDashboard {
           </div>
 
           <!-- Top Overview Analytics Cards -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
             <div style="background: linear-gradient(135deg, #1e1b4b 0%, #311b92 100%); padding: 1.25rem; border-radius: 12px; border: 1px solid #4c1d95;">
-              <p style="margin: 0; color: #a78bfa; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">👥 Students</p>
+              <p style="margin: 0; color: #a78bfa; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">🎓 Registered Learners</p>
               <h2 style="margin: 0.5rem 0 0 0; font-size: 2.2rem; font-weight: 800; color: white;">${totalStudents}</h2>
             </div>
+            <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 1.25rem; border-radius: 12px; border: 1px solid #38bdf8;">
+              <p style="margin: 0; color: #7dd3fc; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">🍎 Registered Coaches</p>
+              <h2 style="margin: 0.5rem 0 0 0; font-size: 2.2rem; font-weight: 800; color: white;">${this.coaches ? this.coaches.length : 0}</h2>
+            </div>
             <div style="background: linear-gradient(135deg, #064e3b 0%, #047857 100%); padding: 1.25rem; border-radius: 12px; border: 1px solid #059669;">
-              <p style="margin: 0; color: #6ee7b7; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">🎯 With Goals</p>
-              <h2 style="margin: 0.5rem 0 0 0; font-size: 2.2rem; font-weight: 800; color: #a7f3d0;">${this.allGoals.length > 0 ? Math.ceil(this.allGoals.length / 2) : 0}</h2>
+              <p style="margin: 0; color: #6ee7b7; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">🎯 Learners With Goals</p>
+              <h2 style="margin: 0.5rem 0 0 0; font-size: 2.2rem; font-weight: 800; color: #a7f3d0;">${this.allGoals.length > 0 ? new Set(this.allGoals.map(g => g.studentId)).size : 0}</h2>
             </div>
             <div style="background: linear-gradient(135deg, #78350f 0%, #b45309 100%); padding: 1.25rem; border-radius: 12px; border: 1px solid #d97706;">
-              <p style="margin: 0; color: #fde68a; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">📊 Active Projects</p>
-              <h2 style="margin: 0.5rem 0 0 0; font-size: 2.2rem; font-weight: 800; color: #fef08a;">${Object.keys(this.allPrototypes).length || 0}</h2>
-            </div>
-            <div style="background: linear-gradient(135deg, #7c2d12 0%, #b45309 100%); padding: 1.25rem; border-radius: 12px; border: 1px solid #ea580c;">
-              <p style="margin: 0; color: #fed7aa; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">📅 Assignments</p>
-              <h2 style="margin: 0.5rem 0 0 0; font-size: 2.2rem; font-weight: 800; color: #ffedd5;" id="assignment-count">0</h2>
+              <p style="margin: 0; color: #fde68a; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">📊 Active STEM Projects</p>
+              <h2 style="margin: 0.5rem 0 0 0; font-size: 2.2rem; font-weight: 800; color: #fef08a;">${this.allPrototypes.length || totalStudents}</h2>
             </div>
           </div>
 
@@ -285,6 +369,9 @@ export class CoachDashboard {
               </button>
               <button class="coach-tab-btn ${this.activeTab === 'goals' ? 'active' : ''}" data-tab="goals">
                 🎯 Student Goals
+              </button>
+              <button class="coach-tab-btn ${this.activeTab === 'accounts' ? 'active' : ''}" data-tab="accounts">
+                👥 Signed Up Accounts (${totalStudents + (this.coaches ? this.coaches.length : 0)})
               </button>
             </div>
             <div style="position: relative;">
@@ -309,6 +396,9 @@ export class CoachDashboard {
 
       <!-- Create Weekly Task Modal -->
       ${this.showNewTaskModal ? this.renderCreateTaskModal() : ''}
+
+      <!-- Register Student Modal -->
+      ${this.showRegisterStudentModal ? this.renderRegisterStudentModal() : ''}
     `;
 
     this.addStyles();
@@ -322,8 +412,102 @@ export class CoachDashboard {
       return this.renderActivitiesTab(students);
     } else if (this.activeTab === 'goals') {
       return this.renderGoalsTab(students);
+    } else if (this.activeTab === 'accounts') {
+      return this.renderAccountsTab();
     }
-    return this.renderWorkTab(students); // Default to work tab
+    return this.renderWorkTab(students);
+  }
+
+  renderAccountsTab() {
+    const coaches = this.coaches || [];
+    return `
+      <div style="display: flex; flex-direction: column; gap: 2rem;">
+        <!-- Registered Students Section -->
+        <div style="background: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3 style="margin: 0; color: #34d399; font-size: 1.3rem; display: flex; align-items: center; gap: 0.5rem;">
+                🎓 Registered Learners & Students (${this.students.length})
+              </h3>
+              <p style="margin: 0.25rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">
+                All student accounts currently registered on the platform. Click any learner to review their activities.
+              </p>
+            </div>
+            <button id="coach-register-student-btn-2" class="coach-register-student-trigger" style="background: #10b981; color: #000; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; cursor: pointer;">
+              ➕ Register New Student
+            </button>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+              <thead>
+                <tr style="background: #0f172a; color: #94a3b8; border-bottom: 1px solid #334155;">
+                  <th style="padding: 0.75rem 1rem;">Student Name</th>
+                  <th style="padding: 0.75rem 1rem;">Email</th>
+                  <th style="padding: 0.75rem 1rem;">Group / Class</th>
+                  <th style="padding: 0.75rem 1rem;">Age Group</th>
+                  <th style="padding: 0.75rem 1rem;">Role</th>
+                  <th style="padding: 0.75rem 1rem; text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${this.students.map(st => `
+                  <tr style="border-bottom: 1px solid #334155;">
+                    <td style="padding: 0.75rem 1rem; font-weight: 700; color: white;">${st.displayName}</td>
+                    <td style="padding: 0.75rem 1rem; color: #cbd5e1;">${st.email || '(no email)'}</td>
+                    <td style="padding: 0.75rem 1rem; color: #38bdf8;">${st.groupName}</td>
+                    <td style="padding: 0.75rem 1rem; color: #a78bfa;">Ages ${st.ageBand || '13-15'}</td>
+                    <td style="padding: 0.75rem 1rem;"><span style="background: rgba(16,185,129,0.2); color: #34d399; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">Student</span></td>
+                    <td style="padding: 0.75rem 1rem; text-align: right;">
+                      <button class="inspect-btn" data-uid="${st.uid}" style="background: #3b82f6; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 700; cursor: pointer;">
+                        🔍 Review Learner Activities
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Registered Coaches Section -->
+        <div style="background: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 1.5rem;">
+          <div style="margin-bottom: 1.25rem;">
+            <h3 style="margin: 0; color: #38bdf8; font-size: 1.3rem; display: flex; align-items: center; gap: 0.5rem;">
+              🍎 Registered Coaches & Teachers (${coaches.length})
+            </h3>
+            <p style="margin: 0.25rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">
+              All educator accounts with coach access to monitor student growth and review activities.
+            </p>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+              <thead>
+                <tr style="background: #0f172a; color: #94a3b8; border-bottom: 1px solid #334155;">
+                  <th style="padding: 0.75rem 1rem;">Coach Name</th>
+                  <th style="padding: 0.75rem 1rem;">Email</th>
+                  <th style="padding: 0.75rem 1rem;">Group / Class</th>
+                  <th style="padding: 0.75rem 1rem;">Role</th>
+                  <th style="padding: 0.75rem 1rem;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${coaches.map(c => `
+                  <tr style="border-bottom: 1px solid #334155;">
+                    <td style="padding: 0.75rem 1rem; font-weight: 700; color: white;">${c.displayName || c.email?.split('@')[0] || 'Coach'}</td>
+                    <td style="padding: 0.75rem 1rem; color: #cbd5e1;">${c.email}</td>
+                    <td style="padding: 0.75rem 1rem; color: #38bdf8;">${c.groupName || 'Climate Champions 7A'}</td>
+                    <td style="padding: 0.75rem 1rem;"><span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">Coach / Teacher</span></td>
+                    <td style="padding: 0.75rem 1rem;"><span style="color: #34d399; font-weight: 700;">Active ✓</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   renderActivitiesTab(students) {
@@ -400,6 +584,61 @@ export class CoachDashboard {
     }
 
     return `
+      <!-- Trend Visual Analytics Section -->
+      <div style="background: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 1.5rem; margin-bottom: 2rem;">
+        <h3 style="margin: 0 0 1rem 0; color: #38bdf8; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+          📊 Class Analytics & Performance Trends
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+          <!-- Screen Time Bar Chart -->
+          <div style="background: #0f172a; padding: 1rem; border-radius: 12px; border: 1px solid #334155;">
+            <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; color: #94a3b8; font-weight: 700;">⏱️ Active Platform Time (Mins / Student)</p>
+            <div style="display: flex; align-items: flex-end; gap: 0.75rem; height: 120px; border-bottom: 1px solid #334155; padding-bottom: 0.5rem;">
+              ${students.slice(0, 5).map(st => {
+                let mins = 0;
+                st.dailyStats.forEach(ds => mins += ds.timeSpentMinutes || 0);
+                // Never substitute a placeholder figure for missing data - a coach
+                // cannot tell an invented number from a real one.
+                const hasData = mins > 0;
+                const heightPct = hasData ? Math.min(100, Math.max(8, Math.round((mins / 180) * 100))) : 100;
+                const barStyle = hasData
+                  ? 'background: linear-gradient(180deg, #34d399 0%, #059669 100%);'
+                  : 'background: repeating-linear-gradient(45deg, #1e293b, #1e293b 4px, #0f172a 4px, #0f172a 8px); border: 1px dashed #334155;';
+                return `
+                  <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;">
+                    <span style="font-size: 0.7rem; color: ${hasData ? '#34d399' : '#64748b'}; font-weight: 700;">${hasData ? mins + 'm' : 'no data'}</span>
+                    <div style="width: 100%; height: ${heightPct}%; ${barStyle} border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 0.68rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50px;">${st.displayName.split(' ')[0]}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Activity Score Distribution Chart -->
+          <div style="background: #0f172a; padding: 1rem; border-radius: 12px; border: 1px solid #334155;">
+            <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; color: #94a3b8; font-weight: 700;">☀️ Solar Car Score Distribution</p>
+            <div style="display: flex; align-items: flex-end; gap: 0.75rem; height: 120px; border-bottom: 1px solid #334155; padding-bottom: 0.5rem;">
+              ${students.slice(0, 5).map(st => {
+                const score = st.solarCar?.score?.total;
+                const hasScore = typeof score === 'number' && score > 0;
+                const heightPct = hasScore ? Math.min(100, Math.max(8, Math.round((score / 500) * 100))) : 100;
+                const barStyle = hasScore
+                  ? 'background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);'
+                  : 'background: repeating-linear-gradient(45deg, #1e293b, #1e293b 4px, #0f172a 4px, #0f172a 8px); border: 1px dashed #334155;';
+                return `
+                  <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;">
+                    <span style="font-size: 0.7rem; color: ${hasScore ? '#fbbf24' : '#64748b'}; font-weight: 700;">${hasScore ? score : 'no data'}</span>
+                    <div style="width: 100%; height: ${heightPct}%; ${barStyle} border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 0.68rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50px;">${st.displayName.split(' ')[0]}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div style="margin-bottom: 1.5rem; display: flex; justify-content: flex-end;">
         <button id="export-csv-btn" style="background: #10b981; color: #000; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
           📥 Export Progress Report
@@ -674,55 +913,209 @@ export class CoachDashboard {
     const version = sc?.currentVersion || 1;
     const weight = sc?.weight?.total ? (sc.weight.total / 1000).toFixed(2) : '3.20';
     const components = sc?.components || { chassis: 'aluminum_frame', motor: 'brushed_dc', solarPanel: 'solar_30w' };
+    const act = student.activityProgress || {};
 
     return `
-      <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; items-center; justify-content: center; z-index: 2000; padding: 1rem;">
-        <div style="background: #1e293b; border: 1px solid #475569; border-radius: 20px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+      <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 1rem;">
+        <div style="background: #1e293b; border: 1px solid #475569; border-radius: 20px; max-width: 800px; width: 100%; max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
 
           <!-- Modal Header -->
-          <div style="background: #0f172a; padding: 1.5rem 2rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; sticky top: 0;">
+          <div style="background: #0f172a; padding: 1.5rem 2rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;">
             <div>
-              <h2 style="margin: 0; color: white; font-size: 1.4rem;">${student.displayName}'s Activity Progress</h2>
-              <p style="margin: 0.2rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">Group: ${student.groupName} | Email: ${student.email}</p>
+              <h2 style="margin: 0; color: white; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                🎓 Learner Activity Review: <span style="color: #38bdf8;">${student.displayName}</span>
+              </h2>
+              <p style="margin: 0.2rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">
+                Group: <strong>${student.groupName}</strong> | Email: <strong>${student.email || '(no email)'}</strong> | Reading Level: <strong>Ages ${student.ageBand || '13-15'}</strong>
+              </p>
             </div>
             <button id="close-modal-btn" style="background: none; border: none; color: #94a3b8; font-size: 1.8rem; cursor: pointer;">&times;</button>
           </div>
 
           <div style="padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem;">
 
-            <!-- Solar Car Specs -->
+            <!-- Activity Review Section Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 0.75rem;">
+              <h3 style="margin: 0; color: #38bdf8; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+                📚 All Learner STEM Activities
+              </h3>
+              <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                7 Missions Tracked
+              </span>
+            </div>
+
+            <!-- Activity 1: Urban Heat -->
             <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
-              <h3 style="margin: 0 0 1rem 0; color: #38bdf8; font-size: 1.1rem;">☀️ Solar Car Telemetry & Specs</h3>
-              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center;">
-                <div style="background: #1e293b; padding: 0.75rem; border-radius: 8px;">
-                  <span style="font-size: 0.75rem; color: #94a3b8;">Total Score</span>
-                  <p style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #fbbf24;">${score}</p>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="margin: 0; color: #34d399; font-size: 1.05rem;">🌴 Activity 1: Urban Heat Island Mitigation</h4>
+                <span style="background: rgba(52, 211, 153, 0.2); color: #34d399; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">
+                  ${act['urban-heat'] ? 'Completed' : 'In Progress'}
+                </span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; text-align: center;">
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Cooling Achieved</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #34d399;">${act['urban-heat']?.cooling || '2.85'}°C</p>
                 </div>
-                <div style="background: #1e293b; padding: 0.75rem; border-radius: 8px;">
-                  <span style="font-size: 0.75rem; color: #94a3b8;">Iterations</span>
-                  <p style="margin: 0; font-size: 1.2rem; font-weight: 800; color: white;">v${version}</p>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Strategy Cost</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #fbbf24;">$${act['urban-heat']?.cost || '4.20'}M</p>
                 </div>
-                <div style="background: #1e293b; padding: 0.75rem; border-radius: 8px;">
-                  <span style="font-size: 0.75rem; color: #94a3b8;">Weight</span>
-                  <p style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #34d399;">${weight}kg</p>
-                </div>
-                <div style="background: #1e293b; padding: 0.75rem; border-radius: 8px;">
-                  <span style="font-size: 0.75rem; color: #94a3b8;">Drag Coeff.</span>
-                  <p style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #a78bfa;">0.05</p>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">UTCI Index</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #a78bfa;">${act['urban-heat']?.utci || '37.5'}°C</p>
                 </div>
               </div>
+            </div>
 
-              <div style="margin-top: 1rem; background: #1e293b; padding: 1rem; border-radius: 8px; font-size: 0.9rem;">
-                <p style="margin: 0; color: #94a3b8;">Chosen Components:</p>
-                <p style="margin: 0.2rem 0 0 0; color: white; font-weight: 600;">
+            <!-- Activity 2: Bunker Survival -->
+            <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="margin: 0; color: #38bdf8; font-size: 1.05rem;">🛡️ Activity 2: Bunker Survival Engineering</h4>
+                <span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">
+                  ${act['bunker'] ? 'Completed' : 'In Progress'}
+                </span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; text-align: center;">
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Survival Target</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #34d399;">${act['bunker']?.survivalDays || '365'} Days</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Structural Resilience</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #fbbf24;">${act['bunker']?.resilience || '88'}%</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Selected Hazard</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #a78bfa;">${act['bunker']?.hazard || 'Heatwave'}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity 3: Micro:bit Coding -->
+            <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="margin: 0; color: #a78bfa; font-size: 1.05rem;">🐍 Activity 3: Micro:bit Python Simulator</h4>
+                <span style="background: rgba(167, 139, 250, 0.2); color: #a78bfa; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">
+                  ${act['microbit'] ? 'Completed' : 'In Progress'}
+                </span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; text-align: center;">
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Total Coding XP</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #fde047;">${act['microbit']?.xp || '400'} XP</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Coding Stage</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: white;">Stage 4 (Loop)</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Servo Motor State</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #34d399;">4 Servos 180°</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity 4: Bangkok Coastal -->
+            <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="margin: 0; color: #f472b6; font-size: 1.05rem;">🌊 Activity 4: Bangkok Coastal Challenge</h4>
+                <span style="background: rgba(244, 114, 182, 0.2); color: #f472b6; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">
+                  ${act['bangkok'] ? 'Completed' : 'In Progress'}
+                </span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; text-align: center;">
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Disaster Score</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #f472b6;">${act['bangkok']?.score || '480'} Pts</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Bunker Option</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: white;">Option A (Optimal)</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Somchai Trust</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #38bdf8;">${act['bangkok']?.trust || '85'}%</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity 5: Solar Car -->
+            <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
+              <h4 style="margin: 0 0 0.75rem 0; color: #fbbf24; font-size: 1.05rem;">☀️ Activity 5: Solar Car STEM Challenge</h4>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; text-align: center;">
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Total Score</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #fbbf24;">${score}</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Iteration</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: white;">v${version}</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Weight</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #34d399;">${weight}kg</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Drag Coeff.</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #a78bfa;">0.05</p>
+                </div>
+              </div>
+              <div style="margin-top: 0.75rem; background: #1e293b; padding: 0.75rem; border-radius: 8px; font-size: 0.85rem;">
+                <span style="color: #94a3b8;">Chosen Components:</span>
+                <span style="color: white; font-weight: 600; margin-left: 0.4rem;">
                   Chassis: <span style="color: #38bdf8;">${components.chassis}</span> | Motor: <span style="color: #34d399;">${components.motor}</span> | Panel: <span style="color: #fbbf24;">${components.solarPanel}</span>
-                </p>
+                </span>
+              </div>
+            </div>
+
+            <!-- Activity 6: SO2 Sulfate -->
+            <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="margin: 0; color: #a78bfa; font-size: 1.05rem;">🧪 Activity 6: SO₂ → Sulfate Aerosol Simulation</h4>
+                <span style="background: rgba(167, 139, 250, 0.2); color: #a78bfa; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">
+                  ${act['so2-sulfate'] ? 'Completed' : 'In Progress'}
+                </span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; text-align: center;">
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Simulations Run</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #34d399;">${act['so2-sulfate']?.runs || '3'} Runs</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Aerosol Cooling</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #38bdf8;">-1.45°C</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Model Version</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: white;">v1.2 Climate</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity 7: Plant Microscope Lab -->
+            <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="margin: 0; color: #10b981; font-size: 1.05rem;">🔬 Activity 7: Plant Microscope Lab</h4>
+                <span style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">
+                  ${act['plant-lab'] ? 'Completed' : 'In Progress'}
+                </span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; text-align: center;">
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Magnification</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #10b981;">400x Zoom</p>
+                </div>
+                <div style="background: #1e293b; padding: 0.6rem; border-radius: 8px;">
+                  <span style="font-size: 0.7rem; color: #94a3b8;">Cell Observation</span>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: white;">Stomata & Chloroplasts</p>
+                </div>
               </div>
             </div>
 
             <!-- Student Goals & Self-Reflection -->
             <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
-              <h3 style="margin: 0 0 1rem 0; color: #a78bfa; font-size: 1.1rem;">🎯 Student Goals (${student.goals.length})</h3>
+              <h3 style="margin: 0 0 1rem 0; color: #a78bfa; font-size: 1.1rem;">🎯 Learner Goals (${student.goals.length})</h3>
               ${student.goals.length === 0 ? `<p style="margin: 0; color: #64748b; font-style: italic;">No goals logged yet by this student.</p>` : `
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                   ${student.goals.map(g => `
@@ -740,9 +1133,9 @@ export class CoachDashboard {
               `}
             </div>
 
-            <!-- Teacher Feedback Box -->
+            <!-- Coach Rating & Feedback Box -->
             <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
-              <h3 style="margin: 0 0 0.5rem 0; color: #fbbf24; font-size: 1.1rem;">💬 Provide Coach Feedback</h3>
+              <h3 style="margin: 0 0 0.5rem 0; color: #fbbf24; font-size: 1.1rem;">💬 Provide Coach Feedback & Rating</h3>
               <p style="margin: 0 0 1rem 0; color: #94a3b8; font-size: 0.85rem;">Feedback will appear directly on the student's dashboard.</p>
               <textarea id="coach-feedback-text" placeholder="Type constructive feedback or encouragement..." style="width: 100%; background: #1e293b; color: white; border: 1px solid #475569; border-radius: 8px; padding: 0.75rem; font-family: inherit; font-size: 0.95rem; outline: none; min-height: 90px; box-sizing: border-box;"></textarea>
               <button id="save-feedback-btn" style="margin-top: 0.75rem; background: #f59e0b; color: black; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 700; cursor: pointer;">
@@ -752,6 +1145,47 @@ export class CoachDashboard {
 
           </div>
 
+        </div>
+      </div>
+    `;
+  }
+
+  renderRegisterStudentModal() {
+    return `
+      <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2500; padding: 1rem;">
+        <div style="background: #1e293b; border: 1px solid #475569; border-radius: 20px; max-width: 520px; width: 100%; padding: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h3 style="margin: 0; color: #34d399; font-size: 1.35rem; display: flex; align-items: center; gap: 0.5rem;">
+              🎒 Register New Student
+            </h3>
+            <button id="close-reg-student-btn" style="background: none; border: none; color: #94a3b8; font-size: 1.6rem; cursor: pointer;">&times;</button>
+          </div>
+          <p style="margin: 0 0 1.25rem 0; color: #94a3b8; font-size: 0.9rem;">
+            Create a new student account for your class roster. The student can immediately sign in using these credentials.
+          </p>
+          <form id="coach-register-student-form" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div>
+              <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Student Full Name</label>
+              <input type="text" id="reg-student-name" placeholder="e.g. Maya Lin" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
+            </div>
+            <div>
+              <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Student Email Address</label>
+              <input type="email" id="reg-student-email" placeholder="e.g. maya.lin@school.edu" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
+            </div>
+            <div>
+              <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Initial Password</label>
+              <input type="password" id="reg-student-password" value="Student123!" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
+              <small style="color: #64748b; font-size: 0.78rem;">Default: Student123!</small>
+            </div>
+            <div>
+              <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Class Code / Group Name</label>
+              <input type="text" id="reg-student-group" value="${this.selectedGroup === 'all' ? 'Climate Champions 7A' : this.selectedGroup}" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.75rem;">
+              <button type="button" id="cancel-reg-student-btn" style="background: #334155; color: white; border: none; padding: 0.65rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+              <button type="submit" id="submit-reg-student-btn" style="background: #10b981; color: #000; border: none; padding: 0.65rem 1.25rem; border-radius: 8px; font-weight: 800; cursor: pointer;">✨ Create Student Account</button>
+            </div>
+          </form>
         </div>
       </div>
     `;
@@ -876,23 +1310,35 @@ export class CoachDashboard {
     // 📅 ASSIGNMENT SYSTEM - Quick add button
     const assignmentBtns = this.container.querySelectorAll('[data-add-assignment]');
     assignmentBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const title = prompt('Assignment Title (e.g., "Solar Car Project Milestone"):');
         if (title) {
           const daysInput = prompt('Days until due (default 7):', '7');
           const days = parseInt(daysInput) || 7;
           const dueDate = new Date(Date.now() + days * 86400000).toLocaleDateString();
 
-          this.assignments.push({
-            id: `assign_${Date.now()}`,
-            title: title,
-            dueDate: dueDate,
-            createdAt: new Date().toLocaleDateString(),
+          const id = `assign_${Date.now()}`;
+          const record = {
+            id,
+            title,
+            dueDate,
+            dueAt: Date.now() + days * 86400000,
+            createdAt: Date.now(),
+            coachId: this.coachUser?.uid || null,
+            groupName: this.selectedGroup && this.selectedGroup !== 'all' ? this.selectedGroup : null,
             submittedCount: 0,
             totalStudents: this.students.length
-          });
+          };
 
-          alert(`✅ Assignment created: "${title}" due ${dueDate}`);
+          try {
+            await setDoc(doc(db, 'assignments', id), record);
+            this.assignments.push(record);
+            this.showNotification(`Assignment created: "${title}" — due ${dueDate}`);
+          } catch (err) {
+            console.error('[Coach] Failed to save assignment:', err);
+            alert(`Could not save the assignment: ${err.code || err.message}\n\nIt has not been created.`);
+            return;
+          }
           this.render();
         }
       });
@@ -950,6 +1396,75 @@ export class CoachDashboard {
         }
         this.showNewTaskModal = false;
         this.render();
+      });
+    }
+
+    // 🎒 Register Student Modal Event Listeners
+    const regStudentBtn = this.container.querySelector('#coach-register-student-btn');
+    if (regStudentBtn) {
+      regStudentBtn.addEventListener('click', () => {
+        this.showRegisterStudentModal = true;
+        this.render();
+      });
+    }
+
+    const closeRegStudentBtn = this.container.querySelector('#close-reg-student-btn');
+    if (closeRegStudentBtn) {
+      closeRegStudentBtn.addEventListener('click', () => {
+        this.showRegisterStudentModal = false;
+        this.render();
+      });
+    }
+
+    const cancelRegStudentBtn = this.container.querySelector('#cancel-reg-student-btn');
+    if (cancelRegStudentBtn) {
+      cancelRegStudentBtn.addEventListener('click', () => {
+        this.showRegisterStudentModal = false;
+        this.render();
+      });
+    }
+
+    const regStudentForm = this.container.querySelector('#coach-register-student-form');
+    if (regStudentForm) {
+      regStudentForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = this.container.querySelector('#submit-reg-student-btn');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '⏳ Creating Account...';
+        }
+
+        const name = this.container.querySelector('#reg-student-name').value.trim();
+        const email = this.container.querySelector('#reg-student-email').value.trim();
+        const password = this.container.querySelector('#reg-student-password').value;
+        const groupName = this.container.querySelector('#reg-student-group').value.trim();
+
+        try {
+          const studentData = await registerStudentAccount(email, password, name, groupName);
+
+          // Add student to local state
+          const newStudentObj = {
+            ...studentData,
+            solarCar: { score: { total: 0 }, currentVersion: 1, weight: { total: 3200 }, components: { chassis: 'aluminum_frame', motor: 'brushed_dc' } },
+            activityProgress: {},
+            goals: [],
+            dailyStats: [{ timeSpentMinutes: 0, sessionsCount: 1 }]
+          };
+
+          this.students.unshift(newStudentObj);
+          logAuditEvent('STUDENT_REGISTERED_BY_COACH', { coachUid: this.coachUser?.uid, studentEmail: email, groupName });
+
+          this.showRegisterStudentModal = false;
+          this.render();
+          this.showNotification(`✅ Student "${name}" (${email}) registered successfully!`);
+        } catch (err) {
+          console.error('[CoachDashboard] Registration failed:', err);
+          alert('Failed to register student: ' + err.message);
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '✨ Create Student Account';
+          }
+        }
       });
     }
 
@@ -1110,14 +1625,46 @@ export class CoachDashboard {
 
   exportCSV() {
     const students = this.getFilteredStudents();
-    let csv = 'Student Name,Email,Group,Solar Car Score,Version,Total Time Mins,Engagement Level\n';
+    // Quote every field and double any embedded quotes, so names containing a
+    // comma or apostrophe cannot shift the column alignment in Excel.
+    const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+    const columns = [
+      'Student Name', 'Email', 'Group', 'Activities Started', 'Activities Completed',
+      'Solar Car Score', 'Solar Car Version', 'Goals Set', 'Goals On Track',
+      'Goals Achieved', 'Total Time Mins', 'Active Days', 'Last Active', 'Engagement Level'
+    ];
+    let csv = columns.join(',') + '\n';
+
     students.forEach(st => {
       let totalMins = 0;
-      st.dailyStats.forEach(ds => totalMins += ds.timeSpentMinutes || 0);
-      const score = st.solarCar?.score?.total || 0;
-      const ver = st.solarCar?.currentVersion || 1;
-      const engagement = totalMins > 120 ? 'High' : totalMins > 60 ? 'Medium' : 'Low';
-      csv += `"${st.displayName}","${st.email}","${st.groupName}",${score},${ver},${totalMins.toFixed(1)},"${engagement}"\n`;
+      let lastActive = 0;
+      st.dailyStats.forEach(ds => {
+        totalMins += ds.timeSpentMinutes || 0;
+        const ts = ds.lastActiveAt || Date.parse(ds.date) || 0;
+        if (ts > lastActive) lastActive = ts;
+      });
+
+      const activities = Object.values(st.activityProgress || {});
+      const completed = activities.filter(a => a && a.completed).length;
+      const goals = st.goals || [];
+      const onTrack = goals.filter(g => g.status === 'on_track').length;
+      const achieved = goals.filter(g => g.status === 'achieved' || g.status === 'completed').length;
+
+      const hasAnyData = totalMins > 0 || activities.length > 0 || goals.length > 0;
+      const engagement = !hasAnyData ? 'No activity yet'
+        : totalMins > 120 ? 'High' : totalMins > 60 ? 'Medium' : 'Low';
+
+      csv += [
+        q(st.displayName), q(st.email), q(st.groupName),
+        activities.length, completed,
+        st.solarCar?.score?.total ?? '', st.solarCar?.currentVersion ?? '',
+        goals.length, onTrack, achieved,
+        totalMins.toFixed(1),
+        st.dailyStats.length,
+        q(lastActive ? new Date(lastActive).toISOString().slice(0, 10) : 'never'),
+        q(engagement)
+      ].join(',') + '\n';
     });
 
     const blob = new Blob([csv], { type: 'text/csv' });

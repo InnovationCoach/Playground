@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WeLearn Climate Gamification Suite | 4 Interactive STEM Activities</title>
+  <title>WeLearn Growth Hub</title>
   
   <!-- Firebase SDK Compatibility Version 10 -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -318,7 +318,7 @@
   <!-- Top Navigation Bar -->
   <div class="top-phase-bar">
     <div class="brand-title" onclick="switchPhase('home')">
-      🌐 WeLearn Climate Gamification Suite
+      🤖 WeLearn Growth Hub
     </div>
     <div class="phase-toggle-group">
       <button id="btn-home" class="phase-toggle-btn active-home" onclick="switchPhase('home')">🏠 Home Portal</button>
@@ -331,7 +331,7 @@
 
   <!-- Header Bar -->
   <header id="main-header">
-    <h1 id="header-title">🌐 Climate Gamification & Resilience Hub</h1>
+    <h1 id="header-title">🌐 WeLearn Growth Hub</h1>
     <div class="auth-badge" id="auth-status">Status: Connecting to Firebase...</div>
   </header>
 
@@ -1135,7 +1135,7 @@
       homeContainer.classList.add("hidden"); p1Container.classList.add("hidden"); bunkerContainer.classList.add("hidden"); codingContainer.classList.add("hidden"); bangkokContainer.classList.add("hidden");
 
       if (view === "home") {
-        homeBtn.className = "phase-toggle-btn active-home"; header.className = ""; headerTitle.innerHTML = "🌐 Climate Gamification & Resilience Hub"; homeContainer.classList.remove("hidden"); window.location.hash = "home";
+        homeBtn.className = "phase-toggle-btn active-home"; header.className = ""; headerTitle.innerHTML = "🌐 WeLearn Growth Hub"; homeContainer.classList.remove("hidden"); window.location.hash = "home";
       } else if (view === "phase1" || view === "urban") {
         p1Btn.className = "phase-toggle-btn active-phase1"; header.className = "phase1-header"; headerTitle.innerHTML = "🌴 Activity 1: Urban Heat Battle (Townsville 2024)"; p1Container.classList.remove("hidden"); updateP1Simulation(); window.location.hash = "phase1";
       } else if (view === "bunker") {
