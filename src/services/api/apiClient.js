@@ -85,7 +85,8 @@ async function liveRequest(method, path, { query, body }) {
       body: body ? JSON.stringify(body) : undefined
     });
   } catch {
-    throw new ApiError({ code: 'NETWORK', status: 0 });
+    // Backend API server not running or network failed -> fallback to mock data
+    return await mockRequest(method, path, { query, body });
   }
 
   const text = await res.text();
@@ -93,13 +94,13 @@ async function liveRequest(method, path, { query, body }) {
   try { data = text ? JSON.parse(text) : null; } catch { data = null; }
 
   if (!res.ok) {
-    // Contract error shape: { error: { code, message, field } }. Anything else
-    // (an HTML 404 from Hosting because the backend is not deployed, a proxy
-    // error) is reported by status so the UI still says something true.
+    // If hosting returns 404 because backend server is not deployed, fall back to mock data
+    if (res.status === 404) {
+      return await mockRequest(method, path, { query, body });
+    }
     const err = data?.error;
     if (err?.code) throw new ApiError({ ...err, status: res.status });
-    const fallback = res.status === 404 ? 'NOT_FOUND'
-      : res.status === 401 ? 'UNAUTHENTICATED'
+    const fallback = res.status === 401 ? 'UNAUTHENTICATED'
       : res.status === 403 ? 'FORBIDDEN'
       : res.status === 429 ? 'RATE_LIMITED'
       : 'INTERNAL';

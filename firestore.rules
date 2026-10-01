@@ -137,15 +137,19 @@ service cloud.firestore {
       allow update, delete: if teachesClass(classId);
     }
 
+    function isAdminOrSupervisor() {
+      return isAuthenticated() && request.auth.token.get('role', 'student') in ['admin', 'supervisor'];
+    }
+
     // ---------------------------------------------------------------------
     // User profiles
     // ---------------------------------------------------------------------
     match /users/{userId} {
-      // Reads are limited to the owner and to coaches who share a class with that student.
+      // Reads are limited to the owner, admin/supervisor, and to coaches who share a class with that student.
       // NOTE for queries: a coach listing students MUST constrain the query,
       // e.g. .where('classIds', 'array-contains-any', myClassIds) - an
       // unconstrained collection read is rejected in full.
-      allow read: if isOwner(userId) || coachSharesClassWith(resource.data);
+      allow read: if isOwner(userId) || isAdminOrSupervisor() || coachSharesClassWith(resource.data);
 
       // New accounts are always students. Coach access is granted out-of-band
       // with the Admin SDK (scripts/grant-coach.js), which bypasses these rules.
