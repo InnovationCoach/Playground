@@ -1,0 +1,27 @@
+[
+  {
+    "name": "01-portal-login",
+    "label": "Role-based entry point (Student / Coach)",
+    "file": "/Users/admin/Desktop/HearIsland/docs/screenshots/01-portal-login.png"
+  },
+  {
+    "name": "02-student-dashboard",
+    "label": "Student learning dashboard",
+    "file": "/Users/admin/Desktop/HearIsland/docs/screenshots/02-student-dashboard.png"
+  },
+  {
+    "name": "03-student-activities",
+    "label": "Activity catalogue - five STEM missions",
+    "file": "/Users/admin/Desktop/HearIsland/docs/screenshots/03-student-activities.png"
+  },
+  {
+    "name": "06-coach-dashboard",
+    "label": "Coach dashboard - class overview and metrics",
+    "file": "/Users/admin/Desktop/HearIsland/docs/screenshots/06-coach-dashboard.png"
+  },
+  {
+    "name": "07-coach-dashboard-full",
+    "label": "Coach dashboard - full page",
+    "file": "/Users/admin/Desktop/HearIsland/docs/screenshots/07-coach-dashboard-full.png"
+  }
+]

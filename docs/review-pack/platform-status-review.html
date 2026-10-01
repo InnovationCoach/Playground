@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WeLearn Growth Hub · Platform status and review pack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 14mm 14mm 16mm; }
+  :root { --navy: #003c69; --purple: #8250a0; --green: #96d700; --lav: #ceaaee; --sky: #9bd2ff; --ink: #14213a; --muted: #5b6678; --line: #e4e6ee; --soft: #f5f6fa; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: 'Inter', system-ui, sans-serif; color: var(--ink); font-size: 10pt; line-height: 1.5; }
+  h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; color: #0f2c4c; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 18pt; margin-bottom: 4px; }
+  h3 { font-size: 12.5pt; }
+  p { margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+  .page { break-before: page; }
+  .kicker { font-size: 8.5pt; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--purple); }
+
+  /* Cover */
+  .cover { height: 265mm; display: flex; flex-direction: column; justify-content: space-between; border-radius: 16px; overflow: hidden; background: linear-gradient(140deg, #003c69 0%, #2f4185 55%, #8250a0 100%); color: #fff; padding: 22mm 18mm; position: relative; }
+  .cover::after { content: ''; position: absolute; right: -60mm; bottom: -60mm; width: 170mm; height: 170mm; border-radius: 50%; background: radial-gradient(circle, rgba(150,215,0,.35), transparent 70%); }
+  .cover > * { position: relative; z-index: 1; }
+  .cover-logo { background: #fff; border-radius: 12px; padding: 8px 14px; display: inline-flex; align-self: flex-start; }
+  .cover-logo img { height: 44px; }
+  .cover h1 { color: #fff; font-size: 32pt; line-height: 1.1; margin: 10px 0 12px; }
+  .cover .sub { font-size: 13pt; color: rgba(255,255,255,.85); max-width: 150mm; }
+  .cover-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cover-meta div { background: rgba(255,255,255,.12); border-radius: 12px; padding: 10px 12px; font-size: 9.5pt; }
+  .cover-meta b { display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: .08em; color: rgba(255,255,255,.7); }
+
+  /* Status chips */
+  .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 2px 9px; font-size: 8pt; font-weight: 700; white-space: nowrap; }
+  .chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .ok { background: #f2fadf; color: #4a6a00; }
+  .part { background: #fff6e0; color: #8a5700; }
+  .old { background: #eef0f5; color: #4b5670; }
+  .todo { background: #fcecec; color: #ae3435; }
+  .school { background: #eef6ff; color: #1d5a8f; }
+
+  .box { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; break-inside: avoid; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat { background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+  .stat b { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20pt; color: #0f2c4c; display: block; line-height: 1.1; }
+  .stat span { font-size: 8.5pt; color: var(--muted); }
+  .callout { border-radius: 12px; padding: 10px 14px; background: #fff6e0; border: 1.5px solid #f5dfa8; color: #6d4700; break-inside: avoid; margin: 10px 0; }
+  .callout.info { background: #eef6ff; border-color: #cfe5fb; color: #1d4f7c; }
+
+  /* Screens */
+  .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; border-bottom: 3px solid var(--purple); padding-bottom: 8px; margin-bottom: 12px; }
+  .section-head .num { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 26pt; color: var(--lav); line-height: 1; }
+  .screen { break-inside: avoid; margin: 0 0 14px; }
+  .screen-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .sid { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 9pt; color: #fff; background: var(--navy); border-radius: 6px; padding: 2px 7px; }
+  .screen-head h3 { flex: 1; }
+  .shot { display: block; margin: 0 auto; max-width: 100%; max-height: 90mm; width: auto; height: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .shot.tall { width: 100%; height: auto; max-height: 112mm; object-fit: cover; object-position: top; }
+  .phones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-items: start; }
+  .phones img { width: 100%; border: 1px solid var(--line); border-radius: 14px; }
+  .cap { font-size: 9pt; margin-top: 6px; }
+  .ask { font-size: 9pt; margin-top: 4px; background: #f5eefa; border-radius: 8px; padding: 6px 10px; color: #4a2c5e; }
+  .ask b { color: var(--purple); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pair img { width: 100%; border: 1px solid var(--line); border-radius: 10px; }
+
+  /* Checklist */
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  th { text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 6px 8px; border-bottom: 2px solid var(--line); }
+  td { padding: 4px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.c { width: 22px; font-size: 12pt; line-height: 1; }
+  tr { break-inside: avoid; }
+  .feedback td { height: 16mm; }
+  .toc { columns: 2; column-gap: 16px; font-size: 10pt; }
+  .toc div { break-inside: avoid; padding: 3px 0; border-bottom: 1px dotted var(--line); display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<!-- ============================ COVER ============================ -->
+<section class="cover">
+  <span class="cover-logo"><img src="https://res.cloudinary.com/dkplz6vbx/image/upload/e_trim/h_120/v1790512837/copy_of_untitled_design_25_o4mqca.png" alt="WeLearn"></span>
+  <div>
+    <div class="kicker" style="color: var(--lav)">For colleague review and feedback</div>
+    <h1>WeLearn Growth Hub<br>Platform status and review pack</h1>
+    <p class="sub">What has been built so far, what every screen looks like today, and the checklist of what is left before we go live. Please mark up anything you would change.</p>
+  </div>
+  <div class="cover-meta">
+    <div><b>Date</b>28 September 2026</div>
+    <div><b>Stage</b>Phase 0 (front-end groundwork) complete</div>
+    <div><b>Platform Lead</b>Mani Golzary</div>
+  </div>
+</section>
+
+<!-- ============================ SUMMARY ============================ -->
+<section class="page">
+  <div class="kicker">At a glance</div>
+  <h2>Where the platform is today</h2>
+  <p>WeLearn Growth Hub is being built as one learning platform for all our cohorts: students open their courses, the PBL/STEAM simulations and other materials in one place, and staff, teachers and parents each see what they need. Phase 0 of the implementation plan (the screens and groundwork that need nothing from the school) is now finished and tested.</p>
+
+  <div class="callout"><b>Important: nothing in this pack is live yet.</b> Every screenshot was taken from the platform running on a test system with made-up accounts (for example "Mia Chen", "Bangkok Campus (test)"). The live website has not been changed. Going live needs the school actions on page&nbsp;22, starting with the Firebase billing plan.</div>
+
+  <div class="grid3" style="margin: 12px 0">
+    <div class="stat"><b>34</b><span>real screenshots across 7 areas</span></div>
+    <div class="stat"><b>16</b><span>learning activities (8 secondary, 8 primary)</span></div>
+    <div class="stat"><b>24</b><span>printable worksheets and teacher guides</span></div>
+    <div class="stat"><b>3</b><span>interface languages: English, 中文, ไทย</span></div>
+    <div class="stat"><b>341</b><span>automated checks passing (255 app, 57 security, 29 server)</span></div>
+    <div class="stat"><b>6</b><span>roles: admin, supervisor, teacher, student, primary learner, parent</span></div>
+  </div>
+
+  <h3 style="margin-top: 14px">How to read the status tags</h3>
+  <table style="margin-top: 6px">
+    <tr><td style="width: 150px"><span class="chip ok">Working</span></td><td>Built and checked on the test system, with the new design.</td></tr>
+    <tr><td><span class="chip part">Partly done</span></td><td>Works, but something listed in the caption is still missing.</td></tr>
+    <tr><td><span class="chip old">Older design</span></td><td>Works, but still has the earlier dark look. It will be restyled to match the new screens.</td></tr>
+    <tr><td><span class="chip todo">Not built yet</span></td><td>Planned in a later phase.</td></tr>
+    <tr><td><span class="chip school">Needs the school</span></td><td>Waiting for a decision, account or approval from the school.</td></tr>
+  </table>
+
+  <h3 style="margin-top: 16px">How to give feedback</h3>
+  <p>Every screen has a number (for example <span class="sid">6.4</span>). Please refer to it in your comments, and use the feedback form on the last page. Each screen also carries one question we would especially like your view on. Comments on wording, what is missing, what confuses you, and what you would use every day are all welcome.</p>
+
+  <h3 style="margin-top: 14px">Contents</h3>
+  <div class="toc" style="margin-top: 6px">
+    <div><span>1 · Signing in</span><span>3</span></div>
+    <div><span>2 · Students (secondary)</span><span>4</span></div>
+    <div><span>3 · Junior Explorers (primary)</span><span>9</span></div>
+    <div><span>4 · Hands-on worksheets and guides</span><span>12</span></div>
+    <div><span>5 · Teachers</span><span>13</span></div>
+    <div><span>6 · Administration</span><span>14</span></div>
+    <div><span>7 · Parents</span><span>18</span></div>
+    <div><span>8 · Phones and tablets</span><span>19</span></div>
+    <div><span>9 · Checklist</span><span>21</span></div>
+    <div><span>10 · Issues found in this review</span><span>23</span></div>
+    <div><span>11 · Feedback form</span><span>24</span></div>
+  </div>
+</section>
+
+<!-- ============================ 1 SIGN IN ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">Everyone</div><h2>Signing in</h2></div><span class="num">1</span></div>
+
+  <div class="screen">
+    <div class="screen-head"><span class="sid">1.1</span><h3>Sign in</h3><span class="chip ok">Working</span></div>
+    <img class="shot" src="shots/01-login.jpg" alt="Sign in page">
+    <p class="cap">One sign-in page for every role. The platform decides what each person sees from their account, so nobody has to choose "student" or "teacher". Language can be switched before signing in. Wrong passwords get a plain message, not a technical code.</p>
+    <p class="ask"><b>Question:</b> Should students be able to create their own accounts here, or should every account be created by the school?</p>
+  </div>
+
+  <div class="screen">
+    <div class="screen-head"><span class="sid">1.2</span><h3>Forgot password</h3><span class="chip ok">Working</span></div>
+    <img class="shot" src="shots/02-reset.jpg" alt="Reset password">
+    <p class="cap">Sends a real password-reset email. It gives the same answer whether or not the email has an account, so it cannot be used to find out who is enrolled.</p>
+  </div>
+</section>
+
+<!-- ============================ 2 STUDENTS ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">Secondary students</div><h2>Students</h2></div><span class="num">2</span></div>
+
+  <div class="screen">
+    <div class="screen-head"><span class="sid">2.1</span><h3>My Courses (the student's home page)</h3><span class="chip part">Partly done</span></div>
+    <img class="shot tall" src="shots/10-student-courses.jpg" alt="My Courses">
+    <p class="cap">Where students land after signing in: every course and activity in one place, with search. The eight WeLearn PBL/STEAM activities open today. Edmentum courses and teacher materials have their own sections, which show a "coming" note until Edmentum is connected (Phase B) and teachers can upload (Phase C). Students who are not in a class yet also see a "Join your class" box here.</p>
+    <p class="ask"><b>Question:</b> What else should a student see first thing: deadlines, next lesson, messages from the teacher?</p>
+  </div>
+
+  <div class="screen">
+    <div class="screen-head"><span class="sid">2.2</span><h3>Finding an activity</h3><span class="chip ok">Working</span></div>
+    <img class="shot" src="shots/12-activity-search.jpg" alt="Activity search">
+    <p class="cap">Search from any page (press "/"). It replaced a bar of twelve buttons.</p>
+  </div>
+</section>
+
+<section class="page">
+  <div class="screen">
+    <div class="screen-head"><span class="sid">2.3</span><h3>An activity: Solar Car Challenge</h3><span class="chip old">Older design</span></div>
+    <img class="shot" src="shots/13-activity-solar.jpg" alt="Solar Car activity">
+    <p class="cap">Students build a real model car, measure it and predict its speed. The activities work, but still have the earlier dark look under the new navigation bar. Restyling them is on the list.</p>
+  </div>
+
+  <div class="screen">
+    <div class="screen-head"><span class="sid">2.4</span><h3>An activity: Project Hex-Grid</h3><span class="chip old">Older design</span></div>
+    <img class="shot" src="shots/14-activity-hexgrid.jpg" alt="Project Hex-Grid">
+    <p class="cap">A floating-city project for Bangkok, with real published figures and their sources.</p>
+    <p class="ask"><b>Question:</b> Which activities do you use most? We will restyle those first.</p>
+  </div>
+</section>
+
+<section class="page">
+  <div class="screen">
+    <div class="screen-head"><span class="sid">2.5</span><h3>Student Home (notes and class joining)</h3><span class="chip old">Older design</span></div>
+    <img class="shot" src="shots/11-student-home.jpg" alt="Student home">
+    <p class="cap">The earlier student home: notes, join another class, goals, and the older activity list further down.</p>
+    <p class="ask"><b>Question:</b> Keep this as a separate page, or fold notes and goals into My Courses?</p>
+  </div>
+
+  <div class="screen">
+    <div class="screen-head"><span class="sid">2.6</span><h3>The platform in Thai</h3><span class="chip part">Partly done</span></div>
+    <img class="shot" src="shots/16-courses-thai.jpg" alt="My Courses in Thai">
+    <p class="cap">Menus, buttons and messages on the new screens are available in English, Chinese and Thai. Still in English: activity names, descriptions and the activity search. The Chinese and Thai text are first drafts and need a native-speaker check.</p>
+    <p class="ask"><b>Question:</b> Could a Thai-speaking and a Chinese-speaking colleague read through these screens?</p>
+  </div>
+</section>
+
+<section class="page">
+  <div class="screen">
+    <div class="screen-head"><span class="sid">2.7</span><h3>Settings: language and password</h3><span class="chip ok">Working</span></div>
+    <img class="shot tall" src="shots/15-settings.jpg" alt="Settings">
+    <p class="cap">Everyone can change the language (saved to their account, so it follows them to other devices) and change their password. Both work for real, not just on test data.</p>
+  </div>
+</section>
+
+<!-- ============================ 3 PRIMARY ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">Primary learners, ages 6–11</div><h2>Junior Explorers</h2></div><span class="num">3</span></div>
+
+  <div class="screen">
+    <div class="screen-head"><span class="sid">3.1</span><h3>Junior Explorers home: all eight activities</h3><span class="chip ok">Working</span></div>
+    <img class="shot tall" style="max-height: 165mm" src="shots/20-junior-home.jpg" alt="Junior Explorers home">
+    <p class="cap">All eight primary activities are playable: Hot Spots, Storm Shelter, Micro:bit Blocks, Mangroves vs Waves, Sun Power Race, Acid Rain Detectives, Plant Microscope Lab and Floating House. Each one is a real hands-on investigation with the school's kit. Read-aloud and big text are on by default. Two levels: Starter (6–8) and Explorer (9–11).</p>
+    <p class="ask"><b>Question:</b> Do the activities match the kit and space you have? Is anything unsafe or unrealistic for your class?</p>
+  </div>
+</section>
+
+<section class="page">
+  <div class="screen">
+    <div class="screen-head"><span class="sid">3.2</span><h3>An activity: build first, then tests</h3><span class="chip ok">Working</span></div>
+    <img class="shot tall" src="shots/21-junior-activity.jpg" alt="Hot Spots activity">
+    <p class="cap">Every activity starts with a build or setup, then two or three fair tests. Children can print their worksheet from here.</p>
+  </div>
+  <div class="pair">
+    <div class="screen">
+      <div class="screen-head"><span class="sid">3.3</span><h3>Get ready</h3></div>
+      <img src="shots/22-junior-ready.jpg" alt="Get ready">
+      <p class="cap">Tick off the kit. No typing anywhere: children tap.</p>
+    </div>
+    <div class="screen">
+      <div class="screen-head"><span class="sid">3.4</span><h3>My guess</h3></div>
+      <img src="shots/23-junior-guess.jpg" alt="My guess">
+      <p class="cap">Choose a prediction and how sure they are.</p>
+    </div>
+  </div>
+</section>
+
+<section class="page">
+  <div class="screen">
+    <div class="screen-head"><span class="sid">3.5</span><h3>Look and record: a real temperature</h3><span class="chip ok">Working</span></div>
+    <img class="shot" src="shots/24-junior-record.jpg" alt="Recording a temperature">
+    <p class="cap">Readings from the micro:bit thermometer are entered with big + and − buttons. There is also a stopwatch for timed tests (Explorer level).</p>
+  </div>
+  <div class="screen">
+    <div class="screen-head"><span class="sid">3.6</span><h3>What happened</h3><span class="chip ok">Working</span></div>
+    <img class="shot" src="shots/25-junior-result.jpg" alt="Result">
+    <p class="cap">The result is written only from what the child recorded ("In the sun it was 38 °C. In the shade it was 31 °C."). The platform suggests whether the guess was right, and the child decides.</p>
+    <p class="ask"><b>Question:</b> Is the language right for 6–8-year-olds? What would you change?</p>
+  </div>
+</section>
+
+<!-- ============================ 4 WORKSHEETS ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">Printable classroom material</div><h2>Hands-on worksheets and teacher guides</h2></div><span class="num">4</span></div>
+  <div class="screen">
+    <div class="screen-head"><span class="sid">4.1</span><h3>Primary resources</h3><span class="chip ok">Working</span></div>
+    <img class="shot tall" src="shots/32-primary-resources.jpg" alt="Primary resources">
+    <p class="cap">For every primary activity: a pupil worksheet (Starter and Explorer versions) and a teacher guide. They are generated from the same content as the app, so paper and screen always match. Ready-made PDFs of all 24 are available.</p>
+  </div>
+  <div class="pair">
+    <div class="screen">
+      <div class="screen-head"><span class="sid">4.2</span><h3>Pupil worksheet</h3></div>
+      <img src="shots/33-worksheet.jpg" alt="Worksheet">
+      <p class="cap">Circle a guess, tick steps, record results, draw, plus an Art corner and a Maths corner. Starter has no writing lines.</p>
+    </div>
+    <div class="screen">
+      <div class="screen-head"><span class="sid">4.3</span><h3>Teacher guide</h3></div>
+      <img src="shots/34-teacher-guide.jpg" alt="Teacher guide">
+      <p class="cap">Goals, what each STEAM letter means here, preparation, safety, a timed lesson plan, discussion questions and what to look for.</p>
+    </div>
+  </div>
+  <p class="ask"><b>Question:</b> Lesson timings and group sizes are estimates. Please correct them to our timetable, and confirm the curriculum links marked "proposed".</p>
+</section>
+
+<!-- ============================ 5 TEACHERS ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">Course coordinators</div><h2>Teachers</h2></div><span class="num">5</span></div>
+  <div class="screen">
+    <div class="screen-head"><span class="sid">5.1</span><h3>Coach dashboard</h3><span class="chip old">Older design</span></div>
+    <img class="shot tall" style="max-height: 170mm" src="shots/31-coach-dashboard-full.jpg" alt="Coach dashboard">
+    <p class="cap">Teachers see only the students in their own classes: progress, time on the platform, goals and activities. It works, but has the earlier design, and the "Registered coaches" count shows 0 (see issues, page 23). The gradebook (Phase D) will add grades from Edmentum and PBL rubrics.</p>
+    <p class="ask"><b>Question:</b> What do you look at every day? What is missing from this dashboard?</p>
+  </div>
+</section>
+
+<!-- ============================ 6 ADMIN ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">Administrators and supervisors</div><h2>Administration</h2></div><span class="num">6</span></div>
+  <div class="screen">
+    <div class="screen-head"><span class="sid">6.1</span><h3>Students</h3><span class="chip ok">Working</span></div>
+    <img class="shot" src="shots/40-admin-students.jpg" alt="Students list">
+    <p class="cap">Search by name, email or ID, filter by cohort and status, sort any column. Each person gets a unique ID. Pending (not yet activated) and suspended accounts are clearly marked.</p>
+  </div>
+  <div class="pair">
+    <div class="screen">
+      <div class="screen-head"><span class="sid">6.2</span><h3>Staff</h3></div>
+      <img src="shots/41-admin-staff.jpg" alt="Staff list">
+      <p class="cap">Administrators, supervisors and course coordinators.</p>
+    </div>
+    <div class="screen">
+      <div class="screen-head"><span class="sid">6.3</span><h3>Parents</h3></div>
+      <img src="shots/42-admin-parents.jpg" alt="Parents list">
+      <p class="cap">With the number of children each parent is linked to.</p>
+    </div>
+  </div>
+</section>
+
+<section class="page">
+  <div class="screen">
+    <div class="screen-head"><span class="sid">6.4</span><h3>One account</h3><span class="chip ok">Working</span></div>
+    <img class="shot tall" src="shots/43-admin-account.jpg" alt="Account page">
+    <p class="cap">Details, linked parents, and actions: edit details, change email, issue a parent invite code, suspend. Every change is recorded in the account history, which nobody can edit or delete.</p>
+  </div>
+  <div class="screen">
+    <div class="screen-head"><span class="sid">6.5</span><h3>Account history</h3><span class="chip ok">Working</span></div>
+    <img class="shot" src="shots/44-admin-history.jpg" alt="Account history">
+  </div>
+</section>
+
+<section class="page">
+  <div class="pair">
+    <div class="screen">
+      <div class="screen-head"><span class="sid">6.6</span><h3>Parent invite code</h3></div>
+      <img src="shots/45-admin-invite.jpg" alt="Invite code">
+      <p class="cap">Parents link to a child with a one-time code from the school, never by typing an email, which would let anyone attach themselves to any child. Codes expire after 7 days.</p>
+    </div>
+    <div class="screen">
+      <div class="screen-head"><span class="sid">6.7</span><h3>Suspend an account</h3></div>
+      <img src="shots/46-admin-suspend.jpg" alt="Suspend">
+      <p class="cap">A reason is required and kept in the history. The person is signed out everywhere at once.</p>
+    </div>
+  </div>
+  <div class="screen" style="margin-top: 10px">
+    <div class="screen-head"><span class="sid">6.8</span><h3>Add a student</h3><span class="chip part">Partly done</span></div>
+    <img class="shot tall" src="shots/47-admin-create.jpg" alt="Add student">
+    <p class="cap">Staff never choose or see a password: the new user gets an email to set their own. <b>Until the school's Microsoft 365 no-reply mailbox exists, no email is sent</b>, and the screen says so honestly. Primary learners stay "pending" until a parent gives consent.</p>
+    <p class="ask"><b>Question:</b> Which details must we collect for each student, and which should we not collect at all?</p>
+  </div>
+</section>
+
+<section class="page">
+  <div class="screen">
+    <div class="screen-head"><span class="sid">6.9</span><h3>Supervisor view (read-only)</h3><span class="chip ok">Working</span></div>
+    <img class="shot" src="shots/48-supervisor.jpg" alt="Supervisor view">
+    <p class="cap">Supervisors see the accounts in their own schools and the history, but cannot change anything.</p>
+    <p class="ask"><b>Question:</b> What else do supervisors need: reports, class overviews, usage?</p>
+  </div>
+  <div class="callout info"><b>Not built yet in administration:</b> managing schools and classes, the course catalogue and course editor, the gradebook and transcripts, and Edmentum settings. These are Phases A to D.</div>
+
+</section>
+
+<!-- ============================ 7 PARENTS ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">Families</div><h2>Parents</h2></div><span class="num">7</span></div>
+  <div class="screen">
+    <div class="screen-head"><span class="sid">7.1</span><h3>Parent portal</h3><span class="chip part">Partly done</span></div>
+    <img class="shot tall" src="shots/50-parent.jpg" alt="Parent portal">
+    <p class="cap">A read-only view of each linked child, and a box to link a child with the school's invite code. Grades and progress arrive with the gradebook (Phase D); the parental-consent step and weekly email summaries arrive in Phase E.</p>
+    <p class="ask"><b>Question:</b> What would parents most want to see here?</p>
+  </div>
+</section>
+
+<!-- ============================ 8 MOBILE ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">Phones and iPads</div><h2>Phones and tablets</h2></div><span class="num">8</span></div>
+  <div class="phones">
+    <div class="screen"><div class="screen-head"><span class="sid">8.1</span><h3>Sign in</h3></div><img src="shots/60-mobile-login.jpg" alt="Phone sign in"></div>
+    <div class="screen"><div class="screen-head"><span class="sid">8.2</span><h3>My Courses</h3></div><img src="shots/61-mobile-courses.jpg" alt="Phone My Courses"></div>
+    <div class="screen"><div class="screen-head"><span class="sid">8.3</span><h3>Admin list</h3></div><img src="shots/63-mobile-admin.jpg" alt="Phone admin"></div>
+  </div>
+  <p class="cap">Every new screen fits a phone. Wide tables (8.3) scroll sideways inside their box.</p>
+  <div class="screen" style="margin-top: 8px">
+    <div class="screen-head"><span class="sid">8.4</span><h3>Junior Explorers on an iPad</h3><span class="chip ok">Working</span></div>
+    <img class="shot tall" src="shots/62-tablet-junior.jpg" alt="iPad Junior Explorers" style="max-height: 125mm">
+    <p class="ask"><b>Question:</b> Which devices will each group really use: iPads for primary, laptops or phones for secondary?</p>
+  </div>
+</section>
+
+<!-- ============================ 9 CHECKLIST ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">What is done and what is left</div><h2>Checklist</h2></div><span class="num">9</span></div>
+
+  <h3>A · Phase 0: front-end groundwork</h3>
+  <table style="margin: 6px 0 14px">
+    <tr><th></th><th>Item</th><th style="width: 110px">Status</th></tr>
+    <tr><td class="c">☑</td><td>Admin console: WeLearn branding, navigation by role, reusable data table</td><td><span class="chip ok">Done</span></td></tr>
+    <tr><td class="c">☑</td><td>Staff, student and parent account screens, working on the test system with the real server</td><td><span class="chip ok">Done</span></td></tr>
+    <tr><td class="c">☑</td><td>Settings (language, change password) and password reset</td><td><span class="chip ok">Done</span></td></tr>
+    <tr><td class="c">☑</td><td>Student "My Courses", first version</td><td><span class="chip ok">Done</span></td></tr>
+    <tr><td class="c">☑</td><td>Parent portal, first version, with invite-code linking</td><td><span class="chip ok">Done</span></td></tr>
+    <tr><td class="c">☑</td><td>Server for accounts, parents and reference data (built by the back-end team), 29 checks passing</td><td><span class="chip ok">Done</span></td></tr>
+    <tr><td class="c">☑</td><td>Data-privacy rules restored: students cannot read each other's records; teachers see only their classes (57 checks passing)</td><td><span class="chip ok">Done</span></td></tr>
+    <tr><td class="c">☑</td><td>Junior Explorers: all eight primary activities playable</td><td><span class="chip ok">Done</span></td></tr>
+    <tr><td class="c">☑</td><td>Printable worksheets and teacher guides for all eight primary activities</td><td><span class="chip ok">Done</span></td></tr>
+    <tr><td class="c">◐</td><td>English, Chinese and Thai: new screens done; activity content still English; native-speaker check needed</td><td><span class="chip part">Partly</span></td></tr>
+    <tr><td class="c">◐</td><td>New design: new screens done; student Home, activities and coach dashboard still in the older design</td><td><span class="chip part">Partly</span></td></tr>
+    <tr><td class="c">☐</td><td>Six small server fixes found in review (date format, safer defaults, one-time code safety)</td><td><span class="chip todo">To do</span></td></tr>
+    <tr><td class="c">☐</td><td>Save all Phase 0 work in version control, as one reviewed version</td><td><span class="chip todo">To do</span></td></tr>
+  </table>
+
+  <h3>B · Before any real student uses it</h3>
+  <table style="margin-top: 6px">
+    <tr><th></th><th>Item</th><th style="width: 110px">Status</th></tr>
+    <tr><td class="c">☐</td><td>Put the server online (needs the Firebase billing plan)</td><td><span class="chip school">Needs school</span></td></tr>
+    <tr><td class="c">☐</td><td>Move existing accounts to the new structure (trial run first), then switch on the new privacy rules on the live site</td><td><span class="chip todo">Phase A</span></td></tr>
+    <tr><td class="c">☐</td><td>Parental consent before any primary account can be used (currently switched off for testing)</td><td><span class="chip todo">Phase E</span></td></tr>
+    <tr><td class="c">☐</td><td>Replace the AI service key that is stored in older project history</td><td><span class="chip todo">To do</span></td></tr>
+    <tr><td class="c">☐</td><td>Activation and password emails from a school no-reply mailbox</td><td><span class="chip school">Needs school</span></td></tr>
+    <tr><td class="c">☐</td><td>Native-speaker check of the Chinese and Thai text</td><td><span class="chip school">Needs school</span></td></tr>
+    <tr><td class="c">☐</td><td>Teachers confirm curriculum links and lesson timings for the primary activities</td><td><span class="chip school">Needs school</span></td></tr>
+    <tr><td class="c">☐</td><td>Independent security test and privacy review</td><td><span class="chip school">Needs school</span></td></tr>
+    <tr><td class="c">☐</td><td>Pilot with one W2E class before opening to everyone</td><td><span class="chip todo">Phase F</span></td></tr>
+  </table>
+</section>
+
+<section class="page">
+  <h3>C · Actions for the school (from the implementation plan)</h3>
+  <table style="margin: 6px 0 14px">
+    <tr><th>#</th><th>Action</th><th>Unblocks</th><th style="width: 90px">Status</th></tr>
+    <tr><td>1</td><td>Approve the plan and budget; confirm the Platform Lead role with protected time</td><td>Every release</td><td><span class="chip school">Open</span></td></tr>
+    <tr><td>2</td><td>Upgrade Firebase to the Blaze (pay-as-you-go) plan</td><td>Server, admin console and AI online</td><td><span class="chip school">Open</span></td></tr>
+    <tr><td>3</td><td>Register WeLearn with Edmentum (LTI 1.3) and confirm licences</td><td>Edmentum in My Courses</td><td><span class="chip school">Open</span></td></tr>
+    <tr><td>4</td><td>Set up a Microsoft 365 no-reply mailbox for sending</td><td>Activation emails</td><td><span class="chip school">Open</span></td></tr>
+    <tr><td>5</td><td>Supply the Firebase admin key securely to the Platform Lead</td><td>First admin accounts</td><td><span class="chip school">Open</span></td></tr>
+    <tr><td>6</td><td>Teaching leads list the tools and features they rely on daily</td><td>Build order</td><td><span class="chip school">Open</span></td></tr>
+    <tr><td>7</td><td>Book a security test and privacy review</td><td>Going live</td><td><span class="chip school">Open</span></td></tr>
+    <tr><td>8</td><td>Define the Thai Diploma course, credits and transcript</td><td>Thai Diploma</td><td><span class="chip school">Open</span></td></tr>
+    <tr><td>9</td><td>Native Thai speaker reviews the Thai interface</td><td>Thai Diploma go-live</td><td><span class="chip school">Open</span></td></tr>
+  </table>
+
+  <h3>D · What comes next</h3>
+  <table style="margin-top: 6px">
+    <tr><th style="width: 70px">Phase</th><th>What it delivers</th><th style="width: 140px">Depends on</th></tr>
+    <tr><td><b>A</b></td><td>Server online, AI tutor live again, roles and cohorts, safe move of existing accounts</td><td>Billing plan, mailbox</td></tr>
+    <tr><td><b>B</b></td><td>One-click Edmentum from My Courses, with scores coming back</td><td>Edmentum registration</td></tr>
+    <tr><td><b>C</b></td><td>Course catalogue, teacher uploads, Thai Diploma, primary-friendly and W2E support settings</td><td>Thai Diploma definition</td></tr>
+    <tr><td><b>D</b></td><td>Gradebook, terms and transcripts</td><td>Phase B</td></tr>
+    <tr><td><b>E</b></td><td>Parental consent and the full parent portal</td><td>Privacy review</td></tr>
+    <tr><td><b>F</b></td><td>Security test, training, pilot, then everyone</td><td>Actions 7 and 1</td></tr>
+  </table>
+  <p class="muted" style="margin-top: 8px">In parallel, the front-end team will restyle the student Home, the activities and the coach dashboard, and build the school and class management screens.</p>
+</section>
+
+<!-- ============================ 10 ISSUES ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">Honest list</div><h2>Issues found while preparing this review</h2></div><span class="num">10</span></div>
+  <table>
+    <tr><th style="width: 50px">Screen</th><th>What we saw</th><th style="width: 150px">Plan</th></tr>
+    <tr><td>5.1</td><td>The coach dashboard shows "Registered coaches: 0". Probably a side effect of the stricter privacy rules, which stop teachers reading other staff records.</td><td>Check and fix the count</td></tr>
+    <tr><td>2.6</td><td>Activity names, descriptions and the activity search stay in English when the language is Thai or Chinese.</td><td>Translate activity content</td></tr>
+    <tr><td>2.1</td><td>An older goal-setting pop-up opens automatically when a student who has not set goals signs in, covering the page.</td><td>Show it once, or on request</td></tr>
+    <tr><td>2.3–2.5, 5.1</td><td>Older dark design sits under the new white navigation. It works but looks like two products.</td><td>Restyle, starting with the most-used</td></tr>
+    <tr><td>8.3</td><td>Wide tables on phones scroll sideways.</td><td>Card layout on phones, if wanted</td></tr>
+    <tr><td>3.x</td><td>A primary learner whose parent has not consented can still sign in (switched off on purpose while testing).</td><td>Must be switched on before real primary learners</td></tr>
+    <tr><td>6.x</td><td>Records created by the set-up script showed dates in a format the screens did not expect (fixed on the screens; the server fix is on the list).</td><td>Server fix in progress</td></tr>
+  </table>
+
+  <div class="callout info" style="margin-top: 14px"><b>About the test data.</b> Names such as Mia Chen, Penny Primary and Coach Rivera, and the "(test)" school names, are made up for testing. No real student data has been used anywhere.</div>
+</section>
+
+<!-- ============================ 11 FEEDBACK ============================ -->
+<section class="page">
+  <div class="section-head"><div><div class="kicker">Please fill in and return</div><h2>Feedback form</h2></div><span class="num">11</span></div>
+  <div class="grid3" style="margin-bottom: 10px">
+    <div class="box">Name<br><br></div>
+    <div class="box">Role<br><br></div>
+    <div class="box">Date<br><br></div>
+  </div>
+  <table class="feedback">
+    <tr><th style="width: 60px">Screen</th><th>What works well</th><th>What should change, and why</th><th style="width: 70px">Priority<br>(H / M / L)</th></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+  </table>
+  <div class="box" style="margin-top: 12px; min-height: 42mm">
+    <b>The one thing you would add or change first:</b>
+  </div>
+  <p class="muted" style="margin-top: 10px; font-size: 8.5pt">WeLearn Growth Hub · Platform status and review pack · 28 September 2026. Screenshots from the test system; the live website is unchanged.</p>
+</section>
+
+</body>
+</html>
