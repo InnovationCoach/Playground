@@ -63,6 +63,9 @@ export const messages = {
     'nav.primary': 'Main navigation',
     'nav.people': 'People',
     'nav.account': 'Account',
+    'nav.operations': 'Operations & Finance',
+    'nav.financials': 'Financials & Billing',
+    'nav.materials': 'Material Requests',
 
     'table.displaying': 'Displaying {from}–{to} of {total}',
     'table.empty': 'No records match.',

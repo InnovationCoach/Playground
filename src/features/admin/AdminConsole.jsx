@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Users, GraduationCap, HeartHandshake, Settings, FlaskConical, ArrowLeft, Printer } from 'lucide-react';
+import { Users, GraduationCap, HeartHandshake, Settings, FlaskConical, ArrowLeft, Printer, CreditCard, PackageCheck } from 'lucide-react';
 import { Avatar } from '../shell/Avatar.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { consolePermissions } from '../../app/roles.js';
@@ -9,6 +9,8 @@ import { AccountList } from './accounts/AccountList.jsx';
 import { AccountDetail } from './accounts/AccountDetail.jsx';
 import { AccountForm } from './accounts/AccountForm.jsx';
 import { clearReferenceCache } from './accounts/useReferenceData.js';
+import { StudentBillingOverview } from './billing/StudentBillingOverview.jsx';
+import { MaterialRequestsList } from './materials/MaterialRequestsList.jsx';
 import { SettingsPage } from '../settings/SettingsPage.jsx';
 import './admin.css';
 
@@ -20,8 +22,7 @@ const NAV = [
 
 /**
  * Admin console for `admin` and `supervisor` claims. Layout, role-aware
- * navigation and the account screens. Schools, classes, courses and the
- * gradebook join the nav in later phases.
+ * navigation and the account screens.
  */
 export function AdminConsole({ route, role, user, profile, navigate }) {
   const { t } = useLocale();
@@ -32,8 +33,7 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
 
   useEffect(() => () => clearReferenceCache(), []);
 
-  // Move focus to the new screen's content, so keyboard and screen-reader
-  // users are not left on the nav link they just activated.
+  // Move focus to the new screen's content
   useEffect(() => { mainRef.current?.focus({ preventScroll: true }); }, [route.page, route.kind, route.uid]);
 
   // A flash message belongs to the screen it was raised for.
@@ -42,6 +42,10 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
   let body;
   if (route.screen === 'settings') {
     body = <SettingsPage user={user} profile={profile} embedded />;
+  } else if (route.page === 'billing') {
+    body = <StudentBillingOverview perms={perms} />;
+  } else if (route.page === 'materials') {
+    body = <MaterialRequestsList perms={perms} user={user} />;
   } else if (route.page === 'detail') {
     body = (
       <AccountDetail
@@ -88,10 +92,19 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
         <div className="gh-side-label">{t('nav.people')}</div>
         {NAV.map((item) => (
           <a key={item.kind} href={hrefFor.list(item.kind)} className="gh-nav-link"
-             aria-current={route.screen === 'admin' && activeKind === item.kind ? 'page' : undefined}>
+             aria-current={route.screen === 'admin' && route.page === 'list' && activeKind === item.kind ? 'page' : undefined}>
             <item.icon size={18} strokeWidth={2} aria-hidden="true" />{t(item.key)}
           </a>
         ))}
+        <div className="gh-side-label">{t('nav.operations')}</div>
+        <a href={hrefFor.billing()} className="gh-nav-link"
+           aria-current={route.screen === 'admin' && route.page === 'billing' ? 'page' : undefined}>
+          <CreditCard size={18} strokeWidth={2} aria-hidden="true" />{t('nav.financials')}
+        </a>
+        <a href={hrefFor.materials()} className="gh-nav-link"
+           aria-current={route.screen === 'admin' && route.page === 'materials' ? 'page' : undefined}>
+          <PackageCheck size={18} strokeWidth={2} aria-hidden="true" />{t('nav.materials')}
+        </a>
         <div className="gh-side-label">{t('nav.teaching')}</div>
         <a href={hrefFor.resources()} className="gh-nav-link">
           <Printer size={18} strokeWidth={2} aria-hidden="true" />{t('nav.primaryResources')}

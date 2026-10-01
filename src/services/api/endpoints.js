@@ -36,3 +36,10 @@ export const issueParentInvite = (studentUid) => apiRequest('POST', `/api/studen
 export const redeemParentCode = (code) => apiRequest('POST', '/api/parent/redeem', { body: { code } });
 export const getParentChildren = () => apiRequest('GET', '/api/parent/children');
 export const revokeParentLink = (linkId) => apiRequest('DELETE', `/api/admin/parent-links/${enc(linkId)}`);
+
+// Financial Billing & Material Requests
+export const listBilling = (query) => apiRequest('GET', '/api/admin/billing', { query });
+export const recordPayment = (uid, body) => apiRequest('POST', `/api/admin/billing/${enc(uid)}/payment`, { body });
+export const listMaterialRequests = (query) => apiRequest('GET', '/api/admin/materials', { query });
+export const createMaterialRequest = (body) => apiRequest('POST', '/api/admin/materials', { body });
+export const updateMaterialRequest = (requestId, body) => apiRequest('PATCH', `/api/admin/materials/${enc(requestId)}`, { body });

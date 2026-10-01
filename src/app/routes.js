@@ -21,6 +21,8 @@ export function parseRoute(hash) {
   const [head, a, b] = parts;
   if (head === 'admin') {
     if (KINDS.includes(a)) return { screen: 'admin', page: 'list', kind: a };
+    if (a === 'billing') return { screen: 'admin', page: 'billing' };
+    if (a === 'materials') return { screen: 'admin', page: 'materials' };
     if (a === 'users' && b) return { screen: 'admin', page: 'detail', uid: b };
     if (a === 'new' && KINDS.includes(b)) return { screen: 'admin', page: 'create', kind: b };
     return { screen: 'admin', page: 'list', kind: 'students' };
@@ -37,6 +39,8 @@ export function parseRoute(hash) {
 
 export const hrefFor = {
   list: (kind) => `#/admin/${kind}`,
+  billing: () => '#/admin/billing',
+  materials: () => '#/admin/materials',
   detail: (uid) => `#/admin/users/${encodeURIComponent(uid)}`,
   create: (kind) => `#/admin/new/${kind}`,
   settings: () => '#/settings',

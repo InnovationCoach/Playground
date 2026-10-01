@@ -307,6 +307,105 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
   route('GET', '/api/admin/cohorts', CONSOLE, () => ok({ items: db.cohorts, nextPageToken: null, total: db.cohorts.length }));
   route('GET', '/api/admin/programmes', CONSOLE, () => ok({ items: db.programmes, nextPageToken: null, total: db.programmes.length }));
 
+  // --- Student Billing routes ---
+  route('GET', '/api/admin/billing', CONSOLE, ({ query }) => {
+    let rows = db.billing || [];
+    if (query.status) rows = rows.filter((b) => b.status === query.status);
+    if (query.cohortId) rows = rows.filter((b) => b.cohortId === query.cohortId);
+    if (query.q) {
+      const q = String(query.q).trim().toLowerCase();
+      rows = rows.filter((b) => b.studentName.toLowerCase().includes(q) || b.email.toLowerCase().includes(q) || b.publicId.toLowerCase().includes(q));
+    }
+
+    const totalRevenue = (db.billing || []).reduce((sum, b) => sum + b.amountPaid, 0);
+    const totalOutstanding = (db.billing || []).reduce((sum, b) => sum + b.remainingBalance, 0);
+    const overdueCount = (db.billing || []).filter((b) => b.status === 'overdue').length;
+    const paidCount = (db.billing || []).filter((b) => b.status === 'paid').length;
+
+    const page = paginate(rows, query);
+    return ok({
+      ...page,
+      summary: { totalRevenue, totalOutstanding, overdueCount, paidCount, totalStudents: (db.billing || []).length }
+    });
+  });
+
+  route('POST', '/api/admin/billing/:uid/payment', ADMIN, ({ params, body }) => {
+    const record = (db.billing || []).find((b) => b.uid === params.uid);
+    if (!record) return fail(404, 'NOT_FOUND', 'No billing record found.');
+    const amount = Number(body?.amount) || 0;
+    if (amount <= 0) return fail(400, 'VALIDATION', 'Enter a valid payment amount.', 'amount');
+
+    record.amountPaid += amount;
+    if (record.amountPaid >= record.totalTuition) {
+      record.amountPaid = record.totalTuition;
+      record.remainingBalance = 0;
+      record.status = 'paid';
+    } else {
+      record.remainingBalance = record.totalTuition - record.amountPaid;
+      record.status = 'partial';
+    }
+    record.lastPaymentDate = new Date().toISOString().slice(0, 10);
+    if (body?.nextBillingDate) record.nextBillingDate = body.nextBillingDate;
+
+    return ok({ record });
+  });
+
+  // --- Material Requests routes ---
+  route('GET', '/api/admin/materials', CONSOLE, ({ query }) => {
+    let rows = db.materialRequests || [];
+    if (query.status) rows = rows.filter((m) => m.status === query.status);
+    if (query.category) rows = rows.filter((m) => m.category === query.category);
+    if (query.q) {
+      const q = String(query.q).trim().toLowerCase();
+      rows = rows.filter((m) => m.item.toLowerCase().includes(q) || m.requestedByName.toLowerCase().includes(q) || m.reason.toLowerCase().includes(q));
+    }
+
+    const pendingCount = (db.materialRequests || []).filter((m) => m.status === 'pending').length;
+    const approvedCount = (db.materialRequests || []).filter((m) => m.status === 'approved').length;
+    const fulfilledCount = (db.materialRequests || []).filter((m) => m.status === 'fulfilled').length;
+    const totalEstimatedCost = (db.materialRequests || []).reduce((sum, m) => sum + m.totalCost, 0);
+
+    const page = paginate(rows, query);
+    return ok({
+      ...page,
+      summary: { pendingCount, approvedCount, fulfilledCount, totalEstimatedCost }
+    });
+  });
+
+  route('POST', '/api/admin/materials', ['admin', 'teacher', 'supervisor'], ({ body, caller }) => {
+    if (!body?.item?.trim()) return fail(400, 'VALIDATION', 'Item name is required.', 'item');
+    const qty = Math.max(1, Number(body.quantity) || 1);
+    const cost = Math.max(0, Number(body.estimatedCost) || 0);
+
+    const newReq = {
+      requestId: `mat-req-${Date.now().toString(36)}`,
+      item: body.item.trim(),
+      category: body.category || 'Classroom Supplies',
+      quantity: qty,
+      estimatedCost: cost,
+      totalCost: qty * cost,
+      reason: body.reason?.trim() || '',
+      requestedByUid: caller.uid,
+      requestedByName: caller.name,
+      requestedByEmail: caller.email,
+      status: 'pending',
+      requestedAt: new Date().toISOString(),
+      notes: ''
+    };
+
+    db.materialRequests = db.materialRequests || [];
+    db.materialRequests.unshift(newReq);
+    return ok({ request: newReq }, 201);
+  });
+
+  route('PATCH', '/api/admin/materials/:requestId', CONSOLE, ({ params, body }) => {
+    const reqItem = (db.materialRequests || []).find((m) => m.requestId === params.requestId);
+    if (!reqItem) return fail(404, 'NOT_FOUND', 'Material request not found.');
+    if (body.status) reqItem.status = body.status;
+    if (body.notes !== undefined) reqItem.notes = body.notes;
+    return ok({ request: reqItem });
+  });
+
   route('POST', '/api/students/:uid/parent-invite', ['admin', 'teacher'], ({ params, caller }) => {
     const u = findUser(params.uid);
     if (!u || u.role !== 'student') return fail(404, 'NOT_FOUND', 'No such student.');

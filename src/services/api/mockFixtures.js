@@ -172,24 +172,70 @@ export function buildFixtures(seed = 20260925) {
     logSeq += 1;
     history.push({ logId: `log-${String(logSeq).padStart(4, '0')}`, source: 'server', orgId: organization.orgId, subjectUid: subject.uid, action, actorUid: admin.uid, actorName: admin.displayName, actorPublicId: admin.publicId, summary, details, createdAt });
   };
-  users.forEach((u) => {
-    log(u, 'ACCOUNT_CREATED', `Account created as ${u.role}`, u.createdAt);
-    log(u, 'ACTIVATION_EMAIL_SENT', `Activation email sent to ${u.email}`, u.createdAt);
-    if (u.status !== 'pending') {
-      const activated = new Date(Date.parse(u.createdAt) + DAY).toISOString();
-      u.activatedAt = activated;
-      u.auth.lastSignInAt = new Date(Date.parse(activated) + Math.floor(rand() * 20) * DAY).toISOString();
-      log(u, 'ACCOUNT_ACTIVATED', 'Account activated', activated);
+  // Student Billing Data
+  const billing = students.map((s, idx) => {
+    const totalTuition = (idx % 3 === 0) ? 60000 : (idx % 2 === 0) ? 45000 : 35000;
+    let status = 'paid';
+    let amountPaid = totalTuition;
+    if (idx % 5 === 1) {
+      status = 'partial';
+      amountPaid = Math.floor(totalTuition * 0.6);
+    } else if (idx % 7 === 2) {
+      status = 'overdue';
+      amountPaid = 0;
     }
-    if (u.status === 'suspended') {
-      u.suspendedAt = new Date(Date.parse(u.createdAt) + 5 * DAY).toISOString();
-      u.suspendedBy = { uid: admin.uid, name: admin.displayName };
-      u.auth.disabled = true;
-      log(u, 'ACCOUNT_SUSPENDED', 'Account suspended', u.suspendedAt, { reason: 'Left the school (test data)' });
-    }
+    const remainingBalance = totalTuition - amountPaid;
+    const nextBillingDate = status === 'paid' ? '2026-12-01' : status === 'partial' ? '2026-10-15' : '2026-09-30';
+    const lastPaymentDate = amountPaid > 0 ? '2026-08-15' : null;
+
+    return {
+      uid: s.uid,
+      publicId: s.publicId,
+      studentName: s.displayName,
+      email: s.email,
+      cohortId: s.cohortId,
+      yearLevel: s.yearLevel,
+      totalTuition,
+      amountPaid,
+      remainingBalance,
+      status,
+      nextBillingDate,
+      lastPaymentDate
+    };
   });
 
-  return { organization, schools, cohorts, programmes, classes, users, parentLinks, parentInvites: [], history };
+  // Staff Material Requests
+  const sampleItems = [
+    { item: '3D Printer PLA Filament (10 Spools)', category: 'Tech/Hardware', cost: 8500, qty: 2, reason: 'Solar car chassis prototyping' },
+    { item: 'Solar Cell Efficiency Measurement Sensors', category: 'Lab Equipment', cost: 14200, qty: 5, reason: 'Physics & Energy PBL activity' },
+    { item: 'Primary Science Digital Microscopes', category: 'Lab Equipment', cost: 22000, qty: 4, reason: 'Water quality filter analysis' },
+    { item: 'Robotics Microcontroller Expansion Boards', category: 'Tech/Hardware', cost: 11500, qty: 10, reason: 'Engineering year 12 coursework' },
+    { item: 'Recycled Materials & Craft Tools Pack', category: 'Art & Crafts', cost: 4800, qty: 3, reason: 'Primary makerspace hands-on project' },
+    { item: 'Thai Language & Cultural Literature Sets', category: 'Books & Media', cost: 9600, qty: 1, reason: 'Thai Diploma library enrichment' },
+    { item: 'Portable Data Logging Tablets (Rugged)', category: 'Tech/Hardware', cost: 35000, qty: 3, reason: 'Outdoor environmental field study' }
+  ];
+
+  const materialRequests = sampleItems.map((spec, idx) => {
+    const teacher = teachers[idx % teachers.length];
+    const statuses = ['pending', 'approved', 'fulfilled', 'pending', 'approved', 'rejected', 'pending'];
+    return {
+      requestId: `mat-req-${String(idx + 1).padStart(3, '0')}`,
+      item: spec.item,
+      category: spec.category,
+      quantity: spec.qty,
+      estimatedCost: spec.cost,
+      totalCost: spec.cost * spec.qty,
+      reason: spec.reason,
+      requestedByUid: teacher ? teacher.uid : admin.uid,
+      requestedByName: teacher ? teacher.displayName : admin.displayName,
+      requestedByEmail: teacher ? teacher.email : admin.email,
+      status: statuses[idx % statuses.length],
+      requestedAt: at(Math.floor(rand() * 20)),
+      notes: idx % 2 === 0 ? 'Approved during weekly department review.' : ''
+    };
+  });
+
+  return { organization, schools, cohorts, programmes, classes, users, parentLinks, parentInvites: [], history, billing, materialRequests };
 }
 
 /**
