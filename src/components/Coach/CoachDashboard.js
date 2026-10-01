@@ -6,6 +6,7 @@
 
 import { db, collection, getDocs, doc, setDoc, updateDoc, arrayUnion, query, where, getAuthClaims, registerStudentAccount } from '../../firebase.js';
 import { logAuditEvent } from '../../utils/auditLogger.js';
+import { listMaterialRequests, createMaterialRequest } from '../../services/api/endpoints.js';
 
 export class CoachDashboard {
   constructor(options = {}) {
@@ -13,7 +14,7 @@ export class CoachDashboard {
     this.coachUser = options.coachUser || null;
     this.container = document.getElementById(this.containerId);
 
-    this.activeTab = 'work'; // 'work' | 'activities' | 'goals'
+    this.activeTab = 'work'; // 'work' | 'activities' | 'goals' | 'accounts' | 'materials'
     this.selectedGroup = 'all';
     this.searchQuery = '';
 
@@ -22,6 +23,8 @@ export class CoachDashboard {
     this.allGoals = [];
     this.allTimeStats = [];
     this.weeklyTasks = [];
+    this.materialRequests = [];
+    this.showMaterialModal = false;
 
     this.activityPositions = [
       { id: 'urban-heat', phase: 'phase1', position: 1, title: 'Activity 1: Urban Heat Battle', category: 'Climate & Urban', difficulty: 'Beginner', targetSkill: 'EV Evapotranspiration & UTCI Index', activeStudents: 12, avgMetric: '2.85°C cooling', totalHours: 18.5 },
@@ -246,6 +249,15 @@ export class CoachDashboard {
         this.weeklyTasks = [];
       }
 
+      // 5. Material requests
+      try {
+        const matRes = await listMaterialRequests().catch(() => null);
+        this.materialRequests = matRes?.items || [];
+      } catch (e) {
+        console.warn('[Coach] Could not load material requests:', e);
+        this.materialRequests = [];
+      }
+
     } catch (err) {
       console.error('[CoachDashboard] Failed to load data:', err);
       this.loadError = err.code || err.message || 'unknown';
@@ -373,6 +385,9 @@ export class CoachDashboard {
               <button class="coach-tab-btn ${this.activeTab === 'accounts' ? 'active' : ''}" data-tab="accounts">
                 👥 Signed Up Accounts (${totalStudents + (this.coaches ? this.coaches.length : 0)})
               </button>
+              <button class="coach-tab-btn ${this.activeTab === 'materials' ? 'active' : ''}" data-tab="materials">
+                📦 Material Requests (${this.materialRequests ? this.materialRequests.length : 0})
+              </button>
             </div>
             <div style="position: relative;">
               <input type="text" id="coach-search-input" placeholder="🔍 Search student..." value="${this.searchQuery}" style="background: #1e293b; color: white; border: 1px solid #475569; padding: 0.5rem 1rem; border-radius: 8px; outline: none; width: 200px;" />
@@ -414,6 +429,8 @@ export class CoachDashboard {
       return this.renderGoalsTab(students);
     } else if (this.activeTab === 'accounts') {
       return this.renderAccountsTab();
+    } else if (this.activeTab === 'materials') {
+      return this.renderMaterialsTab();
     }
     return this.renderWorkTab(students);
   }
@@ -507,6 +524,125 @@ export class CoachDashboard {
           </div>
         </div>
       </div>
+    `;
+  }
+
+  renderMaterialsTab() {
+    const list = this.materialRequests || [];
+    return `
+      <div style="background: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 1.75rem; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h3 style="margin: 0; color: #38bdf8; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+              📦 Equipment & Material Requisitions
+            </h3>
+            <p style="margin: 0.25rem 0 0 0; color: #94a3b8; font-size: 0.9rem;">
+              Submit resource requests directly to School Administration. Requests update in real-time on the Admin Portal.
+            </p>
+          </div>
+          <button id="coach-open-material-modal-btn" style="background: #10b981; color: #000; border: none; padding: 0.65rem 1.25rem; border-radius: 8px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+            ➕ Request Materials
+          </button>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+            <thead>
+              <tr style="background: #0f172a; color: #94a3b8; border-bottom: 1px solid #334155;">
+                <th style="padding: 0.75rem 1rem;">Item Description</th>
+                <th style="padding: 0.75rem 1rem;">Category</th>
+                <th style="padding: 0.75rem 1rem;">Qty & Unit Price</th>
+                <th style="padding: 0.75rem 1rem;">Total Est. Cost</th>
+                <th style="padding: 0.75rem 1rem;">Purpose / Rationale</th>
+                <th style="padding: 0.75rem 1rem;">Requested By</th>
+                <th style="padding: 0.75rem 1rem;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${list.length === 0 ? `
+                <tr>
+                  <td colspan="7" style="padding: 2rem; text-align: center; color: #64748b;">No material requests submitted yet. Click "Request Materials" above to submit one.</td>
+                </tr>
+              ` : list.map(m => {
+                let badge = '<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">⏳ Pending Review</span>';
+                if (m.status === 'approved') {
+                  badge = '<span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">✅ Approved</span>';
+                } else if (m.status === 'fulfilled') {
+                  badge = '<span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">📦 Fulfilled</span>';
+                } else if (m.status === 'rejected') {
+                  badge = '<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">❌ Rejected</span>';
+                }
+                const formattedCost = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(m.totalCost || 0);
+                const unitCostFormatted = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(m.estimatedCost || 0);
+
+                return `
+                  <tr style="border-bottom: 1px solid #334155;">
+                    <td style="padding: 0.75rem 1rem; font-weight: 700; color: white;">${m.item}</td>
+                    <td style="padding: 0.75rem 1rem;"><span style="background: #0f172a; color: #cbd5e1; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; border: 1px solid #334155;">${m.category}</span></td>
+                    <td style="padding: 0.75rem 1rem; color: #cbd5e1;">${m.quantity} × ${unitCostFormatted}</td>
+                    <td style="padding: 0.75rem 1rem; font-weight: 700; color: #38bdf8;">${formattedCost}</td>
+                    <td style="padding: 0.75rem 1rem; color: #94a3b8; font-size: 0.85rem;">${m.reason || '—'}</td>
+                    <td style="padding: 0.75rem 1rem; color: #cbd5e1;">${m.requestedByName || 'Coach'}</td>
+                    <td style="padding: 0.75rem 1rem;">${badge}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Request Materials Modal -->
+      ${this.showMaterialModal ? `
+        <div id="coach-material-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+          <div style="background: #1e293b; border: 1px solid #475569; border-radius: 16px; width: 480px; max-width: 95vw; padding: 1.75rem; color: white; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 style="margin: 0; color: #38bdf8; font-size: 1.25rem;">📦 Submit Material Request</h3>
+              <button id="coach-close-material-modal-btn" style="background: transparent; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 0; margin-bottom: 1.25rem;">Request equipment or resources directly from School Administration.</p>
+
+            <form id="coach-material-form">
+              <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: #cbd5e1;">Item Name / Description</label>
+                <input id="mat-item-name" type="text" placeholder="e.g., 3D Printer Filament (10 Spools)..." required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.6rem 0.8rem; border-radius: 8px; box-sizing: border-box; outline: none;" />
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: #cbd5e1;">Category</label>
+                  <select id="mat-category" style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.6rem 0.8rem; border-radius: 8px; box-sizing: border-box; outline: none;">
+                    <option value="Lab Equipment">Lab Equipment</option>
+                    <option value="Tech/Hardware">Tech/Hardware</option>
+                    <option value="Books & Media">Books & Media</option>
+                    <option value="Classroom Supplies">Classroom Supplies</option>
+                    <option value="Art & Crafts">Art & Crafts</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: #cbd5e1;">Quantity</label>
+                  <input id="mat-quantity" type="number" min="1" value="1" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.6rem 0.8rem; border-radius: 8px; box-sizing: border-box; outline: none;" />
+                </div>
+              </div>
+
+              <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: #cbd5e1;">Estimated Unit Cost (฿)</label>
+                <input id="mat-unit-cost" type="number" min="0" placeholder="e.g. 4500" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.6rem 0.8rem; border-radius: 8px; box-sizing: border-box; outline: none;" />
+              </div>
+
+              <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: #cbd5e1;">Purpose / Rationale</label>
+                <textarea id="mat-reason" rows="3" placeholder="Explain how this material supports your class or PBL unit..." style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.6rem 0.8rem; border-radius: 8px; box-sizing: border-box; outline: none; resize: vertical;"></textarea>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" id="coach-cancel-material-modal-btn" style="background: #334155; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600;">Cancel</button>
+                <button type="submit" style="background: #10b981; color: #000; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 800;">Submit Request</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ` : ''}
     `;
   }
 
@@ -1292,6 +1428,54 @@ export class CoachDashboard {
     if (refreshBtn) {
       refreshBtn.addEventListener('click', async () => {
         await this.init();
+      });
+    }
+
+    // 📦 Material Request Modal Handlers
+    const openMatBtn = this.container.querySelector('#coach-open-material-modal-btn');
+    if (openMatBtn) {
+      openMatBtn.addEventListener('click', () => {
+        this.showMaterialModal = true;
+        this.render();
+      });
+    }
+
+    const closeMatBtn = this.container.querySelector('#coach-close-material-modal-btn');
+    if (closeMatBtn) {
+      closeMatBtn.addEventListener('click', () => {
+        this.showMaterialModal = false;
+        this.render();
+      });
+    }
+
+    const cancelMatBtn = this.container.querySelector('#coach-cancel-material-modal-btn');
+    if (cancelMatBtn) {
+      cancelMatBtn.addEventListener('click', () => {
+        this.showMaterialModal = false;
+        this.render();
+      });
+    }
+
+    const matForm = this.container.querySelector('#coach-material-form');
+    if (matForm) {
+      matForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const item = this.container.querySelector('#mat-item-name')?.value || '';
+        const category = this.container.querySelector('#mat-category')?.value || 'Classroom Supplies';
+        const quantity = Number(this.container.querySelector('#mat-quantity')?.value) || 1;
+        const estimatedCost = Number(this.container.querySelector('#mat-unit-cost')?.value) || 0;
+        const reason = this.container.querySelector('#mat-reason')?.value || '';
+
+        try {
+          await createMaterialRequest({ item, category, quantity, estimatedCost, reason });
+          this.showNotification(`Material request for "${item}" submitted to Administration!`);
+          this.showMaterialModal = false;
+          await this.loadData();
+          this.render();
+        } catch (err) {
+          console.error('[Coach] Could not submit material request:', err);
+          alert('Could not submit material request. Please try again.');
+        }
       });
     }
 
