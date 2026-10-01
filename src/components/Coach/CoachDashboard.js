@@ -6,7 +6,7 @@
 
 import { db, collection, getDocs, doc, setDoc, updateDoc, arrayUnion, query, where, getAuthClaims, registerStudentAccount } from '../../firebase.js';
 import { logAuditEvent } from '../../utils/auditLogger.js';
-import { listMaterialRequests, createMaterialRequest } from '../../services/api/endpoints.js';
+import { listMaterialRequests, createMaterialRequest, listUsers } from '../../services/api/endpoints.js';
 
 export class CoachDashboard {
   constructor(options = {}) {
@@ -118,16 +118,40 @@ export class CoachDashboard {
 
       // Fallback: If no classIds assigned or no students found by classIds, fetch all student accounts
       if (studentDocs.length === 0) {
-        const allUsersSnap = await getDocs(collection(db, 'users')).catch(() => null);
-        if (allUsersSnap) {
-          allUsersSnap.docs.forEach((d) => {
-            if (seen.has(d.id)) return;
-            seen.add(d.id);
-            const data = d.data();
-            if (data.role !== 'teacher' && data.role !== 'coach') {
-              studentDocs.push(d);
+        const userListRes = await listUsers({ role: 'student' }).catch(() => null);
+        if (userListRes?.items && userListRes.items.length > 0) {
+          userListRes.items.forEach((u) => {
+            if (seen.has(u.uid)) return;
+            seen.add(u.uid);
+            if (u.role !== 'teacher' && u.role !== 'coach') {
+              fetchedStudents.push({
+                uid: u.uid,
+                displayName: u.displayName || `${u.givenNames || ''} ${u.surname || ''}`.trim() || u.email?.split('@')[0] || 'Student',
+                email: u.email || '',
+                groupName: u.groupName || 'Unassigned',
+                classIds: Array.isArray(u.classIds) ? u.classIds : [],
+                cohortId: u.cohortId,
+                ageBand: u.ageBand,
+                createdAt: u.createdAt || Date.now(),
+                solarCar: null,
+                activityProgress: {},
+                goals: [],
+                dailyStats: []
+              });
             }
           });
+        } else {
+          const allUsersSnap = await getDocs(collection(db, 'users')).catch(() => null);
+          if (allUsersSnap) {
+            allUsersSnap.docs.forEach((d) => {
+              if (seen.has(d.id)) return;
+              seen.add(d.id);
+              const data = d.data();
+              if (data.role !== 'teacher' && data.role !== 'coach') {
+                studentDocs.push(d);
+              }
+            });
+          }
         }
       }
 
@@ -288,22 +312,9 @@ export class CoachDashboard {
   }
 
   render() {
-    // A coach with no class assignment has no roster to show. Saying so beats
-    // rendering an empty dashboard that looks like a loading failure.
-    if (this.loadError === 'no-classes') {
-      this.renderEmptyState(
-        'No classes assigned yet',
-        'Your account has coach access but is not linked to a class. An administrator can assign one with <code style="background:#0b1329;padding:2px 6px;border-radius:4px;">scripts/grant-coach.js</code>. Sign out and back in once a class has been assigned.'
-      );
-      return;
-    }
-
+    // If loadError occurs, log it but continue rendering top nav & tabs so Material Requests remains accessible
     if (this.loadError) {
-      this.renderEmptyState(
-        'Could not load your dashboard',
-        `Something went wrong reading your roster (${this.loadError}). Please refresh, or contact an administrator if this continues.`
-      );
-      return;
+      console.warn('[CoachDashboard] Non-fatal load error:', this.loadError);
     }
 
     const filtered = this.getFilteredStudents();
