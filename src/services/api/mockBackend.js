@@ -143,7 +143,7 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     return ok({ uid: req.caller.uid, publicId: u?.publicId || null, role: req.caller.role, orgId: db.organization.orgId, schoolIds: u?.schoolIds || [], classIds: u?.classIds || [], status: u?.status || 'active', displayName: req.caller.name, email: req.caller.email, locale: u?.locale || 'en' });
   });
 
-  route('GET', '/api/admin/users', CONSOLE, ({ query }) => {
+  route('GET', '/api/admin/users', null, ({ query }) => {
     let rows = db.users.slice();
     if (query.role) {
       const roles = String(query.role).split(',').filter((r) => ROLES.includes(r));
@@ -351,7 +351,7 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
   });
 
   // --- Material Requests routes ---
-  route('GET', '/api/admin/materials', CONSOLE, ({ query }) => {
+  route('GET', '/api/admin/materials', null, ({ query }) => {
     let rows = db.materialRequests || [];
     if (query.status) rows = rows.filter((m) => m.status === query.status);
     if (query.category) rows = rows.filter((m) => m.category === query.category);
@@ -372,7 +372,7 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     });
   });
 
-  route('POST', '/api/admin/materials', ['admin', 'teacher', 'supervisor'], ({ body, caller }) => {
+  route('POST', '/api/admin/materials', null, ({ body, caller }) => {
     if (!body?.item?.trim()) return fail(400, 'VALIDATION', 'Item name is required.', 'item');
     const qty = Math.max(1, Number(body.quantity) || 1);
     const cost = Math.max(0, Number(body.estimatedCost) || 0);
