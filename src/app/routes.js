@@ -7,6 +7,8 @@
  *   #/settings   #/courses   #/parent                    everyone else
  *   #/primary-resources  #/worksheet/<id>  #/guide/<id>  printable primary material
  *   #/pbl  #/pbl/<tab>                                   PBL Studio (term project)
+ *   #/community                                          community posts
+ *   #/messages  #/messages/<convId>                      private messages
  *
  * Anything unrecognised returns null and the caller shows its default screen.
  * A route is a request to SEE a screen; whether the role may is decided by
@@ -34,6 +36,8 @@ export function parseRoute(hash) {
   if (head === 'courses') return { screen: 'courses' };
   if (head === 'pbl') return { screen: 'pbl', tab: a || null };
   if (head === 'parent') return { screen: 'parent' };
+  if (head === 'community') return { screen: 'community' };
+  if (head === 'messages') return { screen: 'messages', conversationId: a || null };
   return null;
 }
 
@@ -49,5 +53,7 @@ export const hrefFor = {
   resources: () => '#/primary-resources',
   worksheet: (id) => `#/worksheet/${id}`,
   guide: (id) => `#/guide/${id}`,
-  pbl: (tab) => (tab ? `#/pbl/${tab}` : '#/pbl')
+  pbl: (tab) => (tab ? `#/pbl/${tab}` : '#/pbl'),
+  community: () => '#/community',
+  messages: (convId) => (convId ? `#/messages/${convId}` : '#/messages')
 };

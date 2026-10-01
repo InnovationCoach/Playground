@@ -20,6 +20,11 @@ import { PlantMicroscopeLab } from '../features/activities/plantLab/PlantMicrosc
 import { ProjectHexGrid } from '../features/activities/hexGrid/ProjectHexGrid.jsx';
 import { JuniorExplorers } from '../features/primary/JuniorExplorers.jsx';
 import { PblStudio } from '../features/pbl/PblStudio.jsx';
+import { CommunityFeed } from '../features/community/CommunityFeed.jsx';
+import { ConversationList } from '../features/messages/ConversationList.jsx';
+import { ConversationView } from '../features/messages/ConversationView.jsx';
+import { AdminAuditView } from '../features/messages/AdminAuditView.jsx';
+import { StartConversationModal } from '../features/messages/StartConversationModal.jsx';
 import { isPrimaryProfile } from '../auth.js';
 import { API_BASE } from '../services/apiBase.js';
 import { initializeSENGlobally } from '../integrations/senIntegration.js';
@@ -33,6 +38,7 @@ export function App() {
   const { status, user, profile, role, classIds, error, signOut, refreshProfile } = useAuth();
   const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
+  const [showStartConversation, setShowStartConversation] = useState(false);
   // Primary learners get Junior Explorers only: no secondary activities, no AI
   // chatbot and no goal-setting popup (see the 2026-09-25 primary plan).
   const isPrimary = role === 'student' && isPrimaryProfile(profile);
@@ -231,18 +237,56 @@ export function App() {
     );
   }
 
+  // Messages: list students for coach to start conversations
+  const studentList = profile?.classIds?.length > 0 ? profile.classIds.map(cid => ({ id: cid, displayName: cid })) : [];
+
   return (
     <>
       <Header {...headerProps} />
       <TopNav
         role={role}
-        view={route?.screen === 'courses' || route?.screen === 'pbl' ? route.screen : view}
+        view={route?.screen === 'courses' || route?.screen === 'pbl' || route?.screen === 'community' || route?.screen === 'messages' ? route.screen : view}
         onNavigate={navigate}
         onOpenCourses={() => setHash(hrefFor.courses())}
         onOpenGoals={() => createGoalSettingModal(user?.uid || null)}
       />
 
-      {route?.screen === 'pbl' && (role === 'student' || role === 'teacher') ? (
+      {route?.screen === 'community' ? (
+        <div className="gh-app">
+          <CommunityFeed />
+        </div>
+      ) : route?.screen === 'messages' && role === 'admin' ? (
+        <div className="gh-app">
+          <AdminAuditView />
+        </div>
+      ) : route?.screen === 'messages' ? (
+        <div style={{ display: 'flex', height: 'calc(100vh - 64px)' }}>
+          {route.conversationId ? (
+            <ConversationView conversationId={route.conversationId} otherUserName="User" />
+          ) : (
+            <>
+              <div style={{ width: 300, borderRight: '1px solid var(--gh-border)' }}>
+                <ConversationList
+                  onSelectConversation={(convId, userName) => setHash(hrefFor.messages(convId))}
+                  onStartNew={() => setShowStartConversation(true)}
+                  userRole={role}
+                />
+              </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gh-text-3)' }}>
+                Select a conversation to start
+              </div>
+            </>
+          )}
+          {role === 'teacher' && (
+            <StartConversationModal
+              isOpen={showStartConversation}
+              onClose={() => setShowStartConversation(false)}
+              coachId={user?.uid}
+              students={studentList}
+            />
+          )}
+        </div>
+      ) : route?.screen === 'pbl' && (role === 'student' || role === 'teacher') ? (
         <div className="gh-app">
           <PblStudio uid={user?.uid} role={role} tab={route.tab} onOpenActivity={navigate} />
         </div>
@@ -251,7 +295,7 @@ export function App() {
           <MyCourses isPrimary={isPrimary} onOpenActivity={navigate} displayName={profile?.displayName}
                      uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
         </div>
-      ) : role === 'teacher' ? (
+      ) : role === 'teacher' && !route?.screen ? (
         <CoachDashboardHost
           coachUser={{
             uid: user.uid,

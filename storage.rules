@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAllowedFileType() {
+      return request.resource.contentType.matches('image/jpeg')
+          || request.resource.contentType.matches('image/png')
+          || request.resource.contentType.matches('image/webp')
+          || request.resource.contentType.matches('image/gif')
+          || request.resource.contentType.matches('video/mp4')
+          || request.resource.contentType.matches('video/webm')
+          || request.resource.contentType.matches('video/quicktime');
+    }
+
+    function isWithinSizeLimit() {
+      return request.resource.size <= 20 * 1024 * 1024; // 20 MB max
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // F2: Community Space Media
+    match /community/{uid}/{postId}/{filename} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(uid) && isAllowedFileType() && isWithinSizeLimit();
+    }
+
+    // F3: Private Message Attachments
+    match /messages/{convId}/{msgId}/{filename} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAllowedFileType() && isWithinSizeLimit();
+    }
+
+    // Legacy / Activity uploads
+    match /solarCar/{uid}/{filename} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(uid) && request.resource.size <= 10 * 1024 * 1024;
+    }
+  }
+}

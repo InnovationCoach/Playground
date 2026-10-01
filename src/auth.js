@@ -273,3 +273,8 @@ export async function sendPasswordReset(email) {
 export async function saveLocale(uid, locale) {
   await setDoc(doc(db, "users", uid), { locale, updatedAt: serverTimestamp() }, { merge: true });
 }
+
+/** Save the theme preference to the user's own profile ('light' | 'dark' | 'system'). */
+export async function saveThemePreference(uid, themePreference) {
+  await setDoc(doc(db, "users", uid), { themePreference, updatedAt: serverTimestamp() }, { merge: true });
+}

@@ -26,6 +26,7 @@ if (!firebase.apps || !firebase.apps.length) {
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 
 export const usingEmulators = USE_EMULATORS;
 
@@ -114,6 +115,14 @@ export function arrayUnion(...elements) {
   return firebase.firestore.FieldValue.arrayUnion(...elements);
 }
 
+export function arrayRemove(...elements) {
+  return firebase.firestore.FieldValue.arrayRemove(...elements);
+}
+
+export function onSnapshot(queryOrRef, callback, errorCallback) {
+  return queryOrRef.onSnapshot(callback, errorCallback);
+}
+
 /**
  * Modular-style query builders over the compat SDK.
  *
@@ -157,7 +166,7 @@ export async function getAuthClaims(forceRefresh = false) {
   }
 }
 
-export { auth, db };
+export { auth, db, storage };
 
 export async function registerStudentAccount(email, password, displayName, groupName) {
   const appName = "StudentReg_" + Date.now();
