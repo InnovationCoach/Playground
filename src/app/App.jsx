@@ -96,7 +96,7 @@ export function App() {
   // A coach landing on a deep link, or a student who tried one.
   useEffect(() => {
     if (status !== 'ready') return;
-    if (hash.includes('/coach') && role === 'teacher') setView('coach');
+    if (hash.includes('/coach') && (role === 'teacher' || role === 'coach')) setView('coach');
   }, [hash, status, role]);
 
   // Student-only subsystems. These are imperative singletons from the vanilla
@@ -128,7 +128,7 @@ export function App() {
 
   // Coaches must never land on a student activity view.
   useEffect(() => {
-    if (status === 'ready' && role === 'teacher') setView('coach');
+    if (status === 'ready' && (role === 'teacher' || role === 'coach')) setView('coach');
     if (status === 'ready' && role === 'student' && view === 'coach') setView('home');
   }, [status, role, view]);
 
@@ -149,7 +149,7 @@ export function App() {
     onHome: () => {
       if (CONSOLE_ROLES.includes(role)) setHash(hrefFor.list('students'));
       else if (role === 'parent') setHash(hrefFor.parent());
-      else navigate(role === 'teacher' ? 'coach' : 'home');
+      else navigate((role === 'teacher' || role === 'coach') ? 'coach' : 'home');
     }
   };
 
@@ -180,6 +180,78 @@ export function App() {
             : route.screen === 'guide' ? <TeacherGuide activityId={route.activityId} />
             : <PrimaryResources />}
         </div>
+      </>
+    );
+  }
+
+  // Community Feed: accessible to all signed-in users (students, coaches, admins)
+  if (route?.screen === 'community') {
+    return (
+      <>
+        <Header {...headerProps} />
+        {!isPrimary && (
+          <TopNav
+            role={role}
+            view="community"
+            onNavigate={navigate}
+            onOpenCourses={() => setHash(hrefFor.courses())}
+            onOpenGoals={() => createGoalSettingModal(user?.uid || null)}
+          />
+        )}
+        <div className="gh-app">
+          <CommunityFeed />
+        </div>
+      </>
+    );
+  }
+
+  // Private Messages (F3): accessible to all signed-in roles
+  // Admins & Supervisors get the Admin Audit View; Coaches & Students get Conversations
+  if (route?.screen === 'messages') {
+    return (
+      <>
+        <Header {...headerProps} />
+        {!isPrimary && (
+          <TopNav
+            role={role}
+            view="messages"
+            onNavigate={navigate}
+            onOpenCourses={() => setHash(hrefFor.courses())}
+            onOpenGoals={() => createGoalSettingModal(user?.uid || null)}
+          />
+        )}
+        {CONSOLE_ROLES.includes(role) ? (
+          <div className="gh-app">
+            <AdminAuditView />
+          </div>
+        ) : (
+          <div style={{ display: 'flex', height: 'calc(100vh - 64px)' }}>
+            {route.conversationId ? (
+              <ConversationView conversationId={route.conversationId} onBack={() => setHash(hrefFor.messages())} />
+            ) : (
+              <>
+                <div style={{ width: 300, borderRight: '1px solid var(--gh-border)' }}>
+                  <ConversationList
+                    onSelectConversation={(convId, userName) => setHash(hrefFor.messages(convId))}
+                    onStartNew={() => setShowStartConversation(true)}
+                    userRole={role}
+                  />
+                </div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gh-text-3)' }}>
+                  Select a conversation to start
+                </div>
+              </>
+            )}
+            {(role === 'teacher' || role === 'coach' || role === 'admin') && (
+              <StartConversationModal
+                isOpen={showStartConversation}
+                onClose={() => setShowStartConversation(false)}
+                coachId={user?.uid}
+                coachName={profile?.displayName || user?.email?.split('@')[0] || ''}
+              />
+            )}
+          </div>
+        )}
       </>
     );
   }
@@ -237,9 +309,6 @@ export function App() {
     );
   }
 
-  // Messages: list students for coach to start conversations
-  const studentList = profile?.classIds?.length > 0 ? profile.classIds.map(cid => ({ id: cid, displayName: cid })) : [];
-
   return (
     <>
       <Header {...headerProps} />
@@ -251,42 +320,7 @@ export function App() {
         onOpenGoals={() => createGoalSettingModal(user?.uid || null)}
       />
 
-      {route?.screen === 'community' ? (
-        <div className="gh-app">
-          <CommunityFeed />
-        </div>
-      ) : route?.screen === 'messages' && role === 'admin' ? (
-        <div className="gh-app">
-          <AdminAuditView />
-        </div>
-      ) : route?.screen === 'messages' ? (
-        <div style={{ display: 'flex', height: 'calc(100vh - 64px)' }}>
-          {route.conversationId ? (
-            <ConversationView conversationId={route.conversationId} otherUserName="User" />
-          ) : (
-            <>
-              <div style={{ width: 300, borderRight: '1px solid var(--gh-border)' }}>
-                <ConversationList
-                  onSelectConversation={(convId, userName) => setHash(hrefFor.messages(convId))}
-                  onStartNew={() => setShowStartConversation(true)}
-                  userRole={role}
-                />
-              </div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gh-text-3)' }}>
-                Select a conversation to start
-              </div>
-            </>
-          )}
-          {role === 'teacher' && (
-            <StartConversationModal
-              isOpen={showStartConversation}
-              onClose={() => setShowStartConversation(false)}
-              coachId={user?.uid}
-              students={studentList}
-            />
-          )}
-        </div>
-      ) : route?.screen === 'pbl' && (role === 'student' || role === 'teacher') ? (
+      {route?.screen === 'pbl' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
         <div className="gh-app">
           <PblStudio uid={user?.uid} role={role} tab={route.tab} onOpenActivity={navigate} />
         </div>
@@ -295,7 +329,7 @@ export function App() {
           <MyCourses isPrimary={isPrimary} onOpenActivity={navigate} displayName={profile?.displayName}
                      uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
         </div>
-      ) : role === 'teacher' && !route?.screen ? (
+      ) : (role === 'teacher' || role === 'coach') && !route?.screen ? (
         <CoachDashboardHost
           coachUser={{
             uid: user.uid,

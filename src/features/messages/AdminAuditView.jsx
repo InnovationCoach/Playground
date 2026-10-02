@@ -62,7 +62,7 @@ export function AdminAuditView() {
                 onMouseEnter={(e) => e.currentTarget.style.background = 'var(--gh-subtle)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = selectedConvId === conv.id ? 'var(--gh-subtle)' : 'transparent'}
               >
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--gh-text)' }}>{conv.otherUserName}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--gh-text)' }}>{conv.coachName || 'Coach'} ↔ {conv.studentName || 'Student'}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--gh-text-3)', marginTop: '0.2rem' }}>{conv.messageCount || 0} messages</div>
               </button>
             ))}

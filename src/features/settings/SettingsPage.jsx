@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Languages, LockKeyhole, UserRound } from 'lucide-react';
+import { Languages, LockKeyhole, UserRound, Sun, Moon, Monitor } from 'lucide-react';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { LOCALES } from '../../app/i18n/messages.js';
-import { changePassword, saveLocale } from '../../auth.js';
+import { changePassword, saveLocale, saveThemePreference } from '../../auth.js';
+import { useTheme } from '../../app/theme/ThemeProvider.jsx';
 import { Field, Alert } from '../admin/ui/bits.jsx';
 import { Avatar } from '../shell/Avatar.jsx';
 import '../admin/admin.css';
@@ -36,6 +37,7 @@ export function SettingsPage({ user, profile, role, embedded }) {
           </div>
         </div>
       </div>
+      <ThemeCard uid={user.uid} />
       <LanguageCard uid={user.uid} />
       <PasswordCard />
     </>
@@ -84,6 +86,46 @@ function LanguageCard({ uid }) {
         ))}
       </div>
       {/* Keyed by message, so the text follows the language just chosen. */}
+      {notice && <div style={{ marginTop: '1rem' }}><Alert type={notice.type}>{t(notice.key)}</Alert></div>}
+    </div>
+  );
+}
+
+function ThemeCard({ uid }) {
+  const { t } = useLocale();
+  const { theme, setUserTheme } = useTheme();
+  const [notice, setNotice] = useState(null);
+
+  async function choose(newTheme) {
+    if (newTheme === theme) return;
+    setUserTheme(newTheme);
+    setNotice(null);
+    try {
+      await saveThemePreference(uid, newTheme);
+      setNotice({ type: 'success', key: 'settings.themeSaved' });
+    } catch (err) {
+      console.warn('[Settings] Could not save theme:', err?.message);
+      setNotice({ type: 'error', key: 'settings.themeSavedLocal' });
+    }
+  }
+
+  return (
+    <div className="gh-card">
+      <CardHead icon={Monitor} id="gh-theme-title" title={t('settings.theme')} desc={t('settings.themeHint')} />
+      <div className="gh-segmented" role="radiogroup" aria-labelledby="gh-theme-title">
+        <button key="light" type="button" role="radio" aria-checked={theme === 'light'}
+                onClick={() => choose('light')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <Sun size={16} /> {t('settings.themeLight')}
+        </button>
+        <button key="dark" type="button" role="radio" aria-checked={theme === 'dark'}
+                onClick={() => choose('dark')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <Moon size={16} /> {t('settings.themeDark')}
+        </button>
+        <button key="system" type="button" role="radio" aria-checked={theme === 'system'}
+                onClick={() => choose('system')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <Monitor size={16} /> {t('settings.themeSystem')}
+        </button>
+      </div>
       {notice && <div style={{ marginTop: '1rem' }}><Alert type={notice.type}>{t(notice.key)}</Alert></div>}
     </div>
   );

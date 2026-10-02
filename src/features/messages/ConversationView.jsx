@@ -1,20 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../app/AuthProvider.jsx';
-import { sendMessage, getMessages, onMessagesChanged, deleteMessage } from './messagesAPI.js';
-import { ImagePlus, Trash2 } from 'lucide-react';
+import { sendMessage, onMessagesChanged, deleteMessage, getConversation, otherParticipantName } from './messagesAPI.js';
+import { ImagePlus, ArrowLeft } from 'lucide-react';
 import '../admin/admin.css';
 
-export function ConversationView({ conversationId, otherUserName }) {
+export function ConversationView({ conversationId, onBack }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
+  const [otherUserName, setOtherUserName] = useState('');
+  const [loadError, setLoadError] = useState(null);
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onMessagesChanged(conversationId, setMessages);
+    setLoadError(null);
+    getConversation(conversationId)
+      .then((conv) => setOtherUserName(otherParticipantName(conv, user?.uid)))
+      .catch((err) => setLoadError(err.message));
+    const unsubscribe = onMessagesChanged(conversationId, setMessages, (err) => {
+      console.error('[Messages] Thread failed:', err);
+      setLoadError(err.message);
+    });
     return unsubscribe;
-  }, [conversationId]);
+  }, [conversationId, user?.uid]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -41,10 +50,19 @@ export function ConversationView({ conversationId, otherUserName }) {
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)', background: 'var(--gh-bg)' }}>
       {/* Header */}
       <div style={{ padding: '1rem', borderBottom: '1px solid var(--gh-border)', background: 'var(--gh-surface)' }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>{otherUserName}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {onBack && (
+            <button type="button" onClick={onBack} aria-label="Back to conversations"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gh-text-2)', padding: 4, display: 'flex' }}>
+              <ArrowLeft size={18} />
+            </button>
+          )}
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>{otherUserName || '…'}</h2>
+        </div>
         <div style={{ fontSize: '0.8rem', color: 'var(--gh-text-3)', marginTop: '0.25rem' }}>
           📌 Messages are monitored by WeLearn for safeguarding.
         </div>
+        {loadError && <div className="gh-alert gh-alert-error" style={{ marginTop: '0.5rem' }}>Could not load this conversation: {loadError}</div>}
       </div>
 
       {/* Message list */}

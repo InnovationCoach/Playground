@@ -491,3 +491,184 @@ describe('Phase 0 security boundaries', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// F1: Theme Preference
+// ---------------------------------------------------------------------------
+describe('F1: Theme Preference', () => {
+  it('allows a user to update themePreference on their own profile', async () => {
+    const db = studentA().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users', 'student_a'), {
+      themePreference: 'dark'
+    }));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F2: Community Space (Posts, Comments, Reactions, Reports)
+// ---------------------------------------------------------------------------
+describe('F2: Community Space', () => {
+  it('allows any signed-in user to create a post with initial counts 0 and status visible', async () => {
+    const db = studentA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'posts', 'post1'), {
+      authorId: 'student_a',
+      authorRole: 'student',
+      text: 'Hello WeLearn!',
+      media: [],
+      createdAt: '2026-10-01T10:00:00Z',
+      updatedAt: '2026-10-01T10:00:00Z',
+      commentCount: 0,
+      reactionCount: 0,
+      status: 'visible'
+    }));
+  });
+
+  it('rejects post creation under another authorId', async () => {
+    const db = studentA().firestore();
+    await assertFails(setDoc(doc(db, 'posts', 'post2'), {
+      authorId: 'student_b',
+      authorRole: 'student',
+      text: 'Impersonated post',
+      media: [],
+      createdAt: '2026-10-01T10:00:00Z',
+      updatedAt: '2026-10-01T10:00:00Z',
+      commentCount: 0,
+      reactionCount: 0,
+      status: 'visible'
+    }));
+  });
+
+  it('allows author or coach/admin to soft-delete a post (status: removed or hidden)', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'posts', 'post1'), {
+        authorId: 'student_a', authorRole: 'student', text: 'Hi', commentCount: 0, reactionCount: 0, status: 'visible'
+      });
+    });
+    // Coach hiding content
+    const coachDb = coachA().firestore();
+    await assertSucceeds(updateDoc(doc(coachDb, 'posts', 'post1'), {
+      status: 'hidden', updatedAt: '2026-10-01T10:05:00Z'
+    }));
+  });
+
+  it('blocks hard deletion of posts', async () => {
+    const db = studentA().firestore();
+    await assertFails(deleteDoc(doc(db, 'posts', 'post1')));
+  });
+
+  it('allows adding and removing reactions', async () => {
+    const db = studentA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'posts', 'post1', 'reactions', 'student_a'), {
+      type: 'like', createdAt: '2026-10-01T10:00:00Z'
+    }));
+    await assertSucceeds(deleteDoc(doc(db, 'posts', 'post1', 'reactions', 'student_a')));
+  });
+
+  it('allows reporting posts or comments', async () => {
+    const db = studentA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'reports', 'rep1'), {
+      targetType: 'post',
+      targetPath: 'posts/post1',
+      reporterId: 'student_a',
+      reason: 'Inappropriate content',
+      createdAt: '2026-10-01T10:00:00Z',
+      resolved: false
+    }));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F3: Private Messages (Coach-Initiated Only & Admin Audit View)
+// ---------------------------------------------------------------------------
+describe('F3: Private Messages (Coach-Initiated & Safeguarding)', () => {
+  const adminUser = () => testEnv.authenticatedContext('admin1', { role: 'admin' });
+
+  it('STRICT: rejects conversation creation by a student', async () => {
+    const db = studentA().firestore();
+    await assertFails(setDoc(doc(db, 'conversations', 'conv1'), {
+      coachId: 'coach_a',
+      studentId: 'student_a',
+      participantIds: ['coach_a', 'student_a'],
+      createdBy: 'student_a',
+      createdAt: '2026-10-01T10:00:00Z',
+      lastMessageAt: '2026-10-01T10:00:00Z',
+      lastMessagePreview: 'Hello coach',
+      unread: { coach_a: 1 }
+    }));
+  });
+
+  it('allows a coach to initiate a conversation with a student', async () => {
+    const db = coachA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'conversations', 'conv1'), {
+      coachId: 'coach_a',
+      studentId: 'student_a',
+      participantIds: ['coach_a', 'student_a'],
+      createdBy: 'coach_a',
+      createdAt: '2026-10-01T10:00:00Z',
+      lastMessageAt: '2026-10-01T10:00:00Z',
+      lastMessagePreview: 'Welcome to WeLearn!',
+      unread: { student_a: 1 }
+    }));
+  });
+
+  it('allows a student to reply in an existing conversation', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'conversations', 'conv1'), {
+        coachId: 'coach_a', studentId: 'student_a', participantIds: ['coach_a', 'student_a'], createdBy: 'coach_a'
+      });
+    });
+    const db = studentA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'conversations', 'conv1', 'messages', 'msg1'), {
+      senderId: 'student_a',
+      text: 'Thanks Coach!',
+      media: [],
+      createdAt: '2026-10-01T10:01:00Z',
+      deletedBySender: false
+    }));
+  });
+
+  it('prevents non-participants from reading private messages', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'conversations', 'conv1'), {
+        coachId: 'coach_a', studentId: 'student_a', participantIds: ['coach_a', 'student_a'], createdBy: 'coach_a'
+      });
+      await setDoc(doc(ctx.firestore(), 'conversations', 'conv1', 'messages', 'msg1'), {
+        senderId: 'coach_a', text: 'Secret message', deletedBySender: false
+      });
+    });
+    const db = studentA2().firestore();
+    await assertFails(getDoc(doc(db, 'conversations', 'conv1')));
+    await assertFails(getDoc(doc(db, 'conversations', 'conv1', 'messages', 'msg1')));
+  });
+
+  it('Admin Audit View: allows admin to read all conversations and messages', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'conversations', 'conv1'), {
+        coachId: 'coach_a', studentId: 'student_a', participantIds: ['coach_a', 'student_a'], createdBy: 'coach_a'
+      });
+      await setDoc(doc(ctx.firestore(), 'conversations', 'conv1', 'messages', 'msg1'), {
+        senderId: 'coach_a', text: 'Safeguarded message', deletedBySender: false
+      });
+    });
+    const db = adminUser().firestore();
+    await assertSucceeds(getDoc(doc(db, 'conversations', 'conv1')));
+    await assertSucceeds(getDoc(doc(db, 'conversations', 'conv1', 'messages', 'msg1')));
+  });
+
+  it('allows sender to soft-delete a message (deletedBySender: true)', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'conversations', 'conv1'), {
+        coachId: 'coach_a', studentId: 'student_a', participantIds: ['coach_a', 'student_a'], createdBy: 'coach_a'
+      });
+      await setDoc(doc(ctx.firestore(), 'conversations', 'conv1', 'messages', 'msg1'), {
+        senderId: 'student_a', text: 'Mistake', deletedBySender: false
+      });
+    });
+    const db = studentA().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'conversations', 'conv1', 'messages', 'msg1'), {
+      deletedBySender: true
+    }));
+    await assertFails(deleteDoc(doc(db, 'conversations', 'conv1', 'messages', 'msg1')));
+  });
+});
+
+

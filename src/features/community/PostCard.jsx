@@ -6,7 +6,7 @@ import { ReportModal } from './ReportModal.jsx';
 import '../admin/admin.css';
 
 export function PostCard({ post }) {
-  const { user } = useAuth();
+  const { user, profile, role } = useAuth();
   const [liked, setLiked] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
@@ -44,7 +44,7 @@ export function PostCard({ post }) {
     e.preventDefault();
     if (!commentText.trim()) return;
     try {
-      await addComment(post.id, user.uid, user.role || 'student', commentText);
+      await addComment(post.id, user.uid, role || 'student', commentText, profile?.displayName || user.email?.split('@')[0] || '');
       setCommentText('');
     } catch (err) {
       console.error('Comment failed:', err);
@@ -52,7 +52,8 @@ export function PostCard({ post }) {
   };
 
   const isAuthor = user?.uid === post.authorId;
-  const canDelete = isAuthor || user?.role === 'admin' || user?.role === 'teacher';
+  const canDelete = isAuthor || ['admin', 'supervisor', 'teacher', 'coach'].includes(role);
+  const authorName = post.authorName || 'Community member';
 
   const handleDelete = async () => {
     if (confirm('Delete this post?')) {
@@ -68,10 +69,10 @@ export function PostCard({ post }) {
     <div className="gh-card">
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
         <div className="gh-avatar" style={{ width: 40, height: 40, fontSize: '0.8rem', background: 'var(--gh-purple-50)', color: 'var(--gh-purple)' }}>
-          {post.authorId.charAt(0).toUpperCase()}
+          {authorName.charAt(0).toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, color: 'var(--gh-text)' }}>{post.authorId}</div>
+          <div style={{ fontWeight: 600, color: 'var(--gh-text)' }}>{authorName}</div>
           <div style={{ fontSize: '0.8rem', color: 'var(--gh-text-3)' }}>{post.createdAt?.toDate?.().toLocaleDateString?.() || 'Just now'}</div>
         </div>
         {canDelete && (
@@ -126,7 +127,7 @@ export function PostCard({ post }) {
           <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
             {comments.map(comment => (
               <div key={comment.id} style={{ background: 'var(--gh-subtle)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem' }}>
-                <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{comment.authorId}</div>
+                <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{comment.authorName || 'Community member'}</div>
                 <div>{comment.text}</div>
               </div>
             ))}

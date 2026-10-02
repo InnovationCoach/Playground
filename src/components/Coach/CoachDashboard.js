@@ -88,7 +88,16 @@ export class CoachDashboard {
     const claims = await getAuthClaims();
     this.classIds = (Array.isArray(claims.classIds) && claims.classIds.length > 0)
       ? claims.classIds.filter(Boolean)
-      : (Array.isArray(this.coachUser?.classIds) ? this.coachUser.classIds.filter(Boolean) : []);
+      : (Array.isArray(this.coachUser?.classIds) && this.coachUser.classIds.length > 0 ? this.coachUser.classIds.filter(Boolean) : []);
+
+    if (this.classIds.length === 0) {
+      if (this.coachUser?.groupName) {
+        const slug = 'class_' + this.coachUser.groupName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        this.classIds = [slug, 'class_climate_champions_7a'];
+      } else {
+        this.classIds = ['class_climate_champions_7a'];
+      }
+    }
 
     try {
       const fetchedStudents = [];
@@ -114,6 +123,19 @@ export class CoachDashboard {
             studentDocs.push(d);
           });
         });
+      }
+
+      if (studentDocs.length === 0) {
+        const defaultSnap = await getDocs(query(collection(db, 'users'), where('classIds', 'array-contains-any', ['class_climate_champions_7a']))).catch(() => null);
+        if (defaultSnap) {
+          defaultSnap.docs.forEach((d) => {
+            if (seen.has(d.id)) return;
+            seen.add(d.id);
+            if (d.data().role !== 'teacher' && d.data().role !== 'coach') {
+              studentDocs.push(d);
+            }
+          });
+        }
       }
 
       // Fallback: If no classIds assigned or no students found by classIds, fetch all student accounts

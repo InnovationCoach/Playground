@@ -14,12 +14,18 @@ const SEARCHABLE = ACTIVITY_NAV.filter((a) => a.id !== 'home');
 export function TopNav({ role, view, onNavigate, onOpenGoals, onOpenCourses }) {
   const { t } = useLocale();
 
-  if (role === 'teacher') {
+  if (role === 'teacher' || role === 'coach' || role === 'admin' || role === 'supervisor') {
     return (
       <nav className="gh-subnav" aria-label={t('nav.primary')}>
-        <NavLink icon={LayoutDashboard} active={view === 'coach'} onClick={() => onNavigate('coach')}>
-          {t('nav.coachDashboard')}
-        </NavLink>
+        {role === 'admin' || role === 'supervisor' ? (
+          <NavLink icon={LayoutDashboard} active={view === 'admin'} onClick={() => { window.location.hash = '#/admin/students'; }}>
+            Admin Console
+          </NavLink>
+        ) : (
+          <NavLink icon={LayoutDashboard} active={view === 'coach'} onClick={() => onNavigate('coach')}>
+            {t('nav.coachDashboard')}
+          </NavLink>
+        )}
         <NavLink icon={Rocket} active={view === 'pbl'} onClick={() => { window.location.hash = '#/pbl'; }}>
           {t('nav.pblFramework')}
         </NavLink>

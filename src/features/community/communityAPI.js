@@ -1,4 +1,4 @@
-import { db, storage, serverTimestamp, increment, collection, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, getDocs, getDoc, writeBatch, arrayUnion } from '../../firebase.js';
+import { db, storage, serverTimestamp, increment, collection, addDoc, updateDoc, deleteDoc, setDoc, doc, query, where, orderBy, getDocs, getDoc, onSnapshot } from '../../firebase.js';
 
 /**
  * Create a new post with optional media.
@@ -8,7 +8,7 @@ import { db, storage, serverTimestamp, increment, collection, addDoc, updateDoc,
  * @param {File[]} files - Media files to upload
  * @returns {Promise<string>} Post ID
  */
-export async function createPost(userId, userRole, text, files = []) {
+export async function createPost(userId, userRole, text, files = [], authorName = '') {
   const media = [];
 
   // Upload files to Storage
@@ -30,6 +30,7 @@ export async function createPost(userId, userRole, text, files = []) {
   const postsRef = collection(db, 'posts');
   const docRef = await addDoc(postsRef, {
     authorId: userId,
+    authorName,
     authorRole: userRole,
     text,
     media,
@@ -79,7 +80,7 @@ export async function getPosts() {
 /**
  * Listen to posts in real-time.
  */
-export function onPostsChanged(callback) {
+export function onPostsChanged(callback, onError) {
   const q = query(
     collection(db, 'posts'),
     where('status', '==', 'visible'),
@@ -88,15 +89,16 @@ export function onPostsChanged(callback) {
   return onSnapshot(q, snap => {
     const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     callback(posts);
-  });
+  }, onError);
 }
 
 /**
  * Add a comment to a post.
  */
-export async function addComment(postId, userId, userRole, text) {
+export async function addComment(postId, userId, userRole, text, authorName = '') {
   await addDoc(collection(db, `posts/${postId}/comments`), {
     authorId: userId,
+    authorName,
     authorRole: userRole,
     text,
     createdAt: serverTimestamp(),
@@ -155,16 +157,10 @@ export function onCommentsChanged(postId, callback) {
  * Add a like reaction (upsert).
  */
 export async function likePost(postId, userId) {
-  const reactionPath = `posts/${postId}/reactions/${userId}`;
-  await updateDoc(doc(db, reactionPath), {
+  // Keyed by uid: the rules allow only create/delete at reactions/{uid}.
+  await setDoc(doc(db, `posts/${postId}/reactions`, userId), {
     type: 'like',
     createdAt: serverTimestamp()
-  }).catch(() => {
-    // If doc doesn't exist, create it
-    return addDoc(collection(db, `posts/${postId}/reactions`), {
-      type: 'like',
-      createdAt: serverTimestamp()
-    });
   });
 
   // Increment reaction count
@@ -190,7 +186,8 @@ export async function unlikePost(postId, userId) {
  */
 export async function hasUserLiked(postId, userId) {
   const docSnap = await getDoc(doc(db, `posts/${postId}/reactions`, userId));
-  return docSnap.exists();
+  // Compat SDK: `exists` is a property, not a method.
+  return docSnap.exists;
 }
 
 /**

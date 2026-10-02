@@ -48,7 +48,56 @@
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
-body[data-surface="light"] { background: #f5f6fa; }
+
+/* Dark mode theme */
+[data-theme="dark"] .gh-app {
+  --gh-bg: #0f1419;
+  --gh-surface: #1a1e27;
+  --gh-subtle: #252d3a;
+  --gh-border: #3a4452;
+  --gh-border-strong: #4a5566;
+  --gh-text: #e5e9f0;
+  --gh-text-2: #b8bfd0;
+  --gh-text-3: #8a92a6;
+  --gh-heading: #f0f4fa;
+  --gh-purple-50: #2d1a47;
+  --gh-purple-100: #3d2857;
+  --gh-green-50: #1a2b00;
+  --gh-green-text: #a3d000;
+  --gh-amber-50: #3a2a1a;
+  --gh-amber-text: #dba546;
+  --gh-red-50: #3a1f1f;
+}
+
+[data-theme="dark"] header.gh-topbar {
+  background: #1a1e27;
+  border-bottom-color: #3a4452;
+  color: #e5e9f0;
+}
+
+[data-theme="dark"] .gh-brand-divider { background: #3a4452; }
+[data-theme="dark"] .gh-brand-name { color: #f0f4fa; }
+[data-theme="dark"] .gh-user-btn { border-color: #3a4452; background: #252d3a; color: #e5e9f0; }
+[data-theme="dark"] .gh-user-btn:hover { border-color: #4a5566; background: #2a3440; }
+[data-theme="dark"] .gh-user-btn svg { color: #8a92a6; }
+[data-theme="dark"] .gh-menu { background: #1a1e27; border-color: #3a4452; }
+[data-theme="dark"] .gh-menu-head { border-bottom-color: #252d3a; }
+[data-theme="dark"] .gh-menu-head strong { color: #e5e9f0; }
+[data-theme="dark"] .gh-menu-head span { color: #8a92a6; }
+[data-theme="dark"] .gh-menu-item { color: #e5e9f0; }
+[data-theme="dark"] .gh-menu-item svg { color: #8a92a6; }
+[data-theme="dark"] .gh-menu-item:hover { background: #252d3a; }
+
+[data-theme="dark"] .gh-side { background: #1a1e27; border-right-color: #3a4452; }
+[data-theme="dark"] .gh-nav-link { color: #b8bfd0; }
+[data-theme="dark"] .gh-nav-link svg { color: #8a92a6; }
+[data-theme="dark"] .gh-nav-link:hover { background: #252d3a; color: #e5e9f0; }
+[data-theme="dark"] .gh-nav-link[aria-current="page"] { background: #2d1a47; color: #d9b3ff; }
+[data-theme="dark"] .gh-nav-link[aria-current="page"] svg { color: #d9b3ff; }
+[data-theme="dark"] .gh-side-foot { background: #252d3a; color: #b8bfd0; }
+[data-theme="dark"] .gh-side-foot strong { color: #e5e9f0; }
+
+[data-theme="dark"] .gh-app *, .gh-topbar *, .gh-subnav * { box-sizing: border-box; }
 .gh-app *, .gh-topbar *, .gh-subnav * { box-sizing: border-box; }
 .gh-app h1, .gh-app h2, .gh-app h3 { font-family: var(--gh-font-display); color: var(--gh-heading); letter-spacing: -0.01em; margin: 0; }
 .gh-app :focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 2px; }
@@ -334,6 +383,56 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
 .gh-subnav-link[aria-current="page"] svg { color: #8250a0; }
 .gh-subnav-link:focus-visible { outline: 2px solid #8250a0; outline-offset: 2px; }
 .gh-subnav .as { margin-left: auto; flex: 0 1 340px; }
+
+/* Dark mode additional styles */
+[data-theme="dark"] .gh-card { background: #1a1e27; border-color: #3a4452; }
+[data-theme="dark"] .gh-card h3 { color: #e5e9f0; }
+[data-theme="dark"] .gh-card-desc { color: #b8bfd0; }
+[data-theme="dark"] .gh-table th { background: #0f1419; color: #8a92a6; border-bottom-color: #3a4452; }
+[data-theme="dark"] .gh-table td { background: #1a1e27; border-bottom-color: #3a4452; color: #e5e9f0; }
+[data-theme="dark"] .gh-row:hover td { background: #252d3a; }
+[data-theme="dark"] .gh-row .gh-chev { color: #4a5566; }
+[data-theme="dark"] .gh-row:hover .gh-chev { color: #8250a0; }
+[data-theme="dark"] .gh-table-card { background: #1a1e27; border-color: #3a4452; }
+[data-theme="dark"] .gh-toolbar { border-bottom-color: #3a4452; }
+
+[data-theme="dark"] .gh-input, [data-theme="dark"] .gh-select { background: #252d3a; color: #e5e9f0; border-color: #4a5566; }
+[data-theme="dark"] .gh-input::placeholder { color: #6a72a6; }
+[data-theme="dark"] .gh-input:hover, [data-theme="dark"] .gh-select:hover { border-color: #5a6270; }
+[data-theme="dark"] .gh-input:focus, [data-theme="dark"] .gh-select:focus { border-color: #8250a0; box-shadow: 0 0 0 3px rgba(130, 80, 160, 0.25); }
+
+[data-theme="dark"] .gh-btn { background: #252d3a; color: #e5e9f0; border-color: #4a5566; }
+[data-theme="dark"] .gh-btn:hover:not(:disabled) { background: #2f3749; }
+[data-theme="dark"] .gh-btn-primary { background: #6eb82e; border-color: #6eb82e; color: #1c2b00; }
+[data-theme="dark"] .gh-btn-primary:hover:not(:disabled) { background: #7ec83e; }
+[data-theme="dark"] .gh-btn-accent { background: #9966cc; border-color: #9966cc; }
+[data-theme="dark"] .gh-btn-accent:hover:not(:disabled) { background: #aa7fdd; }
+[data-theme="dark"] .gh-btn-ghost { background: transparent; color: #b8bfd0; border-color: transparent; }
+[data-theme="dark"] .gh-btn-ghost:hover:not(:disabled) { background: #252d3a; color: #e5e9f0; }
+
+[data-theme="dark"] .gh-alert-error { background: #3a1f1f; border-color: #6a4040; color: #ff9999; }
+[data-theme="dark"] .gh-alert-success { background: #1a2b00; border-color: #4a6a2e; color: #a3d000; }
+[data-theme="dark"] .gh-alert-info { background: #1a2840; border-color: #3a5a70; color: #7dd3fc; }
+
+[data-theme="dark"] .gh-segmented { background: #252d3a; border-color: #3a4452; }
+[data-theme="dark"] .gh-segmented button { color: #b8bfd0; }
+[data-theme="dark"] .gh-segmented button[aria-checked="true"] { background: #1a1e27; color: #d9b3ff; }
+
+[data-theme="dark"] .gh-badge { background: #252d3a; color: #b8bfd0; }
+[data-theme="dark"] .gh-badge-active { background: #1a2b00; color: #a3d000; }
+[data-theme="dark"] .gh-badge-pending { background: #3a2a1a; color: #dba546; }
+[data-theme="dark"] .gh-badge-suspended { background: #3a1f1f; color: #ff9999; }
+[data-theme="dark"] .gh-badge-role { background: #2d1a47; color: #d9b3ff; }
+
+[data-theme="dark"] .gh-pager { background: #1a1e27; color: #b8bfd0; border-top-color: #3a4452; }
+[data-theme="dark"] .gh-empty-icon { background: #252d3a; color: #8a92a6; }
+
+[data-theme="dark"] .gh-subnav { background: #1a1e27; border-bottom-color: #3a4452; }
+[data-theme="dark"] .gh-subnav-link { color: #b8bfd0; }
+[data-theme="dark"] .gh-subnav-link svg { color: #8a92a6; }
+[data-theme="dark"] .gh-subnav-link:hover { background: #252d3a; color: #e5e9f0; }
+[data-theme="dark"] .gh-subnav-link[aria-current="page"] { background: #2d1a47; color: #d9b3ff; }
+[data-theme="dark"] .gh-subnav-link[aria-current="page"] svg { color: #d9b3ff; }
 
 @media (prefers-reduced-motion: reduce) {
   .gh-skel, .gh-overlay, .gh-modal { animation: none; }

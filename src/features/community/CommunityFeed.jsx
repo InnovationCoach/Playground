@@ -7,11 +7,17 @@ import '../admin/admin.css';
 export function CommunityFeed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     setLoading(true);
     const unsubscribe = onPostsChanged((postsData) => {
       setPosts(postsData);
+      setError(null);
+      setLoading(false);
+    }, (err) => {
+      console.error('[Community] Feed failed:', err);
+      setError(err.message);
       setLoading(false);
     });
     return unsubscribe;
@@ -26,7 +32,9 @@ export function CommunityFeed() {
 
       <PostCreator onPostCreated={() => {}} />
 
-      {loading ? (
+      {error ? (
+        <div className="gh-alert gh-alert-error">Could not load posts: {error}</div>
+      ) : loading ? (
         <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-text-2)' }}>Loading posts…</div>
       ) : posts.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-text-2)' }}>No posts yet. Be the first to share!</div>

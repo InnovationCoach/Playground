@@ -143,7 +143,7 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     return ok({ uid: req.caller.uid, publicId: u?.publicId || null, role: req.caller.role, orgId: db.organization.orgId, schoolIds: u?.schoolIds || [], classIds: u?.classIds || [], status: u?.status || 'active', displayName: req.caller.name, email: req.caller.email, locale: u?.locale || 'en' });
   });
 
-  route('GET', '/api/admin/users', null, ({ query }) => {
+  route('GET', '/api/admin/users', CONSOLE, ({ query }) => {
     let rows = db.users.slice();
     if (query.role) {
       const roles = String(query.role).split(',').filter((r) => ROLES.includes(r));
@@ -268,8 +268,7 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     const u = findUser(params.uid);
     if (!u) return fail(404, 'NOT_FOUND', 'No such account.');
     if (u.status !== 'suspended') return fail(409, 'CONFLICT', 'Not suspended.');
-    // Back to pending if they never activated; never straight to active.
-    u.status = u.activatedAt ? 'active' : 'pending';
+    u.status = u.statusBeforeSuspension || (u.activatedAt ? 'active' : 'pending');
     u.auth.disabled = false; u.suspendedAt = null; u.suspendedBy = null;
     audit(caller, u, 'ACCOUNT_UNSUSPENDED', 'Account unsuspended');
     return ok(fullRecord(u, caller));

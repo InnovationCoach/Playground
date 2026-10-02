@@ -1,16 +1,52 @@
-import { useState } from 'react';
-import { startConversation } from './messagesAPI.js';
+import { useState, useEffect } from 'react';
+import { startConversation, sendMessage } from './messagesAPI.js';
+import { db, collection, getDocs, query, where, getAuthClaims } from '../../firebase.js';
 import '../admin/admin.css';
 
 /**
- * Modal for coaches to start a new conversation with a student.
- * Requires: coachId, list of studentIds (fetched from class members)
+ * Modal for coaches to start a new conversation with a student in one of
+ * their own classes. The class list comes from the coach's signed classIds
+ * claim, the same thing the rules check, so the picker never offers a
+ * student the coach cannot actually message.
  */
-export function StartConversationModal({ isOpen, onClose, coachId, students = [] }) {
+export function StartConversationModal({ isOpen, onClose, coachId, coachName = '' }) {
   const [studentId, setStudentId] = useState('');
   const [initialMessage, setInitialMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [studentOptions, setStudentOptions] = useState([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setError(null);
+
+    (async () => {
+      try {
+        const claims = await getAuthClaims();
+        const classIds = Array.isArray(claims.classIds) ? claims.classIds.filter(Boolean).slice(0, 30) : [];
+        if (classIds.length === 0) {
+          if (!cancelled) setError('Your account is not assigned to a class yet, so there are no students to message.');
+          return;
+        }
+        const snap = await getDocs(query(collection(db, 'users'), where('classIds', 'array-contains-any', classIds)));
+        if (cancelled) return;
+        const list = [];
+        snap.forEach(d => {
+          const data = d.data();
+          if (d.id !== coachId && (data.role || 'student') === 'student') {
+            list.push({ id: d.id, displayName: data.displayName || data.email?.split('@')[0] || 'Student' });
+          }
+        });
+        list.sort((a, b) => a.displayName.localeCompare(b.displayName));
+        setStudentOptions(list);
+      } catch (err) {
+        console.warn('[Messages] Could not load class students:', err);
+        if (!cancelled) setError('Could not load your students: ' + err.message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, coachId]);
 
   const handleStart = async (e) => {
     e.preventDefault();
@@ -20,9 +56,13 @@ export function StartConversationModal({ isOpen, onClose, coachId, students = []
     setError(null);
 
     try {
-      const convId = await startConversation(coachId, studentId);
+      const studentName = studentOptions.find(s => s.id === studentId)?.displayName || '';
+      const convId = await startConversation(coachId, studentId, { coachName, studentName });
+      if (initialMessage.trim()) await sendMessage(convId, coachId, initialMessage.trim());
+      setStudentId('');
+      setInitialMessage('');
       onClose();
-      // TODO: navigate to conversation view
+      window.location.hash = `#/messages/${convId}`;
     } catch (err) {
       setError(err.message || 'Failed to start conversation');
     } finally {
@@ -47,7 +87,7 @@ export function StartConversationModal({ isOpen, onClose, coachId, students = []
               required
             >
               <option value="">Choose a student…</option>
-              {students.map(s => (
+              {studentOptions.map(s => (
                 <option key={s.id} value={s.id}>{s.displayName || s.id}</option>
               ))}
             </select>

@@ -24,7 +24,7 @@ service cloud.firestore {
     // Claims are set by scripts/grant-coach.js (Admin SDK). A user picks up a
     // new claim on their next sign-in or token refresh.
     function isTeacher() {
-      return isAuthenticated() && request.auth.token.get('role', 'student') == 'teacher';
+      return isAuthenticated() && request.auth.token.get('role', 'student') in ['teacher', 'coach'];
     }
 
     // Class ids this coach is assigned to, carried in the same claim.
@@ -332,7 +332,7 @@ service cloud.firestore {
 
     function isStaff() {
       return isAuthenticated()
-        && request.auth.token.get('role', 'student') in ['teacher', 'admin', 'supervisor'];
+        && request.auth.token.get('role', 'student') in ['teacher', 'coach', 'admin', 'supervisor'];
     }
 
     function presetAllowed(preset) {
@@ -488,14 +488,113 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.userId);
     }
 
-    match /reports/{reportId} {
-      allow read: if isOwner(resource.data.userId) || isCoachOf(resource.data.userId);
+    // ---------------------------------------------------------------------
+    // F2: Community Space (Posts, Comments, Reactions, Reports)
+    // ---------------------------------------------------------------------
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated()
-        && request.resource.data.userId == request.auth.uid
-        && getAfter(txPath(request.resource.data.transactionId)).data.userId == request.auth.uid
-        && getAfter(txPath(request.resource.data.transactionId)).data.action == 'GENERATE_DETAILED_REPORT'
-        && getAfter(txPath(request.resource.data.transactionId)).data.refId == reportId;
-      allow update, delete: if false;
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.status == 'visible'
+        && request.resource.data.commentCount == 0
+        && request.resource.data.reactionCount == 0;
+      allow update: if isAuthenticated() && (
+        // Author editing text, media, updatedAt
+        (resource.data.authorId == request.auth.uid
+          && request.resource.data.authorId == request.auth.uid
+          && resource.data.status == 'visible')
+        ||
+        // Author soft-deleting or Coach/Admin moderating status
+        ((resource.data.authorId == request.auth.uid || isStaff() || isAdminOrSupervisor())
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          && request.resource.data.status in ['visible', 'hidden', 'removed'])
+        ||
+        // Updating reaction or comment counts
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount', 'reactionCount', 'updatedAt'])
+      );
+      allow delete: if false;
+
+      match /comments/{commentId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.status == 'visible';
+        allow update: if isAuthenticated() && (
+          (resource.data.authorId == request.auth.uid
+            && request.resource.data.authorId == request.auth.uid
+            && resource.data.status == 'visible')
+          ||
+          ((resource.data.authorId == request.auth.uid || isStaff() || isAdminOrSupervisor())
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+            && request.resource.data.status in ['visible', 'hidden', 'removed'])
+        );
+        allow delete: if false;
+      }
+
+      match /reactions/{uid} {
+        allow read: if isAuthenticated();
+        allow create, delete: if isOwner(uid);
+        allow update: if false;
+      }
+    }
+
+    // Reports collection (Supports both Activity 6 filter reports & F2/F3 content reports)
+    match /reports/{reportId} {
+      allow read: if isAuthenticated() && (
+        (resource.data.get('reporterId', '') == request.auth.uid || isStaff() || isAdminOrSupervisor())
+        || (resource.data.get('userId', '') == request.auth.uid || isOwner(resource.data.get('userId', '')) || isCoachOf(resource.data.get('userId', '')))
+      );
+      allow create: if isAuthenticated() && (
+        // F2/F3 Content Report
+        (request.resource.data.get('reporterId', '') == request.auth.uid
+          && request.resource.data.get('targetType', '') in ['post', 'comment', 'message']
+          && request.resource.data.get('resolved', false) == false)
+        ||
+        // Activity 6 Simulation Report
+        (request.resource.data.get('userId', '') == request.auth.uid
+          && getAfter(txPath(request.resource.data.transactionId)).data.userId == request.auth.uid
+          && getAfter(txPath(request.resource.data.transactionId)).data.action == 'GENERATE_DETAILED_REPORT'
+          && getAfter(txPath(request.resource.data.transactionId)).data.refId == reportId)
+      );
+      allow update: if isStaff() || isAdminOrSupervisor();
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // F3: Private Messages (Coach-Initiated Only & Admin Audit View)
+    // ---------------------------------------------------------------------
+    match /conversations/{convId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid in resource.data.participantIds
+        || isAdminOrSupervisor()
+      );
+      // CRITICAL: Only coaches can initiate a conversation with a student
+      allow create: if isTeacher()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.coachId == request.auth.uid
+        && request.resource.data.participantIds.hasAll([request.auth.uid, request.resource.data.studentId]);
+      allow update: if isAuthenticated() && (
+        request.auth.uid in resource.data.participantIds
+        || isAdminOrSupervisor()
+      );
+      allow delete: if false;
+
+      match /messages/{msgId} {
+        allow read: if isAuthenticated() && (
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participantIds
+          || isAdminOrSupervisor()
+        );
+        allow create: if isAuthenticated()
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participantIds
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.deletedBySender == false;
+        allow update: if isAuthenticated()
+          && resource.data.senderId == request.auth.uid
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedBySender'])
+          && request.resource.data.deletedBySender == true;
+        allow delete: if false;
+      }
     }
 
     match /user_progress/{userId} {

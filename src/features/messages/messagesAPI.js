@@ -1,25 +1,33 @@
-import { db, storage, serverTimestamp, collection, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, getDocs, getDoc, onSnapshot, arrayUnion, arrayRemove } from '../../firebase.js';
+import { db, storage, serverTimestamp, collection, addDoc, updateDoc, doc, query, where, orderBy, getDocs, getDoc, onSnapshot } from '../../firebase.js';
 
 /**
- * Start a new conversation (coach-initiated only).
- * @param {string} coachId - Coach's UID (must match auth)
- * @param {string} studentId - Student's UID
- * @returns {Promise<string>} Conversation ID
+ * Start a new conversation (coach-initiated only; the rules enforce it).
+ * Names are stored on the conversation because a student cannot read the
+ * coach's user document, and the list needs something to display.
  */
-export async function startConversation(coachId, studentId) {
+export async function startConversation(coachId, studentId, { coachName = '', studentName = '' } = {}) {
   const docRef = await addDoc(collection(db, 'conversations'), {
     coachId,
     studentId,
+    coachName,
+    studentName,
     participantIds: [coachId, studentId],
     createdBy: coachId,
     createdAt: serverTimestamp(),
-    lastMessageAt: null,
+    // Not null: the list orders by this field, and a fresh thread should sort first.
+    lastMessageAt: serverTimestamp(),
     lastMessagePreview: '',
     unread: {
       [studentId]: 0
     }
   });
   return docRef.id;
+}
+
+export function otherParticipantName(conv, myUid) {
+  if (!conv) return 'Conversation';
+  const name = conv.coachId === myUid ? conv.studentName : conv.coachName;
+  return name || (conv.coachId === myUid ? 'Student' : 'Coach');
 }
 
 /**
@@ -38,7 +46,7 @@ export async function getConversations(userId) {
 /**
  * Listen to conversations in real-time.
  */
-export function onConversationsChanged(userId, callback) {
+export function onConversationsChanged(userId, callback, onError) {
   const q = query(
     collection(db, 'conversations'),
     where('participantIds', 'array-contains', userId),
@@ -47,7 +55,7 @@ export function onConversationsChanged(userId, callback) {
   return onSnapshot(q, snap => {
     const convs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     callback(convs);
-  });
+  }, onError);
 }
 
 /**
@@ -55,7 +63,8 @@ export function onConversationsChanged(userId, callback) {
  */
 export async function getConversation(conversationId) {
   const docSnap = await getDoc(doc(db, 'conversations', conversationId));
-  return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+  // Compat SDK: `exists` is a property, not a method.
+  return docSnap.exists ? { id: docSnap.id, ...docSnap.data() } : null;
 }
 
 /**
@@ -113,7 +122,7 @@ export async function getMessages(conversationId) {
 /**
  * Listen to messages in real-time.
  */
-export function onMessagesChanged(conversationId, callback) {
+export function onMessagesChanged(conversationId, callback, onError) {
   const q = query(
     collection(db, `conversations/${conversationId}/messages`),
     orderBy('createdAt', 'asc')
@@ -121,7 +130,7 @@ export function onMessagesChanged(conversationId, callback) {
   return onSnapshot(q, snap => {
     const messages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     callback(messages);
-  });
+  }, onError);
 }
 
 /**

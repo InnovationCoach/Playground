@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../app/AuthProvider.jsx';
-import { onConversationsChanged } from './messagesAPI.js';
+import { onConversationsChanged, otherParticipantName } from './messagesAPI.js';
 import { MessageCircle, Plus } from 'lucide-react';
 import '../admin/admin.css';
 
@@ -8,16 +8,26 @@ export function ConversationList({ onSelectConversation, onStartNew, userRole })
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!user) return;
     setLoading(true);
     const unsubscribe = onConversationsChanged(user.uid, (convs) => {
       setConversations(convs);
+      setError(null);
+      setLoading(false);
+    }, (err) => {
+      console.error('[Messages] Conversation list failed:', err);
+      setError(err.message);
       setLoading(false);
     });
     return unsubscribe;
   }, [user]);
+
+  if (error) {
+    return <div className="gh-alert gh-alert-error" style={{ margin: '1rem' }}>Could not load conversations: {error}</div>;
+  }
 
   if (loading) {
     return (
@@ -32,7 +42,7 @@ export function ConversationList({ onSelectConversation, onStartNew, userRole })
       <div style={{ padding: '1rem', borderBottom: '1px solid var(--gh-border)', background: 'var(--gh-surface)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>Messages</h2>
-          {userRole === 'coach' && (
+          {(userRole === 'teacher' || userRole === 'coach') && (
             <button
               onClick={onStartNew}
               style={{
@@ -63,11 +73,12 @@ export function ConversationList({ onSelectConversation, onStartNew, userRole })
       ) : (
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {conversations.map(conv => {
-            const unreadCount = conv.unreadCount?.[user.uid] || 0;
+            const unreadCount = conv.unread?.[user.uid] || 0;
+            const name = otherParticipantName(conv, user.uid);
             return (
               <button
                 key={conv.id}
-                onClick={() => onSelectConversation(conv.id, conv.otherUserName)}
+                onClick={() => onSelectConversation(conv.id, name)}
                 style={{
                   width: '100%',
                   padding: '1rem',
@@ -85,9 +96,9 @@ export function ConversationList({ onSelectConversation, onStartNew, userRole })
               >
                 <MessageCircle size={20} style={{ color: 'var(--gh-purple)', flexShrink: 0, marginTop: '0.1rem' }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, color: 'var(--gh-text)' }}>{conv.otherUserName}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--gh-text)' }}>{name}</div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--gh-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {conv.lastMessage || 'No messages'}
+                    {conv.lastMessagePreview || 'No messages yet'}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--gh-text-3)', marginTop: '0.25rem' }}>
                     {conv.lastMessageAt?.toDate?.().toLocaleDateString?.() || 'Never'}

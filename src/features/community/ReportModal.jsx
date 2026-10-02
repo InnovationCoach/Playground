@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useAuth } from '../../app/AuthProvider.jsx';
 import { submitReport } from './communityAPI.js';
 import '../admin/admin.css';
 
 export function ReportModal({ isOpen, onClose, targetPath, targetType }) {
+  const { user } = useAuth();
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,8 +16,8 @@ export function ReportModal({ isOpen, onClose, targetPath, targetType }) {
 
     setLoading(true);
     try {
-      // reporterId will be set by backend from auth context
-      await submitReport(targetType, targetPath, '', reason, details);
+      // The rules reject a report whose reporterId is not the signed-in uid.
+      await submitReport(targetType, targetPath, user.uid, reason, details);
       setSuccess(true);
       setTimeout(() => {
         onClose();

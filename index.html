@@ -2766,7 +2766,7 @@
 
       // Screens React routes itself (src/app/routes.js). Falling through to the
       // "home" default below sent every console link straight back to #/.
-      if (/^(admin|settings|courses|parent|primary-resources|worksheet|guide|pbl)(\/|$)/.test(hash)) return;
+      if (/^(admin|settings|courses|parent|primary-resources|worksheet|guide|pbl|community|messages)(\/|$)/.test(hash)) return;
 
       if (hash === "coach" || hash.startsWith("coach/")) {
         switchPhase("coach");

@@ -12,7 +12,7 @@ const ALLOWED_TYPES = {
 const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
 
 export function PostCreator({ onPostCreated }) {
-  const { user, profile } = useAuth();
+  const { user, profile, role } = useAuth();
   const { t } = useLocale();
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
@@ -53,7 +53,7 @@ export function PostCreator({ onPostCreated }) {
     setError(null);
 
     try {
-      await createPost(user.uid, profile.role, text, files);
+      await createPost(user.uid, role, text, files, profile?.displayName || user.email?.split('@')[0] || '');
       setText('');
       setFiles([]);
       onPostCreated?.();

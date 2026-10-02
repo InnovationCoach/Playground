@@ -40,7 +40,7 @@ function clearImperativeOverlays() {
   document.getElementById('goal-setting-modal')?.remove();
 }
 
-export function AuthProvider({ children }) {
+export function AuthProvider({ children, onThemeLoaded }) {
   const { setLocale } = useLocale();
   const [state, setState] = useState({
     status: 'loading', // 'loading' | 'signed-out' | 'ready'
@@ -48,7 +48,8 @@ export function AuthProvider({ children }) {
     profile: null,
     role: null,
     classIds: [],
-    error: null
+    error: null,
+    themePreference: 'system'
   });
 
   useEffect(() => {
@@ -116,6 +117,10 @@ export function AuthProvider({ children }) {
       // The language saved to the account follows the learner between devices.
       if (profile.locale) setLocale(profile.locale);
 
+      // Theme preference is passed up to the App to initialize ThemeProvider
+      const themePreference = profile.themePreference || 'system';
+      if (onThemeLoaded) onThemeLoaded(themePreference);
+
       // Cached so the legacy inline activity code can read the band without an
       // async profile fetch. A presentation hint only - the server re-resolves
       // it and never treats it as a privilege signal.
@@ -136,6 +141,7 @@ export function AuthProvider({ children }) {
         profile,
         role,
         classIds,
+        themePreference,
         error: null
       });
     });
