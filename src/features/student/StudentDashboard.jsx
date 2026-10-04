@@ -5,6 +5,7 @@ import { JoinClassPanel } from '../enrolment/JoinClassPanel.jsx';
 import '../enrolment/joinPanel.css';
 import { PersonalizedDashboard } from '../personalization/Personalization.jsx';
 import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
+import { NotebookPen } from 'lucide-react';
 
 /**
  * Student landing view: welcome, notes, and the goals panel.
@@ -67,7 +68,7 @@ export function StudentDashboard({ profile, uid, onProfileChanged }) {
         learning: <SchoolLearningPanel initialArea="home" learnerName={profile?.displayName} />,
         notes: (
       <div className="card">
-        <h3 style={{ marginBottom: '1rem' }}>📝 Your Notes</h3>
+        <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}><NotebookPen size={20} aria-hidden="true" />Your Notes</h3>
 
         {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
 

@@ -85,7 +85,8 @@
     :root[data-theme="light"] .phase-toggle-btn.active-home { background: #003c69; color: #fff; }
     :root[data-theme="light"] .phase-toggle-btn:hover { color: #003c69; }
     :root[data-theme="light"] .editor-wrapper, :root[data-theme="light"] .editor-toolbar { background: #0f172a; }
-    :root[data-theme="light"] header h1 { color: #ffffff; }
+    /* Legacy activity headers only; new Growth Hub screens set their own heading colours. */
+    :root[data-theme="light"] :is(#home-container, #phase1-container, #bunker-container, #coding-container, #bangkok-container) header h1 { color: #ffffff; }
     /* Legacy goal-setting wizard (src/components/Goals/GoalSettingModal.js injects its own dark styles). */
     :root[data-theme="light"] .goal-modal-overlay { background: rgba(1, 29, 54, 0.55); }
     :root[data-theme="light"] .goal-modal-content { background: #ffffff; box-shadow: 0 24px 60px -24px rgba(1, 28, 54, 0.45); }
@@ -255,7 +256,7 @@
     header.bangkok-header { background: #3b0764; border-bottom-color: var(--bangkok-purple); }
     header.solar-header { background: #78350f; border-bottom-color: var(--python-yellow); }
 
-    header h1 { font-size: 1.4rem; color: #ecfdf5; display: flex; align-items: center; gap: 0.5rem; }
+    :is(#home-container, #phase1-container, #bunker-container, #coding-container, #bangkok-container) header h1 { font-size: 1.4rem; color: #ecfdf5; display: flex; align-items: center; gap: 0.5rem; }
 
     .auth-badge {
       background: rgba(255, 255, 255, 0.1); padding: 0.4rem 0.8rem; border-radius: 9999px; font-size: 0.875rem; border: 1px solid rgba(255, 255, 255, 0.2);

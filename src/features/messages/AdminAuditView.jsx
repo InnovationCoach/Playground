@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAllConversationsForAudit, getAllMessagesForAudit } from './messagesAPI.js';
 import '../admin/admin.css';
+import { MessagesSquare, History, Paperclip } from 'lucide-react';
 
 export function AdminAuditView() {
   const [conversations, setConversations] = useState([]);
@@ -37,7 +38,7 @@ export function AdminAuditView() {
       {/* Conversation list */}
       <div style={{ width: 300, borderRight: '1px solid var(--gh-border)', background: 'var(--gh-surface)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '1rem', borderBottom: '1px solid var(--gh-border)', fontWeight: 700 }}>
-          📋 All Conversations
+          <MessagesSquare size={18} style={{ verticalAlign: '-2px', marginRight: 6 }} aria-hidden="true" />All Conversations
         </div>
         {loading ? (
           <div style={{ padding: '1rem', color: 'var(--gh-text-3)' }}>Loading…</div>
@@ -75,7 +76,7 @@ export function AdminAuditView() {
         {selectedConvId ? (
           <>
             <div style={{ padding: '1rem', borderBottom: '1px solid var(--gh-border)', background: 'var(--gh-surface)', fontWeight: 700 }}>
-              📧 Message History (Read-Only Audit View)
+              <History size={18} style={{ verticalAlign: '-2px', marginRight: 6 }} aria-hidden="true" />Message History (Read-Only Audit View)
             </div>
             {messageLoading ? (
               <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--gh-text-3)' }}>Loading messages…</div>
@@ -109,7 +110,7 @@ export function AdminAuditView() {
                     </div>
                     {msg.media?.length > 0 && (
                       <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--gh-text-3)' }}>
-                        📎 {msg.media.length} attachment{msg.media.length > 1 ? 's' : ''}
+                        <Paperclip size={14} style={{ verticalAlign: '-2px', marginRight: 6 }} aria-hidden="true" />{msg.media.length} attachment{msg.media.length > 1 ? 's' : ''}
                       </div>
                     )}
                   </div>

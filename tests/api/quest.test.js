@@ -23,7 +23,8 @@ describe('Teen Quest: server-awarded XP, badges, streaks and scoped summaries', 
       peer: { uid: 'quest-peer', role: 'student', schoolIds: [school], classIds: [cls] },
       coach: { uid: 'quest-coach', role: 'teacher', schoolIds: [school], classIds: [cls] },
       otherCoach: { uid: 'quest-other-coach', role: 'teacher', schoolIds: [school], classIds: [otherCls] },
-      parent: { uid: 'quest-parent', role: 'parent', schoolIds: [], classIds: [] }
+      parent: { uid: 'quest-parent', role: 'parent', schoolIds: [], classIds: [] },
+      admin: { uid: 'quest-admin', role: 'admin', schoolIds: [school], classIds: [] }
     };
     for (const [key, value] of Object.entries(accounts)) {
       await env.db.collection('users').doc(value.uid).set({ ...value, status: 'active', displayName: key });
@@ -54,6 +55,20 @@ describe('Teen Quest: server-awarded XP, badges, streaks and scoped summaries', 
   it('exposes the school quest flag through learning context', async () => {
     const res = await call('GET', '/api/learning-context');
     expect(res.body.schools.find(s => s.id === school).features.questMode).toBe(true);
+  });
+
+  it('lets only the school admin switch quest mode, with an audit record', async () => {
+    const path = `/api/schools/${school}/features`;
+    expect((await call('PATCH', path, 'coach', { questMode: false })).status).toBe(403);
+    expect((await call('PATCH', path, 'learner', { questMode: false })).status).toBe(403);
+    expect((await call('PATCH', path, 'admin', { questMode: 'yes' })).status).toBe(400);
+    const off = await call('PATCH', path, 'admin', { questMode: false });
+    expect(off.body).toEqual({ features: { questMode: false } });
+    expect((await call('GET', '/api/learning-context')).body.schools.find(s => s.id === school).features.questMode).toBe(false);
+    expect((await call('PATCH', path, 'admin', { questMode: true })).status).toBe(200);
+    expect((await call('GET', '/api/learning-context')).body.schools.find(s => s.id === school).features.questMode).toBe(true);
+    const audits = await env.db.collection('schools').doc(school).collection('auditEvents').where('actorUid', '==', 'quest-admin').get();
+    expect(audits.docs.map(d => d.data().action).sort()).toEqual(['FEATURE_QUEST_OFF', 'FEATURE_QUEST_ON']);
   });
 
   it('rewards one private reflection per school day', async () => {

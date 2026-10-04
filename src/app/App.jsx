@@ -1,42 +1,64 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthProvider.jsx';
 import { useHashRoute } from './useHashRoute.js';
 import { parseRoute, hrefFor } from './routes.js';
 import { CONSOLE_ROLES } from './roles.js';
-import { AdminConsole } from '../features/admin/AdminConsole.jsx';
-import { SettingsPage } from '../features/settings/SettingsPage.jsx';
-import { MyCourses } from '../features/courses/MyCourses.jsx';
-import { ParentPortal } from '../features/parent/ParentPortal.jsx';
-import { Worksheet, TeacherGuide, PrimaryResources } from '../features/primary/print/PrintSheets.jsx';
 import { LoginPage } from '../features/auth/LoginPage.jsx';
 import { TopNav } from '../features/shell/TopNav.jsx';
 import { Header } from '../features/shell/Header.jsx';
-import { PortfolioEditor, PortfolioViewer } from '../features/personalization/Personalization.jsx';
-import { StudentDashboard } from '../features/student/StudentDashboard.jsx';
-import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
-import { SchoolLearningPanel } from '../features/school/SchoolLearningPanel.jsx';
 import { showActivity, hideAllActivities, isLegacyActivity, isReactActivity, trackActivityOpen, ACTIVITY_NAV } from '../features/activities/activityHost.js';
-import { SolarCarChallenge } from '../features/activities/solarCar/SolarCarChallenge.jsx';
-import { So2SulfateSimulation } from '../features/activities/so2Sulfate/So2SulfateSimulation.jsx';
-import { PlantMicroscopeLab } from '../features/activities/plantLab/PlantMicroscopeLab.jsx';
-import { ProjectHexGrid } from '../features/activities/hexGrid/ProjectHexGrid.jsx';
-import { JuniorExplorers } from '../features/primary/JuniorExplorers.jsx';
-import { PblStudio } from '../features/pbl/PblStudio.jsx';
-import { CommunityFeed } from '../features/community/CommunityFeed.jsx';
-import { ConversationList } from '../features/messages/ConversationList.jsx';
-import { ConversationView } from '../features/messages/ConversationView.jsx';
-import { AdminAuditView } from '../features/messages/AdminAuditView.jsx';
-import { StartConversationModal } from '../features/messages/StartConversationModal.jsx';
 import { isPrimaryProfile } from '../auth.js';
 import { API_BASE } from '../services/apiBase.js';
-import { initializeSENGlobally } from '../integrations/senIntegration.js';
-import { renderSENToggle } from '../components/SEN/SENPreferenceToggle.js';
-import { initializeGoalSettingForUser } from '../integrations/goalSettingIntegration.js';
-import { createGoalSettingModal } from '../components/Goals/GoalSettingModal.js';
+
+// Role- and screen-specific code loads on demand, so signing in downloads only
+// the shell. Each screen becomes its own chunk (UX/UI plan, Sprint 1).
+const named = (load, name) => lazy(() => load().then((m) => ({ default: m[name] })));
+const AdminConsole = named(() => import('../features/admin/AdminConsole.jsx'), 'AdminConsole');
+const SettingsPage = named(() => import('../features/settings/SettingsPage.jsx'), 'SettingsPage');
+const MyCourses = named(() => import('../features/courses/MyCourses.jsx'), 'MyCourses');
+const ParentPortal = named(() => import('../features/parent/ParentPortal.jsx'), 'ParentPortal');
+const Worksheet = named(() => import('../features/primary/print/PrintSheets.jsx'), 'Worksheet');
+const TeacherGuide = named(() => import('../features/primary/print/PrintSheets.jsx'), 'TeacherGuide');
+const PrimaryResources = named(() => import('../features/primary/print/PrintSheets.jsx'), 'PrimaryResources');
+const PortfolioEditor = named(() => import('../features/personalization/Personalization.jsx'), 'PortfolioEditor');
+const PortfolioViewer = named(() => import('../features/personalization/Personalization.jsx'), 'PortfolioViewer');
+const StudentDashboard = named(() => import('../features/student/StudentDashboard.jsx'), 'StudentDashboard');
+const CoachDashboardHost = named(() => import('../features/coach/CoachDashboardHost.jsx'), 'CoachDashboardHost');
+const SchoolLearningPanel = named(() => import('../features/school/SchoolLearningPanel.jsx'), 'SchoolLearningPanel');
+const SolarCarChallenge = named(() => import('../features/activities/solarCar/SolarCarChallenge.jsx'), 'SolarCarChallenge');
+const So2SulfateSimulation = named(() => import('../features/activities/so2Sulfate/So2SulfateSimulation.jsx'), 'So2SulfateSimulation');
+const PlantMicroscopeLab = named(() => import('../features/activities/plantLab/PlantMicroscopeLab.jsx'), 'PlantMicroscopeLab');
+const ProjectHexGrid = named(() => import('../features/activities/hexGrid/ProjectHexGrid.jsx'), 'ProjectHexGrid');
+const JuniorExplorers = named(() => import('../features/primary/JuniorExplorers.jsx'), 'JuniorExplorers');
+const PblStudio = named(() => import('../features/pbl/PblStudio.jsx'), 'PblStudio');
+const CommunityFeed = named(() => import('../features/community/CommunityFeed.jsx'), 'CommunityFeed');
+const ConversationList = named(() => import('../features/messages/ConversationList.jsx'), 'ConversationList');
+const ConversationView = named(() => import('../features/messages/ConversationView.jsx'), 'ConversationView');
+const AdminAuditView = named(() => import('../features/messages/AdminAuditView.jsx'), 'AdminAuditView');
+const StartConversationModal = named(() => import('../features/messages/StartConversationModal.jsx'), 'StartConversationModal');
+
+// Legacy vanilla widgets are imperative; load them only when first needed.
+const createGoalSettingModal = (uid) => import('../components/Goals/GoalSettingModal.js').then((m) => m.createGoalSettingModal(uid));
+
+function ScreenLoading() {
+  return (
+    <div className="gh-app" style={{ display: 'grid', placeItems: 'center', minHeight: '40vh' }}>
+      <div className="gh-skel" style={{ width: 180, height: 10 }} role="status" aria-label="Loading" />
+    </div>
+  );
+}
 
 const KNOWN_VIEWS = new Set(ACTIVITY_NAV.map((a) => a.id));
 
 export function App() {
+  return (
+    <Suspense fallback={<ScreenLoading />}>
+      <AppScreens />
+    </Suspense>
+  );
+}
+
+function AppScreens() {
   const { status, user, profile, role, classIds, error, signOut, refreshProfile } = useAuth();
   const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
@@ -107,14 +129,13 @@ export function App() {
   useEffect(() => {
     if (status !== 'ready' || role !== 'student' || !user || isPrimary) return;
 
-    initializeSENGlobally({
+    import('../integrations/senIntegration.js').then(({ initializeSENGlobally }) => initializeSENGlobally({
       userId: user.uid,
       senEnabled: localStorage.getItem('senEnabled') === 'true',
       geminiEndpoint: `${API_BASE}/api`
-    });
-
-    try { renderSENToggle('sen-preference-toggle'); } catch { /* optional widget */ }
-    try { initializeGoalSettingForUser(user.uid); } catch { /* optional widget */ }
+    })).catch(() => { /* optional widget */ });
+    import('../components/SEN/SENPreferenceToggle.js').then(({ renderSENToggle }) => renderSENToggle('sen-preference-toggle')).catch(() => { /* optional widget */ });
+    import('../integrations/goalSettingIntegration.js').then(({ initializeGoalSettingForUser }) => initializeGoalSettingForUser(user.uid)).catch(() => { /* optional widget */ });
   }, [status, role, user, isPrimary]);
 
   // Students land on My Courses, the plan's student home. Once per sign-in, and

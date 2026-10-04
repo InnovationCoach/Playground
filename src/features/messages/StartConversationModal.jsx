@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { startConversation, sendMessage } from './messagesAPI.js';
 import { db, collection, getDocs, query, where, getAuthClaims } from '../../firebase.js';
 import '../admin/admin.css';
+import { ShieldCheck } from 'lucide-react';
 
 /**
  * Modal for coaches to start a new conversation with a student in one of
@@ -115,7 +116,7 @@ export function StartConversationModal({ isOpen, onClose, coachId, coachName = '
         </form>
 
         <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--gh-subtle)', borderRadius: '8px', fontSize: '0.85rem', color: 'var(--gh-text-2)' }}>
-          📌 Messages are monitored by WeLearn for safeguarding.
+          <ShieldCheck size={14} style={{ verticalAlign: '-2px', marginRight: 6 }} aria-hidden="true" />Messages are monitored by WeLearn for safeguarding.
         </div>
       </div>
     </div>

@@ -136,6 +136,21 @@ async function offeringAccess(req, id, write = false) {
   }
   fail(403, 'FORBIDDEN', 'You do not have access to this program offering.');
 }
+// School feature switches (admin only). Pilots such as Teen Quest are turned on
+// one school at a time; learning-context exposes the result to every role.
+router.patch('/schools/:schoolId/features', wrap(async (req, res) => {
+  const caller = req.schoolCaller;
+  adminOnly(caller);
+  if (typeof req.body.questMode !== 'boolean') fail(400, 'VALIDATION', 'questMode must be true or false.');
+  let features;
+  await getFirestore().runTransaction(async tx => {
+    const ref = root(req.schoolId), snap = await tx.get(ref);
+    features = { ...(snap.data()?.features || {}), questMode: req.body.questMode };
+    tx.update(ref, { features, updatedAt: now() });
+    audit(tx, req.schoolId, caller, req.body.questMode ? 'FEATURE_QUEST_ON' : 'FEATURE_QUEST_OFF', req.schoolId);
+  });
+  res.json({ features: { questMode: features.questMode === true } });
+}));
 router.get('/schools/:schoolId/program-offerings', wrap(async (req, res) => {
   const caller = req.schoolCaller;
   if (caller.role === 'parent') return res.json({

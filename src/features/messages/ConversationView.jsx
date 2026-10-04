@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../app/AuthProvider.jsx';
 import { sendMessage, onMessagesChanged, deleteMessage, getConversation, otherParticipantName } from './messagesAPI.js';
-import { ImagePlus, ArrowLeft } from 'lucide-react';
+import { ImagePlus, ArrowLeft, ShieldCheck, X } from 'lucide-react';
 import '../admin/admin.css';
 
 export function ConversationView({ conversationId, onBack }) {
@@ -60,7 +60,7 @@ export function ConversationView({ conversationId, onBack }) {
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>{otherUserName || '…'}</h2>
         </div>
         <div style={{ fontSize: '0.8rem', color: 'var(--gh-text-3)', marginTop: '0.25rem' }}>
-          📌 Messages are monitored by WeLearn for safeguarding.
+          <ShieldCheck size={14} style={{ verticalAlign: '-2px', marginRight: 6 }} aria-hidden="true" />Messages are monitored by WeLearn for safeguarding.
         </div>
         {loadError && <div className="gh-alert gh-alert-error" style={{ marginTop: '0.5rem' }}>Could not load this conversation: {loadError}</div>}
       </div>
@@ -105,9 +105,10 @@ export function ConversationView({ conversationId, onBack }) {
               {msg.senderId === user.uid && !msg.deletedBySender && (
                 <button
                   onClick={() => deleteMessage(conversationId, msg.id)}
+                  aria-label="Delete message"
                   style={{ marginLeft: '0.5rem', background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.8rem' }}
                 >
-                  ✕
+                  <X size={14} aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -121,7 +122,7 @@ export function ConversationView({ conversationId, onBack }) {
           {files.map((f, i) => (
             <div key={i} style={{ background: 'var(--gh-subtle)', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
               {f.name}
-              <button type="button" onClick={() => setFiles(ff => ff.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gh-red)' }}>✕</button>
+              <button type="button" onClick={() => setFiles(ff => ff.filter((_, idx) => idx !== i))} aria-label={`Remove ${f.name}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gh-red)' }}><X size={14} aria-hidden="true" /></button>
             </div>
           ))}
         </div>
