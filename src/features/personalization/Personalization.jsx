@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {usePersonalization,uploadLearnerFile} from './usePersonalization.js';
 import {PALETTES,BACKGROUNDS,WIDGETS,LAYOUTS,KINDS,AUDIENCES,defaults,moveWidget,previewItems,safeProjectLink} from './personalizationModel.js';
 import {schoolRequest} from '../../services/api/apiClient.js';
+import {refreshLearnerAvatar} from '../shell/useLearnerAvatar.js';
 import './personalization.css';
 const Field = ({label,children}) => <label className="lp-field"><span>{label}</span>{children}</label>;
 export function surfaceStyle(surface) {return {'--lp-accent':PALETTES[surface.appearance.accent].accent,'--lp-ink':PALETTES[surface.appearance.accent].ink,background:BACKGROUNDS[surface.appearance.background]};}
@@ -40,16 +41,17 @@ function DashboardDecoration({space,uid,onUploading}) {
     setUploading(key);onUploading(true);space.setError('');
     try {update(key,await uploadLearnerFile(uid,file));} catch(error){space.setError(error.message);} finally{setUploading('');onUploading(false);}
   }
-  return <fieldset className="lp-decoration" disabled={space.loading||space.busy||!!uploading||!space.saved}>
-    <legend>Make this space yours</legend><p>Add your picture and a banner to decorate your private learning dashboard. These images stay separate from your portfolio.</p>
+  const hasImages=Boolean(appearance.picture||appearance.cover);
+  return <details className="lp-decoration-details" open={!hasImages}><summary>{hasImages?'Change picture & banner':'Make this space yours: add a picture and banner'}</summary><fieldset className="lp-decoration" disabled={space.loading||space.busy||!!uploading||!space.saved}>
+    <legend className="lp-sr">Make this space yours</legend><p>Add your picture and a banner to decorate your private learning dashboard. These images stay separate from your portfolio.</p>
     <div className="lp-decoration-grid">{[['picture','Profile picture','A photo, drawing or avatar. Square images work best.'],['cover','Dashboard banner','A favourite landscape or artwork. Wide images work best.']].map(([key,label,hint])=><div key={key} className={`lp-decoration-card lp-decoration-${key}`}>
       <div className="lp-decoration-preview">{appearance[key]?.url ? <img src={appearance[key].url} alt={`${label} preview`}/> : <span aria-hidden="true">{key==='picture'?'◉':'▧'}</span>}</div>
       <div><Field label={label}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>{const file=e.target.files?.[0];e.target.value='';upload(key,file);}}/></Field><small>{hint}</small>{appearance[key]&&<button type="button" onClick={()=>update(key,null)}>Remove {label.toLowerCase()}</button>}</div>
     </div>)}</div>
     <p className="lp-muted">JPG, PNG, WebP or GIF, up to 20 MB. Preview first, then save. Images are cropped to fit the display.</p>
-    <div className="lp-actions"><button type="button" onClick={space.save}>Save dashboard changes</button><button type="button" disabled={!space.history.length} onClick={space.undo}>Undo decoration change</button><button type="button" onClick={space.discard}>Discard dashboard preview</button></div>
+    <div className="lp-actions"><button type="button" onClick={async()=>{await space.save();refreshLearnerAvatar(uid);}}>Save dashboard changes</button><button type="button" disabled={!space.history.length} onClick={space.undo}>Undo decoration change</button><button type="button" onClick={space.discard}>Discard dashboard preview</button></div>
     {uploading&&<p role="status">Uploading your {uploading==='cover'?'banner':'profile picture'}…</p>}
-  </fieldset>;
+  </fieldset></details>;
 }
 export function PersonalizedDashboard({uid,profile,widgets}) {
   const space=usePersonalization(uid), [editing,setEditing]=useState(false), [dragId,setDragId]=useState(null), [announcement,setAnnouncement]=useState(''), [decorating,setDecorating]=useState(false);

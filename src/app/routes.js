@@ -7,6 +7,7 @@
  *   #/settings   #/courses   #/parent                    everyone else
  *   #/primary-resources  #/worksheet/<id>  #/guide/<id>  printable primary material
  *   #/pbl  #/pbl/<tab>                                   PBL Studio (term project)
+ *   #/journey  #/journey/print                           design-thinking portfolio maker (+ PDF view)
  *   #/community                                          community posts
  *   #/messages  #/messages/<convId>                      private messages
  *
@@ -32,6 +33,7 @@ export function parseRoute(hash) {
   }
   if (head === 'portfolio') return {screen:'portfolio', uid: a || null};
   if (head === 'home') return {screen:'home'};
+  if (head === 'journey') return { screen: 'journey', print: a === 'print' };
   if (head === 'settings') return { screen: 'settings' };
   if (head === 'primary-resources') return { screen: 'resources' };
   if (head === 'worksheet' && a) return { screen: 'worksheet', activityId: a };

@@ -22,6 +22,7 @@ const TeacherGuide = named(() => import('../features/primary/print/PrintSheets.j
 const PrimaryResources = named(() => import('../features/primary/print/PrintSheets.jsx'), 'PrimaryResources');
 const PortfolioEditor = named(() => import('../features/personalization/Personalization.jsx'), 'PortfolioEditor');
 const PortfolioViewer = named(() => import('../features/personalization/Personalization.jsx'), 'PortfolioViewer');
+const JourneyPortfolio = named(() => import('../features/journey/JourneyPortfolio.jsx'), 'JourneyPortfolio');
 const StudentDashboard = named(() => import('../features/student/StudentDashboard.jsx'), 'StudentDashboard');
 const CoachDashboardHost = named(() => import('../features/coach/CoachDashboardHost.jsx'), 'CoachDashboardHost');
 const SchoolLearningPanel = named(() => import('../features/school/SchoolLearningPanel.jsx'), 'SchoolLearningPanel');
@@ -209,6 +210,10 @@ function AppScreens() {
 
   if (route?.screen === 'home' && role === 'student') {
     return <><Header {...headerProps}/><TopNav role={role} view="home" onNavigate={navigate} onOpenCourses={()=>setHash(hrefFor.courses())} onOpenGoals={()=>createGoalSettingModal(user.uid)}/><StudentDashboard profile={profile} uid={user.uid} onProfileChanged={refreshProfile}/></>;
+  }
+
+  if (route?.screen === 'journey' && role === 'student' && !isPrimary) {
+    return <><Header {...headerProps}/><TopNav role={role} view="journey" onNavigate={navigate} onOpenCourses={()=>setHash(hrefFor.courses())} onOpenGoals={()=>createGoalSettingModal(user.uid)}/><div className="gh-app"><JourneyPortfolio uid={user.uid} profile={profile} printView={route.print}/></div></>;
   }
 
   if (route?.screen === 'portfolio') {
