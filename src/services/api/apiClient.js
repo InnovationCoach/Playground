@@ -17,12 +17,13 @@ import { API_BASE } from '../apiBase.js';
 import { handleSchoolFallback } from './schoolFallback.js';
 
 export class ApiError extends Error {
-  constructor({ code = 'INTERNAL', message = '', field = null, status = 0 } = {}) {
+  constructor({ code = 'INTERNAL', message = '', field = null, status = 0, details = undefined } = {}) {
     super(message || code);
     this.name = 'ApiError';
     this.code = code;
     this.field = field;
     this.status = status;
+    this.details = details;
   }
 }
 

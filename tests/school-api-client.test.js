@@ -75,6 +75,11 @@ describe('Live school requests never substitute sample responses', () => {
       message: 'This event changed.'
     });
   });
+  it('preserves activity field diagnostics from the API', async () => {
+    const details=[{path:'blocks[2].text',message:'is required.'}];
+    fetch.mockResolvedValue(response(400,{error:{code:'VALIDATION',message:'Invalid activity',details}}));
+    await expect(schoolRequest('POST','/api/schools/s/program-offerings/o/lessons',{body:{}})).rejects.toMatchObject({code:'VALIDATION',details});
+  });
   it('sends real bearer identity and returns valid JSON', async () => {
     fetch.mockResolvedValue(response(200, {
       items: []

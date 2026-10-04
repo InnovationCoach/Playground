@@ -1,3 +1,4 @@
+import { validateActivity, validateActivityResponses, ActivityValidationError } from '../../src/features/activities/spec/activitySpec.js';
 import { validateSimulation } from '../../src/features/school/simulationModel.js';
 import { Router } from 'express';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -18,6 +19,7 @@ const wrap = fn => async (req, res, next) => {
   try {
     await fn(req, res);
   } catch (error) {
+    if (error instanceof ActivityValidationError) return res.status(400).json({error:{code:error.code,message:error.message,details:error.errors}});
     if (error.status) return sendError(res, error.status, error.code, error.message);
     next(error);
   }
@@ -31,10 +33,11 @@ const date = value => {
   const parsed = new Date(`${value}T00:00:00Z`);
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 };
-const audit = (tx, schoolId, caller, action, entityId) => tx.set(root(schoolId).collection('auditEvents').doc(), {
+const audit = (tx, schoolId, caller, action, entityId, details = {}) => tx.set(root(schoolId).collection('auditEvents').doc(), {
   actorUid: caller.uid,
   action,
   entityId,
+  ...details,
   createdAt: now()
 });
 router.use((req, res, next) => /^\/(learning-context|schools|program-enrollments)(\/|$)/.test(req.path) ? next() : next('router'));
@@ -371,6 +374,7 @@ function lessonBody(body, program) {
     outcome,
     instructions,
     simulation,
+    ...(body.activity === undefined ? {} : {activity: body.activity === null ? null : validateActivity({...body.activity, provenance: {aiAssisted: false}})}),
     milestoneId: body.milestoneId,
     classId: requireId(body.classId)
   };
@@ -447,12 +451,14 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/lessons/:lessonId/
     if (value.authorUid !== caller.uid && caller.role !== 'admin') fail(403, 'FORBIDDEN', 'Only the author can publish this lesson.');
     if (caller.role !== 'admin' && !caller.classIds.includes(value.classId)) fail(403, 'FORBIDDEN', 'Class access changed.');
     if (value.revision !== req.body.revision || value.status !== 'draft') fail(409, 'CONFLICT', 'This lesson changed. Reload before publishing.');
+    if (value.activity?.provenance.aiAssisted && req.body.safetyConfirmed !== true) fail(400, 'SAFETY_CONFIRMATION_REQUIRED', 'Confirm the safety review before publishing.');
     tx.update(lesson, {
+      ...(value.activity ? {activity: {...value.activity, provenance: {...value.activity.provenance, reviewedBy: caller.uid, reviewedAt: now()}}} : {}),
       status: 'published',
       revision: value.revision + 1,
       publishedAt: now()
     });
-    audit(tx, req.schoolId, caller, 'LESSON_PUBLISHED', lesson.path);
+    audit(tx, req.schoolId, caller, 'LESSON_PUBLISHED', lesson.path, {aiAssisted: value.activity?.provenance.aiAssisted === true});
   });
   res.json({
     published: true
@@ -508,10 +514,12 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/submissions', wrap
       l = lesson.data(),
       member = await tx.get(ref.collection('members').doc(caller.uid));
     if (!l || l.status !== 'published' || !member.exists || member.data().status !== 'active' || member.data().classId !== l.classId || !caller.profile.classIds?.includes(l.classId)) fail(403, 'FORBIDDEN', 'You are not enrolled in this lesson class.');
+    if (req.body.responses !== undefined && !l.activity) fail(400, 'VALIDATION', 'This lesson has no activity responses.');
+    const responses = req.body.responses === undefined ? undefined : validateActivityResponses(l.activity, req.body.responses);
     const existing = await tx.get(submission);
     if (existing.exists) {
       const old = existing.data();
-      if (old.lessonId !== lessonId || old.body !== body || old.link !== link) fail(409, 'CONFLICT', 'This submission ID already belongs to different evidence.');
+      if (old.lessonId !== lessonId || old.body !== body || old.link !== link || JSON.stringify(old.responses ?? null) !== JSON.stringify(responses ?? null)) fail(409, 'CONFLICT', 'This submission ID already belongs to different evidence.');
       result = {
         ...old,
         id: submission.id
@@ -523,6 +531,7 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/submissions', wrap
       classId: l.classId,
       lessonId,
       lessonRevision: l.revision,
+      ...(responses === undefined ? {} : {responses}),
       milestoneId: l.milestoneId,
       body,
       link,

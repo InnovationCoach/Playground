@@ -1,3 +1,4 @@
+import {sampleActivity} from '../../src/features/activities/spec/activitySpec.js';
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { setupApiTestEnv } from './api-test-helper.js';
 describe('School workspace: scoped programs, lessons, goals, academics and calendar', () => {
@@ -165,6 +166,56 @@ describe('School workspace: scoped programs, lessons, goals, academics and calen
     expect((await request('DELETE',`${base}/program-codes/${issued.body.id}`,'coach',{})).status).toBe(200);
     expect((await request('POST','/api/program-enrollments/join','student',{code:issued.body.code})).status).toBe(404);
   });
+  it('validates manual activity drafts, strips spoofed provenance and unknown fields, and scopes them to class', async()=>{
+    const activity=sampleActivity();activity.provenance={aiAssisted:true,provider:'gemini',reviewedBy:'attacker'};activity.script='bad';
+    const content={title:activity.title,outcome:'Use evidence to compare energy',instructions:'Survey, predict and reflect',classId:cls,milestoneId:'phase-1',activity};
+    const path=`${base}/program-offerings/${offeringId}/lessons`;
+    expect((await request('POST',path,'other',content)).status).toBe(403);
+    expect((await request('POST',path,'coach',{...content,classId:otherClass})).status).toBe(403);
+    const invalid=await request('POST',path,'coach',{...content,activity:{...activity,title:'',blocks:[{type:'intro',text:''}]}});
+    expect(invalid.status).toBe(400);expect(invalid.body.error).toMatchObject({code:'VALIDATION',details:expect.arrayContaining([expect.objectContaining({path:'title'}),expect.objectContaining({path:'blocks[0].text'})])});
+    const draft=await request('POST',path,'coach',content);expect(draft.status).toBe(201);expect(draft.body.activity.provenance).toEqual({aiAssisted:false});expect(draft.body.activity.script).toBeUndefined();
+    expect((await request('GET',path,'student')).body.items.some(l=>l.id===draft.body.id)).toBe(false);
+    const patch={...content,activity:{...activity,summary:'Updated summary'},revision:1};
+    expect((await request('PATCH',`${path}/${draft.body.id}`,'coach',patch)).status).toBe(200);
+    expect((await request('PATCH',`${path}/${draft.body.id}`,'coach',patch)).status).toBe(409);
+    expect((await request('POST',`${path}/${draft.body.id}/publish`,'coach',{revision:2})).status).toBe(200);
+    expect((await request('POST',`${path}/${draft.body.id}/publish`,'coach',{revision:2})).status).toBe(409);
+    expect((await request('PATCH',`${path}/${draft.body.id}`,'coach',{...patch,revision:3})).status).toBe(409);
+    const published=(await request('GET',path,'student')).body.items.find(l=>l.id===draft.body.id);
+    expect(published.activity.provenance).toMatchObject({aiAssisted:false,reviewedBy:'workspace-coach',reviewedAt:expect.any(String)});
+    expect(published.activity.summary).toBe('Updated summary');
+    const audit=await env.db.collection('schools').doc(school).collection('auditEvents').where('action','==','LESSON_PUBLISHED').get();
+    expect(audit.docs.find(d=>d.data().entityId.endsWith(draft.body.id)).data().aiAssisted).toBe(false);
+    // Remove this disposable activity so subsequent legacy summary counts stay unchanged.
+    await env.db.collection('schools').doc(school).collection('programOfferings').doc(offeringId).collection('lessons').doc(draft.body.id).delete();
+  });
+  it('requires server-side AI safety confirmation and records the reviewer without trusting the publish body',async()=>{
+    const path=`${base}/program-offerings/${offeringId}/lessons`;
+    const ref=env.db.collection('schools').doc(school).collection('programOfferings').doc(offeringId).collection('lessons').doc('future-ai-safety');
+    await ref.set({title:'AI fixture',outcome:'Compare',instructions:'Test',classId:cls,milestoneId:'phase-1',activity:{...sampleActivity(),provenance:{aiAssisted:true,provider:'gemini',model:'fixture'}},authorUid:'workspace-coach',revision:1,status:'draft',attachments:[],createdAt:new Date().toISOString()});
+    expect((await request('POST',`${path}/${ref.id}/publish`,'coach',{revision:1})).body.error.code).toBe('SAFETY_CONFIRMATION_REQUIRED');
+    expect((await request('POST',`${path}/${ref.id}/publish`,'coach',{revision:1,safetyConfirmed:'true'})).status).toBe(400);
+    expect((await request('POST',`${path}/${ref.id}/publish`,'coach',{revision:1,safetyConfirmed:true,reviewedBy:'attacker'})).status).toBe(200);
+    expect((await ref.get()).data().activity.provenance.reviewedBy).toBe('workspace-coach');
+    await ref.delete();
+  });
+  it('validates activity response evidence against the published lesson and retries idempotently',async()=>{
+    const path=`${base}/program-offerings/${offeringId}`;
+    const draft=await request('POST',`${path}/lessons`,'coach',{title:'Response lab',outcome:'Compare',instructions:'Measure',classId:cls,milestoneId:'phase-1',activity:sampleActivity()});
+    expect(draft.status).toBe(201);await request('POST',`${path}/lessons/${draft.body.id}/publish`,'coach',{revision:1});
+    const body={submissionId:'activity-responses',lessonId:draft.body.id,body:'My reflection',responses:{version:1,answers:{'1':{choice:0},'3':{rows:[{device:'Lights',energy:60,hidden:'drop'}]},'7':{text:'My reflection'}}}};
+    const first=await request('POST',`${path}/submissions`,'student',body);expect(first.status).toBe(201);expect(first.body.responses.answers['3'].rows[0].hidden).toBeUndefined();
+    expect((await request('POST',`${path}/submissions`,'student',body)).body.id).toBe(first.body.id);
+    expect((await request('POST',`${path}/submissions`,'student',{...body,responses:{version:1,answers:{'1':{choice:1}}}})).status).toBe(409);
+    const invalid=await request('POST',`${path}/submissions`,'student',{...body,submissionId:'bad-response',responses:{version:1,answers:{'1':{choice:99}}}});
+    expect(invalid.status).toBe(400);expect(invalid.body.error.details[0].path).toBe('responses.answers.1.choice');
+    expect((await request('POST',`${path}/submissions`,'stranger',body)).status).toBe(403);
+    expect((await request('POST',`${path}/submissions`,'coach',body)).status).toBe(403);
+    const offering=env.db.collection('schools').doc(school).collection('programOfferings').doc(offeringId);
+    await offering.collection('submissions').doc(first.body.id).delete();await offering.collection('lessons').doc(draft.body.id).delete();
+  });
+
   it('rejects invalid/revoked codes and staff self-enrollment', async () => {
     expect((await request('POST', '/api/program-enrollments/join', 'coach', {
       code
