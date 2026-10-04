@@ -72,6 +72,8 @@ for (const s of SCHOOLS) {
     timezone: s.timezone,
     locale: s.locale,
     status: s.status,
+    // Teen Quest is switched on for the emulator so it can be reviewed; production schools opt in.
+    features: { questMode: true },
     createdAt: FieldValue.serverTimestamp()
   });
 }
@@ -281,6 +283,44 @@ for (const s of STUDENTS) {
       .doc(new Date().toISOString().slice(0, 10))
       .set({ timeSpentMinutes: s.minutes, sessionsCount: s.sessions });
   }
+}
+
+// 8b. Teen Quest sample progress for Mia (emulator review data only).
+if (miaStudentUid) {
+  const { localDate, addDays, isSchoolDay, levelFor } = await import('../src/features/quest/questModel.js');
+  const { TERM } = await import('../src/features/pbl/content/pblModel.js');
+  const today = localDate(new Date(), 'Asia/Bangkok');
+  let last = addDays(today, -1);
+  while (!isSchoolDay(last)) last = addDays(last, -1);
+  const xp = 1240;
+  await db.collection('learnerQuest').doc(miaStudentUid).set({
+    schemaVersion: 1, xp, level: levelFor(xp).level,
+    counters: { taskSteps: 9, reflections: 4, goalsAcknowledged: 2, evidence: 3, reviewed: 2, goalsAchieved: 1, bestStreak: 6 },
+    streak: { count: 4, lastActiveDate: last, freezes: 1 },
+    daily: { date: null, selfXp: 0 },
+    badges: [
+      { id: 'first-evidence', earnedAt: new Date(Date.now() - 12 * 86400000).toISOString() },
+      { id: 'curious-mind', earnedAt: new Date(Date.now() - 8 * 86400000).toISOString() },
+      { id: 'goal-getter', earnedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
+      { id: 'spark-5', earnedAt: new Date(Date.now() - 3 * 86400000).toISOString() }
+    ],
+    celebrations: [], showOnPortfolio: false, calmView: false, revision: 1, updatedAt: new Date().toISOString()
+  });
+  await db.collection('users').doc(miaStudentUid).collection('activityProgress').doc(`pbl-${TERM.id}`).set({
+    version: 1, termId: TERM.id, currentPhase: 'explore', interests: [], sparks: '', problem: {}, impact: null,
+    codeLanguage: 'microbit-python', finalFormat: null, tasksDone: { explore: [0] }, evidence: [], updatedAt: Date.now(), activityId: `pbl-${TERM.id}`
+  });
+  const wins = [['evidence_reviewed', 25, true, 1], ['evidence_submitted', 40, true, 2], ['reflection', 15, false, 3], ['task_step', 10, false, 4]];
+  for (const [type, xpAward, verified, daysAgo] of wins) {
+    await db.collection('learnerQuest').doc(miaStudentUid).collection('xpEvents').doc(`${type}__seed-${daysAgo}`).set({
+      type, xp: xpAward, verified, sourceId: `seed-${daysAgo}`, classId: 'class_yr9_climate', schoolId: 'sch-bkk',
+      localDate: addDays(today, -daysAgo), createdAt: new Date(Date.now() - daysAgo * 86400000).toISOString()
+    });
+  }
+  // Leo sits just below level 2, so one reflection shows the real level-up celebration.
+  const leo = await auth.getUserByEmail('leo@school.edu').catch(() => null);
+  if (leo) await db.collection('learnerQuest').doc(leo.uid).set({ schemaVersion: 1, xp: 95, level: 1, counters: { reflections: 2 }, streak: { count: 0, lastActiveDate: null, freezes: 0 }, revision: 1 });
+  await db.collection('classes').doc('class_yr9_climate').collection('questSquad').doc('current').set({ count: 84, goal: 120, updatedAt: new Date().toISOString() });
 }
 
 // 9. Parent Link (parent.test@school.edu linked to mia@school.edu)

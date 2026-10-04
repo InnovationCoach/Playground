@@ -215,6 +215,30 @@ export function currentStreak(streak, today, holidays = new Set()) {
   return { count: streak.count, freezes: streak.freezes || 0, activeToday: false, atRisk: isSchoolDay(today, holidays) };
 }
 
+/**
+ * The streak strip for this week: one state per weekday. 'done' days are the
+ * school days of the current run (walking back from the last active day),
+ * 'today' is today awaiting activity, 'off' a holiday, 'future' not yet, and
+ * 'open' a past school day outside the run.
+ */
+export function weekStrip(streak, today, holidays = new Set()) {
+  const run = new Set();
+  if (streak?.lastActiveDate && streak.count > 0) {
+    let d = streak.lastActiveDate;
+    for (let left = streak.count, guard = 0; left > 0 && guard < 400; guard++, d = addDays(d, -1)) {
+      if (isSchoolDay(d, holidays)) { run.add(d); left -= 1; }
+    }
+  }
+  return schoolWeek(today).map((date) => {
+    let state = 'open';
+    if (holidays.has(date)) state = 'off';
+    else if (run.has(date)) state = 'done';
+    else if (date === today) state = 'today';
+    else if (date > today) state = 'future';
+    return { date, state, label: new Date(`${date}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' }) };
+  });
+}
+
 /** The five school days (Mon–Fri) of the week containing `today`, for the streak strip. */
 export function schoolWeek(today) {
   const day = new Date(`${today}T00:00:00Z`).getUTCDay();

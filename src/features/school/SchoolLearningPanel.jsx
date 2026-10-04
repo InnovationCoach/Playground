@@ -4,7 +4,8 @@ import { auth, storage } from '../../firebase.js';
 import { BookOpen, CalendarDays, Target, GraduationCap, RefreshCw, Sparkles, HeartHandshake } from 'lucide-react';
 import { PROGRAM_CATALOGUE, programById } from '../pbl/content/programCatalogue.js';
 import { useSchoolResource, schoolPath, mutateSchool, serviceMessage } from './useSchoolWorkspace.js';
-import { W2eLearnerStudio } from './W2eLearnerStudio.jsx';
+import { QuestArea } from '../quest/QuestHome.jsx';
+import { QuestSummary } from '../quest/QuestSummary.jsx';
 import { W2eCoachSupportPanel } from './W2eCoachSupportPanel.jsx';
 import './schoolWorkspace.css';
 import { CALENDAR_REFERENCE } from './calendarReference.js';
@@ -84,7 +85,7 @@ export function SchoolLearningPanel({
     {!context.loading && !context.error && !school && <p>Your verified school membership needs checking. Ask the administrator to assign your school and classes.</p>}
     {school && !context.error && <div key={`${school.id}-${role}-${classScope}`}>
       <p className="sw-muted">{school.name} · {role === 'admin' ? 'School administration' : role === 'parent' ? 'Your linked children' : role === 'student' ? 'Your learning' : 'Your assigned classes'}</p>
-      {area === 'home' && (role === 'parent' ? <ParentOverview school={school} onNavigate={setArea}/> : role === 'student' ? <W2eLearnerStudio school={school} classes={classes} learnerName={learnerName} onNavigate={setArea} onJoined={context.reload} onChooseProgram={id => { setProgramChoice(id); setArea('programs'); }} /> : ['admin','supervisor','teacher','coach'].includes(role) ? <W2eCoachSupportPanel school={school} classes={classes} /> : null)}
+      {area === 'home' && (role === 'parent' ? <ParentOverview school={school} onNavigate={setArea}/> : role === 'student' ? <QuestArea school={school} classes={classes} learnerName={learnerName} onNavigate={setArea} onJoined={context.reload} onChooseProgram={id => { setProgramChoice(id); setArea('programs'); }} /> : ['admin','supervisor','teacher','coach'].includes(role) ? <W2eCoachSupportPanel school={school} classes={classes} /> : null)}
       {area === 'programs' && (role==='parent' ? <ParentProgramProgress school={school}/> : <Programs school={school} classes={classes} role={role} onJoined={programId=>{setProgramChoice(programId||'');context.reload();}} initialProgram={programChoice} />)}
       {area === 'goals' && <Goals school={school} classes={classes} role={role} />}
       {area === 'academic' && <Academic school={school} classes={classes} role={role} />}
@@ -294,6 +295,7 @@ function Goals({
       setLearnerUid(v);
       setClassId('');
     }} />}{!learners.loading && !learners.error && !choices.length && <p>No learners are available in your assigned scope.</p>}
+    {role !== 'student' && selected && <QuestSummary key={`${selected.id}-${selectedClass?.id || ''}`} school={school} learner={selected} classId={isStaff ? selectedClass?.id : undefined} role={role} />}
     {isStaff && selected && <form className="sw-form" onSubmit={async e => {
       e.preventDefault();
       const result = await run(() => mutateSchool('POST', schoolPath(school.id, 'learner-goals'), {
