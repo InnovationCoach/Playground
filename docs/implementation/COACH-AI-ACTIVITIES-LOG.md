@@ -25,3 +25,11 @@ Append one entry per handoff (newest last): date, agent, step, branch and commit
 - Next: **GPT-6 may start Phase 1** on `feature/coach-activities-p1` from `main` (brief §4.3; contract §3 "Phase 1", §2 responses, §7 UI). In parallel, **Gemini may start Step 2b** (KMS, Secret Manager, IAM, budgets; brief §4.1).
 
 **contract ready; GPT-6 may start Phase 1**
+
+---
+
+## 2026-10-04 · Step 0 Finalized · Gemini 3.6
+
+- Verified `main` branch state: CORS allow-list configured in `server/app.js`, `apiClient.js` signed-out user guard restored, `feature/ux-sprint1` merged, all test suites passed (Unit 372 passed, API 90 passed, Rules 475 passed, production build clean), Firebase Functions & Hosting deployed live, and unauthenticated smoke tests verified.
+- main clean at `eaf30c5d49cbea1d54cd5786017b507cf30e2888`; Claude may start Step 1.
+
