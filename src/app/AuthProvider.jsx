@@ -49,7 +49,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
     role: null,
     classIds: [],
     error: null,
-    themePreference: 'system'
+    themePreference: 'light'
   });
 
   useEffect(() => {
@@ -118,7 +118,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
       if (profile.locale) setLocale(profile.locale);
 
       // Theme preference is passed up to the App to initialize ThemeProvider
-      const themePreference = profile.themePreference || 'system';
+      const themePreference = profile.themePreference || 'light';
       if (onThemeLoaded) onThemeLoaded(themePreference);
 
       // Cached so the legacy inline activity code can read the band without an

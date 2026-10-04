@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { CoachWorkspace } from './CoachWorkspace.jsx';
 import CoachDashboard from '../../components/Coach/CoachDashboard.js';
 
 /**
@@ -11,7 +12,7 @@ import CoachDashboard from '../../components/Coach/CoachDashboard.js';
  *
  * React must not touch the container's children: the class owns that subtree.
  */
-export function CoachDashboardHost({ coachUser }) {
+function ManagementTools({ coachUser }) {
   const containerRef = useRef(null);
   const instanceRef = useRef(null);
 
@@ -45,4 +46,13 @@ export function CoachDashboardHost({ coachUser }) {
   }, [coachUser]);
 
   return <div id="coach-dashboard-card" ref={containerRef} />;
+}
+
+export function CoachDashboardHost({ coachUser }) {
+  const [management, setManagement] = useState(false);
+  if (management) return <>
+    <div className="gh-app cw-management"><button className="gh-btn gh-btn-ghost" onClick={() => setManagement(false)}>← Back to progress overview</button><p role="status">Existing management tools. Curriculum figures are examples; materials may use demonstration data while the backend connection is unavailable.</p></div>
+    <ManagementTools coachUser={coachUser} />
+  </>;
+  return <CoachWorkspace coachUser={coachUser} onManagement={() => setManagement(true)} />;
 }

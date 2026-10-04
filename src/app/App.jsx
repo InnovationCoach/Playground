@@ -13,6 +13,7 @@ import { TopNav } from '../features/shell/TopNav.jsx';
 import { Header } from '../features/shell/Header.jsx';
 import { StudentDashboard } from '../features/student/StudentDashboard.jsx';
 import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
+import { SchoolLearningPanel } from '../features/school/SchoolLearningPanel.jsx';
 import { showActivity, hideAllActivities, isLegacyActivity, isReactActivity, trackActivityOpen, ACTIVITY_NAV } from '../features/activities/activityHost.js';
 import { SolarCarChallenge } from '../features/activities/solarCar/SolarCarChallenge.jsx';
 import { So2SulfateSimulation } from '../features/activities/so2Sulfate/So2SulfateSimulation.jsx';
@@ -305,6 +306,7 @@ export function App() {
       <>
         <Header {...headerProps} />
         <JuniorExplorers uid={user.uid} displayName={profile?.displayName} />
+        <SchoolLearningPanel initialArea="calendar" hideTabs />
       </>
     );
   }

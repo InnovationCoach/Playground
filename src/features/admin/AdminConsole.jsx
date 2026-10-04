@@ -13,6 +13,7 @@ import { StudentBillingOverview } from './billing/StudentBillingOverview.jsx';
 import { MaterialRequestsList } from './materials/MaterialRequestsList.jsx';
 import { SettingsPage } from '../settings/SettingsPage.jsx';
 import './admin.css';
+import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 
 const NAV = [
   { kind: 'students', icon: GraduationCap, key: 'nav.students' },
@@ -42,6 +43,8 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
   let body;
   if (route.screen === 'settings') {
     body = <SettingsPage user={user} profile={profile} embedded />;
+  } else if (route.page === 'learning') {
+    body = <SchoolLearningPanel />;
   } else if (route.page === 'billing') {
     body = <StudentBillingOverview perms={perms} />;
   } else if (route.page === 'materials') {
@@ -106,6 +109,7 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
           <PackageCheck size={18} strokeWidth={2} aria-hidden="true" />{t('nav.materials')}
         </a>
         <div className="gh-side-label">{t('nav.teaching')}</div>
+        <a href="#/admin/learning" className="gh-nav-link" aria-current={route.page === 'learning' ? 'page' : undefined}><GraduationCap size={18} aria-hidden="true" />School learning & calendar</a>
         <a href={hrefFor.resources()} className="gh-nav-link">
           <Printer size={18} strokeWidth={2} aria-hidden="true" />{t('nav.primaryResources')}
         </a>

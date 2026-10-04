@@ -30,6 +30,32 @@ service firebase.storage {
       allow read, write: if false;
     }
 
+    // Coach lesson uploads. Students receive temporary URLs from the scoped API.
+    match /lessonMedia/{schoolId}/{offeringId}/{lessonId}/{uid}/{filename} {
+      function canUploadLesson() {
+        let profile = firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+        let school = firestore.get(/databases/(default)/documents/schools/$(schoolId)).data;
+        let offering = firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)).data;
+        let lesson = firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)/lessons/$(lessonId)).data;
+        return profile.role == request.auth.token.role
+          && profile.get('status', '') != 'suspended'
+          && school.get('status', '') != 'suspended'
+          && schoolId in profile.schoolIds && schoolId in request.auth.token.schoolIds
+          && lesson.status == 'draft'
+          && lesson.classId in offering.classIds
+          && (request.auth.token.role == 'admin'
+            || (request.auth.token.role in ['coach', 'teacher']
+              && lesson.authorUid == request.auth.uid
+              && lesson.classId in profile.classIds
+              && lesson.classId in request.auth.token.classIds));
+      }
+      allow read: if false;
+      allow write: if isOwner(uid) && canUploadLesson()
+        && resource == null && request.resource != null
+        && request.resource.size > 0 && request.resource.size <= 100 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'];
+    }
+
     // F2: Community Space Media
     match /community/{uid}/{postId}/{filename} {
       allow read: if isAuthenticated();
@@ -46,6 +72,12 @@ service firebase.storage {
     match /solarCar/{uid}/{filename} {
       allow read: if isAuthenticated();
       allow write: if isOwner(uid) && request.resource.size <= 10 * 1024 * 1024;
+    }
+
+    // W2E Multimodal Evidence Submissions
+    match /schools/{schoolId}/submissions/{submissionId}/evidence/{filename} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isWithinSizeLimit();
     }
   }
 }

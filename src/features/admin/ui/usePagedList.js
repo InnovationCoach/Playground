@@ -30,7 +30,7 @@ export function usePagedList(fetchPage, query, { pageSize: initialPageSize = 30 
       .then((res) => {
         // A slower earlier response must not overwrite a newer one (typing in search).
         if (id !== requestId.current) return;
-        setState({ loading: false, error: null, items: res.items || [], total: res.total ?? 0, nextPageToken: res.nextPageToken || null });
+        setState({ loading: false, error: null, items: res.items || [], total: res.total ?? 0, nextPageToken: res.nextPageToken || null, extra: res.extra || null });
         setNav((n) => {
           const base = n.key === navKey ? n : { key: navKey, pageIndex, tokens };
           return { ...base, tokens: nextTokens(base.tokens, pageIndex, res.nextPageToken || null) };

@@ -2,6 +2,10 @@
   "name": "hear-island",
   "version": "1.0.0",
   "type": "module",
+  "main": "server/index.js",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "start": "vite",
     "build": "vite build",
@@ -11,9 +15,9 @@
     "seed": "node scripts/seed-coach-data.js",
     "seed:dry": "node scripts/seed-coach-data.js --dry-run",
     "test": "firebase emulators:exec --only firestore --project demo-hearisland-rules \"vitest run\"",
-    "test:api": "firebase emulators:exec --only firestore,auth --project demo-hearisland-api-test \"vitest run tests/api/\"",
+    "test:api": "firebase emulators:exec --only firestore,auth --project demo-hearisland-local \"vitest run --config tests/api/vitest.api.config.js\"",
     "test:watch": "firebase emulators:exec --only firestore --project demo-hearisland-rules \"vitest\"",
-    "test:unit": "vitest run tests/solar-car-model.test.js tests/so2-model.test.js tests/plant-lab-model.test.js tests/hex-grid-model.test.js tests/junior-explorers.test.js tests/activity-search.test.js tests/growth-hub-phase0.test.js tests/primary-worksheets.test.js tests/pbl.test.js tests/so2-filter.test.js",
+    "test:unit": "vitest run tests/solar-car-model.test.js tests/so2-model.test.js tests/plant-lab-model.test.js tests/hex-grid-model.test.js tests/junior-explorers.test.js tests/activity-search.test.js tests/growth-hub-phase0.test.js tests/primary-worksheets.test.js tests/pbl.test.js tests/so2-filter.test.js tests/school-api-client.test.js tests/school-workspace-ui.test.jsx tests/w2e-learning-studio.test.jsx tests/program-chooser.test.jsx tests/goals-dashboard.test.js",
     "migrate:classes": "node scripts/migrate-to-classes.js",
     "migrate:classes:dry": "node scripts/migrate-to-classes.js --dry-run",
     "migrate:agebands": "node scripts/migrate-age-bands.js",
@@ -24,12 +28,14 @@
     "codes:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GCLOUD_PROJECT=demo-hearisland-local node scripts/class-codes.js"
   },
   "dependencies": {
+    "@google-cloud/firestore": "^9.3.1",
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "firebase": "^12.19.0",
     "firebase-admin": "^14.3.0",
+    "firebase-functions": "^7.4.0",
     "lucide-react": "^1.48.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

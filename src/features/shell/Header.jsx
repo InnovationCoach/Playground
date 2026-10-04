@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Settings, LogOut } from 'lucide-react';
+import { ChevronDown, Settings, LogOut, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../../app/theme/ThemeProvider.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { hrefFor } from '../../app/routes.js';
 import { LOGO_URL } from '../../app/brand.js';
+import { saveThemePreference } from '../../auth.js';
 import { Avatar } from './Avatar.jsx';
 
 /**
@@ -11,6 +13,8 @@ import { Avatar } from './Avatar.jsx';
  */
 export function Header({ email, displayName, role, uid, onSignOut, onHome }) {
   const { t } = useLocale();
+  const { effectiveTheme, setUserTheme } = useTheme();
+  const isDark = effectiveTheme === 'dark';
   const [open, setOpen] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
   const wrapRef = useRef(null);
@@ -33,8 +37,20 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome }) {
         <span className="gh-brand-name">{logoFailed ? 'WeLearn Growth Hub' : 'Growth Hub'}</span>
       </button>
 
-      {email && (
-        <div className="gh-topbar-right" ref={wrapRef}>
+      <div className="gh-topbar-right" ref={wrapRef}>
+        {/* Quick light/dark switch; Settings keeps the full light/dark/system choice. */}
+        <button type="button" className="gh-user-btn gh-theme-btn" aria-pressed={isDark}
+                aria-label={isDark ? t('settings.themeLight') : t('settings.themeDark')}
+                title={isDark ? t('settings.themeLight') : t('settings.themeDark')}
+                onClick={() => {
+                  const next = isDark ? 'light' : 'dark';
+                  setUserTheme(next);
+                  // Persist like Settings does; a failed save still keeps the choice for this session.
+                  if (uid) saveThemePreference(uid, next).catch((err) => console.warn('[Header] Could not save theme:', err?.message));
+                }}>
+          {isDark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+        </button>
+        {email && (<>
           <button type="button" className="gh-user-btn" aria-haspopup="menu" aria-expanded={open}
                   onClick={() => setOpen((o) => !o)}>
             <Avatar name={name} seed={uid || email} size={30} />
@@ -59,8 +75,8 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome }) {
               </button>
             </div>
           )}
-        </div>
-      )}
+        </>)}
+      </div>
     </header>
   );
 }

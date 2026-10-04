@@ -52,6 +52,51 @@
       --header-green: #064e3b;
     }
 
+    /* Light mode for the legacy (non Growth-Hub) surfaces. The ThemeProvider sets
+       data-theme on <html>; everything below only remaps the semantic tokens and
+       the handful of rules that hard-coded dark colours. Activity scenes keep
+       their own colours. */
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg-dark: #f4f4f8;
+      --card-bg: #ffffff;
+      --card-border: #dadce6;
+      --surface-sunken: #eef0f5;
+      --surface-input: #ffffff;
+      --surface-raised: #f7f8fb;
+      --text-light: #17324d;
+      --text-muted: #4a5d70;
+      --link: #6b3f86;
+      --header-green: #e9f4ff;
+      --primary-hover: #86c100;
+    }
+    :root[data-theme="dark"] { color-scheme: dark; }
+    :root[data-theme="light"] .dashboard-welcome-hero { background: linear-gradient(115deg, #f0e8f7 0%, #e9f4ff 60%, #ffffff 100%); color: #003c69; border-color: #e2d3ef; box-shadow: 0 8px 24px -16px rgba(0, 60, 105, 0.25); }
+    :root[data-theme="light"] .dashboard-welcome-hero p { color: #4a5d70; }
+    :root[data-theme="light"] .activity-card-modern, :root[data-theme="light"] .home-hero, :root[data-theme="light"] .hero { background: #ffffff; border-color: #dadce6; }
+    :root[data-theme="light"] .home-hero h2, :root[data-theme="light"] .mission-title { color: #003c69; }
+    :root[data-theme="light"] .mission-features li, :root[data-theme="light"] .instruct-box p { color: #4a5d70; }
+    :root[data-theme="light"] .mission-card:hover { box-shadow: 0 12px 30px rgba(0, 60, 105, 0.15); }
+    :root[data-theme="light"] select, :root[data-theme="light"] input[type="text"], :root[data-theme="light"] textarea.input-box, :root[data-theme="light"] input[type="number"] { background: #ffffff; }
+    :root[data-theme="light"] .stat-box, :root[data-theme="light"] .mode-toggle-bar, :root[data-theme="light"] .mod-btn, :root[data-theme="light"] .instruct-box, :root[data-theme="light"] .simulator-card { background: #f7f8fb; }
+    :root[data-theme="light"] .reward-bar, :root[data-theme="light"] .badge-chip, :root[data-theme="light"] .btn-clue, :root[data-theme="light"] .snip-btn { background: #f7f8fb; border-color: #dadce6; }
+    :root[data-theme="light"] .xp-bar-outer { background: #e3e4de; border-color: #dadce6; }
+    :root[data-theme="light"] th { background: #eef0f5; }
+    :root[data-theme="light"] .phase-toggle-btn.active-home { background: #003c69; color: #fff; }
+    :root[data-theme="light"] .phase-toggle-btn:hover { color: #003c69; }
+    :root[data-theme="light"] .editor-wrapper, :root[data-theme="light"] .editor-toolbar { background: #0f172a; }
+    :root[data-theme="light"] header h1 { color: #ffffff; }
+    /* Legacy goal-setting wizard (src/components/Goals/GoalSettingModal.js injects its own dark styles). */
+    :root[data-theme="light"] .goal-modal-overlay { background: rgba(1, 29, 54, 0.55); }
+    :root[data-theme="light"] .goal-modal-content { background: #ffffff; box-shadow: 0 24px 60px -24px rgba(1, 28, 54, 0.45); }
+    :root[data-theme="light"] .goal-modal-header { border-bottom-color: #e2d3ef; }
+    :root[data-theme="light"] .goal-modal-header h2, :root[data-theme="light"] .goal-step h3 { color: #003c69; }
+    :root[data-theme="light"] .goal-modal-header p { color: #6b3f86; }
+    :root[data-theme="light"] .goal-option-btn, :root[data-theme="light"] .topic-item, :root[data-theme="light"] .goal-duration-btn { background: #f0e8f7; color: #17324d; border-color: #e2d3ef; }
+    :root[data-theme="light"] .goal-option-btn:hover, :root[data-theme="light"] .topic-item:hover, :root[data-theme="light"] .goal-duration-btn:hover, :root[data-theme="light"] .topic-item.selected { background: #e2d3ef; border-color: #8250a0; }
+    :root[data-theme="light"] .goal-duration-btn.selected { background: #8250a0; border-color: #8250a0; color: #ffffff; }
+    :root[data-theme="light"] .goal-modal-body, :root[data-theme="light"] .goal-modal-body p, :root[data-theme="light"] .goal-modal-body label { color: #17324d; }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {

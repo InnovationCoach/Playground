@@ -29,7 +29,7 @@ export function initAdmin() {
     return true;
   }
 
-  const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'demo-hearisland-local';
+  const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'dnd-master-73449';
   const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
     || path.join(__dirname, '..', 'scripts', 'firebase-admin-key.json');
 
@@ -37,14 +37,8 @@ export function initAdmin() {
     if (fs.existsSync(keyPath)) {
       initializeApp({ credential: cert(JSON.parse(fs.readFileSync(keyPath, 'utf8'))), projectId });
     } else {
-      // Works on Cloud Run / App Hosting, where credentials come from the
-      // runtime service account rather than a key file.
-      initializeApp({ credential: applicationDefault(), projectId });
+      initializeApp();
     }
-
-    // initializeApp succeeds even with unusable credentials, so prove the auth
-    // service is actually reachable before claiming verification is enabled.
-    getAuth();
     adminReady = true;
   } catch (err) {
     console.error('[Auth] Firebase Admin failed to initialise:', err.message);

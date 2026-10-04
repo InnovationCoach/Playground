@@ -25,6 +25,7 @@ export function parseRoute(hash) {
     if (KINDS.includes(a)) return { screen: 'admin', page: 'list', kind: a };
     if (a === 'billing') return { screen: 'admin', page: 'billing' };
     if (a === 'materials') return { screen: 'admin', page: 'materials' };
+    if (a === 'learning') return { screen: 'admin', page: 'learning' };
     if (a === 'users' && b) return { screen: 'admin', page: 'detail', uid: b };
     if (a === 'new' && KINDS.includes(b)) return { screen: 'admin', page: 'create', kind: b };
     return { screen: 'admin', page: 'list', kind: 'students' };

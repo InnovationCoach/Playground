@@ -5,41 +5,9 @@
 
 import { createGoalSettingModal } from '../components/Goals/GoalSettingModal.js';
 import { createGoalsDashboard } from '../components/Goals/GoalsDashboard.js';
-import { db, doc, getDoc, updateDoc, setDoc } from '../firebase.js';
+import { db, doc, getDoc, setDoc } from '../firebase.js';
 
-/**
- * The wizard stores its own state as a `goals` object on the user document, but
- * the coach dashboard reads one document per goal from users/{uid}/goals. Without
- * this the two never meet and every coach sees "0 students with goals".
- */
-async function writeGoalsSubcollection(userId, goalData) {
-  const list = Array.isArray(goalData?.goals) ? goalData.goals : [];
-  if (!list.length) return;
-
-  const createdAt = Date.parse(goalData.createdAt) || Date.now();
-  const targetDate = new Date(createdAt + (goalData.durationDays || 30) * 86400000)
-    .toISOString().slice(0, 10);
-  const done = new Set((goalData.completedGoals || []).map(String));
-
-  await Promise.all(list.map((entry, i) => {
-    const title = typeof entry === 'string' ? entry : (entry?.title || entry?.text || `Goal ${i + 1}`);
-    const goalId = `goal_${createdAt}_${i}`;
-    const achieved = done.has(String(i)) || done.has(title);
-    return setDoc(doc(db, 'users', userId, 'goals', goalId), {
-      goalId,
-      title,
-      learningPath: goalData.learningPath || null,
-      topic: goalData.topic || null,
-      status: achieved ? 'achieved' : 'on_track',
-      progress: achieved ? 1 : 0,
-      targetDate,
-      createdAt,
-      source: 'goal-setting-wizard'
-    }, { merge: true });
-  }));
-
-  console.log(`[GoalSetting] Mirrored ${list.length} goal(s) to users/${userId}/goals`);
-}
+import { mirrorGoalsToSubcollection as writeGoalsSubcollection } from '../components/Goals/GoalsDashboard.js';
 
 export async function initializeGoalSettingForUser(userId) {
   console.log('[GoalSetting] Initializing goal setting for user:', userId);
@@ -125,7 +93,8 @@ function showGoalSettingFlow(userId) {
   const existing = document.getElementById('goal-setting-modal');
   if (existing) existing.remove();
 
-  // Create and display goal-setting modal
+  // Create and display goal-setting modal; the strip renders behind it.
+  loadGoalsDashboard(userId);
   const modal = createGoalSettingModal(userId);
 
   // Listen for goalsSet event

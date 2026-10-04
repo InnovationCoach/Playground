@@ -362,13 +362,33 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
 .gh-auth-points li { display: flex; gap: 0.75rem; align-items: center; color: rgba(255, 255, 255, 0.92); font-size: 0.93rem; }
 .gh-auth-points span { width: 34px; height: 34px; border-radius: 10px; background: rgba(255, 255, 255, 0.13); display: grid; place-items: center; }
 .gh-auth-foot { font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); }
-.gh-auth-main { display: flex; align-items: center; justify-content: center; padding: 2.5rem 16px; background: #fff; }
-.gh-auth-card { width: min(400px, 100%); }
+.gh-auth-main { display: flex; align-items: center; justify-content: center; padding: 2.5rem 16px; background: #ffffff !important; color: #14213a; }
+.gh-auth-card { width: min(400px, 100%); color: #14213a; }
 .gh-auth-mobile-logo-img { visibility: hidden; }
-.gh-auth-card h1 { font-size: 1.65rem; }
+.gh-auth-card h1 { font-size: 1.65rem; color: #0f2c4c !important; }
+.gh-auth-card .gh-sub { color: #4b5670 !important; }
+.gh-auth-card .gh-label { color: #14213a !important; }
+.gh-auth-card .gh-input,
+.gh-auth-card .gh-select {
+  background-color: #ffffff !important;
+  color: #14213a !important;
+  border: 1px solid #cfd3df !important;
+}
+.gh-auth-card .gh-input::placeholder {
+  color: #737d93 !important;
+}
+.gh-auth-card .gh-input:hover,
+.gh-auth-card .gh-select:hover {
+  border-color: #8250a0 !important;
+}
+.gh-auth-card .gh-input:focus,
+.gh-auth-card .gh-select:focus {
+  border-color: #8250a0 !important;
+  box-shadow: 0 0 0 3px rgba(130, 80, 160, 0.15) !important;
+}
 .gh-auth-form { display: grid; gap: 1rem; margin-top: 1.5rem; }
 .gh-auth-row { display: flex; justify-content: space-between; align-items: center; }
-.gh-auth-switch { text-align: center; font-size: 0.88rem; color: var(--gh-text-2); margin-top: 1.5rem; }
+.gh-auth-switch { text-align: center; font-size: 0.88rem; color: #4b5670 !important; margin-top: 1.5rem; }
 .gh-linkish { background: none; border: none; padding: 0; color: var(--gh-purple); font: 600 0.86rem var(--gh-font); cursor: pointer; }
 .gh-linkish:hover { color: var(--gh-purple-600); text-decoration: underline; }
 .gh-auth .gh-segmented { display: flex; }
@@ -460,3 +480,8 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
   .gh-brand-divider, .gh-brand-name, .gh-user-btn .gh-user-name { display: none; }
   .gh-subnav .as { flex: 1 1 100%; margin-left: 0; }
 }
+
+/* Quick light/dark switch in the top bar (full choice lives in Settings). */
+.gh-theme-btn { width: 36px; height: 36px; justify-content: center; padding: 0; }
+.gh-theme-btn svg { color: #8250a0; }
+[data-theme="dark"] .gh-theme-btn svg { color: #d9b3ff; }

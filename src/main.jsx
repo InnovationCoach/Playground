@@ -17,7 +17,7 @@ import { LocaleProvider } from './app/i18n/LocaleProvider.jsx';
 import { ThemeProvider } from './app/theme/ThemeProvider.jsx';
 
 function Root() {
-  const [userTheme, setUserTheme] = useState('system');
+  const [userTheme, setUserTheme] = useState('light');
 
   return (
     <LocaleProvider>

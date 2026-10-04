@@ -8,6 +8,34 @@ import {
   phaseProgress, competencyCoverage, readiness, copilotContext, copilotRequest, safeLink, LIMITS
 } from '../src/features/pbl/engine/pblProject.js';
 import { parseRoute, hrefFor } from '../src/app/routes.js';
+import { projectProgress, activityProgress } from '../src/features/coach/progressModel.js';
+
+describe('coach progress accuracy', () => {
+  it('does not fabricate a current-term project from absent or mismatched records', () => {
+    expect(projectProgress({})).toBeNull();
+    expect(projectProgress({ [`pbl-${TERM.id}`]: newProject('old-term') })).toBeNull();
+  });
+  it('keeps learner task checks, evidence and readiness separate', () => {
+    const project = newProject(TERM.id);
+    project.tasksDone[PHASES[0].id] = [0];
+    const result = projectProgress({ [`pbl-${TERM.id}`]: project });
+    expect(result.phases[0].tasksDone).toBe(1);
+    expect(result.phases[0].evidenceCount).toBe(0);
+    expect(result.phases[0].complete).toBe(false);
+    expect(result.readiness.done).toBe(0);
+  });
+  it('does not count initialized Solar Car run slots as actual runs or completion', () => {
+    const result = activityProgress('solar-car', { runs: [{ seconds: '' }, { seconds: null }, { seconds: '4.2' }] });
+    expect(result.detail).toContain('1 timed run recorded');
+    expect(result.status).toBe('Cloud record available');
+  });
+  it('preserves a zero score and requires an explicit completion marker', () => {
+    expect(activityProgress('urban-heat', { score: 0 }).detail).toBe('Recorded score: 0');
+    expect(activityProgress('urban-heat', { score: 90 }).status).toBe('Cloud record available');
+    expect(activityProgress('urban-heat', { completed: true }).status).toBe('Marked complete');
+    expect(activityProgress('urban-heat', null).status).toBe('No cloud record');
+  });
+});
 
 describe('competency framework (from the school spreadsheet)', () => {
   it('has all 85 competencies in 7 domains with unique ids', () => {

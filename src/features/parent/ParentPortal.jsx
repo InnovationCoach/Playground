@@ -7,6 +7,7 @@ import { useAsync } from '../admin/ui/useAsync.js';
 import { Alert, Field, StatusBadge } from '../admin/ui/bits.jsx';
 import { Avatar } from '../shell/Avatar.jsx';
 import '../admin/admin.css';
+import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 
 /**
  * Parent portal, first version: linked children (read-only) and linking a
@@ -50,6 +51,7 @@ export function ParentPortal() {
       )}
 
       <LinkChildCard onLinked={(child) => { setLinkedName(child.givenNames || child.displayName); children.reload(); }} />
+      <SchoolLearningPanel key={items.map(child=>child.uid).join(',')} initialArea="home" />
     </div>
   );
 }
@@ -80,7 +82,7 @@ function ChildCard({ child }) {
       {child.consentStatus === 'required' && <div style={{ marginTop: '1rem' }}><Alert type="info">{t('parent.consentRequired')}</Alert></div>}
       <div className="gh-placeholder" style={{ marginTop: '1rem', padding: '0.8rem 0.9rem', fontSize: '0.84rem' }}>
         <ChartLine size={18} aria-hidden="true" style={{ color: 'var(--gh-text-3)' }} />
-        {t('parent.progressPending')}
+        View PBL progress, learning goals and dated academic observations in the workspace below.
       </div>
     </li>
   );

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createNote, fetchNotes, deleteNote } from '../../auth.js';
 import { JoinClassPanel } from '../enrolment/JoinClassPanel.jsx';
 import '../enrolment/joinPanel.css';
+import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 
 /**
  * Student landing view: welcome, notes, and the goals panel.
@@ -70,6 +71,7 @@ export function StudentDashboard({ profile, uid, onProfileChanged }) {
       )}
 
       <div id="goals-dashboard-container" style={{ marginBottom: '2rem' }} />
+      <SchoolLearningPanel initialArea="home" learnerName={profile?.displayName} />
 
       <div className="card">
         <h3 style={{ marginBottom: '1rem' }}>📝 Your Notes</h3>
@@ -124,5 +126,5 @@ export function StudentDashboard({ profile, uid, onProfileChanged }) {
 
 const inputStyle = {
   width: '100%', padding: '0.5rem', border: '1px solid var(--card-border)',
-  borderRadius: 6, background: '#0b1329', color: '#f8fafc'
+  borderRadius: 6, background: 'var(--surface-input)', color: 'var(--text-light)'
 };

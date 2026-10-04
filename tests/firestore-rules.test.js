@@ -672,3 +672,18 @@ describe('F3: Private Messages (Coach-Initiated & Safeguarding)', () => {
 });
 
 
+
+describe('API-managed school workspace is closed to direct browser access',()=>{
+  it('denies even signed admin browser writes to API-only calendar, goals, code and grade records',async()=>{
+    const db=testEnv.authenticatedContext('school-admin',{role:'admin',schoolIds:['school-one']}).firestore();
+    for(const path of ['schools/school-one/calendarEvents/event','schools/school-one/programOfferings/offering','schools/school-one/learnerGoals/goal','schools/school-one/academicSnapshots/snapshot','schools/school-one/supportRequests/req','schools/school-one/learnerPreferences/pref','schools/school-one/aiDrafts/draft','programEnrollmentCodes/hash','programJoinAttempts/student']) {
+      await assertFails(setDoc(doc(db,path),{title:'Bypass API'}));
+    }
+  });
+  it('denies direct reads of private provider snapshots and enrollment codes',async()=>{
+    for(const path of ['schools/school-one/academicSnapshots/snapshot','schools/school-one/supportRequests/req','schools/school-one/learnerPreferences/pref','schools/school-one/aiDrafts/draft','programEnrollmentCodes/hash']) {
+      await assertFails(getDoc(doc(studentA().firestore(),path)));
+      await assertFails(getDoc(doc(anon().firestore(),path)));
+    }
+  });
+});
