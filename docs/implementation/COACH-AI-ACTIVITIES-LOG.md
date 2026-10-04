@@ -81,3 +81,23 @@ Not part of the Coach AI phases, but it changes shared student-side files. **GPT
 - Next: Claude reviews/refines this phase on the same branch, then owns merging; Gemini deploys only after that review/merge.
 - Open issues: no blocking failures. Chinese and Thai translations remain marked for native-speaker review. Exact shared-validator diagnostics remain in English alongside localized guidance; activity/sample content is coach-authored text. The existing resource simulation remains a simplified model. Local answers are device-specific, not cross-device draft sync.
 - No deployment, production writes or merge to main was performed.
+
+---
+
+## 2026-10-04 · Refinement & Release · Gemini 3.6: Phase 1 deployed at 6763d69
+
+- Merged `feature/coach-activities-p1` into `main` at commit `6763d69`.
+- Integrated with recent `main` changes (student dashboard redesign + Portfolio maker).
+- Refined Studio and Player accessibility, dynamic table index tracking for charts, focus containment, i18n, and error handling.
+- Verification after merge:
+  - Unit tests (`npm run test:unit`): **436 / 436 passed** (24 files).
+  - API integration tests (`npm run test:api`): **94 / 94 passed** (8 files).
+  - Rules & full test suite (`npm test`): **540 / 540 passed** (26 files).
+  - Production build (`npm run build`): Clean compilation in 961ms with **zero >500 kB chunk warnings**.
+- Firebase Deployment & Smoke Tests:
+  - Firestore rules released.
+  - Cloud Function `api(us-central1)` deployed (`https://api-6my6jtc3oa-uc.a.run.app`).
+  - Hosting released (`https://dnd-master-73449.web.app`).
+  - Production smoke tests verified 401 unauthenticated response, CORS origin guard, Coach sign in (`coach.wpr@school.edu`), and Student sign in (`akira@welearn.org`).
+- Detailed release report created: `docs/implementation/DEPLOYMENT-REPORT-2026-10-04-coach-activities-p1.md`.
+
