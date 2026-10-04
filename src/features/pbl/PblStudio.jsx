@@ -43,7 +43,6 @@ export function PblStudio({ uid, role, tab, onOpenActivity }) {
         <div className="pb-hero-text">
           <span className="pb-kicker">
             PBL Studio · {TERM.label}
-            {TERM.draft && <span className="pb-draft" title="Placeholder until the school confirms this term's theme">theme to be confirmed</span>}
           </span>
           <h1>{TERM.theme}</h1>
           <p className="pb-dq">{TERM.drivingQuestion}</p>

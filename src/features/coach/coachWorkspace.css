@@ -1,7 +1,7 @@
 .cw-app { --gh-muted:var(--gh-text-2); min-height:calc(100vh - 114px); background:var(--gh-bg); color:var(--gh-text); }
 .cw-page { max-width:1480px; margin:auto; padding:32px clamp(20px,3vw,44px); }
 .cw-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:26px; }
-.cw-heading h1 { font-size:clamp(24px,2.1vw,32px); line-height:1.25; margin:8px 0 !important; }
+.cw-heading h1 { font-size:clamp(24px,2.1vw,32px); line-height:1.25; margin:8px 0 !important; color:var(--gh-heading, #0f2c4c); }
 .cw-heading p,.cw-roster-heading p { margin:6px 0 0; color:var(--gh-muted); font-size:14px; line-height:1.6; }
 .cw-eyebrow { color:var(--gh-purple); font-size:11px; font-weight:750; letter-spacing:.12em; }
 .cw-tools { display:flex; flex-wrap:wrap; gap:8px; }

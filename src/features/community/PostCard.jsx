@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Flag } from 'lucide-react';
+import { Heart, MessageCircle, Flag, X } from 'lucide-react';
 import { useAuth } from '../../app/AuthProvider.jsx';
 import { likePost, unlikePost, hasUserLiked, addComment, getComments, onCommentsChanged, deletePost } from './communityAPI.js';
 import { ReportModal } from './ReportModal.jsx';
@@ -78,9 +78,10 @@ export function PostCard({ post }) {
         {canDelete && (
           <button
             onClick={handleDelete}
+            aria-label="Delete post"
             style={{ background: 'transparent', border: 'none', color: 'var(--gh-red)', cursor: 'pointer', padding: '4px' }}
           >
-            ✕
+            <X size={16} aria-hidden="true" />
           </button>
         )}
       </div>

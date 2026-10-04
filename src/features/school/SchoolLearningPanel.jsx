@@ -16,6 +16,13 @@ const areas = [
   ['academic', 'Academic Progress', GraduationCap],
   ['calendar', 'School Calendar', CalendarDays]
 ];
+// Tab names follow what each role actually sees in that area.
+function areaLabel(id, role) {
+  if (role === 'parent' && id === 'home') return 'Family overview';
+  if (role === 'parent' && id === 'programs') return 'PBL Progress';
+  if (id === 'home' && ['admin', 'supervisor', 'teacher', 'coach'].includes(role)) return 'Learner support';
+  return areas.find(([areaId]) => areaId === id)?.[1];
+}
 const today = () => new Date().toLocaleDateString('en-CA', {
   timeZone: 'Asia/Bangkok'
 });
@@ -79,8 +86,8 @@ export function SchoolLearningPanel({
   const classes = (context.data?.classes || []).filter(c => c.schoolId === school?.id && (classScope === 'all' || c.id === classScope)),
     role = context.data?.role;
   return <section className="sw-panel gh-app" aria-label="School learning workspace">
-    <header className="sw-heading"><div><span className="sw-kicker">WELEARN · SCHOOL LEARNING</span><h2>{role==='parent' && area==='home'?'Family overview':role==='parent' && area==='programs'?'PBL Progress':areas.find(([id]) => id === area)?.[1]}</h2></div><div className="sw-actions">{schools.length > 1 && <Field label="School"><select value={school?.id || ''} onChange={e => setSchoolId(e.target.value)}>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}<button className="gh-btn gh-btn-ghost" onClick={context.reload}><RefreshCw size={16} />Check access</button></div></header>
-    {!hideTabs && <nav className="sw-tabs" aria-label="School learning sections">{areas.map(([id, label, Icon]) => <button key={id} aria-current={area === id ? 'page' : undefined} onClick={() => setArea(id)}><Icon size={16} />{role==='parent' && id==='home'?'Family overview':role==='parent' && id==='programs'?'PBL Progress':label}</button>)}</nav>}
+    <header className="sw-heading"><div><span className="sw-kicker">WELEARN · SCHOOL LEARNING</span><h2>{areaLabel(area, role)}</h2></div><div className="sw-actions">{schools.length > 1 && <Field label="School"><select value={school?.id || ''} onChange={e => setSchoolId(e.target.value)}>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}<button className="gh-btn gh-btn-ghost" onClick={context.reload}><RefreshCw size={16} />Check access</button></div></header>
+    {!hideTabs && <nav className="sw-tabs" aria-label="School learning sections">{areas.map(([id, , Icon]) => <button key={id} aria-current={area === id ? 'page' : undefined} onClick={() => setArea(id)}><Icon size={16} />{areaLabel(id, role)}</button>)}</nav>}
     {context.loading && <p role="status">Checking your school access…</p>}{message(context.error)}
     {!context.loading && !context.error && !school && <p>Your verified school membership needs checking. Ask the administrator to assign your school and classes.</p>}
     {school && !context.error && <div key={`${school.id}-${role}-${classScope}`}>

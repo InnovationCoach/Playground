@@ -70,23 +70,23 @@ export function W2eCoachSupportPanel({ school, classes }) {
       <div className="w2e-two-col" style={{ marginBottom: '20px' }}>
         <div className="sw-card" style={{ borderLeft: '4px solid var(--wl-purple, #8250A0)' }}>
           <span className="sw-kicker">OPEN REQUESTS</span>
-          <h2 style={{ fontSize: '28px', margin: '4px 0' }}>{requests.loading ? 'Loading…' : requests.error ? 'Unavailable' : openRequests.length}</h2>
+          <h2 style={{ fontSize: '28px', margin: '4px 0' }}>{requests.loading ? 'Loading…' : requests.error ? 'Could not load' : openRequests.length}</h2>
           <small className="sw-muted">Learner-submitted support notes</small>
         </div>
         <div className="sw-card" style={{ borderLeft: '4px solid var(--wl-sky, #9BD2FF)' }}>
           <span className="sw-kicker">AWAITING REVIEW</span>
-          <h2 style={{ fontSize: '28px', margin: '4px 0' }}>Unavailable</h2>
-          <small className="sw-muted">Project evidence submitted for feedback</small>
+          <h2 style={{ fontSize: '20px', margin: '8px 0 4px', color: 'var(--gh-muted, #5d6b7a)' }}>Not tracked yet</h2>
+          <small className="sw-muted">Project evidence submitted for feedback. For now, see PBL Programs › Lesson evidence.</small>
         </div>
         <div className="sw-card" style={{ borderLeft: '4px solid var(--wl-red, #AE3435)' }}>
           <span className="sw-kicker">OVERDUE GOALS</span>
-          <h2 style={{ fontSize: '28px', margin: '4px 0' }}>Unavailable</h2>
-          <small className="sw-muted">PBL & STEAM learning milestones</small>
+          <h2 style={{ fontSize: '20px', margin: '8px 0 4px', color: 'var(--gh-muted, #5d6b7a)' }}>Not tracked yet</h2>
+          <small className="sw-muted">PBL & STEAM learning milestones. For now, see Learning Goals.</small>
         </div>
         <div className="sw-card" style={{ borderLeft: '4px solid var(--wl-stone, #D9DAD3)' }}>
           <span className="sw-kicker">MISSING DATA</span>
-          <h2 style={{ fontSize: '28px', margin: '4px 0' }}>Unavailable</h2>
-          <small className="sw-muted">Dated provider observations pending</small>
+          <h2 style={{ fontSize: '20px', margin: '8px 0 4px', color: 'var(--gh-muted, #5d6b7a)' }}>Not tracked yet</h2>
+          <small className="sw-muted">Provider sync is pending. Coach observations are in Academic Progress.</small>
         </div>
       </div>
 
