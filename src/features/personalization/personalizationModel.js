@@ -1,3 +1,8 @@
+import {PHASES} from '../pbl/content/pblModel.js';
+
+/** Design-thinking stages a portfolio entry can belong to (Portfolio maker). */
+export const PHASE_IDS = PHASES.map(p => p.id);
+
 export const PALETTES = {
   plum: {label: 'Plum', accent: '#623580', ink: '#202b38'},
   ocean: {label: 'Ocean', accent: '#155477', ink: '#202b38'},
@@ -46,6 +51,17 @@ export function normalizeItem(value, uid) {
   if (!result.title || (!result.body && !result.link && !result.media)) invalid('Add a title and some work, a link, or a file.');
   if (result.kind === 'image' && !result.media) invalid('Choose an image file.');
   if (result.kind === 'recording' && !result.media) invalid('Choose or record an audio or video file.');
+  // Optional design-thinking stage for the Portfolio maker. A stage reflection is
+  // the learner's one written reflection for that stage.
+  if (value.phase !== undefined && value.phase !== null && value.phase !== '') {
+    if (!PHASE_IDS.includes(value.phase)) invalid('Choose a valid design thinking stage.');
+    result.phase = value.phase;
+  }
+  if (value.phaseReflection === true) {
+    if (!result.phase || result.kind !== 'writing') invalid('A stage reflection must be written work with a stage.');
+    if (!result.body) invalid('Write your reflection before saving.');
+    result.phaseReflection = true;
+  }
   return result;
 }
 export function moveWidget(order, id, target) {
