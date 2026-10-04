@@ -89,6 +89,7 @@ export async function initializeGoalSettingForUser(userId) {
 }
 
 function showGoalSettingFlow(userId) {
+  if (!document.getElementById('goals-dashboard-container')) return;
   // Remove existing modal if any
   const existing = document.getElementById('goal-setting-modal');
   if (existing) existing.remove();
@@ -135,18 +136,8 @@ function showGoalSettingFlow(userId) {
 }
 
 function loadGoalsDashboard(userId) {
-  let container = document.getElementById('goals-dashboard-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'goals-dashboard-container';
-    container.style.cssText = 'margin: 2rem 0;';
-    const dashboardCard = document.getElementById('dashboard-card');
-    if (dashboardCard) {
-      dashboardCard.insertBefore(container, dashboardCard.firstChild);
-    } else {
-      document.body.appendChild(container);
-    }
-  }
-
+  // Only the private dashboard owns this host. Never append private goals to
+  // the document body when a portfolio or another screen is being displayed.
+  if (!document.getElementById('goals-dashboard-container')) return;
   createGoalsDashboard('goals-dashboard-container', userId);
 }

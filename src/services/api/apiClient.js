@@ -68,7 +68,7 @@ async function mockRequest(method, path, { query, body }) {
   return res.body;
 }
 
-async function liveRequest(method, path, { query, body, refreshToken = false }) {
+async function liveRequest(method, path, { query, body, refreshToken = false, isRetry = false } = {}) {
   const user = auth.currentUser;
   if (!user) throw new ApiError({ code: 'UNAUTHENTICATED', status: 401 });
 
@@ -90,6 +90,15 @@ async function liveRequest(method, path, { query, body, refreshToken = false }) 
     const fb = mockAllowed ? handleSchoolFallback(method, path, body, callerRole) : null;
     if (fb !== null) return fb;
     throw new ApiError({ code: 'UNAVAILABLE', message: 'The school service could not be reached. Please try again.', status: 0 });
+  }
+
+  // Automatic single retry with fresh ID token if 401 returned for a signed-in user
+  if (res.status === 401 && !isRetry && auth.currentUser) {
+    try {
+      return await liveRequest(method, path, { query, body, refreshToken: true, isRetry: true });
+    } catch {
+      // Fallthrough to standard error processing if retry also fails
+    }
   }
 
   const text = await res.text();

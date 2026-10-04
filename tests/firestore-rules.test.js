@@ -687,3 +687,19 @@ describe('API-managed school workspace is closed to direct browser access',()=>{
     }
   });
 });
+
+describe('Private dashboard and portfolio API boundaries', () => {
+  it('denies direct reads and writes even to owners and assigned coaches', async () => {
+    await testEnv.withSecurityRulesDisabled(async ctx => {
+      for (const name of ['learnerSpaces', 'learnerPortfolios', 'portfolioAudienceGrants']) {
+        await setDoc(doc(ctx.firestore(), name, 'student_a'), {private: 'Protected'});
+      }
+    });
+    for (const name of ['learnerSpaces', 'learnerPortfolios', 'portfolioAudienceGrants']) {
+      for (const ctx of [studentA(), studentA2(), coachA(), anon()]) {
+        await assertFails(getDoc(doc(ctx.firestore(), name, 'student_a')));
+        await assertFails(setDoc(doc(ctx.firestore(), name, 'student_a'), {viewerUids:['student_a2']}));
+      }
+    }
+  });
+});

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../src/firebase.js', () => ({ db: null, doc: vi.fn(), setDoc: vi.fn(), getDoc: vi.fn() }));
+import { initializeGoalSettingForUser } from '../src/integrations/goalSettingIntegration.js';
 import { createGoalsDashboard } from '../src/components/Goals/GoalsDashboard.js';
 
 const uid = 'learner-1';
@@ -71,5 +72,21 @@ describe('Goals strip on the student home', () => {
     window.dispatchEvent(new CustomEvent('goalsSet', { detail: goals() }));
     expect($('.gl-strip').textContent).toContain('Data Analysis & Visualization');
     expect($('#gl-panel').hidden).toBe(false);
+  });
+});
+
+describe('Private goal integration on portfolio screens', () => {
+  it('does not append stored private goals outside the dashboard host', async () => {
+    document.body.innerHTML = '<main aria-label="Shareable portfolio"></main>';
+    localStorage.setItem(`userGoals_${uid}`, JSON.stringify(goals()));
+    await initializeGoalSettingForUser(uid);
+    expect(document.getElementById('goals-dashboard-container')).toBeNull();
+    expect(document.body.textContent).not.toContain('Build a prototype');
+    expect(document.getElementById('goal-setting-modal')).toBeNull();
+  });
+  it('does not open a private goal setup modal on a portfolio with no goals', async () => {
+    document.body.innerHTML = '<main aria-label="Shareable portfolio"></main>';
+    await initializeGoalSettingForUser(uid);
+    expect(document.getElementById('goal-setting-modal')).toBeNull();
   });
 });

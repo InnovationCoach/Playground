@@ -142,6 +142,11 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // Personalization and portfolio grants are served exclusively by the scoped API.
+    match /learnerSpaces/{uid} { allow read, write: if false; }
+    match /learnerPortfolios/{uid} { allow read, write: if false; }
+    match /portfolioAudienceGrants/{uid} { allow read, write: if false; }
+
     // User profiles
     // ---------------------------------------------------------------------
     match /users/{userId} {

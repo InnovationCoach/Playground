@@ -19,6 +19,8 @@ describe('School workspace: scoped programs, lessons, goals, academics and calen
   });
   beforeAll(async () => {
     env = await setupApiTestEnv();
+    // Reset this suite's disposable school fixture when reusing an emulator.
+    await env.db.recursiveDelete(env.db.collection('schools').doc(school));
     await env.db.collection('schools').doc(school).set({
       name: 'Workspace School',
       orgId: 'org-welearn',
@@ -38,6 +40,7 @@ describe('School workspace: scoped programs, lessons, goals, academics and calen
     for (const [name, role, classIds] of [['admin', 'admin', []], ['coach', 'teacher', [cls]], ['other', 'teacher', [otherClass]], ['student', 'student', [cls]], ['stranger', 'student', [otherClass]], ['parent', 'parent', []], ['supervisor', 'supervisor', []]]) {
       const uid = `workspace-${name}`,
         schoolIds = role === 'parent' ? [] : [school];
+      await env.db.collection('programJoinAttempts').doc(uid).delete();
       await env.db.collection('users').doc(uid).set({
         uid,
         role,
@@ -114,14 +117,15 @@ describe('School workspace: scoped programs, lessons, goals, academics and calen
       classIds: [cls]
     })).status).toBe(409);
   });
-  it('denies coach offering creation and cross-class offering access', async () => {
-    expect((await request('POST', `${base}/program-offerings`, 'coach', {})).status).toBe(403);
+  it('allows coaches to create offerings only for assigned classes', async () => {
+    expect((await request('POST', `${base}/program-offerings`, 'coach', {programId:'net-zero-microgrid',yearId:'2027-2028',classIds:[cls]})).status).toBe(201);
+    expect((await request('POST', `${base}/program-offerings`, 'coach', {programId:'net-zero-microgrid',yearId:'2027-2028',classIds:[otherClass]})).status).toBe(403);
     expect((await request('GET', `${base}/program-offerings/${offeringId}/lessons`, 'other')).status).toBe(403);
   });
-  it('issues admin-only codes and enrolls a learner idempotently', async () => {
+  it('issues scoped coach/admin codes and enrolls a learner idempotently', async () => {
     expect((await request('POST', `${base}/program-offerings/${offeringId}/codes`, 'coach', {
       classId: cls
-    })).status).toBe(403);
+    })).status).toBe(201);
     const issued = await request('POST', `${base}/program-offerings/${offeringId}/codes`, 'admin', {
       classId: cls
     });
@@ -138,6 +142,28 @@ describe('School workspace: scoped programs, lessons, goals, academics and calen
     });
     expect(retry.body.alreadyEnrolled).toBe(true);
     expect((await request('GET', `${base}/program-offerings`, 'student')).body.items[0].id).toBe(offeringId);
+  });
+  it('creates coach-owned custom programs, joins by code and publishes interactive lessons', async () => {
+    const created = await request('POST', `${base}/program-offerings`, 'coach', {programId:'custom',title:'Rainwater designers',drivingQuestion:'How can we collect enough rainwater?',yearId:'2026-custom',classIds:[cls]});
+    expect(created.status).toBe(201);
+    const id=created.body.id;
+    expect(created.body.programDefinition.milestones).toHaveLength(3);
+    expect((await request('POST', `${base}/program-offerings`, 'coach', {programId:'custom',title:'Foreign class',drivingQuestion:'Question',yearId:'2026-custom',classIds:[otherClass]})).status).toBe(403);
+    expect((await request('POST', `${base}/program-offerings/${id}/codes`, 'other', {classId:cls})).status).toBe(403);
+    const issued=await request('POST', `${base}/program-offerings/${id}/codes`, 'coach', {classId:cls});
+    expect(issued.status).toBe(201);
+    expect((await request('DELETE', `${base}/program-codes/${issued.body.id}`, 'other', {})).status).toBe(403);
+    expect((await request('POST','/api/program-enrollments/join','student',{code:issued.body.code})).status).toBe(200);
+    const content={title:'Water lab',outcome:'Compare resource designs',instructions:'Predict, test, reflect',classId:cls,milestoneId:'experiment',simulation:{kind:'resource-lab',title:'Rain lab',question:'Can we meet demand?',resource:'Water',unit:'litres',reflection:'Explain your evidence',demand:100,capacity:10,cost:20,budget:200}};
+    expect((await request('POST',`${base}/program-offerings/${id}/lessons`,'coach',{...content,simulation:{...content.simulation,capacity:-1}})).status).toBe(400);
+    const draft=await request('POST',`${base}/program-offerings/${id}/lessons`,'coach',content);
+    expect(draft.status).toBe(201);
+    expect((await request('GET',`${base}/program-offerings/${id}/lessons`,'student')).body.items).toHaveLength(0);
+    expect((await request('POST',`${base}/program-offerings/${id}/lessons/${draft.body.id}/publish`,'coach',{revision:1})).status).toBe(200);
+    const visible=await request('GET',`${base}/program-offerings/${id}/lessons`,'student');
+    expect(visible.body.items[0].simulation.capacity).toBe(10);
+    expect((await request('DELETE',`${base}/program-codes/${issued.body.id}`,'coach',{})).status).toBe(200);
+    expect((await request('POST','/api/program-enrollments/join','student',{code:issued.body.code})).status).toBe(404);
   });
   it('rejects invalid/revoked codes and staff self-enrollment', async () => {
     expect((await request('POST', '/api/program-enrollments/join', 'coach', {
@@ -228,7 +254,7 @@ describe('School workspace: scoped programs, lessons, goals, academics and calen
   });
   it('shows parent summaries without private artifact bodies or peer identities',async()=>{
     const view=await request('GET',`${base}/learner-program-summaries?learnerUid=workspace-student`,'parent');
-    expect(view.status).toBe(200);expect(view.body.items[0]).toMatchObject({publishedLessons:1,lessonsSubmitted:1,revisionsRequested:1});
+    expect(view.status).toBe(200);expect(view.body.items.find(item=>item.id===offeringId)).toMatchObject({publishedLessons:1,lessonsSubmitted:1,revisionsRequested:1});
     expect(JSON.stringify(view.body)).not.toContain('Measured 18 seconds');
     expect((await request('GET',`${base}/learner-program-summaries?learnerUid=workspace-stranger`,'parent')).status).toBe(403);
   });
@@ -306,22 +332,22 @@ describe('School workspace: scoped programs, lessons, goals, academics and calen
     })).status).toBe(400);
     for(const completed of ['',null,[]]) expect((await request('POST', `${base}/academic-progress`, 'coach', {...body,completed})).status).toBe(400);
   });
-  it('only admin creates school calendar events', async () => {
+  it('coaches and admins create school calendar events', async () => {
     const body = {
       title: 'School showcase',
       startDate: '2026-10-30',
       endDate: '2026-10-30',
       allDay: true
     };
-    for (const role of ['coach', 'student', 'parent', 'supervisor']) expect((await request('POST', `${base}/calendar-events`, role, body)).status).toBe(403);
-    const result = await request('POST', `${base}/calendar-events`, 'admin', body);
+    for (const role of ['student', 'parent', 'supervisor']) expect((await request('POST', `${base}/calendar-events`, role, body)).status).toBe(403);
+    const result = await request('POST', `${base}/calendar-events`, 'coach', body);
     expect(result.status).toBe(201);
     event = result.body;
   });
   it('all dashboards read the same event and edit conflicts are surfaced', async () => {
     for (const role of ['admin', 'coach', 'student', 'parent']) expect((await request('GET', `${base}/calendar-events?from=2026-10-01&to=2026-10-31`, role)).body.items[0].title).toBe('School showcase');
     const path = `${base}/calendar-events/${event.id}`;
-    for (const role of ['coach', 'student', 'parent', 'supervisor']) {
+    for (const role of ['student', 'parent', 'supervisor']) {
       expect((await request('PATCH', path, role, {
         ...event,
         title: 'Unauthorized'
@@ -330,7 +356,7 @@ describe('School workspace: scoped programs, lessons, goals, academics and calen
         revision: 1
       })).status).toBe(403);
     }
-    expect((await request('PATCH', path, 'admin', {
+    expect((await request('PATCH', path, 'coach', {
       ...event,
       title: 'Updated showcase'
     })).status).toBe(200);

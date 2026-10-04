@@ -23,6 +23,11 @@ const response = (status, data, type = 'application/json') => ({
 describe('Live school requests never substitute sample responses', () => {
   beforeEach(() => vi.stubGlobal('fetch', vi.fn()));
   afterEach(() => vi.unstubAllGlobals());
+  it('supports read requests with no options argument', async () => {
+    fetch.mockResolvedValue(response(200, {revision: 0}));
+    await expect(schoolRequest('GET', '/api/learner-space')).resolves.toEqual({revision: 0});
+    expect(fetch).toHaveBeenCalledWith('/api/learner-space', expect.objectContaining({method: 'GET'}));
+  });
   it('surfaces network failures on saves', async () => {
     fetch.mockRejectedValue(new Error('Offline'));
     await expect(schoolRequest('POST', '/api/schools/school/calendar-events', {

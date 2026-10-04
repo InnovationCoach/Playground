@@ -1,0 +1,13 @@
+# Coach-created programs and interactive lesson starters
+
+Coaches: open Coach dashboard → PBL Studio → Create your own program. Enter a title, driving question, school year and assigned class. The program receives Explore and predict, Build and experiment, and Reflect and share milestones. Select the program and open Enrollment code management to issue a class code. Codes expire after 30 days and can be disabled from the issuing panel. Save the displayed code before leaving; plaintext codes are not stored on the server.
+
+Students sign in with their own account, open Private dashboard → PBL Programs, and enter Program class code. The code enrolls the student in the program; it does not authenticate them or grant arbitrary school access. Enrollment selects the joined program automatically. Students see only published lessons.
+
+Coaches add a lesson, then open Build an interactive simulation. Describe a resource challenge (energy or water), build the draft, and edit its title, question, unit, demand, unit capacity, cost and budget. Test the preview, save the lesson draft, then publish it. The starter is template-assisted, not AI-generated; it uses no external API key and cannot execute arbitrary HTML/scripts. Broader custom physics, robotics, 3D, and AI-generated simulation logic are not implemented by this starter.
+
+Students predict, adjust units and efficiency with sliders or keyboard controls, record up to ten experiments, and write a reflection. They can download a plain-text evidence report and submit its contents with lesson evidence. Trials are in-memory and do not persist after leaving the tab; this is explained in the interface. This resource model is simplified, not a real-world engineering predictor.
+
+Custom definitions are stored under existing schools/{schoolId}/programOfferings. Structured simulation settings are stored on lessons and validated server-side. Class checks scope custom program creation, code issuance and revocation. Code secrets are hashed. Learners cannot create programs/codes; draft lesson and program data remain subject to existing API access checks. No new client Firestore access permissions were added.
+
+Validation: 342 unit checks, 22 school API checks, production build and diff formatting pass. Live coach test created Local test: Rainwater designers, issued a code, saved and published Design a rainwater system. Live Mia student test joined, automatically selected the custom program, used keyboard sliders to reach 100 litres at 200 credits, and recorded an experiment. Screenshot: output/coach-program-student-simulation.jpg. Local synthetic program remains for continued testing. No production deployment.

@@ -180,7 +180,7 @@ for (const coach of COACHES) {
 const REVIEW_STAFF = [
   {
     email: 'admin.test@school.edu', givenNames: 'Admin', surname: 'Test', role: 'admin',
-    claims: { role: 'admin', orgId: ORG_ID }, schoolIds: ['sch-bkk', 'sch-online']
+    claims: { role: 'admin', orgId: ORG_ID, schoolIds: ['sch-bkk', 'sch-online'] }, schoolIds: ['sch-bkk', 'sch-online']
   },
   {
     email: 'supervisor.test@school.edu', givenNames: 'Supervisor', surname: 'Test', role: 'supervisor',
@@ -247,7 +247,7 @@ for (const s of STUDENTS) {
     miaStudentUid = user.uid;
   }
 
-  await auth.setCustomUserClaims(user.uid, { role: 'student', orgId: ORG_ID });
+  await auth.setCustomUserClaims(user.uid, { role: 'student', orgId: ORG_ID, schoolIds: ['sch-bkk'], classIds: [s.classId] });
 
   const userDoc = {
     uid: user.uid,

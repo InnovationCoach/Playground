@@ -1,3 +1,4 @@
+import { SimulationBuilder, SimulationLab } from './SimulationLab.jsx';
 import { useEffect, useState } from 'react';
 import { auth, storage } from '../../firebase.js';
 import { BookOpen, CalendarDays, Target, GraduationCap, RefreshCw, Sparkles, HeartHandshake } from 'lucide-react';
@@ -84,7 +85,7 @@ export function SchoolLearningPanel({
     {school && !context.error && <div key={`${school.id}-${role}-${classScope}`}>
       <p className="sw-muted">{school.name} · {role === 'admin' ? 'School administration' : role === 'parent' ? 'Your linked children' : role === 'student' ? 'Your learning' : 'Your assigned classes'}</p>
       {area === 'home' && (role === 'parent' ? <ParentOverview school={school} onNavigate={setArea}/> : role === 'student' ? <W2eLearnerStudio school={school} classes={classes} learnerName={learnerName} onNavigate={setArea} onJoined={context.reload} onChooseProgram={id => { setProgramChoice(id); setArea('programs'); }} /> : ['admin','supervisor','teacher','coach'].includes(role) ? <W2eCoachSupportPanel school={school} classes={classes} /> : null)}
-      {area === 'programs' && (role==='parent' ? <ParentProgramProgress school={school}/> : <Programs school={school} classes={classes} role={role} onJoined={context.reload} initialProgram={programChoice} />)}
+      {area === 'programs' && (role==='parent' ? <ParentProgramProgress school={school}/> : <Programs school={school} classes={classes} role={role} onJoined={programId=>{setProgramChoice(programId||'');context.reload();}} initialProgram={programChoice} />)}
       {area === 'goals' && <Goals school={school} classes={classes} role={role} />}
       {area === 'academic' && <Academic school={school} classes={classes} role={role} />}
       {area === 'calendar' && <SchoolCalendar school={school} role={role} />}
@@ -99,36 +100,41 @@ function Programs({
   initialProgram = ''
 }) {
   const offerings = useSchoolResource(schoolPath(school.id, 'program-offerings'),true);
-  const [selected, setSelected] = useState(programById(initialProgram) ? initialProgram : 'sustainable-futures'),
+  const [selected, setSelected] = useState(initialProgram || 'sustainable-futures'),
     [offeringId, setOfferingId] = useState(''),
     [code, setCode] = useState(''),
     [year, setYear] = useState('2026-2027'),
     [classId, setClassId] = useState(classes[0]?.id || '');
+  const [customTitle, setCustomTitle] = useState(''), [customQuestion, setCustomQuestion] = useState('');
   const [state, run] = useMutation(offerings.reload),
-    template = programById(selected),
+    customPrograms = (offerings.data?.items || []).filter(o => o.programDefinition).map(o => o.programDefinition),
+    catalogue = [...PROGRAM_CATALOGUE, ...customPrograms],
+    template = catalogue.find(p => p.id === selected) || PROGRAM_CATALOGUE[0],
     list = (offerings.data?.items || []).filter(o => o.classIds.some(id => classes.some(c => c.id === id)));
   const options = list.filter(o => o.programId === selected),
     offering = options.find(o => o.id === offeringId) || options[0];
   const isStaff = ['teacher', 'coach', 'admin'].includes(role);
   return <div>
-    <div className="sw-programs">{PROGRAM_CATALOGUE.map(p => <button key={p.id} className={selected === p.id ? 'sw-program sw-selected' : 'sw-program'} aria-pressed={selected === p.id} onClick={() => {
+    <div className="sw-programs">{catalogue.map(p => <button key={p.id} className={selected === p.id ? 'sw-program sw-selected' : 'sw-program'} aria-pressed={selected === p.id} onClick={() => {
         setSelected(p.id);
         setOfferingId('');
       }}><span>Semester {p.semester}</span><strong>{p.title}</strong><small>{p.gradeBand}</small></button>)}</div>
+    {isStaff && <details className="sw-card"><summary>Create your own program</summary><form className="sw-form" onSubmit={async e=>{e.preventDefault();const created=await run(()=>mutateSchool('POST',schoolPath(school.id,'program-offerings'),{programId:'custom',title:customTitle,drivingQuestion:customQuestion,yearId:year,classIds:[classId]}),'Custom program created. Generate its join code below.');if(created){setSelected(created.programId);setOfferingId(created.id);setCustomTitle('');setCustomQuestion('');}}}>
+      <Field label="Program title"><input required maxLength={200} value={customTitle} onChange={e=>setCustomTitle(e.target.value)}/></Field><Field label="Program driving question"><textarea required maxLength={1000} value={customQuestion} onChange={e=>setCustomQuestion(e.target.value)}/></Field><Field label="School year"><input required pattern="[A-Za-z0-9_-]+" value={year} onChange={e=>setYear(e.target.value)}/></Field><ClassSelect classes={classes} value={classId} onChange={setClassId}/><button className="gh-btn gh-btn-primary" disabled={state.busy||!classId}>Create custom program</button></form></details>}
     {message(offerings.error)}{offerings.loading && <p role="status">Loading program enrollments…</p>}
     <h3>{template.title}</h3><p>{template.drivingQuestion}</p><ol className="sw-milestones">{template.milestones.map(m => <li key={m.id}>{m.title}</li>)}</ol>
     {template.rubric.length > 0 && <details><summary>Assessment criteria</summary><ul>{template.rubric.map(r => <li key={r.title}>{r.title} · {r.weight}% · {r.standard}</li>)}</ul></details>}
     {selected === 'sustainable-futures' && <p><a href="#/pbl">Open existing Sustainable Futures Studio →</a><small className="sw-muted sw-block">Existing portfolios keep their original term identifier.</small></p>}
     {options.length > 1 && <Field label="School year offering"><select value={offering?.id || ''} onChange={e => setOfferingId(e.target.value)}>{options.map(o => <option key={o.id} value={o.id}>{o.yearId}</option>)}</select></Field>}
-    {!offerings.loading && !offerings.error && !offering && <p className="sw-notice">{role === 'student' ? 'You have not joined this program. Ask your coach for its class code.' : 'No offering is assigned in this view. Admin can create an offering and assign classes.'}</p>}
+    {!offerings.loading && !offerings.error && !offering && <p className="sw-notice">{role === 'student' ? 'You have not joined this program. Ask your coach for its class code.' : 'No offering is assigned in this view. Create an offering for your assigned class to start adding lessons.'}</p>}
     {role === 'student' && <form className="sw-inline-form" onSubmit={async e => {
       e.preventDefault();
       const result = await run(() => mutateSchool('POST', '/api/program-enrollments/join', {
         code
       }), 'Program joined. Your enrollment has been saved.');
-      if (result) onJoined();
+      if (result) { setSelected(result.programId || selected); setOfferingId(result.offeringId); onJoined(result.programId); }
     }}><Field label="Program class code"><input required maxLength={30} value={code} onChange={e => setCode(e.target.value)} autoComplete="off" /></Field><button disabled={state.busy} className="gh-btn gh-btn-primary">Join program</button></form>}
-    {role === 'admin' && !offering && <form className="sw-inline-form" onSubmit={e => {
+    {isStaff && !offering && <form className="sw-inline-form" onSubmit={e => {
       e.preventDefault();
       run(() => mutateSchool('POST', schoolPath(school.id, 'program-offerings'), {
         programId: selected,
@@ -137,7 +143,7 @@ function Programs({
       }), 'Offering created for the selected class.');
     }}><Field label="School year ID"><input required pattern="[A-Za-z0-9_-]+" value={year} onChange={e => setYear(e.target.value)} /></Field><ClassSelect classes={classes} value={classId} onChange={setClassId} /><button disabled={state.busy || !classId} className="gh-btn gh-btn-primary">Create offering</button></form>}
     <Feedback state={state} />
-    {offering && <><p className="sw-muted">{offering.yearId} · Semester {offering.semester} · {offering.status}</p>{role === 'admin' && <><OfferingClasses key={`classes-${offering.id}-${offering.revision}`} school={school} offering={offering} classes={classes} onSaved={offerings.reload} /><EnrollmentCode key={`codes-${offering.id}-${offering.revision}`} school={school} offering={offering} classes={classes} /></>}
+    {offering && <><p className="sw-muted">{offering.yearId} · Semester {offering.semester} · {offering.status}</p>{role === 'admin' && <OfferingClasses key={`classes-${offering.id}-${offering.revision}`} school={school} offering={offering} classes={classes} onSaved={offerings.reload} />}{isStaff && <EnrollmentCode key={`codes-${offering.id}-${offering.revision}`} school={school} offering={offering} classes={classes} />}
       <Lessons key={`lessons-${offering.id}`} school={school} offering={offering} classes={classes} template={template} isStaff={isStaff} /><EvidenceReviews key={`evidence-${offering.id}`} school={school} offering={offering} role={role} /></>}
   </div>;
 }
@@ -198,7 +204,7 @@ function Lessons({
   }));
   return <section className="sw-lessons"><h3>Program lessons</h3>{message(lessons.error)}{lessons.loading && <p role="status">Loading lessons…</p>}
     {!lessons.loading && !lessons.error && !lessons.data?.items.length && <p>No lessons have been published for your class yet.</p>}
-    {(lessons.data?.items || []).map(l => <article className="sw-card" key={l.id}><small>{template.milestones.find(m => m.id === l.milestoneId)?.title} · {l.status} · Version {l.revision}</small><h4>{l.title}</h4><p><strong>Learning outcome:</strong> {l.outcome}</p><p className="sw-preserve">{l.instructions}</p><LessonMedia attachments={l.attachments} />{isStaff && l.status === 'draft' && <div className="sw-actions"><button className="gh-btn gh-btn-ghost" disabled={state.busy} onClick={() => {
+    {(lessons.data?.items || []).map(l => <article className="sw-card" key={l.id}><small>{template.milestones.find(m => m.id === l.milestoneId)?.title} · {l.status} · Version {l.revision}</small><h4>{l.title}</h4><p><strong>Learning outcome:</strong> {l.outcome}</p><p className="sw-preserve">{l.instructions}</p><LessonMedia attachments={l.attachments} />{l.simulation && <SimulationLab settings={l.simulation}/>}{isStaff && l.status === 'draft' && <div className="sw-actions"><button className="gh-btn gh-btn-ghost" disabled={state.busy} onClick={() => {
           setDraft(l);
           setMediaFiles([]);
           setFileKey(k => k + 1);
@@ -243,7 +249,7 @@ function Lessons({
           setMediaFiles([]);
           setFileKey(k => k + 1);
         }
-      }}><Field label="Lesson title"><input required maxLength={200} value={draft.title} onChange={e => update('title', e.target.value)} /></Field><ClassSelect classes={choices} value={draft.classId} onChange={v => update('classId', v)} /><Field label="Milestone"><select value={draft.milestoneId} onChange={e => update('milestoneId', e.target.value)}>{template.milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}</select></Field><Field label="Learning outcome"><textarea required maxLength={1000} value={draft.outcome} onChange={e => update('outcome', e.target.value)} /></Field><Field label="Instructions and evidence to collect"><textarea required rows={5} maxLength={10000} value={draft.instructions} onChange={e => update('instructions', e.target.value)} /></Field><Field label="Images and videos"><input key={fileKey} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" disabled={state.busy} onChange={e => setMediaFiles(Array.from(e.target.files || []))} /><small>Up to 8 files per lesson, 100 MB each. MP4 or WebM videos.</small></Field>{mediaFiles.length > 0 && <p>{mediaFiles.map(f => f.name).join(", ")}</p>}{uploadProgress && <p role="status">{uploadProgress}</p>}<LessonMedia attachments={draft.attachments} />{draft.attachments?.map(a => <button key={a.path} type="button" disabled={state.busy} className="gh-btn gh-btn-ghost" onClick={() => update("attachments", draft.attachments.filter(item => item.path !== a.path))}>Remove {a.name} from draft</button>)}<div className="sw-actions"><button className="gh-btn gh-btn-primary" disabled={state.busy || !draft.classId}>{state.busy ? 'Saving…' : 'Save draft'}</button>{editId && <button type="button" disabled={state.busy} className="gh-btn gh-btn-ghost" onClick={() => {
+      }}><Field label="Lesson title"><input required maxLength={200} value={draft.title} onChange={e => update('title', e.target.value)} /></Field><ClassSelect classes={choices} value={draft.classId} onChange={v => update('classId', v)} /><Field label="Milestone"><select value={draft.milestoneId} onChange={e => update('milestoneId', e.target.value)}>{template.milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}</select></Field><Field label="Learning outcome"><textarea required maxLength={1000} value={draft.outcome} onChange={e => update('outcome', e.target.value)} /></Field><Field label="Instructions and evidence to collect"><textarea required rows={5} maxLength={10000} value={draft.instructions} onChange={e => update('instructions', e.target.value)} /></Field><SimulationBuilder value={draft.simulation} onChange={v=>update("simulation",v)}/><Field label="Images and videos"><input key={fileKey} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" disabled={state.busy} onChange={e => setMediaFiles(Array.from(e.target.files || []))} /><small>Up to 8 files per lesson, 100 MB each. MP4 or WebM videos.</small></Field>{mediaFiles.length > 0 && <p>{mediaFiles.map(f => f.name).join(", ")}</p>}{uploadProgress && <p role="status">{uploadProgress}</p>}<LessonMedia attachments={draft.attachments} />{draft.attachments?.map(a => <button key={a.path} type="button" disabled={state.busy} className="gh-btn gh-btn-ghost" onClick={() => update("attachments", draft.attachments.filter(item => item.path !== a.path))}>Remove {a.name} from draft</button>)}<div className="sw-actions"><button className="gh-btn gh-btn-primary" disabled={state.busy || !draft.classId}>{state.busy ? 'Saving…' : 'Save draft'}</button>{editId && <button type="button" disabled={state.busy} className="gh-btn gh-btn-ghost" onClick={() => {
             setMediaFiles([]);
             setFileKey(k => k + 1);
             setDraft(blank);
@@ -384,11 +390,12 @@ function SchoolCalendar({
   role
 }) {
   const [month, setMonth] = useState(today().slice(0, 7)),
-    [view, setView] = useState('agenda');
+    [view, setView] = useState('year');
+  const canManage = ['admin', 'teacher', 'coach'].includes(role);
   const year = Number(month.slice(0, 4)),
     index = Number(month.slice(5)) - 1;
-  const from = `${month}-01`,
-    to = `${month}-${String(new Date(year, index + 1, 0).getDate()).padStart(2, '0')}`;
+  const from = view === 'year' ? `${year}-01-01` : `${month}-01`,
+    to = view === 'year' ? `${year}-12-31` : `${month}-${String(new Date(year, index + 1, 0).getDate()).padStart(2, '0')}`;
   const base = schoolPath(school.id, 'calendar-events'),
     events = useSchoolResource(`${base}?from=${from}&to=${to}`, true);
   const blank = {
@@ -414,11 +421,23 @@ function SchoolCalendar({
     list = events.data?.items || [];
   return <div><div className="sw-inline-form"><Field label="Calendar month"><input type="month" required value={month} onChange={e => {
           if (e.target.value) setMonth(e.target.value);
-        }} /></Field><Field label="View"><select value={view} onChange={e => setView(e.target.value)}><option value="agenda">Agenda</option><option value="month">Month</option></select></Field></div><p className="sw-muted">School timezone: {school.timezone}. Updates checked every 30 seconds. {role === 'admin' ? 'You can manage school events.' : 'School events are managed by the admin.'}</p>
+        }} /></Field><Field label="View"><select value={view} onChange={e => setView(e.target.value)}><option value="year">Year</option><option value="agenda">Agenda</option><option value="month">Month</option></select></Field></div><p className="sw-muted">School timezone: {school.timezone}. Updates checked every 30 seconds. {canManage ? 'You can manage school events.' : 'School events are managed by coaches and the admin.'}</p>
     {role === 'admin' && <details className="sw-card"><summary>Review and import the school’s 2026–2027 calendar</summary><p>Confirm these supplied school dates before importing. Existing reference entries and admin edits will be preserved.</p><ul>{CALENDAR_REFERENCE.map(event => <li key={event.id}>{event.startDate}{event.endDate !== event.startDate ? ` – ${event.endDate}` : ''} · {event.title}</li>)}</ul><button disabled={state.busy} className="gh-btn gh-btn-primary" onClick={() => run(() => mutateSchool('POST', schoolPath(school.id, 'calendar-reference/import'), {
         confirmYear: '2026-2027'
       }), 'Reference calendar imported. Existing entries were preserved.')}>Confirm and import reference dates</button></details>}
     {message(events.error)}{events.loading && <p role="status">Loading school calendar…</p>}
+    {view === 'year' && <div className="sw-year">{Array.from({length: 12}, (_, monthIndex) => {
+      const prefix = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+      return <section className="sw-year-month" key={prefix}><h3><button type="button" className="gh-btn gh-btn-ghost" onClick={() => { setMonth(prefix); setView('month'); }}>{new Date(Date.UTC(year, monthIndex, 1)).toLocaleString('en', {month: 'long', timeZone: 'UTC'})}</button></h3><div className="sw-year-grid" role="list" aria-label={`School calendar ${prefix}`}>
+        {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => <small key={day}>{day}</small>)}
+        {Array.from({length: (new Date(Date.UTC(year, monthIndex, 1)).getUTCDay() + 6) % 7}, (_, i) => <span key={`blank-${i}`} />)}
+        {Array.from({length: new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate()}, (_, i) => {
+          const date = `${prefix}-${String(i + 1).padStart(2, '0')}`;
+          const dayEvents = list.filter(event => event.startDate <= date && event.endDate >= date);
+          return <button type="button" role="listitem" key={date} className={dayEvents.length ? 'sw-year-event' : ''} aria-label={`${date}${dayEvents.map(event => ` · ${event.title}${event.status === 'cancelled' ? ' (Cancelled)' : ''}`).join('')}`} onClick={() => {setMonth(prefix); setView('month');}}>{i + 1}{dayEvents.map(event => <span key={event.id}>{event.title}</span>)}</button>;
+        })}
+      </div></section>;
+    })}</div>}
     {view === 'month' && <div className="sw-month-scroll"><div className="sw-month" role="list" aria-label={`School calendar ${month}`}>{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => <span className="sw-weekday" key={day}>{day}</span>)}{Array.from({
           length: (new Date(Date.UTC(year, index, 1)).getUTCDay() + 6) % 7
         }, (_, i) => <div key={`blank-${i}`} aria-hidden="true" />)}{Array.from({
@@ -427,8 +446,8 @@ function SchoolCalendar({
           const day = `${month}-${String(i + 1).padStart(2, '0')}`;
           return <div role="listitem" className="sw-day" key={day}><strong>{i + 1}</strong>{list.filter(e => e.startDate <= day && e.endDate >= day).map(e => <span key={e.id}>{e.status === 'cancelled' ? 'Cancelled: ' : ''}{e.title}</span>)}</div>;
         })}</div></div>}
-    {!events.loading && !events.error && !list.length && <p>No school events recorded for this month.</p>}
-    <div className="sw-agenda">{list.map(event => <article className="sw-card" key={event.id}><small>{event.startDate}{event.endDate !== event.startDate ? ` – ${event.endDate}` : ''} · {event.allDay ? 'All day' : `${event.startTime}–${event.endTime}`} · {event.category}</small><h3>{event.title}{event.status === 'cancelled' ? ' · Cancelled' : ''}</h3>{event.location && <p>{event.location}</p>}{event.description && <p className="sw-preserve">{event.description}</p>}{role === 'admin' && <div className="sw-actions"><button className="gh-btn gh-btn-ghost" onClick={() => {
+    {!events.loading && !events.error && !list.length && <p>No school events recorded for this calendar range.</p>}
+    <div className="sw-agenda">{list.map(event => <article className="sw-card" key={event.id}><small>{event.startDate}{event.endDate !== event.startDate ? ` – ${event.endDate}` : ''} · {event.allDay ? 'All day' : `${event.startTime}–${event.endTime}`} · {event.category}</small><h3>{event.title}{event.status === 'cancelled' ? ' · Cancelled' : ''}</h3>{event.location && <p>{event.location}</p>}{event.description && <p className="sw-preserve">{event.description}</p>}{canManage && <div className="sw-actions"><button className="gh-btn gh-btn-ghost" onClick={() => {
             setDraft(event);
             setEditId(event.id);
           }}>Edit event</button><button className="gh-btn gh-btn-ghost" onClick={() => setConfirmDelete(event)} disabled={state.busy}>Delete event</button></div>}</article>)}</div>
@@ -438,7 +457,7 @@ function SchoolCalendar({
           }), 'Event deleted.');
           if (result) setConfirmDelete(null);
         }}>Confirm delete</button><button className="gh-btn gh-btn-ghost" onClick={() => setConfirmDelete(null)}>Keep event</button></div></div>}
-    {role === 'admin' && <details className="sw-card" open={!!editId}><summary>{editId ? 'Edit school event' : 'Add school event'}</summary><form className="sw-form" onSubmit={async e => {
+    {canManage && <details className="sw-card" open={!!editId}><summary>{editId ? 'Edit school event' : 'Add school event'}</summary><form className="sw-form" onSubmit={async e => {
         e.preventDefault();
         const result = await run(() => mutateSchool(editId ? 'PATCH' : 'POST', editId ? `${base}/${editId}` : base, draft), 'School event saved. All dashboards use this calendar.');
         if (result) {

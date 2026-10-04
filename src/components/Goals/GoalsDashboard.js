@@ -162,8 +162,8 @@ export function createGoalsDashboard(containerId = 'goals-dashboard', userId = n
           <div class="gl-ring" style="--p:0" aria-hidden="true"><span>${ICONS.target}</span></div>
           <div class="gl-main">
             <div class="gl-kicker">Project goals</div>
-            <h3>Set three or four goals for your project</h3>
-            <p class="gl-meta">Choose a path and a deadline. Tick goals off as you go; finish them all to earn a badge.</p>
+            <h3>Start with something you are curious about</h3>
+            <p class="gl-meta">Describe what you want to try, choose a check-in date, and take one small step.</p>
           </div>
           <div class="gl-actions"><button type="button" class="gl-btn gl-btn-primary" id="gl-set">${ICONS.target} Set goals</button></div>
         </div>

@@ -1,3 +1,4 @@
+import { validateSimulation } from '../../src/features/school/simulationModel.js';
 import { Router } from 'express';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
@@ -159,9 +160,17 @@ router.get('/schools/:schoolId/program-offerings', wrap(async (req, res) => {
 }));
 router.post('/schools/:schoolId/program-offerings', wrap(async (req, res) => {
   const caller = req.schoolCaller;
-  adminOnly(caller);
-  const program = programById(req.body.programId);
-  if (!program) fail(400, 'VALIDATION', 'Choose one of the three school programs.');
+  if (caller.role !== 'admin' && !staff(caller)) fail(403, 'FORBIDDEN', 'Only coaches and admins can create program offerings.');
+  const custom = req.body.programId === 'custom';
+  const program = custom ? {
+    id: `custom-${randomBytes(8).toString('hex')}`,
+    title: requireText(req.body.title, 'Program title', 200),
+    drivingQuestion: requireText(req.body.drivingQuestion, 'Driving question', 1000),
+    semester: Number(req.body.semester || 1), gradeBand: 'Coach-created program',
+    milestones: [{id:'explore',title:'Explore and predict'},{id:'experiment',title:'Build and experiment'},{id:'reflect',title:'Reflect and share'}], rubric: []
+  } : programById(req.body.programId);
+  if (!program) fail(400, 'VALIDATION', 'Choose a school program or create a custom program.');
+  if (!Number.isInteger(program.semester) || program.semester < 1 || program.semester > 3) fail(400, 'VALIDATION', 'Choose semester 1–3.');
   const yearId = requireId(req.body.yearId),
     classIds = req.body.classIds;
   if (!Array.isArray(classIds) || !classIds.length || classIds.length > 20 || new Set(classIds).size !== classIds.length) fail(400, 'VALIDATION', 'Choose 1–20 unique classes.');
@@ -170,6 +179,7 @@ router.post('/schools/:schoolId/program-offerings', wrap(async (req, res) => {
   const value = {
     programId: program.id,
     title: program.title,
+    ...(custom ? { programDefinition: program } : {}),
     semester: program.semester,
     yearId,
     classIds,
@@ -215,7 +225,6 @@ router.patch('/schools/:schoolId/program-offerings/:offeringId', wrap(async (req
 }));
 router.post('/schools/:schoolId/program-offerings/:offeringId/codes', wrap(async (req, res) => {
   const caller = req.schoolCaller;
-  adminOnly(caller);
   const {
     value
   } = await offeringAccess(req, req.params.offeringId, true);
@@ -246,8 +255,11 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/codes', wrap(async
   });
 }));
 router.delete('/schools/:schoolId/program-codes/:codeId', wrap(async (req, res) => {
-  adminOnly(req.schoolCaller);
   const ref = getFirestore().collection('programEnrollmentCodes').doc(requireId(req.params.codeId));
+  const codeRecord = await ref.get();
+  if (!codeRecord.exists || codeRecord.data().schoolId !== req.schoolId) fail(404, 'NOT_FOUND', 'Code not found.');
+  await offeringAccess(req, codeRecord.data().offeringId, true);
+  await assignedClass(req.schoolCaller, req.schoolId, codeRecord.data().classId);
   await getFirestore().runTransaction(async tx => {
     const s = await tx.get(ref);
     if (!s.exists || s.data().schoolId !== req.schoolId) fail(404, 'NOT_FOUND', 'Code not found.');
@@ -289,6 +301,7 @@ router.post('/program-enrollments/join', wrap(async (req, res) => {
       m = await tx.get(membership);
     result = {
       offeringId: value.offeringId,
+      programId: o.data().programId,
       schoolId: value.schoolId,
       classId: value.classId,
       title: o.data().title,
@@ -334,10 +347,13 @@ function lessonBody(body, program) {
     outcome = requireText(body.outcome, 'Learning outcome', 1000),
     instructions = requireText(body.instructions, 'Instructions', 10000);
   if (!program.milestones.some(m => m.id === body.milestoneId)) fail(400, 'VALIDATION', 'Choose a milestone in this program.');
+  let simulation;
+  try { simulation = validateSimulation(body.simulation); } catch (error) { fail(400, 'VALIDATION', error.message); }
   return {
     title,
     outcome,
     instructions,
+    simulation,
     milestoneId: body.milestoneId,
     classId: requireId(body.classId)
   };
@@ -348,7 +364,7 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/lessons', wrap(asy
       ref,
       value
     } = await offeringAccess(req, req.params.offeringId, true),
-    content = lessonBody(req.body, programById(value.programId));
+    content = lessonBody(req.body, value.programDefinition || programById(value.programId));
   await assignedClass(caller, req.schoolId, content.classId);
   if (!value.classIds.includes(content.classId)) fail(403, 'FORBIDDEN', 'This class is not in the program.');
   if (req.body.attachments?.length) fail(400, 'VALIDATION', 'Save the draft before uploading media.');
@@ -377,7 +393,7 @@ router.patch('/schools/:schoolId/program-offerings/:offeringId/lessons/:lessonId
       ref,
       value
     } = await offeringAccess(req, req.params.offeringId, true),
-    content = lessonBody(req.body, programById(value.programId));
+    content = lessonBody(req.body, value.programDefinition || programById(value.programId));
   await assignedClass(caller, req.schoolId, content.classId);
   if (!value.classIds.includes(content.classId)) fail(403, 'FORBIDDEN', 'Class is not in this program.');
   const lesson = ref.collection('lessons').doc(requireId(req.params.lessonId));
@@ -660,7 +676,7 @@ router.get('/schools/:schoolId/calendar-events', wrap(async (req, res) => {
 }));
 router.post('/schools/:schoolId/calendar-events', wrap(async (req, res) => {
   const caller = req.schoolCaller;
-  adminOnly(caller);
+  if (caller.role !== 'admin' && !staff(caller)) fail(403, 'FORBIDDEN', 'Only coaches and admins can manage school events.');
   const content = calendarBody(req.body, req.school.timezone || 'Asia/Bangkok');
   const ref = root(req.schoolId).collection('calendarEvents').doc(),
     value = {
@@ -710,7 +726,7 @@ router.post('/schools/:schoolId/calendar-reference/import', wrap(async (req, res
 }));
 router.patch('/schools/:schoolId/calendar-events/:eventId', wrap(async (req, res) => {
   const caller = req.schoolCaller;
-  adminOnly(caller);
+  if (caller.role !== 'admin' && !staff(caller)) fail(403, 'FORBIDDEN', 'Only coaches and admins can manage school events.');
   const content = calendarBody(req.body, req.school.timezone || 'Asia/Bangkok'),
     ref = root(req.schoolId).collection('calendarEvents').doc(requireId(req.params.eventId));
   await getFirestore().runTransaction(async tx => {
@@ -731,7 +747,7 @@ router.patch('/schools/:schoolId/calendar-events/:eventId', wrap(async (req, res
 }));
 router.delete('/schools/:schoolId/calendar-events/:eventId', wrap(async (req, res) => {
   const caller = req.schoolCaller;
-  adminOnly(caller);
+  if (caller.role !== 'admin' && !staff(caller)) fail(403, 'FORBIDDEN', 'Only coaches and admins can manage school events.');
   const ref = root(req.schoolId).collection('calendarEvents').doc(requireId(req.params.eventId));
   await getFirestore().runTransaction(async tx => {
     const s = await tx.get(ref);

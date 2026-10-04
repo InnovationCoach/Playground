@@ -1,0 +1,33 @@
+body.gh-has-sidebar { padding-left:244px; }
+body.gh-has-sidebar header.gh-topbar { margin-left:-244px; width:calc(100% + 244px); }
+.gh-sidebar { position:fixed; top:64px; left:0; bottom:0; width:244px; background:#f7f8f3; border-right:1px solid #e1e5dc; z-index:45; overflow:auto; padding:26px 14px; font-family:Inter,system-ui,sans-serif; display:flex; flex-direction:column; }
+.gh-sidebar-heading { padding:0 14px 24px; color:#354e40; }
+.gh-sidebar-heading span { display:block; font-size:10px; font-weight:700; letter-spacing:.15em; color:#6c7867; margin-bottom:9px; }
+.gh-sidebar-heading strong { font-size:21px; font-family:Georgia,serif; font-weight:500; }
+.gh-sidebar .gh-sidebar-nav { position:static; display:flex; flex-direction:column; align-items:stretch; gap:7px; padding:0; background:transparent; border:none; flex-wrap:nowrap; }
+.gh-sidebar .gh-subnav-link { width:100%; min-height:46px; text-align:left; justify-content:flex-start; padding:12px 14px; border-radius:12px; color:#536054; font-size:13px; gap:12px; }
+.gh-sidebar .gh-subnav-link svg { flex-shrink:0; color:#71806d; }
+.gh-sidebar .gh-subnav-link:hover { background:#e9eee3; color:#344e3f; }
+.gh-sidebar .gh-subnav-link[aria-current="page"] { background:#e1ecdc; color:#2c523c; box-shadow:inset 3px 0 #487157; font-weight:650; }
+.gh-sidebar .gh-subnav-link[aria-current="page"] svg { color:#396148; }
+.gh-sidebar .gh-subnav .as { margin:18px 0 0; flex:0 0 auto; width:100%; }
+.gh-sidebar .as-field input { min-width:0; font-size:12px; }
+.gh-sidebar .as-list { position:relative; top:auto; margin-top:8px; width:100%; max-height:270px; }
+.gh-sidebar-note { margin:auto 14px 0; padding-top:32px; color:#6b7666; font-size:11px; line-height:1.6; }
+.gh-sidebar-toggle { display:none; }
+[data-theme="dark"] .gh-sidebar { background:#1b2520; border-color:#3b4c40; }
+[data-theme="dark"] .gh-sidebar-heading,[data-theme="dark"] .gh-sidebar .gh-subnav-link { color:#d1dbcc; }
+[data-theme="dark"] .gh-sidebar .gh-subnav-link[aria-current="page"] { background:#314934; color:#e4f2dc; }
+[data-theme="dark"] .gh-sidebar .gh-subnav-link:hover { background:#293b2d; }
+[data-theme="dark"] .gh-sidebar-note,[data-theme="dark"] .gh-sidebar-heading span { color:#aebca6; }
+@media(max-width:900px) {
+  body.gh-has-sidebar { padding-left:0; }
+  body.gh-has-sidebar header.gh-topbar { margin-left:0; width:100%; margin-bottom:48px; }
+  .gh-sidebar-toggle { display:block; position:fixed; top:66px; left:16px; z-index:47; min-height:40px; padding:8px 14px; border:1px solid #becbb6; background:#f7f8f3; color:#355440; border-radius:10px; font:600 13px Inter,system-ui,sans-serif; cursor:pointer; }
+  .gh-sidebar { display:none; top:112px; width:min(300px,calc(100vw - 20px)); border:1px solid #d7dfd0; border-radius:0 16px 16px 0; box-shadow:12px 12px 40px #20322730; }
+  .gh-sidebar.is-open { display:flex; }
+  .gh-sidebar-toggle:focus-visible { outline:3px solid #487157; outline-offset:2px; }
+}
+@media print { body.gh-has-sidebar { padding:0; } body.gh-has-sidebar header.gh-topbar { margin-left:0; width:100%; } .gh-sidebar,.gh-sidebar-toggle { display:none !important; } }
+@media(max-width:900px) { body.gh-has-sidebar::before { content:''; position:fixed; top:64px; left:0; right:0; height:48px; background:#f7f8f3; border-bottom:1px solid #e1e5dc; z-index:46; } }
+@media print { body.gh-has-sidebar::before { display:none; } }

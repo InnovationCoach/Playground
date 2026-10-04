@@ -51,7 +51,7 @@ describe('Program switching and honest access states',()=>{
     expect(host.textContent).not.toContain('Add school event');
     expect(host.textContent).toContain('PBL Progress');
     expect(host.textContent).not.toContain('Join program');
-    expect(host.textContent).toContain('School events are managed by the admin.');
+    expect(host.textContent).toContain('School events are managed by coaches and the admin.');
   });
   it('removes cached records after access is revoked',async()=>{
     function Probe() {const resource=useSchoolResource('/api/private');return <div><p>{resource.data?.secret||'No record'}</p><button onClick={resource.reload}>Refresh private record</button></div>;}
@@ -83,5 +83,22 @@ describe('Coach lesson media', () => {
     expect(host.querySelector('.sw-lessons img').alt).toBe('Example design');
     expect(host.querySelector('.sw-lessons video').controls).toBe(true);
     expect(host.querySelector('.sw-lessons input[type="file"]')).toBeNull();
+  });
+});
+
+describe('Yearly school calendar', () => {
+  it('opens twelve months and lets coaches manage shared events', async () => {
+    schoolRequest.mockImplementation((method, path) => path.includes('/calendar-events?') ? Promise.resolve({items:[{id:'event',title:'Family showcase',startDate:'2026-10-30',endDate:'2026-10-30',allDay:true,status:'scheduled',revision:1}]}) : mockRead(method,path));
+    await act(async () => root.render(<SchoolLearningPanel initialArea="calendar" />));
+    expect(host.querySelectorAll('.sw-year-month')).toHaveLength(12);
+    expect(host.textContent).toContain('Add school event');
+    expect(host.textContent).toContain('Edit event');
+    expect(host.querySelector('.sw-year-event').textContent).toContain('Family showcase');
+    expect(schoolRequest.mock.calls.some(([,path]) => path.includes('from=2026-01-01&to=2026-12-31'))).toBe(true);
+  });
+  it('lets coaches set up a program before creating lessons', async () => {
+    schoolRequest.mockImplementation((method,path) => path.endsWith('/program-offerings') ? Promise.resolve({items:[]}) : mockRead(method,path));
+    await render();
+    expect(host.textContent).toContain('Create offering');
   });
 });

@@ -30,6 +30,8 @@ export function parseRoute(hash) {
     if (a === 'new' && KINDS.includes(b)) return { screen: 'admin', page: 'create', kind: b };
     return { screen: 'admin', page: 'list', kind: 'students' };
   }
+  if (head === 'portfolio') return {screen:'portfolio', uid: a || null};
+  if (head === 'home') return {screen:'home'};
   if (head === 'settings') return { screen: 'settings' };
   if (head === 'primary-resources') return { screen: 'resources' };
   if (head === 'worksheet' && a) return { screen: 'worksheet', activityId: a };

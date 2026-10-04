@@ -6,9 +6,10 @@ import { safeLink } from '../pbl/engine/pblProject.js';
 import { activityProgress, dateLabel, projectProgress, STEAM_ACTIVITIES } from './progressModel.js';
 import '../admin/admin.css';
 import './coachWorkspace.css';
+import { CommunityFeed } from '../community/CommunityFeed.jsx';
 import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 
-const SECTIONS = [['overview', 'Overview', LayoutDashboard], ['pbl', 'PBL Studio', BookOpen], ['steam', 'STEAM Activities', FlaskConical], ['academic', 'Academic Progress', GraduationCap], ['goals', 'Learning Goals', FileText], ['calendar', 'School Calendar', LayoutDashboard]];
+const SECTIONS = [['overview', 'Overview', LayoutDashboard], ['pbl', 'PBL Studio', BookOpen], ['steam', 'STEAM Activities', FlaskConical], ['academic', 'Academic Progress', GraduationCap], ['goals', 'Learning Goals', FileText], ['calendar', 'School Calendar', LayoutDashboard], ['community', 'Posts for students', FileText]];
 const describeError = err => err?.code === 'permission-denied'
   ? 'Your account could not read this class. Ask your administrator to check your coach claims and learner class assignments.'
   : 'Learning records could not be loaded. Check your connection and try again.';
@@ -36,7 +37,7 @@ export function CoachWorkspace({ coachUser, onManagement }) {
           commit({ state: 'unassigned', learners: [], classes: [] }); return;
         }
         const classes = await Promise.all(ids.map(async id => {
-          try { const snap = await getDoc(doc(db, 'classes', id)); return { id, name: snap.exists() ? snap.data().name || id : id }; }
+          try { const snap = await getDoc(doc(db, 'classes', id)); return { id, name: snap.exists ? snap.data().name || id : id }; }
           catch { return { id, name: id }; }
         }));
         const snapshots = await Promise.all(Array.from({ length: Math.ceil(ids.length / 10) }, (_, i) =>
@@ -70,6 +71,7 @@ export function CoachWorkspace({ coachUser, onManagement }) {
     {data.state === 'loading' && <Empty title="Loading your classes" text="Checking access and retrieving learner records." />}
     {data.state === 'unassigned' && <Empty title="Your coach class access needs checking" text="You are signed in, but verified coach and class access is missing. Ask an administrator to check your account’s class assignments."><button className="gh-btn gh-btn-primary" onClick={() => setReload(n => n + 1)}>Check access again</button><small>This checks your current access. It does not change permissions.</small></Empty>}
     {data.state === 'error' && <div role="alert"><Empty title="Class records are unavailable" text={data.error}><button className="gh-btn gh-btn-primary" onClick={() => setReload(n => n + 1)}>Try again</button></Empty></div>}
+    {section === 'community' && <CommunityFeed />}
     {['pbl','academic','goals','calendar'].includes(section) && <SchoolLearningPanel classScope={scope} hideTabs initialArea={section === 'pbl' ? 'programs' : section} />}
     {data.state === 'ready' && ['overview','pbl','steam'].includes(section) && <>
       {section === 'overview' && <><div className="cw-summary"><Stat icon={Users} label="Learners in this view" value={classLearners.length} caption="Assigned class roster" /><Stat icon={BookOpen} label="PBL project records" value={projects.length} caption="Current-term cloud records" /><Stat icon={FileText} label="Evidence entries" value={projects.reduce((n, p) => n + p.project.evidence.length, 0)} caption="Recorded evidence, not an approval count" /></div><div className="cw-domain-grid">{[['pbl', BookOpen, 'Follow the project journey', 'Understand each learner’s phase, task checks and evidence.', 'Open PBL Studio'], ['steam', FlaskConical, 'Look inside STEAM work', 'Review recorded investigations and hands-on activity work.', 'Open STEAM Activities'], ['academic', GraduationCap, 'Academic learning', 'Course and assessment progress will appear after connection.', 'Connection pending']].map(([id, Icon, title, text, action]) => <button key={id} onClick={() => setSection(id)}><span className={`cw-domain-icon cw-${id}`}><Icon size={22} /></span><strong>{title}</strong><p>{text}</p><span>{action}<ArrowUpRight size={16} /></span></button>)}</div></>}

@@ -7,6 +7,7 @@
  * the UI will break the day the real API replaces it.
  */
 import { describe, it, expect } from 'vitest';
+import {readFileSync} from 'node:fs';
 import { createMockBackend } from '../src/services/api/mockBackend.js';
 import { DEMO_PARENT_INVITE_CODE } from '../src/services/api/mockFixtures.js';
 import { pageRange, nextTokens, toggleSort } from '../src/features/admin/ui/pagination.js';
@@ -266,5 +267,17 @@ describe('interface text', () => {
     expect(translate('en', 'table.displaying', { from: 1, to: 30, total: 129 })).toBe('Displaying 1–30 of 129');
     expect(translate('xx', 'common.save')).toBe('Save');
     expect(translate('en', 'no.such.key')).toBe('no.such.key');
+  });
+});
+
+describe('Legacy router preserves private dashboard and portfolio routes', () => {
+  it('leaves these React screens intact for students and coaches', () => {
+    const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+    const source = html.match(/    function handleHashRouting\(\) \{[\s\S]*?\n    \}/)[0];
+    for (const role of ['student', 'teacher']) for (const hash of ['#/home', '#/portfolio', '#/portfolio/learner']) {
+      const views = [];
+      const handler = new Function('firebase', 'window', 'switchPhase', `${source}; return handleHashRouting;`)({auth:()=>({currentUser:{uid:'test'}})}, {currentUserRole:role,location:{hash}}, view=>views.push(view));
+      handler(); expect(views).toEqual([]);
+    }
   });
 });

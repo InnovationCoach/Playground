@@ -12,3 +12,12 @@
 .sw-lesson-media figure { margin: 0; min-width: 0; }
 .sw-lesson-media img, .sw-lesson-media video { width: 100%; max-height: 420px; object-fit: contain; border-radius: 8px; background: #111827; }
 .sw-lesson-media figcaption { overflow-wrap: anywhere; font-size: .85rem; margin-top: .4rem; }
+
+.sw-year{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.sw-year-month{border:1px solid var(--sw-line);border-radius:10px;padding:12px}.sw-year-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}.sw-year-grid button{border:0;background:#f6f8fa;min-height:36px;padding:3px;color:var(--sw-ink);cursor:pointer}.sw-year-grid button.sw-year-event{background:#e8dcf3;font-weight:700}.sw-year-grid button span{display:block;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw-simulation { background:linear-gradient(145deg,#eff7fb,#f5f8eb); border:1px solid #bfd4d8; border-radius:18px; padding:24px; }
+.sw-simulation h4 { font-size:24px; color:#234d60; }
+.sw-simulation input[type=range] { width:100%; accent-color:#326a7f; min-height:44px; }
+.sw-simulation progress { display:block; width:100%; height:30px; margin:16px 0; accent-color:#398574; }
+.sw-simulation [role=status] { padding:20px; border-radius:14px; background:#ffffffb3; border:1px solid #d2e2dc; }
+.sw-simulation ol { display:grid; gap:10px; padding-left:22px; }
+.sw-simulation li { padding:10px; background:#ffffffb3; border-radius:8px; overflow-wrap:anywhere; }

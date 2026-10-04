@@ -11,6 +11,7 @@ import { Worksheet, TeacherGuide, PrimaryResources } from '../features/primary/p
 import { LoginPage } from '../features/auth/LoginPage.jsx';
 import { TopNav } from '../features/shell/TopNav.jsx';
 import { Header } from '../features/shell/Header.jsx';
+import { PortfolioEditor, PortfolioViewer } from '../features/personalization/Personalization.jsx';
 import { StudentDashboard } from '../features/student/StudentDashboard.jsx';
 import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
 import { SchoolLearningPanel } from '../features/school/SchoolLearningPanel.jsx';
@@ -185,6 +186,18 @@ export function App() {
     );
   }
 
+  if (route?.screen === 'home' && role === 'student') {
+    return <><Header {...headerProps}/><TopNav role={role} view="home" onNavigate={navigate} onOpenCourses={()=>setHash(hrefFor.courses())} onOpenGoals={()=>createGoalSettingModal(user.uid)}/><StudentDashboard profile={profile} uid={user.uid} onProfileChanged={refreshProfile}/></>;
+  }
+
+  if (route?.screen === 'portfolio') {
+    const owner = !route.uid || route.uid === user?.uid;
+    return <><Header {...headerProps}/>{!isPrimary && <TopNav role={role} view="portfolio" onNavigate={navigate} onOpenCourses={()=>setHash(hrefFor.courses())} onOpenGoals={()=>createGoalSettingModal(user.uid)}/>}<div className="gh-app">{owner && role === 'student'
+      ? <PortfolioEditor uid={user.uid}/>
+      : route.uid ? <PortfolioViewer uid={route.uid} role={role}/>
+      : <p>Select a learner portfolio link to view shared work.</p>}</div></>;
+  }
+
   // Community Feed: accessible to all signed-in users (students, coaches, admins)
   if (route?.screen === 'community') {
     return (
@@ -343,7 +356,7 @@ export function App() {
         />
       ) : (
         <>
-          {view === 'home' && (
+          {role === 'student' && (route?.screen === 'home' || view === 'home') && (
             <StudentDashboard profile={profile} uid={user?.uid} onProfileChanged={refreshProfile} />
           )}
           {view === 'solar' && <SolarCarChallenge uid={user.uid} />}

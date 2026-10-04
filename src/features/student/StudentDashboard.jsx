@@ -1,7 +1,9 @@
+import { createGoalsDashboard } from '../../components/Goals/GoalsDashboard.js';
 import { useEffect, useState } from 'react';
 import { createNote, fetchNotes, deleteNote } from '../../auth.js';
 import { JoinClassPanel } from '../enrolment/JoinClassPanel.jsx';
 import '../enrolment/joinPanel.css';
+import { PersonalizedDashboard } from '../personalization/Personalization.jsx';
 import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 
 /**
@@ -31,6 +33,7 @@ export function StudentDashboard({ profile, uid, onProfileChanged }) {
   }
 
   useEffect(() => { reload(); }, []);
+  useEffect(() => { if (uid) createGoalsDashboard('goals-dashboard-container', uid); }, [uid]);
 
   async function onAdd(e) {
     e.preventDefault();
@@ -58,21 +61,14 @@ export function StudentDashboard({ profile, uid, onProfileChanged }) {
 
   return (
     <div className="container">
-      <div className="dashboard-welcome-hero">
-        <h2>Welcome back, {profile?.displayName || 'Student'}</h2>
-        <p>
-          {classIds.length ? (profile?.groupName || 'Your class') : 'Not in a class yet'}
-          {' · '}Ages {profile?.ageBand || '13-15'}
-        </p>
-      </div>
-
       {uid && (
         <JoinClassPanel uid={uid} classIds={classIds} onJoined={onProfileChanged} />
       )}
 
-      <div id="goals-dashboard-container" style={{ marginBottom: '2rem' }} />
-      <SchoolLearningPanel initialArea="home" learnerName={profile?.displayName} />
-
+      <PersonalizedDashboard uid={uid} profile={profile} widgets={{
+        goals: <div id="goals-dashboard-container" style={{ marginBottom: '2rem' }} />,
+        learning: <SchoolLearningPanel initialArea="home" learnerName={profile?.displayName} />,
+        notes: (
       <div className="card">
         <h3 style={{ marginBottom: '1rem' }}>📝 Your Notes</h3>
 
@@ -120,6 +116,8 @@ export function StudentDashboard({ profile, uid, onProfileChanged }) {
           ))
         )}
       </div>
+        )
+      }} />
     </div>
   );
 }

@@ -56,6 +56,20 @@ service firebase.storage {
         && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'];
     }
 
+    // Learner media is private. Authorized portfolio reads receive temporary URLs.
+    match /learnerMedia/{uid}/{uploadId}/{filename} {
+      allow read: if false;
+      allow write: if isOwner(uid)
+        && request.auth.token.get('role', 'student') == 'student'
+        && firestore.get(/databases/(default)/documents/users/$(uid)).data.role == 'student'
+        && firestore.get(/databases/(default)/documents/users/$(uid)).data.get('status', '') != 'suspended'
+        && resource == null && request.resource != null
+        && request.resource.size > 0 && request.resource.size <= 20 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg','image/png','image/webp','image/gif',
+          'audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4',
+          'model/gltf-binary','model/gltf+json','application/octet-stream','application/zip','text/plain'];
+    }
+
     // F2: Community Space Media
     match /community/{uid}/{postId}/{filename} {
       allow read: if isAuthenticated();

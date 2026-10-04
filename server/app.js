@@ -16,8 +16,10 @@ import { sendError } from './lib/errors.js';
 import sessionRouter from './routes/session.js';
 import adminUsersRouter from './routes/admin-users.js';
 import referenceRouter from './routes/reference.js';
+import operationsRouter from './routes/operations.js';
 import parentsRouter from './routes/parents.js';
 import schoolWorkspaceRouter from './routes/school-workspace.js';
+import personalizationRouter from './routes/personalization.js';
 
 const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const THINKING_OFF = { thinkingBudget: 0 };
@@ -72,8 +74,10 @@ export function createApp() {
   app.use('/api', sessionRouter);
   app.use('/api/admin/users', adminUsersRouter);
   app.use('/api/admin', referenceRouter);
+  app.use('/api/admin', operationsRouter);
   app.use('/api', parentsRouter);
   app.use('/api', schoolWorkspaceRouter);
+  app.use('/api', personalizationRouter);
 
   // ============= EXISTING AI ENDPOINTS =============
   async function callGemini(prompt, maxOutputTokens = 256, opts = {}) {
