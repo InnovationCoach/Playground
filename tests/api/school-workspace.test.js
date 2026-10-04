@@ -172,6 +172,7 @@ describe('School workspace: scoped programs, lessons, goals, academics and calen
     const path=`${base}/program-offerings/${offeringId}/lessons`;
     expect((await request('POST',path,'other',content)).status).toBe(403);
     expect((await request('POST',path,'coach',{...content,classId:otherClass})).status).toBe(403);
+    expect((await request('POST',path,'coach',{...content,activity:null})).status).toBe(400);
     const invalid=await request('POST',path,'coach',{...content,activity:{...activity,title:'',blocks:[{type:'intro',text:''}]}});
     expect(invalid.status).toBe(400);expect(invalid.body.error).toMatchObject({code:'VALIDATION',details:expect.arrayContaining([expect.objectContaining({path:'title'}),expect.objectContaining({path:'blocks[0].text'})])});
     const draft=await request('POST',path,'coach',content);expect(draft.status).toBe(201);expect(draft.body.activity.provenance).toEqual({aiAssisted:false});expect(draft.body.activity.script).toBeUndefined();

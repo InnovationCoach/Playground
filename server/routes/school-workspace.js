@@ -374,7 +374,7 @@ function lessonBody(body, program) {
     outcome,
     instructions,
     simulation,
-    ...(body.activity === undefined ? {} : {activity: body.activity === null ? null : validateActivity({...body.activity, provenance: {aiAssisted: false}})}),
+    ...(body.activity === undefined ? {} : {activity: validateActivity({...body.activity, provenance: {aiAssisted: false}})}),
     milestoneId: body.milestoneId,
     classId: requireId(body.classId)
   };
@@ -451,14 +451,14 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/lessons/:lessonId/
     if (value.authorUid !== caller.uid && caller.role !== 'admin') fail(403, 'FORBIDDEN', 'Only the author can publish this lesson.');
     if (caller.role !== 'admin' && !caller.classIds.includes(value.classId)) fail(403, 'FORBIDDEN', 'Class access changed.');
     if (value.revision !== req.body.revision || value.status !== 'draft') fail(409, 'CONFLICT', 'This lesson changed. Reload before publishing.');
-    if (value.activity?.provenance.aiAssisted && req.body.safetyConfirmed !== true) fail(400, 'SAFETY_CONFIRMATION_REQUIRED', 'Confirm the safety review before publishing.');
+    if (value.activity?.provenance?.aiAssisted && req.body.safetyConfirmed !== true) fail(400, 'SAFETY_CONFIRMATION_REQUIRED', 'Confirm the safety review before publishing.');
     tx.update(lesson, {
       ...(value.activity ? {activity: {...value.activity, provenance: {...value.activity.provenance, reviewedBy: caller.uid, reviewedAt: now()}}} : {}),
       status: 'published',
       revision: value.revision + 1,
       publishedAt: now()
     });
-    audit(tx, req.schoolId, caller, 'LESSON_PUBLISHED', lesson.path, {aiAssisted: value.activity?.provenance.aiAssisted === true});
+    audit(tx, req.schoolId, caller, 'LESSON_PUBLISHED', lesson.path, {aiAssisted: value.activity?.provenance?.aiAssisted === true});
   });
   res.json({
     published: true
