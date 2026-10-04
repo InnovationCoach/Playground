@@ -9,7 +9,7 @@
  * XP, levels, badges and streaks come only from /api/quest/me; this file
  * displays them and reports learner actions, it never awards anything itself.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Flame, Zap, Trophy, Map as MapIcon, House, Award, Check, Lock, MessageCircle, PenLine, FlaskConical, ArrowRight, X, Search, FileText, Layers, RefreshCw, Target, Leaf, Bot } from 'lucide-react';
 import { auth, db, doc, setDoc } from '../../firebase.js';
 import { TERM, PHASES } from '../pbl/content/pblModel.js';
@@ -20,6 +20,8 @@ import { mutateSchool, schoolPath, serviceMessage } from '../school/useSchoolWor
 import { useQuest } from './useQuest.js';
 import { todaysQuest, weekStrip, localDate, badgeById, REFLECTION_MIN_LENGTH, XP_RULES } from './questModel.js';
 import './quest.css';
+
+const PublishedActivities=lazy(()=>import('../activities/builder/PublishedActivities.jsx'));
 
 const BADGE_ICONS = { file: FileText, layers: Layers, refresh: RefreshCw, search: Search, pen: PenLine, check: Check, target: Target, trophy: Trophy, flame: Flame };
 const BADGE_COLORS = ['#96d700', '#6e3f8b', '#ff9a4d', '#5cc8ff', '#ff6fb1'];
@@ -121,6 +123,7 @@ export function QuestHome({ quest, school, classes, learnerName }) {
         <PlayerCard data={data} name={learnerName} today={today} holidays={holidays} />
         <TodayQuest current={current} project={project} busy={quest.busy} onComplete={completeStep} onAsk={() => setDialog('support')} name={name} />
       </div>
+      <Suspense fallback={null}><PublishedActivities school={school}/></Suspense>
       <Boosts data={data} today={today} onReflect={() => setDialog('reflect')} onAsk={() => setDialog('support')} />
       <div className="qx-grid">
         <StagePath project={project} onOpenMap={() => setView('map')} current={current} />

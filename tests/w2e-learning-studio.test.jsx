@@ -2,6 +2,7 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+vi.mock('../src/app/i18n/LocaleProvider.jsx',()=>({useLocale:()=>({locale:'en'})}));
 vi.mock('../src/services/api/apiClient.js', () => ({ schoolRequest: vi.fn() }));
 import { schoolRequest } from '../src/services/api/apiClient.js';
 import { W2eLearnerStudio } from '../src/features/school/W2eLearnerStudio.jsx';

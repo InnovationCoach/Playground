@@ -2,6 +2,7 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+vi.mock('../src/app/i18n/LocaleProvider.jsx',()=>({useLocale:()=>({locale:'en'})}));
 vi.mock('../src/services/api/apiClient.js', () => ({ schoolRequest: vi.fn() }));
 vi.mock('../src/firebase.js', () => ({
   auth: { currentUser: { uid: 'learner-1' } },

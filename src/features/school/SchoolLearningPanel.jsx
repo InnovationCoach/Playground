@@ -1,3 +1,4 @@
+import { ActivityCoachTools, ActivityLesson } from '../activities/builder/ActivityEntry.jsx';
 import { SimulationBuilder, SimulationLab } from './SimulationLab.jsx';
 import { useEffect, useState } from 'react';
 import { auth, storage } from '../../firebase.js';
@@ -212,7 +213,7 @@ function Lessons({
   }));
   return <section className="sw-lessons"><h3>Program lessons</h3>{message(lessons.error)}{lessons.loading && <p role="status">Loading lessons…</p>}
     {!lessons.loading && !lessons.error && !lessons.data?.items.length && <p>No lessons have been published for your class yet.</p>}
-    {(lessons.data?.items || []).map(l => <article className="sw-card" key={l.id}><small>{template.milestones.find(m => m.id === l.milestoneId)?.title} · {l.status} · Version {l.revision}</small><h4>{l.title}</h4><p><strong>Learning outcome:</strong> {l.outcome}</p><p className="sw-preserve">{l.instructions}</p><LessonMedia attachments={l.attachments} />{l.simulation && <SimulationLab settings={l.simulation}/>}{isStaff && l.status === 'draft' && <div className="sw-actions"><button className="gh-btn gh-btn-ghost" disabled={state.busy} onClick={() => {
+    {(lessons.data?.items || []).map(l => <article className="sw-card" key={l.id}><small>{template.milestones.find(m => m.id === l.milestoneId)?.title} · {l.status} · Version {l.revision}</small><h4>{l.title}</h4><p><strong>Learning outcome:</strong> {l.outcome}</p><p className="sw-preserve">{l.instructions}</p><LessonMedia attachments={l.attachments} />{l.simulation && <SimulationLab settings={l.simulation}/>}{l.activity && !isStaff && l.status==='published' && <ActivityLesson lesson={l} uid={auth.currentUser?.uid} schoolId={school.id} offeringId={offering.id}/>} {isStaff && !l.activity && l.status === 'draft' && <div className="sw-actions"><button className="gh-btn gh-btn-ghost" disabled={state.busy} onClick={() => {
           setDraft(l);
           setMediaFiles([]);
           setFileKey(k => k + 1);
@@ -220,6 +221,7 @@ function Lessons({
         }}>Edit draft</button><button className="gh-btn gh-btn-primary" disabled={state.busy} onClick={() => run(() => mutateSchool('POST', `${base}/${l.id}/publish`, {
           revision: l.revision
         }), 'Lesson published to the selected class.')}>Publish lesson</button></div>}</article>)}
+    {isStaff && <ActivityCoachTools {...{school,offering,classes,template}} lessons={lessons.data?.items||[]} onSaved={lessons.reload}/>}
     {isStaff && <details className="sw-card" open={!!editId}><summary>{editId ? 'Edit lesson draft' : 'Add a lesson'}</summary><form className="sw-form" onSubmit={async e => {
         e.preventDefault();
         const result = await run(async () => {
