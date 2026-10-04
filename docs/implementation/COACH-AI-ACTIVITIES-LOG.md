@@ -33,3 +33,16 @@ Append one entry per handoff (newest last): date, agent, step, branch and commit
 - Verified `main` branch state: CORS allow-list configured in `server/app.js`, `apiClient.js` signed-out user guard restored, `feature/ux-sprint1` merged, all test suites passed (Unit 372 passed, API 90 passed, Rules 475 passed, production build clean), Firebase Functions & Hosting deployed live, and unauthenticated smoke tests verified.
 - main clean at `c0fd464caac1bb1296d7dff89a6258e855d5a0cd`; Claude may start Step 1.
 
+
+---
+
+## 2026-10-04 · Side task (project lead request) · Claude: student dashboard redesign + Portfolio maker
+
+Not part of the Coach AI phases, but it changes shared student-side files. **GPT-6: build Phase 1 on top of `main` at or after `c4ad7ae`.**
+
+- Merged `feature/student-dashboard-design` (`7ed46f2`) into `main` (`c4ad7ae`).
+- Changed shared files: `src/features/shell/TopNav.jsx` + `sidebar.css` (new grouped side menu, class prefix `hb-`; add new student links to `studentGroups()`), `src/app/App.jsx` (new lazy `JourneyPortfolio` and `#/journey` screen), `src/app/routes.js`, `src/app/i18n/messages.js` (`nav.*`, `journey.*` keys), `src/features/personalization/*` (larger dashboard header; portfolio items accept `phase` + `phaseReflection`).
+- New: `src/features/journey/*` (Portfolio maker and printable PDF document), `src/features/shell/useLearnerAvatar.js`.
+- For the Activity Player (contract §7): learners reach it from Learn › Lessons. If you need a side-menu entry, add it to the `learn` group in `studentGroups()`. Do not restyle the `hb-` menu.
+- Tests: unit 411 · API 91 · combined 515 · build OK. Uploads are verified by unit tests with a mocked upload. A real file upload still needs a check on staging (the local stack has no Storage emulator).
+- Deploy note for Gemini: hosting and the `api` function together (portfolio item validation changed); no rules changes.
