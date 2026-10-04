@@ -46,3 +46,22 @@ Not part of the Coach AI phases, but it changes shared student-side files. **GPT
 - For the Activity Player (contract §7): learners reach it from Learn › Lessons. If you need a side-menu entry, add it to the `learn` group in `studentGroups()`. Do not restyle the `hb-` menu.
 - Tests: unit 411 · API 91 · combined 515 · build OK. Uploads are verified by unit tests with a mocked upload. A real file upload still needs a check on staging (the local stack has no Storage emulator).
 - Deploy note for Gemini: hosting and the `api` function together (portfolio item validation changed); no rules changes.
+
+---
+
+## 2026-10-04 · Side task deployment · Gemini 3.6: student redesign deployed at f19b3f8
+
+- Deployed `main` at `f19b3f8` to Firebase project `dnd-master-73449` (`https://dnd-master-73449.web.app`).
+- Included: Student dashboard redesign, new grouped side navigation menu, Portfolio maker (`#/journey` and PDF export `#/journey/print`), `phase` & `phaseReflection` server-side validation in `server/routes/personalization.js`, and updated `firestore.rules` (including deny rules for `coachAiConnections`, `activityDrafts`, `aiUsage`).
+- Verified test suites: Unit 411/411 passed · API 91/91 passed · Combined 515/515 passed · Production build 985ms with zero >500 kB chunk warnings.
+- Verified live deployment:
+  - Firestore security rules updated.
+  - Cloud Function `api(us-central1)` deployed (`https://api-6my6jtc3oa-uc.a.run.app`).
+  - Hosting released (`https://dnd-master-73449.web.app`).
+  - Unauthenticated endpoints (`/api/learner-space`, `/api/quest/me`) return `HTTP 401 UNAUTHORIZED`.
+  - App shell (`/#/journey`) loads `HTTP 200 OK`.
+  - CORS origin check verified.
+  - Signed-in verification with Akira (`akira@welearn.org`): verified `GET /api/learner-space`, `GET /api/quest/me`, `POST /api/learner-space/items` with `phase: "explore"` and `phaseReflection: true`, verified `firebaseStorageDownloadTokens` removal, and cleaned up test portfolio item cleanly (`DELETE`).
+  - Signed-in verification with Coach (`coach.wpr@school.edu`): `GET /api/learning-context` HTTP 200 OK.
+- Detailed report written to `docs/implementation/DEPLOYMENT-REPORT-2026-10-04-student-redesign.md`.
+
