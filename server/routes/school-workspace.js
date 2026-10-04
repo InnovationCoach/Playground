@@ -5,6 +5,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { validateLessonAttachments } from '../lib/lessonMedia.js';
 import { randomBytes, createHash } from 'node:crypto';
 import { requireClaims } from '../middleware/auth.js';
+import { questContext, prepareXp, countSquadEvidence } from '../lib/quest.js';
 import { sendError } from '../lib/errors.js';
 import { PROGRAM_CATALOGUE, programById } from '../../src/features/pbl/content/programCatalogue.js';
 import { CALENDAR_REFERENCE } from '../../src/features/school/calendarReference.js';
@@ -68,7 +69,8 @@ router.get('/learning-context', wrap(async (req, res) => {
     if (s.exists && s.data().status !== 'suspended') schools.push({
       id,
       name: s.data().name || id,
-      timezone: s.data().timezone || 'Asia/Bangkok'
+      timezone: s.data().timezone || 'Asia/Bangkok',
+      features: { questMode: s.data().features?.questMode === true }
     });
   }
   const classes = [];
@@ -484,6 +486,7 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/submissions', wrap
     }
   }
   const submission = ref.collection('submissions').doc(`${caller.uid}_${submissionId}`);
+  const questCtx = await questContext(req.schoolId, req.school);
   let result;
   await getFirestore().runTransaction(async tx => {
     const lesson = await tx.get(ref.collection('lessons').doc(lessonId)),
@@ -513,8 +516,11 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/submissions', wrap
       createdAt: now(),
       id: submission.id
     };
+    const xp = await prepareXp(tx, questCtx, { uid: caller.uid, type: 'evidence_submitted', sourceId: submission.id, classId: l.classId, schoolId: req.schoolId });
     tx.create(submission, result);
     audit(tx, req.schoolId, caller, 'LESSON_EVIDENCE_SUBMITTED', submission.path);
+    xp.apply();
+    countSquadEvidence(tx, l.classId);
   });
   res.status(201).json(result);
 }));
@@ -527,12 +533,16 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/submissions/:submi
   const feedback = requireText(req.body.feedback, 'Feedback', 4000),
     status = req.body.status;
   if (!['reviewed', 'revision_requested'].includes(status)) fail(400, 'VALIDATION', 'Choose a review outcome.');
+  const questCtx = await questContext(req.schoolId, req.school);
   await getFirestore().runTransaction(async tx => {
     const snap = await tx.get(submission),
       value = snap.data();
     if (!value) fail(404, 'NOT_FOUND', 'Submission not found.');
     await learnerAccess(caller, req.schoolId, value.learnerUid, value.classId);
     if (value.revision !== req.body.revision) fail(409, 'CONFLICT', 'Another review changed this evidence. Reload before reviewing.');
+    // Feedback earns XP whether it approves or asks for a revision: improving counts.
+    const xp = await prepareXp(tx, questCtx, { uid: value.learnerUid, type: 'evidence_reviewed', sourceId: submission.id, classId: value.classId, schoolId: req.schoolId });
+    xp.apply();
     tx.update(submission, {
       status,
       feedback,
@@ -611,6 +621,7 @@ router.post('/schools/:schoolId/learner-goals', wrap(async (req, res) => {
 router.patch('/schools/:schoolId/learner-goals/:goalId', wrap(async (req, res) => {
   const caller = req.schoolCaller,
     ref = root(req.schoolId).collection('learnerGoals').doc(requireId(req.params.goalId));
+  const questCtx = await questContext(req.schoolId, req.school);
   await getFirestore().runTransaction(async tx => {
     const s = await tx.get(ref),
       g = s.data();
@@ -627,12 +638,16 @@ router.patch('/schools/:schoolId/learner-goals/:goalId', wrap(async (req, res) =
         state: req.body.state
       };
     }
+    let xp = null;
+    if (caller.role === 'student' && !g.acknowledged) xp = await prepareXp(tx, questCtx, { uid: g.learnerUid, type: 'goal_acknowledged', sourceId: ref.id, classId: g.classId, schoolId: req.schoolId });
+    if (caller.role !== 'student' && update.state === 'achieved' && g.state !== 'achieved') xp = await prepareXp(tx, questCtx, { uid: g.learnerUid, type: 'goal_achieved', sourceId: ref.id, classId: g.classId, schoolId: req.schoolId });
     tx.update(ref, {
       ...update,
       revision: g.revision + 1,
       updatedAt: now()
     });
     audit(tx, req.schoolId, caller, 'GOAL_UPDATED', ref.path);
+    xp?.apply();
   });
   res.json({
     saved: true

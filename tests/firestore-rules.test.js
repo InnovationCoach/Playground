@@ -703,3 +703,18 @@ describe('Private dashboard and portfolio API boundaries', () => {
     }
   });
 });
+
+describe('Teen Quest records are API-only', () => {
+  it('denies every role direct access to quest state, the XP ledger and squad totals', async () => {
+    const paths = ['learnerQuest/student_a', 'learnerQuest/student_a/xpEvents/evidence_submitted__x', 'classes/class_a/questSquad/current'];
+    await testEnv.withSecurityRulesDisabled(async ctx => {
+      for (const path of paths) await setDoc(doc(ctx.firestore(), path), {xp: 10, count: 1});
+    });
+    for (const path of paths) {
+      for (const ctx of [studentA(), studentA2(), coachA(), anon()]) {
+        await assertFails(getDoc(doc(ctx.firestore(), path)));
+        await assertFails(setDoc(doc(ctx.firestore(), path), {xp: 99999, count: 99999}));
+      }
+    }
+  });
+});

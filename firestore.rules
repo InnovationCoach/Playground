@@ -147,6 +147,12 @@ service cloud.firestore {
     match /learnerPortfolios/{uid} { allow read, write: if false; }
     match /portfolioAudienceGrants/{uid} { allow read, write: if false; }
 
+    // Teen Quest XP, badges, streaks and the XP ledger are written only by the
+    // API, so no learner can award themselves XP. Squad goals hold class totals.
+    match /learnerQuest/{uid} { allow read, write: if false; }
+    match /learnerQuest/{uid}/{document=**} { allow read, write: if false; }
+    match /classes/{classId}/questSquad/{docId} { allow read, write: if false; }
+
     // User profiles
     // ---------------------------------------------------------------------
     match /users/{userId} {
