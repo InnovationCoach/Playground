@@ -153,6 +153,12 @@ service cloud.firestore {
     match /learnerQuest/{uid}/{document=**} { allow read, write: if false; }
     match /classes/{classId}/questSquad/{docId} { allow read, write: if false; }
 
+    // Coach AI activity builder: API-only. Connections hold KMS ciphertext and
+    // key metadata; drafts and usage counters are written only by the server.
+    match /coachAiConnections/{uid} { allow read, write: if false; }
+    match /schools/{schoolId}/programOfferings/{offeringId}/activityDrafts/{draftId} { allow read, write: if false; }
+    match /schools/{schoolId}/aiUsage/{month} { allow read, write: if false; }
+
     // User profiles
     // ---------------------------------------------------------------------
     match /users/{userId} {

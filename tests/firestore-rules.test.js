@@ -704,6 +704,21 @@ describe('Private dashboard and portfolio API boundaries', () => {
   });
 });
 
+describe('Coach AI activity builder records are API-only', () => {
+  it('denies every role direct access to AI connections, drafts and usage', async () => {
+    const paths = ['coachAiConnections/coach_a', 'schools/school_a/programOfferings/offer_a/activityDrafts/draft_a', 'schools/school_a/aiUsage/2026-10'];
+    await testEnv.withSecurityRulesDisabled(async ctx => {
+      for (const path of paths) await setDoc(doc(ctx.firestore(), path), {ciphertext: 'x', last4: '1234', count: 1});
+    });
+    for (const path of paths) {
+      for (const ctx of [coachA(), studentA(), anon()]) {
+        await assertFails(getDoc(doc(ctx.firestore(), path)));
+        await assertFails(setDoc(doc(ctx.firestore(), path), {ciphertext: 'stolen', count: 0}));
+      }
+    }
+  });
+});
+
 describe('Teen Quest records are API-only', () => {
   it('denies every role direct access to quest state, the XP ledger and squad totals', async () => {
     const paths = ['learnerQuest/student_a', 'learnerQuest/student_a/xpEvents/evidence_submitted__x', 'classes/class_a/questSquad/current'];
