@@ -34,9 +34,21 @@ export function createApp() {
 
   initAdmin();
 
-  // Middleware
+  const rawFrontendUrl = process.env.FRONTEND_URL || 'https://welearn.org,https://dnd-master-73449.web.app,https://dnd-master-73449.firebaseapp.com,https://dnd-master-73449.firebaseapp.app';
+  const allowedOrigins = new Set([
+    ...rawFrontendUrl.split(',').map(s => s.trim()),
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+  ]);
+
   app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true
   }));
   app.use(express.json({ limit: '8mb' }));

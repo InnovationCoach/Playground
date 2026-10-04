@@ -1,92 +1,102 @@
-# Deployment Report: W2e Studio Home Live Release (2026-10-04)
+# Firebase Production Deployment Report: Baseline Release + Teen Quest
 
-**Target Project**: `dnd-master-73449` (`https://dnd-master-73449.web.app`)  
-**Deployment Date**: October 4, 2026  
-**Environment**: Production (Cloud Functions v2 Node.js 20 + Firebase Hosting + Cloud Firestore)  
+**Firebase Project:** `dnd-master-73449`  
+**Hosting Site:** `https://dnd-master-73449.web.app`  
+**Deployed Commit:** `588cbc2` on `main`  
+**Function Endpoint:** `https://api-6my6jtc3oa-uc.a.run.app` (2nd Gen Node.js 20 `api`)  
+**Date:** October 4, 2026  
 
 ---
 
 ## Executive Summary
 
-The W2e Studio Home deployment for `akira@welearn.org` testing is **LIVE** on `https://dnd-master-73449.web.app`.
+The **Baseline Release** (Personalised Dashboards & Portfolios, Coach Program Creation, Class Codes, Simulation Lab, Navigation Refresh, Goal-Setting Journal Modal) and **Teen Quest** (Phases A, B, C: Server-awarded XP, Levels, Badges, Weekday Streaks, Squad Goals, Quest Home, Quest Map, Calm View, Staff/Parent Summaries) have been successfully merged, tested, and deployed to production.
 
-The account `akira@welearn.org` has been fully provisioned with signed Firebase custom claims and matching Firestore documents. The Express API backend is deployed as a 2nd Gen Cloud Function (`api`) in region `us-central1`, routed directly via same-origin `/api/**` Firebase Hosting rewrites.
+Pilot mode (`schools/school-wpr.features.questMode = true`) was switched on for `school-wpr` and verified live with test accounts (`akira@welearn.org`, `coach.wpr@school.edu`, `admin.test@school.edu`, `parent.test@school.edu`).
 
 ---
 
-## 1. Provisioned Test Accounts & Claims
+## 1. Deployed Components & Git References
 
-### Student Test Account (`akira@welearn.org`)
-- **Email**: `akira@welearn.org`
-- **Password**: `review123`
-- **UID**: `d27J9hvQwMfpZjsRIrvS0lhBrWo1`
-- **Signed Claims**:
-  ```json
-  {
-    "role": "student",
-    "orgId": "org-welearn",
-    "schoolIds": ["school-wpr"],
-    "classIds": ["class-wpr-11a"]
-  }
+| Component | Git Branch / Commit | Live Revision / Target | Status |
+| :--- | :--- | :--- | :--- |
+| **Baseline + Teen Quest Codebase** | `main` @ `588cbc2` | Merged & Fast-Forwarded from `feature/teen-quest` | **DEPLOYED** ✅ |
+| **Firestore Security Rules** | `firestore.rules` | `cloud.firestore` | **RELEASED** ✅ |
+| **Storage Security Rules** | `storage.rules` | `firebase.storage` | **RELEASED** ✅ |
+| **Cloud Function (`api`)** | 2nd Gen Node.js 20 | `us-central1` (`https://api-6my6jtc3oa-uc.a.run.app`) | **UPDATED** ✅ |
+| **Firebase Hosting** | `dist/` | `https://dnd-master-73449.web.app` | **RELEASED** ✅ |
+
+---
+
+## 2. Automated Test Verification Evidence
+
+All local test suites passed cleanly prior to deployment:
+
+```
+1. Unit & Interface Tests (npm run test:unit):
+   Test Files: 21 passed (21)
+   Tests:      371 passed (371)
+
+2. API Integration Tests (npm run test:api against Auth & Firestore emulators):
+   Test Files: 8 passed (8)
+   Tests:      89 passed (89)
+
+3. Combined Rules & Model Tests (npm test):
+   Test Files: 23 passed (23)
+   Tests:      474 passed (474)
+
+4. Production Build (npm run build):
+   Compiled in 1.02s without errors.
+```
+
+---
+
+## 3. Unauthenticated API Smoke Tests (Live Environment)
+
+Requests to non-public endpoints verify that same-origin `/api/**` rewrites and auth middleware are active:
+
+```http
+1. GET /api/quest/me
+   HTTP/2 401 Unauthorized
+   {"error":{"code":"UNAUTHENTICATED","message":"Sign-in required."}}
+
+2. GET /api/learner-space
+   HTTP/2 401 Unauthorized
+   {"error":{"code":"UNAUTHENTICATED","message":"Sign-in required."}}
+
+3. GET /api/no-such-route
+   HTTP/2 404 Not Found
+   {"error":{"code":"NOT_FOUND","message":"No route GET /api/no-such-route"}}
+```
+
+---
+
+## 4. Step 11: Teen Quest Pilot Switch-On Evidence (`school-wpr`)
+
+- **Feature Flag Set:** `schools/school-wpr.features.questMode = true` in Firestore via Admin API.
+- **Student Verification (`akira@welearn.org`):**
+  - `GET /api/quest/me` returned Level 1 ("Curious Starter"), 0 XP initial state.
+  - `POST /api/quest/events` with 40+ character reflection:
+    - **Response:** `+15 XP` awarded, daily reflection counter updated to 1 (`curious-mind` progress: 33.3%).
+  - Second reflection submission on the same day:
+    - **Response:** Capped cleanly (`"already added"`), preventing XP farming.
+  - Calm View toggle via `PATCH /api/quest/me`:
+    - Switched `calmView: true` and restored `calmView: false` with revision sequence checks.
+- **Staff Summary Verification (`coach.wpr@school.edu`):**
+  - `GET /api/quest/learners/d27J9hvQwMfpZjsRIrvS0lhBrWo1?schoolId=school-wpr&classId=class-wpr-11a`:
+    - **Response:** HTTP 200 OK returning Akira's verified level (Level 1), counters (`reflections: 1`), and streak data.
+- **Security Rules Verification (Direct Firestore Access):**
+  - `GET https://firestore.googleapis.com/v1/projects/dnd-master-73449/databases/(default)/documents/learnerQuest/d27J9hvQwMfpZjsRIrvS0lhBrWo1`:
+    - **Response:** `HTTP 403 Forbidden` (`Missing or insufficient permissions`), confirming server-only protection on `learnerQuest` and `questSquad`.
+
+---
+
+## 5. Rollback & Operational Procedure
+
+- **Disable Teen Quest Pilot:**
+  Set `schools/<schoolId>.features.questMode = false` in Firestore. The student interface immediately reverts to Studio Home without data loss.
+- **Full Production Rollback:**
+  Re-deploy hosting version or function revision via Firebase CLI:
+  ```bash
+  firebase hosting:clone dnd-master-73449:<previous-version> dnd-master-73449:live
   ```
-- **Firestore Document (`users/d27J9hvQwMfpZjsRIrvS0lhBrWo1`)**:
-  - `displayName`: `"Akira"`
-  - `role`: `"student"`
-  - `status`: `"active"`
-  - `schoolIds`: `["school-wpr"]`
-  - `classIds`: `["class-wpr-11a"]`
-  - `groupName`: `"WPR Year 11 Climate"`
-
----
-
-## 2. Firestore Infrastructure Documents
-
-| Entity | Collection Path | Key Fields |
-| :--- | :--- | :--- |
-| **School** | `schools/school-wpr` | `name: "WPR International School"`, `timezone: "Asia/Bangkok"`, `status: "active"` |
-| **Class** | `classes/class-wpr-11a` | `name: "WPR Year 11 Climate"`, `learnerIds: ["d27J9hvQwMfpZjsRIrvS0lhBrWo1"]`, `coachIds: ["coach-wpr-1"]` |
-| **Coach** | `users/coach-wpr-1` | `email: "coach.wpr@school.edu"`, `displayName: "Coach Sam"`, `classIds: ["class-wpr-11a"]` |
-| **Offering** | `schools/school-wpr/programOfferings/2026-2027-sustainable-futures` | `programId: "sustainable-futures"`, `title: "Sustainable Future PBL"`, `status: "published"` |
-| **Membership** | `schools/school-wpr/programOfferings/2026-2027-sustainable-futures/members/d27J9hvQwMfpZjsRIrvS0lhBrWo1` | `classId: "class-wpr-11a"`, `status: "active"` |
-
----
-
-## 3. Live Endpoint Verification Evidence
-
-### Unauthenticated Request Verification (`GET /api/learning-context`)
-```http
-HTTP/2 401 
-content-type: application/json; charset=utf-8
-x-powered-by: Express
-
-{"error":{"code":"UNAUTHENTICATED","message":"Sign-in required."}}
-```
-
-### Unknown Route Catch-All Verification (`GET /api/notaroute`)
-```http
-HTTP/2 404 
-content-type: application/json; charset=utf-8
-x-powered-by: Express
-
-{"error":{"code":"NOT_FOUND","message":"No route GET /api/notaroute"}}
-```
-
----
-
-## 4. Expected User Experience for `akira@welearn.org`
-
-1. Navigate to `https://dnd-master-73449.web.app`
-2. Sign in with:
-   - **Email**: `akira@welearn.org`
-   - **Password**: `review123`
-3. Land on **Studio Home** tab with greeting: `"Hi Akira. Start with one step."`
-4. Access encouragement slider, next-step cards, progress ring (0/3), curiosity space, and quest planner.
-5. Header theme toggle switches between Light and Dark mode with local storage persistence.
-
----
-
-## 5. Rollback Procedure
-
-Should a rollback be required:
-- **Hosting Rollback**: `firebase deploy --only hosting` or redeploy previous build directory `dist/`.
-- **Function Rollback**: `firebase deploy --only functions` with previous `server/index.js` revision.

@@ -67,6 +67,14 @@ export function serviceMessage(error) {
     UNAUTHENTICATED: 'Please sign in again to view your school records.',
     FORBIDDEN: 'You do not currently have access to these records. Ask your school to check your assignment.'
   };
+  const msg = String(error?.message || error?.code || '');
+  if (msg.includes('invalid-refresh-token') || msg.includes('user-token-expired')) {
+    return messages.UNAUTHENTICATED;
+  }
   const code = error?.code || error?.message;
-  return messages[code] || (error?.message && !/^[A-Z_]+$/.test(error.message) ? error.message : 'School records are unavailable. Please try again.');
+  if (messages[code]) return messages[code];
+  if (error?.message && !/^[A-Z_]+$/.test(error.message) && !error.message.startsWith('Firebase:')) {
+    return error.message;
+  }
+  return 'School records are unavailable. Please try again.';
 }

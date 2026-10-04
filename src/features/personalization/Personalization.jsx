@@ -5,11 +5,11 @@ import {schoolRequest} from '../../services/api/apiClient.js';
 import './personalization.css';
 const Field = ({label,children}) => <label className="lp-field"><span>{label}</span>{children}</label>;
 export function surfaceStyle(surface) {return {'--lp-accent':PALETTES[surface.appearance.accent].accent,'--lp-ink':PALETTES[surface.appearance.accent].ink,background:BACKGROUNDS[surface.appearance.background]};}
-function SurfaceHeader({surface,name}) {
-  return <header className="lp-header">{surface.appearance.cover?.url && <img className="lp-cover" src={surface.appearance.cover.url} alt="Portfolio cover"/>}<div className="lp-identity">{surface.appearance.picture?.url ? <img className="lp-avatar" src={surface.appearance.picture.url} alt={`${name || 'Learner'} profile`}/> : <span className="lp-avatar lp-initial" aria-hidden="true">{(name || 'L').slice(0,1)}</span>}<div><h1>{surface.heading || name || 'My space'}</h1>{name && <p>{name}</p>}</div></div><p className="lp-intro">{surface.introduction}</p>{surface.interests && <p><strong>Interests:</strong> {surface.interests}</p>}</header>;
+function SurfaceHeader({surface,name,privateDashboard=false}) {
+  return <header className="lp-header">{surface.appearance.cover?.url && <img className="lp-cover" src={surface.appearance.cover.url} alt={privateDashboard ? "My dashboard banner" : "Portfolio cover"}/>}<div className="lp-identity">{surface.appearance.picture?.url ? <img className="lp-avatar" src={surface.appearance.picture.url} alt={`${name || 'Learner'} profile`}/> : <span className="lp-avatar lp-initial" aria-hidden="true">{(name || 'L').slice(0,1)}</span>}<div><h1>{surface.heading || name || 'My space'}</h1>{name && <p>{name}</p>}</div></div><p className="lp-intro">{surface.introduction}</p>{surface.interests && <p><strong>Interests:</strong> {surface.interests}</p>}</header>;
 }
 function Feedback({space}) {return <>{space.error && <p className="lp-error" role="alert">{space.error}</p>}<p className="lp-status" role="status" aria-live="polite">{space.status}</p></>;}
-function SettingsEditor({space,uid,surfaceKey}) {
+function SettingsEditor({space,uid,surfaceKey,externalBusy=false}) {
   const surface=space.draft[surfaceKey], [uploading,setUploading]=useState(false);
   const update=(key,value)=>space.change(d=>({...d,[surfaceKey]:{...d[surfaceKey],[key]:value}}));
   const appearance=(key,value)=>space.change(d=>({...d,[surfaceKey]:{...d[surfaceKey],appearance:{...d[surfaceKey].appearance,[key]:value}}}));
@@ -17,29 +17,51 @@ function SettingsEditor({space,uid,surfaceKey}) {
     if(!file)return;setUploading(true);space.setError('');
     try {appearance(key,await uploadLearnerFile(uid,file));}catch(e){space.setError(e.message);}finally{setUploading(false);}
   }
-  return <fieldset className="lp-editor" disabled={space.busy || uploading || !space.saved}><legend>{surfaceKey==='dashboard'?'Personalize your private dashboard':'Personalize your shareable portfolio'}</legend>
+  return <fieldset className="lp-editor" disabled={space.busy || uploading || externalBusy || !space.saved}><legend>{surfaceKey==='dashboard'?'Personalize your private dashboard':'Personalize your shareable portfolio'}</legend>
     <p>{surfaceKey==='dashboard'?'Your introduction, interests, personal goals and dashboard settings are private.':'Only this portfolio introduction, interests and selected work can be shared. Personal goals and support information stay on your private dashboard.'}</p>
     <div className="lp-fields"><Field label="Heading"><input maxLength={100} value={surface.heading} onChange={e=>update('heading',e.target.value)}/></Field><Field label="Short introduction"><textarea maxLength={600} value={surface.introduction} onChange={e=>update('introduction',e.target.value)}/></Field><Field label="Interests"><input maxLength={300} value={surface.interests} onChange={e=>update('interests',e.target.value)}/></Field>
     {surfaceKey==='dashboard' && <Field label="Private personal goals"><textarea maxLength={1200} value={surface.goals} onChange={e=>update('goals',e.target.value)}/></Field>}
     <Field label="Accent color"><select value={surface.appearance.accent} onChange={e=>appearance('accent',e.target.value)}>{Object.entries(PALETTES).map(([id,p])=><option key={id} value={id}>{p.label}</option>)}</select></Field>
     <Field label="Background"><select value={surface.appearance.background} onChange={e=>appearance('background',e.target.value)}>{Object.keys(BACKGROUNDS).map(id=><option key={id} value={id}>{id}</option>)}</select></Field>
     <Field label="Preset layout"><select value={surface.layout} onChange={e=>{const layout=e.target.value;space.change(d=>({...d,[surfaceKey]:{...d[surfaceKey],layout,...(surfaceKey==='dashboard'?{widgetOrder:[...LAYOUTS[layout]]}:{})}}));}}>{Object.keys(surfaceKey==='dashboard'?LAYOUTS:{gallery:1,journal:1}).map(id=><option value={id} key={id}>{id}</option>)}</select></Field>
-    {['picture',...(surfaceKey==='portfolio'?['cover']:[])].map(key=><div key={key}><Field label={key==='picture'?'Profile picture':'Portfolio cover'}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>{const file=e.target.files[0];e.target.value='';upload(key,file);}}/></Field>{surface.appearance[key] && <button type="button" onClick={()=>appearance(key,null)}>Remove {key}</button>}</div>)}
+    {(surfaceKey==='portfolio'?['picture','cover']:[]).map(key=><div key={key}><Field label={key==='picture'?'Profile picture':'Portfolio cover'}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>{const file=e.target.files[0];e.target.value='';upload(key,file);}}/></Field>{surface.appearance[key] && <button type="button" onClick={()=>appearance(key,null)}>Remove {key}</button>}</div>)}
     </div><p className="lp-muted">Curated colors and layouts keep your space readable. Uploaded images: up to 20 MB.</p>
     <div className="lp-actions"><button type="button" onClick={space.save}>{space.busy?'Saving…':'Save personalization'}</button><button type="button" disabled={!space.history.length} onClick={space.undo}>Undo last change</button><button type="button" onClick={space.discard}>Discard preview</button>{surfaceKey==='dashboard' && <button type="button" onClick={()=>space.change(d=>({...d,dashboard:{...d.dashboard,layout:'balanced',widgetOrder:[...defaults().dashboard.widgetOrder]}}))}>Restore default layout</button>}</div>
     {uploading && <p role="status">Uploading your image…</p>}
   </fieldset>;
 }
+function DashboardDecoration({space,uid,onUploading}) {
+  const [uploading,setUploading]=useState('');
+  const appearance=space.draft.dashboard.appearance;
+  const update=(key,value)=>space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[key]:value}}}));
+  async function upload(key,file) {
+    if(!file)return;
+    if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){space.setError('Choose a JPG, PNG, WebP or GIF image.');return;}
+    setUploading(key);onUploading(true);space.setError('');
+    try {update(key,await uploadLearnerFile(uid,file));} catch(error){space.setError(error.message);} finally{setUploading('');onUploading(false);}
+  }
+  return <fieldset className="lp-decoration" disabled={space.loading||space.busy||!!uploading||!space.saved}>
+    <legend>Make this space yours</legend><p>Add your picture and a banner to decorate your private learning dashboard. These images stay separate from your portfolio.</p>
+    <div className="lp-decoration-grid">{[['picture','Profile picture','A photo, drawing or avatar. Square images work best.'],['cover','Dashboard banner','A favourite landscape or artwork. Wide images work best.']].map(([key,label,hint])=><div key={key} className={`lp-decoration-card lp-decoration-${key}`}>
+      <div className="lp-decoration-preview">{appearance[key]?.url ? <img src={appearance[key].url} alt={`${label} preview`}/> : <span aria-hidden="true">{key==='picture'?'◉':'▧'}</span>}</div>
+      <div><Field label={label}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>{const file=e.target.files?.[0];e.target.value='';upload(key,file);}}/></Field><small>{hint}</small>{appearance[key]&&<button type="button" onClick={()=>update(key,null)}>Remove {label.toLowerCase()}</button>}</div>
+    </div>)}</div>
+    <p className="lp-muted">JPG, PNG, WebP or GIF, up to 20 MB. Preview first, then save. Images are cropped to fit the display.</p>
+    <div className="lp-actions"><button type="button" onClick={space.save}>Save dashboard changes</button><button type="button" disabled={!space.history.length} onClick={space.undo}>Undo decoration change</button><button type="button" onClick={space.discard}>Discard dashboard preview</button></div>
+    {uploading&&<p role="status">Uploading your {uploading==='cover'?'banner':'profile picture'}…</p>}
+  </fieldset>;
+}
 export function PersonalizedDashboard({uid,profile,widgets}) {
-  const space=usePersonalization(uid), [editing,setEditing]=useState(false), [dragId,setDragId]=useState(null), [announcement,setAnnouncement]=useState('');
+  const space=usePersonalization(uid), [editing,setEditing]=useState(false), [dragId,setDragId]=useState(null), [announcement,setAnnouncement]=useState(''), [decorating,setDecorating]=useState(false);
   const d=space.draft.dashboard;
   function move(id,target){space.change(value=>({...value,dashboard:{...value.dashboard,widgetOrder:moveWidget(value.dashboard.widgetOrder,id,target)}}));setAnnouncement(`${WIDGETS[id]} moved to position ${target+1} of 4.`);}
   return <section className={`lp-space lp-dashboard lp-layout-${d.layout}`} style={surfaceStyle(d)} aria-label="Private learning dashboard">
-    <div className="lp-toolbar"><strong>Private learning dashboard</strong><a href="#/portfolio">My shareable portfolio →</a><button type="button" aria-expanded={editing} onClick={()=>setEditing(v=>!v)} disabled={space.loading || !space.saved}>Personalize dashboard</button></div>
+    <div className="lp-toolbar"><strong>Private learning dashboard</strong><a href="#/portfolio">My shareable portfolio →</a><button type="button" aria-expanded={editing} onClick={()=>setEditing(v=>!v)} disabled={space.loading || decorating || !space.saved}>Personalize dashboard</button></div>
     {space.loading && <p role="status">Loading your personalization…</p>}
     <Feedback space={space}/>{space.error && <button type="button" onClick={space.reload}>Reload personalization</button>}
-    {editing && <><SettingsEditor space={space} uid={uid} surfaceKey="dashboard"/><p>Live preview below. Drag a widget by its handle, use Alt + ↑/↓ on the handle, or use Move up / Move down. Save to keep your order.</p></>}
-    <SurfaceHeader surface={d} name={profile?.displayName}/><p className="lp-sr" role="status" aria-live="polite">{announcement}</p>
+    <DashboardDecoration space={space} uid={uid} onUploading={setDecorating}/>
+    {editing && <><SettingsEditor space={space} uid={uid} surfaceKey="dashboard" externalBusy={decorating}/><p>Live preview below. Drag a widget by its handle, use Alt + ↑/↓ on the handle, or use Move up / Move down. Save to keep your order.</p></>}
+    <SurfaceHeader surface={d} name={profile?.displayName} privateDashboard/><p className="lp-sr" role="status" aria-live="polite">{announcement}</p>
     <div className="lp-widgets">{d.widgetOrder.map((id,index)=><section className="lp-widget" key={id} aria-label={WIDGETS[id]} onDragOver={e=>{if(editing)e.preventDefault();}} onDrop={e=>{e.preventDefault();if(editing&&dragId)move(dragId,index);setDragId(null);}}>
       {editing && <div className="lp-widget-controls"><button type="button" draggable={!space.busy} disabled={space.busy} aria-label={`Reorder ${WIDGETS[id]}`} onDragStart={e=>{setDragId(id);e.dataTransfer.setData('text/plain',id);e.dataTransfer.effectAllowed='move';}} onDragEnd={()=>setDragId(null)} onKeyDown={e=>{if(e.altKey && ['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const target=index+(e.key==='ArrowUp'?-1:1);if(target>=0 && target<4)move(id,target);}}}>⠿ {WIDGETS[id]}</button><button type="button" disabled={index===0 || space.busy} onClick={()=>move(id,index-1)}>Move up<span className="lp-sr"> {WIDGETS[id]}</span></button><button type="button" disabled={index===3 || space.busy} onClick={()=>move(id,index+1)}>Move down<span className="lp-sr"> {WIDGETS[id]}</span></button></div>}
       {id==='about'?<div><h2>About my learning</h2><p>{d.introduction || 'Use Personalize dashboard to introduce yourself.'}</p><h3>My private personal goals</h3><p className="lp-intro">{d.goals || 'Add a personal goal in your dashboard settings.'}</p></div>:widgets[id]}

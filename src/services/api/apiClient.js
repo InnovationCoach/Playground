@@ -72,7 +72,16 @@ async function liveRequest(method, path, { query, body, refreshToken = false, is
   const user = auth.currentUser;
   if (!user) throw new ApiError({ code: 'UNAUTHENTICATED', status: 401 });
 
-  const token = await user.getIdToken(refreshToken);
+  let token;
+  try {
+    token = await user.getIdToken(refreshToken);
+  } catch (err) {
+    if (err?.code === 'auth/invalid-refresh-token' || err?.message?.includes('invalid-refresh-token') || err?.code === 'auth/user-token-expired') {
+      await auth.signOut().catch(() => {});
+      throw new ApiError({ code: 'UNAUTHENTICATED', message: 'Session expired. Please sign in again.', status: 401 });
+    }
+    throw err;
+  }
   const claims = await getAuthClaims().catch(() => ({}));
   const callerRole = claims.role || 'student';
   const mockAllowed = isMockApi;

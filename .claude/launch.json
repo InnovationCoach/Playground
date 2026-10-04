@@ -46,7 +46,14 @@
     {
       "name": "activity6-standalone",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--config", "vite.activity6.config.js", "--port", "5176", "--strictPort"],
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "vite.activity6.config.js",
+        "--port",
+        "5176",
+        "--strictPort"
+      ],
       "port": 5176
     },
     {
@@ -59,6 +66,29 @@
         "--strictPort"
       ],
       "port": 5175
+    },
+    {
+      "name": "ux-sprint1-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/admin/Desktop/HearIsland/.claude/worktrees/ux-sprint1",
+        "run",
+        "server:dev:emulator"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "ux-sprint1-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "/Users/admin/Desktop/HearIsland/.claude/worktrees/ux-sprint1",
+        "--port",
+        "5177",
+        "--strictPort"
+      ],
+      "port": 5177
     }
   ]
 }

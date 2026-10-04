@@ -45,3 +45,20 @@ describe('Media and revision-safe previews',()=>{
     await click('Save personalization');await click('Undo last change');await click('Save personalization');const puts=schoolRequest.mock.calls.filter(([method])=>method==='PUT');expect(puts[1][2].body.revision).toBe(1);
   });
 });
+
+it('previews and saves a private dashboard banner without modifying the portfolio',async()=>{
+  storage.ref.mockReturnValue({put:vi.fn().mockResolvedValue({})});
+  schoolRequest.mockImplementation((method,path,options)=>Promise.resolve(path.endsWith('/media-preview')?{...options.body.media,url:'https://media.example/temporary/banner.png',contentType:'image/png'}:method==='PUT'?{...data,...options.body,revision:1}:structuredClone(data)));
+  await act(async()=>root.render(<PersonalizedDashboard uid="learner" profile={{displayName:'Learner'}} widgets={{}}/>));
+  const input=[...host.querySelectorAll('input[type="file"]')].find(e=>e.closest('label').textContent.includes('Dashboard banner'));
+  Object.defineProperty(input,'files',{value:[new File(['banner'],'banner.png',{type:'image/png'})]});
+  await act(async()=>input.dispatchEvent(new Event('change',{bubbles:true})));
+  expect(host.querySelector('.lp-cover').alt).toBe('My dashboard banner');
+  expect(host.querySelector('.lp-cover').src).toContain('/banner.png');
+  await click('Save dashboard changes');
+  const body=schoolRequest.mock.calls.find(([method])=>method==='PUT')[2].body;
+  expect(body.dashboard.appearance.cover.name).toBe('banner.png');
+  expect(body.portfolio.appearance.cover).toBeNull();
+  await click('Remove dashboard banner');expect(host.querySelector('.lp-cover')).toBeNull();
+  await click('Discard dashboard preview');expect(host.querySelector('.lp-cover')).not.toBeNull();
+});

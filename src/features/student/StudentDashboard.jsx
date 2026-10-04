@@ -61,9 +61,6 @@ export function StudentDashboard({ profile, uid, onProfileChanged }) {
 
   return (
     <div className="container">
-      {uid && (
-        <JoinClassPanel uid={uid} classIds={classIds} onJoined={onProfileChanged} />
-      )}
 
       <PersonalizedDashboard uid={uid} profile={profile} widgets={{
         goals: <div id="goals-dashboard-container" style={{ marginBottom: '2rem' }} />,
@@ -118,6 +115,9 @@ export function StudentDashboard({ profile, uid, onProfileChanged }) {
       </div>
         )
       }} />
+      {uid && (
+        <JoinClassPanel uid={uid} classIds={classIds} onJoined={onProfileChanged} />
+      )}
     </div>
   );
 }
