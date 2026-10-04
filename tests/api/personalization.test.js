@@ -30,6 +30,14 @@ describe('Private personalization and scoped portfolio sharing',()=>{
     body.dashboard.appearance.accent='arbitrary';expect((await call('PUT','/api/learner-space','owner',body)).status).toBe(400);
     body.dashboard.appearance.accent='plum';body.portfolio.appearance.picture={path:'learnerMedia/other/id/p.jpg',name:'p.jpg'};expect((await call('PUT','/api/learner-space','owner',body)).status).toBe(400);
   });
+  it('stores design-thinking stage evidence and one reflection per stage, and rejects bad stages',async()=>{
+    const ok=await call('POST','/api/learner-space/items','owner',{title:'Explore reflection',kind:'writing',body:'I learned how to measure energy.',audiences:[],phase:'explore',phaseReflection:true});
+    expect(ok.status).toBe(201);expect(ok.body.items[0]).toMatchObject({phase:'explore',phaseReflection:true,audiences:[]});
+    expect((await call('POST','/api/learner-space/items','owner',{title:'Bad',kind:'writing',body:'x',audiences:[],phase:'nowhere'})).status).toBe(400);
+    expect((await call('POST','/api/learner-space/items','owner',{title:'Bad',kind:'writing',body:'x',audiences:[],phaseReflection:true})).status).toBe(400);
+    const id=ok.body.items[0].id;const removed=await call('DELETE',`/api/learner-space/items/${id}`,'owner',{revision:ok.body.items[0].revision});
+    expect(removed.status).toBe(200);
+  });
   it('adds private, coach, classmate and pending wider work',async()=>{
     for(const [title,audiences] of [['Private',[]],['Coach',['coaches']],['Class',['classmates']],['Wider',['wider']]]){
       const result=await call('POST','/api/learner-space/items','owner',{title,kind:'writing',body:title+' content',audiences});expect(result.status).toBe(201);items=result.body.items;

@@ -18,3 +18,25 @@
 .lp-dashboard .lp-cover { height:240px; }
 @media(max-width:1000px) { .lp-decoration-grid { grid-template-columns:1fr; } }
 @media(max-width:500px) { .lp-decoration { padding:14px; } .lp-decoration-card { flex-direction:column; align-items:stretch; } .lp-decoration-preview { align-self:center; } .lp-decoration-cover .lp-decoration-preview { width:100%; height:100px; } .lp-decoration legend {font-size:21px;} .lp-dashboard .lp-cover { height:160px; } }
+
+/* Student dashboard redesign: Montserrat headings and a large profile picture
+   that overlaps the banner (UX/UI plan; Gotham-style typography). */
+.lp-space,.lp-owner{--lp-display:'Montserrat','Plus Jakarta Sans',system-ui,sans-serif}
+.lp-space h1,.lp-space h2,.lp-space h3,.lp-owner h1,.lp-owner h2,.lp-owner h3,.lp-toolbar strong{font-family:var(--lp-display);letter-spacing:-.01em}
+.lp-dashboard header.lp-header{position:relative;padding:0 0 22px;border-bottom:0}
+.lp-dashboard .lp-cover{height:260px;border-radius:20px}
+.lp-dashboard .lp-identity{gap:24px;margin:18px 0 10px;align-items:flex-end}
+.lp-dashboard header.lp-header:has(.lp-cover) .lp-identity{margin-top:-84px;padding-left:28px}
+.lp-dashboard .lp-avatar{width:156px;height:156px;border:6px solid #fff;box-shadow:0 14px 34px -14px rgba(30,17,48,.45);font-size:56px;font-family:var(--lp-display);font-weight:800}
+.lp-dashboard .lp-identity h1{font-family:var(--lp-display);font-weight:800;font-size:clamp(28px,3.6vw,42px);line-height:1.08;margin:0 0 6px}
+.lp-dashboard .lp-identity p{margin:0;font-weight:600;color:#5d5670}
+.lp-dashboard header.lp-header .lp-intro{max-width:72ch;font-size:16px;margin-top:6px}
+.lp-decoration-details{margin:6px 0 18px}
+.lp-decoration-details>summary{cursor:pointer;font:700 15px var(--lp-display);color:var(--lp-accent);min-height:44px;display:flex;align-items:center;gap:8px}
+.lp-decoration-details>summary::marker{color:var(--lp-accent)}
+@media(max-width:650px){
+  .lp-dashboard .lp-cover{height:150px}
+  .lp-dashboard .lp-identity{flex-direction:column;align-items:center;text-align:center}
+  .lp-dashboard header.lp-header:has(.lp-cover) .lp-identity{margin-top:-64px;padding-left:0}
+  .lp-dashboard .lp-avatar{width:124px;height:124px;font-size:44px}
+}
