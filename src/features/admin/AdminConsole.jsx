@@ -42,7 +42,7 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
 
   let body;
   if (route.screen === 'settings') {
-    body = <SettingsPage user={user} profile={profile} embedded />;
+    body = <SettingsPage user={user} profile={profile} role={role} embedded />;
   } else if (route.page === 'learning') {
     body = <SchoolLearningPanel />;
   } else if (route.page === 'billing') {
