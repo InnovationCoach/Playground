@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from './AuthProvider.jsx';
 import { useHashRoute } from './useHashRoute.js';
 import { parseRoute, hrefFor, isCoachWorkspaceRoute } from './routes.js';
