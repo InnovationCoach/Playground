@@ -71,6 +71,14 @@ function AppScreens() {
   const route = parseRoute(hash);
   const hashScreen = route?.screen || null;
 
+  const coachUser = useMemo(() => ({
+    uid: user?.uid,
+    email: user?.email,
+    displayName: profile?.displayName || user?.email?.split('@')[0] || 'Coach',
+    classIds: classIds || profile?.classIds || [],
+    role: profile?.role || role
+  }), [user?.uid, user?.email, profile?.displayName, profile?.role, profile?.classIds, classIds, role]);
+
   // Legacy auth code calls switchPhase('home') around sign-in and sign-out.
   // Only a signed-in navigation may clear a hash screen, or a deep link such as
   // #/admin/users/<uid> would be lost on the way through the login page.
@@ -371,15 +379,7 @@ function AppScreens() {
                      uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
         </div>
       ) : (role === 'teacher' || role === 'coach') && !route?.screen ? (
-        <CoachDashboardHost
-          coachUser={{
-            uid: user.uid,
-            email: user.email,
-            displayName: profile?.displayName || user.email?.split('@')[0] || 'Coach',
-            classIds: classIds || profile?.classIds || [],
-            role: profile?.role || role
-          }}
-        />
+        <CoachDashboardHost coachUser={coachUser} />
       ) : (
         <>
           {role === 'student' && (route?.screen === 'home' || view === 'home') && (

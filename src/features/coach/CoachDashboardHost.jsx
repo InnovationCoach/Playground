@@ -16,10 +16,15 @@ function ManagementTools({ coachUser }) {
   const containerRef = useRef(null);
   const instanceRef = useRef(null);
 
+  const coachUid = coachUser?.uid;
+
   useEffect(() => {
-    if (!containerRef.current || instanceRef.current) return;
+    if (!containerRef.current) return;
 
     let disposed = false;
+
+    // Clear previous innerHTML before initiating new dashboard instance
+    containerRef.current.innerHTML = '';
 
     const dashboard = new CoachDashboard({
       containerId: containerRef.current.id,
@@ -39,13 +44,11 @@ function ManagementTools({ coachUser }) {
     return () => {
       disposed = true;
       instanceRef.current = null;
-      // The class renders by assigning innerHTML, so clearing the node is the
-      // whole teardown. Listeners live on the replaced children.
       if (containerRef.current) containerRef.current.innerHTML = '';
     };
-  }, [coachUser]);
+  }, [coachUid]);
 
-  return <div id="coach-dashboard-card" ref={containerRef} />;
+  return <div id="coach-dashboard-card" ref={containerRef} style={{ minHeight: '600px', width: '100%' }} />;
 }
 
 export function CoachDashboardHost({ coachUser }) {
@@ -56,3 +59,4 @@ export function CoachDashboardHost({ coachUser }) {
   </>;
   return <CoachWorkspace coachUser={coachUser} onManagement={() => setManagement(true)} />;
 }
+

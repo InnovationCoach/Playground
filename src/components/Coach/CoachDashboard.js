@@ -233,6 +233,7 @@ export class CoachDashboard {
       this.students = fetchedStudents;
       this.allGoals = fetchedGoals;
       this.allTimeStats = fetchedStats;
+      this.coaches = this.coachUser ? [this.coachUser] : [];
 
       const studentUids = fetchedStudents.map(s => s.uid);
 
