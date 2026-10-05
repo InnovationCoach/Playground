@@ -1,3 +1,4 @@
+import { useActivityText } from '../activities/builder/activityMessages.js';
 import { ActivityCoachTools, ActivityLesson } from '../activities/builder/ActivityEntry.jsx';
 import { SimulationBuilder, SimulationLab } from './SimulationLab.jsx';
 import { useEffect, useState } from 'react';
@@ -108,28 +109,31 @@ function Programs({
   onJoined,
   initialProgram = ''
 }) {
+  const {t}=useActivityText();
+  const [creating,setCreating]=useState(false),[semester,setSemester]=useState(1);
   const offerings = useSchoolResource(schoolPath(school.id, 'program-offerings'),true);
   const [selected, setSelected] = useState(initialProgram || 'sustainable-futures'),
     [offeringId, setOfferingId] = useState(''),
     [code, setCode] = useState(''),
     [year, setYear] = useState('2026-2027'),
     [classId, setClassId] = useState(classes[0]?.id || '');
-  const [customTitle, setCustomTitle] = useState(''), [customQuestion, setCustomQuestion] = useState('');
+  const [customTitle, setCustomTitle] = useState(''), [customQuestion, setCustomQuestion] = useState(''), [justCreated,setJustCreated]=useState(null);
   const [state, run] = useMutation(offerings.reload),
-    customPrograms = (offerings.data?.items || []).filter(o => o.programDefinition).map(o => o.programDefinition),
-    catalogue = [...PROGRAM_CATALOGUE, ...customPrograms],
+    customPrograms = [...new Map((offerings.data?.items || []).filter(o => o.programDefinition).map(o => [o.programDefinition.id,o.programDefinition])).values()],
+    catalogue = [...PROGRAM_CATALOGUE, ...customPrograms,...(justCreated&&!customPrograms.some(p=>p.id===justCreated.programId)?[justCreated.programDefinition]:[])],
     template = catalogue.find(p => p.id === selected) || PROGRAM_CATALOGUE[0],
-    list = (offerings.data?.items || []).filter(o => o.classIds.some(id => classes.some(c => c.id === id)));
+    list = [...(offerings.data?.items || []),...(justCreated&&!offerings.error&&!(offerings.data?.items||[]).some(o=>o.id===justCreated.id)?[justCreated]:[])].filter(o => o.classIds.some(id => classes.some(c => c.id === id)));
   const options = list.filter(o => o.programId === selected),
     offering = options.find(o => o.id === offeringId) || options[0];
   const isStaff = ['teacher', 'coach', 'admin'].includes(role);
   return <div>
+    {isStaff&&<section className="sw-card sw-create-program"><h3>{t('createProgram')}</h3><p>{t('programHint')}</p><button type="button" className="gh-btn gh-btn-primary" aria-expanded={creating} onClick={()=>setCreating(v=>!v)}>{t(creating?'programCancel':'createProgram')}</button>{!classes.length&&<p role="status">{t('programNoClass')}</p>}</section>}
     <div className="sw-programs">{catalogue.map(p => <button key={p.id} className={selected === p.id ? 'sw-program sw-selected' : 'sw-program'} aria-pressed={selected === p.id} onClick={() => {
         setSelected(p.id);
         setOfferingId('');
       }}><span>Semester {p.semester}</span><strong>{p.title}</strong><small>{p.gradeBand}</small></button>)}</div>
-    {isStaff && <details className="sw-card"><summary>Create your own program</summary><form className="sw-form" onSubmit={async e=>{e.preventDefault();const created=await run(()=>mutateSchool('POST',schoolPath(school.id,'program-offerings'),{programId:'custom',title:customTitle,drivingQuestion:customQuestion,yearId:year,classIds:[classId]}),'Custom program created. Generate its join code below.');if(created){setSelected(created.programId);setOfferingId(created.id);setCustomTitle('');setCustomQuestion('');}}}>
-      <Field label="Program title"><input required maxLength={200} value={customTitle} onChange={e=>setCustomTitle(e.target.value)}/></Field><Field label="Program driving question"><textarea required maxLength={1000} value={customQuestion} onChange={e=>setCustomQuestion(e.target.value)}/></Field><Field label="School year"><input required pattern="[A-Za-z0-9_-]+" value={year} onChange={e=>setYear(e.target.value)}/></Field><ClassSelect classes={classes} value={classId} onChange={setClassId}/><button className="gh-btn gh-btn-primary" disabled={state.busy||!classId}>Create custom program</button></form></details>}
+    {isStaff && creating && <section className="sw-card" aria-label={t('createProgram')}><form className="sw-form" onSubmit={async e=>{e.preventDefault();const created=await run(()=>mutateSchool('POST',schoolPath(school.id,'program-offerings'),{programId:'custom',title:customTitle,drivingQuestion:customQuestion,yearId:year,semester,classIds:[classId]}),t('programCreated'));if(created){setJustCreated(created);setSelected(created.programId);setOfferingId(created.id);setCustomTitle('');setCustomQuestion('');setCreating(false);}}}>
+      <Field label={t('programTitle')}><input required maxLength={200} value={customTitle} onChange={e=>setCustomTitle(e.target.value)}/></Field><Field label={t('programQuestion')}><textarea required maxLength={1000} value={customQuestion} onChange={e=>setCustomQuestion(e.target.value)}/></Field><Field label={t('schoolYear')}><input required pattern="[A-Za-z0-9_-]+" value={year} onChange={e=>setYear(e.target.value)}/></Field><ClassSelect classes={classes} value={classId} onChange={setClassId}/><Field label={t('programSemester')}><select value={semester} onChange={e=>setSemester(Number(e.target.value))}>{[1,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></Field><button className="gh-btn gh-btn-primary" disabled={state.busy||!classId||!customTitle.trim()||!customQuestion.trim()}>{t('createCustom')}</button></form></section>}
     {message(offerings.error)}{offerings.loading && <p role="status">Loading program enrollments…</p>}
     <h3>{template.title}</h3><p>{template.drivingQuestion}</p><ol className="sw-milestones">{template.milestones.map(m => <li key={m.id}>{m.title}</li>)}</ol>
     {template.rubric.length > 0 && <details><summary>Assessment criteria</summary><ul>{template.rubric.map(r => <li key={r.title}>{r.title} · {r.weight}% · {r.standard}</li>)}</ul></details>}

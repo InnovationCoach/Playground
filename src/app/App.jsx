@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthProvider.jsx';
 import { useHashRoute } from './useHashRoute.js';
-import { parseRoute, hrefFor } from './routes.js';
+import { parseRoute, hrefFor, isCoachWorkspaceRoute } from './routes.js';
 import { CONSOLE_ROLES } from './roles.js';
 import { LoginPage } from '../features/auth/LoginPage.jsx';
 import { TopNav } from '../features/shell/TopNav.jsx';
@@ -220,6 +220,10 @@ function AppScreens() {
     return <><Header {...headerProps}/><TopNav role={role} view="home" onNavigate={navigate} onOpenCourses={()=>setHash(hrefFor.courses())} onOpenGoals={()=>createGoalSettingModal(user.uid)}/><StudentDashboard profile={profile} uid={user.uid} onProfileChanged={refreshProfile}/></>;
   }
 
+  if (route?.screen === 'programs' && role === 'student' && !isPrimary) {
+    return <><Header {...headerProps}/><TopNav role={role} view="programs" onNavigate={navigate} onOpenCourses={()=>setHash(hrefFor.courses())} onOpenGoals={()=>createGoalSettingModal(user.uid)}/><div className="gh-app"><SchoolLearningPanel initialArea="programs" hideTabs/></div></>;
+  }
+
   if (route?.screen === 'journey' && role === 'student' && !isPrimary) {
     return <><Header {...headerProps}/><TopNav role={role} view="journey" onNavigate={navigate} onOpenCourses={()=>setHash(hrefFor.courses())} onOpenGoals={()=>createGoalSettingModal(user.uid)}/><div className="gh-app"><JourneyPortfolio uid={user.uid} profile={profile} printView={route.print}/></div></>;
   }
@@ -378,7 +382,7 @@ function AppScreens() {
           <MyCourses isPrimary={isPrimary} onOpenActivity={navigate} displayName={profile?.displayName}
                      uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
         </div>
-      ) : (role === 'teacher' || role === 'coach') && !route?.screen ? (
+      ) : isCoachWorkspaceRoute(role, route) ? (
         <CoachDashboardHost coachUser={coachUser} />
       ) : (
         <>

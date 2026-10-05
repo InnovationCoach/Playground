@@ -101,3 +101,30 @@ Not part of the Coach AI phases, but it changes shared student-side files. **GPT
   - Production smoke tests verified 401 unauthenticated response, CORS origin guard, Coach sign in (`coach.wpr@school.edu`), and Student sign in (`akira@welearn.org`).
 - Detailed release report created: `docs/implementation/DEPLOYMENT-REPORT-2026-10-04-coach-activities-p1.md`.
 
+---
+
+## 2026-10-05 · GPT-6 · Phase 2 started: provider and validation foundation
+
+- Branch: `feature/coach-activities-p2`, isolated checkout `/private/tmp/hear-island-coach-p2`, based on `main` at `e17ecef`. Shared main and unrelated work are untouched.
+- Added server-only Gemini REST adapter with explicit model configuration, header-only credentials, fixed provider endpoint, redirect rejection, cancellation/45-second deadline, sanitized failures and usage validation. Added activity generation and same-type block regeneration pipelines using the shared prompt builders and validator, one validation repair, forced AI provenance and safety warnings. No HTTP route exposes this foundation yet.
+- New provider/pipeline tests use simulated responses only. No real Gemini call, microphone/browser test, cloud configuration, deployment, `firebase.json` change or merge was performed.
+- Verification: unit **462 passed** (25 files, including 26 new provider/pipeline tests); API **94 passed** (8 files); combined rules/unit **566 passed** (27 files); production build passed, largest chunk **159.09 kB**. API and rules tests ran sequentially against disposable local emulators, which shut down afterward. No generation-route, rate-limit or cap integration is claimed by these counts.
+- Contract questions for Claude, required by agent brief §4.3 before dependent implementation:
+  1. What exact lesson request field links a generated draft to its lesson, and how must server-owned AI provenance survive subsequent coach edits? Phase 1 currently marks incoming lesson activities as manual; trusting browser-supplied provenance would bypass the AI review requirement.
+  2. How are edited generated drafts saved and versioned before block regeneration? Define the request/version behavior for unsaved edits and simultaneous regeneration; current routes only specify generate, regenerate, list and delete.
+  3. Which approved fields/records reserve monthly tokens and rolling-hour attempts across concurrent requests? Define reservation release, UTC month boundaries, successful provider calls whose JSON fails validation, repair usage, timeouts and persistence failures. Provider calls must not run inside retryable Firestore transactions.
+  4. Confirm school eligibility for the shared secret/model configuration, Phase 2 response for `keySource:'personal'`, and the compatibility behavior for existing consumers of legacy `/ai-drafts`. Record Secret Manager binding/readiness before a real provider smoke test.
+- Next: close those contract decisions, then implement authorized routes, usage enforcement and Studio integration. This is a partial foundation, **not Phase 2 ready for Claude review**.
+
+---
+
+## 2026-10-05 · GPT · Phase 2 ready for Gemini Firebase handoff
+
+- The user authorized GPT to own Phase 2 contract decisions and feature work and reserved Firebase configuration/deployment for Gemini 3.6. This supersedes the earlier Claude question/review dependency. Contract §9 resolves draft linkage, edited revisions, concurrency, usage reservation/settlement, missing school configuration and legacy scaffold compatibility. Agent briefs record the ownership update.
+- Branch `feature/coach-activities-p2`: foundation `de7c2c9`, scoped server and contract `5047d88`, coach/student UI `2c27d15`. Shared main was not edited or merged. No deployment, production secret/configuration changes, `firebase.json` or Firebase entrypoint edits occurred.
+- Implemented school-key generation, one repair, owned expiring drafts, revision-safe edits and same-type block regeneration, transactional monthly reservations, global coach hourly limits, sanitized failures, access recheck after inference, and server-owned lesson provenance with mandatory safety review.
+- Coach program creation is prominent; program selection survives asynchronous creation. Student Coach programs navigation, join-code enrollment and custom-program selection are discoverable. Coach saved home/course routes no longer render blank.
+- Verification: **476 unit tests**, **112 API integration tests**, **580 combined rules/unit tests** passed. Production build passed with largest chunk **159.81 kB** and no >500 kB chunk warnings. Final combined emulator run exited successfully and shut down its test emulator. The existing port-5173 preview was left alone.
+- Browser evidence: disposable coach created Microgrid makers and issued a code, generated/regenerated a simulated activity, saved and safety-confirmed publication; disposable student joined, recorded table/simulation evidence, reflected and submitted work; coach saw the submission. Responsive checks at **375 / 615 / 1440 px** had no settled horizontal page overflow. Screenshots are in `docs/implementation/coach-activities-p2/`.
+- Generation tests and local browser preview use simulated responses (`local-mock`). No real Gemini request or live-site update is claimed. Preview is temporarily running at `http://localhost:5186/?emulators=1`; credentials and steps are in `COACH-AI-ACTIVITIES-PHASE-2-TEST-GUIDE.md`.
+- Gemini handoff: bind school Secret Manager value, configure a verified server model, run real provider and release checks. See `COACH-AI-ACTIVITIES-PHASE-2-FIREBASE-HANDOFF.md` and the Phase 2 report. Personal keys remain Phase 3; privacy detection is heuristic, reservations are conservative, expired storage is not auto-pruned, and native-speaker translation review remains useful.

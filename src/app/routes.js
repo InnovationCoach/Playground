@@ -31,6 +31,7 @@ export function parseRoute(hash) {
     if (a === 'new' && KINDS.includes(b)) return { screen: 'admin', page: 'create', kind: b };
     return { screen: 'admin', page: 'list', kind: 'students' };
   }
+  if (head === 'coach' && (!a || a === 'dashboard')) return {screen:'coach'};
   if (head === 'portfolio') return {screen:'portfolio', uid: a || null};
   if (head === 'home') return {screen:'home'};
   if (head === 'journey') return { screen: 'journey', print: a === 'print' };
@@ -38,6 +39,7 @@ export function parseRoute(hash) {
   if (head === 'primary-resources') return { screen: 'resources' };
   if (head === 'worksheet' && a) return { screen: 'worksheet', activityId: a };
   if (head === 'guide' && a) return { screen: 'guide', activityId: a };
+  if (head === 'programs') return {screen:'programs'};
   if (head === 'courses') return { screen: 'courses' };
   if (head === 'pbl') return { screen: 'pbl', tab: a || null };
   if (head === 'parent') return { screen: 'parent' };
@@ -54,6 +56,7 @@ export const hrefFor = {
   create: (kind) => `#/admin/new/${kind}`,
   settings: () => '#/settings',
   courses: () => '#/courses',
+  programs: () => '#/programs',
   parent: () => '#/parent',
   resources: () => '#/primary-resources',
   worksheet: (id) => `#/worksheet/${id}`,
@@ -62,3 +65,8 @@ export const hrefFor = {
   community: () => '#/community',
   messages: (convId) => (convId ? `#/messages/${convId}` : '#/messages')
 };
+
+/** Staff bookmarks for learner landing pages must still open the staff workspace. */
+export function isCoachWorkspaceRoute(role, route) {
+  return ['teacher','coach'].includes(role) && (!route || ['coach','home','courses','programs'].includes(route.screen));
+}

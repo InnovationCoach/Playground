@@ -21,14 +21,24 @@ export default function ActivityStudio({school,offering,classes,template,lesson,
  const [blockKeys,setBlockKeys]=useState(()=>(lesson?.activity||blankActivity()).blocks.map(()=>crypto.randomUUID()));
  const [content,setContent]=useState(()=>({classId:lesson?.classId||choices[0]?.id||'',milestoneId:lesson?.milestoneId||template.milestones[0]?.id||'',outcome:lesson?.outcome||'',instructions:lesson?.instructions||''}));
  const [saved,setSaved]=useState(lesson||null),[dirty,setDirty]=useState(!lesson),[busy,setBusy]=useState(false),[status,setStatus]=useState(''),[error,setError]=useState(''),[apiErrors,setApiErrors]=useState([]),[blockType,setBlockType]=useState('intro'),[width,setWidth]=useState('desktop'),[review,setReview]=useState(false);
+ const [aiPrompt,setAiPrompt]=useState(''),[aiKit,setAiKit]=useState(''),[aiStandards,setAiStandards]=useState(''),[aiAge,setAiAge]=useState('13-15'),[aiMinutes,setAiMinutes]=useState(30),[aiDraft,setAiDraft]=useState(null),[aiState,setAiState]=useState(''),[drafts,setDrafts]=useState([]),[draftState,setDraftState]=useState('loading'),[draftError,setDraftError]=useState(''),[instructions,setInstructions]=useState({}),[replace,setReplace]=useState(false),[aiUsage,setAiUsage]=useState(null);
+ const mounted=useRef(true);useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
  const base=`/api/schools/${encodeURIComponent(school.id)}/program-offerings/${encodeURIComponent(offering.id)}/lessons`;
+ const aiBase=base.replace(/\/lessons$/,'/activity-drafts');
+ function aiFailure(e){return t(`ai_${e.code}`)===`ai_${e.code}`?t(e.code==='FORBIDDEN'?'denied':'aiError'):t(`ai_${e.code}`);}
+ async function reloadDrafts(){setDraftState('loading');setDraftError('');try{const result=await schoolRequest('GET',aiBase);if(mounted.current){setDrafts(result.items||[]);if(lesson?.activityDraftId&&!aiDraft){const linked=result.items?.find(d=>d.draftId===lesson.activityDraftId);if(linked)setAiDraft({draftId:linked.draftId,revision:linked.revision});}setDraftState('ready');}}catch(e){if(mounted.current){setDraftState('error');setDraftError(aiFailure(e));}}}
+ useEffect(()=>{reloadDrafts();},[aiBase]);
+ function acceptDraft(result){setInstructions({});setAiUsage(result.usage||null);setSpec(result.spec);setBlockKeys(result.spec.blocks.map(()=>crypto.randomUUID()));setAiDraft({draftId:result.draftId,revision:result.revision});setSaved(null);setDirty(true);setApiErrors([]);setError('');setStatus('aiGenerated');setReplace(false);setContent(old=>({...old,outcome:result.spec.summary,instructions:result.spec.summary}));}
+ async function generate(e){e.preventDefault();setBusy(true);setAiState('generate');setError('');try{const result=await schoolRequest('POST',`${aiBase}/generate`,{body:{prompt:aiPrompt,ageBand:aiAge,durationMinutes:aiMinutes,materials:aiKit.split('\n').filter(v=>v.trim()),standards:aiStandards.split('\n').filter(v=>v.trim()),milestoneId:content.milestoneId,keySource:'school'}});if(mounted.current){acceptDraft(result);reloadDrafts();}}catch(e){if(mounted.current)setError(aiFailure(e));}finally{if(mounted.current){setBusy(false);setAiState('');}}}
+ async function syncAiDraft(clean){if(!aiDraft)return null;const result=await schoolRequest('PATCH',`${aiBase}/${aiDraft.draftId}`,{body:{revision:aiDraft.revision,spec:clean}});const next={draftId:aiDraft.draftId,revision:result.revision};setAiDraft(next);return next;}
+ async function regenerate(index){setBusy(true);setAiState(`block-${index}`);setError('');try{const clean=validateActivity(spec);const synced=await syncAiDraft(clean);const result=await schoolRequest('POST',`${aiBase}/${synced.draftId}/regenerate-block`,{body:{revision:synced.revision,blockIndex:index,instruction:instructions[blockKeys[index]]}});if(mounted.current){setAiUsage(result.usage);setSpec(result.spec);setAiDraft({...synced,revision:result.revision});setDirty(true);setStatus('aiGenerated');reloadDrafts();}}catch(e){if(mounted.current){setError(aiFailure(e));setApiErrors(e.details||e.errors||[]);}}finally{if(mounted.current){setBusy(false);setAiState('');}}}
  const validated=useMemo(()=>{try{return {clean:validateActivity(spec),errors:[]};}catch(e){return {clean:null,errors:e.errors||[]};}},[spec]);
  const warnings=validated.clean?safetyWarnings(validated.clean):[];
  const errors=[...validated.errors,...apiErrors];
  const frozen=saved?.status==='published';
  function update(next){setSpec(next);setDirty(true);setStatus('');setApiErrors([]);setError('');}
  function updateContent(key,value){setContent(old=>({...old,[key]:value}));setDirty(true);setStatus('');setError('');}
- function reset(next){setBlockKeys(next.blocks.map(()=>crypto.randomUUID()));update(next);setSaved(null);}
+ function reset(next){setInstructions({});setBlockKeys(next.blocks.map(()=>crypto.randomUUID()));update(next);setSaved(null);setAiDraft(null);setAiUsage(null);setReplace(false);}
  function changeBlock(i,next){update({...spec,blocks:spec.blocks.map((b,j)=>i===j?next:b)});}
  function move(i,d){const to=i+d;if(to<0||to>=spec.blocks.length)return;setBlockKeys(keys=>{const next=[...keys];next.splice(to,0,next.splice(i,1)[0]);return next;});update({...spec,blocks:reorderBlocks(spec.blocks,i,to)});}
  function remove(i){setBlockKeys(keys=>keys.filter((_,idx)=>idx!==i));const order=spec.blocks.map((_,idx)=>idx).filter(idx=>idx!==i);update({...spec,blocks:order.map(idx=>spec.blocks[idx].type==='chart'?{...spec.blocks[idx],table:order.indexOf(spec.blocks[idx].table)}:spec.blocks[idx])});}
@@ -36,22 +46,37 @@ export default function ActivityStudio({school,offering,classes,template,lesson,
   setBusy(true);setError('');setApiErrors([]);
   try {
    const clean=validateActivity(spec);
-   const body={...content,title:clean.title,activity:clean,...(saved?{revision:saved.revision}:{})};
+   const synced=await syncAiDraft(clean);
+   const body={...content,title:clean.title,activity:clean,...(synced?{activityDraftId:synced.draftId,activityDraftRevision:synced.revision}:{}),...(saved?{revision:saved.revision}:{})};
    const result=await schoolRequest(saved?'PATCH':'POST',saved?`${base}/${saved.id}`:base,{body});
    setSaved(saved?{...saved,...body,revision:saved.revision+1}:result);setDirty(false);setStatus('saved');onSaved?.();
-  }catch(e){setError(t(e.code==='FORBIDDEN'?'denied':'saveFailed'));setApiErrors(e.details||e.errors||[]);}finally{setBusy(false);}
+  }catch(e){setError(aiDraft?aiFailure(e):t(e.code==='FORBIDDEN'?'denied':'saveFailed'));setApiErrors(e.details||e.errors||[]);}finally{setBusy(false);}
  }
  async function publish(){
   setBusy(true);setError('');
-  try{await schoolRequest('POST',`${base}/${saved.id}/publish`,{body:{revision:saved.revision,safetyConfirmed:true}});setSaved(old=>({...old,status:'published',revision:old.revision+1}));setReview(false);setStatus('published');onSaved?.();}
+  try{const result=await schoolRequest('POST',`${base}/${saved.id}/publish`,{body:{revision:saved.revision,safetyConfirmed:true}});if(result.provenance)setSpec(old=>({...old,provenance:result.provenance}));setSaved(old=>({...old,status:'published',revision:old.revision+1}));setReview(false);setStatus('published');onSaved?.();}
   catch(e){setError(t(e.code==='FORBIDDEN'?'denied':'publishFailed'));}finally{setBusy(false);}
  }
  const fieldErrors=path=>errors.filter(e=>e.path===path||e.path.startsWith(`${path}.`)||e.path.startsWith(`${path}[`));
  const problem=(path)=>fieldErrors(path).map((e,i)=><small className="ab-error" role="alert" key={i}>{e.path}: {diagnostic(e.message)}</small>);
  const field=(key,control,path=key)=><ValidationField label={t(key)} {...{path,errors,diagnostic}}>{control}</ValidationField>;
  return <section className="ab-studio" aria-label={t('studio')}>
-  <header className="ab-header"><div><span className="ab-badge">{t('manual')}</span><h3>{t('studio')}</h3></div><button type="button" disabled={busy} onClick={onClose}>{t('close')}</button></header>
+  <header className="ab-header"><div><span className="ab-badge">{spec.provenance.aiAssisted?t(spec.provenance.reviewedBy?'aiReviewed':'aiBadge',{model:spec.provenance.model,coach:spec.provenance.reviewedBy}):t('manual')}</span><h3>{t('studio')}</h3></div><button type="button" disabled={busy} onClick={onClose}>{t('close')}</button></header>
   <div className="ab-actions"><button type="button" disabled={busy} onClick={()=>reset(blankActivity())}>{t('blank')}</button><button type="button" disabled={busy} onClick={()=>reset(sampleActivity())}>{t('sample')}</button></div>
+  {!saved&&<section className="ab-ai ab-card" aria-label={t('aiDescribe')}>
+   <h4>{t('aiDescribe')}</h4><p className="ab-muted">{t('aiPrivacy')}</p>
+   <form onSubmit={generate}><fieldset className="ab-unbordered" disabled={busy}>
+    {field('aiPrompt',<textarea required maxLength={2000} value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)}/>)}
+    <div className="ab-grid">{field('age',<select value={aiAge} onChange={e=>setAiAge(e.target.value)}><option>13-15</option><option>16-18</option></select>,'ai.age')}{field('minutes',<input type="number" min={10} max={240} value={aiMinutes} onChange={e=>setAiMinutes(Number(e.target.value))}/>,'ai.minutes')}</div>
+    {field('aiKit',<textarea value={aiKit} onChange={e=>setAiKit(e.target.value)}/>)}{field('standards',<textarea value={aiStandards} onChange={e=>setAiStandards(e.target.value)}/>,'ai.standards')}
+    {spec.title.trim()&&<label className="ab-choice"><input type="checkbox" checked={replace} onChange={e=>setReplace(e.target.checked)}/>{t('aiReplace')}</label>}
+    <button className="ab-primary" disabled={busy||!aiPrompt.trim()||Boolean(spec.title.trim()&&!replace)}>{t(aiState==='generate'?'aiGenerating':'aiGenerate')}</button>
+   </fieldset></form>
+   <details><summary>{t('aiDrafts')}</summary>{draftState==='loading'&&<p role="status">{t('aiLoading')}</p>}{draftError&&<p role="alert">{draftError}</p>}{draftState==='ready'&&!drafts.length&&<p>{t('aiEmpty')}</p>}<button type="button" disabled={busy||draftState==='loading'} onClick={reloadDrafts}>{t('aiRefresh')}</button>{drafts.map(d=><div className="ab-card" key={d.draftId}><strong>{d.spec.title}</strong><small className="ab-muted"> {d.model}</small><div className="ab-actions"><button type="button" disabled={busy||Boolean(spec.title.trim()&&!replace)} onClick={()=>acceptDraft(d)}>{t('aiResume')}</button><button type="button" disabled={busy||aiDraft?.draftId===d.draftId} onClick={async()=>{setBusy(true);try{await schoolRequest('DELETE',`${aiBase}/${d.draftId}`,{body:{}});if(aiDraft?.draftId===d.draftId)setAiDraft(null);reloadDrafts();}catch(e){setError(aiFailure(e));}finally{setBusy(false);}}}>{t('aiDelete')}</button></div></div>)}</details>
+  </section>}
+  {busy&&aiState&&<p role="status">{t(aiState==='generate'?'aiGenerating':'aiRegenerating')}</p>}
+  {aiUsage&&<p className="ab-muted">{t('aiUsage',{input:aiUsage.inputTokens,output:aiUsage.outputTokens})}</p>}
+  {spec.provenance.aiAssisted&&!frozen&&<p>{t('aiUnreviewed')}</p>}
   {frozen&&<p role="status">{t('frozen')}</p>}
   <fieldset disabled={busy||frozen} className="ab-unbordered">
    <div className="ab-grid">
@@ -70,6 +95,7 @@ export default function ActivityStudio({school,offering,classes,template,lesson,
    <h4>{t('blocks')}</h4><p className="ab-muted">{t('keyboard')}</p>
    {spec.blocks.map((b,i)=><article className="ab-card" key={blockKeys[i]}>
     <div className="ab-header"><h4>{i+1}. {t(b.type)}</h4><div className="ab-actions">{[-1,1].map(d=><button type="button" key={d} disabled={i+d<0||i+d>=spec.blocks.length} aria-label={`${t(d===-1?'up':'down')} ${i+1}`} onClick={()=>move(i,d)} onKeyDown={e=>{if(e.altKey&&(e.key==='ArrowUp'||e.key==='ArrowDown')){e.preventDefault();move(i,e.key==='ArrowUp'?-1:1);}}}>{t(d===-1?'up':'down')}</button>)}<button type="button" disabled={spec.blocks.length===1} onClick={()=>remove(i)} aria-label={`${t('remove')} ${i+1}`}>{t('remove')}</button></div></div>
+    {aiDraft&&<div className="ab-ai-block"><label>{t('aiInstruction')} {i+1}<textarea maxLength={500} value={instructions[blockKeys[i]]||''} onChange={e=>setInstructions(old=>({...old,[blockKeys[i]]:e.target.value}))}/></label><button type="button" disabled={busy||!validated.clean||!instructions[blockKeys[i]]?.trim()} onClick={()=>regenerate(i)}>{t('aiRegenerate')} {i+1}</button></div>}
     <BlockEditor block={b} onChange={v=>changeBlock(i,v)} {...{t,errors,diagnostic}} path={`blocks[${i}]`}/>{problem(`blocks[${i}]`)}{warnings.filter(w=>w.path.startsWith(`blocks[${i}]`)).map((w,j)=><p className="ab-warning" key={j}>{warning(w.message)}</p>)}
    </article>)}
    <div className="ab-actions"><label>{t('blocks')} <select value={blockType} onChange={e=>setBlockType(e.target.value)}>{BLOCK_TYPES.map(type=><option key={type} value={type}>{t(type)}</option>)}</select></label><button type="button" disabled={spec.blocks.length>=20} onClick={()=>{setBlockKeys(keys=>[...keys,crypto.randomUUID()]);update({...spec,blocks:[...spec.blocks,newBlock(blockType,spec.blocks)]});}}>{t('add')}</button></div>{problem('blocks')}

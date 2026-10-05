@@ -103,3 +103,19 @@ describe('Yearly school calendar', () => {
     expect(host.textContent).toContain('Create offering');
   });
 });
+
+describe('Coach-created programs',()=>{
+ it('offers a visible create action and opens an editable assigned-class program form',async()=>{
+  await render();expect(host.querySelector('.sw-create-program')).toBeTruthy();await click('Create your own program');
+  expect(host.querySelector('section[aria-label="Create your own program"]')).toBeTruthy();
+  const form=host.querySelector('section[aria-label="Create your own program"] form');
+  const fill=async(el,value)=>act(async()=>{Object.getOwnPropertyDescriptor(el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));});
+  await fill(form.querySelector('input'),'Microgrid makers');await fill(form.querySelector('textarea'),'How can our district keep clean power available?');
+  const definition={id:'custom-makers',title:'Microgrid makers',drivingQuestion:'How can our district keep clean power available?',semester:1,gradeBand:'Coach-created program',milestones:[{id:'explore',title:'Explore'}],rubric:[]};
+  schoolRequest.mockImplementation(async(method,path,{body}={})=>method==='POST'?{id:'offering-makers',programId:'custom-makers',programDefinition:definition,...body,title:definition.title,status:'published',revision:1}:mockRead(method,path));
+  await act(async()=>form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+  const call=schoolRequest.mock.calls.find(([method,path])=>method==='POST'&&path.endsWith('program-offerings'));
+  expect(call[2].body).toMatchObject({programId:'custom',title:'Microgrid makers',classIds:['class'],semester:1});
+  expect(host.textContent).toContain('Program created. Generate its join code below.');expect(host.textContent).toContain('Microgrid makers');expect(host.textContent).toContain('Enrollment code management');
+ });
+});

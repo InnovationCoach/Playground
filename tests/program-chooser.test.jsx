@@ -94,4 +94,13 @@ describe('Learner program catalogue chooser', () => {
     expect(card.querySelector('[role="alert"]').textContent).toContain('invalid, expired or disabled');
     expect(card.classList.contains('w2e-program-enrolled')).toBe(false);
   });
+  it('includes a coach-created program returned by authorized enrollment',async()=>{
+    const definition={id:'custom-grid',title:'Microgrid makers',drivingQuestion:'How can clean power stay available?',semester:2,gradeBand:'Coach-created program',milestones:[{id:'explore'}]};
+    schoolRequest.mockResolvedValue({items:[{id:'offering-grid',programId:'custom-grid',programDefinition:definition}]});
+    const onChooseProgram=vi.fn();await act(async()=>root.render(<ProgramCatalogueChooser school={school} onChooseProgram={onChooseProgram}/>));
+    const card=[...host.querySelectorAll('.w2e-program')].find(el=>el.textContent.includes('Microgrid makers'));
+    expect(card).toBeTruthy();expect(card.textContent).toContain('Enrolled');
+    await act(async()=>card.querySelector('button').click());expect(onChooseProgram).toHaveBeenCalledWith('custom-grid');
+  });
+
 });
