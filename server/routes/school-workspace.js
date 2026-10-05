@@ -1,3 +1,4 @@
+import { installDraftRoutes, linkedActivity } from '../lib/ai/activityDrafts.js';
 import { validateActivity, validateActivityResponses, ActivityValidationError } from '../../src/features/activities/spec/activitySpec.js';
 import { validateSimulation } from '../../src/features/school/simulationModel.js';
 import { Router } from 'express';
@@ -20,7 +21,8 @@ const wrap = fn => async (req, res, next) => {
     await fn(req, res);
   } catch (error) {
     if (error instanceof ActivityValidationError) return res.status(400).json({error:{code:error.code,message:error.message,details:error.errors}});
-    if (error.status) return sendError(res, error.status, error.code, error.message);
+    const aiStatus = {AI_KEY_INVALID:400,AI_NOT_CONFIGURED:409,RATE_LIMITED:429,AI_RATE_LIMITED:429,AI_CAP_REACHED:429,AI_BAD_OUTPUT:422,AI_TIMEOUT:504,AI_UNAVAILABLE:503,VALIDATION:400}[error.code];
+    if (error.status || aiStatus) return sendError(res, error.status || aiStatus, error.code === 'AI_RATE_LIMITED' ? 'RATE_LIMITED' : error.code, error.message);
     next(error);
   }
 };
@@ -139,6 +141,8 @@ async function offeringAccess(req, id, write = false) {
   }
   fail(403, 'FORBIDDEN', 'You do not have access to this program offering.');
 }
+installDraftRoutes(router, wrap, offeringAccess, programById);
+
 // School feature switches (admin only). Pilots such as Teen Quest are turned on
 // one school at a time; learning-context exposes the result to every role.
 router.patch('/schools/:schoolId/features', wrap(async (req, res) => {
@@ -399,10 +403,16 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/lessons', wrap(asy
       createdAt: now(),
       updatedAt: now()
     };
-  const batch = getFirestore().batch();
-  batch.create(lesson, record);
-  audit(batch, req.schoolId, caller, 'LESSON_DRAFTED', lesson.path);
-  await batch.commit();
+  await getFirestore().runTransaction(async tx => {
+    const provenance = await linkedActivity(req, ref, req.body, content.classId, tx);
+    if (provenance) {
+      if (!record.activity) fail(400, 'VALIDATION', 'Include the activity for this AI draft.');
+      record.activity = validateActivity({...record.activity, provenance});
+      record.activityDraftId = req.body.activityDraftId;
+    }
+    tx.create(lesson, record);
+    audit(tx, req.schoolId, caller, 'LESSON_DRAFTED', lesson.path);
+  });
   res.status(201).json({
     ...record,
     id: lesson.id
@@ -426,8 +436,15 @@ router.patch('/schools/:schoolId/program-offerings/:offeringId/lessons/:lessonId
     if (old.status !== 'draft' || old.revision !== req.body.revision) fail(409, 'CONFLICT', 'Published lessons are preserved. Create a new lesson version, or reload this draft.');
     if (old.authorUid !== caller.uid && caller.role !== 'admin') fail(403, 'FORBIDDEN', 'Only the author can edit this draft.');
     if (caller.role !== 'admin' && !caller.classIds.includes(old.classId)) fail(403, 'FORBIDDEN', 'Previous class is not assigned to you.');
+    const linked = await linkedActivity(req, ref, req.body, content.classId, tx);
+    if (linked && !content.activity) fail(400, 'VALIDATION', 'Include the activity for this AI draft.');
+    if (content.activity && (linked || old.activity?.provenance?.aiAssisted)) {
+      const source = linked || old.activity.provenance;
+      content.activity = validateActivity({...content.activity, provenance:{aiAssisted:true,provider:source.provider,model:source.model}});
+    }
     tx.update(lesson, {
       ...content,
+      ...(linked ? {activityDraftId:req.body.activityDraftId} : {}),
       ...(attachments === undefined ? {} : { attachments }),
       revision: old.revision + 1,
       updatedAt: now()
@@ -444,6 +461,7 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/lessons/:lessonId/
       ref
     } = await offeringAccess(req, req.params.offeringId, true),
     lesson = ref.collection('lessons').doc(requireId(req.params.lessonId));
+  let provenance;
   await getFirestore().runTransaction(async tx => {
     const s = await tx.get(lesson),
       value = s.data();
@@ -452,8 +470,9 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/lessons/:lessonId/
     if (caller.role !== 'admin' && !caller.classIds.includes(value.classId)) fail(403, 'FORBIDDEN', 'Class access changed.');
     if (value.revision !== req.body.revision || value.status !== 'draft') fail(409, 'CONFLICT', 'This lesson changed. Reload before publishing.');
     if (value.activity?.provenance?.aiAssisted && req.body.safetyConfirmed !== true) fail(400, 'SAFETY_CONFIRMATION_REQUIRED', 'Confirm the safety review before publishing.');
+    if(value.activity) provenance={...value.activity.provenance,reviewedBy:caller.uid,reviewedAt:now()};
     tx.update(lesson, {
-      ...(value.activity ? {activity: {...value.activity, provenance: {...value.activity.provenance, reviewedBy: caller.uid, reviewedAt: now()}}} : {}),
+      ...(value.activity ? {activity: {...value.activity, provenance}} : {}),
       status: 'published',
       revision: value.revision + 1,
       publishedAt: now()
@@ -461,7 +480,8 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/lessons/:lessonId/
     audit(tx, req.schoolId, caller, 'LESSON_PUBLISHED', lesson.path, {aiAssisted: value.activity?.provenance?.aiAssisted === true});
   });
   res.json({
-    published: true
+    published: true,
+    ...(provenance?{provenance}:{})
   });
 }));
 router.get('/schools/:schoolId/program-offerings/:offeringId/submissions', wrap(async (req, res) => {
@@ -1045,6 +1065,7 @@ router.put('/schools/:schoolId/learner-preferences', wrap(async (req, res) => {
   res.status(200).json({ id: caller.uid, ...record });
 }));
 
+// Compatibility endpoint: fixed learner scaffolds, explicitly not AI inference.
 router.post('/schools/:schoolId/ai-drafts', wrap(async (req, res) => {
   const caller = req.schoolCaller;
   if (caller.role === 'parent') fail(403, 'FORBIDDEN', 'Parents cannot generate AI drafts.');
@@ -1054,6 +1075,7 @@ router.post('/schools/:schoolId/ai-drafts', wrap(async (req, res) => {
   if (!allowedKinds.includes(kind)) fail(400, 'VALIDATION', 'Provide a valid draft kind.');
 
   const offeringId = requireId(req.body.offeringId);
+  await offeringAccess(req, offeringId);
   const lessonId = req.body.lessonId && validId(req.body.lessonId) ? req.body.lessonId : null;
   const inputText = req.body.input?.text ? requireText(req.body.input.text, 'Input text', 1000) : '';
 
@@ -1070,6 +1092,8 @@ router.post('/schools/:schoolId/ai-drafts', wrap(async (req, res) => {
 
   const record = {
     creatorUid: caller.uid,
+    aiAssisted: false,
+    source: 'learning-scaffold',
     kind,
     offeringId,
     lessonId,
@@ -1084,13 +1108,15 @@ router.post('/schools/:schoolId/ai-drafts', wrap(async (req, res) => {
   const ref = root(req.schoolId).collection('aiDrafts').doc();
   const batch = getFirestore().batch();
   batch.create(ref, record);
-  audit(batch, req.schoolId, caller, 'AI_DRAFT_GENERATED', ref.id);
+  audit(batch, req.schoolId, caller, 'LEARNING_SCAFFOLD_CREATED', ref.id);
   await batch.commit();
 
   res.status(201).json({
     draftId: ref.id,
     kind,
     text: draftText,
+    aiAssisted: false,
+    source: 'learning-scaffold',
     sources: record.sources,
     createdAt: createdAtTime,
     expiresAt: expiresAtTime
@@ -1106,9 +1132,11 @@ router.post('/schools/:schoolId/ai-drafts/:draftId/accept', wrap(async (req, res
     const snap = await tx.get(ref);
     if (!snap.exists) fail(404, 'NOT_FOUND', 'AI draft not found.');
     const value = snap.data();
-    if (value.creatorUid !== caller.uid && !staff(caller) && caller.role !== 'admin') {
+    if (value.creatorUid !== caller.uid) {
       fail(403, 'FORBIDDEN', 'You do not have access to accept this draft.');
     }
+    if (Date.parse(value.expiresAt) <= Date.now()) fail(404, 'NOT_FOUND', 'Learning scaffold expired.');
+    await offeringAccess(req, value.offeringId);
     tx.update(ref, {
       status: 'accepted',
       acceptedAt: now(),

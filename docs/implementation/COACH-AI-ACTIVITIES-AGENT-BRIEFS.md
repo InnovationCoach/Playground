@@ -8,6 +8,8 @@ Prepared 4 October 2026 for three agents working together:
 | **Claude** | Refiner: writes the shared contract first, then reviews, hardens and polishes every phase |
 | **Gemini 3.6** | Firebase: cloud set-up (KMS, secrets, IAM, budgets), rules and index deploys, releases and smoke tests |
 
+**Project-lead update, 5 October 2026:** GPT-6 owns contract decisions, feature implementation and refinement for Phase 2 onward. Claude is not required. Gemini 3.6 handles Firebase infrastructure/configuration and deployment only. The historical role assignments below remain as the original plan; this update supersedes them. No feature-builder production deploy or main merge is authorized by this update.
+
 Goal: coaches build STEAM activities in their dashboard with AI assistance (the school's AI key by default, or their own key), review them, and publish them to their classes' student dashboards.
 
 ---

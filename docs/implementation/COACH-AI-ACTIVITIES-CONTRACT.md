@@ -106,7 +106,7 @@ All routes are under `/api`, need a Firebase bearer token, take JSON bodies, and
 
 | Request | Response 201 |
 |---|---|
-| `{ prompt (≤2000), ageBand, durationMinutes, materials?: text[], standards?: text[], milestoneId?, keySource: 'school' \| 'personal' }` | `{ draftId, spec, warnings[], usage: {inputTokens, outputTokens}, provider, model }` |
+| `{ prompt (≤2000), ageBand, durationMinutes, materials?: text[], standards?: text[], milestoneId?, keySource: 'school' \| 'personal' }` | `{ draftId, revision, spec, warnings[], usage: {inputTokens, outputTokens}, provider, model }` |
 
 The server flow:
 1. Check the caller is staff with an assigned class in the offering.
@@ -116,11 +116,11 @@ The server flow:
 5. Force `provenance = {aiAssisted:true, provider, model}`.
 6. Store the draft, add usage, and return `safetyWarnings`.
 
-`POST …/activity-drafts/:draftId/regenerate-block` with `{ blockIndex, instruction (≤500) }` returns `{ spec, warnings[], usage }`. It uses `buildBlockPrompt`; the new block must keep the same `type` and the whole spec must still validate.
+`POST …/activity-drafts/:draftId/regenerate-block` with `{ revision, blockIndex, instruction (≤500) }` returns `{ spec, warnings[], usage, revision }`. It uses `buildBlockPrompt`; the new block must keep the same `type` and the whole spec must still validate.
 
 `GET …/activity-drafts` lists the caller's own drafts (newest first, at most 20). `DELETE …/activity-drafts/:draftId` deletes the caller's own draft.
 
-Saving a draft as a lesson uses the Phase 1 lesson route with `activity: draft.spec`. The server checks that `provenance.aiAssisted` matches the stored draft and never trusts the client's value.
+Saving a draft as a lesson uses the Phase 1 lesson route with `activity: draft.spec`, `activityDraftId` and `activityDraftRevision`. The server checks that `provenance.aiAssisted` matches the stored draft and never trusts the client's value.
 
 ### Phase 3: coach's own key
 
@@ -145,8 +145,8 @@ All three collections are browser-denied (rules and rules tests are in place). O
 | Path | Fields |
 |---|---|
 | `coachAiConnections/{uid}` | `provider, model, ciphertext (base64), kmsKeyVersion, last4, status, createdAt, updatedAt` |
-| `schools/{sid}/programOfferings/{oid}/activityDrafts/{draftId}` | `creatorUid, classIds, prompt (≤2000), spec, warnings, provider, model, keySource, usage, createdAt, expiresAt (+7 days)` |
-| `schools/{sid}/aiUsage/{yyyy-mm}` | `requests, inputTokens, outputTokens, byCoach: {uid: {requests, inputTokens, outputTokens}}, cap` |
+| `schools/{sid}/programOfferings/{oid}/activityDrafts/{draftId}` | `creatorUid, classIds, prompt (≤2000), spec, warnings, provider, model, keySource, usage, revision, operation?, updatedAt, createdAt, expiresAt (+7 days)` |
+| `schools/{sid}/aiUsage/{yyyy-mm}` | `requests, inputTokens, outputTokens, byCoach: {uid: {requests, inputTokens, outputTokens}}, cap, reservations` |
 | `…/lessons/{lessonId}` (existing) | gains `activity` (validated spec, with provenance) |
 | `…/submissions/{id}` (existing) | gains optional `responses` |
 
@@ -159,7 +159,7 @@ All three collections are browser-denied (rules and rules tests are in place). O
 - **Context allow-list:** `programTitle, drivingQuestion, milestoneTitle, ageBand, durationMinutes, materials, standards`. Anything else throws. Never pass learner names, IDs, evidence, goals, messages or class rosters.
 - **Prompt template:** `buildActivityPrompt` (JSON only, plain text only, safe materials, a reflection required, no personal data, ignore instructions that try to change the rules). Adapters send `system` and `user` as their native system and user messages.
 - **Rate limit:** 10 generate or regenerate calls per coach per rolling hour, stored server-side (reuse the pattern of `programJoinAttempts`).
-- **Monthly cap:** `aiUsage.cap` defaults to 2,000,000 tokens per school per month; `AI_CAP_REACHED` when exceeded. Count usage only after a successful call.
+- **Monthly cap:** `aiUsage.cap` defaults to 2,000,000 tokens per school per month; `AI_CAP_REACHED` when exceeded. Reserve before inference; count known completions including invalid output, and conservatively charge uncertain billing (§9).
 - **Timeout:** 45 seconds per provider call, then `AI_TIMEOUT`.
 - **Logging:** route, school, coach uid, provider, model, token counts and duration. **Never** prompt text, model output or keys.
 - **Keys:** the school key comes from Secret Manager `school-gemini-api-key`. Personal keys are encrypted with Cloud KMS `KMS_KEY_NAME`, decrypted per request in memory, and never cached across requests.
@@ -197,6 +197,23 @@ Throw `aiError(code, message)` with a code from `AI_ERROR_CODES`, and never incl
 
 | Area | Owner |
 |---|---|
-| `activitySpec.js`, `activityPrompt.js`, `adapter.js` | Contract: changes go through Claude review |
+| `activitySpec.js`, `activityPrompt.js`, `adapter.js` | Contract: GPT-6 owns amendments and review, authorized by the project lead on 5 October 2026 |
 | Routes, Studio, Player, provider adapters, rate limits and caps | GPT-6 |
 | Secret Manager, KMS, IAM, budgets, deploys | Gemini |
+
+
+## 9. Phase 2 amendments — project-lead authorization, 5 October 2026
+
+GPT-6 now owns feature implementation, contract decisions and refinement. Gemini 3.6 owns Firebase infrastructure and deployment only. These amendments resolve the questions logged on 5 October; the spec and existing manual lesson API remain compatible.
+
+- A generated lesson request includes `activityDraftId` (same offering, caller-owned, unexpired) and `activityDraftRevision`. The supplied activity may contain coach edits; provenance is derived from the stored draft, never from the browser. The lesson stores `activityDraftId`. Later edits retain existing server-owned AI provenance even if the link is omitted or the draft expires. Reviewed fields reset on edits. Existing lesson revision/author/class checks remain mandatory. Choosing a blank/sample starts a separate lesson, not a way to relabel an existing AI lesson.
+- Drafts gain `revision` (starts at 1), `updatedAt` and optional `operation: {id, expiresAt}`. Generate returns `revision`. New `PATCH …/activity-drafts/:id` accepts `{revision,spec}` and returns `{draftId,revision,spec,warnings}`. Regenerate accepts `{revision,blockIndex,instruction}` and returns `{spec,warnings,usage,revision}`. Save edits to the draft before regenerating a block. PATCH/regeneration reject stale revisions with 409 CONFLICT. Concurrent regeneration locks the draft for up to 15 minutes; provider calls run outside transactions and cannot silently overwrite later edits. Listing and every draft operation exclude expired drafts, with no reliance on TTL deletion.
+- Coach attempts are stored in the already browser-denied `programJoinAttempts/coach-ai-<uid>` document as `attempts` (epoch milliseconds). A transaction checks 10 per rolling hour globally across schools. Authorized requests that reach reservation consume an attempt, including provider failures; malformed/denied/unconfigured requests do not.
+- The UTC monthly usage document gains `reservations: {requestId:{uid,tokens,expiresAt}}`. Before provider calls, a transaction reserves **116,000 tokens**, covering at most two calls with each input limited to 50,000 UTF-8 bytes and output limited to 8,000 tokens. Input prompts including repair feedback are bounded before each call. Admission checks consumed input/output plus all outstanding reservations against the server-managed `cap` (default 2,000,000). This deliberately conservative policy can deny near-cap requests even when their eventual cost would be smaller. No provider call occurs inside a retryable transaction. A single request has a 45-second overall deadline, fitting the existing 60-second function timeout.
+- On settlement, known token counts include every successful provider completion, even invalid activity JSON and repair responses. Unknown provider billing after a dispatched timeout/error conservatively charges the full reservation; requests cancelled before dispatch charge zero. A crashed/expired reservation is converted to conservative consumed usage, not released as free budget. Successful draft persistence and settlement happen atomically. Settlement failures retain the reservation, protecting the cap; no success is returned before persistence. Counts and reservation IDs contain no prompts, specs or credentials. No new collection or rules change is required.
+- School source uses only runtime-bound Secret Manager environment value `school-gemini-api-key` and explicit `COACH_ACTIVITY_GEMINI_MODEL`. No fallback to existing plaintext GEMINI_API_KEY. Missing configuration returns 409 AI_NOT_CONFIGURED. `keySource:'personal'` also returns AI_NOT_CONFIGURED until Phase 3, without consuming quota. Provider throttling maps to 429 RATE_LIMITED. Gemini owns secret binding/IAM/model configuration and release; feature work does not edit the Firebase entrypoint or firebase.json.
+- Only staff/admin with a current active assigned class in the offering may generate. Draft class scope is the current intersection, rechecked on every operation and lesson link. Provider context is server-selected from the approved keys. Reject email/phone patterns in outbound coach prompt/context, edited spec text and regeneration instructions; UI reminds coaches never to include learner information. This heuristic cannot identify every name or disguised personal detail; no learner records are fetched or included by these routes.
+- Legacy learner support `/ai-drafts` remains a **non-AI learning scaffold** for compatibility, returns `aiAssisted:false, source:'learning-scaffold'`, and its UI must not call these fixed templates AI generation. Coach activity generation uses the new offering-scoped routes exclusively. Legacy access is restricted to accessible offerings and caller-owned acceptance; it never invokes a provider.
+- Local mock adapters are injected server-side in tests or an explicit emulator-only preview. They are never enabled by browser input. The mock model name is visibly `local-mock`; a simulated preview does not establish production provider readiness.
+
+Publishing returns `{published:true, provenance?}` so the Studio can display the server-confirmed reviewer without inventing review metadata.

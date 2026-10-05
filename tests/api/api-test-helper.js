@@ -4,8 +4,8 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { createApp } from '../../server/app.js';
 
 const PROJECT_ID = 'demo-hearisland-local';
-const AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-const FIRESTORE_EMULATOR_HOST = '127.0.0.1:8088';
+const AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
+const FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8088';
 
 process.env.FIREBASE_AUTH_EMULATOR_HOST = AUTH_EMULATOR_HOST;
 process.env.FIRESTORE_EMULATOR_HOST = FIRESTORE_EMULATOR_HOST;
@@ -95,5 +95,5 @@ export async function setupApiTestEnv() {
     });
   }
 
-  return { auth, db, baseUrl, getIdToken, request, teardown };
+  return { app, auth, db, baseUrl, getIdToken, request, teardown };
 }
