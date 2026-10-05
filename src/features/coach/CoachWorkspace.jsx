@@ -1,3 +1,4 @@
+import { useActivityText } from '../activities/builder/activityMessages.js';
 import { useEffect, useState } from 'react';
 import { BookOpen, FlaskConical, GraduationCap, LayoutDashboard, Search, RefreshCw, ArrowUpRight, FileText, Users, ChevronRight, X } from 'lucide-react';
 import { auth, db, collection, getDocs, getDoc, doc, query, where } from '../../firebase.js';
@@ -15,6 +16,7 @@ const describeError = err => err?.code === 'permission-denied'
   : 'Learning records could not be loaded. Check your connection and try again.';
 
 export function CoachWorkspace({ coachUser, onManagement }) {
+  const {t}=useActivityText();
   const [section, setSection] = useState('overview');
   const [classId, setClassId] = useState('all');
   const [search, setSearch] = useState('');
@@ -65,7 +67,7 @@ export function CoachWorkspace({ coachUser, onManagement }) {
   const unavailable = classLearners.filter(l => l.recordError).length;
 
   return <main className="gh-app cw-app"><div className="cw-page">
-    <div className="cw-heading"><div><span className="cw-eyebrow">YOUR COACHING WORKSPACE</span><h1>See the learning. Guide the next step.</h1><p>PBL projects, STEAM investigations and academic learning, in one place.</p></div><div className="cw-tools"><button className="gh-btn gh-btn-ghost" onClick={onManagement}>Management tools</button><button className="gh-btn gh-btn-ghost" disabled={data.state === 'loading'} onClick={() => setReload(n => n + 1)}><RefreshCw size={16} /> Refresh records</button></div></div>
+    <div className="cw-heading"><div><span className="cw-eyebrow">YOUR COACHING WORKSPACE</span><h1>See the learning. Guide the next step.</h1><p>PBL projects, STEAM investigations and academic learning, in one place.</p></div><div className="cw-tools"><button className="gh-btn gh-btn-primary" onClick={()=>setSection('pbl')}>{t('openPrograms')}</button><button className="gh-btn gh-btn-ghost" onClick={onManagement}>Management tools</button><button className="gh-btn gh-btn-ghost" disabled={data.state === 'loading'} onClick={() => setReload(n => n + 1)}><RefreshCw size={16} /> Refresh records</button></div></div>
     <div className="cw-context"><div className="cw-class"><label htmlFor="cw-class">Class</label><select id="cw-class" className="gh-select" value={scope} onChange={e => { setClassId(e.target.value); setSelectedId(null); }}><option value="all">All assigned classes</option>{data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div><strong>{TERM.label}</strong><span className="cw-muted">{` · ${TERM.theme}`}</span></div><span className="cw-updated">{data.updatedAt ? `Loaded ${dateLabel(data.updatedAt)}` : 'Cloud records'}</span></div>
     <nav className="cw-sections" aria-label="Coach progress sections">{SECTIONS.map(([id, label, Icon]) => <button key={id} aria-current={section === id ? 'page' : undefined} onClick={() => { setSection(id); setSelectedId(null); }}><Icon size={18} />{label}</button>)}</nav>
     {data.state === 'loading' && <Empty title="Loading your classes" text="Checking access and retrieving learner records." />}

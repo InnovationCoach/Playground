@@ -60,6 +60,7 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
         </label>
       </div>
 
+      {!isPrimary&&<p><a className="gh-btn gh-btn-primary" href={hrefFor.programs()}>{t('nav.programs')} <ArrowRight size={16}/></a></p>}
       {joined && <div style={{ marginTop: '1.5rem' }}><Alert type="success">{joined}</Alert></div>}
       {uid && classIds.length === 0 && (
         <JoinClassCard uid={uid} onJoined={(r) => { setJoined(r.message); onJoined?.(r); }} />

@@ -228,7 +228,8 @@ describe('routes', () => {
     expect(parseRoute('#/admin/new/wizards')).toEqual({ screen: 'admin', page: 'list', kind: 'students' });
     expect(parseRoute('#/settings')).toEqual({ screen: 'settings' });
     expect(parseRoute('#/courses')).toEqual({ screen: 'courses' });
-    expect(parseRoute('#/coach/dashboard')).toBeNull();
+    expect(parseRoute('#/coach/dashboard')).toEqual({screen:'coach'});
+    expect(parseRoute('#/programs')).toEqual({screen:'programs'});
     expect(parseRoute('')).toBeNull();
   });
 });
@@ -274,10 +275,20 @@ describe('Legacy router preserves private dashboard and portfolio routes', () =>
   it('leaves these React screens intact for students and coaches', () => {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
     const source = html.match(/    function handleHashRouting\(\) \{[\s\S]*?\n    \}/)[0];
-    for (const role of ['student', 'teacher']) for (const hash of ['#/home', '#/portfolio', '#/portfolio/learner']) {
+    for (const role of ['student', 'teacher']) for (const hash of ['#/home', '#/portfolio', '#/portfolio/learner', '#/programs']) {
       const views = [];
       const handler = new Function('firebase', 'window', 'switchPhase', `${source}; return handleHashRouting;`)({auth:()=>({currentUser:{uid:'test'}})}, {currentUserRole:role,location:{hash}}, view=>views.push(view));
       handler(); expect(views).toEqual([]);
     }
   });
+});
+
+
+describe('Coach entry links',()=>{
+ it('opens the coach workspace from saved learner landing links while preserving other staff screens',async()=>{
+  const {parseRoute,isCoachWorkspaceRoute}=await import('../src/app/routes.js');
+  for(const role of ['teacher','coach'])for(const link of ['#/home','#/courses','#/programs','#/coach/dashboard',''])expect(isCoachWorkspaceRoute(role,parseRoute(link))).toBe(true);
+  for(const link of ['#/settings','#/community','#/messages','#/pbl'])expect(isCoachWorkspaceRoute('coach',parseRoute(link))).toBe(false);
+  expect(isCoachWorkspaceRoute('student',parseRoute('#/coach/dashboard'))).toBe(false);
+ });
 });

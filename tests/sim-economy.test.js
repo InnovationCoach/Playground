@@ -23,7 +23,7 @@ const other = () => testEnv.authenticatedContext('someone_else');
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
     projectId: 'demo-hearisland-rules',
-    firestore: { rules: fs.readFileSync(process.env.RULES_FILE || 'firestore.rules', 'utf8'), host: '127.0.0.1', port: 8088 }
+    firestore: { rules: fs.readFileSync(process.env.RULES_FILE || 'firestore.rules', 'utf8'), host: '127.0.0.1', port: Number(process.env.FIRESTORE_EMULATOR_HOST?.split(':').at(-1) || 8088) }
   });
 });
 afterAll(async () => { await testEnv?.cleanup(); });

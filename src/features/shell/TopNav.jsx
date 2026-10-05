@@ -43,6 +43,7 @@ function studentGroups({ view, onNavigate, onOpenGoals, onOpenCourses, t }) {
     { id: 'learn', label: t('nav.groupLearn'), links: [
       { id: 'home', icon: House, label: t('nav.home'), active: view === 'home', onClick: () => onNavigate('home') },
       { id: 'courses', icon: BookOpen, label: t('nav.myCourses'), active: view === 'courses', onClick: onOpenCourses },
+      { id: 'programs', icon: BookOpen, label: t('nav.programs'), active: view === 'programs', onClick: go('#/programs') },
       { id: 'pbl', icon: Rocket, label: t('nav.pbl'), active: view === 'pbl', onClick: go('#/pbl') },
       { id: 'goals', icon: Target, label: t('nav.goals'), onClick: onOpenGoals }
     ] },

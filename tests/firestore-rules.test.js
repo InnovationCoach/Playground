@@ -38,7 +38,7 @@ beforeAll(async () => {
     firestore: {
       rules: fs.readFileSync('firestore.rules', 'utf8'),
       host: '127.0.0.1',
-      port: 8088
+      port: Number(process.env.FIRESTORE_EMULATOR_HOST?.split(':').at(-1) || 8088)
     }
   });
 });

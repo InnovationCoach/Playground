@@ -20,6 +20,8 @@ const VISUALS = {
 
 export function ProgramCatalogueChooser({ school, onChooseProgram, onJoined }) {
   const offerings = useSchoolResource(schoolPath(school.id, 'program-offerings'));
+  const custom=[...new Map((offerings.data?.items||[]).filter(o=>o.programDefinition).map(o=>[o.programDefinition.id,o.programDefinition])).values()];
+  const catalogue=[...PROGRAM_CATALOGUE,...custom];
   const enrolled = new Set((offerings.data?.items || []).map(o => o.programId));
   const [joining, setJoining] = useState(null);
   const [code, setCode] = useState('');
@@ -56,7 +58,7 @@ export function ProgramCatalogueChooser({ school, onChooseProgram, onJoined }) {
       {offerings.error && <p className="sw-error" role="alert">{serviceMessage(offerings.error)}</p>}
       {offerings.loading && <p role="status">Checking your enrollments…</p>}
       <ul className="w2e-catalogue-list">
-        {PROGRAM_CATALOGUE.map(program => {
+        {catalogue.map(program => {
           const v = VISUALS[program.id] || { Icon: Leaf, tone: 'sf', short: program.title, blurb: '' };
           const isEnrolled = enrolled.has(program.id);
           const isJoining = joining === program.id;

@@ -14,3 +14,5 @@
 .ab-entry{min-width:0;max-width:100%}.ab-entry>.gh-btn{max-width:100%;white-space:normal;text-align:left;overflow-wrap:anywhere}.sw-lessons>.sw-card:has(.ab-entry){padding:12px}
 
 .ab-player>header{display:block}.ab-player>header .ab-badge{margin:0 8px 8px 0}
+
+.ab-ai{border:1px solid var(--gh-accent,#6366f1);background:var(--gh-surface,#fff)}.ab-ai-block{padding:.75rem;border-radius:12px;background:#eef2ff;color:#172554;margin-bottom:1rem}.ab-ai-block label{display:grid;gap:.4rem}.ab-ai-block textarea{width:100%;box-sizing:border-box}.ab-ai form>fieldset{display:grid;gap:.75rem}
