@@ -128,3 +128,25 @@ Not part of the Coach AI phases, but it changes shared student-side files. **GPT
 - Browser evidence: disposable coach created Microgrid makers and issued a code, generated/regenerated a simulated activity, saved and safety-confirmed publication; disposable student joined, recorded table/simulation evidence, reflected and submitted work; coach saw the submission. Responsive checks at **375 / 615 / 1440 px** had no settled horizontal page overflow. Screenshots are in `docs/implementation/coach-activities-p2/`.
 - Generation tests and local browser preview use simulated responses (`local-mock`). No real Gemini request or live-site update is claimed. Preview is temporarily running at `http://localhost:5186/?emulators=1`; credentials and steps are in `COACH-AI-ACTIVITIES-PHASE-2-TEST-GUIDE.md`.
 - Gemini handoff: bind school Secret Manager value, configure a verified server model, run real provider and release checks. See `COACH-AI-ACTIVITIES-PHASE-2-FIREBASE-HANDOFF.md` and the Phase 2 report. Personal keys remain Phase 3; privacy detection is heuristic, reservations are conservative, expired storage is not auto-pruned, and native-speaker translation review remains useful.
+
+---
+
+## 2026-10-05 · Phase 2 Deployment · Gemini 3.6: Phase 2 deployed at 43ee599
+
+- Merged `feature/coach-activities-p2` into `main` at commit `43ee599`.
+- Secret Manager Binding: Configured secret `SCHOOL_GEMINI_API_KEY` in GCP Secret Manager for project `dnd-master-73449` and bound it to Cloud Function `api(us-central1)` (`server/index.js` and `server/lib/ai/activityDrafts.js`).
+- Default AI Model: Set fallback model to `gemini-2.5-flash` for server activity draft generation.
+- Full Verification Suite Passed:
+  - Unit tests (`npm run test:unit`): **476 / 476 passed** (25 files).
+  - API integration tests (`npm run test:api`): **112 / 112 passed** (9 files).
+  - Rules & combined test suite (`npm test`): **580 / 580 passed** (27 files). Total test count: **692 / 692 passed**.
+  - Production build (`npm run build`): Clean compilation in 1.01s with **zero >500 kB chunk warnings**.
+- Firebase Production Deployment:
+  - Firestore security rules deployed and verified.
+  - Cloud Function `api(us-central1)` deployed successfully (`https://api-6my6jtc3oa-uc.a.run.app`).
+  - Firebase Hosting released live (`https://dnd-master-73449.web.app`).
+- Live Verification:
+  - Hosting main site loads HTTP 200 OK (`https://dnd-master-73449.web.app`).
+  - CORS security origin headers verified (`https://dnd-master-73449.web.app`).
+  - Unauthenticated endpoints return `401 UNAUTHENTICATED` as expected.
+
