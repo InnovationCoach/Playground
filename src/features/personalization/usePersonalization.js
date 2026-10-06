@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import {schoolRequest} from '../../services/api/apiClient.js';
-import {defaults, MAX_MEDIA_SIZE, MEDIA_TYPES} from './personalizationModel.js';
+import {defaults, normalizeSettings, MAX_MEDIA_SIZE, MEDIA_TYPES} from './personalizationModel.js';
+import {PROFILE_SPACE_STRINGS as copy} from './profileSpaceStrings.js';
 import {storage} from '../../firebase.js';
 export function usePersonalization(uid) {
   const [saved,setSaved] = useState(null), [draft,setDraft] = useState(defaults), [history,setHistory] = useState([]);
@@ -8,20 +9,20 @@ export function usePersonalization(uid) {
   const reload = useCallback(async () => {
     setLoading(true); setError('');
     try {const data = await schoolRequest('GET','/api/learner-space'); setSaved(data);setDraft(data);setHistory([]);}
-    catch(e) {setSaved(null);setDraft(defaults());setHistory([]);setError(e.message || 'Your space could not be loaded.');}
+    catch(e) {setSaved(null);setDraft(defaults());setHistory([]);setError(e.message || copy.loadFailed);}
     finally {setLoading(false);}
   },[]);
   useEffect(()=>{let active=true; setLoading(true);setSaved(null);setDraft(defaults());setHistory([]);setStatus('');setError('');
     schoolRequest('GET','/api/learner-space').then(data=>{if(active){setSaved(data);setDraft(data);setHistory([]);}}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});
     return ()=>{active=false;};
   },[uid]);
-  function change(transform) {setHistory(h=>[...h.slice(-19),structuredClone(draft)]);setDraft(transform(structuredClone(draft)));setStatus('Changes are being previewed. Save to keep them.');}
-  function undo() {if(!history.length)return;setDraft(d=>({...d,dashboard:history.at(-1).dashboard,portfolio:history.at(-1).portfolio}));setHistory(h=>h.slice(0,-1));setStatus('Last change undone. Save to keep this version.');}
-  function discard() {if(saved){setDraft(structuredClone(saved));setHistory([]);setStatus('Unsaved changes discarded.');}}
+  function change(transform) {setHistory(h=>[...h.slice(-19),structuredClone(draft)]);setDraft(transform(structuredClone(draft)));setStatus(copy.previewStatus);}
+  function undo() {if(!history.length)return;setDraft(d=>({...d,dashboard:history.at(-1).dashboard,portfolio:history.at(-1).portfolio}));setHistory(h=>h.slice(0,-1));setStatus(copy.undoneStatus);}
+  function discard() {if(saved){setDraft(structuredClone(saved));setHistory([]);setStatus(copy.discardedStatus);}}
   async function save() {
     setBusy(true);setError('');
-    try {const data = await schoolRequest('PUT','/api/learner-space',{body:draft});setSaved(data);setDraft(data);setStatus('Your personalization has been saved.');}
-    catch(e){setError(e.message || 'Changes could not be saved.');}finally{setBusy(false);}
+    try {const data = await schoolRequest('PUT','/api/learner-space',{body:{...normalizeSettings(draft,uid),revision:draft.revision}});setSaved(data);setDraft(data);setStatus(copy.savedStatus);}
+    catch(e){setError(e.message || copy.saveFailed);}finally{setBusy(false);}
   }
   async function saveItem(item, remove=false) {
     setBusy(true);setError('');
