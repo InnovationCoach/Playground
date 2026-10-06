@@ -22,28 +22,38 @@ export default function ActivityStudio({school,offering,classes,template,lesson,
  const [content,setContent]=useState(()=>({classId:lesson?.classId||choices[0]?.id||'',milestoneId:lesson?.milestoneId||template.milestones[0]?.id||'',outcome:lesson?.outcome||'',instructions:lesson?.instructions||''}));
  const [saved,setSaved]=useState(lesson||null),[dirty,setDirty]=useState(!lesson),[busy,setBusy]=useState(false),[status,setStatus]=useState(''),[error,setError]=useState(''),[apiErrors,setApiErrors]=useState([]),[blockType,setBlockType]=useState('intro'),[width,setWidth]=useState('desktop'),[review,setReview]=useState(false);
  const [aiPrompt,setAiPrompt]=useState(''),[aiKit,setAiKit]=useState(''),[aiStandards,setAiStandards]=useState(''),[aiAge,setAiAge]=useState('13-15'),[aiMinutes,setAiMinutes]=useState(30),[aiDraft,setAiDraft]=useState(null),[aiState,setAiState]=useState(''),[drafts,setDrafts]=useState([]),[draftState,setDraftState]=useState('loading'),[draftError,setDraftError]=useState(''),[instructions,setInstructions]=useState({}),[replace,setReplace]=useState(false),[aiUsage,setAiUsage]=useState(null);
+ const [submitted,setSubmitted]=useState(false);
  const mounted=useRef(true);useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
+ useEffect(()=>{
+  const onBeforeUnload=(e)=>{if(dirty){e.preventDefault();e.returnValue='';}};
+  window.addEventListener('beforeunload',onBeforeUnload);
+  return ()=>window.removeEventListener('beforeunload',onBeforeUnload);
+ },[dirty]);
+ function handleClose(){
+  if(dirty && typeof window!=='undefined' && window.confirm && !window.confirm('You have unsaved changes in this activity. Are you sure you want to close?')) return;
+  onClose?.();
+ }
  const base=`/api/schools/${encodeURIComponent(school.id)}/program-offerings/${encodeURIComponent(offering.id)}/lessons`;
  const aiBase=base.replace(/\/lessons$/,'/activity-drafts');
  function aiFailure(e){return t(`ai_${e.code}`)===`ai_${e.code}`?t(e.code==='FORBIDDEN'?'denied':'aiError'):t(`ai_${e.code}`);}
  async function reloadDrafts(){setDraftState('loading');setDraftError('');try{const result=await schoolRequest('GET',aiBase);if(mounted.current){setDrafts(result.items||[]);if(lesson?.activityDraftId&&!aiDraft){const linked=result.items?.find(d=>d.draftId===lesson.activityDraftId);if(linked)setAiDraft({draftId:linked.draftId,revision:linked.revision});}setDraftState('ready');}}catch(e){if(mounted.current){setDraftState('error');setDraftError(aiFailure(e));}}}
  useEffect(()=>{reloadDrafts();},[aiBase]);
  function acceptDraft(result){setInstructions({});setAiUsage(result.usage||null);setSpec(result.spec);setBlockKeys(result.spec.blocks.map(()=>crypto.randomUUID()));setAiDraft({draftId:result.draftId,revision:result.revision});setSaved(null);setDirty(true);setApiErrors([]);setError('');setStatus('aiGenerated');setReplace(false);setContent(old=>({...old,outcome:result.spec.summary,instructions:result.spec.summary}));}
- async function generate(e){e.preventDefault();setBusy(true);setAiState('generate');setError('');try{const result=await schoolRequest('POST',`${aiBase}/generate`,{body:{prompt:aiPrompt,ageBand:aiAge,durationMinutes:aiMinutes,materials:aiKit.split('\n').filter(v=>v.trim()),standards:aiStandards.split('\n').filter(v=>v.trim()),milestoneId:content.milestoneId,keySource:'school'}});if(mounted.current){acceptDraft(result);reloadDrafts();}}catch(e){if(mounted.current)setError(aiFailure(e));}finally{if(mounted.current){setBusy(false);setAiState('');}}}
+ async function generate(e){e.preventDefault();setBusy(true);setSubmitted(true);setAiState('generate');setError('');try{const result=await schoolRequest('POST',`${aiBase}/generate`,{body:{prompt:aiPrompt,ageBand:aiAge,durationMinutes:aiMinutes,materials:aiKit.split('\n').filter(v=>v.trim()),standards:aiStandards.split('\n').filter(v=>v.trim()),milestoneId:content.milestoneId,keySource:'school'}});if(mounted.current){acceptDraft(result);reloadDrafts();}}catch(e){if(mounted.current)setError(aiFailure(e));}finally{if(mounted.current){setBusy(false);setAiState('');}}}
  async function syncAiDraft(clean){if(!aiDraft)return null;const result=await schoolRequest('PATCH',`${aiBase}/${aiDraft.draftId}`,{body:{revision:aiDraft.revision,spec:clean}});const next={draftId:aiDraft.draftId,revision:result.revision};setAiDraft(next);return next;}
- async function regenerate(index){setBusy(true);setAiState(`block-${index}`);setError('');try{const clean=validateActivity(spec);const synced=await syncAiDraft(clean);const result=await schoolRequest('POST',`${aiBase}/${synced.draftId}/regenerate-block`,{body:{revision:synced.revision,blockIndex:index,instruction:instructions[blockKeys[index]]}});if(mounted.current){setAiUsage(result.usage);setSpec(result.spec);setAiDraft({...synced,revision:result.revision});setDirty(true);setStatus('aiGenerated');reloadDrafts();}}catch(e){if(mounted.current){setError(aiFailure(e));setApiErrors(e.details||e.errors||[]);}}finally{if(mounted.current){setBusy(false);setAiState('');}}}
+ async function regenerate(index){setBusy(true);setSubmitted(true);setAiState(`block-${index}`);setError('');try{const clean=validateActivity(spec);const synced=await syncAiDraft(clean);const result=await schoolRequest('POST',`${aiBase}/${synced.draftId}/regenerate-block`,{body:{revision:synced.revision,blockIndex:index,instruction:instructions[blockKeys[index]]}});if(mounted.current){setAiUsage(result.usage);setSpec(result.spec);setAiDraft({...synced,revision:result.revision});setDirty(true);setStatus('aiGenerated');reloadDrafts();}}catch(e){if(mounted.current){setError(aiFailure(e));setApiErrors(e.details||e.errors||[]);}}finally{if(mounted.current){setBusy(false);setAiState('');}}}
  const validated=useMemo(()=>{try{return {clean:validateActivity(spec),errors:[]};}catch(e){return {clean:null,errors:e.errors||[]};}},[spec]);
  const warnings=validated.clean?safetyWarnings(validated.clean):[];
  const errors=[...validated.errors,...apiErrors];
  const frozen=saved?.status==='published';
  function update(next){setSpec(next);setDirty(true);setStatus('');setApiErrors([]);setError('');}
  function updateContent(key,value){setContent(old=>({...old,[key]:value}));setDirty(true);setStatus('');setError('');}
- function reset(next){setInstructions({});setBlockKeys(next.blocks.map(()=>crypto.randomUUID()));update(next);setSaved(null);setAiDraft(null);setAiUsage(null);setReplace(false);}
+ function reset(next){setInstructions({});setBlockKeys(next.blocks.map(()=>crypto.randomUUID()));update(next);setSaved(null);setAiDraft(null);setAiUsage(null);setReplace(false);setSubmitted(false);}
  function changeBlock(i,next){update({...spec,blocks:spec.blocks.map((b,j)=>i===j?next:b)});}
  function move(i,d){const to=i+d;if(to<0||to>=spec.blocks.length)return;setBlockKeys(keys=>{const next=[...keys];next.splice(to,0,next.splice(i,1)[0]);return next;});update({...spec,blocks:reorderBlocks(spec.blocks,i,to)});}
  function remove(i){setBlockKeys(keys=>keys.filter((_,idx)=>idx!==i));const order=spec.blocks.map((_,idx)=>idx).filter(idx=>idx!==i);update({...spec,blocks:order.map(idx=>spec.blocks[idx].type==='chart'?{...spec.blocks[idx],table:order.indexOf(spec.blocks[idx].table)}:spec.blocks[idx])});}
  async function save(){
-  setBusy(true);setError('');setApiErrors([]);
+  setBusy(true);setSubmitted(true);setError('');setApiErrors([]);
   try {
    const clean=validateActivity(spec);
    const synced=await syncAiDraft(clean);
@@ -53,15 +63,15 @@ export default function ActivityStudio({school,offering,classes,template,lesson,
   }catch(e){setError(aiDraft?aiFailure(e):t(e.code==='FORBIDDEN'?'denied':'saveFailed'));setApiErrors(e.details||e.errors||[]);}finally{setBusy(false);}
  }
  async function publish(){
-  setBusy(true);setError('');
+  setBusy(true);setSubmitted(true);setError('');
   try{const result=await schoolRequest('POST',`${base}/${saved.id}/publish`,{body:{revision:saved.revision,safetyConfirmed:true}});if(result.provenance)setSpec(old=>({...old,provenance:result.provenance}));setSaved(old=>({...old,status:'published',revision:old.revision+1}));setReview(false);setStatus('published');onSaved?.();}
   catch(e){setError(t(e.code==='FORBIDDEN'?'denied':'publishFailed'));}finally{setBusy(false);}
  }
- const fieldErrors=path=>errors.filter(e=>e.path===path||e.path.startsWith(`${path}.`)||e.path.startsWith(`${path}[`));
+ const fieldErrors=path=>errors.filter(e=>e.path===path);
  const problem=(path)=>fieldErrors(path).map((e,i)=><small className="ab-error" role="alert" key={i}>{e.path}: {diagnostic(e.message)}</small>);
  const field=(key,control,path=key)=><ValidationField label={t(key)} {...{path,errors,diagnostic}}>{control}</ValidationField>;
  return <section className="ab-studio" aria-label={t('studio')}>
-  <header className="ab-header"><div><span className="ab-badge">{spec.provenance.aiAssisted?t(spec.provenance.reviewedBy?'aiReviewed':'aiBadge',{model:spec.provenance.model,coach:spec.provenance.reviewedBy}):t('manual')}</span><h3>{t('studio')}</h3></div><button type="button" disabled={busy} onClick={onClose}>{t('close')}</button></header>
+  <header className="ab-header"><div><span className="ab-badge">{spec.provenance.aiAssisted?t(spec.provenance.reviewedBy?'aiReviewed':'aiBadge',{model:spec.provenance.model,coach:spec.provenance.reviewedBy}):t('manual')}</span><h3>{t('studio')}</h3></div><button type="button" disabled={busy} onClick={handleClose}>{t('close')}</button></header>
   <div className="ab-actions"><button type="button" disabled={busy} onClick={()=>reset(blankActivity())}>{t('blank')}</button><button type="button" disabled={busy} onClick={()=>reset(sampleActivity())}>{t('sample')}</button></div>
   {!saved&&<section className="ab-ai ab-card" aria-label={t('aiDescribe')}>
    <h4>{t('aiDescribe')}</h4><p className="ab-muted">{t('aiPrivacy')}</p>
@@ -113,7 +123,7 @@ function ListEditor({title,items,create,onChange,render,t}) {
 }
 function ValidationField({label,path,errors,diagnostic,children}) {
  const id=useId();
- const ownErrors=errors.filter(e=>e.path===path||e.path.startsWith(`${path}[`));
+ const ownErrors=errors.filter(e=>e.path===path);
  return <label className="ab-field" htmlFor={id}>{label}{cloneElement(children,{id,'aria-label':label,'aria-invalid':ownErrors.length>0,'aria-describedby':ownErrors.length?`${id}-errors`:undefined})}<span id={`${id}-errors`}>{ownErrors.map((e,i)=><small className="ab-error" role="alert" key={i}>{e.path}: {diagnostic(e.message)}</small>)}</span></label>;
 }
 function BlockEditor({block:b,onChange,t,path,errors,diagnostic}) {

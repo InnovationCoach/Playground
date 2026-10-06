@@ -106,5 +106,20 @@ describe('School AI activity studio',()=>{
   await act(async()=>host.querySelector('[aria-label="Move down 1"]').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',altKey:true,bubbles:true})));
   expect(host.querySelectorAll('.ab-ai-block textarea')[1].value).toBe('Keep my opening instructions');expect(host.querySelectorAll('.ab-ai-block textarea')[0].value).toBe('');
  });
-
+ it('prompts before closing unsaved work in ActivityStudio',async()=>{
+  const onClose=vi.fn();const confirmSpy=vi.spyOn(window,'confirm').mockReturnValue(false);
+  await render(studio({onClose}));
+  await click(button('Close studio'));
+  expect(confirmSpy).toHaveBeenCalledWith('You have unsaved changes in this activity. Are you sure you want to close?');
+  expect(onClose).not.toHaveBeenCalled();
+  confirmSpy.mockReturnValue(true);
+  await click(button('Close studio'));
+  expect(onClose).toHaveBeenCalled();
+  confirmSpy.mockRestore();
+ });
+ it('renders field validation errors exactly once with no duplicate callouts',async()=>{
+  responses();await render(studio());
+  const titleErrors=[...host.querySelectorAll('[role=alert]')].filter(el=>el.textContent.includes('title: is required'));
+  expect(titleErrors.length).toBe(1);
+ });
 });

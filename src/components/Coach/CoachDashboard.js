@@ -119,8 +119,9 @@ export class CoachDashboard {
           snap.docs.forEach((d) => {
             if (seen.has(d.id)) return;
             seen.add(d.id);
-            if (d.data().role === 'teacher' || d.data().role === 'coach') return;
-            studentDocs.push(d);
+            if (d.data().role === 'student') {
+              studentDocs.push(d);
+            }
           });
         });
       }
@@ -131,7 +132,7 @@ export class CoachDashboard {
           defaultSnap.docs.forEach((d) => {
             if (seen.has(d.id)) return;
             seen.add(d.id);
-            if (d.data().role !== 'teacher' && d.data().role !== 'coach') {
+            if (d.data().role === 'student') {
               studentDocs.push(d);
             }
           });
@@ -145,7 +146,7 @@ export class CoachDashboard {
           userListRes.items.forEach((u) => {
             if (seen.has(u.uid)) return;
             seen.add(u.uid);
-            if (u.role !== 'teacher' && u.role !== 'coach') {
+            if (u.role === 'student') {
               fetchedStudents.push({
                 uid: u.uid,
                 displayName: u.displayName || `${u.givenNames || ''} ${u.surname || ''}`.trim() || u.email?.split('@')[0] || 'Student',
@@ -169,7 +170,7 @@ export class CoachDashboard {
               if (seen.has(d.id)) return;
               seen.add(d.id);
               const data = d.data();
-              if (data.role !== 'teacher' && data.role !== 'coach') {
+              if (data.role === 'student') {
                 studentDocs.push(d);
               }
             });
@@ -698,7 +699,29 @@ export class CoachDashboard {
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 1rem;">
-          ${this.activityPositions.map((act, index) => `
+          ${this.activityPositions.map((act, index) => {
+            const activeCount = students.filter(s => {
+              const rec = s.activityProgress?.[act.id];
+              return Boolean(rec && (rec.completed === true || rec.score != null || rec.xp != null || rec.runs || rec.records || Object.keys(rec).length > 0));
+            }).length;
+
+            const completedCount = students.filter(s => s.activityProgress?.[act.id]?.completed === true).length;
+
+            const avgDisplay = activeCount > 0
+              ? `${completedCount} completed (${Math.round((activeCount / Math.max(1, students.length)) * 100)}% active)`
+              : (students.length > 0 ? '0% active (0 records)' : 'No students in roster');
+
+            let hoursSum = 0;
+            students.forEach(s => {
+              const rec = s.activityProgress?.[act.id];
+              if (!rec) return;
+              if (rec.totalHours) hoursSum += Number(rec.totalHours);
+              else if (rec.timeSpentMinutes) hoursSum += Number(rec.timeSpentMinutes) / 60;
+              else hoursSum += 0.5;
+            });
+            const totalHoursDisplay = activeCount > 0 ? `${(Math.round(hoursSum * 10) / 10)} hrs` : '0 hrs';
+
+            return `
             <div style="background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 280px;">
                 <div style="background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%); color: white; width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4);">
@@ -717,15 +740,15 @@ export class CoachDashboard {
               <div style="display: flex; gap: 1.5rem; align-items: center; text-align: center;">
                 <div>
                   <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Class Active</span>
-                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #34d399; font-size: 1rem;">${act.activeStudents} students</p>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #34d399; font-size: 1rem;">${activeCount} students</p>
                 </div>
                 <div>
                   <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Class Avg</span>
-                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #fbbf24; font-size: 1rem;">${act.avgMetric}</p>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #fbbf24; font-size: 1rem;">${avgDisplay}</p>
                 </div>
                 <div>
                   <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Total Time</span>
-                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #a78bfa; font-size: 1rem;">${act.totalHours} hrs</p>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #a78bfa; font-size: 1rem;">${totalHoursDisplay}</p>
                 </div>
               </div>
 
@@ -742,7 +765,8 @@ export class CoachDashboard {
                 </button>
               </div>
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       </div>
     `;
@@ -958,8 +982,15 @@ export class CoachDashboard {
           </thead>
           <tbody>
             ${allGoalsList.map((g, idx) => {
-              const isDone = g.status === 'completed' || g.completed;
-              const progressPercent = isDone ? 100 : 65; // Estimate based on status
+              const isDone = g.status === 'completed' || g.completed || g.status === 'achieved' || g.progress === 1;
+              const rawProg = typeof g.progress === 'number' ? g.progress : (typeof g.progressPercent === 'number' ? g.progressPercent / 100 : (isDone ? 1 : 0));
+              const progressPercent = isDone
+                ? 100
+                : rawProg > 0 && rawProg <= 1
+                ? Math.round(rawProg * 100)
+                : rawProg > 1
+                ? Math.min(100, Math.round(rawProg))
+                : 0;
               return `
                 <tr style="border-bottom: 1px solid #334155; transition: background 0.2s;">
                   <td style="padding: 1rem 1.5rem; font-weight: 700; color: white;">
