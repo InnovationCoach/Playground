@@ -2,7 +2,11 @@ import {useEffect,useRef,useState} from 'react';
 import {usePersonalization,uploadLearnerFile} from './usePersonalization.js';
 import {PALETTES,BACKGROUNDS,WIDGETS,LAYOUTS,KINDS,AUDIENCES,defaults,moveWidget,previewItems,safeProjectLink} from './personalizationModel.js';
 import {schoolRequest} from '../../services/api/apiClient.js';
+import ImageCropDialog from './ImageCropDialog.jsx';
+import {IMAGE_TYPES,MAX_MEDIA_SIZE} from './personalizationModel.js';
 import {refreshLearnerAvatar} from '../shell/useLearnerAvatar.js';
+import {Camera,ImagePlus,Lock,Settings2} from 'lucide-react';
+import {PROFILE_SPACE_STRINGS as copy,profileText} from './profileSpaceStrings.js';
 import './personalization.css';
 const Field = ({label,children}) => <label className="lp-field"><span>{label}</span>{children}</label>;
 export function surfaceStyle(surface) {return {'--lp-accent':PALETTES[surface.appearance.accent].accent,'--lp-ink':PALETTES[surface.appearance.accent].ink,background:BACKGROUNDS[surface.appearance.background]};}
@@ -18,56 +22,89 @@ function SettingsEditor({space,uid,surfaceKey,externalBusy=false}) {
     if(!file)return;setUploading(true);space.setError('');
     try {appearance(key,await uploadLearnerFile(uid,file));}catch(e){space.setError(e.message);}finally{setUploading(false);}
   }
-  return <fieldset className="lp-editor" disabled={space.busy || uploading || externalBusy || !space.saved}><legend>{surfaceKey==='dashboard'?'Personalize your private dashboard':'Personalize your shareable portfolio'}</legend>
-    <p>{surfaceKey==='dashboard'?'Your introduction, interests, personal goals and dashboard settings are private.':'Only this portfolio introduction, interests and selected work can be shared. Personal goals and support information stay on your private dashboard.'}</p>
-    <div className="lp-fields"><Field label="Heading"><input maxLength={100} value={surface.heading} onChange={e=>update('heading',e.target.value)}/></Field><Field label="Short introduction"><textarea maxLength={600} value={surface.introduction} onChange={e=>update('introduction',e.target.value)}/></Field><Field label="Interests"><input maxLength={300} value={surface.interests} onChange={e=>update('interests',e.target.value)}/></Field>
-    {surfaceKey==='dashboard' && <Field label="Private personal goals"><textarea maxLength={1200} value={surface.goals} onChange={e=>update('goals',e.target.value)}/></Field>}
-    <Field label="Accent color"><select value={surface.appearance.accent} onChange={e=>appearance('accent',e.target.value)}>{Object.entries(PALETTES).map(([id,p])=><option key={id} value={id}>{p.label}</option>)}</select></Field>
-    <Field label="Background"><select value={surface.appearance.background} onChange={e=>appearance('background',e.target.value)}>{Object.keys(BACKGROUNDS).map(id=><option key={id} value={id}>{id}</option>)}</select></Field>
-    <Field label="Preset layout"><select value={surface.layout} onChange={e=>{const layout=e.target.value;space.change(d=>({...d,[surfaceKey]:{...d[surfaceKey],layout,...(surfaceKey==='dashboard'?{widgetOrder:[...LAYOUTS[layout]]}:{})}}));}}>{Object.keys(surfaceKey==='dashboard'?LAYOUTS:{gallery:1,journal:1}).map(id=><option value={id} key={id}>{id}</option>)}</select></Field>
+  return <fieldset className="lp-editor" disabled={space.busy || uploading || externalBusy || !space.saved}><legend>{surfaceKey==='dashboard'?copy.settingsLegend:'Personalize your shareable portfolio'}</legend>
+    <p>{surfaceKey==='dashboard'?copy.settingsPrivacy:'Only this portfolio introduction, interests and selected work can be shared. Personal goals and support information stay on your private dashboard.'}</p>
+    <div className="lp-fields"><Field label={copy.heading}><input maxLength={100} value={surface.heading} onChange={e=>update('heading',e.target.value)}/></Field><Field label={copy.introduction}><textarea maxLength={600} value={surface.introduction} onChange={e=>update('introduction',e.target.value)}/></Field><Field label={copy.interests}><input maxLength={300} value={surface.interests} onChange={e=>update('interests',e.target.value)}/></Field>
+    {surfaceKey==='dashboard' && <Field label={copy.privateGoals}><textarea maxLength={1200} value={surface.goals} onChange={e=>update('goals',e.target.value)}/></Field>}
+    <Field label={copy.accent}><select value={surface.appearance.accent} onChange={e=>appearance('accent',e.target.value)}>{Object.entries(PALETTES).map(([id,p])=><option key={id} value={id}>{p.label}</option>)}</select></Field>
+    <Field label={copy.background}><select value={surface.appearance.background} onChange={e=>appearance('background',e.target.value)}>{Object.keys(BACKGROUNDS).map(id=><option key={id} value={id}>{id}</option>)}</select></Field>
+    <Field label={copy.layout}><select value={surface.layout} onChange={e=>{const layout=e.target.value;space.change(d=>({...d,[surfaceKey]:{...d[surfaceKey],layout,...(surfaceKey==='dashboard'?{widgetOrder:[...LAYOUTS[layout]]}:{})}}));}}>{Object.keys(surfaceKey==='dashboard'?LAYOUTS:{gallery:1,journal:1}).map(id=><option value={id} key={id}>{id}</option>)}</select></Field>
     {(surfaceKey==='portfolio'?['picture','cover']:[]).map(key=><div key={key}><Field label={key==='picture'?'Profile picture':'Portfolio cover'}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>{const file=e.target.files[0];e.target.value='';upload(key,file);}}/></Field>{surface.appearance[key] && <button type="button" onClick={()=>appearance(key,null)}>Remove {key}</button>}</div>)}
-    </div><p className="lp-muted">Curated colors and layouts keep your space readable. Uploaded images: up to 20 MB.</p>
-    <div className="lp-actions"><button type="button" onClick={space.save}>{space.busy?'Saving…':'Save personalization'}</button><button type="button" disabled={!space.history.length} onClick={space.undo}>Undo last change</button><button type="button" onClick={space.discard}>Discard preview</button>{surfaceKey==='dashboard' && <button type="button" onClick={()=>space.change(d=>({...d,dashboard:{...d.dashboard,layout:'balanced',widgetOrder:[...defaults().dashboard.widgetOrder]}}))}>Restore default layout</button>}</div>
+    </div><p className="lp-muted">{surfaceKey==='dashboard'?copy.settingsNotes:'Curated colors and layouts keep your space readable. Uploaded images: up to 20 MB.'}</p>
+    <div className="lp-actions">{surfaceKey==='dashboard'?<button type="button" onClick={()=>space.change(d=>({...d,dashboard:{...d.dashboard,layout:'balanced',widgetOrder:[...defaults().dashboard.widgetOrder]}}))}>{copy.restoreLayout}</button>:<><button type="button" onClick={space.save}>{space.busy?'Saving…':'Save personalization'}</button><button type="button" disabled={!space.history.length} onClick={space.undo}>Undo last change</button><button type="button" onClick={space.discard}>Discard preview</button></>}</div>
     {uploading && <p role="status">Uploading your image…</p>}
   </fieldset>;
 }
-function DashboardDecoration({space,uid,onUploading}) {
-  const [uploading,setUploading]=useState('');
-  const appearance=space.draft.dashboard.appearance;
-  const update=(key,value)=>space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[key]:value}}}));
-  async function upload(key,file) {
+const interestList=value=>(value||'').split(/\s*[·•,;\n]\s*/).map(v=>v.trim()).filter(Boolean);
+function DashboardProfile({space,uid,profile,onUploading,onPersonalize}) {
+  const [selection,setSelection]=useState(null),[uploading,setUploading]=useState(false);
+  const pictureInput=useRef(null),coverInput=useRef(null),imageSettings=useRef(null),pickerFocus=useRef(null);
+  function openPicker(kind,trigger){pickerFocus.current=trigger;imageSettings.current.open=true;(kind==='picture'?pictureInput:coverInput).current?.click();}
+  const surface=space.draft.dashboard, appearance=surface.appearance, interests=interestList(surface.interests);
+  const disabled=space.loading||space.busy||uploading||!space.saved;
+  const name=profile?.displayName?.trim(), photoLabel=appearance.picture?copy.changePhoto:copy.addPhoto;
+  function select(kind,file){
     if(!file)return;
-    if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){space.setError('Choose a JPG, PNG, WebP or GIF image.');return;}
-    setUploading(key);onUploading(true);space.setError('');
-    try {update(key,await uploadLearnerFile(uid,file));} catch(error){space.setError(error.message);} finally{setUploading('');onUploading(false);}
+    space.setError('');
+    if(!IMAGE_TYPES.includes(file.type)){space.setError(copy.imageTypesError);return;}
+    if(!file.size||file.size>MAX_MEDIA_SIZE){space.setError(copy.imageSizeError);return;}
+    setSelection({kind,file,returnFocus:pickerFocus.current||document.activeElement});onUploading(true);
   }
-  const hasImages=Boolean(appearance.picture||appearance.cover);
-  return <details className="lp-decoration-details" open={!hasImages}><summary>{hasImages?'Change picture & banner':'Make this space yours: add a picture and banner'}</summary><fieldset className="lp-decoration" disabled={space.loading||space.busy||!!uploading||!space.saved}>
-    <legend className="lp-sr">Make this space yours</legend><p>Add your picture and a banner to decorate your private learning dashboard. These images stay separate from your portfolio.</p>
-    <div className="lp-decoration-grid">{[['picture','Profile picture','A photo, drawing or avatar. Square images work best.'],['cover','Dashboard banner','A favourite landscape or artwork. Wide images work best.']].map(([key,label,hint])=><div key={key} className={`lp-decoration-card lp-decoration-${key}`}>
-      <div className="lp-decoration-preview">{appearance[key]?.url ? <img src={appearance[key].url} alt={`${label} preview`}/> : <span aria-hidden="true">{key==='picture'?'◉':'▧'}</span>}</div>
-      <div><Field label={label}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>{const file=e.target.files?.[0];e.target.value='';upload(key,file);}}/></Field><small>{hint}</small>{appearance[key]&&<button type="button" onClick={()=>update(key,null)}>Remove {label.toLowerCase()}</button>}</div>
-    </div>)}</div>
-    <p className="lp-muted">JPG, PNG, WebP or GIF, up to 20 MB. Preview first, then save. Images are cropped to fit the display.</p>
-    <div className="lp-actions"><button type="button" onClick={async()=>{await space.save();refreshLearnerAvatar(uid);}}>Save dashboard changes</button><button type="button" disabled={!space.history.length} onClick={space.undo}>Undo decoration change</button><button type="button" onClick={space.discard}>Discard dashboard preview</button></div>
-    {uploading&&<p role="status">Uploading your {uploading==='cover'?'banner':'profile picture'}…</p>}
-  </fieldset></details>;
+  function cancel(){setSelection(null);onUploading(false);}
+  function remove(kind){space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[kind]:null}}}));}
+  async function apply(file){
+    setUploading(true);
+    try{const uploaded=await uploadLearnerFile(uid,file);space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[selection.kind]:uploaded}}}));setSelection(null);onUploading(false);}
+    finally{setUploading(false);}
+  }
+  return <>
+    <header className="lp-profile-header" aria-label={copy.profileRegion}>
+      <div className="lp-profile-cover">{appearance.cover?.url?<img src={appearance.cover.url} alt={copy.bannerAlt} className="lp-cover"/>:<div className="lp-cover-placeholder"><span>{copy.coverEyebrow}</span><p>{copy.coverPlaceholder}</p></div>}
+        <button type="button" className="lp-image-button lp-cover-edit" disabled={disabled} onClick={e=>openPicker('cover',e.currentTarget)}><ImagePlus size={18} aria-hidden="true"/>{appearance.cover?copy.changeBanner:copy.addBanner}</button>
+      </div>
+      <div className="lp-profile-identity">
+        <div className="lp-profile-photo">
+          {appearance.picture?.url?<img className="lp-avatar" src={appearance.picture.url} alt={profileText('photoAlt',{name:name||copy.learnerFallback})}/>:<span className="lp-avatar lp-initial" aria-hidden="true">{(name||'L').slice(0,1).toUpperCase()}</span>}
+          <button type="button" className="lp-image-button lp-photo-edit" title={photoLabel} disabled={disabled} onClick={e=>openPicker('picture',e.currentTarget)}><Camera size={20} aria-hidden="true"/><span className="lp-sr">{photoLabel}</span></button>
+        </div>
+        <div className="lp-profile-copy"><h1>{name||surface.heading||copy.spaceFallback}</h1>{name&&<p className="lp-profile-tagline">{surface.heading||copy.spaceFallback}</p>}</div>
+        <details ref={imageSettings} className="lp-image-details"><summary><Settings2 size={16} aria-hidden="true"/>{copy.imageSettings}</summary><div className="lp-image-settings">
+          <label>{copy.profilePicture}<input ref={pictureInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={disabled} onClick={e=>{if(e.nativeEvent.isTrusted)pickerFocus.current=e.currentTarget;}} onChange={e=>{const file=e.target.files?.[0];e.target.value='';select('picture',file);}}/></label>
+          <label>{copy.dashboardBanner}<input ref={coverInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={disabled} onClick={e=>{if(e.nativeEvent.isTrusted)pickerFocus.current=e.currentTarget;}} onChange={e=>{const file=e.target.files?.[0];e.target.value='';select('cover',file);}}/></label>
+          {(appearance.picture||appearance.cover)&&<div className="lp-image-remove">{appearance.picture&&<button type="button" disabled={disabled} onClick={()=>remove('picture')}>{copy.removePhoto}</button>}{appearance.cover&&<button type="button" disabled={disabled} onClick={()=>remove('cover')}>{copy.removeBanner}</button>}</div>}
+          <p>{copy.imageSettingsNotes}</p>
+        </div></details>
+      </div>
+      <div className="lp-profile-about"><p className={`lp-intro${surface.introduction?'':' lp-placeholder'}`}>{surface.introduction||copy.introductionPlaceholder}</p>
+        {interests.length?<ul className="lp-interest-chips" aria-label={copy.interests}>{interests.map((item,index)=><li key={`${item}-${index}`}>{item}</li>)}</ul>:<button type="button" className="lp-interest-add" disabled={disabled} onClick={onPersonalize}>{copy.addInterests}</button>}
+      </div>
+    </header>
+    {selection&&<ImageCropDialog key={selection.kind} {...selection} onCancel={cancel} onApply={apply}/>}
+  </>;
 }
 export function PersonalizedDashboard({uid,profile,widgets}) {
   const space=usePersonalization(uid), [editing,setEditing]=useState(false), [dragId,setDragId]=useState(null), [announcement,setAnnouncement]=useState(''), [decorating,setDecorating]=useState(false);
   const d=space.draft.dashboard;
-  function move(id,target){space.change(value=>({...value,dashboard:{...value.dashboard,widgetOrder:moveWidget(value.dashboard.widgetOrder,id,target)}}));setAnnouncement(`${WIDGETS[id]} moved to position ${target+1} of 4.`);}
-  return <section className={`lp-space lp-dashboard lp-layout-${d.layout}`} style={surfaceStyle(d)} aria-label="Private learning dashboard">
-    <div className="lp-toolbar"><strong>Private learning dashboard</strong><a href="#/portfolio">My shareable portfolio →</a><button type="button" aria-expanded={editing} onClick={()=>setEditing(v=>!v)} disabled={space.loading || decorating || !space.saved}>Personalize dashboard</button></div>
-    {space.loading && <p role="status">Loading your personalization…</p>}
-    <Feedback space={space}/>{space.error && <button type="button" onClick={space.reload}>Reload personalization</button>}
-    <DashboardDecoration space={space} uid={uid} onUploading={setDecorating}/>
-    {editing && <><SettingsEditor space={space} uid={uid} surfaceKey="dashboard" externalBusy={decorating}/><p>Live preview below. Drag a widget by its handle, use Alt + ↑/↓ on the handle, or use Move up / Move down. Save to keep your order.</p></>}
-    <SurfaceHeader surface={d} name={profile?.displayName} privateDashboard/><p className="lp-sr" role="status" aria-live="polite">{announcement}</p>
+  const changed=!!space.saved&&JSON.stringify(d)!==JSON.stringify(space.saved.dashboard);
+  const reviewing=!!space.saved&&(editing||changed), locked=space.loading||space.busy||decorating||!space.saved;
+  function move(id,target){space.change(value=>({...value,dashboard:{...value.dashboard,widgetOrder:moveWidget(value.dashboard.widgetOrder,id,target)}}));setAnnouncement(profileText('widgetMoved',{name:WIDGETS[id],position:target+1,total:4}));}
+  async function save(){await space.save();refreshLearnerAvatar(uid);}
+  return <section className={`lp-space lp-dashboard lp-layout-${d.layout}`} style={surfaceStyle(d)} aria-label={copy.dashboardRegion}>
+    <div className="lp-toolbar"><p className="lp-private-badge"><Lock size={15} aria-hidden="true"/><span><strong>{copy.privateBadge}</strong>{copy.privateBadgeDetail}</span></p><div className="lp-toolbar-actions"><a href="#/portfolio">{copy.portfolioLink}</a><button type="button" className="lp-personalize" aria-label={copy.personalize} aria-expanded={editing} onClick={()=>setEditing(v=>!v)} disabled={space.loading || decorating || !space.saved}>{copy.personalizeShort}<span className="lp-narrow-sr">{copy.personalizeSuffix}</span></button></div></div>
+    {space.loading && <p role="status">{copy.loading}</p>}
+    {!reviewing && <><Feedback space={space}/>{space.error && <button type="button" onClick={space.reload}>{copy.reload}</button>}</>}
+    <DashboardProfile space={space} uid={uid} profile={profile} onUploading={setDecorating} onPersonalize={()=>setEditing(true)}/>
+    {editing && <><SettingsEditor space={space} uid={uid} surfaceKey="dashboard" externalBusy={decorating}/><p className="lp-muted">{copy.reorderHint}</p></>}
+    <p className="lp-sr" role="status" aria-live="polite">{announcement}</p>
     <div className="lp-widgets">{d.widgetOrder.map((id,index)=><section className="lp-widget" key={id} aria-label={WIDGETS[id]} onDragOver={e=>{if(editing)e.preventDefault();}} onDrop={e=>{e.preventDefault();if(editing&&dragId)move(dragId,index);setDragId(null);}}>
-      {editing && <div className="lp-widget-controls"><button type="button" draggable={!space.busy} disabled={space.busy} aria-label={`Reorder ${WIDGETS[id]}`} onDragStart={e=>{setDragId(id);e.dataTransfer.setData('text/plain',id);e.dataTransfer.effectAllowed='move';}} onDragEnd={()=>setDragId(null)} onKeyDown={e=>{if(e.altKey && ['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const target=index+(e.key==='ArrowUp'?-1:1);if(target>=0 && target<4)move(id,target);}}}>⠿ {WIDGETS[id]}</button><button type="button" disabled={index===0 || space.busy} onClick={()=>move(id,index-1)}>Move up<span className="lp-sr"> {WIDGETS[id]}</span></button><button type="button" disabled={index===3 || space.busy} onClick={()=>move(id,index+1)}>Move down<span className="lp-sr"> {WIDGETS[id]}</span></button></div>}
-      {id==='about'?<div><h2>About my learning</h2><p>{d.introduction || 'Use Personalize dashboard to introduce yourself.'}</p><h3>My private personal goals</h3><p className="lp-intro">{d.goals || 'Add a personal goal in your dashboard settings.'}</p></div>:widgets[id]}
+      {editing && <div className="lp-widget-controls"><button type="button" draggable={!space.busy} disabled={space.busy} aria-label={profileText('reorder',{name:WIDGETS[id]})} onDragStart={e=>{setDragId(id);e.dataTransfer.setData('text/plain',id);e.dataTransfer.effectAllowed='move';}} onDragEnd={()=>setDragId(null)} onKeyDown={e=>{if(e.altKey && ['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const target=index+(e.key==='ArrowUp'?-1:1);if(target>=0 && target<4)move(id,target);}}}>⠿ {WIDGETS[id]}</button><button type="button" disabled={index===0 || space.busy} onClick={()=>move(id,index-1)}>{copy.moveUp}<span className="lp-sr"> {WIDGETS[id]}</span></button><button type="button" disabled={index===3 || space.busy} onClick={()=>move(id,index+1)}>{copy.moveDown}<span className="lp-sr"> {WIDGETS[id]}</span></button></div>}
+      {id==='about'?<div><h2>{copy.aboutHeading}</h2><p>{d.introduction || copy.aboutPlaceholder}</p><h3>{copy.goalsHeading}</h3><p className="lp-intro">{d.goals || copy.goalsPlaceholder}</p></div>:widgets[id]}
     </section>)}</div>
+    {reviewing && <div className="lp-changes" role="region" aria-label={copy.changesRegion}>
+      {space.error && <p className="lp-error" role="alert">{space.error}</p>}
+      <p className="lp-changes-note" role="status" aria-live="polite">{changed?copy.unsaved:space.status||copy.everythingSaved}</p>
+      <div className="lp-actions"><button type="button" className="lp-primary" disabled={locked||!changed} onClick={save}>{space.busy?copy.saving:copy.save}</button><button type="button" disabled={locked||!space.history.length} onClick={space.undo}>{copy.undo}<span className="lp-sr">{copy.undoDetail}</span></button><button type="button" disabled={locked||!changed} onClick={space.discard}>{copy.discard}<span className="lp-sr">{copy.discardDetail}</span></button></div>
+    </div>}
   </section>;
 }
 function WorkCard({item}) {
