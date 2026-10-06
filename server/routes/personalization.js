@@ -38,8 +38,35 @@ async function validateMedia(media, kind = 'image') {
   if(metadata.metadata?.firebaseStorageDownloadTokens) await bucket().file(media.path).setMetadata({metadata:{firebaseStorageDownloadTokens:null}});
   return {...media, contentType: mime, size};
 }
+async function cleanupUnreferencedMedia(uid, candidatePaths) {
+  if (!Array.isArray(candidatePaths) || !candidatePaths.length) return;
+  const paths = [...new Set(candidatePaths.filter(p => typeof p === 'string' && p.startsWith(`learnerMedia/${uid}/`)))];
+  if (!paths.length) return;
+  try {
+    const [priv, pub] = await Promise.all([privateRef(uid).get(), portfolioRef(uid).get()]);
+    const referenced = new Set();
+    const addMedia = m => { if (m?.path) referenced.add(m.path); };
+    if (priv.exists) {
+      addMedia(priv.data()?.dashboard?.appearance?.picture);
+      addMedia(priv.data()?.dashboard?.appearance?.cover);
+    }
+    if (pub.exists) {
+      addMedia(pub.data()?.portfolio?.appearance?.picture);
+      addMedia(pub.data()?.portfolio?.appearance?.cover);
+      (pub.data()?.items || []).forEach(it => addMedia(it.media));
+    }
+    for (const p of paths) {
+      if (!referenced.has(p)) {
+        await bucket().file(p).delete().catch(() => {});
+      }
+    }
+  } catch (err) {
+    console.warn('[Storage Cleanup] Unreferenced media cleanup failed:', err?.message);
+  }
+}
 async function signMedia(media, download = false) {
   if (!media) return null;
+  // Temporary signed URLs expire in 5 minutes (300,000 ms).
   const options = {action:'read', expires: Date.now()+5*60*1000};
   if (download) options.responseDisposition = 'attachment';
   const [url] = await bucket().file(media.path).getSignedUrl(options);
@@ -64,6 +91,13 @@ router.get('/learner-space',wrap(async(req,res) => {res.json(await ownerData(lea
 router.put('/learner-space',wrap(async(req,res) => {
   const uid = learner(req), content = normalizeSettings(req.body,uid);
   for (const surface of [content.dashboard,content.portfolio]) for (const key of ['picture','cover']) surface.appearance[key] = await validateMedia(surface.appearance[key]);
+  const [oldPriv, oldPub] = await Promise.all([privateRef(uid).get(), portfolioRef(uid).get()]);
+  const candidatePaths = [
+    oldPriv.data()?.dashboard?.appearance?.picture?.path,
+    oldPriv.data()?.dashboard?.appearance?.cover?.path,
+    oldPub.data()?.portfolio?.appearance?.picture?.path,
+    oldPub.data()?.portfolio?.appearance?.cover?.path
+  ];
   await getFirestore().runTransaction(async tx => {
     const [priv,pub] = await tx.getAll(privateRef(uid),portfolioRef(uid));
     if ((priv.data()?.revision || 0) !== req.body.revision) fail(409,'CONFLICT','Your space changed in another window. Reload before saving.');
@@ -71,6 +105,7 @@ router.put('/learner-space',wrap(async(req,res) => {
     tx.set(privateRef(uid),{version:1,revision,dashboard:content.dashboard,updatedAt:new Date().toISOString()});
     tx.set(portfolioRef(uid),{version:1,portfolio:content.portfolio,items:pub.data()?.items || []});
   });
+  await cleanupUnreferencedMedia(uid, candidatePaths);
   res.json(await ownerData(uid));
 }));
 router.post('/learner-space/media-preview',wrap(async(req,res)=>{
@@ -92,23 +127,31 @@ router.post('/learner-space/items',wrap(async(req,res) => {
 router.patch('/learner-space/items/:itemId',wrap(async(req,res) => {
   const uid = learner(req), id = requireId(req.params.itemId), content = normalizeItem(req.body,uid);
   content.media = await validateMedia(content.media,content.kind);
+  const snap = await portfolioRef(uid).get();
+  const oldItem = snap.data()?.items?.find(i => i.id === id);
+  const oldMedia = oldItem?.media?.path;
   await getFirestore().runTransaction(async tx => {
-    const ref = portfolioRef(uid), snap = await tx.get(ref), value = snap.data();
+    const ref = portfolioRef(uid), txSnap = await tx.get(ref), value = txSnap.data();
     const item = value?.items.find(i => i.id===id);
     if(!item) fail(404,'NOT_FOUND','Work not found.');
     if(item.revision !== req.body.revision) fail(409,'CONFLICT','This work changed. Reload before saving.');
     tx.update(ref,{items:value.items.map(i => i.id===id ? {...item,...content,revision:item.revision+1} : i)});
   });
+  await cleanupUnreferencedMedia(uid, [oldMedia]);
   res.json(await ownerData(uid));
 }));
 router.delete('/learner-space/items/:itemId',wrap(async(req,res) => {
   const uid = learner(req), id = requireId(req.params.itemId);
+  const snap = await portfolioRef(uid).get();
+  const oldItem = snap.data()?.items?.find(i => i.id === id);
+  const oldMedia = oldItem?.media?.path;
   await getFirestore().runTransaction(async tx => {
-    const ref = portfolioRef(uid), snap = await tx.get(ref), value = snap.data(), item = value?.items.find(i=>i.id===id);
+    const ref = portfolioRef(uid), txSnap = await tx.get(ref), value = txSnap.data(), item = value?.items.find(i=>i.id===id);
     if(!item) fail(404,'NOT_FOUND','Work not found.');
     if(item.revision !== req.body?.revision) fail(409,'CONFLICT','This work changed. Reload before removing it.');
     tx.update(ref,{items:value.items.filter(i=>i.id!==id)});
   });
+  await cleanupUnreferencedMedia(uid, [oldMedia]);
   res.json(await ownerData(uid));
 }));
 async function ownerProfile(uid) {
