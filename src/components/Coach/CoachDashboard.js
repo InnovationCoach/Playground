@@ -86,11 +86,14 @@ export class CoachDashboard {
     this.loadError = null;
 
     const claims = await getAuthClaims();
-    this.classIds = (Array.isArray(claims.classIds) && claims.classIds.length > 0)
+    const rawClassIds = (Array.isArray(claims.classIds) && claims.classIds.length > 0)
       ? claims.classIds.filter(Boolean)
       : (Array.isArray(this.coachUser?.classIds) && this.coachUser.classIds.length > 0 ? this.coachUser.classIds.filter(Boolean) : []);
+    const hasExplicitClassScope = rawClassIds.length > 0;
 
-    if (this.classIds.length === 0) {
+    if (hasExplicitClassScope) {
+      this.classIds = rawClassIds;
+    } else {
       if (this.coachUser?.groupName) {
         const slug = 'class_' + this.coachUser.groupName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
         this.classIds = [slug, 'class_climate_champions_7a'];
@@ -126,7 +129,8 @@ export class CoachDashboard {
         });
       }
 
-      if (studentDocs.length === 0) {
+      // Fallback only when coach has NO explicit class scope assigned (e.g. un-scoped demo/legacy coach)
+      if (!hasExplicitClassScope && studentDocs.length === 0) {
         const defaultSnap = await getDocs(query(collection(db, 'users'), where('classIds', 'array-contains-any', ['class_climate_champions_7a']))).catch(() => null);
         if (defaultSnap) {
           defaultSnap.docs.forEach((d) => {
@@ -139,8 +143,8 @@ export class CoachDashboard {
         }
       }
 
-      // Fallback: If no classIds assigned or no students found by classIds, fetch all student accounts
-      if (studentDocs.length === 0) {
+      // Fallback: If no classIds assigned or no students found in un-scoped fallback, fetch all student accounts
+      if (!hasExplicitClassScope && studentDocs.length === 0) {
         const userListRes = await listUsers({ role: 'student' }).catch(() => null);
         if (userListRes?.items && userListRes.items.length > 0) {
           userListRes.items.forEach((u) => {
@@ -717,7 +721,6 @@ export class CoachDashboard {
               if (!rec) return;
               if (rec.totalHours) hoursSum += Number(rec.totalHours);
               else if (rec.timeSpentMinutes) hoursSum += Number(rec.timeSpentMinutes) / 60;
-              else hoursSum += 0.5;
             });
             const totalHoursDisplay = activeCount > 0 ? `${(Math.round(hoursSum * 10) / 10)} hrs` : '0 hrs';
 

@@ -29,6 +29,10 @@ export default function ActivityStudio({school,offering,classes,template,lesson,
   window.addEventListener('beforeunload',onBeforeUnload);
   return ()=>window.removeEventListener('beforeunload',onBeforeUnload);
  },[dirty]);
+ function confirmDiscardIfDirty(){
+  if(dirty && (saved || spec.title.trim()) && typeof window!=='undefined' && window.confirm && !window.confirm('You have unsaved changes in this activity. Are you sure you want to discard them?')) return false;
+  return true;
+ }
  function handleClose(){
   if(dirty && typeof window!=='undefined' && window.confirm && !window.confirm('You have unsaved changes in this activity. Are you sure you want to close?')) return;
   onClose?.();
@@ -48,7 +52,7 @@ export default function ActivityStudio({school,offering,classes,template,lesson,
  const frozen=saved?.status==='published';
  function update(next){setSpec(next);setDirty(true);setStatus('');setApiErrors([]);setError('');}
  function updateContent(key,value){setContent(old=>({...old,[key]:value}));setDirty(true);setStatus('');setError('');}
- function reset(next){setInstructions({});setBlockKeys(next.blocks.map(()=>crypto.randomUUID()));update(next);setSaved(null);setAiDraft(null);setAiUsage(null);setReplace(false);setSubmitted(false);}
+ function reset(next){if(!confirmDiscardIfDirty()) return;setInstructions({});setBlockKeys(next.blocks.map(()=>crypto.randomUUID()));update(next);setSaved(null);setAiDraft(null);setAiUsage(null);setReplace(false);setSubmitted(false);}
  function changeBlock(i,next){update({...spec,blocks:spec.blocks.map((b,j)=>i===j?next:b)});}
  function move(i,d){const to=i+d;if(to<0||to>=spec.blocks.length)return;setBlockKeys(keys=>{const next=[...keys];next.splice(to,0,next.splice(i,1)[0]);return next;});update({...spec,blocks:reorderBlocks(spec.blocks,i,to)});}
  function remove(i){setBlockKeys(keys=>keys.filter((_,idx)=>idx!==i));const order=spec.blocks.map((_,idx)=>idx).filter(idx=>idx!==i);update({...spec,blocks:order.map(idx=>spec.blocks[idx].type==='chart'?{...spec.blocks[idx],table:order.indexOf(spec.blocks[idx].table)}:spec.blocks[idx])});}
@@ -82,7 +86,7 @@ export default function ActivityStudio({school,offering,classes,template,lesson,
     {spec.title.trim()&&<label className="ab-choice"><input type="checkbox" checked={replace} onChange={e=>setReplace(e.target.checked)}/>{t('aiReplace')}</label>}
     <button className="ab-primary" disabled={busy||!aiPrompt.trim()||Boolean(spec.title.trim()&&!replace)}>{t(aiState==='generate'?'aiGenerating':'aiGenerate')}</button>
    </fieldset></form>
-   <details><summary>{t('aiDrafts')}</summary>{draftState==='loading'&&<p role="status">{t('aiLoading')}</p>}{draftError&&<p role="alert">{draftError}</p>}{draftState==='ready'&&!drafts.length&&<p>{t('aiEmpty')}</p>}<button type="button" disabled={busy||draftState==='loading'} onClick={reloadDrafts}>{t('aiRefresh')}</button>{drafts.map(d=><div className="ab-card" key={d.draftId}><strong>{d.spec.title}</strong><small className="ab-muted"> {d.model}</small><div className="ab-actions"><button type="button" disabled={busy||Boolean(spec.title.trim()&&!replace)} onClick={()=>acceptDraft(d)}>{t('aiResume')}</button><button type="button" disabled={busy||aiDraft?.draftId===d.draftId} onClick={async()=>{setBusy(true);try{await schoolRequest('DELETE',`${aiBase}/${d.draftId}`,{body:{}});if(aiDraft?.draftId===d.draftId)setAiDraft(null);reloadDrafts();}catch(e){setError(aiFailure(e));}finally{setBusy(false);}}}>{t('aiDelete')}</button></div></div>)}</details>
+   <details><summary>{t('aiDrafts')}</summary>{draftState==='loading'&&<p role="status">{t('aiLoading')}</p>}{draftError&&<p role="alert">{draftError}</p>}{draftState==='ready'&&!drafts.length&&<p>{t('aiEmpty')}</p>}<button type="button" disabled={busy||draftState==='loading'} onClick={reloadDrafts}>{t('aiRefresh')}</button>{drafts.map(d=><div className="ab-card" key={d.draftId}><strong>{d.spec.title}</strong><small className="ab-muted"> {d.model}</small><div className="ab-actions"><button type="button" disabled={busy||Boolean(spec.title.trim()&&!replace)} onClick={()=>{if(confirmDiscardIfDirty()) acceptDraft(d);}}>{t('aiResume')}</button><button type="button" disabled={busy||aiDraft?.draftId===d.draftId} onClick={async()=>{setBusy(true);try{await schoolRequest('DELETE',`${aiBase}/${d.draftId}`,{body:{}});if(aiDraft?.draftId===d.draftId)setAiDraft(null);reloadDrafts();}catch(e){setError(aiFailure(e));}finally{setBusy(false);}}}>{t('aiDelete')}</button></div></div>)}</details>
   </section>}
   {busy&&aiState&&<p role="status">{t(aiState==='generate'?'aiGenerating':'aiRegenerating')}</p>}
   {aiUsage&&<p className="ab-muted">{t('aiUsage',{input:aiUsage.inputTokens,output:aiUsage.outputTokens})}</p>}

@@ -38,11 +38,9 @@ async function validateMedia(media, kind = 'image') {
   if(metadata.metadata?.firebaseStorageDownloadTokens) await bucket().file(media.path).setMetadata({metadata:{firebaseStorageDownloadTokens:null}});
   return {...media, contentType: mime, size};
 }
-async function cleanupUnreferencedMedia(uid, candidatePaths) {
-  if (!Array.isArray(candidatePaths) || !candidatePaths.length) return;
-  const paths = [...new Set(candidatePaths.filter(p => typeof p === 'string' && p.startsWith(`learnerMedia/${uid}/`)))];
-  if (!paths.length) return;
+async function cleanupUnreferencedMedia(uid, candidatePaths = []) {
   try {
+    const prefix = `learnerMedia/${uid}/`;
     const [priv, pub] = await Promise.all([privateRef(uid).get(), portfolioRef(uid).get()]);
     const referenced = new Set();
     const addMedia = m => { if (m?.path) referenced.add(m.path); };
@@ -55,9 +53,32 @@ async function cleanupUnreferencedMedia(uid, candidatePaths) {
       addMedia(pub.data()?.portfolio?.appearance?.cover);
       (pub.data()?.items || []).forEach(it => addMedia(it.media));
     }
-    for (const p of paths) {
-      if (!referenced.has(p)) {
-        await bucket().file(p).delete().catch(() => {});
+
+    let files = [];
+    try {
+      const [bucketFiles] = await bucket().getFiles({ prefix });
+      files = bucketFiles || [];
+    } catch {
+      files = (candidatePaths || []).filter(p => typeof p === 'string' && p.startsWith(prefix)).map(p => bucket().file(p));
+    }
+
+    const GRACE_PERIOD_MS = 15 * 60 * 1000;
+    const now = Date.now();
+
+    for (const file of files) {
+      const path = file.name || file.path;
+      if (!path || !path.startsWith(prefix)) continue;
+      if (referenced.has(path)) continue;
+
+      try {
+        const [meta] = await file.getMetadata();
+        const created = meta?.timeCreated ? new Date(meta.timeCreated).getTime() : 0;
+        if (created > 0 && now - created < GRACE_PERIOD_MS) {
+          continue;
+        }
+        await file.delete().catch(() => {});
+      } catch {
+        // Ignore individual file deletion errors
       }
     }
   } catch (err) {

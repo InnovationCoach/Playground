@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getDocs, getAuthClaims } from '../src/firebase.js';
+
 vi.mock('../src/firebase.js', () => ({
   db: null,
   usingEmulators: false,
@@ -11,14 +13,18 @@ vi.mock('../src/firebase.js', () => ({
   arrayUnion: vi.fn(),
   query: vi.fn(),
   where: vi.fn(),
-  getAuthClaims: vi.fn().mockResolvedValue({ role: 'teacher', classIds: ['class_1'] }),
+  getAuthClaims: vi.fn(),
   registerStudentAccount: vi.fn()
 }));
 import { CoachDashboard } from '../src/components/Coach/CoachDashboard.js';
 
 describe('Coach Dashboard Roster, Stats, and Goal Progress', () => {
-  it('strictly filters roster to role === "student", excluding parent and admin accounts', () => {
-    const coach = new CoachDashboard({ coachUser: { uid: 'coach-1', role: 'teacher' } });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('exercises loadData() and strictly filters roster to role === "student", excluding parent and admin accounts', async () => {
+    getAuthClaims.mockResolvedValueOnce({ role: 'teacher', classIds: ['class_1'] });
 
     const mockDocs = [
       { id: 's1', data: () => ({ role: 'student', displayName: 'Student One', email: 's1@school.org' }) },
@@ -28,18 +34,30 @@ describe('Coach Dashboard Roster, Stats, and Goal Progress', () => {
       { id: 't1', data: () => ({ role: 'teacher', displayName: 'Teacher User', email: 't1@school.org' }) }
     ];
 
-    const studentDocs = [];
-    const seen = new Set();
-    mockDocs.forEach((d) => {
-      if (seen.has(d.id)) return;
-      seen.add(d.id);
-      if (d.data().role === 'student') {
-        studentDocs.push(d);
-      }
+    getDocs.mockImplementation(async (q) => {
+      return { docs: mockDocs, forEach: (fn) => mockDocs.forEach(fn) };
     });
 
-    expect(studentDocs.length).toBe(2);
-    expect(studentDocs.map((d) => d.id)).toEqual(['s1', 's2']);
+    const coach = new CoachDashboard({ coachUser: { uid: 'coach-1', role: 'teacher' } });
+    await coach.loadData();
+
+    expect(coach.students.length).toBe(2);
+    expect(coach.students.map((s) => s.uid)).toEqual(['s1', 's2']);
+  });
+
+  it('enforces school/class isolation: empty class roster stays empty without fallback to demo or global queries', async () => {
+    getAuthClaims.mockResolvedValueOnce({ role: 'teacher', classIds: ['class_empty'] });
+
+    getDocs.mockImplementation(async () => {
+      return { docs: [], forEach: () => {} };
+    });
+
+    const coach = new CoachDashboard({ coachUser: { uid: 'coach-1', role: 'teacher', classIds: ['class_empty'] } });
+    await coach.loadData();
+
+    expect(coach.students).toEqual([]);
+    // Scoped queries run for users, assignments, weeklyTasks on class_empty (3 calls), never falling back to demo class or global users
+    expect(getDocs).toHaveBeenCalledTimes(3);
   });
 
   it('calculates measured goal progress instead of hardcoded 65%', () => {
@@ -66,7 +84,7 @@ describe('Coach Dashboard Roster, Stats, and Goal Progress', () => {
     expect(goalsHtml).not.toContain('65%');
   });
 
-  it('computes live activity telemetry from recorded student activityProgress', () => {
+  it('computes live activity telemetry without adding an estimated 0.5hr duration fallback when missing', () => {
     const coach = new CoachDashboard({ coachUser: { uid: 'coach-1' } });
     coach.students = [
       {
@@ -74,14 +92,15 @@ describe('Coach Dashboard Roster, Stats, and Goal Progress', () => {
         displayName: 'Student One',
         activityProgress: {
           'urban-heat': { completed: true, totalHours: 2.5 },
-          'bunker': { completed: false, score: 80 }
+          'bunker': { completed: false, score: 80 } // no duration field
         }
       },
       {
         uid: 's2',
         displayName: 'Student Two',
         activityProgress: {
-          'urban-heat': { completed: true, totalHours: 1.5 }
+          'urban-heat': { completed: true, totalHours: 1.5 },
+          'bunker': { completed: true } // no duration field
         }
       }
     ];
@@ -92,5 +111,9 @@ describe('Coach Dashboard Roster, Stats, and Goal Progress', () => {
     expect(actHtml).toContain('2 students');
     expect(actHtml).toContain('2 completed (100% active)');
     expect(actHtml).toContain('4 hrs');
+
+    // For bunker (2 active, 1 complete, 0 recorded hours - MUST NOT add 0.5 hrs per student)
+    expect(actHtml).toContain('0 hrs');
+    expect(actHtml).not.toContain('1 hrs');
   });
 });
