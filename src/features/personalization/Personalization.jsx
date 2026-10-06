@@ -2,6 +2,8 @@ import {useEffect,useRef,useState} from 'react';
 import {usePersonalization,uploadLearnerFile} from './usePersonalization.js';
 import {PALETTES,BACKGROUNDS,WIDGETS,LAYOUTS,KINDS,AUDIENCES,defaults,moveWidget,previewItems,safeProjectLink} from './personalizationModel.js';
 import {schoolRequest} from '../../services/api/apiClient.js';
+import ImageCropDialog from './ImageCropDialog.jsx';
+import {IMAGE_TYPES,MAX_MEDIA_SIZE} from './personalizationModel.js';
 import {refreshLearnerAvatar} from '../shell/useLearnerAvatar.js';
 import './personalization.css';
 const Field = ({label,children}) => <label className="lp-field"><span>{label}</span>{children}</label>;
@@ -31,27 +33,45 @@ function SettingsEditor({space,uid,surfaceKey,externalBusy=false}) {
     {uploading && <p role="status">Uploading your image…</p>}
   </fieldset>;
 }
-function DashboardDecoration({space,uid,onUploading}) {
-  const [uploading,setUploading]=useState('');
-  const appearance=space.draft.dashboard.appearance;
-  const update=(key,value)=>space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[key]:value}}}));
-  async function upload(key,file) {
+function DashboardProfile({space,uid,profile,onUploading}) {
+  const [selection,setSelection]=useState(null),[uploading,setUploading]=useState(false);
+  const pictureInput=useRef(null),coverInput=useRef(null);
+  const surface=space.draft.dashboard, appearance=surface.appearance;
+  const disabled=space.loading||space.busy||uploading||!space.saved;
+  const changed=space.saved&&JSON.stringify(space.draft.dashboard)!==JSON.stringify(space.saved.dashboard);
+  function select(kind,file){
     if(!file)return;
-    if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){space.setError('Choose a JPG, PNG, WebP or GIF image.');return;}
-    setUploading(key);onUploading(true);space.setError('');
-    try {update(key,await uploadLearnerFile(uid,file));} catch(error){space.setError(error.message);} finally{setUploading('');onUploading(false);}
+    space.setError('');
+    if(!IMAGE_TYPES.includes(file.type)){space.setError('Choose a JPG, PNG, WebP or GIF image.');return;}
+    if(!file.size||file.size>MAX_MEDIA_SIZE){space.setError('Choose an image between 1 byte and 20 MB.');return;}
+    setSelection({kind,file});onUploading(true);
   }
-  const hasImages=Boolean(appearance.picture||appearance.cover);
-  return <details className="lp-decoration-details" open={!hasImages}><summary>{hasImages?'Change picture & banner':'Make this space yours: add a picture and banner'}</summary><fieldset className="lp-decoration" disabled={space.loading||space.busy||!!uploading||!space.saved}>
-    <legend className="lp-sr">Make this space yours</legend><p>Add your picture and a banner to decorate your private learning dashboard. These images stay separate from your portfolio.</p>
-    <div className="lp-decoration-grid">{[['picture','Profile picture','A photo, drawing or avatar. Square images work best.'],['cover','Dashboard banner','A favourite landscape or artwork. Wide images work best.']].map(([key,label,hint])=><div key={key} className={`lp-decoration-card lp-decoration-${key}`}>
-      <div className="lp-decoration-preview">{appearance[key]?.url ? <img src={appearance[key].url} alt={`${label} preview`}/> : <span aria-hidden="true">{key==='picture'?'◉':'▧'}</span>}</div>
-      <div><Field label={label}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>{const file=e.target.files?.[0];e.target.value='';upload(key,file);}}/></Field><small>{hint}</small>{appearance[key]&&<button type="button" onClick={()=>update(key,null)}>Remove {label.toLowerCase()}</button>}</div>
-    </div>)}</div>
-    <p className="lp-muted">JPG, PNG, WebP or GIF, up to 20 MB. Preview first, then save. Images are cropped to fit the display.</p>
-    <div className="lp-actions"><button type="button" onClick={async()=>{await space.save();refreshLearnerAvatar(uid);}}>Save dashboard changes</button><button type="button" disabled={!space.history.length} onClick={space.undo}>Undo decoration change</button><button type="button" onClick={space.discard}>Discard dashboard preview</button></div>
-    {uploading&&<p role="status">Uploading your {uploading==='cover'?'banner':'profile picture'}…</p>}
-  </fieldset></details>;
+  function cancel(){setSelection(null);onUploading(false);}
+  function remove(kind){space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[kind]:null}}}));}
+  async function apply(file){
+    setUploading(true);
+    try{const uploaded=await uploadLearnerFile(uid,file);space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[selection.kind]:uploaded}}}));setSelection(null);onUploading(false);}
+    finally{setUploading(false);}
+  }
+  return <>
+    <header className="lp-profile-header" aria-label="Your personal learning space">
+      <div className="lp-profile-cover">{appearance.cover?.url?<img src={appearance.cover.url} alt="My dashboard banner" className="lp-cover"/>:<div className="lp-cover-placeholder"><span>YOUR SPACE, YOUR STORY</span><p>A little room for what inspires you.</p></div>}
+        <button type="button" className="lp-cover-edit" disabled={disabled} onClick={()=>coverInput.current?.click()}>{appearance.cover?'Change banner':'Add cover banner'}</button>
+      </div>
+      <div className="lp-profile-identity"><div className="lp-profile-photo">
+        {appearance.picture?.url?<img className="lp-avatar" src={appearance.picture.url} alt={`${profile?.displayName||'Learner'} profile`}/>:<span className="lp-avatar lp-initial" aria-hidden="true">{(profile?.displayName||'L').slice(0,1)}</span>}
+        <button type="button" className="lp-photo-edit" disabled={disabled} onClick={()=>pictureInput.current?.click()}>{appearance.picture?'Change photo':'Add photo'}</button>
+      </div><div className="lp-profile-copy"><p className="lp-profile-name">{profile?.displayName||'My private dashboard'}</p><h1>{surface.heading||'My learning space'}</h1><p className="lp-intro">{surface.introduction||'A place for your ideas, discoveries and next steps.'}</p>{surface.interests&&<p className="lp-profile-interests"><strong>Interests:</strong> {surface.interests}</p>}</div></div>
+      <div className="lp-profile-tools"><p>Your photo and banner decorate this private dashboard. Your shareable portfolio has its own settings.</p><details><summary>Image settings</summary><div className="lp-image-settings">
+        <label>Profile picture<input ref={pictureInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={disabled} onChange={e=>{const file=e.target.files?.[0];e.target.value='';select('picture',file);}}/></label>
+        <label>Dashboard banner<input ref={coverInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={disabled} onChange={e=>{const file=e.target.files?.[0];e.target.value='';select('cover',file);}}/></label>
+        {appearance.picture&&<button type="button" disabled={disabled} onClick={()=>remove('picture')}>Remove profile picture</button>}{appearance.cover&&<button type="button" disabled={disabled} onClick={()=>remove('cover')}>Remove dashboard banner</button>}
+        <p>JPG, PNG, WebP or GIF, up to 20 MB. Crop and preview before saving.</p>
+      </div></details></div>
+    </header>
+    {changed&&<div className="lp-profile-save" role="region" aria-label="Unsaved dashboard preview"><p>Previewing your changes. Save when it feels like you.</p><div className="lp-actions"><button type="button" disabled={disabled||!!selection} onClick={async()=>{await space.save();refreshLearnerAvatar(uid);}}>Save dashboard changes</button><button type="button" disabled={disabled||!space.history.length||!!selection} onClick={space.undo}>Undo decoration change</button><button type="button" disabled={disabled||!!selection} onClick={space.discard}>Discard dashboard preview</button></div></div>}
+    {selection&&<ImageCropDialog key={selection.kind} {...selection} onCancel={cancel} onApply={apply}/>}
+  </>;
 }
 export function PersonalizedDashboard({uid,profile,widgets}) {
   const space=usePersonalization(uid), [editing,setEditing]=useState(false), [dragId,setDragId]=useState(null), [announcement,setAnnouncement]=useState(''), [decorating,setDecorating]=useState(false);
@@ -61,9 +81,9 @@ export function PersonalizedDashboard({uid,profile,widgets}) {
     <div className="lp-toolbar"><strong>Private learning dashboard</strong><a href="#/portfolio">My shareable portfolio →</a><button type="button" aria-expanded={editing} onClick={()=>setEditing(v=>!v)} disabled={space.loading || decorating || !space.saved}>Personalize dashboard</button></div>
     {space.loading && <p role="status">Loading your personalization…</p>}
     <Feedback space={space}/>{space.error && <button type="button" onClick={space.reload}>Reload personalization</button>}
-    <DashboardDecoration space={space} uid={uid} onUploading={setDecorating}/>
+    <DashboardProfile space={space} uid={uid} profile={profile} onUploading={setDecorating}/>
     {editing && <><SettingsEditor space={space} uid={uid} surfaceKey="dashboard" externalBusy={decorating}/><p>Live preview below. Drag a widget by its handle, use Alt + ↑/↓ on the handle, or use Move up / Move down. Save to keep your order.</p></>}
-    <SurfaceHeader surface={d} name={profile?.displayName} privateDashboard/><p className="lp-sr" role="status" aria-live="polite">{announcement}</p>
+    <p className="lp-sr" role="status" aria-live="polite">{announcement}</p>
     <div className="lp-widgets">{d.widgetOrder.map((id,index)=><section className="lp-widget" key={id} aria-label={WIDGETS[id]} onDragOver={e=>{if(editing)e.preventDefault();}} onDrop={e=>{e.preventDefault();if(editing&&dragId)move(dragId,index);setDragId(null);}}>
       {editing && <div className="lp-widget-controls"><button type="button" draggable={!space.busy} disabled={space.busy} aria-label={`Reorder ${WIDGETS[id]}`} onDragStart={e=>{setDragId(id);e.dataTransfer.setData('text/plain',id);e.dataTransfer.effectAllowed='move';}} onDragEnd={()=>setDragId(null)} onKeyDown={e=>{if(e.altKey && ['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const target=index+(e.key==='ArrowUp'?-1:1);if(target>=0 && target<4)move(id,target);}}}>⠿ {WIDGETS[id]}</button><button type="button" disabled={index===0 || space.busy} onClick={()=>move(id,index-1)}>Move up<span className="lp-sr"> {WIDGETS[id]}</span></button><button type="button" disabled={index===3 || space.busy} onClick={()=>move(id,index+1)}>Move down<span className="lp-sr"> {WIDGETS[id]}</span></button></div>}
       {id==='about'?<div><h2>About my learning</h2><p>{d.introduction || 'Use Personalize dashboard to introduce yourself.'}</p><h3>My private personal goals</h3><p className="lp-intro">{d.goals || 'Add a personal goal in your dashboard settings.'}</p></div>:widgets[id]}
