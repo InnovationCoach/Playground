@@ -16,7 +16,11 @@ import {
   SchoolScheduleConfig,
   LEARNER_AGE_CONFIG,
   LearnerAgeConfig,
-  AgeTierTrack
+  AgeTierTrack,
+  HARDWARE_INVENTORY_CONFIG,
+  HardwareInventoryConfig,
+  COPILOT_DEPLOYMENT_CONFIG,
+  CopilotDeploymentConfig
 } from './programData';
 import { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS, HexCityRole, CrisisScenario } from './hexCityProgram';
 import { BIOMECHANICS_PROGRAM, BIOMIMETIC_TRACKS, BiomimeticTrack } from './biomechanicsProgram';
@@ -29,8 +33,19 @@ import {
   WorldRule 
 } from './storytellingProgram';
 
-export { SCHOOL_SCHEDULE_CONFIG, LEARNER_AGE_CONFIG };
-export type { SchoolScheduleConfig, LearnerAgeConfig, AgeTierTrack };
+export { 
+  SCHOOL_SCHEDULE_CONFIG, 
+  LEARNER_AGE_CONFIG, 
+  HARDWARE_INVENTORY_CONFIG, 
+  COPILOT_DEPLOYMENT_CONFIG 
+};
+export type { 
+  SchoolScheduleConfig, 
+  LearnerAgeConfig, 
+  AgeTierTrack, 
+  HardwareInventoryConfig, 
+  CopilotDeploymentConfig 
+};
 
 export { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS };
 export type { HexCityRole, CrisisScenario };

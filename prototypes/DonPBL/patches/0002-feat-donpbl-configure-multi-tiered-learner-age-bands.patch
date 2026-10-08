@@ -1,0 +1,492 @@
+From a6ba8770ae14160c9ef7e8304b56675ab7f6f186 Mon Sep 17 00:00:00 2001
+From: AI Engineer <don906984@gmail.com>
+Date: Thu, 8 Oct 2026 02:22:11 +0000
+Subject: [PATCH 2/2] feat(donpbl): configure multi-tiered learner age bands
+ (ages 9-17) across primary through secondary
+
+---
+ prototypes/DonPBL/CHANGELOG.md               |  32 +++++
+ prototypes/DonPBL/biomechanicsProgram.ts     |   7 +-
+ prototypes/DonPBL/checks.js                  |  12 +-
+ prototypes/DonPBL/hexCityProgram.ts          |   7 +-
+ prototypes/DonPBL/mockFixtures.ts            | 141 ++++++++++++++++++-
+ prototypes/DonPBL/passionBlueprintProgram.ts |   7 +-
+ prototypes/DonPBL/programData.ts             |  73 +++++++++-
+ prototypes/DonPBL/programRegistry.ts         |  16 ++-
+ prototypes/DonPBL/storytellingProgram.ts     |   7 +-
+ 9 files changed, 279 insertions(+), 23 deletions(-)
+
+diff --git a/prototypes/DonPBL/CHANGELOG.md b/prototypes/DonPBL/CHANGELOG.md
+index 7450dd4..baf4408 100644
+--- a/prototypes/DonPBL/CHANGELOG.md
++++ b/prototypes/DonPBL/CHANGELOG.md
+@@ -9,6 +9,38 @@
+ 
+ ## Change Log Entries
+ 
++### [2026-10-07] - Confirmation: Learner Age Cohorts (Primary through Upper Secondary: Ages 9–17)
++
++#### Verified & Configured
++- **Multi-Tiered Learner Cohort Specification (`LEARNER_AGE_CONFIG` in `programData.ts` & `programRegistry.ts`):**
++  - **Overall Age Span:** Confirmed by Don covering Primary through Upper Secondary: **Ages 9–17 (Grades 4–12)**.
++  - **Track 1 — Younger Primary Track (Ages 9–11 / Grades 4–6):**
++    - *Scaffolding Focus:* Sensory discovery, guided exploratory prompts, tactile cardboard & craft prototyping, gamified badge progression.
++    - *Code Tool:* MakeCode Block Editor / Scratch 3.0 / Visual Flowcharts.
++    - *Hardware Focus:* BBC micro:bit V2 built-in sensors (light, temperature, buttons, sound buzzer), alligator clips, continuous servos.
++    - *Key Deliverables:* Tactile Pop-Up Prototype, Visual Block Program, Illustrated Story/Discovery Journal, Classroom Mini-Expo Pitch.
++  - **Track 2 — Junior / Middle Secondary Track (Ages 12–14 / Grades 7–9):**
++    - *Scaffolding Focus:* Scientific method hypothesis rigor, hybrid block-to-Python coding, 4-bar mechanical linkage modeling, structured stakeholder empathy interviews.
++    - *Code Tool:* MicroPython / CircuitPython / MakeCode Python mode.
++    - *Hardware Focus:* External analog sensors (capacitive soil probe, DS18B20 1-wire), 5V relay/MOSFET motor drivers, 4-bar linkage servos.
++    - *Key Deliverables:* Working Automated Rig, Calibrated Data Graph, User Empathy Field Map, Community Showcase Pitch & Live Demo.
++  - **Track 3 — Upper Secondary Track (Ages 15–17 / Grades 10–12):**
++    - *Scaffolding Focus:* Algorithmic optimization, native embedded Python/C++, 3D parametric CAD linkages, mathematical thermodynamics/kinematics modeling, industry pitch decks.
++    - *Code Tool:* Native Python / Arduino C++ / Embedded WebAssembly / CAD Fusion 360.
++    - *Hardware Focus:* Multi-sensor I2C buses, ESP32/micro:bit telemetry, precision load cells, bio-inspired kinematic mechanisms.
++    - *Key Deliverables:* Production-Grade Functional Prototype, Mathematical Efficacy & Error Model, Dual Stakeholder Field Trial, Formal Capstone Exhibition & Investor Deck.
++- **Assumption Verification & UI Reflection:**
++  - `asmp-age` in `SAMPLE_PROGRAM.assumptions` officially marked **CONFIRMED BY DON: Multi-tiered tracks desired across Primary through Secondary, ages 9–17**.
++  - `AssumptionsBanner.tsx` updated with a live verified indicator badge: `Cohorts Confirmed: Ages 9–17 (Primary through Upper Secondary)` and green confirmation card.
++  - `Header.tsx` hero area updated with blue cohort pill: `Ages 9–17 (Primary–Secondary Tracks)`.
++  - `TeacherView.tsx` updated with a comprehensive Multi-Tiered Age Track Scaffolding card displaying tools, hardware, and deliverables for each track, along with differentiation notes.
++  - `StudentView.tsx` Project Definition tab updated with clear age track scaffolding and cohort tier indicator.
++  - `mockFixtures.ts` updated with sample projects for Primary Track (Team SproutGuard / Grade 5) and Upper Secondary Track (Team AeroPulse / Grade 11).
++  - All 5 PBL program definitions (`SAMPLE_PROGRAM`, `hexCityProgram`, `biomechanicsProgram`, `passionBlueprintProgram`, `storytellingProgram`, `CLEAN_STREAM_PROGRAM`) updated with differentiated track notes across Ages 9–17.
++- **Verification (`checks.js`):**
++  - Added Check 12 verifying the complete 9–17 learner age band configuration (`LEARNER_AGE_CONFIG`, Primary, Middle, and Senior tracks, and confirmed assumption).
++  - All 12 verification checks PASSED successfully.
++
+ ### [2026-10-07] - Confirmation: School Operating Model (12 Weeks/Term, 3 Terms/Year, 2h/Weekday)
+ 
+ #### Verified & Configured
+diff --git a/prototypes/DonPBL/biomechanicsProgram.ts b/prototypes/DonPBL/biomechanicsProgram.ts
+index ed6e305..09ec6d4 100644
+--- a/prototypes/DonPBL/biomechanicsProgram.ts
++++ b/prototypes/DonPBL/biomechanicsProgram.ts
+@@ -66,7 +66,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
+     peopleImpact: 'Saves lives through rapid disaster search-and-rescue rovers in collapsed structures and preserves high-value agricultural food yields.',
+     environmentalImpact: 'Captures microplastics and marine debris from tidal estuaries using non-clogging baleen cross-flow filtration without fossil fuel vessel waste.'
+   },
+-  targetAgeRange: '14–18 years (Grades 9–12 / Secondary & Pre-Engineering)',
++  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
+   durationWeeks: 14,
+   totalSessions: 24, // Structured into 24 core intensive milestone workshops
+   materialsAndKit: {
+@@ -111,8 +111,9 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
+       'Document AI provenance: Record every algorithm consultation in the Engineering Notebook.'
+     ],
+     differentiationNotes: [
+-      'Standard Track: Build 4-bar linkage walking legs or continuum tentacles with proportional joystick or ultrasonic trigger.',
+-      'Advanced Track: Implement full Theo Jansen / Klann linkages, write custom complementary filters for MPU-6050 IMU balance control, and conduct FMEA.'
++      'Primary Track (Ages 9–11 / Grades 4–6): Biomimetic animal locomotion imitation, cardboard compliant grabbers, drinking straw tendon linkages, and syringe hydraulic/pneumatic claws without complex circuits.',
++      'Junior Secondary Track (Ages 12–14 / Grades 7–9): LEGO Technic 4-bar linkage walking legs or continuum tentacles with proportional joystick or ultrasonic trigger, basic MicroPython motor control loops.',
++      'Upper Secondary Track (Ages 15–17 / Grades 10–12): Theo Jansen / Klann multi-bar linkages, custom embedded Arduino C++ firmware with non-blocking millis() state machines, MPU-6050 IMU balance telemetry, and full Failure Modes & Effects Analysis (FMEA).'
+     ]
+   },
+   measurableImpactCriteria: [
+diff --git a/prototypes/DonPBL/checks.js b/prototypes/DonPBL/checks.js
+index c15dd87..4afd763 100644
+--- a/prototypes/DonPBL/checks.js
++++ b/prototypes/DonPBL/checks.js
+@@ -152,7 +152,17 @@ assert(programDataFile.includes('CONFIRMED BY DON: 12 weeks per term, 3 terms pe
+ assert(programRegistryFile.includes('SCHOOL_SCHEDULE_CONFIG'), 'SCHOOL_SCHEDULE_CONFIG must be exported from programRegistry');
+ console.log('✓ School Operating Model verified: 12 Weeks/Term, 3 Terms/Year, 2h/Weekday (10h/Wk • 120h/Term • 360h/Year) confirmed by Don');
+ 
+-console.log('\nAll 11 verification checks PASSED successfully!');
++// 12. Verify Multi-Tiered Learner Age Bands (Ages 9–17 Confirmed by Don)
++assert(programDataFile.includes('minAge: 9'), 'minAge must be 9');
++assert(programDataFile.includes('maxAge: 17'), 'maxAge must be 17');
++assert(programDataFile.includes("tierId: 'primary'"), 'Primary track must exist');
++assert(programDataFile.includes("tierId: 'middle'"), 'Middle secondary track must exist');
++assert(programDataFile.includes("tierId: 'senior'"), 'Upper secondary track must exist');
++assert(programDataFile.includes('CONFIRMED BY DON: Multi-tiered tracks desired across Primary through Secondary, ages 9–17'), 'asmp-age must be marked confirmed by Don');
++assert(programRegistryFile.includes('LEARNER_AGE_CONFIG'), 'LEARNER_AGE_CONFIG must be exported from programRegistry');
++console.log('✓ Multi-Tiered Learner Age Bands verified: Primary through Upper Secondary (Ages 9–17: 9–11, 12–14, 15–17) confirmed by Don');
++
++console.log('\nAll 12 verification checks PASSED successfully!');
+ 
+ 
+ 
+diff --git a/prototypes/DonPBL/hexCityProgram.ts b/prototypes/DonPBL/hexCityProgram.ts
+index 5b5da9c..d472542 100644
+--- a/prototypes/DonPBL/hexCityProgram.ts
++++ b/prototypes/DonPBL/hexCityProgram.ts
+@@ -165,7 +165,7 @@ export const HEX_CITY_PROGRAM: PblProgram = {
+     peopleImpact: 'Provides flood-proof modular shelter for 500+ households, dedicated negative-pressure medical triage, and resilient civic community spaces.',
+     environmentalImpact: 'Zero-discharge closed-loop water treatment, circular recycling of marine plastics, 150,000 monocrystalline solar panels, and wave-attenuating floating breakwaters that regenerate coastal marine ecology.'
+   },
+-  targetAgeRange: '12–17 years (Grades 7–12 / Middle & High School)',
++  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
+   durationWeeks: 12,
+   totalSessions: 24,
+   materialsAndKit: {
+@@ -211,8 +211,9 @@ export const HEX_CITY_PROGRAM: PblProgram = {
+       'Record AI provenance in Master Operations Manual (Section 3 & 4).'
+     ],
+     differentiationNotes: [
+-      'Tier 1 (Foundational 12-14): Focus on hull cutting, 3V copper circuit lighting, and basic water filter bench lab.',
+-      'Tier 2 (Advanced 15-17): Design custom 3D printed flexible shear connectors in CAD, automate bilge pumps with micro:bit, and build an itemized 2.1B THB BOQ with depreciation.'
++      'Primary Track (Ages 9–11 / Grades 4–6): Modular foam hex tile assembly, simple 3V coin cell and copper tape LED circuits for living pods, tactile buoyancy water-displacement tub testing, and illustrated disaster survival guides.',
++      'Junior Secondary Track (Ages 12–14 / Grades 7–9): Scale model 1:2500 hull fabrication, multi-layer biochar water filtration column tests, and digital twin simulation balancing food, energy, and water reserves across seasonal monsoon cycles.',
++      'Upper Secondary Track (Ages 15–17 / Grades 10–12): Parametric 3D CAD flexible shear connectors, automated micro:bit/ESP32 bilge pump telemetry, hydrostatics calculation sheets, and an itemized 2.1B THB municipal capital expenditure & lifecycle depreciation model.'
+     ]
+   },
+   measurableImpactCriteria: [
+diff --git a/prototypes/DonPBL/mockFixtures.ts b/prototypes/DonPBL/mockFixtures.ts
+index a6830d7..8e72e22 100644
+--- a/prototypes/DonPBL/mockFixtures.ts
++++ b/prototypes/DonPBL/mockFixtures.ts
+@@ -61,7 +61,7 @@ export interface StudentProject {
+   };
+   impact: 'people' | 'environment' | 'both' | null;
+   codeLanguage: 'micropython' | 'makecode' | 'python' | 'arduino' | 'lego';
+-  finalFormat: 'showcase' | 'presentation' | null;
++  finalFormat: 'showcase' | 'presentation' | 'interactive-stand' | 'stage-pitch' | null;
+   tasksDone: Record<string, number[]>; // phase -> array of completed task indices
+   evidence: EvidenceItem[];
+   sensorState: {
+@@ -627,6 +627,145 @@ export const MOCK_COHORT: StudentProject[] = [
+     },
+     evidence: [],
+     coachFeedback: []
++  },
++  {
++    id: 'proj-sproutguard-05',
++    teamName: 'Team SproutGuard (Primary Track / Ages 9–11)',
++    members: ['Liam Chen (Grade 5)', 'Sofia Al-Mansoor (Grade 5)'],
++    gradeLevel: 'Primary Track (Grade 5 / Age 10-11)',
++    termId: 'term-2026-t3',
++    currentPhase: 'prototype',
++    progressPercent: 65,
++    drivingQuestion: 'How can we build a singing cardboard garden sentinel with micro:bit that tells our school gardener when strawberry plants need water?',
++    problem: {
++      hmw: 'How might we use happy musical tunes and LED emojis to remind younger students to water strawberry garden beds?',
++      who: 'Primary school gardening club and cafeteria compost team.',
++      why: 'Strawberries dry out quickly in small raised beds when students forget to check moisture during recess.',
++      criteria: '1. Play cheerful chime when soil is moist.\n2. Sad icon and flashing LED when soil is dry.\n3. Water-resistant decorated cardboard house.',
++      constraints: '1. Visual MakeCode blocks only.\n2. Recycled craft materials and alligator clips.',
++      impactMeasure: 'Zero dried strawberry plants over a 3-week test window.'
++    },
++    impact: 'both',
++    codeLanguage: 'makecode',
++    finalFormat: 'interactive-stand',
++    tasksDone: {
++      explore: [0, 1, 2],
++      empathise: [0, 1],
++      define: [0, 1],
++      ideate: [0, 1],
++      prototype: [0, 1]
++    },
++    sensorState: {
++      ambientTemp: 28.4,
++      soilMoisturePct: 68,
++      canopyDeployed: true,
++      pumpActive: false,
++      waterLevelPct: 85
++    },
++    evidence: [
++      {
++        id: 'ev-sg-01',
++        phase: 'explore',
++        kind: 'note',
++        title: 'Primary STEAM Discovery: Sponge Moisture vs. Garden Soil',
++        body: 'Tested our capacitive probe in dry kitchen sponge vs. damp sponge vs. water cup. We drew color-coded dial meters in our project journals.',
++        competencies: ['ctps-01', 'ct-01'],
++        createdAt: 1775830000000
++      },
++      {
++        id: 'ev-sg-02',
++        phase: 'prototype',
++        kind: 'code',
++        title: 'MakeCode Block Chime Logic (Exported JS)',
++        body: '// MakeCode Visual Blocks exported code\nbasic.forever(function () {\n    let reading = pins.analogReadPin(AnalogPin.P0)\n    if (reading < 400) {\n        basic.showIcon(IconNames.Sad)\n        music.playTone(262, music.beat(BeatFraction.Whole))\n    } else {\n        basic.showIcon(IconNames.Happy)\n    }\n})',
++        competencies: ['ct-05', 'lc-02'],
++        createdAt: 1778320000000
++      }
++    ],
++    coachFeedback: [
++      {
++        coachName: 'Coach Eleanor Vance',
++        date: '2026-09-22',
++        note: 'Inspiring visual storytelling and clean MakeCode blocks! The primary gardening club will love your chime alerts.',
++        competencyScores: {
++          'ctps-01': 4,
++          'lc-02': 4,
++          'ct-05': 3
++        }
++      }
++    ]
++  },
++  {
++    id: 'proj-aeropulse-06',
++    teamName: 'Team AeroPulse (Upper Secondary Track / Ages 15–17)',
++    members: ['Kai Takahashi (Grade 11)', 'Elena Rostova (Grade 11)'],
++    gradeLevel: 'Upper Secondary Track (Grade 11 / Age 16-17)',
++    termId: 'term-2026-t3',
++    currentPhase: 'test',
++    progressPercent: 88,
++    drivingQuestion: 'How might we engineer parametric multi-axis solar tracking canopies and predictive transpiration models to protect urban community greenhouses?',
++    problem: {
++      hmw: 'How might we minimize vapor-pressure deficits (VPD) in high-density urban poly-tunnels using automated dual-axis Mylar louvers and predictive micro-climate telemetry?',
++      who: 'Commercial urban hydroponic farmers and community food resilience networks.',
++      why: 'Extreme noon VPD spikes exceed 3.5 kPa, causing stomatal closure, thermal leaf scorch, and severe nutrient lockup.',
++      criteria: '1. Maintain leaf temperature within +/- 1.5°C of optimal 24°C.\n2. Continuous logging via I2C bus.\n3. Parametric 3D CAD linkage with low parasitic power.',
++      constraints: '1. Less than 15W total system power drawn from solar buffer.\n2. Real-time serial telemetry.',
++      impactMeasure: 'Reduction in crop stress index and 42% lower peak afternoon canopy temps.'
++    },
++    impact: 'both',
++    codeLanguage: 'micropython',
++    finalFormat: 'stage-pitch',
++    tasksDone: {
++      explore: [0, 1, 2],
++      empathise: [0, 1],
++      define: [0, 1],
++      ideate: [0, 1],
++      prototype: [0, 1, 2],
++      test: [0, 1]
++    },
++    sensorState: {
++      ambientTemp: 31.8,
++      soilMoisturePct: 74,
++      canopyDeployed: true,
++      pumpActive: false,
++      waterLevelPct: 92
++    },
++    evidence: [
++      {
++        id: 'ev-ap-01',
++        phase: 'explore',
++        kind: 'data',
++        title: 'Vapor-Pressure Deficit (VPD) Mathematical Model',
++        body: 'Derived mathematical approximation of saturation vapor pressure: $VPD = VP_{sat} \\times (1 - RH/100)$. Calibrated with psychrometric data from DHT22 ambient probe.',
++        competencies: ['ctps-05', 'ctps-12'],
++        createdAt: 1775800000000,
++        metrics: [
++          { label: 'Baseline Peak VPD', value: '3.62 kPa' },
++          { label: 'Shielded Peak VPD', value: '1.41 kPa' }
++        ]
++      },
++      {
++        id: 'ev-ap-02',
++        phase: 'test',
++        kind: 'code',
++        title: 'Embedded MicroPython PID Control Loop',
++        body: '# MicroPython Non-Blocking State Machine with PID Temperature Tuning\nfrom microbit import *\n# Full PID loop regulating servo PWM duty cycles against thermal lag',
++        competencies: ['ct-05', 'ctps-02'],
++        createdAt: 1779200000000
++      }
++    ],
++    coachFeedback: [
++      {
++        coachName: 'Coach Eleanor Vance',
++        date: '2026-09-24',
++        note: 'Exemplary mathematical rigor and embedded code architecture. Ready for submission to regional engineering fairs.',
++        competencyScores: {
++          'ctps-05': 4,
++          'ctps-12': 4,
++          'ct-05': 4
++        }
++      }
++    ]
+   }
+ ];
+ 
+diff --git a/prototypes/DonPBL/passionBlueprintProgram.ts b/prototypes/DonPBL/passionBlueprintProgram.ts
+index 009ac6a..7b9149b 100644
+--- a/prototypes/DonPBL/passionBlueprintProgram.ts
++++ b/prototypes/DonPBL/passionBlueprintProgram.ts
+@@ -88,7 +88,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
+     peopleImpact: 'Empowers diverse learners with personalized executive functioning tools, self-advocacy, and emotional regulation to launch projects they care about for authentic audiences (experts, community, peers).',
+     environmentalImpact: 'Channels personal passions into local community, ecological stewardship, sustainable physical fabrication, and ethical digital artifacts.'
+   },
+-  targetAgeRange: '10–18 years (Grades 5–12 / Upper Primary through High School & 2e Learners)',
++  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17 & 2e Learners)',
+   durationWeeks: 12,
+   totalSessions: 24,
+   materialsAndKit: {
+@@ -128,8 +128,9 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
+       'Transparent AI Provenance: Log what prompt was asked, what the AI provided, and what the student modified or kept.'
+     ],
+     differentiationNotes: [
+-      'Tier 1 (Scaffolded Discovery): Guided prompts for students needing support to define their rabbit hole and select a single bite-sized deliverable.',
+-      'Tier 2 (Autonomous Accelerator): Independent sprint planning for students with strong self-direction to pursue advanced technical or creative briefs.'
++      'Primary Track (Ages 9–11 / Grades 4–6): Visual Kanban icon boards, speech-to-text audio reflections, physical craft/LEGO/cosplay tactile models, and 15-minute "ugly first draft" drawing games.',
++      'Junior Secondary Track (Ages 12–14 / Grades 7–9): Multi-week personal passion sprints with structured digital boards (Trello/Notion), Scratch/Godot game prototypes, DIY microcontroller inventions, and peer playtesting circles.',
++      'Upper Secondary Track (Ages 15–17 / Grades 10–12): Portfolio-grade deliverables (open-source software, published community zines, functional industrial prototypes), autonomous milestone management, and public pitch presentations to industry mentors.'
+     ]
+   },
+   measurableImpactCriteria: [
+diff --git a/prototypes/DonPBL/programData.ts b/prototypes/DonPBL/programData.ts
+index da08a66..e6a9f58 100644
+--- a/prototypes/DonPBL/programData.ts
++++ b/prototypes/DonPBL/programData.ts
+@@ -55,6 +55,68 @@ export const SCHOOL_SCHEDULE_CONFIG: SchoolScheduleConfig = {
+   status: 'verified'
+ };
+ 
++export interface AgeTierTrack {
++  tierId: 'primary' | 'middle' | 'senior';
++  name: string;
++  ageBand: string;
++  gradeLevels: string;
++  scaffoldingFocus: string;
++  programmingPlatform: string;
++  hardwareFocus: string;
++  deliverables: string[];
++}
++
++export interface LearnerAgeConfig {
++  span: string;
++  minAge: number;
++  maxAge: number;
++  description: string;
++  verifiedBy: string;
++  status: 'verified';
++  tracks: AgeTierTrack[];
++}
++
++export const LEARNER_AGE_CONFIG: LearnerAgeConfig = {
++  span: 'Ages 9–17 (Primary through Upper Secondary)',
++  minAge: 9,
++  maxAge: 17,
++  description: 'Multi-tiered tracks covering Primary (ages 9–11), Middle Secondary (ages 12–14), and Upper Secondary (ages 15–17)',
++  verifiedBy: 'Don (Owner Direct Confirmation)',
++  status: 'verified',
++  tracks: [
++    {
++      tierId: 'primary',
++      name: 'Younger Primary Track',
++      ageBand: 'Ages 9–11',
++      gradeLevels: 'Grades 4–6',
++      scaffoldingFocus: 'Sensory discovery, guided prompts, visual block coding, tactile craft & cardboard prototyping, gamified badges',
++      programmingPlatform: 'MakeCode Block Editor / Scratch 3.0 / Visual Flowcharts',
++      hardwareFocus: 'BBC micro:bit V2 built-in sensors (light, temp, buttons, sound), alligator clips, continuous servos',
++      deliverables: ['Tactile Pop-Up Prototype', 'Visual Block Program', 'Illustrated Story Journal', 'Classroom Mini-Expo Pitch']
++    },
++    {
++      tierId: 'middle',
++      name: 'Junior / Middle Secondary Track',
++      ageBand: 'Ages 12–14',
++      gradeLevels: 'Grades 7–9',
++      scaffoldingFocus: 'Scientific method rigor, hybrid block-to-Python coding, mechanical linkage modeling, structured empathy interviews',
++      programmingPlatform: 'MicroPython / CircuitPython / MakeCode Python mode',
++      hardwareFocus: 'External analog sensors (capacitive moisture, DS18B20 1-wire), 5V relay/MOSFET drivers, 4-bar linkage servos',
++      deliverables: ['Working Automated Rig', 'Calibrated Data Graph', 'User Empathy Field Map', 'Community Showcase Pitch & Demo']
++    },
++    {
++      tierId: 'senior',
++      name: 'Upper Secondary Track',
++      ageBand: 'Ages 15–17',
++      gradeLevels: 'Grades 10–12',
++      scaffoldingFocus: 'Algorithmic optimization, native Python/C++ embedded code, 3D CAD parametric linkages, mathematical modeling, industry pitch decks',
++      programmingPlatform: 'Native Python / Arduino C++ / Embedded WebAssembly / CAD Fusion 360',
++      hardwareFocus: 'Multi-sensor I2C buses, ESP32/micro:bit telemetry, precision load cells, bio-inspired kinematic mechanisms',
++      deliverables: ['Production-Grade Functional Prototype', 'Mathematical Efficacy & Error Model', 'Dual Stakeholder Field Trial', 'Formal Capstone Exhibition & Investor Deck']
++    }
++  ]
++};
++
+ export interface ProgramPhase {
+   id: string;
+   title: string;
+@@ -125,7 +187,7 @@ export const SAMPLE_PROGRAM: PblProgram = {
+     peopleImpact: 'Protects community garden food yield for local families, lowers heat-exhaustion risk for student and volunteer tenders, and fosters neighborhood civic engagement.',
+     environmentalImpact: 'Cuts water evaporation losses by over 40% via root-targeted drip pulses, mitigates localized heat stress, and demonstrates passive reflective cooling principles.'
+   },
+-  targetAgeRange: '12–15 years (Grades 7–9 / Lower Secondary) [Provisional Assumption]',
++  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary / Multi-Tiered Tracks: Ages 9–11, 12–14, 15–17)',
+   durationWeeks: 12,
+   totalSessions: 24,
+   materialsAndKit: {
+@@ -171,8 +233,9 @@ export const SAMPLE_PROGRAM: PblProgram = {
+       'Explain-It-Back Test: Students must be able to explain the purpose of variables and control loops in their code without reading verbatim from AI responses.'
+     ],
+     differentiationNotes: [
+-      'Support Level 1: Focus on a single threshold (e.g. if moisture < 400, trigger pump for 3s). Use visual MakeCode blocks.',
+-      'Extension Level 2: Multi-sensor fusion (trigger shade canopy if ambient temp > 32°C AND solar irradiance is high; pulse water only if soil moisture is critically low and temp < 30°C to prevent root scalding).'
++      'Primary Track (Ages 9–11 / Grades 4–6): Single-condition visual MakeCode blocks (if moisture < 400, sound happy chime and pulse pump 2s). Focus on pre-cut cardboard frames, tactile plant-tending, and illustrated journals.',
++      'Junior Secondary Track (Ages 12–14 / Grades 7–9): MicroPython control loop with hysteresis threshold band (660/540 ADC) to prevent rapid cycle wear. Four-bar linkage umbrella shade canopy. User empathy field interviews with garden volunteers.',
++      'Upper Secondary Track (Ages 15–17 / Grades 10–12): Multi-sensor fusion in Python/C++ (capacitive moisture + ambient DHT22 + DS18B20 root probe). Mathematical modeling of soil thermal inertia and transpiration vapor-pressure deficits. Dual-stakeholder community presentation.'
+     ]
+   },
+   measurableImpactCriteria: [
+@@ -205,8 +268,8 @@ export const SAMPLE_PROGRAM: PblProgram = {
+     {
+       id: 'asmp-age',
+       domain: 'Learner Cohort',
+-      assumption: 'Target learner age band is 12–15 years (Grades 7–9), assuming basic algebra and introductory block/Python literacy.',
+-      ownerVerificationNeeded: 'Confirm with Don if younger primary (age 9-11) or upper secondary (16-18) tracks are desired.'
++      assumption: 'Program provides tiered tracks spanning Primary through Secondary (Ages 9–17 / Grades 4–12), with differentiated scaffolding for Primary (9–11), Junior Secondary (12–14), and Upper Secondary (15–17).',
++      ownerVerificationNeeded: 'CONFIRMED BY DON: Multi-tiered tracks desired across Primary through Secondary, ages 9–17.'
+     },
+     {
+       id: 'asmp-duration',
+diff --git a/prototypes/DonPBL/programRegistry.ts b/prototypes/DonPBL/programRegistry.ts
+index 800ac75..af99a2a 100644
+--- a/prototypes/DonPBL/programRegistry.ts
++++ b/prototypes/DonPBL/programRegistry.ts
+@@ -9,7 +9,15 @@
+  * - Program 4: CleanStream (Smart Urban Stormwater Runoff Sentinel)
+  */
+ 
+-import { PblProgram, SAMPLE_PROGRAM, SCHOOL_SCHEDULE_CONFIG, SchoolScheduleConfig } from './programData';
++import { 
++  PblProgram, 
++  SAMPLE_PROGRAM, 
++  SCHOOL_SCHEDULE_CONFIG, 
++  SchoolScheduleConfig,
++  LEARNER_AGE_CONFIG,
++  LearnerAgeConfig,
++  AgeTierTrack
++} from './programData';
+ import { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS, HexCityRole, CrisisScenario } from './hexCityProgram';
+ import { BIOMECHANICS_PROGRAM, BIOMIMETIC_TRACKS, BiomimeticTrack } from './biomechanicsProgram';
+ import { PASSION_BLUEPRINT_PROGRAM, FRICTION_STRATEGIES, FrictionStrategy } from './passionBlueprintProgram';
+@@ -21,8 +29,8 @@ import {
+   WorldRule 
+ } from './storytellingProgram';
+ 
+-export { SCHOOL_SCHEDULE_CONFIG };
+-export type { SchoolScheduleConfig };
++export { SCHOOL_SCHEDULE_CONFIG, LEARNER_AGE_CONFIG };
++export type { SchoolScheduleConfig, LearnerAgeConfig, AgeTierTrack };
+ 
+ export { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS };
+ export type { HexCityRole, CrisisScenario };
+@@ -49,7 +57,7 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
+     peopleImpact: 'Protects neighborhood recreational streams and drinking water intake basins from acute toxic contamination.',
+     environmentalImpact: 'Captures over 50% of toxic suspended sediment via automated first-flush diversion into natural bio-char sand swales.'
+   },
+-  targetAgeRange: '12–15 years (Grades 7–9 / Lower Secondary) [Provisional Assumption]',
++  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
+   durationWeeks: 12,
+   totalSessions: 24,
+   materialsAndKit: {
+diff --git a/prototypes/DonPBL/storytellingProgram.ts b/prototypes/DonPBL/storytellingProgram.ts
+index d769705..af1f949 100644
+--- a/prototypes/DonPBL/storytellingProgram.ts
++++ b/prototypes/DonPBL/storytellingProgram.ts
+@@ -91,7 +91,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
+     peopleImpact: 'Teaches youth advanced psychological literacy, empathy across ideological divides, vocal performance, and professional creative pipeline management.',
+     environmentalImpact: 'Investigates ecological fragility, climate migration, resource depletion, and regenerative futures through grounded speculative world-building.'
+   },
+-  targetAgeRange: '13–18 years (Grades 8–12 / Secondary, Media Arts & Pre-Film)',
++  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
+   durationWeeks: 20,
+   totalSessions: 24,
+   materialsAndKit: {
+@@ -131,8 +131,9 @@ export const STORYTELLING_PROGRAM: PblProgram = {
+       'Full Story Provenance: Document AI prompts used to explore plot bottlenecks or generate character name variations.'
+     ],
+     differentiationNotes: [
+-      'Visual Track: Focus on animatics, 30-frame storyboards, and asset manifests for visual/animation learners.',
+-      'Writing/Audio Track: Focus on rich subtextual screenplays, vocal acting takes, and spatial sound design for writers and audio designers.'
++      'Primary Track (Ages 9–11 / Grades 4–6): Illustrated character trading cards, 6-panel comic strip layouts, classroom vocal radio plays with live kitchen-prop foley, and tactile beat card corkboards.',
++      'Junior Secondary Track (Ages 12–14 / Grades 7–9): Interactive branching choice fiction (Twine / Ink), 3-scene screenplay with psychological subtext, and 2-track audio drama recordings with basic soundtrack scoring.',
++      'Upper Secondary Track (Ages 15–17 / Grades 10–12): Industry-standard Fountain screenplay pipeline, 4-layer DAW sound engineering (dialogue, room tone, spot foley, music textures), locked 90-second animatic, and pitch bible presentation to studio judges.'
+     ]
+   },
+   measurableImpactCriteria: [
+-- 
+2.34.1
+

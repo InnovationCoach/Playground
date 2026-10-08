@@ -91,7 +91,7 @@ export const LEARNER_AGE_CONFIG: LearnerAgeConfig = {
       gradeLevels: 'Grades 4–6',
       scaffoldingFocus: 'Sensory discovery, guided prompts, visual block coding, tactile craft & cardboard prototyping, gamified badges',
       programmingPlatform: 'MakeCode Block Editor / Scratch 3.0 / Visual Flowcharts',
-      hardwareFocus: 'BBC micro:bit V2 built-in sensors (light, temp, buttons, sound), alligator clips, continuous servos',
+      hardwareFocus: 'BBC micro:bit V2 & LEGO Spike Essential/Prime kits, built-in sensors, alligator clips, continuous servos',
       deliverables: ['Tactile Pop-Up Prototype', 'Visual Block Program', 'Illustrated Story Journal', 'Classroom Mini-Expo Pitch']
     },
     {
@@ -100,8 +100,8 @@ export const LEARNER_AGE_CONFIG: LearnerAgeConfig = {
       ageBand: 'Ages 12–14',
       gradeLevels: 'Grades 7–9',
       scaffoldingFocus: 'Scientific method rigor, hybrid block-to-Python coding, mechanical linkage modeling, structured empathy interviews',
-      programmingPlatform: 'MicroPython / CircuitPython / MakeCode Python mode',
-      hardwareFocus: 'External analog sensors (capacitive moisture, DS18B20 1-wire), 5V relay/MOSFET drivers, 4-bar linkage servos',
+      programmingPlatform: 'MicroPython / CircuitPython / MakeCode Python mode / Arduino C++',
+      hardwareFocus: 'BBC micro:bit V2 + Arduino UNO boards, external analog sensors (capacitive moisture, DS18B20 1-wire), 5V relay/MOSFET drivers, LEGO Spike Prime mechanics',
       deliverables: ['Working Automated Rig', 'Calibrated Data Graph', 'User Empathy Field Map', 'Community Showcase Pitch & Demo']
     },
     {
@@ -110,11 +110,64 @@ export const LEARNER_AGE_CONFIG: LearnerAgeConfig = {
       ageBand: 'Ages 15–17',
       gradeLevels: 'Grades 10–12',
       scaffoldingFocus: 'Algorithmic optimization, native Python/C++ embedded code, 3D CAD parametric linkages, mathematical modeling, industry pitch decks',
-      programmingPlatform: 'Native Python / Arduino C++ / Embedded WebAssembly / CAD Fusion 360',
-      hardwareFocus: 'Multi-sensor I2C buses, ESP32/micro:bit telemetry, precision load cells, bio-inspired kinematic mechanisms',
+      programmingPlatform: 'Native Python / Arduino C++ / ESP-IDF / Embedded WebAssembly / CAD Fusion 360',
+      hardwareFocus: 'ESP32 (dual-core WiFi/BLE) + Arduino UNO + micro:bit V2, multi-sensor I2C buses, precision load cells, bio-inspired kinematic mechanisms',
       deliverables: ['Production-Grade Functional Prototype', 'Mathematical Efficacy & Error Model', 'Dual Stakeholder Field Trial', 'Formal Capstone Exhibition & Investor Deck']
     }
   ]
+};
+
+export interface HardwareInventoryConfig {
+  microbitsAvailable: boolean;
+  arduinoUnoAvailable: boolean;
+  esp32Available: boolean;
+  legoSpikeAvailable: boolean;
+  inventoryStatus: 'confirmed_available';
+  verifiedBy: string;
+  notes: string;
+}
+
+export const HARDWARE_INVENTORY_CONFIG: HardwareInventoryConfig = {
+  microbitsAvailable: true,
+  arduinoUnoAvailable: true,
+  esp32Available: true,
+  legoSpikeAvailable: true,
+  inventoryStatus: 'confirmed_available',
+  verifiedBy: 'Don (Owner Direct Confirmation)',
+  notes: 'All core microcontrollers and robotics kits (BBC micro:bit V2, Arduino UNO, ESP32, and LEGO Spike kits) are confirmed in stock and available for learner prototyping.'
+};
+
+export interface CopilotDeploymentConfig {
+  endpoint: string;
+  method: 'POST';
+  deploymentTimingConfirmed: boolean;
+  status: 'confirmed';
+  verifiedBy: string;
+  expectedPayload: {
+    programId: string;
+    phaseId: string;
+    role: string;
+    userPrompt: string;
+    context: Record<string, unknown>;
+  };
+}
+
+export const COPILOT_DEPLOYMENT_CONFIG: CopilotDeploymentConfig = {
+  endpoint: '/api/pbl-copilot',
+  method: 'POST',
+  deploymentTimingConfirmed: true,
+  status: 'confirmed',
+  verifiedBy: 'Don (Owner Direct Confirmation)',
+  expectedPayload: {
+    programId: 'ecocool-smart-garden-2026',
+    phaseId: 'phase-5-prototype',
+    role: 'Tough Judge | Engineering Mentor | Socratic Coach',
+    userPrompt: 'Debug my servo linkage logic and sensor hysteresis curve',
+    context: {
+      hardware: ['BBC micro:bit V2', 'Arduino UNO', 'ESP32', 'LEGO Spike'],
+      ageTier: 'junior-middle-secondary'
+    }
+  }
 };
 
 export interface ProgramPhase {

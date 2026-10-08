@@ -108,7 +108,16 @@ In response to questions posed during the prototype phase, the following core sp
    - **Track 3 (Upper Secondary / Ages 15–17 / Grades 10–12):** Native Python/C++/CAD, multi-sensor I2C buses, mathematical efficacy models, dual-stakeholder field trials, investor/expo pitch deck.
    - *Architecture export:* `LEARNER_AGE_CONFIG` in `programData.ts` & `programRegistry.ts`
 
-3. **Complete Suite of 5 Standardized PBL Programs:**
+3. **Hardware Inventory Availability:** **CONFIRMED BY DON**
+   - **Microcontrollers & Robotics Kits:** BBC micro:bit V2, Arduino UNO, ESP32 (dual-core WiFi/BLE), and LEGO Spike Essential & Prime kits are all verified in stock and accessible for classroom prototyping.
+   - *Architecture export:* `HARDWARE_INVENTORY_CONFIG` in `programData.ts` & `programRegistry.ts`
+
+4. **Backend AI Co-Pilot API Deployment Timing:** **CONFIRMED BY DON**
+   - **Endpoint:** `POST /api/pbl-copilot`
+   - **Timing Status:** Confirmed and ready for staging deployment in accordance with Gemini SDK / AI Studio specifications.
+   - *Architecture export:* `COPILOT_DEPLOYMENT_CONFIG` in `programData.ts` & `programRegistry.ts`
+
+5. **Complete Suite of 5 Standardized PBL Programs:**
    - **EcoCool:** Smart Urban Heat & Community Garden Monitor (120 contact hours)
    - **Hex-City Thailand:** Floating Resilient Architecture & Urban Disaster Resilience (120 contact hours)
    - **Biomechanics & Bio-Robotics:** Bio-Inspired Kinematics & Assistive Technology (140 contact hours)

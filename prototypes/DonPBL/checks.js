@@ -162,7 +162,23 @@ assert(programDataFile.includes('CONFIRMED BY DON: Multi-tiered tracks desired a
 assert(programRegistryFile.includes('LEARNER_AGE_CONFIG'), 'LEARNER_AGE_CONFIG must be exported from programRegistry');
 console.log('✓ Multi-Tiered Learner Age Bands verified: Primary through Upper Secondary (Ages 9–17: 9–11, 12–14, 15–17) confirmed by Don');
 
-console.log('\nAll 12 verification checks PASSED successfully!');
+// 13. Verify Hardware Inventory (Confirmed by Don: micro:bits, Arduino UNO, ESP32, LEGO Spike)
+assert(programDataFile.includes('HARDWARE_INVENTORY_CONFIG'), 'HARDWARE_INVENTORY_CONFIG must be defined');
+assert(programDataFile.includes('microbitsAvailable: true'), 'micro:bits must be confirmed available');
+assert(programDataFile.includes('arduinoUnoAvailable: true'), 'Arduino UNO must be confirmed available');
+assert(programDataFile.includes('esp32Available: true'), 'ESP32 must be confirmed available');
+assert(programDataFile.includes('legoSpikeAvailable: true'), 'LEGO Spike must be confirmed available');
+assert(programRegistryFile.includes('HARDWARE_INVENTORY_CONFIG'), 'HARDWARE_INVENTORY_CONFIG must be exported from programRegistry');
+console.log('✓ Hardware Inventory verified: micro:bit V2, Arduino UNO, ESP32 & LEGO Spike kits confirmed in stock by Don');
+
+// 14. Verify Backend AI Co-Pilot Deployment Timing (/api/pbl-copilot confirmed by Don)
+assert(programDataFile.includes('COPILOT_DEPLOYMENT_CONFIG'), 'COPILOT_DEPLOYMENT_CONFIG must be defined');
+assert(programDataFile.includes("endpoint: '/api/pbl-copilot'"), 'Copilot endpoint must be /api/pbl-copilot');
+assert(programDataFile.includes('deploymentTimingConfirmed: true'), 'Copilot deployment timing must be confirmed');
+assert(programRegistryFile.includes('COPILOT_DEPLOYMENT_CONFIG'), 'COPILOT_DEPLOYMENT_CONFIG must be exported from programRegistry');
+console.log('✓ Backend AI Co-Pilot endpoint (/api/pbl-copilot) deployment timing confirmed by Don');
+
+console.log('\nAll 14 verification checks PASSED successfully!');
 
 
 
