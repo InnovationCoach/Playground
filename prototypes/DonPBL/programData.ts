@@ -143,12 +143,21 @@ export interface CopilotDeploymentConfig {
   deploymentTimingConfirmed: boolean;
   status: 'confirmed';
   verifiedBy: string;
+  contractDoc: string;
+  systemInstructionSummary: string;
   expectedPayload: {
-    programId: string;
-    phaseId: string;
-    role: string;
-    userPrompt: string;
-    context: Record<string, unknown>;
+    message: string;
+    phase: 'explore' | 'empathise' | 'define' | 'ideate' | 'prototype' | 'test' | 'share';
+    impact: 'people' | 'environment' | 'both' | null;
+    language: 'micropython' | 'makecode' | 'python' | 'arduino' | 'lego';
+    problem: {
+      hmw: string;
+      who: string;
+      criteria: string;
+      constraints: string;
+      impactMeasure: string;
+    };
+    ageBand: string;
   };
 }
 
@@ -158,15 +167,21 @@ export const COPILOT_DEPLOYMENT_CONFIG: CopilotDeploymentConfig = {
   deploymentTimingConfirmed: true,
   status: 'confirmed',
   verifiedBy: 'Don (Owner Direct Confirmation)',
+  contractDoc: 'docs/BACKEND-PBL-COPILOT-PROMPT-FOR-GEMINI.md',
+  systemInstructionSummary: 'Project co-pilot writes working commented code (<80 lines), appends "How to test it" (2-4 steps on real device) and 1 explain-back question. Rejects primary accounts (403), mains electricity/high-voltage/battery tampering, and reflection generation.',
   expectedPayload: {
-    programId: 'ecocool-smart-garden-2026',
-    phaseId: 'phase-5-prototype',
-    role: 'Tough Judge | Engineering Mentor | Socratic Coach',
-    userPrompt: 'Debug my servo linkage logic and sensor hysteresis curve',
-    context: {
-      hardware: ['BBC micro:bit V2', 'Arduino UNO', 'ESP32', 'LEGO Spike'],
-      ageTier: 'junior-middle-secondary'
-    }
+    message: 'Write MicroPython for a micro:bit V2 reading capacitive soil sensor on pin0 to deploy servo canopy on pin1 and pulse 5V mini-pump on pin2',
+    phase: 'prototype',
+    impact: 'both',
+    language: 'micropython',
+    problem: {
+      hmw: 'How might we use sensor-guided micro-irrigation and reflective shade canopies to protect urban crops from heat waves?',
+      who: 'Community garden volunteers and student gardeners',
+      criteria: 'Keep soil moisture between 400-600 ADC and soil temp <30C',
+      constraints: '5V low-voltage DC only; water pump isolated from electronics; 12-week prototyping budget',
+      impactMeasure: 'Reduce water evaporation waste by >= 40%'
+    },
+    ageBand: '12-14'
   }
 };
 
