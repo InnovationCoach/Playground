@@ -61,7 +61,7 @@ export interface StudentProject {
   };
   impact: 'people' | 'environment' | 'both' | null;
   codeLanguage: 'micropython' | 'makecode' | 'python' | 'arduino' | 'lego';
-  finalFormat: 'showcase' | 'presentation' | null;
+  finalFormat: 'showcase' | 'presentation' | 'interactive-stand' | 'stage-pitch' | null;
   tasksDone: Record<string, number[]>; // phase -> array of completed task indices
   evidence: EvidenceItem[];
   sensorState: {
@@ -627,6 +627,145 @@ export const MOCK_COHORT: StudentProject[] = [
     },
     evidence: [],
     coachFeedback: []
+  },
+  {
+    id: 'proj-sproutguard-05',
+    teamName: 'Team SproutGuard (Primary Track / Ages 9–11)',
+    members: ['Liam Chen (Grade 5)', 'Sofia Al-Mansoor (Grade 5)'],
+    gradeLevel: 'Primary Track (Grade 5 / Age 10-11)',
+    termId: 'term-2026-t3',
+    currentPhase: 'prototype',
+    progressPercent: 65,
+    drivingQuestion: 'How can we build a singing cardboard garden sentinel with micro:bit that tells our school gardener when strawberry plants need water?',
+    problem: {
+      hmw: 'How might we use happy musical tunes and LED emojis to remind younger students to water strawberry garden beds?',
+      who: 'Primary school gardening club and cafeteria compost team.',
+      why: 'Strawberries dry out quickly in small raised beds when students forget to check moisture during recess.',
+      criteria: '1. Play cheerful chime when soil is moist.\n2. Sad icon and flashing LED when soil is dry.\n3. Water-resistant decorated cardboard house.',
+      constraints: '1. Visual MakeCode blocks only.\n2. Recycled craft materials and alligator clips.',
+      impactMeasure: 'Zero dried strawberry plants over a 3-week test window.'
+    },
+    impact: 'both',
+    codeLanguage: 'makecode',
+    finalFormat: 'interactive-stand',
+    tasksDone: {
+      explore: [0, 1, 2],
+      empathise: [0, 1],
+      define: [0, 1],
+      ideate: [0, 1],
+      prototype: [0, 1]
+    },
+    sensorState: {
+      ambientTemp: 28.4,
+      soilMoisturePct: 68,
+      canopyDeployed: true,
+      pumpActive: false,
+      waterLevelPct: 85
+    },
+    evidence: [
+      {
+        id: 'ev-sg-01',
+        phase: 'explore',
+        kind: 'note',
+        title: 'Primary STEAM Discovery: Sponge Moisture vs. Garden Soil',
+        body: 'Tested our capacitive probe in dry kitchen sponge vs. damp sponge vs. water cup. We drew color-coded dial meters in our project journals.',
+        competencies: ['ctps-01', 'ct-01'],
+        createdAt: 1775830000000
+      },
+      {
+        id: 'ev-sg-02',
+        phase: 'prototype',
+        kind: 'code',
+        title: 'MakeCode Block Chime Logic (Exported JS)',
+        body: '// MakeCode Visual Blocks exported code\nbasic.forever(function () {\n    let reading = pins.analogReadPin(AnalogPin.P0)\n    if (reading < 400) {\n        basic.showIcon(IconNames.Sad)\n        music.playTone(262, music.beat(BeatFraction.Whole))\n    } else {\n        basic.showIcon(IconNames.Happy)\n    }\n})',
+        competencies: ['ct-05', 'lc-02'],
+        createdAt: 1778320000000
+      }
+    ],
+    coachFeedback: [
+      {
+        coachName: 'Coach Eleanor Vance',
+        date: '2026-09-22',
+        note: 'Inspiring visual storytelling and clean MakeCode blocks! The primary gardening club will love your chime alerts.',
+        competencyScores: {
+          'ctps-01': 4,
+          'lc-02': 4,
+          'ct-05': 3
+        }
+      }
+    ]
+  },
+  {
+    id: 'proj-aeropulse-06',
+    teamName: 'Team AeroPulse (Upper Secondary Track / Ages 15–17)',
+    members: ['Kai Takahashi (Grade 11)', 'Elena Rostova (Grade 11)'],
+    gradeLevel: 'Upper Secondary Track (Grade 11 / Age 16-17)',
+    termId: 'term-2026-t3',
+    currentPhase: 'test',
+    progressPercent: 88,
+    drivingQuestion: 'How might we engineer parametric multi-axis solar tracking canopies and predictive transpiration models to protect urban community greenhouses?',
+    problem: {
+      hmw: 'How might we minimize vapor-pressure deficits (VPD) in high-density urban poly-tunnels using automated dual-axis Mylar louvers and predictive micro-climate telemetry?',
+      who: 'Commercial urban hydroponic farmers and community food resilience networks.',
+      why: 'Extreme noon VPD spikes exceed 3.5 kPa, causing stomatal closure, thermal leaf scorch, and severe nutrient lockup.',
+      criteria: '1. Maintain leaf temperature within +/- 1.5°C of optimal 24°C.\n2. Continuous logging via I2C bus.\n3. Parametric 3D CAD linkage with low parasitic power.',
+      constraints: '1. Less than 15W total system power drawn from solar buffer.\n2. Real-time serial telemetry.',
+      impactMeasure: 'Reduction in crop stress index and 42% lower peak afternoon canopy temps.'
+    },
+    impact: 'both',
+    codeLanguage: 'micropython',
+    finalFormat: 'stage-pitch',
+    tasksDone: {
+      explore: [0, 1, 2],
+      empathise: [0, 1],
+      define: [0, 1],
+      ideate: [0, 1],
+      prototype: [0, 1, 2],
+      test: [0, 1]
+    },
+    sensorState: {
+      ambientTemp: 31.8,
+      soilMoisturePct: 74,
+      canopyDeployed: true,
+      pumpActive: false,
+      waterLevelPct: 92
+    },
+    evidence: [
+      {
+        id: 'ev-ap-01',
+        phase: 'explore',
+        kind: 'data',
+        title: 'Vapor-Pressure Deficit (VPD) Mathematical Model',
+        body: 'Derived mathematical approximation of saturation vapor pressure: $VPD = VP_{sat} \\times (1 - RH/100)$. Calibrated with psychrometric data from DHT22 ambient probe.',
+        competencies: ['ctps-05', 'ctps-12'],
+        createdAt: 1775800000000,
+        metrics: [
+          { label: 'Baseline Peak VPD', value: '3.62 kPa' },
+          { label: 'Shielded Peak VPD', value: '1.41 kPa' }
+        ]
+      },
+      {
+        id: 'ev-ap-02',
+        phase: 'test',
+        kind: 'code',
+        title: 'Embedded MicroPython PID Control Loop',
+        body: '# MicroPython Non-Blocking State Machine with PID Temperature Tuning\nfrom microbit import *\n# Full PID loop regulating servo PWM duty cycles against thermal lag',
+        competencies: ['ct-05', 'ctps-02'],
+        createdAt: 1779200000000
+      }
+    ],
+    coachFeedback: [
+      {
+        coachName: 'Coach Eleanor Vance',
+        date: '2026-09-24',
+        note: 'Exemplary mathematical rigor and embedded code architecture. Ready for submission to regional engineering fairs.',
+        competencyScores: {
+          'ctps-05': 4,
+          'ctps-12': 4,
+          'ct-05': 4
+        }
+      }
+    ]
   }
 ];
 

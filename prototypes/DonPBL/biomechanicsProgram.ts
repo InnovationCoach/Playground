@@ -66,7 +66,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
     peopleImpact: 'Saves lives through rapid disaster search-and-rescue rovers in collapsed structures and preserves high-value agricultural food yields.',
     environmentalImpact: 'Captures microplastics and marine debris from tidal estuaries using non-clogging baleen cross-flow filtration without fossil fuel vessel waste.'
   },
-  targetAgeRange: '14–18 years (Grades 9–12 / Secondary & Pre-Engineering)',
+  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
   durationWeeks: 14,
   totalSessions: 24, // Structured into 24 core intensive milestone workshops
   materialsAndKit: {
@@ -111,8 +111,9 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
       'Document AI provenance: Record every algorithm consultation in the Engineering Notebook.'
     ],
     differentiationNotes: [
-      'Standard Track: Build 4-bar linkage walking legs or continuum tentacles with proportional joystick or ultrasonic trigger.',
-      'Advanced Track: Implement full Theo Jansen / Klann linkages, write custom complementary filters for MPU-6050 IMU balance control, and conduct FMEA.'
+      'Primary Track (Ages 9–11 / Grades 4–6): Biomimetic animal locomotion imitation, cardboard compliant grabbers, drinking straw tendon linkages, and syringe hydraulic/pneumatic claws without complex circuits.',
+      'Junior Secondary Track (Ages 12–14 / Grades 7–9): LEGO Technic 4-bar linkage walking legs or continuum tentacles with proportional joystick or ultrasonic trigger, basic MicroPython motor control loops.',
+      'Upper Secondary Track (Ages 15–17 / Grades 10–12): Theo Jansen / Klann multi-bar linkages, custom embedded Arduino C++ firmware with non-blocking millis() state machines, MPU-6050 IMU balance telemetry, and full Failure Modes & Effects Analysis (FMEA).'
     ]
   },
   measurableImpactCriteria: [

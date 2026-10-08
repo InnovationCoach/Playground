@@ -9,7 +9,15 @@
  * - Program 4: CleanStream (Smart Urban Stormwater Runoff Sentinel)
  */
 
-import { PblProgram, SAMPLE_PROGRAM, SCHOOL_SCHEDULE_CONFIG, SchoolScheduleConfig } from './programData';
+import { 
+  PblProgram, 
+  SAMPLE_PROGRAM, 
+  SCHOOL_SCHEDULE_CONFIG, 
+  SchoolScheduleConfig,
+  LEARNER_AGE_CONFIG,
+  LearnerAgeConfig,
+  AgeTierTrack
+} from './programData';
 import { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS, HexCityRole, CrisisScenario } from './hexCityProgram';
 import { BIOMECHANICS_PROGRAM, BIOMIMETIC_TRACKS, BiomimeticTrack } from './biomechanicsProgram';
 import { PASSION_BLUEPRINT_PROGRAM, FRICTION_STRATEGIES, FrictionStrategy } from './passionBlueprintProgram';
@@ -21,8 +29,8 @@ import {
   WorldRule 
 } from './storytellingProgram';
 
-export { SCHOOL_SCHEDULE_CONFIG };
-export type { SchoolScheduleConfig };
+export { SCHOOL_SCHEDULE_CONFIG, LEARNER_AGE_CONFIG };
+export type { SchoolScheduleConfig, LearnerAgeConfig, AgeTierTrack };
 
 export { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS };
 export type { HexCityRole, CrisisScenario };
@@ -49,7 +57,7 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
     peopleImpact: 'Protects neighborhood recreational streams and drinking water intake basins from acute toxic contamination.',
     environmentalImpact: 'Captures over 50% of toxic suspended sediment via automated first-flush diversion into natural bio-char sand swales.'
   },
-  targetAgeRange: '12–15 years (Grades 7–9 / Lower Secondary) [Provisional Assumption]',
+  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
   durationWeeks: 12,
   totalSessions: 24,
   materialsAndKit: {

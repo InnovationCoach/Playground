@@ -165,7 +165,7 @@ export const HEX_CITY_PROGRAM: PblProgram = {
     peopleImpact: 'Provides flood-proof modular shelter for 500+ households, dedicated negative-pressure medical triage, and resilient civic community spaces.',
     environmentalImpact: 'Zero-discharge closed-loop water treatment, circular recycling of marine plastics, 150,000 monocrystalline solar panels, and wave-attenuating floating breakwaters that regenerate coastal marine ecology.'
   },
-  targetAgeRange: '12–17 years (Grades 7–12 / Middle & High School)',
+  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
   durationWeeks: 12,
   totalSessions: 24,
   materialsAndKit: {
@@ -211,8 +211,9 @@ export const HEX_CITY_PROGRAM: PblProgram = {
       'Record AI provenance in Master Operations Manual (Section 3 & 4).'
     ],
     differentiationNotes: [
-      'Tier 1 (Foundational 12-14): Focus on hull cutting, 3V copper circuit lighting, and basic water filter bench lab.',
-      'Tier 2 (Advanced 15-17): Design custom 3D printed flexible shear connectors in CAD, automate bilge pumps with micro:bit, and build an itemized 2.1B THB BOQ with depreciation.'
+      'Primary Track (Ages 9–11 / Grades 4–6): Modular foam hex tile assembly, simple 3V coin cell and copper tape LED circuits for living pods, tactile buoyancy water-displacement tub testing, and illustrated disaster survival guides.',
+      'Junior Secondary Track (Ages 12–14 / Grades 7–9): Scale model 1:2500 hull fabrication, multi-layer biochar water filtration column tests, and digital twin simulation balancing food, energy, and water reserves across seasonal monsoon cycles.',
+      'Upper Secondary Track (Ages 15–17 / Grades 10–12): Parametric 3D CAD flexible shear connectors, automated micro:bit/ESP32 bilge pump telemetry, hydrostatics calculation sheets, and an itemized 2.1B THB municipal capital expenditure & lifecycle depreciation model.'
     ]
   },
   measurableImpactCriteria: [

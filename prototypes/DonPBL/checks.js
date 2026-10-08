@@ -152,7 +152,17 @@ assert(programDataFile.includes('CONFIRMED BY DON: 12 weeks per term, 3 terms pe
 assert(programRegistryFile.includes('SCHOOL_SCHEDULE_CONFIG'), 'SCHOOL_SCHEDULE_CONFIG must be exported from programRegistry');
 console.log('✓ School Operating Model verified: 12 Weeks/Term, 3 Terms/Year, 2h/Weekday (10h/Wk • 120h/Term • 360h/Year) confirmed by Don');
 
-console.log('\nAll 11 verification checks PASSED successfully!');
+// 12. Verify Multi-Tiered Learner Age Bands (Ages 9–17 Confirmed by Don)
+assert(programDataFile.includes('minAge: 9'), 'minAge must be 9');
+assert(programDataFile.includes('maxAge: 17'), 'maxAge must be 17');
+assert(programDataFile.includes("tierId: 'primary'"), 'Primary track must exist');
+assert(programDataFile.includes("tierId: 'middle'"), 'Middle secondary track must exist');
+assert(programDataFile.includes("tierId: 'senior'"), 'Upper secondary track must exist');
+assert(programDataFile.includes('CONFIRMED BY DON: Multi-tiered tracks desired across Primary through Secondary, ages 9–17'), 'asmp-age must be marked confirmed by Don');
+assert(programRegistryFile.includes('LEARNER_AGE_CONFIG'), 'LEARNER_AGE_CONFIG must be exported from programRegistry');
+console.log('✓ Multi-Tiered Learner Age Bands verified: Primary through Upper Secondary (Ages 9–17: 9–11, 12–14, 15–17) confirmed by Don');
+
+console.log('\nAll 12 verification checks PASSED successfully!');
 
 
 

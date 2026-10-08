@@ -9,6 +9,38 @@
 
 ## Change Log Entries
 
+### [2026-10-07] - Confirmation: Learner Age Cohorts (Primary through Upper Secondary: Ages 9–17)
+
+#### Verified & Configured
+- **Multi-Tiered Learner Cohort Specification (`LEARNER_AGE_CONFIG` in `programData.ts` & `programRegistry.ts`):**
+  - **Overall Age Span:** Confirmed by Don covering Primary through Upper Secondary: **Ages 9–17 (Grades 4–12)**.
+  - **Track 1 — Younger Primary Track (Ages 9–11 / Grades 4–6):**
+    - *Scaffolding Focus:* Sensory discovery, guided exploratory prompts, tactile cardboard & craft prototyping, gamified badge progression.
+    - *Code Tool:* MakeCode Block Editor / Scratch 3.0 / Visual Flowcharts.
+    - *Hardware Focus:* BBC micro:bit V2 built-in sensors (light, temperature, buttons, sound buzzer), alligator clips, continuous servos.
+    - *Key Deliverables:* Tactile Pop-Up Prototype, Visual Block Program, Illustrated Story/Discovery Journal, Classroom Mini-Expo Pitch.
+  - **Track 2 — Junior / Middle Secondary Track (Ages 12–14 / Grades 7–9):**
+    - *Scaffolding Focus:* Scientific method hypothesis rigor, hybrid block-to-Python coding, 4-bar mechanical linkage modeling, structured stakeholder empathy interviews.
+    - *Code Tool:* MicroPython / CircuitPython / MakeCode Python mode.
+    - *Hardware Focus:* External analog sensors (capacitive soil probe, DS18B20 1-wire), 5V relay/MOSFET motor drivers, 4-bar linkage servos.
+    - *Key Deliverables:* Working Automated Rig, Calibrated Data Graph, User Empathy Field Map, Community Showcase Pitch & Live Demo.
+  - **Track 3 — Upper Secondary Track (Ages 15–17 / Grades 10–12):**
+    - *Scaffolding Focus:* Algorithmic optimization, native embedded Python/C++, 3D parametric CAD linkages, mathematical thermodynamics/kinematics modeling, industry pitch decks.
+    - *Code Tool:* Native Python / Arduino C++ / Embedded WebAssembly / CAD Fusion 360.
+    - *Hardware Focus:* Multi-sensor I2C buses, ESP32/micro:bit telemetry, precision load cells, bio-inspired kinematic mechanisms.
+    - *Key Deliverables:* Production-Grade Functional Prototype, Mathematical Efficacy & Error Model, Dual Stakeholder Field Trial, Formal Capstone Exhibition & Investor Deck.
+- **Assumption Verification & UI Reflection:**
+  - `asmp-age` in `SAMPLE_PROGRAM.assumptions` officially marked **CONFIRMED BY DON: Multi-tiered tracks desired across Primary through Secondary, ages 9–17**.
+  - `AssumptionsBanner.tsx` updated with a live verified indicator badge: `Cohorts Confirmed: Ages 9–17 (Primary through Upper Secondary)` and green confirmation card.
+  - `Header.tsx` hero area updated with blue cohort pill: `Ages 9–17 (Primary–Secondary Tracks)`.
+  - `TeacherView.tsx` updated with a comprehensive Multi-Tiered Age Track Scaffolding card displaying tools, hardware, and deliverables for each track, along with differentiation notes.
+  - `StudentView.tsx` Project Definition tab updated with clear age track scaffolding and cohort tier indicator.
+  - `mockFixtures.ts` updated with sample projects for Primary Track (Team SproutGuard / Grade 5) and Upper Secondary Track (Team AeroPulse / Grade 11).
+  - All 5 PBL program definitions (`SAMPLE_PROGRAM`, `hexCityProgram`, `biomechanicsProgram`, `passionBlueprintProgram`, `storytellingProgram`, `CLEAN_STREAM_PROGRAM`) updated with differentiated track notes across Ages 9–17.
+- **Verification (`checks.js`):**
+  - Added Check 12 verifying the complete 9–17 learner age band configuration (`LEARNER_AGE_CONFIG`, Primary, Middle, and Senior tracks, and confirmed assumption).
+  - All 12 verification checks PASSED successfully.
+
 ### [2026-10-07] - Confirmation: School Operating Model (12 Weeks/Term, 3 Terms/Year, 2h/Weekday)
 
 #### Verified & Configured

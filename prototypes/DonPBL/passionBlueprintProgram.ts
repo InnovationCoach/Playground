@@ -88,7 +88,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
     peopleImpact: 'Empowers diverse learners with personalized executive functioning tools, self-advocacy, and emotional regulation to launch projects they care about for authentic audiences (experts, community, peers).',
     environmentalImpact: 'Channels personal passions into local community, ecological stewardship, sustainable physical fabrication, and ethical digital artifacts.'
   },
-  targetAgeRange: '10–18 years (Grades 5–12 / Upper Primary through High School & 2e Learners)',
+  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17 & 2e Learners)',
   durationWeeks: 12,
   totalSessions: 24,
   materialsAndKit: {
@@ -128,8 +128,9 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
       'Transparent AI Provenance: Log what prompt was asked, what the AI provided, and what the student modified or kept.'
     ],
     differentiationNotes: [
-      'Tier 1 (Scaffolded Discovery): Guided prompts for students needing support to define their rabbit hole and select a single bite-sized deliverable.',
-      'Tier 2 (Autonomous Accelerator): Independent sprint planning for students with strong self-direction to pursue advanced technical or creative briefs.'
+      'Primary Track (Ages 9–11 / Grades 4–6): Visual Kanban icon boards, speech-to-text audio reflections, physical craft/LEGO/cosplay tactile models, and 15-minute "ugly first draft" drawing games.',
+      'Junior Secondary Track (Ages 12–14 / Grades 7–9): Multi-week personal passion sprints with structured digital boards (Trello/Notion), Scratch/Godot game prototypes, DIY microcontroller inventions, and peer playtesting circles.',
+      'Upper Secondary Track (Ages 15–17 / Grades 10–12): Portfolio-grade deliverables (open-source software, published community zines, functional industrial prototypes), autonomous milestone management, and public pitch presentations to industry mentors.'
     ]
   },
   measurableImpactCriteria: [

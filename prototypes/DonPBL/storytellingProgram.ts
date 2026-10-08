@@ -91,7 +91,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
     peopleImpact: 'Teaches youth advanced psychological literacy, empathy across ideological divides, vocal performance, and professional creative pipeline management.',
     environmentalImpact: 'Investigates ecological fragility, climate migration, resource depletion, and regenerative futures through grounded speculative world-building.'
   },
-  targetAgeRange: '13–18 years (Grades 8–12 / Secondary, Media Arts & Pre-Film)',
+  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
   durationWeeks: 20,
   totalSessions: 24,
   materialsAndKit: {
@@ -131,8 +131,9 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       'Full Story Provenance: Document AI prompts used to explore plot bottlenecks or generate character name variations.'
     ],
     differentiationNotes: [
-      'Visual Track: Focus on animatics, 30-frame storyboards, and asset manifests for visual/animation learners.',
-      'Writing/Audio Track: Focus on rich subtextual screenplays, vocal acting takes, and spatial sound design for writers and audio designers.'
+      'Primary Track (Ages 9–11 / Grades 4–6): Illustrated character trading cards, 6-panel comic strip layouts, classroom vocal radio plays with live kitchen-prop foley, and tactile beat card corkboards.',
+      'Junior Secondary Track (Ages 12–14 / Grades 7–9): Interactive branching choice fiction (Twine / Ink), 3-scene screenplay with psychological subtext, and 2-track audio drama recordings with basic soundtrack scoring.',
+      'Upper Secondary Track (Ages 15–17 / Grades 10–12): Industry-standard Fountain screenplay pipeline, 4-layer DAW sound engineering (dialogue, room tone, spot foley, music textures), locked 90-second animatic, and pitch bible presentation to studio judges.'
     ]
   },
   measurableImpactCriteria: [

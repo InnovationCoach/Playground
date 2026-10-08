@@ -55,6 +55,68 @@ export const SCHOOL_SCHEDULE_CONFIG: SchoolScheduleConfig = {
   status: 'verified'
 };
 
+export interface AgeTierTrack {
+  tierId: 'primary' | 'middle' | 'senior';
+  name: string;
+  ageBand: string;
+  gradeLevels: string;
+  scaffoldingFocus: string;
+  programmingPlatform: string;
+  hardwareFocus: string;
+  deliverables: string[];
+}
+
+export interface LearnerAgeConfig {
+  span: string;
+  minAge: number;
+  maxAge: number;
+  description: string;
+  verifiedBy: string;
+  status: 'verified';
+  tracks: AgeTierTrack[];
+}
+
+export const LEARNER_AGE_CONFIG: LearnerAgeConfig = {
+  span: 'Ages 9–17 (Primary through Upper Secondary)',
+  minAge: 9,
+  maxAge: 17,
+  description: 'Multi-tiered tracks covering Primary (ages 9–11), Middle Secondary (ages 12–14), and Upper Secondary (ages 15–17)',
+  verifiedBy: 'Don (Owner Direct Confirmation)',
+  status: 'verified',
+  tracks: [
+    {
+      tierId: 'primary',
+      name: 'Younger Primary Track',
+      ageBand: 'Ages 9–11',
+      gradeLevels: 'Grades 4–6',
+      scaffoldingFocus: 'Sensory discovery, guided prompts, visual block coding, tactile craft & cardboard prototyping, gamified badges',
+      programmingPlatform: 'MakeCode Block Editor / Scratch 3.0 / Visual Flowcharts',
+      hardwareFocus: 'BBC micro:bit V2 built-in sensors (light, temp, buttons, sound), alligator clips, continuous servos',
+      deliverables: ['Tactile Pop-Up Prototype', 'Visual Block Program', 'Illustrated Story Journal', 'Classroom Mini-Expo Pitch']
+    },
+    {
+      tierId: 'middle',
+      name: 'Junior / Middle Secondary Track',
+      ageBand: 'Ages 12–14',
+      gradeLevels: 'Grades 7–9',
+      scaffoldingFocus: 'Scientific method rigor, hybrid block-to-Python coding, mechanical linkage modeling, structured empathy interviews',
+      programmingPlatform: 'MicroPython / CircuitPython / MakeCode Python mode',
+      hardwareFocus: 'External analog sensors (capacitive moisture, DS18B20 1-wire), 5V relay/MOSFET drivers, 4-bar linkage servos',
+      deliverables: ['Working Automated Rig', 'Calibrated Data Graph', 'User Empathy Field Map', 'Community Showcase Pitch & Demo']
+    },
+    {
+      tierId: 'senior',
+      name: 'Upper Secondary Track',
+      ageBand: 'Ages 15–17',
+      gradeLevels: 'Grades 10–12',
+      scaffoldingFocus: 'Algorithmic optimization, native Python/C++ embedded code, 3D CAD parametric linkages, mathematical modeling, industry pitch decks',
+      programmingPlatform: 'Native Python / Arduino C++ / Embedded WebAssembly / CAD Fusion 360',
+      hardwareFocus: 'Multi-sensor I2C buses, ESP32/micro:bit telemetry, precision load cells, bio-inspired kinematic mechanisms',
+      deliverables: ['Production-Grade Functional Prototype', 'Mathematical Efficacy & Error Model', 'Dual Stakeholder Field Trial', 'Formal Capstone Exhibition & Investor Deck']
+    }
+  ]
+};
+
 export interface ProgramPhase {
   id: string;
   title: string;
@@ -125,7 +187,7 @@ export const SAMPLE_PROGRAM: PblProgram = {
     peopleImpact: 'Protects community garden food yield for local families, lowers heat-exhaustion risk for student and volunteer tenders, and fosters neighborhood civic engagement.',
     environmentalImpact: 'Cuts water evaporation losses by over 40% via root-targeted drip pulses, mitigates localized heat stress, and demonstrates passive reflective cooling principles.'
   },
-  targetAgeRange: '12–15 years (Grades 7–9 / Lower Secondary) [Provisional Assumption]',
+  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary / Multi-Tiered Tracks: Ages 9–11, 12–14, 15–17)',
   durationWeeks: 12,
   totalSessions: 24,
   materialsAndKit: {
@@ -171,8 +233,9 @@ export const SAMPLE_PROGRAM: PblProgram = {
       'Explain-It-Back Test: Students must be able to explain the purpose of variables and control loops in their code without reading verbatim from AI responses.'
     ],
     differentiationNotes: [
-      'Support Level 1: Focus on a single threshold (e.g. if moisture < 400, trigger pump for 3s). Use visual MakeCode blocks.',
-      'Extension Level 2: Multi-sensor fusion (trigger shade canopy if ambient temp > 32°C AND solar irradiance is high; pulse water only if soil moisture is critically low and temp < 30°C to prevent root scalding).'
+      'Primary Track (Ages 9–11 / Grades 4–6): Single-condition visual MakeCode blocks (if moisture < 400, sound happy chime and pulse pump 2s). Focus on pre-cut cardboard frames, tactile plant-tending, and illustrated journals.',
+      'Junior Secondary Track (Ages 12–14 / Grades 7–9): MicroPython control loop with hysteresis threshold band (660/540 ADC) to prevent rapid cycle wear. Four-bar linkage umbrella shade canopy. User empathy field interviews with garden volunteers.',
+      'Upper Secondary Track (Ages 15–17 / Grades 10–12): Multi-sensor fusion in Python/C++ (capacitive moisture + ambient DHT22 + DS18B20 root probe). Mathematical modeling of soil thermal inertia and transpiration vapor-pressure deficits. Dual-stakeholder community presentation.'
     ]
   },
   measurableImpactCriteria: [
@@ -205,8 +268,8 @@ export const SAMPLE_PROGRAM: PblProgram = {
     {
       id: 'asmp-age',
       domain: 'Learner Cohort',
-      assumption: 'Target learner age band is 12–15 years (Grades 7–9), assuming basic algebra and introductory block/Python literacy.',
-      ownerVerificationNeeded: 'Confirm with Don if younger primary (age 9-11) or upper secondary (16-18) tracks are desired.'
+      assumption: 'Program provides tiered tracks spanning Primary through Secondary (Ages 9–17 / Grades 4–12), with differentiated scaffolding for Primary (9–11), Junior Secondary (12–14), and Upper Secondary (15–17).',
+      ownerVerificationNeeded: 'CONFIRMED BY DON: Multi-tiered tracks desired across Primary through Secondary, ages 9–17.'
     },
     {
       id: 'asmp-duration',
