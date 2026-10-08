@@ -89,29 +89,66 @@ The demo interface provides:
 
 ---
 
-## 5. Explicit Assumptions & Provisional Choices
+## 5. Confirmed Operational Parameters & Verified Decisions
 
-As instructed in the handover brief, all provisional choices are explicitly documented for Don and the school leadership:
+In response to questions posed during the prototype phase, the following core specifications have been officially **confirmed by Don** and integrated across all program models, verification suites, and UI views:
 
-1. **Age Band:** Assumed 12–15 years (Grades 7–9 / Lower Secondary).  
-   *Question for Don:* Should there be a simplified track for Upper Primary (ages 9–11) using MakeCode blocks, or an advanced ESP32 / IoT track for Upper Secondary (ages 16–18)?
-2. **Term Duration:** Assumed 12 weeks with 2 sessions/week (24 sessions).  
-   *Question for Don:* Does the school's actual academic calendar run on an 8-week, 10-week, or 12-week cycle?
-3. **Hardware Availability:** Assumed classroom availability of BBC micro:bit V2 boards, 5V submersibles, and capacitive moisture sensors.  
-   *Question for Don:* What kits are currently in school inventory (micro:bit vs Arduino vs LEGO Spike)?
-4. **Theme Finalization:** Uses "Sustainable Futures & Climate Resilience".  
-   *Question for Don:* When will school leadership confirm the official Term 3 theme name?
+1. **School Operating Schedule:** **CONFIRMED BY DON**
+   - **Term Length:** 12 weeks per term
+   - **Terms per Year:** 3 terms per academic year (36 weeks total)
+   - **Daily Schedule:** 2 hours per weekday (Monday–Friday)
+   - **Weekly Hours:** 10 contact hours per week
+   - **Term Total:** 120 contact hours per term (360 total hours per academic year)
+   - *Architecture export:* `SCHOOL_SCHEDULE_CONFIG` in `programData.ts` & `programRegistry.ts`
+
+2. **Learner Age Demographics & Multi-Tiered Tracks:** **CONFIRMED BY DON**
+   - **Span:** Primary through Upper Secondary: **Ages 9–17 (Grades 4–12)**
+   - **Track 1 (Younger Primary / Ages 9–11 / Grades 4–6):** Visual block coding (MakeCode/Scratch), built-in micro:bit sensors, tactile craft/cardboard prototyping, gamified badge progression.
+   - **Track 2 (Junior Secondary / Ages 12–14 / Grades 7–9):** Hybrid block-to-MicroPython, external analog sensors, 4-bar mechanical linkage modeling, community empathy fieldwork.
+   - **Track 3 (Upper Secondary / Ages 15–17 / Grades 10–12):** Native Python/C++/CAD, multi-sensor I2C buses, mathematical efficacy models, dual-stakeholder field trials, investor/expo pitch deck.
+   - *Architecture export:* `LEARNER_AGE_CONFIG` in `programData.ts` & `programRegistry.ts`
+
+3. **Complete Suite of 5 Standardized PBL Programs:**
+   - **EcoCool:** Smart Urban Heat & Community Garden Monitor (120 contact hours)
+   - **Hex-City Thailand:** Floating Resilient Architecture & Urban Disaster Resilience (120 contact hours)
+   - **Biomechanics & Bio-Robotics:** Bio-Inspired Kinematics & Assistive Technology (140 contact hours)
+   - **The Passion Project Blueprint:** 2e Neuro-Scaffolding & Rapid Prototyping (120 contact hours)
+   - **Project Genesis Engine:** Cinematic IP, Hollywood Screenplay & Narrative Simulation (200 contact hours)
 
 ---
 
 ## 6. Proposed Integration with Existing PBL Studio
 
-When the owner decides to integrate this work into the main application, the architecture maps cleanly to existing files:
+When the repository owner decides to integrate this work into the main application, the architecture maps cleanly to existing files:
 
 | Prototype Component | Target Shared App Location | Integration Strategy |
 | :--- | :--- | :--- |
-| `programData.ts` (EcoCool Program) | `src/features/pbl/content/pblModel.js` | Add as pre-configured program option under `TERM` or multi-program registry. |
+| `programData.ts` & `programRegistry.ts` | `src/features/pbl/content/pblModel.js` | Add as pre-configured program options under multi-program selector. |
 | Engine Logic (`engine.ts`) | `src/features/pbl/engine/pblProject.js` | Direct drop-in for `safeLink`, `readiness`, and `evaluateReadiness` audits. |
 | AI Co-Pilot Simulator | `src/features/pbl/Copilot.jsx` & `server/` | Connect to `POST /api/pbl-copilot` once backend endpoint lands; keep mock fallback. |
 | Hardware Test Rig | `src/features/pbl/ProjectJourney.jsx` | Embed as interactive visual sandbox for physical computing learners. |
 | Coach Assessment Grid | `src/features/pbl/PblStudio.jsx` (Coach Tabs) | Powers the planned Coach Dashboard portfolio review tab. |
+| Simulation Engines (`StorytellingSimulator.tsx`, `PassionBlueprintModal.tsx`) | `src/features/pbl/components/` | Drop-in interactive sandboxes for narrative and passion project tracks. |
+
+---
+
+## 7. Syncing & Pushing to the `DonPBL` Branch
+
+All prototype commits are cleanly isolated and staged on the `DonPBL` branch. Because external git push operations from this cloud container require GitHub credentials, Don can sync to GitHub using either method below:
+
+### Option 1 — Unpack the Standalone Git Bundle (Recommended)
+On your local machine in your `Playground` repository clone on the `DonPBL` branch:
+```bash
+# 1. Pull the bundle commits into your local DonPBL branch:
+git pull prototypes/DonPBL/donpbl-prototype.bundle DonPBL
+
+# 2. Push to GitHub:
+git push origin DonPBL
+```
+
+### Option 2 — Push Directly with Personal Access Token (PAT)
+If using the terminal in this container or on your machine:
+```bash
+git push https://<GITHUB_PAT>@github.com/InnovationCoach/Playground.git HEAD:refs/heads/DonPBL
+```
+*(Replace `<GITHUB_PAT>` with your GitHub Personal Access Token with repo scope).*
