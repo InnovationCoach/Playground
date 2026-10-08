@@ -123,6 +123,7 @@ In response to questions posed during the prototype phase, the following core sp
    - **Biomechanics & Bio-Robotics:** Bio-Inspired Kinematics & Assistive Technology (140 contact hours)
    - **The Passion Project Blueprint:** 2e Neuro-Scaffolding & Rapid Prototyping (120 contact hours)
    - **Project Genesis Engine:** Cinematic IP, Hollywood Screenplay & Narrative Simulation (200 contact hours)
+   - **Entrepreneurship: Product Creation:** Problem Discovery (Friction Log & Past-Behavior Interviews), Solution Track Committal (Physical vs Digital), Silent Usability Testing, Unit Economics (COGS & Retail Price Margin formulas in Thai Baht), 3-Minute Pitch Arena, Digital Twin Simulation Sandbox, and 7-tier Startup Gamification (XP, Badges & Investor Q&A).
 
 ---
 

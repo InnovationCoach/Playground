@@ -178,7 +178,31 @@ assert(programDataFile.includes('deploymentTimingConfirmed: true'), 'Copilot dep
 assert(programRegistryFile.includes('COPILOT_DEPLOYMENT_CONFIG'), 'COPILOT_DEPLOYMENT_CONFIG must be exported from programRegistry');
 console.log('✓ Backend AI Co-Pilot endpoint (/api/pbl-copilot) deployment timing confirmed by Don');
 
-console.log('\nAll 14 verification checks PASSED successfully!');
+// 15. Verify PBL: Entrepreneurship — Product Creation Program (PDF Curriculum, Simulation Sandbox & Gamification)
+const entrepreneurshipFile = fs.readFileSync(path.join(__dirname, 'entrepreneurshipProgram.ts'), 'utf8');
+assert(entrepreneurshipFile.includes('PBL: Entrepreneurship — Product Creation'), 'Entrepreneurship title must match');
+assert(entrepreneurshipFile.includes('ENTREPRENEURSHIP_BADGES'), 'Badges must be exported');
+assert(entrepreneurshipFile.includes('ENTREPRENEURSHIP_LEVELS'), 'Levels must be exported');
+assert(entrepreneurshipFile.includes('ENTREPRENEURSHIP_SIMULATION_PRESETS'), 'Simulation presets must be exported');
+assert(entrepreneurshipFile.includes('Friction Log Raw Journal'), 'Friction Log evidence required');
+assert(entrepreneurshipFile.includes('Customer Empathy Interviews'), 'Empathy interviews required');
+assert(entrepreneurshipFile.includes('Crazy 8s Rapid Brainstorming'), 'Crazy 8s required');
+assert(entrepreneurshipFile.includes('The Silent Rule'), 'Silent Rule required');
+assert(entrepreneurshipFile.includes('Unit Floor Cost'), 'Unit economics required');
+assert(entrepreneurshipFile.includes('The 3-Minute Pitch Scripting'), '3-minute pitch required');
+assert(entrepreneurshipFile.includes('durationWeeks: 12'), 'Entrepreneurship duration must be 12 weeks');
+for (const phase of PHASES) {
+  assert(entrepreneurshipFile.includes(`id: '${phase}'`), `Entrepreneurship Phase '${phase}' must be declared`);
+}
+
+// Verify engine simulation functions
+assert(engineFile.includes('calculateUnitEconomics'), 'calculateUnitEconomics function must exist in engine');
+assert(engineFile.includes('simulateMarketStep'), 'simulateMarketStep function must exist in engine');
+assert(programRegistryFile.includes('ENTREPRENEURSHIP_PROGRAM'), 'ENTREPRENEURSHIP_PROGRAM must be in programRegistry');
+
+console.log('✓ PBL: Entrepreneurship — Product Creation program schema, 7 design phases, unit economics, simulation sandbox & gamification framework verified');
+
+console.log('\nAll 15 verification checks PASSED successfully!');
 
 
 

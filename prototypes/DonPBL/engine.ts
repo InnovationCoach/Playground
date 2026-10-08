@@ -359,3 +359,65 @@ Draft your 3 test criteria in the **Define** tab, or ask me for a code loop once
 > How will your team prove that your automated system saved water compared to just using a regular hose every morning?`
   };
 }
+
+/**
+ * Calculates market unit economics and break-even sales volume in Thai Baht
+ */
+export function calculateUnitEconomics(params: {
+  unitFloorCostTHB: number;
+  desiredGrossMarginPct: number;
+  fixedStartupCapitalExpenseTHB: number;
+}) {
+  const marginDecimal = Math.min(0.95, Math.max(0.05, params.desiredGrossMarginPct / 100));
+  const retailPriceTHB = Math.round((params.unitFloorCostTHB / (1 - marginDecimal)) * 100) / 100;
+  const unitContributionMarginTHB = Math.round((retailPriceTHB - params.unitFloorCostTHB) * 100) / 100;
+  
+  const breakEvenUnits = unitContributionMarginTHB > 0
+    ? Math.ceil(params.fixedStartupCapitalExpenseTHB / unitContributionMarginTHB)
+    : 0;
+
+  return {
+    unitFloorCostTHB: params.unitFloorCostTHB,
+    desiredGrossMarginPct: params.desiredGrossMarginPct,
+    retailPriceTHB,
+    unitContributionMarginTHB,
+    fixedStartupCapitalExpenseTHB: params.fixedStartupCapitalExpenseTHB,
+    breakEvenUnits
+  };
+}
+
+/**
+ * Runs a step in the market simulation sandbox
+ */
+export function simulateMarketStep(currentState: {
+  cashReserveTHB: number;
+  unitFloorCostTHB: number;
+  retailPriceTHB: number;
+  unitsProduced: number;
+  unitsSold: number;
+  adoptersReached: number;
+  marketReputationScore: number;
+}, unitsToProduce: number, unitsDemand: number) {
+  const productionCost = unitsToProduce * currentState.unitFloorCostTHB;
+  const actualSold = Math.min(unitsDemand, currentState.unitsProduced + unitsToProduce - currentState.unitsSold);
+  const revenue = actualSold * currentState.retailPriceTHB;
+  
+  const updatedProduced = currentState.unitsProduced + unitsToProduce;
+  const updatedSold = currentState.unitsSold + actualSold;
+  const updatedCash = currentState.cashReserveTHB - productionCost + revenue;
+  const updatedAdopters = currentState.adoptersReached + actualSold;
+  
+  // Reputation increases as customers are satisfied
+  const reputationBoost = actualSold > 0 ? Math.min(5, Math.floor(actualSold / 2)) : -2;
+  const updatedReputation = Math.min(100, Math.max(0, currentState.marketReputationScore + reputationBoost));
+
+  return {
+    cashReserveTHB: updatedCash,
+    unitsProduced: updatedProduced,
+    unitsSold: updatedSold,
+    adoptersReached: updatedAdopters,
+    marketReputationScore: updatedReputation,
+    latestRevenue: revenue,
+    latestCost: productionCost
+  };
+}

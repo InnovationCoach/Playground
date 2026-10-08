@@ -32,6 +32,16 @@ import {
   CharacterProfile, 
   WorldRule 
 } from './storytellingProgram';
+import {
+  ENTREPRENEURSHIP_PROGRAM,
+  ENTREPRENEURSHIP_BADGES,
+  ENTREPRENEURSHIP_LEVELS,
+  ENTREPRENEURSHIP_SIMULATION_PRESETS,
+  StartupBadge,
+  MarketSimulationState,
+  GamificationLevel,
+  SimulationPreset
+} from './entrepreneurshipProgram';
 
 export { 
   SCHOOL_SCHEDULE_CONFIG, 
@@ -58,6 +68,19 @@ export type { FrictionStrategy };
 
 export { STORYTELLING_PROGRAM, GENESIS_CHARACTERS_FIXTURE, GENESIS_WORLD_RULES_FIXTURE };
 export type { CharacterProfile, WorldRule };
+
+export {
+  ENTREPRENEURSHIP_PROGRAM,
+  ENTREPRENEURSHIP_BADGES,
+  ENTREPRENEURSHIP_LEVELS,
+  ENTREPRENEURSHIP_SIMULATION_PRESETS
+};
+export type {
+  StartupBadge,
+  MarketSimulationState,
+  GamificationLevel,
+  SimulationPreset
+};
 
 export const CLEAN_STREAM_PROGRAM: PblProgram = {
   id: 'cleanstream-stormwater-2026',
@@ -141,6 +164,7 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
 };
 
 export const PROGRAM_REGISTRY: Record<string, PblProgram> = {
+  'entrepreneurship-product-creation-2026': ENTREPRENEURSHIP_PROGRAM,
   'storytelling-genesis-2026': STORYTELLING_PROGRAM,
   'passion-project-blueprint-2026': PASSION_BLUEPRINT_PROGRAM,
   'biomechanics-robotics-2026': BIOMECHANICS_PROGRAM,
@@ -150,6 +174,7 @@ export const PROGRAM_REGISTRY: Record<string, PblProgram> = {
 };
 
 export const PROGRAM_LIST = [
+  { id: 'entrepreneurship-product-creation-2026', title: 'PBL: Entrepreneurship — Product Creation', theme: 'Problem Discovery, Market Validation & Unit Economics (12 Wks / 120h)' },
   { id: 'storytelling-genesis-2026', title: 'Project Genesis Engine: Storytelling IP', theme: 'Cinematic Narrative & Screenplay Pipeline (12 Wks / 120h Core Term)' },
   { id: 'passion-project-blueprint-2026', title: 'PBL: Passion Project Blueprint', theme: '2e Neurodiversity & Autonomous Sprints (12 Wks / 120h)' },
   { id: 'biomechanics-robotics-2026', title: 'PBL: Biomechanics & Bio-Robotics', theme: 'Biomimicry, Kinematics & Arduino C++ (12 Wks / 120h)' },

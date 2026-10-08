@@ -766,6 +766,122 @@ export const MOCK_COHORT: StudentProject[] = [
         }
       }
     ]
+  },
+  {
+    id: 'proj-entrepreneur-brass-06',
+    teamName: 'Team BrassGrip (Entrepreneurship: Product Creation)',
+    members: ['Kavita Sharma (Grade 8)', 'Niran Kittisuk (Grade 9)'],
+    gradeLevel: 'Grade 8-9 (Age 13-14)',
+    termId: 'term-2026-t3',
+    currentPhase: 'test',
+    progressPercent: 78,
+    drivingQuestion: 'How might we engineer a modular padded utility strap pocket for brass musicians that eliminates damaged accessories with sustainable 62% unit margins in Thai Baht?',
+    problem: {
+      hmw: 'How might we keep trumpet valve oils and sheet music securely accessible on the exterior of standard hard cases without puncturing containers or denting instruments?',
+      who: 'Middle school brass musicians carrying instruments on foot and public transit',
+      why: 'Standard hard-shell instrument cases lack compartmentalized, padded utility pockets, leading to dented parts and crushed accessories',
+      criteria: 'Attaches in < 15 seconds, survives 2kg pull force, cost under 50 THB to produce, retail under 130 THB',
+      constraints: 'Scrap/recycled nylon straps, hot glue/eyelet fasteners, silent usability pass with 0 hints',
+      impactMeasure: 'Zero damaged sheet music or crushed valve oils across 3-week field trial'
+    },
+    impact: 'both',
+    codeLanguage: 'python',
+    finalFormat: 'stage-pitch',
+    tasksDone: {
+      explore: [0, 1, 2, 3],
+      empathise: [0, 1, 2, 3],
+      define: [0, 1, 2, 3],
+      ideate: [0, 1, 2, 3],
+      prototype: [0, 1, 2],
+      test: [0, 1]
+    },
+    sensorState: {
+      ambientTemp: 29.5,
+      soilMoisturePct: 0,
+      canopyDeployed: false,
+      pumpActive: false,
+      waterLevelPct: 0
+    },
+    evidence: [
+      {
+        id: 'ev-ent-01',
+        phase: 'explore',
+        kind: 'note',
+        title: 'Friction Log: Brass Instrument Transport Annoyances',
+        body: 'Carried log for 48 hours across school band rehearsals and transit. Entry 1: Trumpet valve oil bottle cap unscrewed inside backpack, ruining 3 sheets of jazz orchestra scores. Entry 2: Friend dropped mute onto concrete because both hands were holding trumpet case. Entry 3: Locker jammed trying to squeeze oversized bag.',
+        competencies: ['sdl-01', 'ctps-01', 'ent-01'],
+        createdAt: 1775810000000
+      },
+      {
+        id: 'ev-ent-02',
+        phase: 'empathise',
+        kind: 'feedback',
+        title: 'Customer Empathy Interviews: 5 Brass Musicians',
+        body: 'Interviewed 5 band members using the past-behavior core without leading questions. Quote 1 (Leo, trombone): "My valve oil leaked on my band uniform last month; my parents were furious." Quote 2 (Mei, trumpet): "I have to carry a separate tote bag just for my tuner and pencils." 4 out of 5 validated this as an acute daily nuisance.',
+        competencies: ['ec-01', 'lc-01', 'ent-01'],
+        createdAt: 1776500000000
+      },
+      {
+        id: 'ev-ent-03',
+        phase: 'ideate',
+        kind: 'media',
+        title: 'Crazy 8s Sketches & Track Committal Matrix',
+        body: 'Completed 8 sketches in 8 minutes. Explored conventional sleeves, scrap banner harnesses, modular clip-ons, and magnetic clamps. Committed to Track A: Physical Build (Feasibility 5/5, Desirability 5/5, Durability 4/5).',
+        competencies: ['ctps-02', 'ent-01'],
+        createdAt: 1777200000000
+      },
+      {
+        id: 'ev-ent-04',
+        phase: 'prototype',
+        kind: 'media',
+        title: 'Cardboard & Webbing 1:1 Scale Prototype v1.0',
+        body: 'Fabricated initial 1:1 scale pocket using upcycled nylon webbing and foam core. Tested on standard Yamaha trumpet case. Red-marker inspection revealed strap slipped when walking briskly.',
+        competencies: ['ctps-04', 'ent-02'],
+        createdAt: 1778100000000
+      },
+      {
+        id: 'ev-ent-05',
+        phase: 'test',
+        kind: 'data',
+        title: 'Silent Usability Lab & v1.1 Iteration',
+        body: 'Tested with 3 naive peers under strict Silent Rule. Tester 1 hesitated 8 seconds looking for the buckle latch. Tester 2 pulled the strap backward. Iterated to v1.1: Added high-contrast yellow pull-tab and reinforced cross-stitch webbing.',
+        competencies: ['ctps-05', 'ent-02', 'ec-02'],
+        createdAt: 1778900000000,
+        metrics: [
+          { label: 'Tester Hesitation (v1.0)', value: '8.2 sec' },
+          { label: 'Tester Hesitation (v1.1)', value: '1.4 sec' },
+          { label: 'Strap Pull Resistance', value: '4.8 kg' }
+        ]
+      },
+      {
+        id: 'ev-ent-06',
+        phase: 'test',
+        kind: 'data',
+        title: 'Unit Economics & COGS Ledger (Thai Baht)',
+        body: 'COGS breakdown: Heavy webbing strap (20 THB) + Foam padding (8 THB) + Zipper assembly (12 THB) + Packaging & sticker (5 THB) = Unit Floor Cost 45 THB. Target retail price: 120 THB (62.5% Gross Margin). Startup capital for eyelet tool and rivets: 1,200 THB. Break-Even Volume = 1,200 / (120 - 45) = 16 units.',
+        competencies: ['ctps-12', 'ent-02'],
+        createdAt: 1779300000000,
+        metrics: [
+          { label: 'Unit Floor Cost', value: '45.00 THB' },
+          { label: 'Retail Price', value: '120.00 THB' },
+          { label: 'Gross Profit Margin', value: '62.5%' },
+          { label: 'Break-Even Units', value: '16 units' }
+        ]
+      }
+    ],
+    coachFeedback: [
+      {
+        coachName: 'Coach Eleanor Vance',
+        date: '2026-10-02',
+        note: 'Outstanding execution of the Silent Rule and unit economics. Financial breakdown is crystal clear and ready for the 3-minute pitch arena.',
+        competencyScores: {
+          'ctps-05': 4,
+          'ent-01': 4,
+          'ent-02': 4,
+          'ec-01': 4
+        }
+      }
+    ]
   }
 ];
 

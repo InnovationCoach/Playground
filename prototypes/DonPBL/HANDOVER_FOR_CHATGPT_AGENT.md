@@ -86,6 +86,21 @@ All 5 programs follow the universal **7-Phase Design Thinking Lifecycle**:
 - **Features:** Character psychological profiling fixtures (Protagonist *Kaelen Vance*, Rival *Mira Solis*), Speculative physics rules (*Atmospheric Scintillation Shields*), 4-Layer Audio Cue Sheet, 3-Act Hollywood screenplay pacing.
 - **Duration:** 20 weeks (200 contact hours; modular 12-week core).
 
+### Program 6: Entrepreneurship — Product Creation
+- **Location:** `prototypes/DonPBL/entrepreneurshipProgram.ts` (`ENTREPRENEURSHIP_PROGRAM`)
+- **Domain:** Lean venture creation, customer validation, physical/digital prototyping, and market economics.
+- **Features:** 
+  1. *Problem Discovery & Empathy:* 48-hour Friction Log + 5 Customer Empathy Interviews using the past-behavior "Mom Test" protocol (zero leading questions).
+  2. *Declarative Scope Definition:* Solution-free Who / What / Why validation canvas.
+  3. *Rapid Ideation & Track Committal:* Crazy 8s under strict constraints (conventional, scrap materials, modular, radical) + Physical Build vs Digital Solution track filtering.
+  4. *Low-Fidelity Prototyping:* 1:1 scale cardboard/webbing models (Physical) or 4-screen index wireframes (Digital) with red-marker flaw annotations.
+  5. *Silent Usability Testing & Iteration:* 3 peer tests under the strict Silent Rule (zero designer hints/apologies); build Version 1.1 fixing $\ge 2$ observed friction points.
+  6. *Unit Economics & Financial Modeling:* Cost of Goods Sold (COGS) breakdown, Unit Floor Cost, Retail Price (50–65% physical gross margin, 70–85% digital margin), and Break-Even Unit Volume in Thai Baht.
+  7. *Go-to-Market Strategy:* 1-sentence value hook, first-25-adopters launch funnel, strict 4-block 3-minute pitch rehearsals (45s Problem, 60s Solution, 45s Economics, 30s Seed Ask), and 20-second rapid-fire angel Q&A drills.
+  8. *Simulation Sandbox Option:* Browser-based Digital Twin Market Simulator (`calculateUnitEconomics`, `simulateMarketStep`) testing cash reserves, weekly demand, and user adoption without risking upfront capital.
+  9. *Startup Gamification:* 7 Founder Levels (Friction Scout $\rightarrow$ Venture Ready Founder), 7 Startup Badges (Friction Hunter, Unbiased Listener, Crazy 8s Sprinter, Digital Twin Architect, The Silent Auditor, Unit Economics Prodigy, 3-Minute Pitch Gladiator), and XP awards.
+- **Duration:** 12 weeks (120 contact hours; 24 sessions).
+
 ---
 
 ## 4. Assessment Frameworks & Verification Engines
