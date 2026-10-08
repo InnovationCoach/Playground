@@ -41,7 +41,7 @@ The following operating assumptions were formerly open questions and are now **h
 | **Age Tier 1: Primary** | **Ages 9–11 (Grades 4–6)** | Block coding (MakeCode/Scratch), micro:bit built-in sensors, cardboard prototyping |
 | **Age Tier 2: Junior Secondary** | **Ages 12–14 (Grades 7–9)** | Hybrid MicroPython, external sensors, 4-bar mechanical linkage, field empathy |
 | **Age Tier 3: Upper Secondary** | **Ages 15–17 (Grades 10–12)** | Native Python/C++/CAD, ESP32 telemetry, mathematical efficacy models, capstone expo |
-| **Hardware Inventory** | **Confirmed Available** | BBC micro:bit V2, Arduino UNO, ESP32 (WiFi/BLE), LEGO Spike Prime/Essential |
+| **Hardware Inventory** | **Confirmed Available in Class Sets** | BBC micro:bit V2 boards, 5V pumps & capacitive soil sensors in class sets; Arduino UNO, ESP32 (WiFi/BLE), LEGO Spike Prime/Essential |
 | **Backend Copilot API** | **Confirmed & Ready** | `POST /api/pbl-copilot` aligned with Gemini backend contract |
 
 ---

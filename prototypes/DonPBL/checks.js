@@ -162,14 +162,17 @@ assert(programDataFile.includes('CONFIRMED BY DON: Multi-tiered tracks desired a
 assert(programRegistryFile.includes('LEARNER_AGE_CONFIG'), 'LEARNER_AGE_CONFIG must be exported from programRegistry');
 console.log('✓ Multi-Tiered Learner Age Bands verified: Primary through Upper Secondary (Ages 9–17: 9–11, 12–14, 15–17) confirmed by Don');
 
-// 13. Verify Hardware Inventory (Confirmed by Don: micro:bits, Arduino UNO, ESP32, LEGO Spike)
+// 13. Verify Hardware Inventory (Confirmed by Don: micro:bits, 5V pumps, capacitive sensors, Arduino UNO, ESP32, LEGO Spike)
 assert(programDataFile.includes('HARDWARE_INVENTORY_CONFIG'), 'HARDWARE_INVENTORY_CONFIG must be defined');
 assert(programDataFile.includes('microbitsAvailable: true'), 'micro:bits must be confirmed available');
 assert(programDataFile.includes('arduinoUnoAvailable: true'), 'Arduino UNO must be confirmed available');
 assert(programDataFile.includes('esp32Available: true'), 'ESP32 must be confirmed available');
 assert(programDataFile.includes('legoSpikeAvailable: true'), 'LEGO Spike must be confirmed available');
+assert(programDataFile.includes('pumps5V: true'), '5V pumps class sets must be confirmed available');
+assert(programDataFile.includes('capacitiveSoilSensors: true'), 'capacitive soil sensors class sets must be confirmed available');
+assert(programDataFile.includes('CONFIRMED BY DON: Learners have access to micro:bits, 5V pumps, capacitive soil moisture sensors in class sets'), 'asmp-kit must be marked confirmed by Don');
 assert(programRegistryFile.includes('HARDWARE_INVENTORY_CONFIG'), 'HARDWARE_INVENTORY_CONFIG must be exported from programRegistry');
-console.log('✓ Hardware Inventory verified: micro:bit V2, Arduino UNO, ESP32 & LEGO Spike kits confirmed in stock by Don');
+console.log('✓ Hardware Inventory verified: micro:bit V2, 5V pumps & capacitive sensors in class sets, Arduino UNO, ESP32 & LEGO Spike kits confirmed in stock by Don');
 
 // 14. Verify Backend AI Co-Pilot Deployment Timing (/api/pbl-copilot confirmed by Don)
 assert(programDataFile.includes('COPILOT_DEPLOYMENT_CONFIG'), 'COPILOT_DEPLOYMENT_CONFIG must be defined');

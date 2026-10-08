@@ -109,6 +109,7 @@ In response to questions posed during the prototype phase, the following core sp
    - *Architecture export:* `LEARNER_AGE_CONFIG` in `programData.ts` & `programRegistry.ts`
 
 3. **Hardware Inventory Availability:** **CONFIRMED BY DON**
+   - **Class Sets Inventory:** BBC micro:bit V2 boards, 5V DC submersible mini pumps, and capacitive analog soil moisture sensors are confirmed available in full class sets.
    - **Microcontrollers & Robotics Kits:** BBC micro:bit V2, Arduino UNO, ESP32 (dual-core WiFi/BLE), and LEGO Spike Essential & Prime kits are all verified in stock and accessible for classroom prototyping.
    - *Architecture export:* `HARDWARE_INVENTORY_CONFIG` in `programData.ts` & `programRegistry.ts`
 

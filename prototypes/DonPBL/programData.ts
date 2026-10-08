@@ -122,6 +122,12 @@ export interface HardwareInventoryConfig {
   arduinoUnoAvailable: boolean;
   esp32Available: boolean;
   legoSpikeAvailable: boolean;
+  classSetsConfirmed: {
+    microbitV2Boards: boolean;
+    pumps5V: boolean;
+    capacitiveSoilSensors: boolean;
+    allHardwareAvailable: boolean;
+  };
   inventoryStatus: 'confirmed_available';
   verifiedBy: string;
   notes: string;
@@ -132,9 +138,15 @@ export const HARDWARE_INVENTORY_CONFIG: HardwareInventoryConfig = {
   arduinoUnoAvailable: true,
   esp32Available: true,
   legoSpikeAvailable: true,
+  classSetsConfirmed: {
+    microbitV2Boards: true,
+    pumps5V: true,
+    capacitiveSoilSensors: true,
+    allHardwareAvailable: true
+  },
   inventoryStatus: 'confirmed_available',
   verifiedBy: 'Don (Owner Direct Confirmation)',
-  notes: 'All core microcontrollers and robotics kits (BBC micro:bit V2, Arduino UNO, ESP32, and LEGO Spike kits) are confirmed in stock and available for learner prototyping.'
+  notes: 'Learners have full access to hardware in class sets: BBC micro:bit V2 boards, 5V pumps, capacitive soil moisture sensors, Arduino UNO, ESP32, and LEGO Spike kits.'
 };
 
 export interface CopilotDeploymentConfig {
@@ -349,7 +361,7 @@ export const SAMPLE_PROGRAM: PblProgram = {
       id: 'asmp-kit',
       domain: 'Hardware Availability',
       assumption: 'Students have access to BBC micro:bit V2 boards, 5V pumps, and capacitive soil moisture sensors in class sets.',
-      ownerVerificationNeeded: 'Check inventory for micro:bits vs Arduino UNO / ESP32 / LEGO Spike kits.'
+      ownerVerificationNeeded: 'CONFIRMED BY DON: Learners have access to micro:bits, 5V pumps, capacitive soil moisture sensors in class sets, alongside Arduino UNO, ESP32, and LEGO Spike kits.'
     },
     {
       id: 'asmp-ai',
