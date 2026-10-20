@@ -3,7 +3,7 @@
  * Branch: DonPBL
  * Location: prototypes/DonPBL/biomechanicsProgram.ts
  * 
- * Sourced from WeLearn Academy / InnovationCoach Biomechanics Curriculum (140 Hours).
+ * Sourced from WeLearn Academy / InnovationCoach Biomechanics Curriculum (12-Week / 120 Hours).
  * Formatted to match standard WeLearn PblProgram architecture:
  * - 7 Design Thinking Phases (Explore -> Empathise -> Define -> Ideate -> Prototype -> Test -> Share)
  * - 24 High-Intensity Sessions covering Morphology, Linkages, Arduino Nano, and FMEA
@@ -11,7 +11,7 @@
  * - Kinematic Simulation Engine & Gamification Mechanics
  */
 
-import { PblProgram } from './programData';
+import type { PblProgram } from './programData';
 
 export interface BiomimeticTrack {
   id: string;
@@ -67,7 +67,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
     environmentalImpact: 'Captures microplastics and marine debris from tidal estuaries using non-clogging baleen cross-flow filtration without fossil fuel vessel waste.'
   },
   targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
-  durationWeeks: 14,
+  durationWeeks: 12,
   totalSessions: 24, // Structured into 24 core intensive milestone workshops
   materialsAndKit: {
     microcontrollers: [
@@ -147,21 +147,27 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
       id: 'asmp-technic-stock',
       domain: 'Hardware Kits',
       assumption: 'Classroom possesses LEGO Technic mechanical sets, Arduino Nano boards, and discrete sensor components.',
-      ownerVerificationNeeded: 'Confirm kit inventory of Technic spur/worm gears and Arduino Nano shields.'
+      ownerVerificationNeeded: 'Confirm kit inventory of Technic spur/worm gears and Arduino Nano shields.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     },
     {
       id: 'asmp-cpp-readiness',
       domain: 'Programming Prerequisite',
       assumption: 'Learners have introductory familiarity with variables and loops in C/C++ or Arduino.',
-      ownerVerificationNeeded: 'Verify whether a 1-week C++ syntax refresher is needed prior to Week 6.'
+      ownerVerificationNeeded: 'Verify whether a 1-week C++ syntax refresher is needed prior to Week 6.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     }
   ],
   phases: [
     {
       id: 'explore',
       title: 'Explore',
-      strap: 'Quantitative Biomechanics & Biological Metrology (Weeks 1–3)',
-      weeks: [1, 3],
+      strap: 'Quantitative Biomechanics & Biological Metrology (Weeks 1–2)',
+      weeks: [1, 2],
       goal: 'Investigate biological scaling laws, surface friction/adhesion, spine kinematics, and arthropod exoskeletons through hands-on laboratory metrology.',
       tasks: [
         'Quantify square-cube law scaling trade-offs and document field specimens under digital microscopy.',
@@ -266,7 +272,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 4,
-          week: 3,
+          week: 2,
           title: 'Continuum Mechanics & Soft Tendon Manipulators',
           durationMin: 50,
           learningGoal: 'Assemble a multi-vertebra continuum manipulator driven by antagonistic braided cables inspired by cephalopod tentacles.',
@@ -295,8 +301,8 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
     {
       id: 'empathise',
       title: 'Empathise',
-      strap: 'Real-World Human & Environmental Problem Formulation (Weeks 4–5)',
-      weeks: [4, 5],
+      strap: 'Real-World Human & Environmental Problem Formulation (Weeks 3–4)',
+      weeks: [3, 4],
       goal: 'Analyze real-world mission challenges in disaster rescue, marine conservation, and food security to formulate biomimetic engineering requirements.',
       tasks: [
         'Review the 3 Engineering Briefs: (1) Subterranean Search & Rescue, (2) Marine Microplastic Interceptor, (3) Soft-Grip Harvester.',
@@ -319,7 +325,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 5,
-          week: 4,
+          week: 3,
           title: 'Release of Engineering Briefs & Stakeholder Interviews',
           durationMin: 50,
           learningGoal: 'Select a real-world humanitarian/ecological engineering challenge and map stakeholder constraints.',
@@ -346,7 +352,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 6,
-          week: 5,
+          week: 4,
           title: 'Engineering Requirement Documents (ERD) & PUGH Matrix',
           durationMin: 50,
           learningGoal: 'Draft quantified ERD engineering specs and evaluate 3 divergent concepts using a PUGH decision matrix.',
@@ -375,8 +381,8 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
     {
       id: 'define',
       title: 'Define',
-      strap: 'Powertrains, Gear Geometry & Power Budgeting (Weeks 6–7)',
-      weeks: [6, 7],
+      strap: 'Powertrains, Gear Geometry & Power Budgeting (Week 5)',
+      weeks: [5, 5],
       goal: 'Calculate involute gear ratios, motor torque-speed power conversion (P = tau * omega), and design Arduino Nano circuit schematics.',
       tasks: [
         'Calculate involute gear pitch circles and velocity ratios for multi-stage Technic spur gear transmissions.',
@@ -400,7 +406,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 7,
-          week: 6,
+          week: 5,
           title: 'Precision Drive Trains & Torque-Speed Power Conversion',
           durationMin: 50,
           learningGoal: 'Calculate mechanical output power P = tau * omega and assemble multi-stage gear reductions.',
@@ -426,7 +432,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 8,
-          week: 7,
+          week: 5,
           title: 'Electrical Schematics, H-Bridges & Power Isolation',
           durationMin: 50,
           learningGoal: 'Design the full Arduino Nano electrical schematic with isolated motor and logic power rails.',
@@ -455,8 +461,8 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
     {
       id: 'ideate',
       title: 'Ideate and Plan',
-      strap: 'Kinematic Synthesis & Non-Blocking State Machines (Weeks 7–8)',
-      weeks: [7, 8],
+      strap: 'Kinematic Synthesis & Non-Blocking State Machines (Week 6)',
+      weeks: [6, 6],
       goal: 'Synthesize four-bar walking linkages (Theo Jansen / Klann) and architect non-blocking C++ state machines using millis() and sensor filters.',
       tasks: [
         'Synthesize four-bar linkages using Grashof criteria and plot precision coupler curves.',
@@ -481,7 +487,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 9,
-          week: 7,
+          week: 6,
           title: 'Kinematic Linkage Synthesis (Theo Jansen & Klann)',
           durationMin: 50,
           learningGoal: 'Plot coupler curve paths and construct an 8-bar or 6-bar single-motor mechanical walking leg.',
@@ -507,7 +513,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 10,
-          week: 8,
+          week: 6,
           title: 'Embedded C++ State Machines & Sensor Filtering',
           durationMin: 50,
           learningGoal: 'Write non-blocking C++ state machine architectures in Arduino IDE using millis() and signal filters.',
@@ -536,8 +542,8 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
     {
       id: 'prototype',
       title: 'Prototype',
-      strap: 'Structural Fabrication & Closed-Loop Control (Weeks 9–11)',
-      weeks: [9, 11],
+      strap: 'Structural Fabrication & Closed-Loop Control (Weeks 7–8)',
+      weeks: [7, 8],
       goal: 'Construct reinforced Technic truss chassis, assemble multi-leg powertrains, wire sensors, and program proportional closed-loop controllers.',
       tasks: [
         'Construct reinforced Technic ladder chassis designed to resist torsional loads.',
@@ -563,7 +569,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 11,
-          week: 9,
+          week: 7,
           title: 'Rigid Chassis Fabrication & Powertrain Integration',
           durationMin: 50,
           learningGoal: 'Construct cross-braced Technic truss frames and mount gearmotors with aligned thrust bearings.',
@@ -589,7 +595,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 12,
-          week: 9,
+          week: 7,
           title: 'Biomimetic Locomotion & Appendage Assembly',
           durationMin: 50,
           learningGoal: 'Assemble the multi-legged walking drivetrain or articulating soft-grip end-effector.',
@@ -615,7 +621,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 13,
-          week: 10,
+          week: 8,
           title: 'Closed-Loop Proportional Feedback Control',
           durationMin: 50,
           learningGoal: 'Program a proportional (P/PD) feedback loop adjusting motor PWM speeds based on live sensor streams.',
@@ -641,7 +647,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 14,
-          week: 11,
+          week: 8,
           title: 'Firmware Interrupts & Operational Alpha Run',
           durationMin: 50,
           learningGoal: 'Implement hardware interrupts for emergency bumpers and execute the Alpha baseline autonomous run.',
@@ -670,8 +676,8 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
     {
       id: 'test',
       title: 'Test and improve',
-      strap: 'Empirical Validation, FMEA & System Hardening (Weeks 12–13)',
-      weeks: [12, 13],
+      strap: 'Empirical Validation, FMEA & System Hardening (Weeks 9–10)',
+      weeks: [9, 10],
       goal: 'Execute 10 empirical data collection trials, perform Failure Mode and Effects Analysis (FMEA), replace failing components, and optimize firmware.',
       tasks: [
         'Assemble realistic challenge track (irregular rock beds, fluid sediment tanks, or variable-friction inclines).',
@@ -696,7 +702,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 15,
-          week: 12,
+          week: 9,
           title: 'Empirical Multi-Trial Data Collection (Runs 1–5)',
           durationMin: 50,
           learningGoal: 'Execute standardized operational testing over 5 consecutive trials and record telemetry metrics.',
@@ -722,7 +728,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 16,
-          week: 12,
+          week: 9,
           title: 'Root Cause Failure Mode Analysis (FMEA)',
           durationMin: 50,
           learningGoal: 'Catalog mechanical and electrical breakdowns in a formal Failure Mode & Effects Analysis (FMEA) matrix.',
@@ -748,7 +754,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 17,
-          week: 13,
+          week: 10,
           title: 'Mechanical Hardening & Steel Axle Upgrades',
           durationMin: 50,
           learningGoal: 'Implement physical mechanical upgrades addressing top FMEA failure modes and re-test.',
@@ -774,7 +780,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 18,
-          week: 13,
+          week: 10,
           title: 'Firmware Fault-Tolerance & Verification Trials (Runs 6–10)',
           durationMin: 50,
           learningGoal: 'Add watchdog timers, autonomous unstuck recovery routines, and execute validation Trials 6–10.',
@@ -803,8 +809,8 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
     {
       id: 'share',
       title: 'Showcase or present',
-      strap: 'Engineering Capstone Exhibition & Defense (Week 14)',
-      weeks: [14, 14],
+      strap: 'Engineering Capstone Exhibition & Defense (Weeks 11–12)',
+      weeks: [11, 12],
       goal: 'Communicate the biological inspiration, kinematic analysis, electrical architecture, and test data in an IEEE-style capstone defense.',
       tasks: [
         'Create standard IEEE-style capstone academic poster (Abstract, Biomimicry, Kinematics, Circuits, FMEA, Graphs).',
@@ -829,7 +835,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 19,
-          week: 14,
+          week: 11,
           title: 'IEEE Capstone Poster Architecture',
           durationMin: 50,
           learningGoal: 'Synthesize 14 weeks of engineering data into a professional IEEE-style academic capstone poster.',
@@ -855,7 +861,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 20,
-          week: 14,
+          week: 11,
           title: 'Technical Presentation Coaching & Timed Pitch',
           durationMin: 50,
           learningGoal: 'Structure and rehearse a timed 5-minute technical pitch followed by 3-minute technical defense.',
@@ -881,7 +887,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 21,
-          week: 14,
+          week: 11,
           title: 'Dry-Run Live Demonstrations & Peer Interrogation',
           durationMin: 50,
           learningGoal: 'Simulate high-stress defense conditions with cross-team peer interrogation regarding design trade-offs.',
@@ -907,7 +913,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 22,
-          week: 14,
+          week: 12,
           title: 'The Bio-Robotics Capstone Exhibition & Defense',
           durationMin: 50,
           learningGoal: 'Deliver formal technical defense to visiting industry engineers, university faculty, and parents.',
@@ -933,7 +939,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 23,
-          week: 14,
+          week: 12,
           title: 'Field Maintenance Toolkit & Code Archival',
           durationMin: 50,
           learningGoal: 'Clean, refactor, and document C++ codebase with Doxygen comments and assemble a field repair kit.',
@@ -959,7 +965,7 @@ export const BIOMECHANICS_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 24,
-          week: 14,
+          week: 12,
           title: 'Engineering Post-Mortem & Competency Retrospective',
           durationMin: 50,
           learningGoal: 'Reflect deeply on individual engineering growth across WeLearn competencies and complete post-mortem audit.',

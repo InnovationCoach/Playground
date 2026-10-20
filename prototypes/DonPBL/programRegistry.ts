@@ -2,41 +2,53 @@
  * Program Registry for WeLearn PBL Studio
  * Location: prototypes/DonPBL/programRegistry.ts
  * 
- * Multi-program catalog:
- * - Program 1: Hex-City Thailand (12-Week Modular Resilient Floating City PBL)
- * - Program 2: Biomechanics & Bio-Inspired Robotics (14-Week Quantitative Electromechanics)
- * - Program 3: EcoCool (Smart Urban Heat & Community Garden Monitor)
- * - Program 4: CleanStream (Smart Urban Stormwater Runoff Sentinel)
+ * Complete 6-program catalog (all fitting a 12-week, 120-hour term):
+ * - Program 1: Entrepreneurship: Product Creation (12 Weeks / 120h • 18 Sessions)
+ * - Program 2: Project Genesis Engine: Storytelling IP (12 Weeks / 120h • 24 Sessions)
+ * - Program 3: The Passion Project Blueprint (12 Weeks / 120h • 24 Sessions)
+ * - Program 4: Quantitative Biomechanics & Bio-Inspired Robotics (12 Weeks / 120h • 24 Sessions)
+ * - Program 5: Hex-City Thailand: Modular Resilient Floating City (12 Weeks / 120h • 24 Sessions)
+ * - Program 6: EcoCool: Smart Urban Heat & Community Garden Monitor (12 Weeks / 120h • 24 Sessions)
+ * 
+ * Stub Program (excluded from PROGRAM_REGISTRY and PROGRAM_LIST until phases are authored):
+ * - CleanStream: Smart Urban Stormwater & Micro-Filter Sentinel (status: 'stub')
  */
 
 import { 
-  PblProgram, 
   SAMPLE_PROGRAM, 
   SCHOOL_SCHEDULE_CONFIG, 
-  SchoolScheduleConfig,
   LEARNER_AGE_CONFIG,
+  HARDWARE_INVENTORY_CONFIG,
+  COPILOT_DEPLOYMENT_CONFIG
+} from './programData';
+import type {
+  PblProgram,
+  ConfirmationRecord,
+  SchoolScheduleConfig,
   LearnerAgeConfig,
   AgeTierTrack,
-  HARDWARE_INVENTORY_CONFIG,
   HardwareInventoryConfig,
-  COPILOT_DEPLOYMENT_CONFIG,
   CopilotDeploymentConfig
 } from './programData';
-import { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS, HexCityRole, CrisisScenario } from './hexCityProgram';
-import { BIOMECHANICS_PROGRAM, BIOMIMETIC_TRACKS, BiomimeticTrack } from './biomechanicsProgram';
-import { PASSION_BLUEPRINT_PROGRAM, FRICTION_STRATEGIES, FrictionStrategy } from './passionBlueprintProgram';
+import { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS } from './hexCityProgram';
+import type { HexCityRole, CrisisScenario } from './hexCityProgram';
+import { BIOMECHANICS_PROGRAM, BIOMIMETIC_TRACKS } from './biomechanicsProgram';
+import type { BiomimeticTrack } from './biomechanicsProgram';
+import { PASSION_BLUEPRINT_PROGRAM, FRICTION_STRATEGIES } from './passionBlueprintProgram';
+import type { FrictionStrategy } from './passionBlueprintProgram';
 import { 
   STORYTELLING_PROGRAM, 
   GENESIS_CHARACTERS_FIXTURE, 
-  GENESIS_WORLD_RULES_FIXTURE, 
-  CharacterProfile, 
-  WorldRule 
+  GENESIS_WORLD_RULES_FIXTURE
 } from './storytellingProgram';
+import type { CharacterProfile, WorldRule } from './storytellingProgram';
 import {
   ENTREPRENEURSHIP_PROGRAM,
   ENTREPRENEURSHIP_BADGES,
   ENTREPRENEURSHIP_LEVELS,
-  ENTREPRENEURSHIP_SIMULATION_PRESETS,
+  ENTREPRENEURSHIP_SIMULATION_PRESETS
+} from './entrepreneurshipProgram';
+import type {
   StartupBadge,
   MarketSimulationState,
   GamificationLevel,
@@ -50,6 +62,7 @@ export {
   COPILOT_DEPLOYMENT_CONFIG 
 };
 export type { 
+  ConfirmationRecord,
   SchoolScheduleConfig, 
   LearnerAgeConfig, 
   AgeTierTrack, 
@@ -82,11 +95,15 @@ export type {
   SimulationPreset
 };
 
+/**
+ * Stub program kept outside PROGRAM_REGISTRY and PROGRAM_LIST until dedicated
+ * stormwater sessions are authored.
+ */
 export const CLEAN_STREAM_PROGRAM: PblProgram = {
   id: 'cleanstream-stormwater-2026',
   title: 'CleanStream: Smart Urban Stormwater & Micro-Filter Sentinel',
   subtitle: 'Diverting toxic first-flush urban runoff into bio-retention swales using turbidity sensors and automated flow gates.',
-  status: 'provisional_prototype',
+  status: 'stub',
   theme: 'Water Security & Urban Watershed Ecology',
   drivingQuestion: 'How might we use turbidity and flow sensors to divert toxic first-flush urban street runoff away from natural waterways into bio-retention filtration swales, reducing particulate runoff by over 50%?',
   realProblem: {
@@ -97,7 +114,7 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
   },
   targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
   durationWeeks: 12,
-  totalSessions: 24,
+  totalSessions: 0,
   materialsAndKit: {
     microcontrollers: [
       'BBC micro:bit V2 with breakout shield',
@@ -157,10 +174,13 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
       id: 'asmp-turbidity-kit',
       domain: 'Sensor Availability',
       assumption: 'School provides analog turbidity optical sensors for student lab groups.',
-      ownerVerificationNeeded: 'Confirm optical sensor procurement with WeLearn lab manager.'
+      ownerVerificationNeeded: 'Confirm optical sensor procurement with WeLearn lab manager.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     }
   ],
-  phases: SAMPLE_PROGRAM.phases
+  phases: []
 };
 
 export const PROGRAM_REGISTRY: Record<string, PblProgram> = {
@@ -169,16 +189,14 @@ export const PROGRAM_REGISTRY: Record<string, PblProgram> = {
   'passion-project-blueprint-2026': PASSION_BLUEPRINT_PROGRAM,
   'biomechanics-robotics-2026': BIOMECHANICS_PROGRAM,
   'hex-city-thailand-2026': HEX_CITY_PROGRAM,
-  'ecocool-smart-garden-2026': SAMPLE_PROGRAM,
-  'cleanstream-stormwater-2026': CLEAN_STREAM_PROGRAM
+  'ecocool-smart-garden-2026': SAMPLE_PROGRAM
 };
 
-export const PROGRAM_LIST = [
-  { id: 'entrepreneurship-product-creation-2026', title: 'PBL: Entrepreneurship — Product Creation', theme: 'Problem Discovery, Market Validation & Unit Economics (12 Wks / 120h)' },
-  { id: 'storytelling-genesis-2026', title: 'Project Genesis Engine: Storytelling IP', theme: 'Cinematic Narrative & Screenplay Pipeline (12 Wks / 120h Core Term)' },
-  { id: 'passion-project-blueprint-2026', title: 'PBL: Passion Project Blueprint', theme: '2e Neurodiversity & Autonomous Sprints (12 Wks / 120h)' },
-  { id: 'biomechanics-robotics-2026', title: 'PBL: Biomechanics & Bio-Robotics', theme: 'Biomimicry, Kinematics & Arduino C++ (12 Wks / 120h)' },
-  { id: 'hex-city-thailand-2026', title: 'Hex-City Thailand: Resilient Floating City', theme: 'Climate Adaptation & Marine Urbanism (12 Wks / 120h)' },
-  { id: 'ecocool-smart-garden-2026', title: 'EcoCool: Smart Urban Heat & Garden Monitor', theme: 'Sustainable Agriculture & Heat Resilience (12 Wks / 120h)' },
-  { id: 'cleanstream-stormwater-2026', title: 'CleanStream: Stormwater & Runoff Sentinel', theme: 'Water Security & Watershed Ecology (12 Wks / 120h)' }
-];
+export const PROGRAM_LIST = Object.values(PROGRAM_REGISTRY).map((program) => {
+  const contactHours = program.durationWeeks * SCHOOL_SCHEDULE_CONFIG.weeklyHours;
+  return {
+    id: program.id,
+    title: program.title,
+    theme: `${program.theme} (${program.durationWeeks} Wks / ${contactHours}h • ${program.totalSessions} Sessions)`
+  };
+});

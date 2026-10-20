@@ -5,7 +5,7 @@
  * 
  * Sourced from the official "The Passion Project Blueprint: Discovering Your Next Big Idea" curriculum.
  * Specifically architected for neurodivergent & twice-exceptional (2e) learners:
- * - Lowers Executive Functioning Barriers (scaffolds friction points, speech-to-text, micro-checklists)
+ * - Lowers Executive Functioning Barriers (scaffolds friction points, tap-to-choose cards, teacher scribing, micro-checklists)
  * - Validates Hyperfocus (transforms obsessions & rabbit holes into rigorous cross-curricular inquiries)
  * - Honors Autonomy (customizable vibe, creation toolkit, pace, and social modality)
  * 
@@ -15,7 +15,7 @@
  * - Measurable impact metrics & 2e neuro-scaffolding rubrics
  */
 
-import { PblProgram } from './programData';
+import type { PblProgram } from './programData';
 
 export interface VibeChoice {
   creationMode: 'physical' | 'digital' | 'theoretical';
@@ -53,9 +53,9 @@ export const FRICTION_STRATEGIES: FrictionStrategy[] = [
     id: 'fric-text-dread',
     frictionPoint: 'Writing Paragraph Dread (Dysgraphia / Overwhelm)',
     studentQuote: 'I hate writing long paragraphs and typing out long reports.',
-    scaffoldingMechanism: 'Voice Memo / Speech-to-Text & Visual Evidence: accept 60-second audio voice notes, photo galleries, and annotated sketches.',
-    aiCopilotPrompt: 'Convert my spoken voice notes into clean bullet points for my evidence log.',
-    dopamineBooster: 'Earn "Audio Chronicler Badge" (+250 XP) for logging 3 voice-recorded reflections.'
+    scaffoldingMechanism: 'Tap-to-Choose Cards, Annotated Sketches & Teacher Scribe: use visual choice cards, annotated drawings, or a teacher scribe (for older tracks, teacher-run scribing only; never record a child’s voice).',
+    aiCopilotPrompt: 'Convert my rough keyword list and teacher-scribed notes into clean bullet points for my evidence log.',
+    dopamineBooster: 'Earn "Visual Chronicler Badge" (+250 XP) for logging 3 tap-to-choose or sketched reflections.'
   },
   {
     id: 'fric-time-blindness',
@@ -98,7 +98,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
     ],
     sensorsAndActuators: [
       'Sensory & Physical Kits: motors, LEDs, ultrasonic sensors, analog sliders',
-      'Audio & Visual Capture: USB microphones, webcams, drawing tablets'
+      'Visual Capture & Input: digital drawing tablets, document cameras (note: any recording of learners requires prior school consent and must never be stored by the platform; USB microphones/webcams are teacher-operated only)'
     ],
     fabricationMaterials: [
       'LEGO Technic, cardboard, craft wire, polymer clay, cosplay foam, fabric',
@@ -108,17 +108,18 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
     softwareAndTools: [
       'PBL Studio AI Co-Pilot (simulated scaffolding & prompt coaching)',
       'Visual Kanban boards (Trello, Notion, or physical card walls)',
-      'Speech-to-Text dictation tools and audio recorders',
+      'Tap-to-choose reflection cards, sketch templates, and teacher-scribe templates (never record a child’s voice on the platform)',
       'Tinkercad / Blender (3D), Scratch / Godot (Games), Canva / Figma (Design)'
     ]
   },
   teacherGuidance: {
     safetyProtocol: [
       'Emotional Safety & Psychological Bravery: Maintain a strict anti-shaming environment around hyperfocus topics, non-traditional learning styles, and untidy initial drafts.',
-      'Physical Workshop Protocols: Standard eye protection and adult supervision during hot glue, utility knife, or soldering tasks.'
+      'Physical Workshop Protocols: Standard eye protection and adult supervision during hot glue, utility knife, or soldering tasks.',
+      'Under-13 Safeguarding & Recording Prohibition: No speech-to-text or voice recording for under-13 learners. Any recording of older learners requires school consent and must never be stored by the platform.'
     ],
     pedagogicalScaffolding: [
-      'Lower Executive Functioning Barriers: Offer visual Kanban boards, speech-to-text dictation, and bite-sized checklists for learners who find long writing blocks exhausting.',
+      'Lower Executive Functioning Barriers: Offer visual Kanban boards, tap-to-choose cards, drawing, or a teacher-run scribe (never recording a child’s voice), and bite-sized checklists for learners who find long writing blocks exhausting.',
       'Validate Hyperfocus: Celebrate deep rabbit holes (anime lore, video game mechanics, vintage synthesizers, insect biology) as valid launching pads for rigorous interdisciplinary inquiry.',
       'Honor Autonomy & Vibe: Respect the learner’s chosen vibe (Physical vs Digital vs Theoretical; Fast & Experimental vs Slow & Precise; Solo vs Crew).',
       'Address Friction Points Proactively: Normalize getting stuck and pair learners with targeted scaffolding strategies (e.g. 15-minute ugly drafts, mashup twists).'
@@ -128,7 +129,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
       'Transparent AI Provenance: Log what prompt was asked, what the AI provided, and what the student modified or kept.'
     ],
     differentiationNotes: [
-      'Primary Track (Ages 9–11 / Grades 4–6): Visual Kanban icon boards, speech-to-text audio reflections, physical craft/LEGO/cosplay tactile models, and 15-minute "ugly first draft" drawing games.',
+      'Primary Track (Ages 9–11 / Grades 4–6): Visual Kanban icon boards, tap-to-choose reflection options, drawing, or a teacher scribe (no speech-to-text or voice recording for under-13s), physical craft/LEGO/cosplay tactile models, and 15-minute "ugly first draft" drawing games.',
       'Junior Secondary Track (Ages 12–14 / Grades 7–9): Multi-week personal passion sprints with structured digital boards (Trello/Notion), Scratch/Godot game prototypes, DIY microcontroller inventions, and peer playtesting circles.',
       'Upper Secondary Track (Ages 15–17 / Grades 10–12): Portfolio-grade deliverables (open-source software, published community zines, functional industrial prototypes), autonomous milestone management, and public pitch presentations to industry mentors.'
     ]
@@ -143,7 +144,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
     {
       id: 'metric-friction-resolution',
       metric: 'Friction Point Self-Regulation',
-      target: 'Documented resolution of at least 2 major friction points using deliberate coping scaffolds (e.g. ugly draft, audio note)',
+      target: 'Documented resolution of at least 2 major friction points using deliberate coping scaffolds (e.g. ugly draft, tap-to-choose card, or teacher-scribed note)',
       verificationMethod: 'Student reflection logs and mentor coaching records'
     },
     {
@@ -158,13 +159,19 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
       id: 'asmp-hyperfocus-validity',
       domain: 'Curriculum Policy',
       assumption: 'School leadership permits non-traditional student-chosen topics (e.g. gaming, cosplay, fanfiction, mechanics) as rigorous PBL vehicles.',
-      ownerVerificationNeeded: 'Confirm school rubric acceptance of student-led passion domains.'
+      ownerVerificationNeeded: 'Confirm school rubric acceptance of student-led passion domains.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     },
     {
       id: 'asmp-multi-modal-evidence',
       domain: 'Assessment Format',
-      assumption: 'Evaluation accepts audio voice notes, photo diaries, and code/hardware demos in place of standard written essays.',
-      ownerVerificationNeeded: 'Confirm competency assessment team accepts non-text multimodal artifacts.'
+      assumption: 'Evaluation accepts annotated sketches, tap-to-choose cards, teacher-scribed notes, and code/hardware demos in place of standard written essays (without storing learner voice or personal photos).',
+      ownerVerificationNeeded: 'Confirm competency assessment team accepts non-essay multimodal artifacts.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     }
   ],
   phases: [
@@ -181,7 +188,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
         'Identify 3 candidate passion project sparks.'
       ],
       evidence: [
-        'Rabbit Hole Mind Map or audio brainstorm dump',
+        'Rabbit Hole Mind Map or sketched/teacher-scribed brainstorm dump',
         'Culture Check inspiration mood board',
         'Initial 3 Project Spark pitch cards'
       ],
@@ -200,14 +207,14 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
           learningGoal: 'Identify personal hyperfocus areas and asynchronous interests without school-subject censorship.',
           activities: [
             'Welcome & Psychological Safety: Celebrate non-traditional interests (gaming, modding, botany, music synthesis).',
-            'Individual Brain Dump: Complete Prompt 1 (The Rabbit Hole) using bullets, voice memos, or sketches.',
+            'Individual Brain Dump: Complete Prompt 1 (The Rabbit Hole) using tap-to-choose cards, bullets, sketches, or a teacher scribe.',
             'Peer Lightning Share: 2-minute show-and-tell on one fascinating fact from your favorite rabbit hole.'
           ],
           learnerChoices: {
             question: 'How do you want to record your initial brain dump?',
             options: [
               { id: 'opt-visual', label: 'Visual Sketch / Collage', description: 'Draw or clip images onto a digital or paper canvas.' },
-              { id: 'opt-voice', label: 'Voice Memo Dump', description: 'Record an audio file detailing your obsession thoughts.' },
+              { id: 'opt-scribe', label: 'Tap-to-Choose / Teacher Scribe', description: 'Select visual prompt cards or talk to your teacher scribe to capture your thoughts without typing.' },
               { id: 'opt-bullet', label: 'Fast Bullet Points', description: 'Rapidly type or write raw bullet points without editing.' }
             ]
           },
@@ -316,7 +323,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
       ],
       evidence: [
         'Dream Audience Persona card',
-        'User/Expert interview notes or audio recording',
+        'User/Expert written interview notes or empathy map',
         'Empathy map with "Says, Thinks, Does, Feels"'
       ],
       aiPromptStarters: [
@@ -577,7 +584,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
       goal: 'Identify brain friction points (Part 3), map custom scaffolds, and break the build down into bite-sized Kanban micro-sprints.',
       tasks: [
         'Complete Blueprint Part 3: Brain Speed (Prompt 8) and Friction Points (Prompt 9).',
-        'Select 2 Friction Strategies from the WeLearn Toolkit (e.g. 15-Min Ugly Draft, Mashup Twist, Voice Dictation).',
+        'Select 2 Friction Strategies from the WeLearn Toolkit (e.g. 15-Min Ugly Draft, Mashup Twist, Tap-to-Choose / Teacher Scribe).',
         'Conduct Crazy Eights rapid sketching for solution architecture.',
         'Build a visual Kanban board with 8 to 12 micro-sprint cards (under 30 minutes each).'
       ],
@@ -627,15 +634,15 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
           durationMin: 50,
           learningGoal: 'Design personalized counter-measures for anticipated friction points using WeLearn scaffolds.',
           activities: [
-            'Scaffolding Selection: Match your friction point to a proven scaffold (Ugly Draft, Mashup Twist, Voice Notes).',
+            'Scaffolding Selection: Match your friction point to a proven scaffold (Ugly Draft, Mashup Twist, Tap-to-Choose / Teacher Scribe).',
             'Emergency Protocol: Write a 3-step "If I get stuck..." emergency action plan card.',
-            'Setup Scaffolding Tools: Configure speech-to-text, timer app, or physical cue cards.'
+            'Setup Scaffolding Tools: Configure visual choice cards, timer app, teacher-run scribe check-in, or physical cue cards.'
           ],
           learnerChoices: {
             question: 'Which scaffolding tool will you set up today?',
             options: [
               { id: 'opt-scaf-timer', label: 'Flow & Sprint Timer', description: '20-minute focus sprints with mandatory breaks.' },
-              { id: 'opt-scaf-audio', label: 'Speech-to-Text / Audio Log', description: 'Dictation setup for voice-first evidence logging.' },
+              { id: 'opt-scaf-scribe', label: 'Tap-to-Choose / Teacher Scribe', description: 'Visual choice cards, drawing, or teacher-run scribing (never records a learner’s voice).' },
               { id: 'opt-scaf-buddy', label: 'Accountability / Body Double', description: 'Partnering with a peer for co-working sessions.' }
             ]
           },
@@ -712,7 +719,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
         'Execute the 15-Minute "Ugly First Draft" prototype challenge to break build inertia.',
         'Work through Kanban micro-sprint cards with enforced 20-minute focus intervals.',
         'Use the PBL Studio AI Co-Pilot for targeted debugging, circuit checks, or phrasing advice.',
-        'Log multi-modal evidence (code snippets, photo build logs, voice notes) with prompt provenance.'
+        'Log multi-modal evidence (code snippets, diagram build logs, tap-to-choose reflections) with prompt provenance.'
       ],
       evidence: [
         'Photos/video of "Ugly First Draft" prototype',
@@ -743,7 +750,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
             options: [
               { id: 'opt-ug-cardboard', label: 'Cardboard & Masking Tape', description: '3D rapid spatial form in minutes.' },
               { id: 'opt-ug-wireframe', label: 'Rough Digital Wireframe', description: 'Crude digital shapes with zero styling.' },
-              { id: 'opt-ug-script', label: 'Bullet Point Skeleton', description: 'Raw outline or scratch audio recording.' }
+              { id: 'opt-ug-script', label: 'Bullet Point Skeleton', description: 'Raw outline or annotated index card sequence.' }
             ]
           },
           evidenceToCollect: {
@@ -874,7 +881,7 @@ export const PASSION_BLUEPRINT_PROGRAM: PblProgram = {
             question: 'How do you want to capture playtest feedback?',
             options: [
               { id: 'opt-pt-notes', label: 'Live Observation Notes', description: 'Record timestamps and user facial reactions.' },
-              { id: 'opt-pt-audio', label: 'Audio Recorded Feedback', description: 'Record the user thinking aloud as they test.' }
+              { id: 'opt-pt-scribe', label: 'Teacher/Peer Scribed Feedback', description: 'Have a teammate or teacher jot down observations while the user tests (no voice recording).' }
             ]
           },
           evidenceToCollect: {
