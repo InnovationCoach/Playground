@@ -322,7 +322,7 @@ export function App() {
 
       {route?.screen === 'pbl' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
         <div className="gh-app">
-          <PblStudio uid={user?.uid} role={role} tab={route.tab} onOpenActivity={navigate} />
+          <PblStudio uid={user?.uid} role={role} tab={route.tab} programId={route.programId} section={route.section} onOpenActivity={navigate} />
         </div>
       ) : role === 'student' && route?.screen === 'courses' ? (
         <div className="gh-app">

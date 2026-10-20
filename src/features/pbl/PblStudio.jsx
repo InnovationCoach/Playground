@@ -1,4 +1,4 @@
-import { Rocket, Compass, NotebookPen, Award, BookOpen, FlaskConical } from 'lucide-react';
+import { Rocket, Compass, NotebookPen, Award, BookOpen, FlaskConical, Library } from 'lucide-react';
 import { TERM, PHASES } from './content/pblModel.js';
 import { usePblProject } from './engine/usePblProject.js';
 import { ProjectJourney } from './ProjectJourney.jsx';
@@ -6,9 +6,12 @@ import { ExploreSteam } from './ExploreSteam.jsx';
 import { Portfolio } from './Portfolio.jsx';
 import { CompetencyFramework } from './CompetencyFramework.jsx';
 import { Approach } from './Approach.jsx';
+import { ProgramLibrary } from './programs/ProgramLibrary.jsx';
+import { ProgramDetail } from './programs/ProgramDetail.jsx';
 import { hrefFor } from '../../app/routes.js';
 import '../admin/admin.css';
 import './pbl.css';
+import './programs/programs.css';
 
 /**
  * PBL Studio: the term project section.
@@ -17,25 +20,39 @@ import './pbl.css';
  * activities as its Explore phase. Coaches get the same framework read-only
  * (approach, phases, NGSS rubrics, competencies) - reading a learner's
  * portfolio belongs on the coach dashboard, which is not built yet.
+ *
+ * Programs is the library of ready-made term programs (Don's PBL programs,
+ * see programs/catalog.js). Opening one replaces the term hero with the
+ * program's own.
  */
 const STUDENT_TABS = [
   { id: 'project', label: 'My project', icon: Rocket },
+  { id: 'programs', label: 'Programs', icon: Library },
   { id: 'explore', label: 'Explore: STEAM', icon: FlaskConical },
   { id: 'portfolio', label: 'Evidence portfolio', icon: NotebookPen },
   { id: 'competencies', label: 'Competencies', icon: Award },
   { id: 'approach', label: 'Our approach', icon: BookOpen }
 ];
 const COACH_TABS = [
+  { id: 'programs', label: 'Programs', icon: Library },
   { id: 'approach', label: 'Our approach', icon: BookOpen },
   { id: 'project', label: 'Project phases', icon: Compass },
   { id: 'explore', label: 'Explore: NGSS rubrics', icon: FlaskConical },
   { id: 'competencies', label: 'Competencies', icon: Award }
 ];
 
-export function PblStudio({ uid, role, tab, onOpenActivity }) {
+export function PblStudio({ uid, role, tab, programId, section, onOpenActivity }) {
   const isStudent = role === 'student';
   const tabs = isStudent ? STUDENT_TABS : COACH_TABS;
   const active = tabs.some((t) => t.id === tab) ? tab : tabs[0].id;
+
+  if (active === 'programs' && programId) {
+    return (
+      <div className="gh-page pb-page">
+        <ProgramDetail programId={programId} section={section} uid={uid} isCoach={!isStudent} />
+      </div>
+    );
+  }
 
   return (
     <div className="gh-page pb-page">
@@ -66,7 +83,9 @@ export function PblStudio({ uid, role, tab, onOpenActivity }) {
         ))}
       </div>
 
-      {isStudent ? (
+      {active === 'programs' ? (
+        <ProgramLibrary uid={uid} isCoach={!isStudent} />
+      ) : isStudent ? (
         <StudentTabs uid={uid} active={active} onOpenActivity={onOpenActivity} />
       ) : (
         <>

@@ -1,0 +1,173 @@
+/**
+ * The PBL program library, read from Don's prototype (prototypes/DonPBL/).
+ *
+ * The prototype files are the source of truth for program content and are
+ * still being revised on the DonPBL branch, so they are imported as they are
+ * and never edited from here. This module is the seam: it normalises what the
+ * app needs, and it CHECKS the content instead of trusting it. Every problem
+ * found is listed for coaches (the same way competencies.js shows the school
+ * sheet's data issues) rather than silently corrected or hidden.
+ */
+import {
+  PROGRAM_REGISTRY,
+  PROGRAM_LIST,
+  LEARNER_AGE_CONFIG,
+  SCHOOL_SCHEDULE_CONFIG,
+  COPILOT_DEPLOYMENT_CONFIG
+} from '../../../../prototypes/DonPBL/programRegistry.ts';
+import { competencyById } from '../content/competencies.js';
+
+export const TERM_WEEKS = SCHOOL_SCHEDULE_CONFIG.weeksPerTerm;
+export const AGE_TRACKS = LEARNER_AGE_CONFIG.tracks;
+export const SCHEDULE = SCHOOL_SCHEDULE_CONFIG;
+
+/** Look and feel per program. Content stays in the prototype; this is presentation only. */
+const IDENTITY = {
+  'entrepreneurship-product-creation-2026': { icon: 'Store', tone: 'amber', short: 'Entrepreneurship' },
+  'storytelling-genesis-2026': { icon: 'Clapperboard', tone: 'magenta', short: 'Storytelling' },
+  'passion-project-blueprint-2026': { icon: 'Sparkles', tone: 'purple', short: 'Passion Project' },
+  'biomechanics-robotics-2026': { icon: 'Hand', tone: 'navy', short: 'Biomechanics' },
+  'hex-city-thailand-2026': { icon: 'Building2', tone: 'sky', short: 'Hex-City' },
+  'ecocool-smart-garden-2026': { icon: 'Sprout', tone: 'green', short: 'EcoCool' },
+  'cleanstream-stormwater-2026': { icon: 'Droplets', tone: 'sky', short: 'CleanStream' }
+};
+
+/**
+ * The prototype writes the school's codes as `sdl-1`; the app's ids are
+ * zero-padded (`sdl-01`). Map the unambiguous case, report everything else.
+ */
+export function resolveCompetencyId(id) {
+  if (competencyById(id)) return id;
+  const m = /^([a-z]+)-(\d)$/.exec(String(id));
+  const padded = m ? `${m[1]}-0${m[2]}` : null;
+  return padded && competencyById(padded) ? padded : null;
+}
+
+/** Claims written into the content that nobody has recorded a source for. */
+const UNSOURCED_CONFIRMATION = /confirmed by don/i;
+
+function cleanIds(ids, unknown) {
+  const out = [];
+  for (const id of ids || []) {
+    const resolved = resolveCompetencyId(id);
+    if (resolved) { if (!out.includes(resolved)) out.push(resolved); } else unknown.add(id);
+  }
+  return out;
+}
+
+function normalise(raw) {
+  const unknown = new Set();
+  const phases = raw.phases.map((ph) => ({
+    ...ph,
+    competencies: cleanIds(ph.competencies, unknown),
+    stretchCompetencies: cleanIds(ph.stretchCompetencies, unknown),
+    sessions: (ph.sessions || []).map((s) => ({
+      ...s,
+      phaseId: ph.id,
+      evidenceToCollect: { ...s.evidenceToCollect, targetCompetencies: cleanIds(s.evidenceToCollect?.targetCompetencies, unknown) }
+    }))
+  }));
+  const sessions = phases.flatMap((ph) => ph.sessions).sort((a, b) => a.sessionNumber - b.sessionNumber);
+  const listing = PROGRAM_LIST.find((l) => l.id === raw.id);
+
+  const program = {
+    ...raw,
+    phases,
+    sessions,
+    identity: IDENTITY[raw.id] || { icon: 'Compass', tone: 'purple', short: raw.title },
+    listedAs: listing?.theme || null,
+    sharesPhasesWith: null,
+    issues: []
+  };
+  program.issues = checkProgram(raw, program, unknown);
+  return program;
+}
+
+/**
+ * Honest checks over one program. Each issue is { level, text }:
+ * 'block' would mislead a learner, 'warn' is for the coach to raise with Don.
+ */
+function checkProgram(raw, program, unknownCompetencies) {
+  const issues = [];
+  const add = (level, text) => issues.push({ level, text });
+
+  if (raw.durationWeeks !== TERM_WEEKS) {
+    add('warn', `Runs ${raw.durationWeeks} weeks, but a school term is ${TERM_WEEKS} weeks.`);
+  }
+  if (program.listedAs && !program.listedAs.includes(`${raw.durationWeeks} Wks`)) {
+    add('warn', `The program list describes it as "${program.listedAs}", which disagrees with its ${raw.durationWeeks}-week plan.`);
+  }
+  if (program.sessions.length !== raw.totalSessions) {
+    add('warn', `Says ${raw.totalSessions} sessions, but only ${program.sessions.length} are written.`);
+  }
+  const lastWeek = Math.max(...raw.phases.map((p) => p.weeks[1]));
+  if (lastWeek > raw.durationWeeks) add('warn', `Phases run to week ${lastWeek}, past the ${raw.durationWeeks}-week plan.`);
+  for (let i = 1; i < raw.phases.length; i += 1) {
+    const prev = raw.phases[i - 1];
+    const cur = raw.phases[i];
+    if (cur.weeks[0] <= prev.weeks[1]) {
+      add('warn', `${prev.title} (weeks ${prev.weeks.join('–')}) and ${cur.title} (weeks ${cur.weeks.join('–')}) overlap.`);
+    }
+  }
+  if (unknownCompetencies.size) {
+    add('warn', `References competencies the school framework does not have: ${[...unknownCompetencies].join(', ')}. They are left out below.`);
+  }
+  for (const a of raw.assumptions || []) {
+    if (UNSOURCED_CONFIRMATION.test(a.ownerVerificationNeeded || '')) {
+      add('warn', `"${a.domain}" is marked as confirmed by Don, with no record of where or when.`);
+    }
+  }
+  const text = JSON.stringify(raw);
+  if (/speech-to-text/i.test(text) && /9[–-]11/.test(text)) {
+    add('block', 'Suggests speech-to-text, including for ages 9–11. The platform does not use speech-to-text with under-13s; use tap-to-choose, drawing or a teacher scribe instead.');
+  }
+  return issues;
+}
+
+const RAW = Object.values(PROGRAM_REGISTRY);
+export const PROGRAMS = RAW.map(normalise);
+
+// A program that borrows another's phases teaches the other program's sessions.
+for (const p of PROGRAMS) {
+  const twin = RAW.find((o) => o.id !== p.id && o.phases === PROGRAM_REGISTRY[p.id].phases);
+  if (twin && PROGRAM_LIST.findIndex((l) => l.id === p.id) > PROGRAM_LIST.findIndex((l) => l.id === twin.id)) {
+    p.sharesPhasesWith = twin.id;
+    p.issues.unshift({ level: 'block', text: `Its sessions are copied from ${twin.title}, so they teach that program, not this one. Treat it as an outline only.` });
+  }
+}
+
+/** Platform-level claims in the prototype that are not true of the app today. */
+export const PLATFORM_NOTES = [
+  COPILOT_DEPLOYMENT_CONFIG.status === 'confirmed' && {
+    level: 'warn',
+    text: `The prototype lists the AI co-pilot (${COPILOT_DEPLOYMENT_CONFIG.endpoint}) as confirmed for deployment. No backend is deployed, so learners get the built-in fallback.`
+  },
+  LEARNER_AGE_CONFIG.minAge < 13 && {
+    level: 'warn',
+    text: `Programs are written for ages ${LEARNER_AGE_CONFIG.minAge}–${LEARNER_AGE_CONFIG.maxAge}. Under-13s need parental consent before they use the platform.`
+  }
+].filter(Boolean);
+
+export const programById = (id) => PROGRAMS.find((p) => p.id === id) || null;
+
+/** Every phase-level and session-level competency in a program, in framework order. */
+export function programCompetencies(program) {
+  const ids = new Set();
+  for (const ph of program.phases) {
+    ph.competencies.forEach((id) => ids.add(id));
+    ph.stretchCompetencies.forEach((id) => ids.add(id));
+    ph.sessions.forEach((s) => s.evidenceToCollect.targetCompetencies.forEach((id) => ids.add(id)));
+  }
+  return [...ids];
+}
+
+/** Sessions that fall in one week of the program. */
+export function sessionsInWeek(program, week) {
+  return program.sessions.filter((s) => s.week === week);
+}
+
+/** "Ages 9–17 (Primary through Upper Secondary: ...)" -> "Ages 9–17". */
+export function shortAges(text) {
+  const m = /ages?\s*\d+\s*[–-]\s*\d+/i.exec(text || '');
+  return m ? m[0].replace(/^a/, 'A') : (text || '').split('(')[0].trim();
+}

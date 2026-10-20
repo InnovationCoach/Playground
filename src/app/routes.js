@@ -7,6 +7,7 @@
  *   #/settings   #/courses   #/parent                    everyone else
  *   #/primary-resources  #/worksheet/<id>  #/guide/<id>  printable primary material
  *   #/pbl  #/pbl/<tab>                                   PBL Studio (term project)
+ *   #/pbl/programs/<programId>/<section>                 one program in the PBL library
  *   #/community                                          community posts
  *   #/messages  #/messages/<convId>                      private messages
  *
@@ -20,7 +21,7 @@ export function parseRoute(hash) {
   const parts = String(hash || '').replace(/^#\/?/, '').split('/').filter(Boolean).map((p) => {
     try { return decodeURIComponent(p); } catch { return p; }
   });
-  const [head, a, b] = parts;
+  const [head, a, b, c] = parts;
   if (head === 'admin') {
     if (KINDS.includes(a)) return { screen: 'admin', page: 'list', kind: a };
     if (a === 'billing') return { screen: 'admin', page: 'billing' };
@@ -34,6 +35,7 @@ export function parseRoute(hash) {
   if (head === 'worksheet' && a) return { screen: 'worksheet', activityId: a };
   if (head === 'guide' && a) return { screen: 'guide', activityId: a };
   if (head === 'courses') return { screen: 'courses' };
+  if (head === 'pbl' && a === 'programs' && b) return { screen: 'pbl', tab: 'programs', programId: b, section: c || null };
   if (head === 'pbl') return { screen: 'pbl', tab: a || null };
   if (head === 'parent') return { screen: 'parent' };
   if (head === 'community') return { screen: 'community' };
@@ -54,6 +56,7 @@ export const hrefFor = {
   worksheet: (id) => `#/worksheet/${id}`,
   guide: (id) => `#/guide/${id}`,
   pbl: (tab) => (tab ? `#/pbl/${tab}` : '#/pbl'),
+  program: (id, section) => `#/pbl/programs/${encodeURIComponent(id)}${section ? `/${section}` : ''}`,
   community: () => '#/community',
   messages: (convId) => (convId ? `#/messages/${convId}` : '#/messages')
 };
