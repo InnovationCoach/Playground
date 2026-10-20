@@ -103,6 +103,11 @@ export function writeBatch(dbInstance) {
   return ((dbInstance && dbInstance.batch) ? dbInstance : db).batch();
 }
 
+/** Read-then-write atomically. Compat: fn receives tx with get/set/update/delete. */
+export function runTransaction(dbInstance, fn) {
+  return ((dbInstance && dbInstance.runTransaction) ? dbInstance : db).runTransaction(fn);
+}
+
 export function serverTimestamp() {
   return firebase.firestore.FieldValue.serverTimestamp();
 }

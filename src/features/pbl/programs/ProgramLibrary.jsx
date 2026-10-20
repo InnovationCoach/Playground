@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Search, CalendarDays, Layers, Users, TriangleAlert, ArrowRight } from 'lucide-react';
+import { Search, CalendarDays, Layers, Users, TriangleAlert, ArrowRight, School } from 'lucide-react';
 import { PROGRAMS, PLATFORM_NOTES, SCHEDULE, shortAges } from './catalog.js';
 import { programProgress } from './progress.js';
 import { readLocalProgress } from './useProgramProgress.js';
 import { ProgramIcon } from './ProgramIcon.jsx';
+import { useClassPrograms } from './useClassPrograms.js';
 import { hrefFor } from '../../../app/routes.js';
 
 /**
@@ -13,7 +14,8 @@ import { hrefFor } from '../../../app/routes.js';
  * program has outstanding, so nothing reaches a class without someone having
  * read the warnings.
  */
-export function ProgramLibrary({ uid, isCoach }) {
+export function ProgramLibrary({ uid, isCoach, classIds = [] }) {
+  const { assigned, byProgram } = useClassPrograms(classIds);
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
   const shown = useMemo(() => PROGRAMS.filter((p) => !q
@@ -38,6 +40,27 @@ export function ProgramLibrary({ uid, isCoach }) {
         </label>
       </div>
 
+      {!isCoach && assigned.length > 0 && (
+        <section className="pg-assigned" aria-label="Your class program">
+          {assigned.map((c) => {
+            const p = PROGRAMS.find((x) => x.id === c.programId);
+            return (
+              <a key={c.id} className="pg-assigned-card" data-tone={p.identity.tone} href={hrefFor.program(p.id)}>
+                <span className="pg-card-icon"><ProgramIcon name={p.identity.icon} size={24} /></span>
+                <span className="pb-grow">
+                  <span className="pg-assigned-kicker"><School size={14} aria-hidden="true" />{c.name} is doing</span>
+                  <strong>{p.title}</strong>
+                </span>
+                <span className="pg-card-go">Open<ArrowRight size={16} aria-hidden="true" /></span>
+              </a>
+            );
+          })}
+        </section>
+      )}
+      {!isCoach && classIds.length === 0 && (
+        <p className="pb-note pg-platform-note" role="note">Join your class on Home to see the program your teacher chose for you.</p>
+      )}
+
       {isCoach && PLATFORM_NOTES.length > 0 && (
         <div className="pb-note pg-platform-note" role="note">
           <TriangleAlert size={15} aria-hidden="true" />
@@ -49,25 +72,28 @@ export function ProgramLibrary({ uid, isCoach }) {
         <p className="pb-empty">No program matches “{query}”.</p>
       ) : (
         <ul className="pg-grid">
-          {shown.map((p) => <li key={p.id}><ProgramCard program={p} uid={uid} isCoach={isCoach} /></li>)}
+          {shown.map((p) => <li key={p.id}><ProgramCard program={p} uid={uid} isCoach={isCoach} classNames={byProgram[p.id]} /></li>)}
         </ul>
       )}
     </div>
   );
 }
 
-function ProgramCard({ program: p, uid, isCoach }) {
+function ProgramCard({ program: p, uid, isCoach, classNames }) {
   const local = !isCoach ? readLocalProgress(uid, p) : null;
   const prog = local?.startedAt ? programProgress(local, p) : null;
   const blocking = p.issues.filter((i) => i.level === 'block').length;
 
   return (
-    <a className="pg-card" data-tone={p.identity.tone} href={hrefFor.program(p.id)}>
+    <a className="pg-card" data-tone={p.identity.tone} data-assigned={classNames ? true : undefined} href={hrefFor.program(p.id)}>
       <div className="pg-card-band">
         <span className="pg-card-icon"><ProgramIcon name={p.identity.icon} size={22} /></span>
         <span className="pg-card-kicker">{p.identity.short}</span>
         {p.sharesPhasesWith && <span className="pg-outline-tag">Outline only</span>}
       </div>
+      {classNames && (
+        <div className="pg-card-classes"><School size={14} aria-hidden="true" />{isCoach ? 'Running in ' : 'Your class: '}{classNames.join(', ')}</div>
+      )}
       <div className="pg-card-body">
         <strong className="pg-card-title">{p.title}</strong>
         <span className="pg-card-theme">{p.theme}</span>

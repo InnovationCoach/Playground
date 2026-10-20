@@ -41,7 +41,7 @@ const COACH_TABS = [
   { id: 'competencies', label: 'Competencies', icon: Award }
 ];
 
-export function PblStudio({ uid, role, tab, programId, section, onOpenActivity }) {
+export function PblStudio({ uid, role, tab, programId, section, classIds, onOpenActivity }) {
   const isStudent = role === 'student';
   const tabs = isStudent ? STUDENT_TABS : COACH_TABS;
   const active = tabs.some((t) => t.id === tab) ? tab : tabs[0].id;
@@ -84,7 +84,7 @@ export function PblStudio({ uid, role, tab, programId, section, onOpenActivity }
       </div>
 
       {active === 'programs' ? (
-        <ProgramLibrary uid={uid} isCoach={!isStudent} />
+        <ProgramLibrary uid={uid} isCoach={!isStudent} classIds={classIds} />
       ) : isStudent ? (
         <StudentTabs uid={uid} active={active} onOpenActivity={onOpenActivity} />
       ) : (

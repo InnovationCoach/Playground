@@ -1,0 +1,52 @@
+/* "My classes" panel on the coach dashboard. Matches CoachDashboard.js's dark
+   palette (slate surfaces, sky accents) so the page reads as one; cp- prefixed. */
+.cp-panel { max-width: 1400px; margin: 0 auto; padding: 1.5rem 2rem 0; color: #e2e8f0; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; }
+.cp-panel > * { background: transparent; }
+.cp-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; padding: 1.5rem; background: #1e293b; border: 1px solid #334155; border-bottom: none; border-radius: 16px 16px 0 0; }
+.cp-head h2 { display: flex; align-items: center; gap: 0.5rem; margin: 0; color: #f8fafc; font-size: 1.35rem; }
+.cp-head p { margin: 0.25rem 0 0; color: #94a3b8; font-size: 0.92rem; }
+.cp-list { list-style: none; margin: 0; padding: 0 1.5rem 1.5rem; background: #1e293b; border: 1px solid #334155; border-top: none; border-radius: 0 0 16px 16px; display: grid; gap: 0.75rem; }
+.cp-panel > .cp-muted { margin: 0; padding: 0 1.5rem 1.5rem; background: #1e293b; border: 1px solid #334155; border-top: none; border-radius: 0 0 16px 16px; }
+.cp-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 1rem 1.5rem; padding: 1.1rem 1.25rem; background: #0f172a; border: 1px solid #334155; border-radius: 12px; }
+.cp-row-bad { grid-template-columns: 1fr; border-color: #7f1d1d; }
+.cp-class { display: grid; gap: 0.5rem; align-content: start; min-width: 0; }
+.cp-class > strong { font-size: 1.1rem; color: #f8fafc; }
+.cp-field { display: grid; gap: 0.3rem; font-size: 0.78rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+.cp-field select { max-width: 320px; background: #1e293b; color: #f8fafc; border: 1px solid #475569; border-radius: 8px; padding: 0.5rem 0.65rem; font-family: inherit; font-size: 0.92rem; font-weight: 500; text-transform: none; letter-spacing: 0; }
+.cp-field select:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
+.cp-link { display: inline-flex; align-items: center; gap: 0.3rem; color: #38bdf8; font-size: 0.88rem; text-decoration: none; overflow-wrap: anywhere; }
+.cp-link:hover { text-decoration: underline; }
+.cp-warn { color: #fbbf24; font-size: 0.85rem; }
+.cp-code { display: grid; gap: 0.5rem; align-content: start; min-width: 0; }
+.cp-code-label { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+.cp-code-value { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 1.9rem; font-weight: 800; letter-spacing: 0.12em; color: #38bdf8; }
+.cp-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.cp-btn { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 36px; padding: 0.45rem 0.85rem; border-radius: 8px; border: 1px solid #475569; background: #1e293b; color: #e2e8f0; font-family: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.cp-btn:hover:not(:disabled) { border-color: #38bdf8; color: #f8fafc; }
+.cp-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.cp-btn:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+.cp-btn-primary { background: #059669; border-color: #059669; color: #fff; }
+.cp-btn-primary:hover:not(:disabled) { background: #047857; border-color: #047857; }
+.cp-btn-danger { color: #fca5a5; border-color: #7f1d1d; }
+.cp-btn-danger:hover:not(:disabled) { border-color: #ef4444; color: #fecaca; }
+.cp-btn-ghost { background: transparent; }
+.cp-confirm { display: grid; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; background: #1e293b; border: 1px solid #b45309; color: #fde68a; font-size: 0.88rem; }
+.cp-muted { color: #94a3b8; font-size: 0.9rem; }
+.cp-msg { grid-column: 1 / -1; margin: 0; font-size: 0.88rem; }
+.cp-msg-ok { color: #6ee7b7; }
+.cp-msg-error { color: #fca5a5; }
+
+/* Projector view */
+.cp-present { position: fixed; inset: 0; z-index: 4000; display: grid; place-content: center; justify-items: center; gap: 1rem; padding: 2rem; text-align: center; background: radial-gradient(circle at 50% 30%, #1e3a5f 0%, #0b1220 70%); color: #f8fafc; }
+.cp-present-close { position: absolute; top: 1.25rem; right: 1.25rem; background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.5rem; }
+.cp-present-close:hover { color: #fff; }
+.cp-present-kicker { margin: 0; font-size: clamp(1.2rem, 3vw, 2rem); color: #94a3b8; }
+.cp-present-program { margin: 0; font-size: clamp(1rem, 2.2vw, 1.4rem); color: #6ee7b7; max-width: 40ch; }
+.cp-present-code { margin: 0.5rem 0; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-weight: 800; font-size: clamp(3rem, 13vw, 9rem); letter-spacing: 0.1em; color: #38bdf8; line-height: 1; }
+.cp-present-steps { margin: 0; padding-left: 1.4rem; text-align: left; font-size: clamp(1rem, 2vw, 1.3rem); color: #cbd5e1; display: grid; gap: 0.4rem; }
+
+@media (max-width: 760px) {
+  .cp-panel { padding: 1rem 1rem 0; }
+  .cp-row { grid-template-columns: 1fr; }
+  .cp-head, .cp-list { padding-left: 1rem; padding-right: 1rem; }
+}

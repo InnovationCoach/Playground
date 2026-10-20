@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import CoachDashboard from '../../components/Coach/CoachDashboard.js';
+import { ClassProgramsPanel } from './ClassProgramsPanel.jsx';
 
 /**
  * Hosts the existing CoachDashboard class inside React.
@@ -10,6 +11,8 @@ import CoachDashboard from '../../components/Coach/CoachDashboard.js';
  * anyway - so React mounts it and stays out of its way.
  *
  * React must not touch the container's children: the class owns that subtree.
+ * "My classes" (programs and join codes) is React and sits above it, outside
+ * that subtree.
  */
 export function CoachDashboardHost({ coachUser }) {
   const containerRef = useRef(null);
@@ -44,5 +47,10 @@ export function CoachDashboardHost({ coachUser }) {
     };
   }, [coachUser]);
 
-  return <div id="coach-dashboard-card" ref={containerRef} />;
+  return (
+    <>
+      <ClassProgramsPanel coachUser={coachUser} />
+      <div id="coach-dashboard-card" ref={containerRef} />
+    </>
+  );
 }

@@ -17,7 +17,7 @@ import {
   assertSucceeds
 } from '@firebase/rules-unit-testing';
 import fs from 'fs';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, getDocs, query, where, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, getDocs, query, where, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 let testEnv;
 
@@ -315,7 +315,7 @@ describe('joining a class with a code', () => {
     await assertFails(updateDoc(doc(db, 'classCodes', 'SUN-4K2P'), { classId: CLASS_B }));
   });
 
-  it('a coach CANNOT mint a code either - admin tooling only', async () => {
+  it('a coach CANNOT mint a bare code - it must come with the class pointing at it', async () => {
     const db = coachA().firestore();
     await assertFails(setDoc(doc(db, 'classCodes', 'HAX-0001'), { classId: CLASS_A }));
   });
@@ -671,4 +671,139 @@ describe('F3: Private Messages (Coach-Initiated & Safeguarding)', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Coaches issuing, rotating and revoking codes, and assigning a program
+// ---------------------------------------------------------------------------
 
+describe('coaches manage join codes and programs for their own classes', () => {
+  // Well-formed codes (no vowels, no 0/1/O/I/L).
+  const A_CODE = 'BCDF-2345';
+  const B_CODE = 'QRST-6789';
+  const NEW_CODE = 'GHJK-7892';
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'classCodes', A_CODE), { classId: CLASS_A, className: 'Class A' });
+      await setDoc(doc(db, 'classCodes', B_CODE), { classId: CLASS_B, className: 'Class B' });
+      await updateDoc(doc(db, 'classes', CLASS_A), { joinCode: A_CODE });
+      await updateDoc(doc(db, 'classes', CLASS_B), { joinCode: B_CODE });
+    });
+  });
+
+  const issue = (db, code, classId, extra = {}, classPatch = { joinCode: code }) => {
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'classCodes', code), {
+      classId, className: 'Class', createdBy: 'coach_a', createdAt: serverTimestamp(), ...extra
+    });
+    if (classPatch) batch.update(doc(db, 'classes', classId), classPatch);
+    return batch.commit();
+  };
+
+  it('issues a new code for their class when the class points at it', async () => {
+    const db = coachA().firestore();
+    await assertSucceeds(issue(db, NEW_CODE, CLASS_A));
+  });
+
+  it('CANNOT issue a code without pointing the class at it', async () => {
+    await assertFails(issue(coachA().firestore(), NEW_CODE, CLASS_A, {}, null));
+  });
+
+  it("CANNOT issue a code for a class they do not teach", async () => {
+    await assertFails(issue(coachA().firestore(), NEW_CODE, CLASS_B));
+  });
+
+  it('CANNOT issue a malformed code', async () => {
+    const db = coachA().firestore();
+    await assertFails(issue(db, 'HAX-0001', CLASS_A));
+    await assertFails(issue(db, 'bcdf-2345', CLASS_A));
+    await assertFails(issue(db, 'BCDFG-2345', CLASS_A));
+  });
+
+  it('CANNOT add extra fields or claim another author', async () => {
+    const db = coachA().firestore();
+    await assertFails(issue(db, NEW_CODE, CLASS_A, { classIdOverride: CLASS_B }));
+    await assertFails(issue(db, NEW_CODE, CLASS_A, { createdBy: 'coach_b' }));
+  });
+
+  it("CANNOT take over an existing code by writing it again", async () => {
+    await assertFails(issue(coachA().firestore(), B_CODE, CLASS_A));
+  });
+
+  it('a learner CANNOT issue a code even for their own class', async () => {
+    const db = studentA().firestore();
+    await assertFails(issue(db, NEW_CODE, CLASS_A, { createdBy: 'student_a' }));
+  });
+
+  it('rotates in one write: old code gone, new code live', async () => {
+    const db = coachA().firestore();
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'classCodes', A_CODE));
+    batch.set(doc(db, 'classCodes', NEW_CODE), { classId: CLASS_A, className: 'Class A', createdBy: 'coach_a', createdAt: serverTimestamp() });
+    batch.update(doc(db, 'classes', CLASS_A), { joinCode: NEW_CODE });
+    await assertSucceeds(batch.commit());
+
+    const learner = testEnv.authenticatedContext('newbie').firestore();
+    expect((await getDoc(doc(learner, 'classCodes', A_CODE))).exists()).toBe(false);
+    expect((await getDoc(doc(learner, 'classCodes', NEW_CODE))).data().classId).toBe(CLASS_A);
+  });
+
+  it('revokes by deleting the code and clearing the class in one write', async () => {
+    const db = coachA().firestore();
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'classCodes', A_CODE));
+    batch.update(doc(db, 'classes', CLASS_A), { joinCode: null });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('CANNOT delete a code the class still advertises', async () => {
+    await assertFails(deleteDoc(doc(coachA().firestore(), 'classCodes', A_CODE)));
+  });
+
+  it("CANNOT revoke another class's code", async () => {
+    const db = coachA().firestore();
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'classCodes', B_CODE));
+    await assertFails(batch.commit());
+  });
+
+  it("CANNOT point their class at another class's code", async () => {
+    await assertFails(updateDoc(doc(coachA().firestore(), 'classes', CLASS_A), { joinCode: B_CODE }));
+    await assertFails(updateDoc(doc(coachA().firestore(), 'classes', CLASS_A), { joinCode: 'ZZZZ-9999' }));
+  });
+
+  it('a learner who used a revoked code can no longer join with it', async () => {
+    const db = coachA().firestore();
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'classCodes', A_CODE));
+    batch.update(doc(db, 'classes', CLASS_A), { joinCode: null });
+    await batch.commit();
+    const newbie = testEnv.authenticatedContext('newbie').firestore();
+    await assertFails(updateDoc(doc(newbie, 'users', 'newbie'), { classIds: [CLASS_A], groupName: 'Class A', enrolledVia: A_CODE }));
+  });
+
+  it('assigns a program to their class', async () => {
+    await assertSucceeds(updateDoc(doc(coachA().firestore(), 'classes', CLASS_A), { programId: 'ecocool-smart-garden-2026' }));
+    await assertSucceeds(updateDoc(doc(coachA().firestore(), 'classes', CLASS_A), { programId: null }));
+  });
+
+  it('CANNOT assign a program to a class they do not teach, or a non-string', async () => {
+    await assertFails(updateDoc(doc(coachB().firestore(), 'classes', CLASS_A), { programId: 'ecocool-smart-garden-2026' }));
+    await assertFails(updateDoc(doc(coachA().firestore(), 'classes', CLASS_A), { programId: 42 }));
+    await assertFails(updateDoc(doc(coachA().firestore(), 'classes', CLASS_A), { programId: 'x'.repeat(101) }));
+  });
+
+  it("a learner CANNOT change their class's program, but can read it", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'classes', CLASS_A), { programId: 'hex-city-thailand-2026' });
+    });
+    const db = studentA().firestore();
+    await assertFails(updateDoc(doc(db, 'classes', CLASS_A), { programId: 'ecocool-smart-garden-2026' }));
+    expect((await assertSucceeds(getDoc(doc(db, 'classes', CLASS_A)))).data().programId).toBe('hex-city-thailand-2026');
+  });
+
+  it('a new class cannot be created already pointing at a code', async () => {
+    const db = coachA().firestore();
+    await assertFails(setDoc(doc(db, 'classes', 'class_new'), { name: 'New', coachIds: ['coach_a'], joinCode: A_CODE }));
+  });
+});

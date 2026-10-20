@@ -1052,7 +1052,7 @@ export class CoachDashboard {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
           <div>
             <h3 style="margin: 0; color: white; font-size: 1.3rem;">👥 Student Roster</h3>
-            <p style="margin: 0.2rem 0 0 0; color: #94a3b8; font-size: 0.9rem;">Class Join Code: <strong style="color: #38bdf8;">HEAR-SOLAR-2026</strong></p>
+            <p style="margin: 0.2rem 0 0 0; color: #94a3b8; font-size: 0.9rem;">Join codes are managed under <strong style="color: #38bdf8;">My classes</strong> at the top of this page.</p>
           </div>
           <button id="export-csv-btn" style="background: #059669; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
             📥 Export Class CSV Report

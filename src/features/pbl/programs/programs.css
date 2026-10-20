@@ -35,6 +35,16 @@
 .pg-card-progress { display: grid; gap: 0.3rem; font-size: 0.78rem; color: var(--gh-text-2); flex: 1; min-width: 0; }
 .pg-card-progress .pb-meter { margin: 0; height: 6px; }
 
+/* Programs assigned to the viewer's classes */
+.pg-assigned { display: grid; gap: 0.6rem; margin-bottom: 1rem; }
+.pg-assigned-card { display: flex; align-items: center; gap: 0.9rem; padding: 0.9rem 1.1rem; border-radius: 14px; color: #fff; text-decoration: none; background: linear-gradient(120deg, var(--pg-a), var(--pg-b)); box-shadow: var(--gh-shadow); }
+.pg-assigned-card:hover { box-shadow: var(--gh-shadow-lg); }
+.pg-assigned-card strong { display: block; font-family: var(--gh-font-display); font-size: 1.08rem; }
+.pg-assigned-card .pg-card-go { color: #fff; }
+.pg-assigned-kicker { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; font-weight: 600; opacity: 0.85; }
+.pg-card[data-assigned] { border-color: var(--pg-b); box-shadow: 0 0 0 3px var(--pg-tint); }
+.pg-card-classes { display: flex; align-items: center; gap: 0.35rem; padding: 0.4rem 1rem; font-size: 0.78rem; font-weight: 600; background: var(--pg-tint); color: var(--pg-ink); }
+
 /* Detail hero */
 .pg-back { margin-bottom: 0.75rem; text-decoration: none; }
 .pg-hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; padding: 1.5rem; border-radius: 16px; color: #fff; background: linear-gradient(135deg, var(--pg-a) 0%, var(--pg-b) 100%); }

@@ -115,26 +115,66 @@ service cloud.firestore {
     match /parentInvites/{docId} { allow read, write: if false; }
 
     // ---------------------------------------------------------------------
-    // Join codes. classCodes/{CODE} -> { classId, className }
+    // Join codes. classCodes/{CODE} -> { classId, className, createdBy, createdAt }
     //
     // Readable one document at a time by exact code, which is what a learner
     // typing a code does. Listing is denied outright: without that, a single
     // query would hand any signed-in learner every code for every class in
     // every school, which is the whole secret this collection holds.
+    //
+    // A coach may issue and revoke codes for the classes they teach, and only
+    // those. Issuing must happen in the same write as pointing the class's
+    // `joinCode` at the new code, so the code a coach sees on the class is
+    // always one that really works. Codes are never updated: a code that
+    // already exists cannot be taken over by writing it again, and rotating
+    // is revoke + issue. Admin tooling (scripts/class-codes.js) bypasses this.
     // ---------------------------------------------------------------------
+    function isWellFormedCode(code) {
+      return code.matches('^[BCDFGHJKMNPQRSTVWXYZ2-9]{4}-[BCDFGHJKMNPQRSTVWXYZ2-9]{4}$');
+    }
+
     match /classCodes/{code} {
       allow get: if isAuthenticated();
       allow list: if false;
-      allow write: if false;   // issued by admin tooling only
+      allow create: if teachesClass(request.resource.data.classId)
+        && isWellFormedCode(code)
+        && request.resource.data.keys().hasOnly(['classId', 'className', 'createdBy', 'createdAt'])
+        && request.resource.data.className is string
+        && request.resource.data.className.size() <= 120
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/classes/$(request.resource.data.classId)).data.get('joinCode', null) == code;
+      allow update: if false;
+      // Revoking also clears the class's joinCode in the same write, so a
+      // class never advertises a code that no longer works.
+      allow delete: if teachesClass(resource.data.classId)
+        && getAfter(/databases/$(database)/documents/classes/$(resource.data.classId)).data.get('joinCode', null) != code;
     }
 
     // ---------------------------------------------------------------------
     // Classes - the tenancy unit. Created and owned by coaches.
     // ---------------------------------------------------------------------
+    // `joinCode` and `programId` are what coaches change from the dashboard.
+    // joinCode may only ever name a code that (after this write) exists and
+    // belongs to this class, or be cleared; programId is a short string or null.
+    function classFieldsValid(classId) {
+      let code = request.resource.data.get('joinCode', null);
+      let program = request.resource.data.get('programId', null);
+      return (code == null
+          || (code is string
+              && existsAfter(/databases/$(database)/documents/classCodes/$(code))
+              && getAfter(/databases/$(database)/documents/classCodes/$(code)).data.classId == classId))
+        && (program == null || (program is string && program.size() > 0 && program.size() <= 100));
+    }
+
     match /classes/{classId} {
       allow read: if teachesClass(classId) || inClass(classId);
-      allow create: if isTeacher() && request.resource.data.coachIds.hasAny([request.auth.uid]);
-      allow update, delete: if teachesClass(classId);
+      allow create: if isTeacher() && request.resource.data.coachIds.hasAny([request.auth.uid])
+        && request.resource.data.get('joinCode', null) == null;
+      allow update: if teachesClass(classId)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['joinCode', 'programId'])
+            || classFieldsValid(classId));
+      allow delete: if teachesClass(classId);
     }
 
     function isAdminOrSupervisor() {
