@@ -26,7 +26,9 @@ import {
 } from 'lucide-react';
 import { 
   GENESIS_CHARACTERS_FIXTURE, 
-  GENESIS_WORLD_RULES_FIXTURE,
+  GENESIS_WORLD_RULES_FIXTURE
+} from '../pbl';
+import type {
   CharacterProfile,
   WorldRule
 } from '../pbl';
@@ -647,7 +649,7 @@ ${currentScript}
                     4-Layer Audio Architecture & Sidechain Ducking Mixer
                   </h3>
                   <p className="text-xs text-stone-500 mt-0.5">
-                    Week 13–18 Audio Pipeline: Dialogue, Atmosphere, Foley, and Music ducking.
+                    Weeks 7–10 Audio Pipeline: Dialogue, Atmosphere, Foley, and Music ducking (Safeguarding: any recording of learners requires prior school consent and is never stored by the platform; no voice recording for under-13s).
                   </p>
                 </div>
 

@@ -23,7 +23,8 @@ import {
   Copy,
   FolderPlus
 } from 'lucide-react';
-import { FRICTION_STRATEGIES, FrictionStrategy } from '../pbl';
+import { FRICTION_STRATEGIES } from '../pbl';
+import type { FrictionStrategy } from '../pbl';
 
 interface PassionBlueprintSimulatorProps {
   isOpen: boolean;
@@ -138,21 +139,21 @@ export const PassionBlueprintSimulator: React.FC<PassionBlueprintSimulatorProps>
     }
   };
 
-  // Trigger Voice Memo Sim
+  // Trigger Tap-to-Choose / Teacher Scribe Card (Safeguarding: never record a child's voice)
   const handleToggleVoiceRecord = () => {
     if (!voiceRecordingSim) {
       setVoiceRecordingSim(true);
-      setVoiceTextResult('Listening and auto-transcribing voice notes...');
+      setVoiceTextResult('Generating structured reflection from tap-to-choose cards...');
       setTimeout(() => {
         setVoiceTextResult(
-          `"Voice Memo [Transcribed]: I was stuck on the jump physics because I wanted it to feel like Celeste, but the gravity curve was too floaty. Switching to a 20-minute micro-sprint where I only tweak terminal velocity fixed it completely without writing a long report!"`
+          `"Tap-to-Choose & Teacher-Scribed Reflection: Selected cards [Stuck on Jump Physics] → [Switched to 20-Minute Micro-Sprint] → [Tuned Terminal Velocity]. Solved the floaty gravity curve without writing a long paragraph or recording voice audio!"`
         );
         setVoiceRecordingSim(false);
-        if (!unlockedBadges.includes('🎙️ Audio Chronicler')) {
-          setUnlockedBadges((prev) => [...prev, '🎙️ Audio Chronicler']);
+        if (!unlockedBadges.includes('🗂️ Visual Chronicler')) {
+          setUnlockedBadges((prev) => [...prev, '🗂️ Visual Chronicler']);
           setXpScore((prev) => prev + 300);
         }
-      }, 3000);
+      }, 600);
     }
   };
 
@@ -793,7 +794,7 @@ export const PassionBlueprintSimulator: React.FC<PassionBlueprintSimulatorProps>
                     </h3>
                   </div>
                   <p className="text-xs text-stone-500 mt-0.5">
-                    Hate typing long paragraphs? Use voice recording to speak your thoughts freely!
+                    Hate typing long paragraphs? Use tap-to-choose reflection cards, annotated sketches, or a teacher-run scribe (never recording a learner&apos;s voice)!
                   </p>
                 </div>
 
@@ -801,17 +802,17 @@ export const PassionBlueprintSimulator: React.FC<PassionBlueprintSimulatorProps>
                   onClick={handleToggleVoiceRecord}
                   disabled={voiceRecordingSim}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors shadow-2xs ${
-                    voiceRecordingSim ? 'bg-red-600 animate-pulse' : 'bg-indigo-700 hover:bg-indigo-800'
+                    voiceRecordingSim ? 'bg-amber-600 animate-pulse' : 'bg-indigo-700 hover:bg-indigo-800'
                   }`}
                 >
-                  <Mic className="w-3.5 h-3.5" />
-                  {voiceRecordingSim ? 'Recording...' : 'Record Voice Log'}
+                  <BookOpen className="w-3.5 h-3.5" />
+                  {voiceRecordingSim ? 'Structuring Cards...' : 'Use Tap-to-Choose Cards'}
                 </button>
               </div>
 
               {voiceTextResult && (
                 <div className="bg-indigo-50/70 border border-indigo-200 p-3.5 rounded-lg text-xs space-y-1">
-                  <span className="font-bold text-indigo-950 block">🎙️ Audio Transcription Output:</span>
+                  <span className="font-bold text-indigo-950 block">🗂️ Tap-to-Choose &amp; Scribe Output:</span>
                   <p className="text-stone-700 text-xs italic leading-relaxed">{voiceTextResult}</p>
                 </div>
               )}

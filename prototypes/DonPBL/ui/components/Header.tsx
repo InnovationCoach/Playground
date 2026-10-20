@@ -1,15 +1,14 @@
 import React from 'react';
-import { 
-  Cpu, 
-  Bot, 
-  GitBranch, 
-  UserCheck, 
-  GraduationCap, 
+import {
+  Cpu,
+  Bot,
+  GitBranch,
+  UserCheck,
+  GraduationCap,
   HelpCircle,
-  AlertTriangle,
   RotateCcw
 } from 'lucide-react';
-import { SAMPLE_PROGRAM } from '../pbl';
+import { SAMPLE_PROGRAM, PROGRAM_REGISTRY, SCHOOL_SCHEDULE_CONFIG, LEARNER_AGE_CONFIG } from '../pbl';
 
 interface HeaderProps {
   currentRole: 'student' | 'teacher';
@@ -31,6 +30,7 @@ interface HeaderProps {
   onOpenCopilot: () => void;
   onOpenIntegration: () => void;
   onOpenAssumptions: () => void;
+  onResetDemoData?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -52,9 +52,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenEntrepreneurshipSimulator,
   onOpenCopilot,
   onOpenIntegration,
-  onOpenAssumptions
+  onOpenAssumptions,
+  onResetDemoData
 }) => {
   const currentProg = programList.find((p) => p.id === activeProgramId) || programList[0];
+  const fullProgram = PROGRAM_REGISTRY[activeProgramId] || SAMPLE_PROGRAM;
 
   return (
     <header className="border-b border-stone-200 bg-white sticky top-0 z-30">
@@ -74,10 +76,11 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-amber-700 font-medium">Provisional Prototype</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1.5">
               <span className="text-stone-500 font-medium">Program:</span>
               <select
+                aria-label="Select PBL Program"
                 value={activeProgramId}
                 onChange={(e) => onSelectProgram(e.target.value)}
                 className="bg-white border border-stone-300 rounded px-2 py-0.5 text-xs font-semibold text-emerald-900 focus:outline-none focus:ring-1 focus:ring-emerald-600"
@@ -95,8 +98,21 @@ export const Header: React.FC<HeaderProps> = ({
               className="text-stone-600 hover:text-stone-900 underline underline-offset-2 transition-colors flex items-center gap-1"
             >
               <HelpCircle className="w-3.5 h-3.5 text-amber-600" />
-              4 Design Assumptions
+              {fullProgram.assumptions.length} Design Assumptions
             </button>
+            {onResetDemoData && (
+              <>
+                <span className="text-stone-300">|</span>
+                <button
+                  onClick={onResetDemoData}
+                  className="text-rose-700 hover:text-rose-900 font-medium transition-colors flex items-center gap-1"
+                  title="Clear saved local demo data and restore initial synthetic fixtures"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Reset Demo Data
+                </button>
+              </>
+            )}
             <span className="text-stone-300">|</span>
             <button
               onClick={onOpenIntegration}
@@ -112,17 +128,17 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500 mb-0.5">
-            <span>Term Schedule: 12 Weeks</span>
+            <span>Term Schedule: {fullProgram.durationWeeks} Weeks</span>
             <span aria-hidden="true">·</span>
-            <span className="bg-emerald-50 text-emerald-800 font-semibold px-1.5 py-0.5 rounded border border-emerald-200">
-              2 hrs / weekday (10h/wk • 120h/term)
+            <span className="bg-amber-50 text-amber-900 font-semibold px-1.5 py-0.5 rounded border border-amber-200">
+              {SCHOOL_SCHEDULE_CONFIG.dailyHours} hrs / weekday ({SCHOOL_SCHEDULE_CONFIG.weeklyHours}h/wk • {fullProgram.durationWeeks * SCHOOL_SCHEDULE_CONFIG.weeklyHours}h/term — Provisional)
             </span>
             <span aria-hidden="true">·</span>
             <span className="bg-blue-50 text-blue-800 font-semibold px-1.5 py-0.5 rounded border border-blue-200">
-              Ages 9–17 (Primary–Secondary Tracks)
+              {LEARNER_AGE_CONFIG.span}
             </span>
             <span aria-hidden="true">·</span>
-            <span>24 Milestone Workshops</span>
+            <span>{fullProgram.totalSessions} Milestone Workshops</span>
             <span aria-hidden="true">·</span>
             <span className="text-emerald-700 font-medium">{currentProg.theme}</span>
           </div>
@@ -196,7 +212,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="Open simulated PBL Studio AI Co-Pilot"
           >
             <Bot className="w-3.5 h-3.5 text-emerald-600" />
-            AI Co-Pilot (Simulated)
+            AI Co-Pilot (Local Mock)
           </button>
 
           {/* Fixture Team Selector */}
