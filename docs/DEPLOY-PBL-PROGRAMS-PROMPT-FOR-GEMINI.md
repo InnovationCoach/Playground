@@ -2,8 +2,9 @@
 
 Paste everything below the line into the Gemini agent. Before pasting:
 
-1. Push the branch so Gemini can check it out: `git push -u origin pbl-programs-ui`. It is not on GitHub yet.
-2. Read the three stop points (gates A, B and C). Gemini will wait for your written answer at each one.
+1. The branch `pbl-programs-ui` is on GitHub, so Gemini can check it out.
+2. Gemini owns Firestore (rules, indexes, query cost). Claude owns the frontend. This prompt hands Gemini the Firestore side of the release. The frontend side is fixed at `bcf4831`.
+3. Read the three stop points (gates A, B and C). Gemini will wait for your written answer at each one.
 
 ---
 
@@ -17,11 +18,32 @@ Branch `pbl-programs-ui` at commit **`bcf4831`** in `https://github.com/Innovati
 
 - **PBL Studio → Programs:** a library of Don's six PBL programs. Learners' progress saves to `users/{uid}/activityProgress/pbl-program-<id>`. Coaches get a teaching guide and a content Checks tab.
 - **Coach dashboard → My classes:** coaches choose the program each class runs, and generate, replace or revoke the class join code. Learners join with the existing "Join your class" box.
-- **`firestore.rules`:** lets a coach create and delete `classCodes` for **their own classes only**, and set `classes/{id}.joinCode` and `classes/{id}.programId`, with strict validation. The rules tests cover it (`tests/firestore-rules.test.js`, describe block "coaches manage join codes and programs for their own classes").
+- **Firestore, which is yours.** The frontend in `bcf4831` needs the behaviour below from production Firestore. `firestore.rules` at `bcf4831` contains one working version: Claude's draft, written for the emulator and covered by `tests/firestore-rules.test.js` (describe block "coaches manage join codes and programs for their own classes"). Treat the draft as the **specification, not the file to deploy**. You produce the production ruleset, optimise it, and own it from here on.
+
+### The behaviour the frontend relies on
+
+These are the only Firestore operations the new screens perform. Your ruleset must allow exactly these and nothing broader.
+
+| # | Who | Operation | Must be |
+| :-- | :-- | :-- | :-- |
+| C1 | any signed-in user | `get classCodes/{CODE}` | allowed |
+| C2 | anyone | `list classCodes` | **denied**, so codes can't be swept |
+| C3 | coach whose `classIds` claim contains X | in **one transaction**: `get classCodes/{NEW}` (collision check), `get classes/X`, `get` the old code, `delete classCodes/{OLD}` (if any), `create classCodes/{NEW}` = `{ classId: X, className, createdBy: <uid>, createdAt: serverTimestamp() }`, `update classes/X { joinCode: NEW, updatedAt }` | allowed. NEW must match `^[BCDFGHJKMNPQRSTVWXYZ2-9]{4}-[BCDFGHJKMNPQRSTVWXYZ2-9]{4}$` |
+| C4 | same coach | in one transaction: `delete classCodes/{OLD}`, `update classes/X { joinCode: null, updatedAt }` | allowed (revoke) |
+| C5 | same coach | `update classes/X { programId: <string ≤ 100 chars> or null, updatedAt }` | allowed |
+| C6 | any coach | any of C3–C5 for a class **not** in their claim | **denied** |
+| C7 | anyone | rewrite an existing code, create a code whose class doesn't point at it, or point a class at another class's code | **denied** |
+| C8 | learners | any write to `classCodes` or to `classes/*.joinCode` / `programId` | **denied** |
+| C9 | learner enrolled in X | `get classes/X` (to read `programId`) | allowed (existing rule) |
+| C10 | learner | self-enrolment with `enrolledVia: CODE` | unchanged from production |
+| C11 | learner | `get` and `set` on `users/{own uid}/activityProgress/pbl-program-<id>` | allowed (existing rule) |
+| C12 | coach sharing a class | `get users/{uid}/activityProgress/*` | allowed (existing rule) |
+
+If you think part of this contract is unsafe or costly, say so at Gate A and propose a change. **Don't change the frontend (`src/`) yourself.** The Platform Lead will have Claude update it.
 
 ## 1. Ground rules (they override everything else)
 
-1. **Deploy only from a clean checkout of `bcf4831`.** Don't deploy from `main`, `DonPBL` or a working directory with local changes. Run `git status` and `git rev-parse HEAD` and paste the output.
+1. **Hosting deploys only from a clean checkout of `bcf4831`.** Rules deploy only from **your** reviewed Firestore commit (see rule 6). Don't deploy from `main`, `DonPBL` or a working directory with local changes. Paste `git status` and `git rev-parse HEAD` each time.
 2. **Never run a bare `firebase deploy`.** It would also deploy Storage rules, indexes and anything else in `firebase.json`. Only these targets are allowed, each only after its gate:
    - `firebase deploy --only firestore:rules --project dnd-master-73449`
    - `firebase hosting:channel:deploy <channel> --project dnd-master-73449` (preview channel)
@@ -29,7 +51,7 @@ Branch `pbl-programs-ui` at commit **`bcf4831`** in `https://github.com/Innovati
 3. **About `AGENTS.md`:** the copy in this branch is about the DonPBL prototype assignment, and it forbids deploying. This release is the separate exception the Platform Lead authorises here, gate by gate. Everything else in that file still applies: no force-push, no branch deletion, no GitHub settings changes, no production secrets in files or chat. If you think this prompt conflicts with it in some other way, stop and ask.
 4. **Don't write to production data.** Don't create accounts, seed, migrate, edit Firestore documents, grant claims or run anything under `scripts/` against production. Any check that needs a signed-in user, the Platform Lead does themselves with their own accounts.
 5. **Credentials:** use your own `firebase login` session for an account that has access to the project. Don't use service-account key files. Never copy one into the repository, and never print tokens or keys.
-6. **Commits and pushes:** don't commit or push anything as part of this task. If a fix is needed, stop and report it. Don't patch and redeploy on your own.
+6. **Commits and pushes:** your Firestore work goes on a new branch, `gemini/firestore-pbl-codes`, cut from `bcf4831`. On it you may change only `firestore.rules`, `firestore.indexes.json`, `tests/firestore-rules.test.js` and a new `docs/FIRESTORE-RULES-NOTES.md`. Push that branch only. Never push to `main`, `DonPBL` or `pbl-programs-ui`, and never force-push. Don't touch `src/`, `storage.rules`, `firebase.json` or anything else. If something outside your files needs fixing, stop and report it.
 7. **Report honestly.** Paste real command output. "Should work" isn't evidence. If a step fails, stop there.
 
 ## 2. Pre-flight (no production changes)
@@ -69,19 +91,29 @@ A production build always uses the live API (`src/services/api/apiClient.js`), b
 
 **e. Indexes.** Confirm that nothing in this release needs a new Firestore index, and say why.
 
+## 2b. Your Firestore work (still no production changes)
+
+On `gemini/firestore-pbl-codes`:
+
+1. **Start from the live rules, not the repository file.** Make `firestore.rules` equal the live ruleset from (a), then add only what C1–C12 needs. Anything else from your diff (b) waits: list it at Gate A, and add it in a separate commit only if the Platform Lead approves it there. The goal is that `firestore.rules` in git **is** what runs in production, which it hasn't been for a while.
+2. **Optimise.** For each rule this release touches, count the document reads it costs per evaluation: `get()`, `exists()`, `getAfter()` and `existsAfter()`. Note which reads repeat the same path. The draft uses `getAfter` on the class from the `classCodes` rules, `existsAfter` plus `getAfter` on the code from the `classes` rule, and `teachesClass` from the token claim, which costs nothing. Keep reads to the minimum that still enforces C3–C8, and stay well inside the 10 reads per request limit for single-document requests (20 for batches and transactions). List each rule's read cost before and after in `docs/FIRESTORE-RULES-NOTES.md`.
+3. **Tests.** Every test in the "coaches manage join codes and programs for their own classes" block must pass against your file, and so must the existing enrolment tests ("joining a class with a code"). Run the whole file. Tests for features production doesn't have yet (community, messages, Phase 0 collections and so on) may fail against live-based rules. List each one with a one-line reason. You may add tests. **Don't delete or weaken any test** without the Platform Lead's written approval at Gate A.
+4. **Indexes:** if `firestore.indexes.json` doesn't match the live indexes (`firebase firestore:indexes --project dnd-master-73449`), report the difference. Don't deploy indexes in this release.
+5. Commit, push `gemini/firestore-pbl-codes`, and give the commit hash.
+
 ### GATE A: stop here
 
-Send the Platform Lead one report with the pre-flight output and findings a–e. End it with these two questions and wait for the answers:
+Send the Platform Lead one report with:
+- the pre-flight output and findings a–e
+- your Firestore commit hash, and the diff from the live rules to your file
+- the read-cost table
+- the test results, plus any contract changes you propose
 
-1. "Do you approve deploying `firestore.rules` from `bcf4831` as a whole, given the differences in (b)? Or should I deploy a rules file that is the **live rules plus only the join-code change**?"
+End it with these questions and wait for the answers:
+
+1. "Do you approve deploying the rules at `<your commit>`?" List anything beyond C1–C12 that it changes compared with production. Ask separately about each item from (b) you think should also go live.
 2. "Do you approve shipping the Hosting bundle given (c) and (d)? Or should this release be **rules only**, with a preview channel for review?"
-
-If the answer to Q1 is "live rules plus only the join-code change": build that file outside the repository. Start from the live rules and add only:
-- the `isWellFormedCode` function
-- the `classCodes` create, update and delete rules
-- `classFieldsValid` and the `classes` create and update changes
-
-The exact text is in `firestore.rules` at `bcf4831`, under "Join codes" and "Classes". Then run the full rules test suite against **that** file: temporarily point the `rules:` path in `tests/firestore-rules.test.js` at it, locally, without committing. Some tests may fail because production lacks other rules. Report which ones fail and why.
+3. Any contract changes you propose, one per question.
 
 ## 3. Preview channel (after the "go" for Gate A)
 
@@ -107,7 +139,7 @@ Ask: "Preview is at <URL>. Do you approve deploying the rules to production now?
 firebase deploy --only firestore:rules --project dnd-master-73449
 ```
 
-Use exactly the file approved at Gate A. Paste the output and the new ruleset name.
+Deploy from a clean checkout of your approved commit on `gemini/firestore-pbl-codes`, nothing else. Paste the output and the new ruleset name.
 
 Then ask the Platform Lead to run this smoke test with a real coach account that already has a coach claim and a class. For example, `mani@welearn.org` has `class_climate_champions_7a`. Remind them that coaches pick up a new claim only after signing out and back in.
 
@@ -140,13 +172,14 @@ Then check that the live site serves the same bundle hashes as the preview. Ask 
 
 Send one report containing:
 
-1. The commit deployed (`bcf4831`), and what was deployed: rules, Hosting or both. Include timestamps, the new and previous ruleset names, and the previous and new Hosting release IDs.
+1. What was deployed and from where: rules from your commit, Hosting from `bcf4831`. Include timestamps, the new and previous ruleset names, and the previous and new Hosting release IDs.
 2. The full pre-flight output and findings a–e.
 3. Every gate question with the Platform Lead's answer, quoted.
 4. Smoke test results, step by step.
 5. Where the rules backup is saved, and the exact rollback steps for both rules and Hosting.
-6. Anything that failed or that you couldn't check. Don't hide a failure behind a passing summary.
-7. Known gaps for the Platform Lead, unchanged from before this release:
+6. `docs/FIRESTORE-RULES-NOTES.md`: what you changed, the read costs, and anything you'd optimise next.
+7. Anything that failed or that you couldn't check. Don't hide a failure behind a passing summary.
+8. Known gaps for the Platform Lead, unchanged from before this release:
    - No backend is deployed, so the AI co-pilot uses its built-in fallback.
    - The school schedule, age bands and hardware are not confirmed.
    - Under-13 consent: whatever you found in (d).
