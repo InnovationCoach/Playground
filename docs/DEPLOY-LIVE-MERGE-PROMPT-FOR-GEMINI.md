@@ -29,6 +29,17 @@ Production should end up as **today's live site, plus the work on `student-searc
 | PBL term title | "The Future Skills Milestones". |
 | Landing after sign-in | Unchanged: learners land on My Courses (`#/courses`), as live does today. |
 
+## Do not transfer: this branch's "My Dashboard"
+
+**"My Dashboard" on live is live's own student dashboard (live `#/home`), not anything from this branch.** This branch has its own "My Dashboard", which is `main`'s old student home: welcome banner, "Join your class", a goals panel, "Your Notes" and the legacy Home Portal below it. **None of it goes to live.** When you merge, drop these from `student-search-dashboard` and keep live's versions:
+
+- `src/features/student/StudentDashboard.jsx`, as rendered for the default `view === 'home'`
+- the legacy `#home-container` Home Portal in `index.html`, shown by `showActivity('home')`
+- the `showGoalsPanel` effect in `src/app/App.jsx`, and `showGoalsPanel` in `src/integrations/goalSettingIntegration.js`, which fills that old dashboard's goals panel
+- the "My Dashboard" item in this branch's `src/features/shell/TopNav.jsx`, which points to `onNavigate('home')`
+
+The only dashboard change on live is the **menu label**: live's "Home" item becomes "My Dashboard" and still opens live's `#/home`. If keeping live's dashboard means not taking some other part of this branch, take live's side and list it at Gate A. Don't adapt this branch's dashboard to look like live's.
+
 ## 1. Ground rules (they override everything else)
 
 1. **Never rebuild the live code from the minified bundle.** If the live source can't be found, stop at Gate 0.
@@ -108,7 +119,7 @@ Report:
 - how "Coach programs" and the PBL program library overlap
 
 Then ask:
-1. "Is My Dashboard identical to live? Approve the merged UI?"
+1. "Is My Dashboard identical to live, with nothing from this branch's old dashboard (StudentDashboard, Your Notes, the legacy Home Portal) visible anywhere? Approve the merged UI?"
 2. "Keep both Coach programs and the PBL program library, or combine them later?"
 3. Any test you want to change, one question each.
 
