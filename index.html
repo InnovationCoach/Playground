@@ -1604,6 +1604,9 @@
       if (useEmulators) {
         firebase.auth().useEmulator("http://127.0.0.1:9099", { disableWarnings: true });
         firebase.firestore().useEmulator("127.0.0.1", 8088);
+        // File uploads (message attachments, community media) stay local too;
+        // without this they went to the live bucket in emulator mode.
+        if (firebase.storage) firebase.storage().useEmulator("127.0.0.1", 9199);
         console.warn(
           "%c[Firebase] EMULATOR MODE - not the live project. Data here is throwaway.",
           "background:#f59e0b;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px"
@@ -2766,7 +2769,7 @@
 
       // Screens React routes itself (src/app/routes.js). Falling through to the
       // "home" default below sent every console link straight back to #/.
-      if (/^(admin|settings|courses|parent|primary-resources|worksheet|guide|pbl|community|messages)(\/|$)/.test(hash)) return;
+      if (/^(admin|settings|courses|parent|primary-resources|worksheet|guide|pbl|community|messages|goals|search)(\/|$)/.test(hash)) return;
 
       if (hash === "coach" || hash.startsWith("coach/")) {
         switchPhase("coach");

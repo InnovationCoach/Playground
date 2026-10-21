@@ -1,19 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Plus, Search, Users, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../app/AuthProvider.jsx';
-import { onConversationsChanged, otherParticipantName } from './messagesAPI.js';
-import { MessageCircle, Plus } from 'lucide-react';
-import '../admin/admin.css';
+import { onConversationsChanged } from './messagesAPI.js';
+import { conversationTitle, initials, listTime, toMillis } from './messageModel.js';
 
-export function ConversationList({ onSelectConversation, onStartNew, userRole }) {
+export function ConversationList({ selectedId, onSelectConversation, onStartNew, userRole }) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [q, setQ] = useState('');
+  const isCoach = userRole === 'teacher' || userRole === 'coach';
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) return undefined;
     setLoading(true);
-    const unsubscribe = onConversationsChanged(user.uid, (convs) => {
+    return onConversationsChanged(user.uid, (convs) => {
       setConversations(convs);
       setError(null);
       setLoading(false);
@@ -22,98 +24,68 @@ export function ConversationList({ onSelectConversation, onStartNew, userRole })
       setError(err.message);
       setLoading(false);
     });
-    return unsubscribe;
   }, [user]);
 
-  if (error) {
-    return <div className="gh-alert gh-alert-error" style={{ margin: '1rem' }}>Could not load conversations: {error}</div>;
-  }
-
-  if (loading) {
-    return (
-      <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--gh-text-2)' }}>
-        Loading conversations…
-      </div>
-    );
-  }
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return conversations;
+    return conversations.filter((c) => `${conversationTitle(c, user?.uid)} ${c.lastMessagePreview || ''}`.toLowerCase().includes(needle));
+  }, [conversations, q, user?.uid]);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--gh-bg)' }}>
-      <div style={{ padding: '1rem', borderBottom: '1px solid var(--gh-border)', background: 'var(--gh-surface)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>Messages</h2>
-          {(userRole === 'teacher' || userRole === 'coach') && (
-            <button
-              onClick={onStartNew}
-              style={{
-                background: 'var(--gh-purple)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '0.5rem 0.75rem',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                display: 'flex',
-                gap: '0.4rem',
-                alignItems: 'center'
-              }}
-            >
-              <Plus size={16} />
-              New
-            </button>
-          )}
-        </div>
+    <nav className="ms-list" aria-label="Conversations">
+      <div className="ms-list-head">
+        <h1>Messages</h1>
+        {isCoach && (
+          <button type="button" className="gh-btn gh-btn-sm gh-btn-accent" onClick={onStartNew}>
+            <Plus size={15} aria-hidden="true" />New chat
+          </button>
+        )}
       </div>
+      <label className="ms-search">
+        <Search size={16} aria-hidden="true" />
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search chats" aria-label="Search chats" />
+      </label>
 
-      {conversations.length === 0 ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gh-text-3)' }}>
-          No conversations yet
+      {error ? (
+        <div className="gh-alert gh-alert-error ms-alert">Could not load conversations: {error}</div>
+      ) : loading ? (
+        <p className="ms-list-empty">Loading conversations…</p>
+      ) : conversations.length === 0 ? (
+        <div className="ms-list-empty">
+          <MessageCircle size={28} aria-hidden="true" />
+          <p>{isCoach ? 'No chats yet. Start one with a student or open your class chat.' : 'No messages yet. Your coach will start a chat with you or your class.'}</p>
+          {isCoach && <button type="button" className="gh-btn gh-btn-sm gh-btn-accent" onClick={onStartNew}><Plus size={15} aria-hidden="true" />New chat</button>}
         </div>
       ) : (
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {conversations.map(conv => {
-            const unreadCount = conv.unread?.[user.uid] || 0;
-            const name = otherParticipantName(conv, user.uid);
+        <ul className="ms-items">
+          {shown.map((c) => {
+            const title = conversationTitle(c, user?.uid);
+            const unread = c.unread?.[user?.uid] || 0;
+            const group = c.type === 'class';
+            const who = !c.lastMessagePreview ? '' : c.lastSenderId === user?.uid ? 'You: ' : group && c.lastSenderName ? `${c.lastSenderName.split(' ')[0]}: ` : '';
             return (
-              <button
-                key={conv.id}
-                onClick={() => onSelectConversation(conv.id, name)}
-                style={{
-                  width: '100%',
-                  padding: '1rem',
-                  borderBottom: '1px solid var(--gh-border)',
-                  background: 'transparent',
-                  border: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s',
-                  display: 'flex',
-                  gap: '0.75rem'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--gh-subtle)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              >
-                <MessageCircle size={20} style={{ color: 'var(--gh-purple)', flexShrink: 0, marginTop: '0.1rem' }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, color: 'var(--gh-text)' }}>{name}</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--gh-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {conv.lastMessagePreview || 'No messages yet'}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--gh-text-3)', marginTop: '0.25rem' }}>
-                    {conv.lastMessageAt?.toDate?.().toLocaleDateString?.() || 'Never'}
-                  </div>
-                </div>
-                {unreadCount > 0 && (
-                  <div style={{ background: 'var(--gh-red)', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
-                    {unreadCount}
-                  </div>
-                )}
-              </button>
+              <li key={c.id}>
+                <button type="button" className={`ms-item${c.id === selectedId ? ' active' : ''}${unread ? ' unread' : ''}`}
+                        aria-current={c.id === selectedId ? 'true' : undefined} onClick={() => onSelectConversation(c.id)}>
+                  <span className={group ? 'ms-avatar ms-avatar-group' : 'ms-avatar'} aria-hidden="true">{group ? <Users size={18} /> : initials(title)}</span>
+                  <span className="ms-item-body">
+                    <span className="ms-item-top">
+                      <strong>{title}</strong>
+                      <time>{c.lastMessageAt ? listTime(toMillis(c.lastMessageAt)) : ''}</time>
+                    </span>
+                    <span className="ms-item-bottom">
+                      <span className="ms-item-preview">{c.lastMessagePreview ? `${who}${c.lastMessagePreview}` : group ? `${c.participantIds?.length || 0} members` : 'No messages yet'}</span>
+                      {unread > 0 && <span className="ms-badge" aria-label={`${unread} unread`}>{unread > 99 ? '99+' : unread}</span>}
+                    </span>
+                  </span>
+                </button>
+              </li>
             );
           })}
-        </div>
+          {shown.length === 0 && <li className="ms-list-empty">No chats match “{q.trim()}”.</li>}
+        </ul>
       )}
-    </div>
+    </nav>
   );
 }

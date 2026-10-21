@@ -6,6 +6,9 @@ import { CONSOLE_ROLES } from './roles.js';
 import { AdminConsole } from '../features/admin/AdminConsole.jsx';
 import { SettingsPage } from '../features/settings/SettingsPage.jsx';
 import { MyCourses } from '../features/courses/MyCourses.jsx';
+import { HomeSearch } from '../features/home/HomeSearch.jsx';
+import { GoalsPage } from '../features/goals/GoalsPage.jsx';
+import { DailyGoalsNotice } from '../features/goals/DailyGoalsNotice.jsx';
 import { ParentPortal } from '../features/parent/ParentPortal.jsx';
 import { Worksheet, TeacherGuide, PrimaryResources } from '../features/primary/print/PrintSheets.jsx';
 import { LoginPage } from '../features/auth/LoginPage.jsx';
@@ -21,16 +24,14 @@ import { ProjectHexGrid } from '../features/activities/hexGrid/ProjectHexGrid.js
 import { JuniorExplorers } from '../features/primary/JuniorExplorers.jsx';
 import { PblStudio } from '../features/pbl/PblStudio.jsx';
 import { CommunityFeed } from '../features/community/CommunityFeed.jsx';
-import { ConversationList } from '../features/messages/ConversationList.jsx';
-import { ConversationView } from '../features/messages/ConversationView.jsx';
+import { MessagesScreen } from '../features/messages/MessagesScreen.jsx';
 import { AdminAuditView } from '../features/messages/AdminAuditView.jsx';
-import { StartConversationModal } from '../features/messages/StartConversationModal.jsx';
 import { isPrimaryProfile } from '../auth.js';
 import { API_BASE } from '../services/apiBase.js';
 import { initializeSENGlobally } from '../integrations/senIntegration.js';
 import { renderSENToggle } from '../components/SEN/SENPreferenceToggle.js';
-import { initializeGoalSettingForUser } from '../integrations/goalSettingIntegration.js';
 import { createGoalSettingModal } from '../components/Goals/GoalSettingModal.js';
+import { showGoalsPanel } from '../integrations/goalSettingIntegration.js';
 
 const KNOWN_VIEWS = new Set(ACTIVITY_NAV.map((a) => a.id));
 
@@ -38,7 +39,6 @@ export function App() {
   const { status, user, profile, role, classIds, error, signOut, refreshProfile } = useAuth();
   const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
-  const [showStartConversation, setShowStartConversation] = useState(false);
   // Primary learners get Junior Explorers only: no secondary activities, no AI
   // chatbot and no goal-setting popup (see the 2026-09-25 primary plan).
   const isPrimary = role === 'student' && isPrimaryProfile(profile);
@@ -65,12 +65,21 @@ export function App() {
     else if (signedInRef.current && (parseRoute(window.location.hash) || hashScreenRef.current)) clearHash();
   }, [setHash, clearHash]);
 
+  // "Goal setting": the full #/goals page for secondary learners; primary
+  // learners (and anyone else) keep the original wizard.
+  const openGoals = useCallback(() => {
+    if (role === 'student' && !isPrimary) setHash(hrefFor.goals());
+    else createGoalSettingModal(user?.uid || null);
+  }, [role, isPrimary, setHash, user]);
+  const openGoalsRef = useRef(openGoals);
+  openGoalsRef.current = openGoals;
+
   // Legacy markup calls switchPhase() from ~30 inline onclick handlers. Rather
   // than rewrite that markup, the global becomes a thin shim onto React's
   // navigation. The original 100-line DOM-toggling switchPhase is gone.
   useEffect(() => {
     window.switchPhase = (next) => navigate(next);
-    window.openGoalSettingWizard = () => createGoalSettingModal(user?.uid || null);
+    window.openGoalSettingWizard = () => openGoalsRef.current();
     return () => {
       delete window.switchPhase;
       delete window.openGoalSettingWizard;
@@ -112,11 +121,12 @@ export function App() {
     });
 
     try { renderSENToggle('sen-preference-toggle'); } catch { /* optional widget */ }
-    try { initializeGoalSettingForUser(user.uid); } catch { /* optional widget */ }
+    // Goal setting no longer opens itself here: secondary learners get the
+    // daily goals notification (DailyGoalsNotice) and the #/goals page instead.
   }, [status, role, user, isPrimary]);
 
   // Students land on My Courses, the plan's student home. Once per sign-in, and
-  // only when no other screen was asked for, so "Home" and deep links still work.
+  // only when no other screen was asked for, so "My Dashboard" and deep links still work.
   const landedRef = useRef(null);
   useEffect(() => {
     if (status === 'signed-out') { landedRef.current = null; return; }
@@ -125,6 +135,13 @@ export function App() {
     landedRef.current = user.uid;
     if (!parseRoute(window.location.hash) && view === 'home') setHash(hrefFor.courses());
   }, [status, role, isPrimary, user, view, setHash]);
+
+  // "My Dashboard" keeps its goals panel (secondary learners only, as before).
+  useEffect(() => {
+    if (status !== 'ready' || role !== 'student' || isPrimary || !user || hashScreen || view !== 'home') return undefined;
+    const t = setTimeout(() => { showGoalsPanel(user.uid).catch(() => {}); }, 0);
+    return () => clearTimeout(t);
+  }, [status, role, isPrimary, user, hashScreen, view]);
 
   // Coaches must never land on a student activity view.
   useEffect(() => {
@@ -135,7 +152,7 @@ export function App() {
   // The new Growth Hub screens are light; the legacy activity pages are still
   // dark. The body colour follows, so overscroll and short pages match.
   const lightSurface = status !== 'ready' || CONSOLE_ROLES.includes(role) || role === 'parent'
-    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl'].includes(route?.screen);
+    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch'].includes(route?.screen);
   useEffect(() => {
     document.body.dataset.surface = lightSurface ? 'light' : 'dark';
   }, [lightSurface]);
@@ -191,11 +208,12 @@ export function App() {
         <Header {...headerProps} />
         {!isPrimary && (
           <TopNav
+            isPrimary={isPrimary}
             role={role}
             view="community"
             onNavigate={navigate}
             onOpenCourses={() => setHash(hrefFor.courses())}
-            onOpenGoals={() => createGoalSettingModal(user?.uid || null)}
+            onOpenGoals={openGoals}
           />
         )}
         <div className="gh-app">
@@ -213,11 +231,12 @@ export function App() {
         <Header {...headerProps} />
         {!isPrimary && (
           <TopNav
+            isPrimary={isPrimary}
             role={role}
             view="messages"
             onNavigate={navigate}
             onOpenCourses={() => setHash(hrefFor.courses())}
-            onOpenGoals={() => createGoalSettingModal(user?.uid || null)}
+            onOpenGoals={openGoals}
           />
         )}
         {CONSOLE_ROLES.includes(role) ? (
@@ -225,32 +244,9 @@ export function App() {
             <AdminAuditView />
           </div>
         ) : (
-          <div style={{ display: 'flex', height: 'calc(100vh - 64px)' }}>
-            {route.conversationId ? (
-              <ConversationView conversationId={route.conversationId} onBack={() => setHash(hrefFor.messages())} />
-            ) : (
-              <>
-                <div style={{ width: 300, borderRight: '1px solid var(--gh-border)' }}>
-                  <ConversationList
-                    onSelectConversation={(convId, userName) => setHash(hrefFor.messages(convId))}
-                    onStartNew={() => setShowStartConversation(true)}
-                    userRole={role}
-                  />
-                </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gh-text-3)' }}>
-                  Select a conversation to start
-                </div>
-              </>
-            )}
-            {(role === 'teacher' || role === 'coach' || role === 'admin') && (
-              <StartConversationModal
-                isOpen={showStartConversation}
-                onClose={() => setShowStartConversation(false)}
-                coachId={user?.uid}
-                coachName={profile?.displayName || user?.email?.split('@')[0] || ''}
-              />
-            )}
-          </div>
+          <MessagesScreen conversationId={route.conversationId} role={role} isPrimary={isPrimary} uid={user?.uid}
+                          displayName={profile?.displayName || user?.email?.split('@')[0] || ''}
+                          onOpen={(convId) => setHash(hrefFor.messages(convId))} onBack={() => setHash(hrefFor.messages())} />
         )}
       </>
     );
@@ -289,9 +285,9 @@ export function App() {
       <>
         <Header {...headerProps} />
         {!isPrimary && (
-          <TopNav role={role} view="settings" onNavigate={navigate}
+          <TopNav isPrimary={isPrimary} role={role} view="settings" onNavigate={navigate}
                   onOpenCourses={() => setHash(hrefFor.courses())}
-                  onOpenGoals={() => createGoalSettingModal(user?.uid || null)} />
+                  onOpenGoals={openGoals} />
         )}
         <div className="gh-app">
           <SettingsPage user={user} profile={profile} role={role} />
@@ -313,18 +309,27 @@ export function App() {
     <>
       <Header {...headerProps} />
       <TopNav
+        isPrimary={isPrimary}
         role={role}
-        view={route?.screen === 'courses' || route?.screen === 'pbl' || route?.screen === 'community' || route?.screen === 'messages' ? route.screen : view}
+        view={['courses', 'pbl', 'community', 'messages', 'goals', 'homeSearch'].includes(route?.screen) ? route.screen : view}
         onNavigate={navigate}
         onOpenCourses={() => setHash(hrefFor.courses())}
-        onOpenGoals={() => createGoalSettingModal(user?.uid || null)}
+        onOpenGoals={openGoals}
       />
+
+      {role === 'student' && !isPrimary && user && route?.screen !== 'goals' && <DailyGoalsNotice uid={user.uid} />}
 
       {route?.screen === 'pbl' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
         <div className="gh-app">
           <PblStudio uid={user?.uid} role={role} tab={route.tab} programId={route.programId} section={route.section}
                      classIds={role === 'student' ? (profile?.classIds || []) : (classIds || profile?.classIds || [])}
                      onOpenActivity={navigate} />
+        </div>
+      ) : role === 'student' && !isPrimary && route?.screen === 'homeSearch' ? (
+        <HomeSearch uid={user?.uid} displayName={profile?.displayName} onOpenActivity={navigate} />
+      ) : role === 'student' && !isPrimary && route?.screen === 'goals' ? (
+        <div className="gh-app">
+          <GoalsPage uid={user?.uid} displayName={profile?.displayName} />
         </div>
       ) : role === 'student' && route?.screen === 'courses' ? (
         <div className="gh-app">

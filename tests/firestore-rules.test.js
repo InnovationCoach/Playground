@@ -669,6 +669,95 @@ describe('F3: Private Messages (Coach-Initiated & Safeguarding)', () => {
     }));
     await assertFails(deleteDoc(doc(db, 'conversations', 'conv1', 'messages', 'msg1')));
   });
+
+  it('a direct conversation has exactly the coach and one student', async () => {
+    const db = coachA().firestore();
+    await assertFails(setDoc(doc(db, 'conversations', 'conv2'), {
+      coachId: 'coach_a', studentId: 'student_a', createdBy: 'coach_a',
+      participantIds: ['coach_a', 'student_a', 'student_b']
+    }));
+  });
+
+  it('members may only post and update the summary, not change who is in the chat', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'conversations', 'conv1'), {
+        coachId: 'coach_a', studentId: 'student_a', participantIds: ['coach_a', 'student_a'], createdBy: 'coach_a',
+        lastMessagePreview: '', unread: {}
+      });
+    });
+    const db = studentA().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'conversations', 'conv1'), {
+      lastMessagePreview: 'Hi', lastSenderId: 'student_a', lastSenderName: 'Ann', 'unread.coach_a': 1
+    }));
+    await assertFails(updateDoc(doc(db, 'conversations', 'conv1'), { participantIds: ['coach_a', 'student_a', 'student_b'] }));
+    await assertFails(updateDoc(doc(db, 'conversations', 'conv1'), { coachId: 'student_a' }));
+  });
+
+  it('rejects an over-long message', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'conversations', 'conv1'), {
+        coachId: 'coach_a', studentId: 'student_a', participantIds: ['coach_a', 'student_a'], createdBy: 'coach_a'
+      });
+    });
+    const db = studentA().firestore();
+    await assertFails(setDoc(doc(db, 'conversations', 'conv1', 'messages', 'long'), {
+      senderId: 'student_a', text: 'x'.repeat(4001), attachments: [], createdAt: 1, deletedBySender: false
+    }));
+  });
+});
+
+describe('F3: Class group chats', () => {
+  const classChat = (over = {}) => ({
+    type: 'class', classId: CLASS_A, title: 'Class A', coachId: 'coach_a', createdBy: 'coach_a',
+    participantIds: ['coach_a', 'student_a', 'student_a2'], memberNames: {}, unread: {}, ...over
+  });
+
+  it('a coach can open the chat for a class they teach, under its fixed id', async () => {
+    const db = coachA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'conversations', `class_${CLASS_A}`), classChat()));
+  });
+
+  it('rejects a class chat under any other id, for another coach\'s class, or by a student', async () => {
+    await assertFails(setDoc(doc(coachA().firestore(), 'conversations', 'class_other'), classChat()));
+    await assertFails(setDoc(doc(coachB().firestore(), 'conversations', `class_${CLASS_A}`),
+      classChat({ coachId: 'coach_b', createdBy: 'coach_b', participantIds: ['coach_b', 'student_a'] })));
+    await assertFails(setDoc(doc(studentA().firestore(), 'conversations', `class_${CLASS_A}`),
+      classChat({ coachId: 'student_a', createdBy: 'student_a' })));
+  });
+
+  it('a coach can check whether the class chat exists before creating it', async () => {
+    await assertSucceeds(getDoc(doc(coachA().firestore(), 'conversations', `class_${CLASS_A}`)));
+  });
+
+  it('every member can read and post; outsiders cannot', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'conversations', `class_${CLASS_A}`), classChat());
+    });
+    await assertSucceeds(getDoc(doc(studentA2().firestore(), 'conversations', `class_${CLASS_A}`)));
+    await assertSucceeds(setDoc(doc(studentA2().firestore(), 'conversations', `class_${CLASS_A}`, 'messages', 'm1'), {
+      senderId: 'student_a2', senderName: 'Abe', text: 'Hi all', attachments: [], createdAt: 1, deletedBySender: false
+    }));
+    const outsider = testEnv.authenticatedContext('student_b').firestore();
+    await assertFails(getDoc(doc(outsider, 'conversations', `class_${CLASS_A}`)));
+    await assertFails(setDoc(doc(outsider, 'conversations', `class_${CLASS_A}`, 'messages', 'm2'), {
+      senderId: 'student_b', text: 'let me in', createdAt: 1, deletedBySender: false
+    }));
+  });
+
+  it('only the class coach changes the members', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'conversations', `class_${CLASS_A}`), classChat());
+    });
+    await assertSucceeds(updateDoc(doc(coachA().firestore(), 'conversations', `class_${CLASS_A}`), {
+      participantIds: ['coach_a', 'student_a'], memberNames: { student_a: 'Ann' }
+    }));
+    await assertFails(updateDoc(doc(studentA().firestore(), 'conversations', `class_${CLASS_A}`), {
+      participantIds: ['coach_a', 'student_a', 'student_b']
+    }));
+    await assertFails(updateDoc(doc(coachA().firestore(), 'conversations', `class_${CLASS_A}`), {
+      participantIds: ['student_a']
+    }));
+  });
 });
 
 // ---------------------------------------------------------------------------

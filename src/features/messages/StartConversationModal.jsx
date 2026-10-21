@@ -1,122 +1,128 @@
-import { useState, useEffect } from 'react';
-import { startConversation, sendMessage } from './messagesAPI.js';
-import { db, collection, getDocs, query, where, getAuthClaims } from '../../firebase.js';
-import '../admin/admin.css';
+import { useEffect, useState } from 'react';
+import { Users, User, X, ShieldCheck } from 'lucide-react';
+import { startConversation, sendChatMessage, getConversation, loadMyClasses, loadClassStudents, openClassChat } from './messagesAPI.js';
+import { db, collection, getDocs, query, where } from '../../firebase.js';
 
 /**
- * Modal for coaches to start a new conversation with a student in one of
- * their own classes. The class list comes from the coach's signed classIds
- * claim, the same thing the rules check, so the picker never offers a
- * student the coach cannot actually message.
+ * "New chat" for coaches: open a class's group chat, or start a one-to-one
+ * chat with a student in one of their classes. Class and student lists come
+ * from the coach's signed classIds claim, the same thing the rules check, so
+ * the picker never offers a chat the coach cannot actually start.
  */
 export function StartConversationModal({ isOpen, onClose, coachId, coachName = '' }) {
+  const [mode, setMode] = useState('class');
+  const [classes, setClasses] = useState([]);
+  const [classId, setClassId] = useState('');
+  const [students, setStudents] = useState([]);
   const [studentId, setStudentId] = useState('');
-  const [initialMessage, setInitialMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [firstMessage, setFirstMessage] = useState('');
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [studentOptions, setStudentOptions] = useState([]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return undefined;
     let cancelled = false;
     setError(null);
-
     (async () => {
       try {
-        const claims = await getAuthClaims();
-        const classIds = Array.isArray(claims.classIds) ? claims.classIds.filter(Boolean).slice(0, 30) : [];
-        if (classIds.length === 0) {
-          if (!cancelled) setError('Your account is not assigned to a class yet, so there are no students to message.');
-          return;
-        }
-        const snap = await getDocs(query(collection(db, 'users'), where('classIds', 'array-contains-any', classIds)));
+        const list = await loadMyClasses();
         if (cancelled) return;
-        const list = [];
-        snap.forEach(d => {
-          const data = d.data();
-          if (d.id !== coachId && (data.role || 'student') === 'student') {
-            list.push({ id: d.id, displayName: data.displayName || data.email?.split('@')[0] || 'Student' });
-          }
-        });
-        list.sort((a, b) => a.displayName.localeCompare(b.displayName));
-        setStudentOptions(list);
+        if (!list.length) { setError('Your account is not assigned to a class yet, so there is no one to message.'); return; }
+        setClasses(list);
+        setClassId((cur) => cur || list[0].id);
+        const all = new Map();
+        for (const c of list) for (const s of await loadClassStudents(c.id)) all.set(s.id, { ...s, className: c.name });
+        if (!cancelled) setStudents([...all.values()].filter((s) => s.id !== coachId).sort((a, b) => a.name.localeCompare(b.name)));
       } catch (err) {
-        console.warn('[Messages] Could not load class students:', err);
-        if (!cancelled) setError('Could not load your students: ' + err.message);
+        console.warn('[Messages] Could not load classes:', err);
+        if (!cancelled) setError(`Could not load your classes: ${err.message}`);
       }
     })();
-    return () => { cancelled = true; };
-  }, [isOpen, coachId]);
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => { cancelled = true; document.removeEventListener('keydown', onKey); };
+  }, [isOpen, coachId, onClose]);
 
-  const handleStart = async (e) => {
+  async function findDirect(sid) {
+    const snap = await getDocs(query(collection(db, 'conversations'), where('participantIds', 'array-contains', coachId)));
+    const hit = snap.docs.find((d) => (d.data().type || 'direct') === 'direct' && d.data().studentId === sid);
+    return hit?.id || null;
+  }
+
+  async function submit(e) {
     e.preventDefault();
-    if (!studentId) return;
-
-    setLoading(true);
+    setBusy(true);
     setError(null);
-
     try {
-      const studentName = studentOptions.find(s => s.id === studentId)?.displayName || '';
-      const convId = await startConversation(coachId, studentId, { coachName, studentName });
-      if (initialMessage.trim()) await sendMessage(convId, coachId, initialMessage.trim());
-      setStudentId('');
-      setInitialMessage('');
+      let convId;
+      if (mode === 'class') {
+        const c = classes.find((x) => x.id === classId);
+        convId = await openClassChat({ coachId, coachName, classId, className: c?.name });
+      } else {
+        const s = students.find((x) => x.id === studentId);
+        convId = await findDirect(studentId) || await startConversation(coachId, studentId, { coachName, studentName: s?.name || '' });
+      }
+      if (firstMessage.trim()) {
+        const conv = await getConversation(convId);
+        await sendChatMessage(conv, { uid: coachId, name: coachName }, { text: firstMessage.trim() });
+      }
+      setFirstMessage('');
       onClose();
       window.location.hash = `#/messages/${convId}`;
     } catch (err) {
-      setError(err.message || 'Failed to start conversation');
+      setError(err.message || 'Could not start the chat.');
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
-  };
+  }
 
   if (!isOpen) return null;
+  const ready = mode === 'class' ? !!classId : !!studentId;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div className="gh-card" style={{ maxWidth: 400, width: '90%' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem' }}>Start a Conversation</h3>
-
-        <form onSubmit={handleStart}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem' }}>Select Student</label>
-            <select
-              className="gh-select"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              required
-            >
-              <option value="">Choose a student…</option>
-              {studentOptions.map(s => (
-                <option key={s.id} value={s.id}>{s.displayName || s.id}</option>
-              ))}
-            </select>
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem' }}>Message (optional)</label>
-            <textarea
-              className="gh-input"
-              placeholder="Say hello…"
-              value={initialMessage}
-              onChange={(e) => setInitialMessage(e.target.value)}
-              style={{ minHeight: 80 }}
-            />
-          </div>
-
-          {error && <div className="gh-alert gh-alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
-
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-            <button type="button" className="gh-btn gh-btn-ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="gh-btn gh-btn-primary" disabled={loading || !studentId}>
-              {loading ? 'Starting…' : 'Start'}
+    <div className="ms-modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="ms-modal" role="dialog" aria-modal="true" aria-labelledby="ms-new-title">
+        <div className="ms-modal-head">
+          <h2 id="ms-new-title">New chat</h2>
+          <button type="button" className="ms-icon-btn" onClick={onClose} aria-label="Close"><X size={18} aria-hidden="true" /></button>
+        </div>
+        <form onSubmit={submit} className="ms-modal-body">
+          <div className="ms-choice" role="radiogroup" aria-label="Kind of chat">
+            <button type="button" role="radio" aria-checked={mode === 'class'} onClick={() => setMode('class')}>
+              <Users size={18} aria-hidden="true" /><span><strong>Class group chat</strong>Everyone enrolled in one of your classes</span>
+            </button>
+            <button type="button" role="radio" aria-checked={mode === 'direct'} onClick={() => setMode('direct')}>
+              <User size={18} aria-hidden="true" /><span><strong>One student</strong>A private chat between you and a student</span>
             </button>
           </div>
-        </form>
 
-        <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--gh-subtle)', borderRadius: '8px', fontSize: '0.85rem', color: 'var(--gh-text-2)' }}>
-          📌 Messages are monitored by WeLearn for safeguarding.
-        </div>
+          {mode === 'class' ? (
+            <label className="ms-field"><span>Class</span>
+              <select className="gh-select" value={classId} onChange={(e) => setClassId(e.target.value)} required>
+                {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <small>Opening it again refreshes the members from the class list.</small>
+            </label>
+          ) : (
+            <label className="ms-field"><span>Student</span>
+              <select className="gh-select" value={studentId} onChange={(e) => setStudentId(e.target.value)} required>
+                <option value="">Choose a student…</option>
+                {students.map((s) => <option key={s.id} value={s.id}>{s.name}{classes.length > 1 ? ` (${s.className})` : ''}</option>)}
+              </select>
+            </label>
+          )}
+
+          <label className="ms-field"><span>First message <em>(optional)</em></span>
+            <textarea className="gh-input" rows={3} value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} placeholder="Say hello…" />
+          </label>
+
+          {error && <div className="gh-alert gh-alert-error">{error}</div>}
+          <p className="ms-modal-note"><ShieldCheck size={14} aria-hidden="true" />Messages can be reviewed by WeLearn staff for safeguarding.</p>
+          <div className="ms-modal-actions">
+            <button type="button" className="gh-btn gh-btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="submit" className="gh-btn gh-btn-accent" disabled={busy || !ready}>{busy ? 'Opening…' : mode === 'class' ? 'Open class chat' : 'Start chat'}</button>
+          </div>
+        </form>
       </div>
     </div>
   );

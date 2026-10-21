@@ -602,20 +602,52 @@ service cloud.firestore {
 
     // ---------------------------------------------------------------------
     // F3: Private Messages (Coach-Initiated Only & Admin Audit View)
+    //
+    // Two kinds of conversation, both started by a coach and both readable by
+    // admins/supervisors for safeguarding:
+    //   direct - one coach and one student (type absent on older threads);
+    //   class  - a coach-moderated group chat for one class the coach teaches,
+    //            id `class_<classId>`, so a class only ever has one.
+    // Members may only post and update the last-message summary and unread
+    // counts; only the class's coach changes who is in a class chat.
     // ---------------------------------------------------------------------
     match /conversations/{convId} {
+      function summaryKeys() {
+        return ['lastMessageAt', 'lastMessagePreview', 'lastSenderId', 'lastSenderName', 'unread'];
+      }
+
+      // `resource == null`: asking whether a conversation exists (a coach
+      // opening a class chat for the first time) reveals nothing.
       allow read: if isAuthenticated() && (
-        request.auth.uid in resource.data.participantIds
+        resource == null
+        || request.auth.uid in resource.data.participantIds
         || isAdminOrSupervisor()
       );
-      // CRITICAL: Only coaches can initiate a conversation with a student
+      // CRITICAL: Only coaches can initiate a conversation
       allow create: if isTeacher()
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.coachId == request.auth.uid
-        && request.resource.data.participantIds.hasAll([request.auth.uid, request.resource.data.studentId]);
+        && (
+          (request.resource.data.get('type', 'direct') == 'direct'
+            && request.resource.data.participantIds.hasAll([request.auth.uid, request.resource.data.studentId])
+            && request.resource.data.participantIds.size() == 2)
+          || (request.resource.data.type == 'class'
+            && convId == 'class_' + request.resource.data.classId
+            && teachesClass(request.resource.data.classId)
+            && request.resource.data.participantIds.hasAny([request.auth.uid])
+            && request.resource.data.participantIds.size() <= 80)
+        );
       allow update: if isAuthenticated() && (
-        request.auth.uid in resource.data.participantIds
-        || isAdminOrSupervisor()
+        isAdminOrSupervisor()
+        || (request.auth.uid in resource.data.participantIds
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(summaryKeys()))
+        || (resource.data.get('type', 'direct') == 'class'
+          && resource.data.coachId == request.auth.uid
+          && teachesClass(resource.data.classId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(summaryKeys().concat(['participantIds', 'memberNames', 'title']))
+          && request.resource.data.participantIds.hasAny([request.auth.uid])
+          && request.resource.data.participantIds.size() <= 80)
       );
       allow delete: if false;
 
@@ -627,7 +659,10 @@ service cloud.firestore {
         allow create: if isAuthenticated()
           && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participantIds
           && request.resource.data.senderId == request.auth.uid
-          && request.resource.data.deletedBySender == false;
+          && request.resource.data.deletedBySender == false
+          && request.resource.data.get('text', '') is string
+          && request.resource.data.get('text', '').size() <= 4000
+          && request.resource.data.get('attachments', []).size() <= 5;
         allow update: if isAuthenticated()
           && resource.data.senderId == request.auth.uid
           && request.resource.data.senderId == request.auth.uid

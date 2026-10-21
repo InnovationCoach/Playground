@@ -21,7 +21,7 @@ export const TERM = {
   label: 'Term 3, 2026',
   weeks: 12,
   draft: true,
-  theme: 'Sustainable Futures',
+  theme: 'The Future Skills Milestones',
   drivingQuestion: 'How might we use STEAM to make life better for people and the planet around us?',
   intro: 'Every term has one big theme. You explore it through hands-on STEAM activities, then you choose a real problem inside it that YOU care about - one that affects people or the environment - and design, build and program a solution, with AI writing code alongside you. You collect evidence the whole way, and at the end of the term you show what you made.'
 };

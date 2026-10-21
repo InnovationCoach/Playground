@@ -10,6 +10,10 @@
  *   #/pbl/programs/<programId>/<section>                 one program in the PBL library
  *   #/community                                          community posts
  *   #/messages  #/messages/<convId>                      private messages
+ *   #/goals                                              goal setting (secondary learners)
+ *   #/search                                             Home: course search (secondary learners);
+ *                                                        "My Dashboard" is the no-hash default.
+ *                                                        (#/home is the live site's dashboard, so it is not reused.)
  *
  * Anything unrecognised returns null and the caller shows its default screen.
  * A route is a request to SEE a screen; whether the role may is decided by
@@ -40,6 +44,8 @@ export function parseRoute(hash) {
   if (head === 'parent') return { screen: 'parent' };
   if (head === 'community') return { screen: 'community' };
   if (head === 'messages') return { screen: 'messages', conversationId: a || null };
+  if (head === 'goals') return { screen: 'goals' };
+  if (head === 'search') return { screen: 'homeSearch' };
   return null;
 }
 
@@ -58,5 +64,7 @@ export const hrefFor = {
   pbl: (tab) => (tab ? `#/pbl/${tab}` : '#/pbl'),
   program: (id, section) => `#/pbl/programs/${encodeURIComponent(id)}${section ? `/${section}` : ''}`,
   community: () => '#/community',
-  messages: (convId) => (convId ? `#/messages/${convId}` : '#/messages')
+  messages: (convId) => (convId ? `#/messages/${convId}` : '#/messages'),
+  goals: () => '#/goals',
+  homeSearch: () => '#/search'
 };

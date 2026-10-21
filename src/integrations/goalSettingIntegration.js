@@ -165,19 +165,32 @@ function showGoalSettingFlow(userId) {
   window.addEventListener('goalsSet', goalsSetHandler);
 }
 
-function loadGoalsDashboard(userId) {
-  let container = document.getElementById('goals-dashboard-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'goals-dashboard-container';
-    container.style.cssText = 'margin: 2rem 0;';
-    const dashboardCard = document.getElementById('dashboard-card');
-    if (dashboardCard) {
-      dashboardCard.insertBefore(container, dashboardCard.firstChild);
-    } else {
-      document.body.appendChild(container);
+/**
+ * Fill the goals panel on "My Dashboard" the way the sign-in routine used to,
+ * without ever opening the wizard: sync the old wizard's goals from the user
+ * document to this device, then render the panel. Goal setting itself now
+ * lives on #/goals (features/goals).
+ */
+export async function showGoalsPanel(userId) {
+  if (!userId) return;
+  if (db) {
+    try {
+      const snap = await getDoc(doc(db, 'users', userId));
+      const goals = snap.exists ? snap.data()?.goals : null;
+      if (goals && Array.isArray(goals.goals)) localStorage.setItem(`userGoals_${userId}`, JSON.stringify(goals));
+    } catch (err) {
+      console.warn('[GoalSetting] Could not sync goals for the dashboard panel:', err.message);
     }
   }
+  loadGoalsDashboard(userId);
+}
+
+function loadGoalsDashboard(userId) {
+  // Only the primary learners' Home (StudentDashboard) has this container now.
+  // Without it, skip: the old fallback appended the panel to <body>, so it
+  // showed up under whatever page was open (My Courses, the Home search).
+  const container = document.getElementById('goals-dashboard-container');
+  if (!container) return;
 
   createGoalsDashboard('goals-dashboard-container', userId);
 }

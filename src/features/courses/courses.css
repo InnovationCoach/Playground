@@ -1,0 +1,63 @@
+/* My Courses dashboard additions: source chips, stats, progress, saved cards. */
+
+.gh-hero .mc-search { flex: 0 1 420px; }
+/* The hero's decorative circle overhangs its right edge; with overflow:hidden,
+   focusing the search box scrolled the hero sideways. clip cannot scroll. */
+.mc-hero { overflow: clip; }
+
+.mc-card a.gh-course { text-decoration: none; color: inherit; }
+
+.mc-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 1.1rem; }
+.mc-chip { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 34px; padding: 0.3rem 0.85rem; border-radius: 999px;
+  border: 1px solid var(--gh-border-strong); background: var(--gh-surface); color: var(--gh-text-2); font: 600 0.84rem var(--gh-font); cursor: pointer; }
+.mc-chip:hover { background: var(--gh-subtle); }
+.mc-chip[aria-pressed="true"] { background: var(--gh-purple); border-color: var(--gh-purple); color: #fff; }
+.mc-chip-n { font-variant-numeric: tabular-nums; font-size: 0.76rem; padding: 0 0.4rem; border-radius: 999px; background: var(--gh-subtle); color: var(--gh-text-2); }
+.mc-chip[aria-pressed="true"] .mc-chip-n { background: rgba(255, 255, 255, 0.22); color: #fff; }
+.mc-chip:focus-visible, .mc-save:focus-visible, .mc-progress:focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 2px; }
+
+.mc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 1.25rem; }
+.mc-stat { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border-radius: 14px; background: var(--gh-surface); border: 1px solid var(--gh-border); }
+.mc-stat-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--gh-purple-50); color: var(--gh-purple); flex-shrink: 0; }
+.mc-stat strong { display: block; font-size: 1.35rem; line-height: 1.1; color: var(--gh-heading); font-variant-numeric: tabular-nums; }
+.mc-stat strong + span { font-size: 0.8rem; color: var(--gh-text-3); }
+@media (max-width: 560px) {
+  .mc-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+  .mc-stat { padding: 0.7rem; }
+  .mc-stat-icon { display: none; }
+  .mc-stat strong + span { font-size: 0.74rem; line-height: 1.25; display: block; }
+}
+
+.mc-progress-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.mc-progress { display: flex; align-items: center; gap: 0.9rem; padding: 0.9rem 1rem; border-radius: 14px; background: var(--gh-surface);
+  border: 1px solid var(--gh-border); color: inherit; text-decoration: none; transition: border-color 0.15s, box-shadow 0.15s; }
+.mc-progress:hover { border-color: var(--gh-purple-100); box-shadow: var(--gh-shadow); }
+.mc-progress-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.mc-progress-top { display: flex; justify-content: space-between; gap: 0.75rem; align-items: baseline; }
+.mc-progress-top strong { color: var(--gh-heading); font-size: 0.95rem; min-width: 0; }
+.mc-progress-pct { font-weight: 700; color: var(--gh-purple); font-variant-numeric: tabular-nums; font-size: 0.88rem; }
+.mc-progress-meta { font-size: 0.8rem; color: var(--gh-text-3); }
+.mc-progress-go { color: var(--gh-text-3); flex-shrink: 0; }
+.mc-bar { display: block; height: 8px; border-radius: 999px; background: var(--gh-subtle); overflow: hidden; }
+.mc-bar i { display: block; height: 100%; border-radius: 999px; background: var(--gh-purple); }
+
+.mc-tone-icon { display: grid; place-items: center; background: var(--pg-tint, var(--gh-purple-50)); color: var(--pg-ink, var(--gh-purple-600)); }
+.mc-progress-icon { width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0; }
+.mc-art-partner { background: #eef6ff; color: #1d5a8f; }
+
+.mc-card { position: relative; }
+.mc-card .gh-course { padding-right: 3.1rem; }
+.mc-save { position: absolute; top: 0.8rem; right: 0.8rem; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+  border: 1px solid var(--gh-border); background: var(--gh-surface); color: var(--gh-text-3); cursor: pointer; }
+.mc-save:hover { color: var(--gh-purple); border-color: var(--gh-purple-100); }
+.mc-save[aria-pressed="true"] { color: var(--gh-purple); background: var(--gh-purple-50); border-color: var(--gh-purple-100); }
+
+.mc-src { align-self: flex-start; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 0.12rem 0.5rem; border-radius: 999px; }
+.mc-src-activity { background: var(--gh-green-50); color: var(--gh-green-text); }
+.mc-src-program { background: var(--gh-purple-50); color: var(--gh-purple-600); }
+.mc-src-partner { background: #eef6ff; color: #1d5a8f; }
+.mc-facts { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; font-size: 0.78rem; color: var(--gh-text-3); }
+
+.mc-note { margin: 0.75rem 0 0; font-size: 0.82rem; color: var(--gh-text-3); }
+
+@media (prefers-reduced-motion: reduce) { .mc-progress { transition: none; } }

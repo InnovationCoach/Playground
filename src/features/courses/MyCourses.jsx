@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Search, ArrowRight, Sparkles, LibraryBig, FolderOpen, Link2, SearchX, Ticket, Rocket } from 'lucide-react';
+import {
+  Search, ArrowRight, Sparkles, LibraryBig, FolderOpen, Link2, SearchX, Ticket, Rocket,
+  Bookmark, Globe, Compass, TrendingUp, Route
+} from 'lucide-react';
 import { joinClassWithCode, JOIN_RESULT } from '../enrolment/joinClass.js';
 import { Alert } from '../admin/ui/bits.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
@@ -7,8 +10,18 @@ import { ACTIVITY_NAV } from '../activities/activityHost.js';
 import { ActivityIcon, parseActivityLabel } from '../shell/activityIcons.jsx';
 import { TERM } from '../pbl/content/pblModel.js';
 import { hrefFor } from '../../app/routes.js';
+import { PROGRAMS } from '../pbl/programs/catalog.js';
+import { ProgramIcon } from '../pbl/programs/ProgramIcon.jsx';
+import { useClassPrograms } from '../pbl/programs/useClassPrograms.js';
+import { buildCatalog, searchCatalog, countBySource, SOURCES } from './catalog.js';
+import { useAddedCourses } from './useAddedCourses.js';
+import { CatalogCard } from './CatalogCard.jsx';
+import { useProgramSummaries } from './useProgramSummaries.js';
+import { srOnly } from './CatalogCard.jsx';
 import '../admin/admin.css';
 import '../pbl/pbl.css';
+import '../pbl/programs/programs.css';
+import './courses.css';
 
 /**
  * Student "My Courses" home, first version.
@@ -19,7 +32,14 @@ import '../pbl/pbl.css';
  * states rather than placeholder courses - a student should never click a
  * course that does not exist. When the catalogue lands (Phase C) the course
  * list comes from data and this component keeps its layout.
+ *
+ * Secondary learners also get the dashboard parts from the WeLearn student
+ * platform: progress figures, "Continue learning" from real PBL program
+ * progress, "Courses I added" (from search here or on Home), and one search over activities, PBL programs
+ * and partner courses (catalog.js) with source filters.
  */
+const NO_COURSES = [];
+
 const WELEARN_COURSES = ACTIVITY_NAV.filter((a) => a.id !== 'home').map((a) => ({
   id: a.id,
   ...parseActivityLabel(a.label),
@@ -30,6 +50,7 @@ const WELEARN_COURSES = ACTIVITY_NAV.filter((a) => a.id !== 'home').map((a) => (
 export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classIds = [], onJoined }) {
   const { t } = useLocale();
   const [q, setQ] = useState('');
+  const [source, setSource] = useState('all');
   const [joined, setJoined] = useState(null);
   const firstName = String(displayName || '').split(' ')[0];
 
@@ -41,20 +62,58 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
     return base.filter((c) => `${c.kicker} ${c.title} ${c.description} ${c.keywords}`.toLowerCase().includes(needle));
   }, [q, isPrimary]);
 
+  // Secondary only: the combined catalogue, program progress and My Path.
+  const catalog = useMemo(() => (isPrimary ? [] : buildCatalog({
+    activities: ACTIVITY_NAV, programs: PROGRAMS, parseLabel: parseActivityLabel, includePartners: true
+  })), [isPrimary]);
+  const searching = !isPrimary && (q.trim() !== '' || source !== 'all');
+  const results = useMemo(() => searchCatalog(catalog, q, source), [catalog, q, source]);
+  const counts = useMemo(() => countBySource(catalog, q), [catalog, q]);
+
+  const { byProgram } = useClassPrograms(isPrimary ? [] : classIds);
+  const summaries = useProgramSummaries(uid, PROGRAMS, !isPrimary);
+  const continuing = PROGRAMS.filter((p) => byProgram[p.id] || summaries[p.id]?.startedAt);
+  const stats = {
+    started: PROGRAMS.filter((p) => summaries[p.id]?.startedAt).length,
+    sessions: PROGRAMS.reduce((n, p) => n + (summaries[p.id]?.done || 0), 0)
+  };
+
+  const { keys: path, added: saved, toggle: onToggleSave } = useAddedCourses(uid, isPrimary ? NO_COURSES : catalog);
+  const cardProps = { onOpenActivity, addedKeys: path, onToggleAdd: onToggleSave };
+
   return (
     <div className="gh-page">
-      <div className="gh-hero">
+      <div className="gh-hero mc-hero">
         <div>
           <h1>{firstName ? t('courses.greeting', { name: firstName }) : t('courses.title')}</h1>
           <p>{t('courses.subtitle')}</p>
         </div>
-        <label className="gh-input-icon">
+        <label className={isPrimary ? 'gh-input-icon' : 'gh-input-icon mc-search'}>
           <span style={srOnly}>{t('common.search')}</span>
           <Search size={17} aria-hidden="true" />
           <input type="search" className="gh-input" value={q}
-                 placeholder={t('courses.searchPlaceholder')} onChange={(e) => setQ(e.target.value)} />
+                 placeholder={t(isPrimary ? 'courses.searchPlaceholder' : 'courses.searchPlaceholderAll')}
+                 onChange={(e) => setQ(e.target.value)} />
         </label>
       </div>
+
+      {!isPrimary && (
+        <div className="mc-chips" role="group" aria-label={t('courses.source.label')}>
+          {['all', ...SOURCES].map((s) => (
+            <button key={s} type="button" className="mc-chip" aria-pressed={source === s} onClick={() => setSource(s)}>
+              {t(`courses.source.${s}`)}<span className="mc-chip-n">{counts[s]}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!isPrimary && !searching && (
+        <div className="mc-stats">
+          <Stat icon={Compass} value={stats.started} label={t('courses.stat.started')} />
+          <Stat icon={TrendingUp} value={stats.sessions} label={t('courses.stat.sessions')} />
+          <Stat icon={Route} value={saved.length} label={t('courses.stat.saved')} />
+        </div>
+      )}
 
       {joined && <div style={{ marginTop: '1.5rem' }}><Alert type="success">{joined}</Alert></div>}
       {uid && classIds.length === 0 && (
@@ -73,7 +132,77 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
         </a>
       )}
 
-      <section className="gh-section" aria-labelledby="mc-welearn">
+      {searching && (
+        <section className="gh-section" aria-labelledby="mc-results" aria-live="polite">
+          <SectionHead id="mc-results" icon={Search} bg="var(--gh-purple-50)" fg="var(--gh-purple)"
+                       title={t('courses.results')} count={results.length} />
+          {results.length ? (
+            <ul className="gh-course-grid">
+              {results.map((c) => <CatalogCard key={c.key} item={c} {...cardProps} />)}
+            </ul>
+          ) : (
+            <div className="gh-placeholder">
+              <span className="gh-empty-icon"><SearchX size={20} aria-hidden="true" /></span>
+              {q.trim() ? t('courses.noMatch', { q: q.trim() }) : t('courses.noneInSource')}
+            </div>
+          )}
+        </section>
+      )}
+
+      {!isPrimary && !searching && continuing.length > 0 && (
+        <section className="gh-section" aria-labelledby="mc-continue">
+          <SectionHead id="mc-continue" icon={TrendingUp} bg="var(--gh-purple-50)" fg="var(--gh-purple)"
+                       title={t('courses.continueTitle')} count={continuing.length} />
+          <ul className="mc-progress-list">
+            {continuing.map((p) => {
+              const s = summaries[p.id];
+              const pct = s?.pct || 0;
+              return (
+                <li key={p.id}>
+                  <a className="mc-progress" href={hrefFor.program(p.id)}>
+                    <span className="mc-tone-icon mc-progress-icon" data-tone={p.identity.tone}><ProgramIcon name={p.identity.icon} size={20} /></span>
+                    <span className="mc-progress-body">
+                      <span className="mc-progress-top">
+                        <strong>{p.title}</strong>
+                        <span className="mc-progress-pct">{pct}%</span>
+                      </span>
+                      <span className="mc-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}
+                            aria-label={p.title}><i style={{ width: `${pct}%` }} /></span>
+                      <span className="mc-progress-meta">
+                        {t('courses.sessionsDone', { done: s?.done || 0, total: p.sessions.length })}
+                        {byProgram[p.id] && <> · {t('courses.classProgram', { className: byProgram[p.id].join(', ') })}</>}
+                        {s?.next && <> · {t('courses.nextSession', { title: s.next.title })}</>}
+                      </span>
+                    </span>
+                    <ArrowRight size={16} aria-hidden="true" className="mc-progress-go" />
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {!isPrimary && !searching && (
+        <section className="gh-section" aria-labelledby="mc-path">
+          <SectionHead id="mc-path" icon={Route} bg="#eef6ff" fg="#1d5a8f" title={t('courses.pathTitle')} count={saved.length} />
+          {saved.length ? (
+            <>
+              <ul className="gh-course-grid">
+                {saved.map((c) => <CatalogCard key={c.key} item={c} {...cardProps} />)}
+              </ul>
+              <p className="mc-note">{t('courses.pathNote')}</p>
+            </>
+          ) : (
+            <div className="gh-placeholder">
+              <span className="gh-empty-icon"><Bookmark size={20} aria-hidden="true" /></span>
+              {t('courses.pathEmpty')}
+            </div>
+          )}
+        </section>
+      )}
+
+      {!searching && <section className="gh-section" aria-labelledby="mc-welearn">
         <SectionHead id="mc-welearn" icon={Sparkles} bg="var(--gh-green-50)" fg="var(--gh-green-text)"
                      title={isPrimary ? t('courses.provider.welearn') : t('courses.exploreTitle')} count={courses.length} />
         {courses.length ? (
@@ -96,7 +225,28 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
             {t('courses.noMatch', { q: q.trim() })}
           </div>
         )}
-      </section>
+      </section>}
+
+      {!isPrimary && !searching && (
+        <section className="gh-section" aria-labelledby="mc-programs">
+          <SectionHead id="mc-programs" icon={Compass} bg="var(--gh-purple-50)" fg="var(--gh-purple)"
+                       title={t('courses.programsTitle')} count={PROGRAMS.length} />
+          <ul className="gh-course-grid">
+            {catalog.filter((c) => c.source === 'program').map((c) => <CatalogCard key={c.key} item={c} {...cardProps} />)}
+          </ul>
+        </section>
+      )}
+
+      {!isPrimary && !searching && (
+        <section className="gh-section" aria-labelledby="mc-partners">
+          <SectionHead id="mc-partners" icon={Globe} bg="#eef6ff" fg="#1d5a8f"
+                       title={t('courses.partnersTitle')} count={counts.partner} />
+          <p className="mc-note" style={{ marginTop: 0, marginBottom: '0.9rem' }}>{t('courses.partnersNote')}</p>
+          <ul className="gh-course-grid">
+            {catalog.filter((c) => c.source === 'partner').map((c) => <CatalogCard key={c.key} item={c} {...cardProps} />)}
+          </ul>
+        </section>
+      )}
 
       <section className="gh-section" aria-labelledby="mc-edmentum">
         <SectionHead id="mc-edmentum" icon={LibraryBig} bg="#eef6ff" fg="#1d5a8f" title={t('courses.provider.edmentum')} />
@@ -161,6 +311,15 @@ function JoinClassCard({ uid, onJoined }) {
   );
 }
 
+function Stat({ icon: Icon, value, label }) {
+  return (
+    <div className="mc-stat">
+      <span className="mc-stat-icon"><Icon size={17} aria-hidden="true" /></span>
+      <span><strong>{value}</strong><span>{label}</span></span>
+    </div>
+  );
+}
+
 function SectionHead({ id, icon: Icon, bg, fg, title, count }) {
   return (
     <div className="gh-section-head">
@@ -171,4 +330,4 @@ function SectionHead({ id, icon: Icon, bg, fg, title, count }) {
   );
 }
 
-const srOnly = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' };
+

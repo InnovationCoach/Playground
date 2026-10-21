@@ -1,0 +1,49 @@
+/* Home search: a Google-style box that owns the first screen until the learner types. */
+
+.hs-wrap { background: var(--gh-bg); }
+.hs-hero { min-height: calc(100vh - 140px); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1.25rem; padding: 2rem max(16px, env(safe-area-inset-right, 0px)) 3rem max(16px, env(safe-area-inset-left, 0px)); text-align: center; }
+.hs-hero-compact { min-height: 0; padding-top: 1.75rem; padding-bottom: 0.5rem; }
+.hs-main { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+
+/* The illustration carries its own lettering, so it is shown whole beside the
+   search (above it on narrow screens) rather than as a cropped background. */
+.hs-art { margin: 0; width: min(560px, 100%); }
+.hs-art img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 20px;
+  box-shadow: 0 18px 40px rgba(16, 24, 40, 0.16), 0 2px 6px rgba(16, 24, 40, 0.08); background: var(--gh-subtle); }
+
+@media (min-width: 960px) {
+  .hs-hero:not(.hs-hero-compact) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); grid-template-areas: 'main art';
+    align-items: center; justify-content: stretch; gap: 3rem; max-width: 1180px; margin: 0 auto; text-align: left; }
+  .hs-hero:not(.hs-hero-compact) .hs-art { grid-area: art; width: 100%; }
+  .hs-hero:not(.hs-hero-compact) .hs-main { grid-area: main; align-items: flex-start; }
+  .hs-hero:not(.hs-hero-compact) .hs-title { font-size: clamp(2rem, 3.4vw, 2.8rem); }
+}
+.hs-title { font-family: var(--gh-font-display, var(--gh-font)); color: var(--gh-heading); font-size: clamp(1.6rem, 4vw, 2.4rem); margin: 0; text-wrap: balance; }
+.hs-hero-compact .hs-title { font-size: 1.25rem; }
+
+.hs-box { position: relative; width: min(640px, 100%); }
+.hs-box input { width: 100%; box-sizing: border-box; min-height: 56px; padding: 0 3rem 0 3.1rem; border-radius: 999px;
+  border: 1px solid var(--gh-border-strong); background: var(--gh-surface); color: var(--gh-text); font: 400 1.05rem var(--gh-font);
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.08); }
+.hs-box input:hover { box-shadow: 0 3px 12px rgba(16, 24, 40, 0.12); }
+.hs-box input:focus { outline: none; border-color: var(--gh-purple); box-shadow: 0 0 0 3px var(--gh-purple-100); }
+.hs-box input::-webkit-search-cancel-button { display: none; }
+.hs-icon { position: absolute; left: 1.15rem; top: 50%; transform: translateY(-50%); color: var(--gh-text-3); pointer-events: none; }
+.hs-clear { position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%;
+  border: 0; background: transparent; color: var(--gh-text-3); display: grid; place-items: center; cursor: pointer; }
+.hs-clear:hover { background: var(--gh-subtle); color: var(--gh-text); }
+.hs-clear:focus-visible, .mc-add:focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 2px; }
+.hs-hint { margin: 0; color: var(--gh-text-3); font-size: 0.9rem; }
+.hs-hint a { color: var(--gh-purple); font-weight: 600; }
+.hs-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.hs-results { padding-top: 0.5rem; padding-bottom: 2.5rem; }
+.hs-count { margin: 0 0 1rem; color: var(--gh-text-3); font-size: 0.88rem; }
+.hs-goto { margin-top: 1.25rem; }
+
+/* Card with a labelled add button under it (CatalogCard variant="button"). */
+.mc-card-btn { display: flex; flex-direction: column; gap: 0.5rem; }
+.mc-card-btn .gh-course { padding-right: 1.15rem; flex: 1; }
+.mc-add { width: 100%; }
+.mc-add.is-added { background: var(--gh-purple-50); border-color: var(--gh-purple-100); color: var(--gh-purple-600); }

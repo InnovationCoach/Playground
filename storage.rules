@@ -37,9 +37,34 @@ service firebase.storage {
     }
 
     // F3: Private Message Attachments
+    //
+    // Only the conversation's members (and admins/supervisors, for the audit
+    // view) may read them; before this, any signed-in user could. Members may
+    // add images, video, voice notes and common documents, up to 20 MB each.
+    // Files are never overwritten or deleted from the client.
+    function isMessageFileType() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp|gif)')
+          || request.resource.contentType.matches('video/(mp4|webm|quicktime)')
+          || request.resource.contentType.matches('audio/(webm|ogg|mp4|mpeg|aac|x-m4a|wav)(;.*)?')
+          || request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('application/(msword|vnd[.]ms-excel|vnd[.]ms-powerpoint)')
+          || request.resource.contentType.matches('application/vnd[.]openxmlformats-officedocument[.].*')
+          || request.resource.contentType.matches('text/(plain|csv)');
+    }
+
+    function isConversationMember(convId) {
+      return isAuthenticated()
+        && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(convId)).data.participantIds;
+    }
+
+    function isAuditor() {
+      return isAuthenticated() && request.auth.token.get('role', 'student') in ['admin', 'supervisor'];
+    }
+
     match /messages/{convId}/{msgId}/{filename} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isAllowedFileType() && isWithinSizeLimit();
+      allow read: if isConversationMember(convId) || isAuditor();
+      allow create: if isConversationMember(convId) && isMessageFileType() && isWithinSizeLimit();
+      allow update, delete: if false;
     }
 
     // Legacy / Activity uploads

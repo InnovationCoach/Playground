@@ -1,4 +1,5 @@
 import { House, BookOpen, Target, LayoutDashboard, Printer, Rocket, MessageCircle, Users } from 'lucide-react';
+import { hrefFor } from '../../app/routes.js';
 import { ACTIVITY_NAV } from '../../features/activities/activityHost.js';
 import { ActivitySearch } from './ActivitySearch.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
@@ -11,7 +12,7 @@ import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
  */
 const SEARCHABLE = ACTIVITY_NAV.filter((a) => a.id !== 'home');
 
-export function TopNav({ role, view, onNavigate, onOpenGoals, onOpenCourses }) {
+export function TopNav({ role, view, onNavigate, onOpenGoals, onOpenCourses, isPrimary = false }) {
   const { t } = useLocale();
 
   if (role === 'teacher' || role === 'coach' || role === 'admin' || role === 'supervisor') {
@@ -44,7 +45,13 @@ export function TopNav({ role, view, onNavigate, onOpenGoals, onOpenCourses }) {
 
   return (
     <nav className="gh-subnav" aria-label={t('nav.primary')}>
-      <NavLink icon={House} active={view === 'home'} onClick={() => onNavigate('home')}>{t('nav.home')}</NavLink>
+      {/* Home is the course search for secondary learners; My Dashboard is the original student home. */}
+      {!isPrimary && (
+        <NavLink icon={House} active={view === 'homeSearch'} onClick={() => { window.location.hash = hrefFor.homeSearch(); }}>{t('nav.home')}</NavLink>
+      )}
+      <NavLink icon={LayoutDashboard} active={view === 'home'} onClick={() => onNavigate('home')}>
+        {isPrimary ? t('nav.home') : t('nav.myDashboard')}
+      </NavLink>
       <NavLink icon={BookOpen} active={view === 'courses'} onClick={onOpenCourses}>{t('nav.myCourses')}</NavLink>
       <NavLink icon={Rocket} active={view === 'pbl'} onClick={() => { window.location.hash = '#/pbl'; }}>{t('nav.pbl')}</NavLink>
       <NavLink icon={Users} active={view === 'community'} onClick={() => { window.location.hash = '#/community'; }}>
@@ -53,7 +60,7 @@ export function TopNav({ role, view, onNavigate, onOpenGoals, onOpenCourses }) {
       <NavLink icon={MessageCircle} active={view === 'messages'} onClick={() => { window.location.hash = '#/messages'; }}>
         Messages
       </NavLink>
-      <NavLink icon={Target} onClick={onOpenGoals}>{t('nav.goals')}</NavLink>
+      <NavLink icon={Target} active={view === 'goals'} onClick={onOpenGoals}>{t('nav.goals')}</NavLink>
       <ActivitySearch items={SEARCHABLE} current={view} onNavigate={onNavigate} />
     </nav>
   );

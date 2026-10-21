@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getAllConversationsForAudit, getAllMessagesForAudit } from './messagesAPI.js';
+import { attachmentsOf } from './messageModel.js';
+import { Attachment } from './Attachment.jsx';
+import './messages.css';
 import '../admin/admin.css';
 
 export function AdminAuditView() {
@@ -62,7 +65,7 @@ export function AdminAuditView() {
                 onMouseEnter={(e) => e.currentTarget.style.background = 'var(--gh-subtle)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = selectedConvId === conv.id ? 'var(--gh-subtle)' : 'transparent'}
               >
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--gh-text)' }}>{conv.coachName || 'Coach'} ↔ {conv.studentName || 'Student'}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--gh-text)' }}>{conv.type === 'class' ? `Class chat: ${conv.title || conv.classId} (${conv.participantIds?.length || 0} members)` : `${conv.coachName || 'Coach'} ↔ ${conv.studentName || 'Student'}`}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--gh-text-3)', marginTop: '0.2rem' }}>{conv.messageCount || 0} messages</div>
               </button>
             ))}
@@ -107,9 +110,9 @@ export function AdminAuditView() {
                     <div style={{ color: msg.deletedBySender ? 'var(--gh-text-3)' : 'var(--gh-text)', lineHeight: 1.5 }}>
                       {msg.deletedBySender ? <em>(message deleted by sender)</em> : msg.text}
                     </div>
-                    {msg.media?.length > 0 && (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--gh-text-3)' }}>
-                        📎 {msg.media.length} attachment{msg.media.length > 1 ? 's' : ''}
+                    {attachmentsOf(msg).length > 0 && (
+                      <div className="ms-atts" style={{ marginTop: '0.5rem', maxWidth: 360 }}>
+                        {attachmentsOf(msg).map((a, i) => <Attachment key={i} a={a} />)}
                       </div>
                     )}
                   </div>

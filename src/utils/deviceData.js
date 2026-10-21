@@ -19,7 +19,12 @@ const UNSCOPED_KEYS = [
 ];
 
 // Per-user keys, removed on sign-out so nothing personal stays on the device.
-const USER_SCOPED_PREFIXES = ['userGoals_', 'firstTimeUser_', 'reminderSnoozedUntil_'];
+const USER_SCOPED_PREFIXES = [
+  'userGoals_', 'firstTimeUser_', 'reminderSnoozedUntil_',
+  // Goal plan (features/goals) and courses added from search (features/courses).
+  // goalNudge_ (the daily notice's hidden-today date) is kept: it holds only a date.
+  'goalPlan_', 'hearisland.myPath.v1:'
+];
 
 export function purgeUnscopedUserData() {
   try {
