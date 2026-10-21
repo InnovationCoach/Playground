@@ -19,7 +19,8 @@ import {
   Radio,
   Sparkles
 } from 'lucide-react';
-import { HEX_CITY_ROLES, CRISIS_SCENARIOS, CrisisScenario } from '../pbl';
+import { HEX_CITY_ROLES, CRISIS_SCENARIOS } from '../pbl';
+import type { CrisisScenario } from '../pbl';
 
 interface HexCitySimulatorProps {
   isOpen: boolean;

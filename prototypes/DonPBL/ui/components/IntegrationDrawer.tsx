@@ -1,14 +1,13 @@
 import React from 'react';
-import { 
-  X, 
-  GitBranch, 
-  Layers, 
-  ShieldCheck, 
-  HelpCircle, 
-  Terminal, 
-  FileText,
-  ExternalLink
+import {
+  X,
+  Layers,
+  ShieldCheck,
+  HelpCircle,
+  Terminal,
+  FileText
 } from 'lucide-react';
+import { COPILOT_DEPLOYMENT_CONFIG } from '../pbl';
 
 interface IntegrationDrawerProps {
   isOpen: boolean;
@@ -53,7 +52,7 @@ export const IntegrationDrawer: React.FC<IntegrationDrawerProps> = ({ isOpen, on
               Production Isolation Guarantee (AGENTS.md)
             </div>
             <p className="leading-relaxed text-emerald-900">
-              Per strict project instructions: all prototype work is contained inside <code className="font-mono bg-emerald-100 px-1 py-0.5 rounded">prototypes/DonPBL/</code> on branch <code className="font-mono bg-emerald-100 px-1 py-0.5 rounded">DonPBL</code>. No changes have been made to live production routes, root dependencies, Firebase rules, or Firestore collections.
+              Per project instructions: all prototype work is contained inside <code className="font-mono bg-emerald-100 px-1 py-0.5 rounded">prototypes/DonPBL/</code> on branch <code className="font-mono bg-emerald-100 px-1 py-0.5 rounded">DonPBL</code>. No changes have been made to live production routes, root dependencies, Firebase rules, or Firestore collections.
             </p>
           </div>
 
@@ -61,15 +60,24 @@ export const IntegrationDrawer: React.FC<IntegrationDrawerProps> = ({ isOpen, on
           <div>
             <h3 className="font-bold text-stone-900 text-sm mb-2 flex items-center gap-1.5">
               <FileText className="w-4 h-4 text-stone-600" />
-              Existing Code Mapping to WeLearn Playground
+              Proposed Mapping to WeLearn Playground
             </h3>
             <div className="space-y-2">
               <div className="p-2.5 bg-stone-50 border border-stone-200 rounded">
                 <div className="font-semibold text-stone-900 font-mono text-[11px]">
-                  prototypes/DonPBL/programData.ts → src/features/pbl/content/pblModel.js
+                  prototypes/DonPBL/programRegistry.ts → src/features/pbl/content/pblModel.js
                 </div>
                 <p className="text-stone-600 mt-1">
-                  Replaces the single placeholder <code className="font-mono">TERM</code> with a full 12-week program, 24 session plans, student choice trees, and explicit impact targets.
+                  Supplies 6 complete 12-week (120h) programs in <code className="font-mono">PROGRAM_REGISTRY</code> (plus 1 explicit stub program kept out of the active registry until its sessions are authored).
+                </p>
+              </div>
+
+              <div className="p-2.5 bg-stone-50 border border-stone-200 rounded">
+                <div className="font-semibold text-stone-900 font-mono text-[11px]">
+                  prototypes/DonPBL/store.ts → users/&#123;uid&#125;/activityProgress/pbl-&lt;programId&gt;
+                </div>
+                <p className="text-stone-600 mt-1">
+                  Keys student projects by <code className="font-mono">(uid, pbl-&lt;programId&gt;)</code> and stores coach feedback in a separate coach-writable collection path so student and coach writes never collide.
                 </p>
               </div>
 
@@ -78,25 +86,16 @@ export const IntegrationDrawer: React.FC<IntegrationDrawerProps> = ({ isOpen, on
                   prototypes/DonPBL/engine.ts → src/features/pbl/engine/pblProject.js
                 </div>
                 <p className="text-stone-600 mt-1">
-                  Harmonized with <code className="font-mono">safeLink</code>, <code className="font-mono">readiness</code> 8-point checks, and AI provenance validation.
+                  Harmonized with <code className="font-mono">safeLink</code>, 8-point <code className="font-mono">evaluateReadiness</code> checks, <code className="font-mono">validateAndAddEvidence</code>, and unit economics/market simulation helpers.
                 </p>
               </div>
 
               <div className="p-2.5 bg-stone-50 border border-stone-200 rounded">
                 <div className="font-semibold text-stone-900 font-mono text-[11px]">
-                  Simulated Co-Pilot → docs/BACKEND-PBL-COPILOT-PROMPT-FOR-GEMINI.md
+                  AI Co-Pilot Status: {COPILOT_DEPLOYMENT_CONFIG.status}
                 </div>
                 <p className="text-stone-600 mt-1">
-                  Direct client-side fallback implementation of the Gemini prompt rules (generates working code, device test steps, and explain-it-back challenge question).
-                </p>
-              </div>
-
-              <div className="p-2.5 bg-stone-50 border border-stone-200 rounded">
-                <div className="font-semibold text-stone-900 font-mono text-[11px]">
-                  Coach Review UI → src/features/pbl/PblStudio.jsx
-                </div>
-                <p className="text-stone-600 mt-1">
-                  Supplies the missing Cohort Dashboard and Competency Assessment Matrix for facilitator reviews.
+                  {COPILOT_DEPLOYMENT_CONFIG.note}
                 </p>
               </div>
             </div>
@@ -106,17 +105,13 @@ export const IntegrationDrawer: React.FC<IntegrationDrawerProps> = ({ isOpen, on
           <div>
             <h3 className="font-bold text-stone-900 text-sm mb-2 flex items-center gap-1.5">
               <Terminal className="w-4 h-4 text-stone-600" />
-              Automated Check Suite
+              Automated Check Suite & Standalone Demo
             </h3>
             <div className="bg-stone-900 text-emerald-400 p-3 rounded font-mono text-[11px] space-y-1">
-              <div># Run automated verification checks:</div>
-              <div className="text-white">$ node prototypes/DonPBL/checks.js</div>
-              <div className="text-stone-400">✓ safeLink security tests passed</div>
-              <div className="text-stone-400">✓ Program schema & all 7 design thinking phases verified</div>
-              <div className="text-stone-400">✓ WeLearn 7 Competency Domains verified</div>
-              <div className="text-stone-400">✓ NGSS 3D Rubric dimensions and 4 levels verified</div>
-              <div className="text-stone-400">✓ AI Co-Pilot pedagogical rules verified</div>
-              <div className="text-stone-400">✓ 8-Point Showcase Readiness Audit logic verified</div>
+              <div># Bundle & run real unit + data + store tests:</div>
+              <div className="text-white">$ node prototypes/DonPBL/checks.mjs</div>
+              <div className="mt-2"># Start self-contained demo on port 5180:</div>
+              <div className="text-white">$ node_modules/.bin/vite --config prototypes/DonPBL/demo/vite.config.mjs</div>
             </div>
           </div>
 
@@ -124,20 +119,20 @@ export const IntegrationDrawer: React.FC<IntegrationDrawerProps> = ({ isOpen, on
           <div>
             <h3 className="font-bold text-stone-900 text-sm mb-2 flex items-center gap-1.5">
               <HelpCircle className="w-4 h-4 text-amber-700" />
-              4 Open Questions for Don & School Leadership
+              Items Needing Owner Confirmation (Don & School Leadership)
             </h3>
             <ul className="space-y-2 list-disc list-inside text-stone-700 bg-amber-50/50 p-3 rounded border border-amber-200">
               <li>
-                <strong className="text-stone-900">Learner Age Band:</strong> Is 12–15 (Grades 7–9) the confirmed cohort, or should we scaffold an introductory 9–11 track?
+                <strong className="text-stone-900">Term Schedule:</strong> Confirm whether all cohorts operate on 12 weeks × 10 hours/week (120h/term) and whether sessions are 18 or 24 per term.
               </li>
               <li>
-                <strong className="text-stone-900">Term Schedule:</strong> Does WeLearn operate on 8, 10, or 12 weeks for Term 3?
+                <strong className="text-stone-900">Learner Age Band:</strong> Confirm target age bands (9–11, 12–14, 15–17) and safeguarding consent procedures for any media capture.
               </li>
               <li>
-                <strong className="text-stone-900">Kit Inventory:</strong> Are BBC micro:bit V2 boards and capacitive sensors available in sufficient quantity?
+                <strong className="text-stone-900">Hardware Inventory:</strong> Confirm physical stock of BBC micro:bit V2, 5V pumps, capacitive soil sensors, Arduino UNO/Nano, ESP32, and LEGO Spike/Technic kits.
               </li>
               <li>
-                <strong className="text-stone-900">Backend Co-Pilot:</strong> What is the deployment roadmap for <code className="font-mono">POST /api/pbl-copilot</code>?
+                <strong className="text-stone-900">Backend Co-Pilot:</strong> <code className="font-mono">POST /api/pbl-copilot</code> is currently <code className="font-mono">not_deployed</code>; confirm when backend deployment will be scheduled after the deploy freeze.
               </li>
             </ul>
           </div>

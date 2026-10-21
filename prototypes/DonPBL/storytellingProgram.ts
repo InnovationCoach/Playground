@@ -15,7 +15,7 @@
  * - 4-Dimension Mastery Assessment Matrix (World Design Rigor, Formatting Precision, Pipeline Management, Sonic & Visual Continuity)
  */
 
-import { PblProgram } from './programData';
+import type { PblProgram } from './programData';
 
 export interface CharacterProfile {
   name: string;
@@ -92,16 +92,16 @@ export const STORYTELLING_PROGRAM: PblProgram = {
     environmentalImpact: 'Investigates ecological fragility, climate migration, resource depletion, and regenerative futures through grounded speculative world-building.'
   },
   targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
-  durationWeeks: 20,
+  durationWeeks: 12,
   totalSessions: 24,
   materialsAndKit: {
     microcontrollers: [
       'Digital Audio Workstation (DAW): Audacity / GarageBand / Reaper (Multi-track mixing)',
-      'USB Condenser Microphone / Lavalier mic with pop filter for scratch vocal tracks',
+      'USB Condenser Microphone / Lavalier mic (teacher-operated only; any recording of learners requires prior school consent and must not be stored by the platform)',
       'Studio monitor headphones for audio leveling and frequency balance'
     ],
     sensorsAndActuators: [
-      'Audio & Video Equipment: USB sound card, digital drawing tablet / iPad with Apple Pencil',
+      'Audio & Video Equipment: USB sound card, digital drawing tablet / iPad with Apple Pencil (note: any recording of learners needs school consent and must not be stored by the platform)',
       'Foley Sound Props: shoes, gravel trays, metallic latches, fabrics, liquids for practical sound effects'
     ],
     fabricationMaterials: [
@@ -118,7 +118,8 @@ export const STORYTELLING_PROGRAM: PblProgram = {
   teacherGuidance: {
     safetyProtocol: [
       'Creative Psychological Safety: Exploring character wounds ("The Ghost") requires emotional vulnerability; establish strict class norms of constructive, craft-focused feedback.',
-      'Hearing Protection: Ensure master headphone volumes in DAW audio mixing are calibrated below 80 dB SPL during sound design sessions.'
+      'Hearing Protection: Ensure master headphone volumes in DAW audio mixing are calibrated below 80 dB SPL during sound design sessions.',
+      'Safeguarding & Recording Consent: Any audio or video recording of learners requires school consent and must never be stored by the platform. No speech-to-text or voice capture for under-13s.'
     ],
     pedagogicalScaffolding: [
       'Cause-and-Effect Narrative Rigor: Forbid "And then..." plotting. Enforce South Park creators\' rule: every beat must connect via "Therefore..." or "But...".',
@@ -131,7 +132,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       'Full Story Provenance: Document AI prompts used to explore plot bottlenecks or generate character name variations.'
     ],
     differentiationNotes: [
-      'Primary Track (Ages 9–11 / Grades 4–6): Illustrated character trading cards, 6-panel comic strip layouts, classroom vocal radio plays with live kitchen-prop foley, and tactile beat card corkboards.',
+      'Primary Track (Ages 9–11 / Grades 4–6): Illustrated character trading cards, 6-panel comic strip layouts, live unrecorded classroom table reads with kitchen-prop foley (no voice recording for under-13s), and tactile beat card corkboards.',
       'Junior Secondary Track (Ages 12–14 / Grades 7–9): Interactive branching choice fiction (Twine / Ink), 3-scene screenplay with psychological subtext, and 2-track audio drama recordings with basic soundtrack scoring.',
       'Upper Secondary Track (Ages 15–17 / Grades 10–12): Industry-standard Fountain screenplay pipeline, 4-layer DAW sound engineering (dialogue, room tone, spot foley, music textures), locked 90-second animatic, and pitch bible presentation to studio judges.'
     ]
@@ -161,13 +162,19 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       id: 'asmp-speculative-themes',
       domain: 'Narrative Content',
       assumption: 'School permits PG-13 dramatic themes (dystopian sci-fi, political intrigue, personal loss) within constructive boundaries.',
-      ownerVerificationNeeded: 'Confirm school guidelines on dramatic creative writing.'
+      ownerVerificationNeeded: 'Confirm school guidelines on dramatic creative writing.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     },
     {
       id: 'asmp-daw-access',
       domain: 'Technical Software',
       assumption: 'Students have access to free multi-track audio software (Audacity/GarageBand) and video timeline tools.',
-      ownerVerificationNeeded: 'Confirm computer lab software permissions for media editing.'
+      ownerVerificationNeeded: 'Confirm computer lab software permissions for media editing.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     }
   ],
   phases: [
@@ -175,7 +182,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       id: 'explore',
       title: 'Psychological Character & World Architecture',
       strap: 'Want vs Need, The Fatal Flaw & Systemic World Logic',
-      weeks: [1, 3],
+      weeks: [1, 2],
       goal: 'Construct the psychological bedrock of protagonists and foils, define operational world laws with inviolable costs, and establish the inciting incident.',
       tasks: [
         'Week 1: Map Protagonist Want (external goal) vs Need (internal growth) and Ghost/Wound.',
@@ -280,7 +287,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 4,
-          week: 3,
+          week: 2,
           title: 'Problem Identification & Inciting Incident Triangulation',
           durationMin: 50,
           learningGoal: 'Craft 3 distinct variations of the Inciting Incident and evaluate dramatic impact.',
@@ -311,7 +318,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       id: 'empathise',
       title: 'Dramatic Structure & 15-Point Beat Sheet',
       strap: 'Causality Mapping & The "Therefore / But" Narrative Engine',
-      weeks: [4, 5],
+      weeks: [3, 4],
       goal: 'Pace the macro-narrative arc using a 15-point beat sheet driven by strict cause-and-effect relationships ("Therefore / But").',
       tasks: [
         'Study narrative progressions: Plot Point 1, The Midpoint, Plot Point 2 (All Is Lost), Climax.',
@@ -333,7 +340,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 5,
-          week: 4,
+          week: 3,
           title: 'The Midpoint Shift: Reactive to Proactive',
           durationMin: 50,
           learningGoal: 'Design a structural midpoint turning point where the protagonist shifts from surviving to attacking.',
@@ -359,7 +366,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 6,
-          week: 4,
+          week: 3,
           title: 'The 15-Point Beat Sheet & Causality Matrix',
           durationMin: 50,
           learningGoal: 'Construct the comprehensive 15-point beat sheet using strict cause-and-effect connectors.',
@@ -385,7 +392,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 7,
-          week: 5,
+          week: 4,
           title: 'Story Bible Assembly & Universe Architecture',
           durationMin: 50,
           learningGoal: 'Compile character sheets, system rules, and beat sheets into an executive Creative IP Story Bible.',
@@ -411,7 +418,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 8,
-          week: 5,
+          week: 4,
           title: 'Story Bible Review Simulation & Phase 1 Gate',
           durationMin: 50,
           learningGoal: 'Defend story logic under peer review scrutiny and lock the narrative foundation.',
@@ -441,7 +448,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       id: 'define',
       title: 'The Screenplay Blueprint & Scene Formatting',
       strap: 'Industry Standard Formatting, Sluglines & Power Shifts',
-      weeks: [6, 7],
+      weeks: [5, 6],
       goal: 'Translate visual action and subtextual behavior into strict industry screenplay conventions (Scene Headings, Action, Dialogue, Power Shifts).',
       tasks: [
         'Master standard elements: Scene Headings (INT./EXT. LOCATION - DAY), Action lines (seen/heard only), Character cues, Parentheticals.',
@@ -463,7 +470,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 9,
-          week: 6,
+          week: 5,
           title: 'Screenplay Formatting: Writing Only What Can Be Seen & Heard',
           durationMin: 50,
           learningGoal: 'Format a script according to Hollywood standards and eliminate unfilmable internal exposition.',
@@ -489,7 +496,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 10,
-          week: 6,
+          week: 5,
           title: 'The Anatomy of a Scene: Executing the Power Shift',
           durationMin: 50,
           learningGoal: 'Structure every scene around a dynamic power shift between characters or environment.',
@@ -515,7 +522,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 11,
-          week: 7,
+          week: 6,
           title: 'Dialogue Mechanics: Eliminating the On-the-Nose',
           durationMin: 50,
           learningGoal: 'Eliminate on-the-nose exposition and establish distinct character verbal footprints.',
@@ -541,7 +548,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 12,
-          week: 7,
+          week: 6,
           title: '3-Scene Script Blueprint Formulation',
           durationMin: 50,
           learningGoal: 'Outline the precise 3-Scene Script to be produced: Scene 1 (Setup), Scene 2 (Rising Conflict), Scene 3 (Climax).',
@@ -572,7 +579,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       id: 'ideate',
       title: 'Script Drafting, Revision & Table Read',
       strap: 'First Draft Execution, Ruthless Polishing & Script Lock',
-      weeks: [8, 10],
+      weeks: [7, 8],
       goal: 'Draft the full 8–10 page first draft across Scenes 1, 2, and 3, polish evocative verbs, and lock the script via table-read simulation.',
       tasks: [
         'Week 8: Draft Scene 1 (visual tone, world state) and Scene 2 (rising action).',
@@ -595,7 +602,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 13,
-          week: 8,
+          week: 7,
           title: 'Drafting Scenes 1 & 2: Establishing Tone and Complication',
           durationMin: 50,
           learningGoal: 'Maintain momentum and pacing when translating an outline into raw script pages.',
@@ -621,7 +628,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 14,
-          week: 9,
+          week: 7,
           title: 'Drafting Scene 3 & The Structural Climax Resolution',
           durationMin: 50,
           learningGoal: 'Craft a satisfying structural payoff that resolves the immediate scene conflict while teasing the broader world.',
@@ -647,7 +654,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 15,
-          week: 10,
+          week: 8,
           title: 'Polishing Visceral Action Verbs',
           durationMin: 50,
           learningGoal: 'Ruthlessly edit action sequences by swapping out weak passive verbs for visceral cinematic language.',
@@ -673,7 +680,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 16,
-          week: 10,
+          week: 8,
           title: 'Table Read Simulation & Script Lock',
           durationMin: 50,
           learningGoal: 'Read the script aloud with peer voice actors to check cadence, eliminate clunky dialogue, and lock the script.',
@@ -703,14 +710,14 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       id: 'prototype',
       title: 'Cinematic Storyboarding, Audio & Animatic Assembly',
       strap: '180° Rule, Asset Manifest, Multi-Track Audio & Timed Animatic',
-      weeks: [11, 15],
+      weeks: [9, 10],
       goal: 'Translate the locked script into a 30-frame storyboard, curate technical visual assets, record clean scratch vocal tracks, and assemble a locked animatic.',
       tasks: [
         'Week 11: Master framing standards (Wide, Medium, Close-up) and camera movement; draw 30-frame minimum storyboard respecting the 180° rule.',
         'Week 12: Build Technical Asset Manifest (character expressions, backgrounds, props with clean transparency layers).',
-        'Week 13: Create Audio Cue Sheet across 4 layers (Dialogue, Atmosphere, Foley/SFX, Score).',
+        'Week 10: Create Audio Cue Sheet across 4 layers (Dialogue, Atmosphere, Foley/SFX, Score).',
         'Week 14: Record clean scratch vocal tracks and apply basic EQ/compression processing.',
-        'Week 15 Milestone: Assemble timed Production Animatic in video editor and lock the rough cut.'
+        'Week 10 Milestone: Assemble timed Production Animatic in video editor and lock the rough cut.'
       ],
       evidence: [
         '30-Frame Cinematic Storyboard sequence',
@@ -727,7 +734,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 17,
-          week: 11,
+          week: 9,
           title: 'Cinematic Framing, Camera Movement & The 180° Rule',
           durationMin: 50,
           learningGoal: 'Apply shot framing psychology (Wide, Medium, Close-up) and preserve spatial continuity via the 180° rule.',
@@ -753,7 +760,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 18,
-          week: 12,
+          week: 9,
           title: 'The Production Asset Pack & Technical Breakdown',
           durationMin: 50,
           learningGoal: 'Curate a production asset manifest with transparent character layers and environment backdrops.',
@@ -779,7 +786,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 19,
-          week: 13,
+          week: 10,
           title: 'Audio Architecture: The 4-Layer Sound Landscape',
           durationMin: 50,
           learningGoal: 'Architect an industry-standard Audio Cue Sheet mapping Dialogue, Ambiance, Foley, and Score.',
@@ -805,7 +812,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 20,
-          week: 15,
+          week: 10,
           title: 'Production Animatic Assembly & Timeline Lock',
           durationMin: 50,
           learningGoal: 'Assemble storyboard frames and scratch audio into a synchronized timeline animatic and lock the edit.',
@@ -835,12 +842,12 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       id: 'test',
       title: 'Sound Design, Post-Production & Mixing Mastery',
       strap: 'Digital Camera Moves, Foley Ducking & Master Color Grading',
-      weeks: [16, 18],
+      weeks: [11, 11],
       goal: 'Integrate high-fidelity assets, animate digital camera moves, build immersive multi-layer foley landscapes with audio ducking, and master the final mix.',
       tasks: [
         'Week 16: Picture Lock: Swap storyboard frames for final high-fidelity art assets and program camera pans/tilts/shakes.',
         'Week 17: Multi-Layer Sound Mixing: Layer ambient textures, spot foley, and score with dialogue ducking.',
-        'Week 18 Milestone: Final audio-visual mix-down, frequency balancing, color grading overlays, subtitles, and export master file.'
+        'Week 11 Milestone: Final audio-visual mix-down, frequency balancing, color grading overlays, subtitles, and export master file.'
       ],
       evidence: [
         'Picture Lock editing timeline screenshot',
@@ -851,12 +858,12 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         'How do I calculate sidechain compression (ducking) in my audio editor so the music lowers by 6 dB whenever dialogue plays?',
         'Recommend color grading lookup tables (LUTs) or tint palettes to evoke a cold, retro-futuristic dystopia.'
       ],
-      competencies: ['ec-08', 'ctps-13', 'sdl-10'],
+      competencies: ['ec-08', 'ctps-12', 'sdl-10'],
       stretchCompetencies: ['lc-05'],
       sessions: [
         {
           sessionNumber: 21,
-          week: 16,
+          week: 11,
           title: 'High-Fidelity Asset Integration & Digital Camera Movement',
           durationMin: 50,
           learningGoal: 'Bring static 2D assets to life using software timeline keyframing (pans, tilts, camera shakes, depth-of-field).',
@@ -882,7 +889,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 22,
-          week: 18,
+          week: 11,
           title: 'Multi-Track Foley Mixing, Ducking & Master Color Grade',
           durationMin: 50,
           learningGoal: 'Master the audio mix using dialogue ducking and unify visual tone with a cohesive color grading wash.',
@@ -901,7 +908,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload the Master Render of the micro-short film/pitch preview.',
-            targetCompetencies: ['ctps-13', 'ec-08']
+            targetCompetencies: ['ctps-12', 'ec-08']
           },
           reflectionPrompt: 'When you listen with your eyes closed, does the audio landscape tell a complete story on its own?',
           teacherTips: 'Check mix levels on both headphones and cheap phone speakers; dialogue must be intelligible everywhere.'
@@ -912,10 +919,10 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       id: 'share',
       title: 'Grand Showcase & Professional IP Pitch Simulation',
       strap: '5-Minute IP Pitch, Case Study Documentation & Industry Showcase',
-      weeks: [19, 20],
+      weeks: [12, 12],
       goal: 'Compile a professional online case study portfolio, rehearse a 5-minute verbal IP pitch to studio mentors, and celebrate at the Grand Showcase.',
       tasks: [
-        'Week 19: Compile Case Study: initial character sketches, evolution files, script excerpts, and storyboard-to-screen comparisons.',
+        'Week 12: Compile Case Study: initial character sketches, evolution files, script excerpts, and storyboard-to-screen comparisons.',
         'Week 20: Organize 5-minute verbal pitch: Core Concept, Character Psychology, World Rules, and Screening the Preview clip.',
         'Week 20 Milestone: Grand Showcase presentation to mentors, peers, and industry guests.'
       ],
@@ -933,7 +940,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
       sessions: [
         {
           sessionNumber: 23,
-          week: 19,
+          week: 12,
           title: 'Case Study Documentation: Revealing the Creative Pipeline',
           durationMin: 50,
           learningGoal: 'Structure a professional case study documenting creative choices, technical hurdles, and iterative growth.',
@@ -959,7 +966,7 @@ export const STORYTELLING_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 24,
-          week: 20,
+          week: 12,
           title: 'The Grand Showcase & Studio Pitch Simulation',
           durationMin: 50,
           learningGoal: 'Deliver a compelling 5-minute verbal IP pitch and screen the final cinematic preview to an audience of mentors.',

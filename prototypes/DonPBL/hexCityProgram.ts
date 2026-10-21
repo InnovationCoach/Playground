@@ -12,7 +12,7 @@
  * - Gamification Framework (Resilience Score, Citizen Happiness, Crisis Badges)
  */
 
-import { PblProgram } from './programData';
+import type { PblProgram } from './programData';
 
 export interface HexCityRole {
   id: string;
@@ -247,21 +247,27 @@ export const HEX_CITY_PROGRAM: PblProgram = {
       id: 'asmp-scale-materials',
       domain: 'Model Fabrication Materials',
       assumption: 'Classroom has access to 200 mm dense light foam slabs, hot-wire cutters, and 3D printers for modular connectors.',
-      ownerVerificationNeeded: 'Verify availability of 200mm foam blocks or if lamination of 50mm foam sheets is required.'
+      ownerVerificationNeeded: 'Verify availability of 200mm foam blocks or if lamination of 50mm foam sheets is required.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     },
     {
       id: 'asmp-site-location',
       domain: 'Geographic Deployment',
       assumption: 'Simulated location is either Chao Phraya River Delta (shallow estuary) or Chonburi (offshore Gulf of Thailand).',
-      ownerVerificationNeeded: 'Confirm if school wants teams to evaluate both sites or focus on one regional municipality.'
+      ownerVerificationNeeded: 'Confirm if school wants teams to evaluate both sites or focus on one regional municipality.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     }
   ],
   phases: [
     {
       id: 'explore',
       title: 'Explore',
-      strap: 'Threat Assessment & Geometric Blueprint (Weeks 1–3)',
-      weeks: [1, 3],
+      strap: 'Threat Assessment & Geometric Blueprint (Weeks 1–2)',
+      weeks: [1, 2],
       goal: 'Investigate sea-level rise across the Chao Phraya Delta, calculate 1:2500 scale hexagon geometry, cut the 200 mm buoyant foam hull, and design 3D printed modular inter-hex connectors.',
       tasks: [
         'Study flood inundation maps of Bangkok, Chao Phraya Delta, and the Gulf of Thailand.',
@@ -366,7 +372,7 @@ export const HEX_CITY_PROGRAM: PblProgram = {
         },
         {
           sessionNumber: 4,
-          week: 3,
+          week: 2,
           title: 'Ocean Mooring, Anchor Lines & Deck Zoning',
           durationMin: 50,
           learningGoal: 'Design catenary anchor cable ports and map deck zones using 2 mm black foam cutouts.',

@@ -17,7 +17,8 @@ import {
   TrendingUp,
   Gauge
 } from 'lucide-react';
-import { BIOMIMETIC_TRACKS, BiomimeticTrack } from '../pbl';
+import { BIOMIMETIC_TRACKS } from '../pbl';
+import type { BiomimeticTrack } from '../pbl';
 
 interface BiomechanicsSimulatorProps {
   isOpen: boolean;

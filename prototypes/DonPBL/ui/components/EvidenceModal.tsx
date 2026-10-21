@@ -11,12 +11,14 @@ import {
   Check 
 } from 'lucide-react';
 import { 
-  EvidenceItem, 
   CORE_COMPETENCIES, 
   COMPETENCY_DOMAINS, 
   safeLink, 
-  validateAndAddEvidence, 
-  StudentProject 
+  validateAndAddEvidence
+} from '../pbl';
+import type {
+  EvidenceItem,
+  StudentProject
 } from '../pbl';
 
 interface EvidenceModalProps {

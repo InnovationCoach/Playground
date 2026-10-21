@@ -1,35 +1,27 @@
 import React, { useState } from 'react';
-import { 
-  Rocket, 
-  FlaskConical, 
-  NotebookPen, 
-  Award, 
-  CheckCircle2, 
-  Circle, 
-  Bot, 
-  Cpu, 
-  FileCode, 
-  FileText, 
-  ExternalLink, 
-  Tag, 
-  Plus, 
-  ChevronRight, 
-  Sparkles, 
-  AlertCircle,
-  HelpCircle,
-  Layers,
+import {
+  Rocket,
+  FlaskConical,
+  NotebookPen,
+  Award,
+  CheckCircle2,
+  Circle,
+  Bot,
+  ExternalLink,
+  Plus,
   Clock,
-  ArrowRight
+  Save
 } from 'lucide-react';
-import { 
-  StudentProject, 
-  SAMPLE_PROGRAM, 
+import {
+  SAMPLE_PROGRAM,
   PROGRAM_REGISTRY,
-  getPhaseProgress, 
-  evaluateReadiness, 
-  EvidenceItem, 
-  CORE_COMPETENCIES,
-  safeLink
+  getPhaseProgress,
+  evaluateReadiness,
+  CORE_COMPETENCIES
+} from '../pbl';
+import type {
+  StudentProject,
+  PhaseId
 } from '../pbl';
 
 interface StudentViewProps {
@@ -46,18 +38,22 @@ export const StudentView: React.FC<StudentViewProps> = ({
   activeProgramId = 'ecocool-smart-garden-2026',
   onUpdateProject,
   onOpenCopilot,
-  onOpenHardware,
   onOpenAddEvidence
 }) => {
   const [activeTab, setActiveTab] = useState<'roadmap' | 'portfolio' | 'project-def' | 'readiness'>('roadmap');
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>(project.currentPhase || 'explore');
   const [expandedSession, setExpandedSession] = useState<number | null>(null);
   const [portfolioKindFilter, setPortfolioKindFilter] = useState<string>('all');
+  const [savedNotice, setSavedNotice] = useState<string | null>(null);
 
   const currentProgram = PROGRAM_REGISTRY[activeProgramId] || SAMPLE_PROGRAM;
   const readiness = evaluateReadiness(project);
   const activePhaseDef = currentProgram.phases.find((p) => p.id === selectedPhaseId) || currentProgram.phases[0];
-  const activePhaseProgress = getPhaseProgress(project, selectedPhaseId);
+
+  const triggerSavedNotice = (label: string) => {
+    setSavedNotice(label);
+    setTimeout(() => setSavedNotice(null), 2500);
+  };
 
   // Toggle task checkbox
   const handleToggleTask = (taskIndex: number) => {
@@ -67,7 +63,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
       ? currentTasks.filter((i) => i !== taskIndex)
       : [...currentTasks, taskIndex];
 
-    const updated = {
+    const updated: StudentProject = {
       ...project,
       tasksDone: {
         ...project.tasksDone,
@@ -75,6 +71,26 @@ export const StudentView: React.FC<StudentViewProps> = ({
       }
     };
     onUpdateProject(updated);
+    triggerSavedNotice('Task progress saved to local store');
+  };
+
+  const handleSetCurrentPhase = (phaseId: PhaseId) => {
+    setSelectedPhaseId(phaseId);
+    onUpdateProject({
+      ...project,
+      currentPhase: phaseId
+    });
+    triggerSavedNotice(`Active phase updated to ${phaseId.toUpperCase()}`);
+  };
+
+  const handleUpdateProblemField = (field: keyof StudentProject['problem'], value: string) => {
+    onUpdateProject({
+      ...project,
+      problem: {
+        ...project.problem,
+        [field]: value
+      }
+    });
   };
 
   // Filter evidence
@@ -89,15 +105,23 @@ export const StudentView: React.FC<StudentViewProps> = ({
       <div className="bg-white rounded-xl border border-stone-200 p-5 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs text-stone-500 mb-1">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500 mb-1">
               <span>Team: <strong className="text-stone-800">{project.teamName}</strong></span>
               <span aria-hidden="true">·</span>
               <span>{project.members.join(', ')}</span>
               <span aria-hidden="true">·</span>
               <span>{project.gradeLevel}</span>
+              {savedNotice && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    ✓ {savedNotice}
+                  </span>
+                </>
+              )}
             </div>
             <h2 className="text-base font-bold text-stone-900">
-              Driving Question: {project.drivingQuestion}
+              Driving Question: {currentProgram.drivingQuestion || project.drivingQuestion}
             </h2>
           </div>
 
@@ -110,9 +134,11 @@ export const StudentView: React.FC<StudentViewProps> = ({
               </div>
             </div>
             <div className="w-12 h-12 relative flex items-center justify-center">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${
-                readiness.isReady ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-              }`}>
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${
+                  readiness.isReady ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                }`}
+              >
                 {readiness.percent}%
               </div>
             </div>
@@ -122,15 +148,19 @@ export const StudentView: React.FC<StudentViewProps> = ({
         {/* 7-Phase Linear Roadmap Strip */}
         <div className="mt-5 pt-4 border-t border-stone-100">
           <div className="flex justify-between items-center text-xs text-stone-500 mb-2">
-            <span className="font-semibold text-stone-700">Design Thinking Journey (12 Weeks)</span>
-            <span>Current Focus: <strong className="text-emerald-700 uppercase font-mono">{project.currentPhase}</strong></span>
+            <span className="font-semibold text-stone-700">
+              Design Thinking Journey ({currentProgram.durationWeeks} Weeks • {currentProgram.totalSessions} Sessions)
+            </span>
+            <span>
+              Current Focus:{' '}
+              <strong className="text-emerald-700 uppercase font-mono">{project.currentPhase}</strong>
+            </span>
           </div>
 
           <div className="grid grid-cols-7 gap-1.5">
-            {SAMPLE_PROGRAM.phases.map((ph, idx) => {
-              const prog = getPhaseProgress(project, ph.id);
+            {currentProgram.phases.map((ph, idx) => {
+              const prog = getPhaseProgress(project, ph.id, currentProgram);
               const isSelected = selectedPhaseId === ph.id;
-              const isCurrent = project.currentPhase === ph.id;
 
               return (
                 <button
@@ -147,7 +177,9 @@ export const StudentView: React.FC<StudentViewProps> = ({
                     {prog.isPhaseReady ? (
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
-                      <span className="text-[10px] text-stone-400 font-mono">wk {ph.weeks[0]}-{ph.weeks[1]}</span>
+                      <span className="text-[10px] text-stone-400 font-mono">
+                        wk {ph.weeks[0]}-{ph.weeks[1]}
+                      </span>
                     )}
                   </div>
                   <div className="text-xs font-semibold text-stone-900 truncate">{ph.title}</div>
@@ -176,7 +208,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
           }`}
         >
           <Rocket className="w-3.5 h-3.5 text-emerald-700" />
-          Phase Plan & 24 Sessions
+          Phase Plan & {currentProgram.totalSessions} Sessions
         </button>
         <button
           onClick={() => setActiveTab('portfolio')}
@@ -208,7 +240,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
       </div>
 
       {/* TAB CONTENT 1: ROADMAP & SESSIONS */}
-      {activeTab === 'roadmap' && (
+      {activeTab === 'roadmap' && activePhaseDef && (
         <div className="space-y-6">
           {/* Active Phase Banner */}
           <div className="bg-white rounded-xl border border-stone-200 p-6 space-y-4 shadow-xs">
@@ -228,6 +260,14 @@ export const StudentView: React.FC<StudentViewProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                {project.currentPhase !== activePhaseDef.id && (
+                  <button
+                    onClick={() => handleSetCurrentPhase(activePhaseDef.id as PhaseId)}
+                    className="px-3 py-1.5 bg-stone-100 text-stone-700 hover:bg-stone-200 rounded-md text-xs font-medium transition-colors"
+                  >
+                    Set as Active Phase
+                  </button>
+                )}
                 <button
                   onClick={() => onOpenAddEvidence(activePhaseDef.id)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-md text-xs font-medium hover:bg-emerald-800 transition-colors shadow-2xs"
@@ -243,7 +283,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
               <div className="text-xs font-semibold text-stone-800 mb-2.5 flex items-center justify-between">
                 <span>Phase Deliverable Tasks</span>
                 <span className="text-stone-500 font-normal">
-                  Click to check off completed tasks
+                  Click to check off completed tasks (persisted in local store)
                 </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -285,14 +325,14 @@ export const StudentView: React.FC<StudentViewProps> = ({
                     onClick={() => onOpenCopilot(promptText)}
                     className="text-left text-xs bg-stone-50 hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 border border-stone-200 hover:border-emerald-300 px-3 py-1.5 rounded-md transition-colors"
                   >
-                    "{promptText}"
+                    &ldquo;{promptText}&rdquo;
                   </button>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* 24-Session Curriculum Breakdown for this Phase */}
+          {/* Session-by-Session Curriculum Breakdown for this Phase */}
           <div className="bg-white rounded-xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <div className="flex items-center justify-between">
               <div>
@@ -301,7 +341,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
                   Session-by-Session Curriculum Plan ({activePhaseDef.sessions.length} Sessions)
                 </h4>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Step-by-step 50-minute workshop activities with learner choice branching and reflection prompts.
+                  Step-by-step workshop activities with learner choice branching and reflection prompts.
                 </p>
               </div>
             </div>
@@ -337,7 +377,6 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
                     {isExpanded && (
                       <div className="p-4 border-t border-stone-200 bg-stone-50 text-xs space-y-4">
-                        {/* Learning Goal */}
                         <div className="bg-white p-3 rounded border border-stone-200">
                           <span className="font-semibold text-stone-900 block mb-1">
                             🎯 Session Learning Goal:
@@ -345,7 +384,6 @@ export const StudentView: React.FC<StudentViewProps> = ({
                           <p className="text-stone-700 leading-relaxed">{session.learningGoal}</p>
                         </div>
 
-                        {/* Activities */}
                         <div>
                           <span className="font-semibold text-stone-900 block mb-1.5">
                             📋 Step-by-Step Activities:
@@ -357,7 +395,6 @@ export const StudentView: React.FC<StudentViewProps> = ({
                           </ul>
                         </div>
 
-                        {/* Learner Choice */}
                         <div className="bg-emerald-50/80 p-3 rounded border border-emerald-200">
                           <span className="font-semibold text-emerald-950 block mb-1">
                             💡 Learner Choice Pathway:
@@ -376,7 +413,6 @@ export const StudentView: React.FC<StudentViewProps> = ({
                           </div>
                         </div>
 
-                        {/* Evidence to Collect & Reflection */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="bg-white p-3 rounded border border-stone-200">
                             <span className="font-semibold text-stone-900 block mb-1">
@@ -395,7 +431,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
                             <span className="font-semibold text-stone-900 block mb-1">
                               💭 Reflection Prompt:
                             </span>
-                            <p className="text-stone-700 italic">"{session.reflectionPrompt}"</p>
+                            <p className="text-stone-700 italic">&ldquo;{session.reflectionPrompt}&rdquo;</p>
                             <span className="text-[11px] text-stone-400 mt-2 block">
                               Teacher Tip: {session.teacherTips}
                             </span>
@@ -420,7 +456,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
                 Evidence Portfolio ({filteredEvidence.length} Artifacts)
               </h3>
               <p className="text-xs text-stone-500">
-                All evidence tagged to WeLearn competencies and verifiable in the final showcase.
+                All evidence tagged to WeLearn competencies and persisted in the local store per (uid, programId).
               </p>
             </div>
 
@@ -486,12 +522,11 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
                     <h4 className="text-sm font-bold text-stone-900 leading-snug">{item.title}</h4>
 
-                    {/* AI Log Provenance view */}
                     {item.kind === 'ai' && item.ai ? (
                       <div className="bg-amber-50/70 p-3 rounded-lg border border-amber-200 text-xs space-y-2">
                         <div>
                           <span className="font-semibold text-amber-950 block text-[11px]">Prompt Asked:</span>
-                          <p className="text-stone-700 italic">"{item.ai.asked}"</p>
+                          <p className="text-stone-700 italic">&ldquo;{item.ai.asked}&rdquo;</p>
                         </div>
                         <div>
                           <span className="font-semibold text-amber-950 block text-[11px]">What Team Kept / Rejected:</span>
@@ -508,7 +543,6 @@ export const StudentView: React.FC<StudentViewProps> = ({
                       </p>
                     )}
 
-                    {/* Metrics preview */}
                     {item.metrics && (
                       <div className="flex flex-wrap gap-2 pt-1">
                         {item.metrics.map((m, idx) => (
@@ -556,48 +590,132 @@ export const StudentView: React.FC<StudentViewProps> = ({
         </div>
       )}
 
-      {/* TAB CONTENT 3: PROJECT DEF & IMPACT */}
+      {/* TAB CONTENT 3: PROJECT DEF & IMPACT (Interactive & Persisted) */}
       {activeTab === 'project-def' && (
         <div className="bg-white rounded-xl border border-stone-200 p-6 space-y-6 shadow-xs max-w-4xl">
-          <div>
-            <h3 className="text-base font-bold text-stone-900">
-              Project Definition & Measurable Criteria
-            </h3>
-            <p className="text-xs text-stone-500">
-              In PBL Studio, projects must solve a real problem for people, the environment, or both.
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-stone-900">
+                Project Definition & Measurable Criteria
+              </h3>
+              <p className="text-xs text-stone-500">
+                Edit your team&apos;s problem framing, impact target, code language, and showcase format. Changes save automatically to the local store.
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+              <Save className="w-3.5 h-3.5" /> Auto-Saved
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 space-y-2">
-              <span className="font-bold text-stone-900 block">How Might We (HMW) Question</span>
-              <p className="text-stone-700 leading-relaxed font-medium">
-                {project.problem.hmw || 'Not yet defined.'}
-              </p>
+              <label className="font-bold text-stone-900 block">How Might We (HMW) Question</label>
+              <textarea
+                rows={3}
+                value={project.problem.hmw}
+                onChange={(e) => handleUpdateProblemField('hmw', e.target.value)}
+                placeholder="How might we..."
+                className="w-full p-2 bg-white border border-stone-300 rounded text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              />
             </div>
 
             <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 space-y-2">
-              <span className="font-bold text-stone-900 block">Who Benefits (Human Stakeholder)</span>
-              <p className="text-stone-700 leading-relaxed">
-                {project.problem.who || 'Not yet defined.'}
-              </p>
+              <label className="font-bold text-stone-900 block">Who Benefits (Stakeholder)</label>
+              <textarea
+                rows={3}
+                value={project.problem.who}
+                onChange={(e) => handleUpdateProblemField('who', e.target.value)}
+                placeholder="Who experiences this problem..."
+                className="w-full p-2 bg-white border border-stone-300 rounded text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              />
             </div>
 
             <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 space-y-2">
-              <span className="font-bold text-stone-900 block">Engineering Criteria & Constraints</span>
-              <div className="text-stone-700 space-y-1">
-                <div><strong>Criteria:</strong> {project.problem.criteria || 'None set.'}</div>
-                <div><strong>Constraints:</strong> {project.problem.constraints || 'None set.'}</div>
-              </div>
+              <label className="font-bold text-stone-900 block">Engineering Criteria</label>
+              <textarea
+                rows={2}
+                value={project.problem.criteria}
+                onChange={(e) => handleUpdateProblemField('criteria', e.target.value)}
+                placeholder="Quantitative success criteria..."
+                className="w-full p-2 bg-white border border-stone-300 rounded text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              />
+              <label className="font-bold text-stone-900 block pt-1">Constraints</label>
+              <textarea
+                rows={2}
+                value={project.problem.constraints}
+                onChange={(e) => handleUpdateProblemField('constraints', e.target.value)}
+                placeholder="Budget, voltage, or material constraints..."
+                className="w-full p-2 bg-white border border-stone-300 rounded text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              />
             </div>
 
             <div className="bg-emerald-50/70 p-4 rounded-lg border border-emerald-200 space-y-2">
-              <span className="font-bold text-emerald-950 block">Measurable Impact Metric</span>
-              <p className="text-emerald-900 font-medium leading-relaxed">
-                {project.problem.impactMeasure || 'None specified.'}
-              </p>
-              <div className="text-[11px] text-stone-500">
-                Target Impact: <strong className="capitalize text-emerald-800">{project.impact || 'Unassigned'}</strong>
+              <label className="font-bold text-emerald-950 block">Measurable Impact Metric</label>
+              <textarea
+                rows={2}
+                value={project.problem.impactMeasure}
+                onChange={(e) => handleUpdateProblemField('impactMeasure', e.target.value)}
+                placeholder="How will you measure real-world impact..."
+                className="w-full p-2 bg-white border border-emerald-300 rounded text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              />
+
+              <div className="grid grid-cols-3 gap-2 pt-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-stone-700 mb-1">Impact Target</label>
+                  <select
+                    value={project.impact || ''}
+                    onChange={(e) =>
+                      onUpdateProject({
+                        ...project,
+                        impact: (e.target.value || null) as StudentProject['impact']
+                      })
+                    }
+                    className="w-full p-1.5 bg-white border border-stone-300 rounded text-xs"
+                  >
+                    <option value="">Unassigned</option>
+                    <option value="people">People</option>
+                    <option value="environment">Environment</option>
+                    <option value="both">Both</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-stone-700 mb-1">Code Language</label>
+                  <select
+                    value={project.codeLanguage}
+                    onChange={(e) =>
+                      onUpdateProject({
+                        ...project,
+                        codeLanguage: e.target.value as StudentProject['codeLanguage']
+                      })
+                    }
+                    className="w-full p-1.5 bg-white border border-stone-300 rounded text-xs"
+                  >
+                    <option value="micropython">MicroPython</option>
+                    <option value="makecode">MakeCode</option>
+                    <option value="python">Python</option>
+                    <option value="arduino">Arduino C++</option>
+                    <option value="lego">LEGO Spike</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-stone-700 mb-1">Showcase Format</label>
+                  <select
+                    value={project.finalFormat || ''}
+                    onChange={(e) =>
+                      onUpdateProject({
+                        ...project,
+                        finalFormat: (e.target.value || null) as StudentProject['finalFormat']
+                      })
+                    }
+                    className="w-full p-1.5 bg-white border border-stone-300 rounded text-xs"
+                  >
+                    <option value="">Unassigned</option>
+                    <option value="showcase">Interactive Stand</option>
+                    <option value="presentation">Stage Pitch</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -664,10 +782,12 @@ export const StudentView: React.FC<StudentViewProps> = ({
                 </div>
 
                 <div className="shrink-0 text-right">
-                  <span className={`font-mono text-[11px] font-semibold ${
-                    check.ok ? 'text-emerald-700' : 'text-stone-400'
-                  }`}>
-                    {check.ok ? 'VERIFIED' : 'PENDING'}
+                  <span
+                    className={`font-mono text-[11px] font-semibold ${
+                      check.ok ? 'text-emerald-700' : 'text-stone-400'
+                    }`}
+                  >
+                    {check.ok ? 'PASSED' : 'PENDING'}
                   </span>
                   {check.requiredPhase && (
                     <span className="block text-[10px] text-stone-400 uppercase font-mono">

@@ -1,45 +1,52 @@
 import React, { useState } from 'react';
-import { 
-  Users, 
-  Award, 
-  BookOpen, 
-  FlaskConical, 
-  CheckCircle2, 
-  Star, 
-  MessageSquare, 
-  ShieldAlert, 
-  Sparkles, 
+import {
+  Users,
+  Award,
+  BookOpen,
+  FlaskConical,
+  MessageSquare,
+  ShieldAlert,
+  Sparkles,
   ExternalLink,
-  ChevronRight,
-  UserCheck
+  UserCheck,
+  CheckCircle2
 } from 'lucide-react';
-import { 
-  StudentProject, 
-  MOCK_COHORT, 
-  MOCK_TEACHER, 
-  SAMPLE_PROGRAM, 
-  COMPETENCY_DOMAINS, 
+import {
+  MOCK_TEACHER,
+  SAMPLE_PROGRAM,
+  PROGRAM_REGISTRY,
+  COMPETENCY_DOMAINS,
   CORE_COMPETENCIES,
   NGSS_ALIGNMENT_ITEMS,
-  NGSS_RUBRIC_LEVELS,
   evaluateReadiness,
   LEARNER_AGE_CONFIG
 } from '../pbl';
+import type {
+  StudentProject,
+  CoachFeedback
+} from '../pbl';
 
 interface TeacherViewProps {
+  cohort?: StudentProject[];
   currentProject: StudentProject;
+  activeProgramId?: string;
+  coachFeedback?: CoachFeedback[];
   onSelectProject: (teamId: string) => void;
   onUpdateFeedback: (feedbackNote: string, scores: Record<string, number>) => void;
 }
 
 export const TeacherView: React.FC<TeacherViewProps> = ({
+  cohort = [],
   currentProject,
+  activeProgramId = 'ecocool-smart-garden-2026',
+  coachFeedback = [],
   onSelectProject,
   onUpdateFeedback
 }) => {
   const [activeTab, setActiveTab] = useState<'cohort' | 'competencies' | 'guide' | 'ngss'>('cohort');
   const [selectedDomain, setSelectedDomain] = useState<string>('ctps');
   const [feedbackText, setFeedbackText] = useState<string>('');
+  const [savedBanner, setSavedBanner] = useState<boolean>(false);
   const [savedScores, setSavedScores] = useState<Record<string, number>>({
     'sdl-04': 4,
     'ctps-01': 4,
@@ -47,6 +54,9 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
     'ctps-12': 4,
     'ct-05': 4
   });
+
+  const currentProgram = PROGRAM_REGISTRY[activeProgramId] || SAMPLE_PROGRAM;
+  const ageConfirmed = LEARNER_AGE_CONFIG.confirmation.status === 'confirmed';
 
   const handleScoreChange = (competencyId: string, score: number) => {
     setSavedScores((prev) => ({
@@ -56,7 +66,11 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
   };
 
   const handleSaveAssessment = () => {
-    onUpdateFeedback(feedbackText, savedScores);
+    const note = feedbackText.trim() || 'Recorded formative competency rubric evaluation.';
+    onUpdateFeedback(note, savedScores);
+    setFeedbackText('');
+    setSavedBanner(true);
+    setTimeout(() => setSavedBanner(false), 3000);
   };
 
   return (
@@ -72,7 +86,7 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
             <span>{MOCK_TEACHER.school}</span>
           </div>
           <h2 className="text-lg font-bold text-stone-900">
-            PBL Facilitator & Assessment Dashboard
+            PBL Facilitator & Assessment Dashboard ({currentProgram.title})
           </h2>
         </div>
 
@@ -80,7 +94,7 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
           <div className="bg-stone-50 px-3 py-2 rounded-lg border border-stone-200">
             <span className="text-stone-500 block">Active Cohort</span>
             <span className="font-bold text-stone-900 font-mono text-sm">
-              {MOCK_COHORT.length} Teams ({MOCK_TEACHER.cohortSize} Learners)
+              {cohort.length} Teams ({MOCK_TEACHER.cohortSize} Learners)
             </span>
           </div>
           <div className="bg-stone-50 px-3 py-2 rounded-lg border border-stone-200">
@@ -110,7 +124,7 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
           }`}
         >
           <Award className="w-3.5 h-3.5 text-emerald-700" />
-          Competency Assessment Matrix (85 Competencies)
+          Competency Assessment Matrix ({CORE_COMPETENCIES.length} Competencies)
         </button>
         <button
           onClick={() => setActiveTab('guide')}
@@ -139,7 +153,7 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
           <div className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-xs">
             <div className="p-4 border-b border-stone-100 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-stone-900">Term 3 Cohort Teams</h3>
+                <h3 className="text-sm font-bold text-stone-900">Term 3 Cohort Teams (Synthetic Fixtures)</h3>
                 <p className="text-xs text-stone-500">
                   Select a team to inspect evidence portfolio artifacts and AI prompt provenance.
                 </p>
@@ -159,7 +173,7 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100 text-stone-700">
-                  {MOCK_COHORT.map((team) => {
+                  {cohort.map((team) => {
                     const ready = evaluateReadiness(team);
                     const isSelected = team.id === currentProject.id;
 
@@ -260,7 +274,7 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
                         </div>
                         <div>
                           <strong className="text-stone-800">Prompt Asked:</strong>{' '}
-                          <span className="text-stone-700 italic">"{ev.ai.asked}"</span>
+                          <span className="text-stone-700 italic">&ldquo;{ev.ai.asked}&rdquo;</span>
                         </div>
                         <div>
                           <strong className="text-stone-800">What Team Kept / Rejected:</strong>{' '}
@@ -307,10 +321,10 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
           <div className="bg-white rounded-xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-stone-900">
-                School Competency Assessment Framework (WeLearn Academy)
+                School Competency Assessment Framework (WeLearn Academy — {CORE_COMPETENCIES.length} Competencies)
               </h3>
               <p className="text-xs text-stone-500">
-                Score learner evidence across 7 domains on a 4-level rubric: Emerging (1), Developing (2), Proficient (3), Extending (4).
+                Score learner evidence across 7 domains on a 4-level rubric: Emerging (1), Developing (2), Proficient (3), Extending (4). Coach feedback is stored separately from the student&apos;s project document.
               </p>
             </div>
 
@@ -373,7 +387,7 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
             </div>
 
             {/* Formative Feedback Textarea */}
-            <div className="pt-4 border-t border-stone-200 space-y-2">
+            <div className="pt-4 border-t border-stone-200 space-y-3">
               <label className="block text-xs font-semibold text-stone-800">
                 Formative Feedback for {currentProject.teamName}:
               </label>
@@ -384,12 +398,52 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
                 onChange={(e) => setFeedbackText(e.target.value)}
                 className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
               />
-              <button
-                onClick={handleSaveAssessment}
-                className="px-4 py-2 bg-emerald-700 text-white rounded-md text-xs font-semibold hover:bg-emerald-800 transition-colors shadow-2xs"
-              >
-                Save Competency Scores & Feedback
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleSaveAssessment}
+                  className="px-4 py-2 bg-emerald-700 text-white rounded-md text-xs font-semibold hover:bg-emerald-800 transition-colors shadow-2xs"
+                >
+                  Save Competency Scores & Feedback
+                </button>
+                {savedBanner && (
+                  <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" /> Saved to separate coach feedback store!
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Saved Coach Feedback History */}
+            <div className="pt-4 border-t border-stone-200 space-y-2">
+              <h4 className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5 text-emerald-700" />
+                Saved Coach Feedback Log ({coachFeedback.length})
+              </h4>
+              {coachFeedback.length === 0 ? (
+                <p className="text-xs text-stone-400">No coach feedback recorded for this team yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {coachFeedback.map((fb, idx) => (
+                    <div key={idx} className="p-3 bg-stone-50 border border-stone-200 rounded-lg text-xs space-y-1.5">
+                      <div className="flex items-center justify-between text-stone-500">
+                        <span className="font-semibold text-stone-900">{fb.coachName}</span>
+                        <span className="font-mono text-[11px]">{fb.date}</span>
+                      </div>
+                      <p className="text-stone-700">{fb.note}</p>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {Object.entries(fb.competencyScores).map(([cid, score]) => (
+                          <span
+                            key={cid}
+                            className="font-mono text-[10px] bg-emerald-50 text-emerald-900 border border-emerald-200 px-1.5 py-0.5 rounded"
+                          >
+                            {cid}: {score}/4
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -400,17 +454,17 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
         <div className="space-y-6 max-w-4xl">
           <div className="bg-white rounded-xl border border-stone-200 p-6 space-y-4 shadow-xs text-xs">
             <h3 className="text-sm font-bold text-stone-900">
-              Facilitator Guidance & Laboratory Safety Protocols
+              Facilitator Guidance & Laboratory Safety Protocols ({currentProgram.title})
             </h3>
 
             {/* Safety Protocol */}
             <div className="bg-rose-50/70 p-4 rounded-lg border border-rose-200 space-y-2">
               <div className="font-semibold text-rose-950 flex items-center gap-1.5">
                 <ShieldAlert className="w-4 h-4 text-rose-700" />
-                Laboratory Safety Protocols (Strict Classroom Mandate)
+                Laboratory & Safeguarding Protocols (Strict Classroom Mandate)
               </div>
               <ul className="list-disc list-inside space-y-1 text-stone-700">
-                {SAMPLE_PROGRAM.teacherGuidance.safetyProtocol.map((item, i) => (
+                {currentProgram.teacherGuidance.safetyProtocol.map((item, i) => (
                   <li key={i}>{item}</li>
                 ))}
               </ul>
@@ -422,7 +476,7 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
                 Pedagogical Scaffolding & Calibration Instructions:
               </span>
               <ul className="list-disc list-inside space-y-1 text-stone-700">
-                {SAMPLE_PROGRAM.teacherGuidance.pedagogicalScaffolding.map((item, i) => (
+                {currentProgram.teacherGuidance.pedagogicalScaffolding.map((item, i) => (
                   <li key={i}>{item}</li>
                 ))}
               </ul>
@@ -435,12 +489,12 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
                   <UserCheck className="w-4 h-4 text-blue-700" />
                   Multi-Tiered Age Tracks: {LEARNER_AGE_CONFIG.span}
                 </span>
-                <span className="text-[10px] uppercase font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded border border-blue-300">
-                  Confirmed by Don
+                <span className="text-[10px] uppercase font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                  {ageConfirmed ? 'Confirmed' : 'Needs Owner Confirmation'}
                 </span>
               </div>
               <p className="text-stone-600 text-xs leading-relaxed">
-                Curriculum, hardware complexity, and code environments are differentiated across three age cohorts:
+                Curriculum, hardware complexity, and code environments are differentiated across three provisional age cohorts:
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
@@ -448,12 +502,12 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
                   <div key={track.tierId} className="bg-white p-3 rounded-md border border-blue-200 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-stone-900 text-xs">{track.name}</span>
-                      <span className="text-[10px] font-mono bg-blue-50 text-blue-800 font-semibold px-1.5 py-0.2 rounded">
+                      <span className="text-[10px] font-mono bg-blue-50 text-blue-800 font-semibold px-1.5 py-0.5 rounded">
                         {track.ageBand}
                       </span>
                     </div>
                     <div className="text-[11px] text-stone-500 font-medium">{track.gradeLevels}</div>
-                    
+
                     <div className="space-y-1 text-[11px]">
                       <div>
                         <strong className="text-stone-800">Scaffolding:</strong>{' '}
@@ -490,7 +544,7 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
                 Cohort Differentiation Notes:
               </span>
               <ul className="list-disc list-inside space-y-1.5 text-stone-700 text-xs">
-                {SAMPLE_PROGRAM.teacherGuidance.differentiationNotes.map((note, i) => (
+                {currentProgram.teacherGuidance.differentiationNotes.map((note, i) => (
                   <li key={i}>{note}</li>
                 ))}
               </ul>
@@ -502,7 +556,7 @@ export const TeacherView: React.FC<TeacherViewProps> = ({
                 WeLearn AI Ethics Principles:
               </span>
               <ul className="list-disc list-inside space-y-1 text-stone-700">
-                {SAMPLE_PROGRAM.teacherGuidance.aiEthicsRules.map((item, i) => (
+                {currentProgram.teacherGuidance.aiEthicsRules.map((item, i) => (
                   <li key={i}>{item}</li>
                 ))}
               </ul>

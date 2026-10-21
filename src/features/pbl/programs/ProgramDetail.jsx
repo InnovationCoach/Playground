@@ -4,7 +4,7 @@ import {
   Cpu, Wrench, Package, Laptop, ShieldAlert, GraduationCap, Bot, Printer, TriangleAlert, Clock,
   Lightbulb, MessageSquareQuote, ListChecks, Compass, CalendarDays
 } from 'lucide-react';
-import { programById, PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges } from './catalog.js';
+import { programById, PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges, isSourcedConfirmation } from './catalog.js';
 import { programProgress, startProgram, toggleSession, chooseOption, setReflection, LIMITS } from './progress.js';
 import { useProgramProgress } from './useProgramProgress.js';
 import { ProgramIcon } from './ProgramIcon.jsx';
@@ -459,7 +459,7 @@ function Checks({ program: p }) {
               <li key={a.id}>
                 <strong>{a.domain}</strong>
                 <p>{a.assumption}</p>
-                <small>{/confirmed by don/i.test(a.ownerVerificationNeeded) ? 'Marked as confirmed, but no source is recorded.' : a.ownerVerificationNeeded}</small>
+                <small>{confirmationLine(a)}</small>
               </li>
             ))}
           </ul>
@@ -467,6 +467,14 @@ function Checks({ program: p }) {
       )}
     </div>
   );
+}
+
+/** What a coach should know about one assumption's confirmation. */
+function confirmationLine(a) {
+  const c = a.confirmation;
+  if (isSourcedConfirmation(c)) return `Confirmed by ${c.confirmedBy} on ${c.confirmedOn} (${c.source}).`;
+  if (c?.status === 'confirmed' || /confirmed by don/i.test(a.ownerVerificationNeeded || '')) return 'Marked as confirmed, but no source is recorded.';
+  return `Needs confirmation: ${a.ownerVerificationNeeded || 'ask Don.'}`;
 }
 
 function IssueList({ issues }) {

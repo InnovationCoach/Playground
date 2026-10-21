@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PROGRAMS, programById, resolveCompetencyId, programCompetencies, sessionsInWeek, PLATFORM_NOTES, shortAges } from '../src/features/pbl/programs/catalog.js';
+import { PROGRAMS, programById, resolveCompetencyId, programCompetencies, sessionsInWeek, PLATFORM_NOTES, shortAges, normaliseProgram, speechToTextOffers, isSourcedConfirmation } from '../src/features/pbl/programs/catalog.js';
 import {
   newProgress, hydrateProgress, startProgram, toggleSession, chooseOption, setReflection, programProgress, progressDocId, LIMITS
 } from '../src/features/pbl/programs/progress.js';
@@ -8,7 +8,7 @@ import { parseRoute, hrefFor } from '../src/app/routes.js';
 
 describe('program catalogue', () => {
   it('loads every program from the prototype registry with sessions in order', () => {
-    expect(PROGRAMS.length).toBeGreaterThanOrEqual(7);
+    expect(PROGRAMS.length).toBeGreaterThanOrEqual(6);
     for (const p of PROGRAMS) {
       expect(p.phases.map((ph) => ph.id)).toEqual(['explore', 'empathise', 'define', 'ideate', 'prototype', 'test', 'share']);
       const nums = p.sessions.map((s) => s.sessionNumber);
@@ -29,16 +29,43 @@ describe('program catalogue', () => {
     expect(resolveCompetencyId('ctps-13')).toBe(competencyById('ctps-13') ? 'ctps-13' : null);
   });
 
-  it('reports what is wrong with the content instead of hiding it', () => {
-    const issues = (id) => programById(id).issues.map((i) => i.text).join('\n');
-    expect(issues('storytelling-genesis-2026')).toMatch(/20 weeks/);
-    expect(issues('biomechanics-robotics-2026')).toMatch(/14 weeks/);
-    expect(issues('entrepreneurship-product-creation-2026')).toMatch(/only 18 are written/);
-    expect(issues('entrepreneurship-product-creation-2026')).toMatch(/overlap/);
-    expect(issues('passion-project-blueprint-2026')).toMatch(/speech-to-text/);
-    expect(programById('cleanstream-stormwater-2026').sharesPhasesWith).toBe('ecocool-smart-garden-2026');
-    expect(programById('ecocool-smart-garden-2026').sharesPhasesWith).toBeNull();
-    expect(PLATFORM_NOTES.some((n) => /No backend is deployed/.test(n.text))).toBe(true);
+  it('finds no blocking problems in the fixed prototype content', () => {
+    for (const p of PROGRAMS) {
+      expect(p.issues.filter((i) => i.level === 'block'), p.id).toEqual([]);
+      expect(p.durationWeeks, p.id).toBe(12);
+      expect(p.sessions.length, p.id).toBe(p.totalSessions);
+    }
+    expect(PLATFORM_NOTES.some((n) => /not deployed/.test(n.text))).toBe(true);
+  });
+
+  it('still reports every kind of problem when content regresses', () => {
+    const good = programById('ecocool-smart-garden-2026');
+    const raw = JSON.parse(JSON.stringify({ ...good, issues: undefined, identity: undefined, sessions: undefined }));
+    raw.id = 'synthetic-bad';
+    raw.durationWeeks = 20;
+    raw.totalSessions = 30;
+    raw.phases[1].weeks = [1, 3];
+    raw.phases[0].competencies = ['zzz-9'];
+    raw.assumptions = [{ id: 'x', domain: 'Kit', assumption: 'All kits exist', confirmation: { status: 'confirmed' } }];
+    raw.teacherGuidance.differentiationNotes = ['Primary track (ages 9–11): speech-to-text audio reflections.'];
+    const text = normaliseProgram(raw).issues.map((i) => `${i.level}: ${i.text}`).join('\n');
+    expect(text).toMatch(/Runs 20 weeks/);
+    expect(text).toMatch(/Says 30 sessions/);
+    expect(text).toMatch(/overlap/);
+    expect(text).toMatch(/zzz-9/);
+    expect(text).toMatch(/"Kit" is marked as confirmed, with no record/);
+    expect(text).toMatch(/^block: Offers speech-to-text to ages 9–11/m);
+  });
+
+  it('tells offering speech-to-text apart from ruling it out', () => {
+    expect(speechToTextOffers({ a: 'No speech-to-text or voice recording for under-13 learners.' })).toEqual([]);
+    expect(speechToTextOffers({ a: 'Offer speech-to-text dictation.' })).toHaveLength(1);
+  });
+
+  it('counts a confirmation only with who, when and where', () => {
+    expect(isSourcedConfirmation({ status: 'confirmed' })).toBe(false);
+    expect(isSourcedConfirmation({ status: 'needs_owner_confirmation', confirmedBy: 'Don', confirmedOn: '2026-10-01', source: 'x' })).toBe(false);
+    expect(isSourcedConfirmation({ status: 'confirmed', confirmedBy: 'Don', confirmedOn: '2026-10-01', source: 'meeting notes' })).toBe(true);
   });
 
   it('groups sessions by week', () => {

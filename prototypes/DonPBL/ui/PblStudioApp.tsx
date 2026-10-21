@@ -4,65 +4,51 @@
  * Directory: prototypes/DonPBL/
  */
 
-import React, { useState } from 'react';
-import { 
-  Header 
-} from './components/Header';
-import { 
-  AssumptionsBanner 
-} from './components/AssumptionsBanner';
-import { 
-  StudentView 
-} from './components/StudentView';
-import { 
-  TeacherView 
-} from './components/TeacherView';
-import { 
-  HardwareSimulator 
-} from './components/HardwareSimulator';
-import { 
-  HexCitySimulator 
-} from './components/HexCitySimulator';
-import { 
-  BiomechanicsSimulator 
-} from './components/BiomechanicsSimulator';
-import { 
-  PassionBlueprintSimulator 
-} from './components/PassionBlueprintSimulator';
-import { 
-  StorytellingSimulator 
-} from './components/StorytellingSimulator';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Header } from './components/Header';
+import { AssumptionsBanner } from './components/AssumptionsBanner';
+import { StudentView } from './components/StudentView';
+import { TeacherView } from './components/TeacherView';
+import { HardwareSimulator } from './components/HardwareSimulator';
+import { HexCitySimulator } from './components/HexCitySimulator';
+import { BiomechanicsSimulator } from './components/BiomechanicsSimulator';
+import { PassionBlueprintSimulator } from './components/PassionBlueprintSimulator';
+import { StorytellingSimulator } from './components/StorytellingSimulator';
+import { EntrepreneurshipSimulator } from './components/EntrepreneurshipSimulator';
+import { AiCopilotModal } from './components/AiCopilotModal';
+import { EvidenceModal } from './components/EvidenceModal';
+import { IntegrationDrawer } from './components/IntegrationDrawer';
 import {
-  EntrepreneurshipSimulator
-} from './components/EntrepreneurshipSimulator';
-import { 
-  AiCopilotModal 
-} from './components/AiCopilotModal';
-import { 
-  EvidenceModal 
-} from './components/EvidenceModal';
-import { 
-  IntegrationDrawer 
-} from './components/IntegrationDrawer';
-import { 
-  MOCK_COHORT, 
-  SAMPLE_STUDENT_PROJECT, 
+  MOCK_COHORT,
+  SAMPLE_STUDENT_PROJECT,
   PROGRAM_LIST,
-  PROGRAM_REGISTRY,
-  StudentProject,
-  validateAndAddEvidence
+  validateAndAddEvidence,
+  createLocalStore,
+  INITIAL_COACH_FEEDBACK
 } from './pbl';
-import { 
-  AlertTriangle, 
-  RefreshCw, 
-  Loader2 
+import type {
+  StudentProject,
+  CoachFeedback,
+  PhaseId
+} from './pbl';
+import {
+  AlertTriangle,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 
+const DEMO_CLASS_ID = 'class-demo-01';
+
 export default function App() {
+  const store = useMemo(() => createLocalStore({ seed: true }), []);
+
   const [currentRole, setCurrentRole] = useState<'student' | 'teacher'>('student');
   const [activeProgramId, setActiveProgramId] = useState<string>(PROGRAM_LIST[0].id);
   const [cohortProjects, setCohortProjects] = useState<StudentProject[]>(MOCK_COHORT);
   const [selectedTeamId, setSelectedTeamId] = useState<string>(SAMPLE_STUDENT_PROJECT.id);
+  const [coachFeedback, setCoachFeedback] = useState<CoachFeedback[]>(
+    INITIAL_COACH_FEEDBACK[SAMPLE_STUDENT_PROJECT.id] || []
+  );
   const [simulationState, setSimulationState] = useState<'normal' | 'loading' | 'error'>('normal');
 
   // Modals state
@@ -73,11 +59,29 @@ export default function App() {
   const [isStorySimulatorOpen, setIsStorySimulatorOpen] = useState(false);
   const [isEntrepreneurshipSimulatorOpen, setIsEntrepreneurshipSimulatorOpen] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
-  const [copilotStarterPrompt, setCopilotStarterPrompt] = useState<string | undefined>(undefined);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [evidenceModalPhase, setEvidenceModalPhase] = useState<string>('prototype');
   const [isIntegrationDrawerOpen, setIsIntegrationDrawerOpen] = useState(false);
-  const [isAssumptionsModalOpen, setIsAssumptionsModalOpen] = useState(false);
+
+  // Hydrate cohort and coach feedback whenever activeProgramId or selectedTeamId changes
+  const hydrateFromStore = useCallback(
+    async (programId: string, teamId: string) => {
+      const loadedCohort = await store.listCohort(DEMO_CLASS_ID, programId);
+      if (loadedCohort.length > 0) {
+        setCohortProjects(loadedCohort);
+      }
+      const targetTeamId = loadedCohort.some((p) => p.id === teamId)
+        ? teamId
+        : loadedCohort[0]?.id || SAMPLE_STUDENT_PROJECT.id;
+      const loadedFeedback = await store.loadFeedback(targetTeamId, programId);
+      setCoachFeedback(loadedFeedback);
+    },
+    [store]
+  );
+
+  useEffect(() => {
+    void hydrateFromStore(activeProgramId, selectedTeamId);
+  }, [activeProgramId, selectedTeamId, hydrateFromStore]);
 
   // Active student project lookup
   const activeProject = cohortProjects.find((p) => p.id === selectedTeamId) || cohortProjects[0];
@@ -86,10 +90,10 @@ export default function App() {
     setCohortProjects((prev) =>
       prev.map((p) => (p.id === updated.id ? updated : p))
     );
+    void store.saveProject(updated.id, activeProgramId, updated);
   };
 
-  const handleOpenCopilot = (starter?: string) => {
-    setCopilotStarterPrompt(starter);
+  const handleOpenCopilot = () => {
     setIsCopilotOpen(true);
   };
 
@@ -106,7 +110,7 @@ export default function App() {
   ) => {
     const res = validateAndAddEvidence(activeProject, {
       title,
-      phase: (activeProject.currentPhase as any) || 'prototype',
+      phase: (activeProject.currentPhase as PhaseId) || 'prototype',
       kind: 'ai',
       body,
       competencies: ['ctps-05', 'ct-05'],
@@ -118,23 +122,24 @@ export default function App() {
     }
   };
 
-  const handleUpdateFeedback = (
+  const handleUpdateFeedback = async (
     feedbackNote: string,
     competencyScores: Record<string, number>
   ) => {
-    const updated = {
-      ...activeProject,
-      coachFeedback: [
-        {
-          coachName: 'Coach Eleanor Vance',
-          date: new Date().toISOString().slice(0, 10),
-          note: feedbackNote,
-          competencyScores
-        },
-        ...activeProject.coachFeedback
-      ]
+    const entry: CoachFeedback = {
+      coachName: 'Coach Eleanor Vance (Synthetic Fixture)',
+      date: new Date().toISOString().slice(0, 10),
+      note: feedbackNote,
+      competencyScores
     };
-    handleUpdateProject(updated);
+    await store.addFeedback(activeProject.id, activeProgramId, entry);
+    const refreshed = await store.loadFeedback(activeProject.id, activeProgramId);
+    setCoachFeedback(refreshed);
+  };
+
+  const handleResetDemoData = async () => {
+    await store.resetDemoData();
+    await hydrateFromStore(activeProgramId, selectedTeamId);
   };
 
   return (
@@ -164,10 +169,11 @@ export default function App() {
         onOpenCopilot={() => handleOpenCopilot()}
         onOpenIntegration={() => setIsIntegrationDrawerOpen(true)}
         onOpenAssumptions={() => setIsIntegrationDrawerOpen(true)}
+        onResetDemoData={() => void handleResetDemoData()}
       />
 
       {/* Provisional Choices Banner */}
-      <AssumptionsBanner />
+      <AssumptionsBanner activeProgramId={activeProgramId} />
 
       {/* Main App Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
@@ -178,7 +184,7 @@ export default function App() {
               Simulating Network Sync with Local Store...
             </h3>
             <p className="text-xs text-stone-500 max-w-sm mx-auto">
-              Simulating isolated fixture hydration from <code className="font-mono bg-stone-100 px-1 py-0.5 rounded">prototypes/DonPBL/mockFixtures.ts</code>.
+              Simulating isolated fixture hydration from <code className="font-mono bg-stone-100 px-1 py-0.5 rounded">prototypes/DonPBL/store.ts</code>.
             </p>
           </div>
         ) : simulationState === 'error' ? (
@@ -209,9 +215,12 @@ export default function App() {
           />
         ) : (
           <TeacherView
+            cohort={cohortProjects}
             currentProject={activeProject}
+            activeProgramId={activeProgramId}
+            coachFeedback={coachFeedback}
             onSelectProject={setSelectedTeamId}
-            onUpdateFeedback={handleUpdateFeedback}
+            onUpdateFeedback={(note, scores) => void handleUpdateFeedback(note, scores)}
           />
         )}
       </main>
@@ -275,9 +284,9 @@ export default function App() {
           const res = validateAndAddEvidence(activeProject, {
             title: `Venture Lab: ${title}`,
             phase: 'test',
-            kind: 'metric',
+            kind: 'data',
             body: summary,
-            competencies: ['ctps-05', 'sdl-03', 'ec-06']
+            competencies: ['ctps-05', 'ent-01', 'ec-01']
           });
           if (res.success && res.updatedProject) {
             handleUpdateProject(res.updatedProject);

@@ -13,6 +13,7 @@ import {
   PROGRAM_LIST,
   LEARNER_AGE_CONFIG,
   SCHOOL_SCHEDULE_CONFIG,
+  HARDWARE_INVENTORY_CONFIG,
   COPILOT_DEPLOYMENT_CONFIG
 } from '../../../../prototypes/DonPBL/programRegistry.ts';
 import { competencyById } from '../content/competencies.js';
@@ -46,6 +47,30 @@ export function resolveCompetencyId(id) {
 /** Claims written into the content that nobody has recorded a source for. */
 const UNSOURCED_CONFIRMATION = /confirmed by don/i;
 
+/**
+ * A confirmation counts only with who, when and where. The prototype records
+ * these as { status, confirmedBy, confirmedOn, source }.
+ */
+export function isSourcedConfirmation(c) {
+  return !!(c && c.status === 'confirmed' && c.confirmedBy && c.confirmedOn && c.source);
+}
+
+/** Every string anywhere in a value, for content checks. */
+function allStrings(v, out = []) {
+  if (typeof v === 'string') out.push(v);
+  else if (v && typeof v === 'object') Object.values(v).forEach((x) => allStrings(x, out));
+  return out;
+}
+
+const SPEECH = /speech-to-text|voice (dictation|typing)/i;
+const SPEECH_RULED_OUT = /\b(no|not|never|without|prohibit\w*)\b[^.]{0,60}(speech-to-text|voice)/i;
+const YOUNG = /9\s*[–-]\s*11|under[- ]?13|primary/i;
+
+/** Strings that offer speech-to-text rather than ruling it out. */
+export function speechToTextOffers(raw) {
+  return allStrings(raw).filter((t) => SPEECH.test(t) && !SPEECH_RULED_OUT.test(t));
+}
+
 function cleanIds(ids, unknown) {
   const out = [];
   for (const id of ids || []) {
@@ -55,7 +80,8 @@ function cleanIds(ids, unknown) {
   return out;
 }
 
-function normalise(raw) {
+/** Normalise and check one raw program. Exported for tests. */
+export function normaliseProgram(raw) {
   const unknown = new Set();
   const phases = raw.phases.map((ph) => ({
     ...ph,
@@ -113,19 +139,22 @@ function checkProgram(raw, program, unknownCompetencies) {
     add('warn', `References competencies the school framework does not have: ${[...unknownCompetencies].join(', ')}. They are left out below.`);
   }
   for (const a of raw.assumptions || []) {
-    if (UNSOURCED_CONFIRMATION.test(a.ownerVerificationNeeded || '')) {
-      add('warn', `"${a.domain}" is marked as confirmed by Don, with no record of where or when.`);
+    if (UNSOURCED_CONFIRMATION.test(a.ownerVerificationNeeded || '')
+        || (a.confirmation?.status === 'confirmed' && !isSourcedConfirmation(a.confirmation))) {
+      add('warn', `"${a.domain}" is marked as confirmed, with no record of who confirmed it, when or where.`);
     }
   }
-  const text = JSON.stringify(raw);
-  if (/speech-to-text/i.test(text) && /9[–-]11/.test(text)) {
-    add('block', 'Suggests speech-to-text, including for ages 9–11. The platform does not use speech-to-text with under-13s; use tap-to-choose, drawing or a teacher scribe instead.');
+  const offers = speechToTextOffers(raw);
+  if (offers.some((t) => YOUNG.test(t))) {
+    add('block', 'Offers speech-to-text to ages 9–11. The platform does not use speech-to-text with under-13s; use tap-to-choose, drawing or a teacher scribe instead.');
+  } else if (offers.length && LEARNER_AGE_CONFIG.minAge < 13) {
+    add('warn', 'Offers speech-to-text without limiting it to learners aged 13 and over.');
   }
   return issues;
 }
 
 const RAW = Object.values(PROGRAM_REGISTRY);
-export const PROGRAMS = RAW.map(normalise);
+export const PROGRAMS = RAW.map(normaliseProgram);
 
 // A program that borrows another's phases teaches the other program's sessions.
 for (const p of PROGRAMS) {
@@ -138,10 +167,16 @@ for (const p of PROGRAMS) {
 
 /** Platform-level claims in the prototype that are not true of the app today. */
 export const PLATFORM_NOTES = [
-  COPILOT_DEPLOYMENT_CONFIG.status === 'confirmed' && {
+  COPILOT_DEPLOYMENT_CONFIG.status !== 'deployed' && {
     level: 'warn',
-    text: `The prototype lists the AI co-pilot (${COPILOT_DEPLOYMENT_CONFIG.endpoint}) as confirmed for deployment. No backend is deployed, so learners get the built-in fallback.`
+    text: `The AI co-pilot (${COPILOT_DEPLOYMENT_CONFIG.endpoint}) is not deployed, so learners get the built-in fallback.`
   },
+  (() => {
+    const pending = [
+      ['term schedule', SCHOOL_SCHEDULE_CONFIG], ['age bands', LEARNER_AGE_CONFIG], ['hardware inventory', HARDWARE_INVENTORY_CONFIG]
+    ].filter(([, c]) => !isSourcedConfirmation(c?.confirmation)).map(([name]) => name);
+    return pending.length > 0 && { level: 'warn', text: `Not yet confirmed by the school: ${pending.join(', ')}.` };
+  })(),
   LEARNER_AGE_CONFIG.minAge < 13 && {
     level: 'warn',
     text: `Programs are written for ages ${LEARNER_AGE_CONFIG.minAge}–${LEARNER_AGE_CONFIG.maxAge}. Under-13s need parental consent before they use the platform.`

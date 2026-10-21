@@ -12,7 +12,7 @@
  * - Measurable Impact Criteria, Bill of Materials, Unit Economics (COGS & Retail Price formulas)
  */
 
-import { PblProgram, ProgramPhase } from './programData';
+import type { PblProgram, ProgramPhase } from './programData';
 
 export interface StartupBadge {
   id: string;
@@ -217,7 +217,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
     id: 'explore',
     title: 'Phase 1A: Problem Discovery & Friction Logging',
     strap: 'Detecting everyday inefficiencies and tracking emotional friction in school, home, and transit routines.',
-    weeks: [1, 2],
+    weeks: [1, 1],
     goal: 'Maintain a 2-day Friction Log tracking context, current workarounds, and emotional impact to pinpoint high-pain disruptions.',
     tasks: [
       'Carry a dedicated pocket notebook or digital notes app across daily school, transit, and home routines.',
@@ -234,12 +234,12 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
       'What are some non-obvious workarounds people use when dealing with [friction point]?',
       'Help me reframe this daily complaint into an actionable engineering problem.'
     ],
-    competencies: ['sdl-1', 'ctps-1', 'ent-1'],
-    stretchCompetencies: ['ctps-2', 'ent-2'],
+    competencies: ['sdl-01', 'ctps-01', 'ent-01'],
+    stretchCompetencies: ['ctps-02', 'ent-02'],
     sessions: [
       {
         sessionNumber: 1,
-        week: 1,
+          week: 1,
         title: 'The Friction Radar: Spotting Hidden Inefficiencies',
         durationMin: 50,
         learningGoal: 'Train observational acuity to identify recurring points of physical discomfort or emotional frustration in routines.',
@@ -259,14 +259,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'note',
           prompt: 'Log your first 3 observed friction events noting context, current workarounds, and emotional impact.',
-          targetCompetencies: ['sdl-1', 'ctps-1']
+          targetCompetencies: ['sdl-01', 'ctps-01']
         },
         reflectionPrompt: 'Why do most people silently tolerate annoying daily problems instead of fixing them?',
         teacherTips: 'Encourage students not to invent fake problems. The friction must be witnessed or experienced firsthand.'
       },
       {
         sessionNumber: 2,
-        week: 1,
+          week: 1,
         title: 'Friction Analysis & Filtering Matrix',
         durationMin: 50,
         learningGoal: 'Synthesize raw observations into the top 2 candidate friction points that cause the greatest measurable disruption.',
@@ -285,7 +285,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'data',
           prompt: 'Submit your filtered Top 2 Friction Matrix with severity and frequency ratings.',
-          targetCompetencies: ['ctps-1', 'ent-1']
+          targetCompetencies: ['ctps-01', 'ent-01']
         },
         reflectionPrompt: 'Which of your top 2 frictions causes the deepest emotional annoyance or wasted time?',
         teacherTips: 'Check that students have tangible evidence of workarounds rather than just vague complaints.'
@@ -296,7 +296,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
     id: 'empathise',
     title: 'Phase 1B: Customer Empathy Interviews',
     strap: 'Validating real-world pain using past-behavior interviewing techniques without leading the witness.',
-    weeks: [2, 3],
+    weeks: [2, 2],
     goal: 'Interview 5 target users affected by the logged friction using the 3-question past behavior core; collect exact quotes.',
     tasks: [
       'Identify 5 target users affected by the observed friction (classmates, parents, teachers, local shopkeepers).',
@@ -313,12 +313,12 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
       'How can I phrase a follow-up question to find out how much time someone lost without sounding interrogative?',
       'Summarize the emotional themes from these 5 interview transcripts.'
     ],
-    competencies: ['ec-1', 'lc-1', 'ctps-1'],
-    stretchCompetencies: ['ec-2', 'ent-1'],
+    competencies: ['ec-01', 'lc-01', 'ctps-01'],
+    stretchCompetencies: ['ec-02', 'ent-01'],
     sessions: [
       {
         sessionNumber: 3,
-        week: 2,
+          week: 2,
         title: 'The Past-Behavior Interview Protocol',
         durationMin: 50,
         learningGoal: 'Master interview techniques that extract honest historical facts rather than polite speculative promises.',
@@ -338,14 +338,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'note',
           prompt: 'Upload your finalized Past-Behavior Interview Question Guide.',
-          targetCompetencies: ['ec-1', 'ctps-1']
+          targetCompetencies: ['ec-01', 'ctps-01']
         },
         reflectionPrompt: 'Why is past behavior a 10x more reliable indicator of value than future promises?',
         teacherTips: 'Disqualify questions like "If I built an app for this, would you download it?". Enforce questions about real past occurrences.'
       },
       {
         sessionNumber: 4,
-        week: 2,
+          week: 2,
         title: 'Interview Fieldwork & Quote Synthesis',
         durationMin: 50,
         learningGoal: 'Synthesize verbatim customer quotes to isolate measurable pain points.',
@@ -364,7 +364,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'feedback',
           prompt: 'Log 5 key verbatim quotes from your interviews highlighting specific irritations or lost time.',
-          targetCompetencies: ['ec-1', 'lc-1']
+          targetCompetencies: ['ec-01', 'lc-01']
         },
         reflectionPrompt: 'What was the most surprising or unexpected quote a user shared during your interview?',
         teacherTips: 'Look for emotional words like "frustrating", "dented", "hated", or "lost 20 minutes".'
@@ -375,7 +375,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
     id: 'define',
     title: 'Phase 2A: Problem Statement Definition & Scope Anchoring',
     strap: 'Anchoring product scope into a clear, unbending target statement without pre-committing to solutions.',
-    weeks: [3, 4],
+    weeks: [3, 3],
     goal: 'Complete the standardized Who / What / Why validation framework and combine into one declarative problem sentence free of product names.',
     tasks: [
       'Review interview notes to isolate target group, specific measurable obstacle, and root cause of existing tool failure.',
@@ -392,12 +392,12 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
       'How can I make the "What" metric in my problem statement more measurable?',
       'Help me clarify the root cause (the "Why") behind this user difficulty.'
     ],
-    competencies: ['ctps-1', 'ec-1', 'ent-1'],
-    stretchCompetencies: ['ctps-2', 'ent-2'],
+    competencies: ['ctps-01', 'ec-01', 'ent-01'],
+    stretchCompetencies: ['ctps-02', 'ent-02'],
     sessions: [
       {
         sessionNumber: 5,
-        week: 3,
+          week: 3,
         title: 'The Who-What-Why Framework',
         durationMin: 50,
         learningGoal: 'Deconstruct user pain into precise demographic context, measurable obstacle, and underlying root cause.',
@@ -417,14 +417,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'note',
           prompt: 'Fill in your Who / What / Why breakdown table with exact metrics.',
-          targetCompetencies: ['ctps-1', 'ec-1']
+          targetCompetencies: ['ctps-01', 'ec-01']
         },
         reflectionPrompt: 'Why does narrowing your target audience make solving the problem significantly easier?',
         teacherTips: 'Check that the "What" includes a concrete obstacle rather than a generic statement like "finds it hard".'
       },
       {
         sessionNumber: 6,
-        week: 3,
+          week: 3,
         title: 'The Declarative Statement & Solution-Free Audit',
         durationMin: 50,
         learningGoal: 'Combine validation variables into a single declarative sentence and purge all premature solution bias.',
@@ -443,7 +443,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'note',
           prompt: 'Submit your finalized single declarative problem statement.',
-          targetCompetencies: ['ctps-1', 'ent-1']
+          targetCompetencies: ['ctps-01', 'ent-01']
         },
         reflectionPrompt: 'How does keeping solutions out of your problem statement prevent premature design lock-in?',
         teacherTips: 'Be rigorous: if they wrote "they need an organized bag", reject it and make them write about the unorganized items.'
@@ -471,12 +471,12 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
       'Help me evaluate if this physical prototype can be built in under 2 weeks using classroom scrap materials.',
       'What are common durability failure points for [mechanism] in daily student usage?'
     ],
-    competencies: ['ctps-1', 'ent-1', 'sdl-1'],
-    stretchCompetencies: ['ctps-2', 'ent-2'],
+    competencies: ['ctps-01', 'ent-01', 'sdl-01'],
+    stretchCompetencies: ['ctps-02', 'ent-02'],
     sessions: [
       {
         sessionNumber: 7,
-        week: 4,
+          week: 4,
         title: 'Crazy 8s Rapid Brainstorming Sprint',
         durationMin: 50,
         learningGoal: 'Push past superficial, generic concepts to uncover diverse functional mechanisms under time pressure.',
@@ -496,14 +496,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'media',
           prompt: 'Upload a clear photo of your completed 8-panel Crazy 8s brainstorming sheet.',
-          targetCompetencies: ['ctps-1', 'ent-1']
+          targetCompetencies: ['ctps-01', 'ent-01']
         },
         reflectionPrompt: 'Which panels felt hardest to draw, and what mechanism surprised you most?',
         teacherTips: 'Insist that sketches show form or UI elements with brief labels rather than essays.'
       },
       {
         sessionNumber: 8,
-        week: 4,
+          week: 5,
         title: 'Track Selection & Feasibility Filtering',
         durationMin: 50,
         learningGoal: 'Select the optimal development track (Physical Build vs Digital Solution) and score concepts objectively.',
@@ -523,7 +523,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'data',
           prompt: 'Submit your Feasibility Scoring Matrix with chosen winner and rationale.',
-          targetCompetencies: ['ctps-1', 'sdl-1']
+          targetCompetencies: ['ctps-01', 'sdl-01']
         },
         reflectionPrompt: 'Why is picking a simpler, highly feasible concept often more successful than an over-complicated idea?',
         teacherTips: 'Prevent teams from attempting projects that require 6 months of coding or industrial injection molding.'
@@ -534,7 +534,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
     id: 'prototype',
     title: 'Phase 3A: Low-Fidelity Rapid Build & Simulation Sandbox',
     strap: 'Constructing rough, inexpensive 1:1 scale models or wireframe maps to evaluate form, sizing, and usability before fabrication.',
-    weeks: [5, 7],
+    weeks: [6, 7],
     goal: 'Build rough low-fidelity prototype (Track A: 1:1 cardboard/foam physical model; Track B: index-card wireframe map; Option: Simulation Sandbox).',
     tasks: [
       'Track A (Physical): Gather scrap materials (cardboard, foam board, duct tape, hot glue, clay); construct 1:1 scale model focused on volume and contact points.',
@@ -551,12 +551,12 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
       'Review my 4-screen wireframe flow: How can I eliminate 1 tap to reach the core value faster?',
       'What are realistic unit costs for basic strapping, Velcro, or cloud hosting tiers in Southeast Asia?'
     ],
-    competencies: ['ctps-1', 'ent-1', 'sdl-1'],
-    stretchCompetencies: ['ctps-2', 'ent-2'],
+    competencies: ['ctps-01', 'ent-01', 'sdl-01'],
+    stretchCompetencies: ['ctps-02', 'ent-02'],
     sessions: [
       {
         sessionNumber: 9,
-        week: 5,
+          week: 6,
         title: 'Rapid Low-Fi Prototyping Workshop',
         durationMin: 50,
         learningGoal: 'Construct a rough 1:1 scale prototype focusing strictly on physical volume, weight distribution, or digital screen states.',
@@ -576,14 +576,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'media',
           prompt: 'Upload a photo or screengrab of your rough Version 1.0 prototype in progress.',
-          targetCompetencies: ['ctps-1', 'sdl-1']
+          targetCompetencies: ['ctps-01', 'sdl-01']
         },
         reflectionPrompt: 'What was the fastest assumption you were able to test using scrap materials?',
         teacherTips: 'Stop students who spend 30 minutes coloring. The goal is structural volume and tactile interaction.'
       },
       {
         sessionNumber: 10,
-        week: 6,
+          week: 7,
         title: 'Ergonomic Testing & Friction Annotation',
         durationMin: 50,
         learningGoal: 'Identify mechanical weak points, clearance issues, or interface bottlenecks on the rough prototype.',
@@ -603,7 +603,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'note',
           prompt: 'List 3 red-marker flaw annotations discovered during ergonomic trials.',
-          targetCompetencies: ['ctps-1', 'ent-1']
+          targetCompetencies: ['ctps-01', 'ent-01']
         },
         reflectionPrompt: 'Why is marking flaws in red marker on an early prototype celebrated rather than penalized?',
         teacherTips: 'Praise students who find big flaws early. It saves days of work later.'
@@ -614,7 +614,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
     id: 'test',
     title: 'Phase 3B: Usability Testing, Iteration & Financial Modeling',
     strap: 'Testing under active conditions using the Silent Rule, iterating to v1.1, and calculating unit economics in Thai Baht.',
-    weeks: [7, 9],
+    weeks: [8, 9],
     goal: 'Run usability trials with 3 naive peers under the Silent Rule, build v1.1, and tabulate COGS, retail price, and break-even volume.',
     tasks: [
       'Hand prototype to 3 peers who have not seen it; provide one simple scenario prompt (e.g., "Attach this to your bag").',
@@ -632,12 +632,12 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
       'How can I convert bulk purchasing rates (e.g. 100 THB roll for 5 units) into unit floor costs?',
       'Suggest 2 structural redesigns to prevent this strap from slipping under 2kg of weight.'
     ],
-    competencies: ['ctps-1', 'ent-1', 'ec-1'],
-    stretchCompetencies: ['ctps-2', 'ent-2'],
+    competencies: ['ctps-01', 'ent-01', 'ec-01'],
+    stretchCompetencies: ['ctps-02', 'ent-02'],
     sessions: [
       {
         sessionNumber: 11,
-        week: 7,
+          week: 8,
         title: 'The Silent Usability Lab',
         durationMin: 50,
         learningGoal: 'Observe peer testers without intervention to isolate authentic product flaws.',
@@ -656,14 +656,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'feedback',
           prompt: 'Log observation notes from 3 silent usability testing sessions.',
-          targetCompetencies: ['ctps-1', 'ec-1']
+          targetCompetencies: ['ctps-01', 'ec-01']
         },
         reflectionPrompt: 'What did the tester do that you never anticipated when designing the prototype?',
         teacherTips: 'Physically stand behind the designer during the test to ensure they do not whisper advice to the tester.'
       },
       {
         sessionNumber: 12,
-        week: 8,
+          week: 8,
         title: 'Iterating to Version 1.1',
         durationMin: 50,
         learningGoal: 'Implement at least two concrete functional adjustments directly addressing usability test failures.',
@@ -682,14 +682,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'media',
           prompt: 'Upload photo comparison highlighting 2 functional improvements in Version 1.1.',
-          targetCompetencies: ['ctps-1', 'ent-1']
+          targetCompetencies: ['ctps-01', 'ent-01']
         },
         reflectionPrompt: 'How did peer testing prevent your team from making an expensive mistake in production?',
         teacherTips: 'Ensure the changes are functional rather than purely cosmetic.'
       },
       {
         sessionNumber: 13,
-        week: 9,
+          week: 9,
         title: 'Unit Economics & COGS Breakdown (Thai Baht)',
         durationMin: 50,
         learningGoal: 'Calculate the exact expense required to produce or run one standalone unit of the product.',
@@ -710,14 +710,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'data',
           prompt: 'Submit your completed COGS Spreadsheet with itemized costs in Thai Baht.',
-          targetCompetencies: ['ctps-1', 'ent-1']
+          targetCompetencies: ['ctps-01', 'ent-01']
         },
         reflectionPrompt: 'Why does calculating unit-level costs change how you choose raw materials?',
         teacherTips: 'Check that students convert bulk rates properly (e.g. dividing total cost by pieces produced).'
       },
       {
         sessionNumber: 14,
-        week: 9,
+          week: 9,
         title: 'Pricing Strategy & Break-Even Analysis',
         durationMin: 50,
         learningGoal: 'Set sustainable retail prices using margin benchmarking and calculate break-even sales volume.',
@@ -738,7 +738,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'data',
           prompt: 'Submit your Financial Summary: Unit Floor Cost, Retail Price, Profit Margin, and Break-Even Unit Volume.',
-          targetCompetencies: ['ctps-1', 'ent-1']
+          targetCompetencies: ['ctps-01', 'ent-01']
         },
         reflectionPrompt: 'How many units do you realistically need to sell to pay off your initial startup tools?',
         teacherTips: 'Verify mathematical accuracy: check that margin is calculated on retail price, not markup on cost.'
@@ -769,12 +769,12 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
       'Time my pitch script: Does Block 1 end by 45 seconds and Block 2 by 1 minute 45 seconds?',
       'Act as a tough angel investor: Ask me 2 hard questions about my unit cost, gross margin, or product durability.'
     ],
-    competencies: ['ec-1', 'ent-1', 'lc-1', 'ctps-1'],
-    stretchCompetencies: ['ec-2', 'ent-2'],
+    competencies: ['ec-01', 'ent-01', 'lc-01', 'ctps-01'],
+    stretchCompetencies: ['ec-02', 'ent-02'],
     sessions: [
       {
         sessionNumber: 15,
-        week: 10,
+          week: 10,
         title: 'Channel Mapping & Launch Hook Architecture',
         durationMin: 50,
         learningGoal: 'Design a direct route to reaching the first 25 paying users or verified beta adopters.',
@@ -794,14 +794,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'note',
           prompt: 'Submit your 1-Sentence Value Hook and First-25-Adopter Channel Plan.',
-          targetCompetencies: ['ec-1', 'ent-1']
+          targetCompetencies: ['ec-01', 'ent-01']
         },
         reflectionPrompt: 'Why is getting your first 25 real users harder—and more important—than getting 1,000 passive likes?',
         teacherTips: 'Insist on specific locations and numbers rather than vague claims like "we will post on social media".'
       },
       {
         sessionNumber: 16,
-        week: 11,
+          week: 11,
         title: 'The 3-Minute Pitch Scripting & Block Allotment',
         durationMin: 50,
         learningGoal: 'Draft a structured, professional pitch constrained to a strict 4-block 180-second timetable.',
@@ -821,14 +821,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'note',
           prompt: 'Upload your finalized 4-block pitch script with target timestamps.',
-          targetCompetencies: ['ec-1', 'ent-1']
+          targetCompetencies: ['ec-01', 'ent-01']
         },
         reflectionPrompt: 'What happens to audience attention when a presenter spends 2 minutes talking about backstory before showing the product?',
         teacherTips: 'Time students strictly with a timer. Cut them off if they exceed 45 seconds in Block 1.'
       },
       {
         sessionNumber: 17,
-        week: 11,
+          week: 11,
         title: 'Pitch Rehearsal & The 20-Second Rapid Q&A Drill',
         durationMin: 50,
         learningGoal: 'Master pitch delivery with live physical or digital proof and defend decisions under rapid fire Q&A.',
@@ -848,14 +848,14 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'media',
           prompt: 'Record and submit a 3-minute mock pitch rehearsal video or audio with peer feedback.',
-          targetCompetencies: ['ec-1', 'lc-1']
+          targetCompetencies: ['ec-01', 'lc-01']
         },
         reflectionPrompt: 'How did practicing under the 20-second Q&A rule improve your confidence?',
         teacherTips: 'Encourage peers to ask tough questions: "Why won\'t this break in my backpack?" or "Why wouldn\'t I just buy a pencil case?".'
       },
       {
         sessionNumber: 18,
-        week: 12,
+          week: 12,
         title: 'Showcase Pitch Arena & Startup Deployment',
         durationMin: 50,
         learningGoal: 'Deliver the final 3-minute pitch before guest judges, teachers, and student customers to launch the product.',
@@ -874,7 +874,7 @@ export const ENTREPRENEURSHIP_PROGRAM_PHASES: ProgramPhase[] = [
         evidenceToCollect: {
           kind: 'media',
           prompt: 'Upload final showcase pitch photo/video and judge evaluation scorecard.',
-          targetCompetencies: ['ec-1', 'ent-1', 'lc-1']
+          targetCompetencies: ['ec-01', 'ent-01', 'lc-01']
         },
         reflectionPrompt: 'Looking back from Friction Log Day 1 to Showcase Day, what was the most valuable lesson you learned about creating something real?',
         teacherTips: 'Celebrate all teams. Invite local entrepreneurs or parents to act as friendly angel reviewers.'
@@ -898,7 +898,7 @@ export const ENTREPRENEURSHIP_PROGRAM: PblProgram = {
   },
   targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
   durationWeeks: 12,
-  totalSessions: 24,
+  totalSessions: 18,
   materialsAndKit: {
     microcontrollers: [
       'Digital Twin Market Simulator Sandbox (Browser-based transaction, margin & demand testing)',
@@ -974,13 +974,19 @@ export const ENTREPRENEURSHIP_PROGRAM: PblProgram = {
       id: 'asmp-scrap-supplies',
       domain: 'Prototyping Materials',
       assumption: 'School provides basic scrap fabrication materials (cardboard, hot glue, Velcro, webbing) without personal expense.',
-      ownerVerificationNeeded: 'Confirm maker lab consumables with InnovationCoach / WeLearn lab team.'
+      ownerVerificationNeeded: 'Confirm maker lab consumables with InnovationCoach / WeLearn lab team.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     },
     {
       id: 'asmp-market-sim',
       domain: 'Simulation Engine',
       assumption: 'Learners can optionally run experiments in the browser-based market simulation sandbox if materials are limited.',
-      ownerVerificationNeeded: 'Verify simulation presets against local Thai retail market conditions.'
+      ownerVerificationNeeded: 'Verify simulation presets against local Thai retail market conditions.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     }
   ],
   phases: ENTREPRENEURSHIP_PROGRAM_PHASES

@@ -29,6 +29,13 @@ export interface PhaseSession {
   teacherTips: string;
 }
 
+export interface ConfirmationRecord {
+  status: 'confirmed' | 'needs_owner_confirmation';
+  confirmedBy?: string;
+  confirmedOn?: string;
+  source?: string;
+}
+
 export interface SchoolScheduleConfig {
   weeksPerTerm: number;
   termsPerYear: number;
@@ -38,8 +45,7 @@ export interface SchoolScheduleConfig {
   termTotalHours: number;
   academicYearTotalHours: number;
   description: string;
-  verifiedBy: string;
-  status: 'verified';
+  confirmation: ConfirmationRecord;
 }
 
 export const SCHOOL_SCHEDULE_CONFIG: SchoolScheduleConfig = {
@@ -50,9 +56,10 @@ export const SCHOOL_SCHEDULE_CONFIG: SchoolScheduleConfig = {
   weeklyHours: 10,
   termTotalHours: 120,
   academicYearTotalHours: 360,
-  description: '12 weeks per term, 3 terms per year, 2 hours per weekday (10 hrs/week = 120 contact hours per term)',
-  verifiedBy: 'Don (Owner Direct Confirmation)',
-  status: 'verified'
+  description: 'Provisional assumption: 12 weeks per term, 3 terms per year, 2 hours per weekday (10 hrs/week = 120 contact hours per term)',
+  confirmation: {
+    status: 'needs_owner_confirmation'
+  }
 };
 
 export interface AgeTierTrack {
@@ -71,18 +78,18 @@ export interface LearnerAgeConfig {
   minAge: number;
   maxAge: number;
   description: string;
-  verifiedBy: string;
-  status: 'verified';
+  confirmation: ConfirmationRecord;
   tracks: AgeTierTrack[];
 }
 
 export const LEARNER_AGE_CONFIG: LearnerAgeConfig = {
-  span: 'Ages 9–17 (Primary through Upper Secondary)',
+  span: 'Ages 9–17 (Primary through Upper Secondary — Provisional)',
   minAge: 9,
   maxAge: 17,
-  description: 'Multi-tiered tracks covering Primary (ages 9–11), Middle Secondary (ages 12–14), and Upper Secondary (ages 15–17)',
-  verifiedBy: 'Don (Owner Direct Confirmation)',
-  status: 'verified',
+  description: 'Provisional multi-tiered tracks covering Primary (ages 9–11), Middle Secondary (ages 12–14), and Upper Secondary (ages 15–17)',
+  confirmation: {
+    status: 'needs_owner_confirmation'
+  },
   tracks: [
     {
       tierId: 'primary',
@@ -122,14 +129,13 @@ export interface HardwareInventoryConfig {
   arduinoUnoAvailable: boolean;
   esp32Available: boolean;
   legoSpikeAvailable: boolean;
-  classSetsConfirmed: {
+  classSetsAssumed: {
     microbitV2Boards: boolean;
     pumps5V: boolean;
     capacitiveSoilSensors: boolean;
     allHardwareAvailable: boolean;
   };
-  inventoryStatus: 'confirmed_available';
-  verifiedBy: string;
+  confirmation: ConfirmationRecord;
   notes: string;
 }
 
@@ -138,23 +144,25 @@ export const HARDWARE_INVENTORY_CONFIG: HardwareInventoryConfig = {
   arduinoUnoAvailable: true,
   esp32Available: true,
   legoSpikeAvailable: true,
-  classSetsConfirmed: {
+  classSetsAssumed: {
     microbitV2Boards: true,
     pumps5V: true,
     capacitiveSoilSensors: true,
     allHardwareAvailable: true
   },
-  inventoryStatus: 'confirmed_available',
-  verifiedBy: 'Don (Owner Direct Confirmation)',
-  notes: 'Learners have full access to hardware in class sets: BBC micro:bit V2 boards, 5V pumps, capacitive soil moisture sensors, Arduino UNO, ESP32, and LEGO Spike kits.'
+  confirmation: {
+    status: 'needs_owner_confirmation'
+  },
+  notes: 'Provisional assumption: Assumes learners have access to BBC micro:bit V2 boards, 5V pumps, capacitive soil moisture sensors, Arduino UNO, ESP32, and LEGO Spike kits pending school inventory confirmation.'
 };
 
 export interface CopilotDeploymentConfig {
   endpoint: string;
   method: 'POST';
   deploymentTimingConfirmed: boolean;
-  status: 'confirmed';
-  verifiedBy: string;
+  status: 'not_deployed';
+  note: string;
+  confirmation: ConfirmationRecord;
   contractDoc: string;
   systemInstructionSummary: string;
   expectedPayload: {
@@ -176,9 +184,12 @@ export interface CopilotDeploymentConfig {
 export const COPILOT_DEPLOYMENT_CONFIG: CopilotDeploymentConfig = {
   endpoint: '/api/pbl-copilot',
   method: 'POST',
-  deploymentTimingConfirmed: true,
-  status: 'confirmed',
-  verifiedBy: 'Don (Owner Direct Confirmation)',
+  deploymentTimingConfirmed: false,
+  status: 'not_deployed',
+  note: 'No backend is deployed for /api/pbl-copilot and production deploys are frozen. The prototype frontend falls back to the local mock (generateMockCopilotReply).',
+  confirmation: {
+    status: 'needs_owner_confirmation'
+  },
   contractDoc: 'docs/BACKEND-PBL-COPILOT-PROMPT-FOR-GEMINI.md',
   systemInstructionSummary: 'Project co-pilot writes working commented code (<80 lines), appends "How to test it" (2-4 steps on real device) and 1 explain-back question. Rejects primary accounts (403), mains electricity/high-voltage/battery tampering, and reflection generation.',
   expectedPayload: {
@@ -215,7 +226,7 @@ export interface PblProgram {
   id: string;
   title: string;
   subtitle: string;
-  status: 'provisional_prototype' | 'approved';
+  status: 'provisional_prototype' | 'stub' | 'approved';
   theme: string;
   drivingQuestion: string;
   realProblem: {
@@ -250,6 +261,7 @@ export interface PblProgram {
     domain: string;
     assumption: string;
     ownerVerificationNeeded: string;
+    confirmation: ConfirmationRecord;
   }[];
   phases: ProgramPhase[];
 }
@@ -349,25 +361,37 @@ export const SAMPLE_PROGRAM: PblProgram = {
       id: 'asmp-age',
       domain: 'Learner Cohort',
       assumption: 'Program provides tiered tracks spanning Primary through Secondary (Ages 9–17 / Grades 4–12), with differentiated scaffolding for Primary (9–11), Junior Secondary (12–14), and Upper Secondary (15–17).',
-      ownerVerificationNeeded: 'CONFIRMED BY DON: Multi-tiered tracks desired across Primary through Secondary, ages 9–17.'
+      ownerVerificationNeeded: 'Confirm with Don which specific age bands and grade levels are enrolled for the initial term rollout.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     },
     {
       id: 'asmp-duration',
       domain: 'Pacing & Term Schedule',
       assumption: 'Program operates across a 12-week term, 3 terms per academic year, with 2 hours per weekday (10 contact hours/week = 120 total contact hours per term).',
-      ownerVerificationNeeded: 'CONFIRMED BY DON: 12 weeks per term, 3 terms per year, 2 hours per weekday.'
+      ownerVerificationNeeded: 'Confirm with Don whether the school timetable allocates 12 weeks per term and 10 contact hours per week.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     },
     {
       id: 'asmp-kit',
       domain: 'Hardware Availability',
       assumption: 'Students have access to BBC micro:bit V2 boards, 5V pumps, and capacitive soil moisture sensors in class sets.',
-      ownerVerificationNeeded: 'CONFIRMED BY DON: Learners have access to micro:bits, 5V pumps, capacitive soil moisture sensors in class sets, alongside Arduino UNO, ESP32, and LEGO Spike kits.'
+      ownerVerificationNeeded: 'Check school lab inventory with Don for BBC micro:bit V2 class sets, 5V pumps, capacitive sensors, Arduino UNO, ESP32, and LEGO Spike kits.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     },
     {
       id: 'asmp-ai',
       domain: 'AI Co-Pilot Integration',
-      assumption: 'In-app AI co-pilot operates client-side with mocked response streaming for prototype safety.',
-      ownerVerificationNeeded: 'Confirm deployment timing for the backend /api/pbl-copilot endpoint specified in Gemini docs.'
+      assumption: 'In-app AI co-pilot operates client-side with local mocked responses (generateMockCopilotReply) because /api/pbl-copilot is not deployed.',
+      ownerVerificationNeeded: 'Confirm when the backend /api/pbl-copilot endpoint will be scheduled after the production deploy freeze.',
+      confirmation: {
+        status: 'needs_owner_confirmation'
+      }
     }
   ],
   phases: [
@@ -623,7 +647,7 @@ export const SAMPLE_PROGRAM: PblProgram = {
           learnerChoices: {
             question: 'How will your team present your empathy findings?',
             options: [
-              { id: 'empathy-story', label: 'First-Person Story Narrative', description: 'A day in the life of Mrs. Alvarez tending community tomato bed during a heat wave.' },
+              { id: 'empathy-story', label: 'First-Person Story Narrative', description: 'A day in the life of an example persona (e.g., "Mrs. Alvarez", a fictional community gardener persona) tending a tomato bed during a heat wave.' },
               { id: 'empathy-infographic', label: 'Visual Problem Infographic', description: 'Side-by-side pain-point diagram contrasting current struggle with desired future.' }
             ]
           },
@@ -633,7 +657,7 @@ export const SAMPLE_PROGRAM: PblProgram = {
             targetCompetencies: ['ctps-01', 'sdl-02']
           },
           reflectionPrompt: 'Why is it critical to establish numeric baseline data before we start building anything?',
-          teacherTips: 'Check that every team has a concrete numeric baseline so their final Showcase can prove measurable improvement.'
+          teacherTips: 'Note: "Mrs. Alvarez" is an invented example persona. Teachers should replace her with a real local stakeholder or school grounds staff member. Check that every team has a concrete numeric baseline so their final Showcase can prove measurable improvement.'
         }
       ]
     },
