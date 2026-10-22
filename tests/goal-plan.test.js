@@ -134,7 +134,7 @@ describe('route', () => {
   });
   it('#/search is the Home search; #/home is left to the live dashboard', () => {
     expect(hrefFor.homeSearch()).toBe('#/search');
-    expect(parseRoute('#/search')).toEqual({ screen: 'homeSearch' });
+    expect(parseRoute('#/search')).toEqual({ screen: 'homeSearch', q: '' });
     expect(parseRoute('#/home')).toBeNull();
   });
 });

@@ -34,6 +34,9 @@
 .pd-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1rem; align-items: start; }
 .pd-col { display: grid; gap: 1rem; }
 .pd-section.gh-card + .gh-card { margin-top: 0; }
+.pd-section { scroll-margin-top: 80px; }
+.pd-section:focus { outline: none; }
+.pd-section:focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 2px; }
 .pd-section-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.85rem; }
 .pd-section-head h2 { font: 700 1.02rem/1.3 var(--gh-font-display); color: var(--gh-heading); margin: 0; }
 .pd-aside { margin-left: auto; font-size: 0.78rem; color: var(--gh-text-3); white-space: nowrap; }

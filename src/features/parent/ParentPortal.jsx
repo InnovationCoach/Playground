@@ -19,8 +19,8 @@ import '../admin/admin.css';
  * Each child opens a progress dashboard at #/parent/:childUid
  * (ParentChildDashboard). Consent arrives in Phase E.
  */
-export function ParentPortal({ childUid = null, navigate }) {
-  if (childUid) return <ParentChildDashboard childUid={childUid} onBack={() => navigate(hrefFor.parent())} />;
+export function ParentPortal({ childUid = null, section = null, navigate }) {
+  if (childUid) return <ParentChildDashboard childUid={childUid} section={section} onBack={() => navigate(hrefFor.parent())} />;
   return <ChildList onOpen={(uid) => navigate(hrefFor.parentChild(uid))} />;
 }
 

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { ArrowLeft, BookOpen, Check, ChevronDown, CircleCheck, Circle, Clock, EyeOff, Eye, FlaskConical, Lightbulb, MessageCircle, Rocket, ShieldCheck, Sparkles, Target, Trophy } from 'lucide-react';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { getChildProgress } from '../../services/api/endpoints.js';
@@ -5,6 +6,7 @@ import { describeApiError, isMockApi } from '../../services/api/apiClient.js';
 import { useAsync } from '../admin/ui/useAsync.js';
 import { Alert } from '../admin/ui/bits.jsx';
 import { Avatar } from '../shell/Avatar.jsx';
+import { useRelativeTime } from '../shell/useRelativeTime.js';
 import { SHARED, NOT_SHARED } from './childProgress.js';
 import './parentDashboard.css';
 
@@ -14,10 +16,20 @@ import './parentDashboard.css';
  * Everything comes from GET /api/parent/children/:uid/progress, which is
  * built by childProgress.js; this file only lays it out.
  */
-export function ParentChildDashboard({ childUid, onBack }) {
+export function ParentChildDashboard({ childUid, section = null, onBack }) {
   const { t } = useLocale();
   const res = useAsync(() => getChildProgress(childUid), [childUid]);
   const p = res.data;
+
+  // A SPARK Home card can open one section (#/parent/:uid/goals): scroll to it once the data is in.
+  useEffect(() => {
+    if (!p || !section) return;
+    const el = document.getElementById(`pd-${section}`);
+    if (!el) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    el.focus({ preventScroll: true });
+  }, [p, section]);
 
   return (
     <div className="gh-page pd">
@@ -37,21 +49,6 @@ export function ParentChildDashboard({ childUid, onBack }) {
   );
 }
 
-function useRelative() {
-  const { locale } = useLocale();
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
-  return (ms) => {
-    if (!Number.isFinite(ms)) return '';
-    const mins = Math.round((ms - Date.now()) / 60000);
-    if (Math.abs(mins) < 60) return rtf.format(mins, 'minute');
-    const hours = Math.round(mins / 60);
-    if (Math.abs(hours) < 24) return rtf.format(hours, 'hour');
-    const days = Math.round(hours / 24);
-    if (Math.abs(days) < 14) return rtf.format(days, 'day');
-    return rtf.format(Math.round(days / 7), 'week');
-  };
-}
-
 function Bar({ percent, label, tone = 'green' }) {
   return (
     <div className={`pd-bar pd-bar-${tone}`} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
@@ -60,9 +57,9 @@ function Bar({ percent, label, tone = 'green' }) {
   );
 }
 
-function Section({ icon: Icon, title, tone = 'purple', aside, children, className = '' }) {
+function Section({ id, icon: Icon, title, tone = 'purple', aside, children, className = '' }) {
   return (
-    <section className={`gh-card pd-section ${className}`}>
+    <section id={id ? `pd-${id}` : undefined} tabIndex={id ? -1 : undefined} className={`gh-card pd-section ${className}`}>
       <div className="pd-section-head">
         <span className={`pd-icon pd-icon-${tone}`}><Icon size={18} aria-hidden="true" /></span>
         <h2>{title}</h2>
@@ -75,7 +72,7 @@ function Section({ icon: Icon, title, tone = 'purple', aside, children, classNam
 
 function Dashboard({ p }) {
   const { t } = useLocale();
-  const ago = useRelative();
+  const ago = useRelativeTime();
   const name = p.child.givenNames || p.child.displayName;
   const edmCourses = p.edmentum.courses;
   const edmScores = edmCourses.map((c) => c.averageScore).filter(Number.isFinite);
@@ -140,7 +137,7 @@ function PblSection({ p, name }) {
   const { t } = useLocale();
   const pbl = p.pbl;
   return (
-    <Section icon={Rocket} title={t('parent.d.pbl')} aside={pbl.termLabel}>
+    <Section id="pbl" icon={Rocket} title={t('parent.d.pbl')} aside={pbl.termLabel}>
       <p className="pd-theme">{pbl.theme}</p>
       {!pbl.started ? <p className="gh-muted">{t('parent.d.pblNotStarted', { name })}</p> : (
         <>
@@ -177,7 +174,7 @@ function PblSection({ p, name }) {
 function GoalsSection({ goals, name, ago }) {
   const { t } = useLocale();
   return (
-    <Section icon={Target} tone="green" title={t('parent.d.goals')} aside={goals?.updatedAt ? t('parent.d.updated', { when: ago(goals.updatedAt) }) : null}>
+    <Section id="goals" icon={Target} tone="green" title={t('parent.d.goals')} aside={goals?.updatedAt ? t('parent.d.updated', { when: ago(goals.updatedAt) }) : null}>
       {!goals ? <p className="gh-muted">{t('parent.d.goalsNone', { name })}</p> : (
         <>
           <ul className="pd-goals">
@@ -216,7 +213,7 @@ function GoalsSection({ goals, name, ago }) {
 function EdmentumSection({ edm, ago }) {
   const { t } = useLocale();
   return (
-    <Section icon={BookOpen} tone="navy" title={t('parent.d.edmentum')} aside={edm.syncedAt ? t('parent.d.synced', { when: ago(edm.syncedAt) }) : null}>
+    <Section id="edmentum" icon={BookOpen} tone="navy" title={t('parent.d.edmentum')} aside={edm.syncedAt ? t('parent.d.synced', { when: ago(edm.syncedAt) }) : null}>
       {edm.status !== 'connected' ? (
         <div className="pd-empty"><BookOpen size={20} aria-hidden="true" /><p>{t('parent.d.edmNotConnected')}</p></div>
       ) : (
@@ -258,7 +255,7 @@ function EdmentumSection({ edm, ago }) {
 function CompetencySection({ comp, name }) {
   const { t } = useLocale();
   return (
-    <Section icon={Sparkles} tone="magenta" title={t('parent.d.competencies')} aside={t('parent.d.ofTotalShown', { shown: comp.shown, total: comp.total })}>
+    <Section id="competencies" icon={Sparkles} tone="magenta" title={t('parent.d.competencies')} aside={t('parent.d.ofTotalShown', { shown: comp.shown, total: comp.total })}>
       <p className="pd-small">{t('parent.d.compIntro', { name })}</p>
       {comp.shown === 0 && <p className="gh-muted">{t('parent.d.compNone')}</p>}
       <ul className="pd-domains">
