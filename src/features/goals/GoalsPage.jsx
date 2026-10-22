@@ -2,21 +2,28 @@ import { useMemo, useState } from 'react';
 import {
   Target, Sparkles, CircleCheck, Circle, Plus, Trash, Flag, Zap, Heart, MessageCircle, BatteryCharging,
   Cloud, CloudOff, Eye, Trophy, RotateCcw, Flame, Check, Copy, ArrowRight, ChevronRight, Compass,
-  CheckCircle2, Sparkle
+  CheckCircle2, Sparkle, Shield, Award
 } from 'lucide-react';
 import {
   STRENGTHS, SUPPORTS, SHOW_HOW, FOCUS_SKILLS, PHRASES, RECHARGE, LIMITS,
   touch, newId, hasPlan, goalSentence, todayItems, checkedToday, toggleToday, habitWeek, dayKey
 } from './goalPlan.js';
 import { useGoalPlan } from './useGoalPlan.js';
+import { ArchetypeRadar } from './ArchetypeRadar.jsx';
+import { QuestEnergyBar } from './QuestEnergyBar.jsx';
+import { DailyBountyBoard } from './DailyBountyBoard.jsx';
+import { computeArchetypeProfile } from './archetypes.js';
+import { playSfx } from './soundEffects.js';
+import { triggerSparkParticles } from './confetti.js';
 import '../admin/admin.css';
 import './goals.css';
 
 /**
  * Modern, teen-centric Goal Setting (#/goals).
- * High-momentum, strength-based executive flow:
- *   - ⚡ Daily Flow: Micro-habits, today checklist, streak tracker & celebration
- *   - 🎯 Active Quests: Goal roadmaps, bite-sized steps & milestone wins
+ * High-momentum, gamified executive flow:
+ *   - ⚡ Daily Flow: Bounties, micro-habits, today checklist, streak tracker & celebration
+ *   - 🎯 Active Quests: Goal roadmaps, waypoint node progression & milestone wins
+ *   - 🛡️ Skill Tree: Superpower archetypes radar & RPG levels
  *   - 🚀 Superpower Toolkit: Strengths, classroom hacks, power phrases & recharge
  */
 export function GoalsPage({ uid, displayName }) {
@@ -27,6 +34,9 @@ export function GoalsPage({ uid, displayName }) {
   const set = (patch) => update((p) => touch(p, patch));
   const toggleIn = (key, id) =>
     update((p) => touch(p, { [key]: p[key].includes(id) ? p[key].filter((x) => x !== id) : [...p[key], id] }));
+
+  // Archetype & Level Profile
+  const profile = useMemo(() => computeArchetypeProfile(plan), [plan]);
 
   // Quick counts for tab badges
   const todayList = useMemo(() => todayItems(plan), [plan]);
@@ -46,6 +56,9 @@ export function GoalsPage({ uid, displayName }) {
             <span className="gl-tag gl-tag-glow">
               <Zap size={14} aria-hidden="true" />
               <span>SPARK Momentum</span>
+            </span>
+            <span className="gl-tag" style={{ background: profile.primary.accentGlow, color: profile.primary.color, borderColor: profile.primary.color }}>
+              <span>{profile.primary.icon} {profile.title} (Lv. {profile.level})</span>
             </span>
             {week.count > 0 && (
               <span className="gl-tag gl-tag-streak" title={`${week.count} active days in the last 7 days`}>
@@ -133,6 +146,20 @@ export function GoalsPage({ uid, displayName }) {
         <button
           type="button"
           role="tab"
+          id="tab-skills"
+          aria-selected={activeTab === 'skills'}
+          aria-controls="panel-skills"
+          className={`gl-tab ${activeTab === 'skills' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('skills')}
+        >
+          <span className="gl-tab-icon"><Shield size={16} aria-hidden="true" /></span>
+          <span className="gl-tab-text">Skill Tree</span>
+          <span className="gl-tab-badge">Lv. {profile.level}</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
           id="tab-toolkit"
           aria-selected={activeTab === 'toolkit'}
           aria-controls="panel-toolkit"
@@ -152,6 +179,9 @@ export function GoalsPage({ uid, displayName }) {
         {/* TAB 1: Today's Flow */}
         {activeTab === 'today' && (
           <div id="panel-today" role="tabpanel" aria-labelledby="tab-today" className="gl-pane gl-pane-today">
+            {/* Daily Quick-Win Bounty Board */}
+            <DailyBountyBoard plan={plan} update={update} />
+
             <div className="gl-grid-two">
               {/* Daily Checklist */}
               <TodayCard
@@ -177,7 +207,14 @@ export function GoalsPage({ uid, displayName }) {
           </div>
         )}
 
-        {/* TAB 3: Superpower Toolkit */}
+        {/* TAB 3: Skill Tree & Radar */}
+        {activeTab === 'skills' && (
+          <div id="panel-skills" role="tabpanel" aria-labelledby="tab-skills" className="gl-pane gl-pane-skills">
+            <ArchetypeRadar plan={plan} />
+          </div>
+        )}
+
+        {/* TAB 4: Superpower Toolkit */}
         {activeTab === 'toolkit' && (
           <div id="panel-toolkit" role="tabpanel" aria-labelledby="tab-toolkit" className="gl-pane gl-pane-toolkit">
             <ToolkitSection plan={plan} set={set} toggleIn={toggleIn} />
@@ -292,9 +329,11 @@ function TodayCard({ plan, update, onGoQuests, onGoToolkit }) {
 
       {items.length > 0 ? (
         <>
-          <div className="gl-progress-track" role="progressbar" aria-valuenow={done} aria-valuemin={0} aria-valuemax={items.length}>
-            <div className="gl-progress-fill" style={{ width: `${(done / items.length) * 100}%` }} />
-          </div>
+          <QuestEnergyBar
+            current={done}
+            total={items.length}
+            title="Today's Momentum Energy"
+          />
 
           <ul className="gl-task-list">
             {items.map((it) => {
@@ -305,7 +344,11 @@ function TodayCard({ plan, update, onGoQuests, onGoToolkit }) {
                     type="button"
                     className={`gl-task-item ${on ? 'is-checked' : ''}`}
                     aria-pressed={on}
-                    onClick={() => update((p) => toggleToday(p, it))}
+                    onClick={(e) => {
+                      triggerSparkParticles(e.currentTarget, on ? 10 : 22);
+                      playSfx(on ? 'step' : (done + 1 === items.length ? 'levelup' : 'step'));
+                      update((p) => toggleToday(p, it));
+                    }}
                   >
                     <span className="gl-checkbox">
                       {on ? <CheckCircle2 size={22} className="gl-checked-icon" /> : <Circle size={22} className="gl-unchecked-icon" />}
@@ -597,20 +640,26 @@ function QuestCard({ goal, patch, remove }) {
         </div>
       </div>
 
+      {/* Gamified Quest Energy Bar & Waypoint Map */}
+      <QuestEnergyBar
+        current={doneCount}
+        total={goal.steps.length || 1}
+        steps={goal.steps}
+        title="Quest Charge & Waypoints"
+        onToggleStep={(stepId) => {
+          patch((g) => ({
+            ...g,
+            steps: g.steps.map((x) => (x.id === stepId ? { ...x, done: !x.done } : x))
+          }));
+        }}
+      />
+
       {/* Steps checklist */}
       <div className="gl-quest-steps-wrapper">
         <div className="gl-steps-header">
           <span className="gl-steps-count">
             Steps Done: <strong>{doneCount} / {goal.steps.length}</strong>
           </span>
-          {goal.steps.length > 0 && (
-            <div className="gl-quest-mini-progress">
-              <div
-                className="gl-quest-bar-fill"
-                style={{ width: `${(doneCount / goal.steps.length) * 100}%` }}
-              />
-            </div>
-          )}
         </div>
 
         <ul className="gl-quest-step-list">
@@ -620,12 +669,14 @@ function QuestCard({ goal, patch, remove }) {
                 type="button"
                 className={`gl-step-check ${s.done ? 'is-done' : ''}`}
                 aria-pressed={s.done}
-                onClick={() =>
+                onClick={(e) => {
+                  triggerSparkParticles(e.currentTarget, s.done ? 8 : 18);
+                  playSfx(s.done ? 'step' : 'bounty');
                   patch((g) => ({
                     ...g,
                     steps: g.steps.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x))
-                  }))
-                }
+                  }));
+                }}
               >
                 {s.done ? <CheckCircle2 size={18} className="gl-check-icon" /> : <Circle size={18} />}
                 <span className="gl-step-text">{s.text}</span>
@@ -665,7 +716,13 @@ function QuestCard({ goal, patch, remove }) {
         <button
           type="button"
           className={`gh-btn gh-btn-sm ${isGoalFinished ? 'gh-btn-ghost' : 'gh-btn-accent'}`}
-          onClick={() => patch((g) => ({ ...g, done: !g.done }))}
+          onClick={(e) => {
+            if (!isGoalFinished) {
+              triggerSparkParticles(e.currentTarget, 35);
+              playSfx('levelup');
+            }
+            patch((g) => ({ ...g, done: !g.done }));
+          }}
         >
           {isGoalFinished ? (
             <>
