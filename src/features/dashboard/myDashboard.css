@@ -2,9 +2,13 @@
 
 .md-page { max-width: 1180px; padding-bottom: 2.5rem; }
 
+/* The learner picks --md-accent. Text uses a deeper shade on light surfaces and a lighter one on dark. */
+.md-root { --md-accent-text: color-mix(in srgb, var(--md-accent) 78%, black); --md-accent-on-white: color-mix(in srgb, var(--md-accent) 78%, black); }
+[data-theme="dark"] .md-root { --md-accent-text: color-mix(in srgb, var(--md-accent) 40%, white); }
+
 .md-kicker {
   font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--md-accent); display: inline-flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+  color: var(--md-accent-text); display: inline-flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
 }
 .md-muted { color: var(--gh-text-2); font-size: 0.86rem; margin: 0.2rem 0 0.6rem; }
 .md-sub { font-size: 0.95rem; margin: 0 0 0.5rem; color: var(--gh-heading); }
@@ -25,7 +29,7 @@
 .md-avatar {
   width: 88px; height: 88px; border-radius: 50%; flex-shrink: 0;
   display: grid; place-items: center; font-size: 2rem; font-weight: 800;
-  background: #fff; color: var(--md-accent); border: 4px solid rgba(255, 255, 255, 0.5);
+  background: #fff; color: var(--md-accent-on-white); border: 4px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
 }
 .md-hero-text { flex: 1; min-width: 220px; }
@@ -44,7 +48,7 @@
   font-size: 0.8rem; font-weight: 600; background: var(--gh-subtle); color: var(--gh-text-2);
 }
 .md-hero .md-chip { background: rgba(255, 255, 255, 0.18); color: #fff; }
-.md-chip-level { background: #fff !important; color: var(--md-accent) !important; }
+.md-chip-level { background: #fff !important; color: var(--md-accent-on-white) !important; }
 .md-chip-streak { background: rgba(255, 170, 60, 0.28) !important; color: #fff !important; }
 .md-chip-toggle { border: 1px solid var(--gh-border); cursor: pointer; font: inherit; }
 .md-chip-toggle[aria-pressed='true'] { background: var(--md-accent); border-color: var(--md-accent); color: #fff; }
@@ -63,7 +67,7 @@
 .md-btn-light:hover:not(:disabled) { background: rgba(255, 255, 255, 0.28); border-color: #fff; }
 .md-link {
   background: none; border: 0; padding: 0; margin-top: 0.6rem; font: inherit; font-weight: 700;
-  font-size: 0.88rem; color: var(--md-accent); cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.88rem; color: var(--md-accent-text); cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;
 }
 .md-link:hover { text-decoration: underline; }
 .md-icon-btn {
@@ -132,7 +136,7 @@
 .md-journey-count { font-size: 0.72rem; color: var(--gh-text-3); }
 
 /* Goals */
-.md-countdown { font-size: 1.6rem; font-weight: 800; color: var(--md-accent); margin: 0.2rem 0 0.3rem; }
+.md-countdown { font-size: 1.6rem; font-weight: 800; color: var(--md-accent-text); margin: 0.2rem 0 0.3rem; }
 
 /* Check-in */
 .md-moods { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; }
@@ -141,7 +145,7 @@
   border: 1px solid var(--gh-border); background: var(--gh-surface); color: var(--gh-text-2);
   font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
 }
-.md-mood[aria-pressed='true'] { border-color: var(--md-accent); color: var(--md-accent); background: var(--gh-purple-50); }
+.md-mood[aria-pressed='true'] { border-color: var(--md-accent); color: var(--md-accent-text); background: var(--gh-purple-50); }
 .md-tip { margin: 0.6rem 0 0; font-size: 0.88rem; color: var(--gh-text); }
 .md-prompt { margin-top: 1rem; padding: 0.8rem 0.9rem; border-radius: 12px; background: var(--gh-purple-50); }
 .md-prompt p { margin: 0.25rem 0 0; font-size: 1rem; font-weight: 700; color: var(--gh-heading); }
@@ -154,7 +158,7 @@
 }
 .md-picked-card:hover { border-color: var(--md-accent); }
 .md-picked-card .md-chips { margin-top: 0.3rem; }
-.md-picked-card .md-chip { background: var(--gh-purple-50); color: var(--gh-purple-600); }
+.md-picked-card .md-chip { background: var(--gh-purple-50); color: var(--gh-purple-text); }
 
 /* Badges */
 .md-badges { list-style: none; margin: 0.6rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.6rem; }
@@ -238,7 +242,7 @@
 
 .md-goal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; }
 .md-goal-head { display: flex; gap: 0.45rem; align-items: flex-start; font-size: 0.9rem; color: var(--gh-heading); font-weight: 600; margin-bottom: 0.3rem; }
-.md-goal-head svg { color: var(--md-accent); flex-shrink: 0; margin-top: 2px; }
+.md-goal-head svg { color: var(--md-accent-text); flex-shrink: 0; margin-top: 2px; }
 .md-goal-list li[data-done] .md-goal-head svg { color: var(--gh-green-text); }
 .md-habit { margin-top: 0.85rem; padding: 0.7rem 0.8rem; border-radius: 12px; background: var(--gh-subtle); display: grid; gap: 0.35rem; }
 .md-habit p { margin: 0; font-size: 0.9rem; color: var(--gh-heading); }
@@ -247,8 +251,8 @@
 .md-dots li[data-on] { background: var(--gh-green); }
 
 .md-skill { display: grid; gap: 0.35rem; }
-.md-skill-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--gh-purple-50); color: var(--md-accent); }
-.md-tagline-sm { margin: 0; color: var(--md-accent); font-weight: 600; font-size: 0.9rem; }
+.md-skill-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--gh-purple-50); color: var(--md-accent-text); }
+.md-tagline-sm { margin: 0; color: var(--md-accent-text); font-weight: 600; font-size: 0.9rem; }
 
 .md-notes { display: grid; gap: 0.7rem; }
 .md-notes-form { display: grid; gap: 0.45rem; }

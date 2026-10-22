@@ -18,7 +18,7 @@
 
 /* ---------- Avatars ---------- */
 .ms-avatar { width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center;
-  background: var(--gh-purple-50); color: var(--gh-purple-600); font-weight: 700; font-size: 0.9rem; }
+  background: var(--gh-purple-50); color: var(--gh-purple-text); font-weight: 700; font-size: 0.9rem; }
 .ms-avatar-group { background: var(--gh-green-50); color: var(--gh-green-text); }
 .ms-avatar-sm { width: 30px; height: 30px; font-size: 0.72rem; align-self: flex-end; }
 .ms-avatar-lg { width: 64px; height: 64px; font-size: 1.3rem; }
@@ -44,7 +44,7 @@
 .ms-item-preview { font-size: 0.84rem; color: var(--gh-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .ms-item.unread strong { font-weight: 800; }
 .ms-item.unread .ms-item-preview { color: var(--gh-text); font-weight: 600; }
-.ms-item.unread time { color: var(--gh-purple); font-weight: 700; }
+.ms-item.unread time { color: var(--gh-purple-text); font-weight: 700; }
 .ms-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--gh-purple); color: #fff;
   font-size: 0.72rem; font-weight: 700; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
 .ms-list-empty { padding: 2rem 1.25rem; text-align: center; color: var(--gh-text-3); font-size: 0.9rem; display: flex; flex-direction: column;
@@ -76,7 +76,7 @@
 .ms-row.mine { align-self: flex-end; flex-direction: row-reverse; }
 .ms-bubble-wrap { display: flex; flex-direction: column; min-width: 0; }
 .ms-row.mine .ms-bubble-wrap { align-items: flex-end; }
-.ms-sender { font-size: 0.74rem; font-weight: 700; color: var(--gh-purple-600); margin: 0 0 0.15rem 0.6rem; }
+.ms-sender { font-size: 0.74rem; font-weight: 700; color: var(--gh-purple-text); margin: 0 0 0.15rem 0.6rem; }
 .ms-bubble { background: var(--gh-surface); color: var(--gh-text); border: 1px solid var(--gh-border); border-radius: 18px 18px 18px 6px;
   padding: 0.5rem 0.8rem; font-size: 0.93rem; line-height: 1.45; min-width: 0; max-width: 100%; box-sizing: border-box; }
 .ms-row.mine .ms-bubble { background: var(--gh-purple); border-color: var(--gh-purple); color: #fff; border-radius: 18px 18px 6px 18px; }
@@ -103,7 +103,7 @@
 .ms-file { display: flex; align-items: center; gap: 0.6rem; min-width: 220px; max-width: 320px; padding: 0.55rem 0.7rem; border-radius: 12px;
   background: var(--gh-subtle); color: var(--gh-text); text-decoration: none; }
 .ms-row.mine .ms-file { background: rgba(255, 255, 255, 0.16); color: #fff; }
-.ms-file-icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--gh-surface); color: var(--gh-purple); flex-shrink: 0; }
+.ms-file-icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--gh-surface); color: var(--gh-purple-text); flex-shrink: 0; }
 .ms-file-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ms-file-name { font-weight: 600; font-size: 0.86rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ms-file-meta { font-size: 0.74rem; opacity: 0.75; }
@@ -112,7 +112,7 @@
 .ms-voice { display: flex; align-items: center; gap: 0.6rem; min-width: 210px; max-width: 300px; }
 .ms-voice-btn { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
   background: var(--gh-purple); color: #fff; }
-.ms-voice.mine .ms-voice-btn { background: #fff; color: var(--gh-purple); }
+.ms-voice.mine .ms-voice-btn { background: #fff; color: var(--gh-purple-text); }
 .ms-voice-track { flex: 1; height: 6px; border-radius: 999px; background: var(--gh-border); overflow: hidden; cursor: pointer; }
 .ms-voice.mine .ms-voice-track { background: rgba(255, 255, 255, 0.35); }
 .ms-voice-track i { display: block; height: 100%; background: var(--gh-purple); border-radius: 999px; }
@@ -124,7 +124,7 @@
   display: flex; flex-direction: column; gap: 0.45rem; }
 .ms-composer.dragging { background: var(--gh-purple-50); }
 .ms-dropzone { position: absolute; inset: 0.3rem; border: 2px dashed var(--gh-purple); border-radius: 14px; display: grid; place-items: center;
-  font-weight: 700; color: var(--gh-purple-600); background: var(--gh-purple-50); z-index: 2; pointer-events: none; }
+  font-weight: 700; color: var(--gh-purple-text); background: var(--gh-purple-50); z-index: 2; pointer-events: none; }
 .ms-problem { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.84rem; color: var(--gh-red);
   background: var(--gh-red-50); border-radius: 10px; padding: 0.45rem 0.6rem; }
 .ms-problem button { border: 0; background: none; color: inherit; cursor: pointer; display: grid; }
@@ -132,7 +132,7 @@
 .ms-pending li { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.4rem 0.35rem 0.35rem; border-radius: 12px;
   background: var(--gh-subtle); flex-shrink: 0; max-width: 240px; }
 .ms-pending img, .ms-pending-ext { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
-.ms-pending-ext { display: grid; place-items: center; background: var(--gh-surface); color: var(--gh-purple); font-size: 0.7rem; font-weight: 800; }
+.ms-pending-ext { display: grid; place-items: center; background: var(--gh-surface); color: var(--gh-purple-text); font-size: 0.7rem; font-weight: 800; }
 .ms-pending-name { display: flex; flex-direction: column; min-width: 0; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ms-pending-name small { color: var(--gh-text-3); }
 .ms-progress { height: 4px; border-radius: 999px; background: var(--gh-subtle); overflow: hidden; }
@@ -165,7 +165,7 @@
 .ms-placeholder { margin: auto; text-align: center; color: var(--gh-text-2); padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
 .ms-placeholder h2 { margin: 0; color: var(--gh-heading); font-size: 1.2rem; }
 .ms-placeholder p { margin: 0; max-width: 40ch; }
-.ms-placeholder-icon { width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; background: var(--gh-purple-50); color: var(--gh-purple); }
+.ms-placeholder-icon { width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; background: var(--gh-purple-50); color: var(--gh-purple-text); }
 
 /* ---------- New chat dialog ---------- */
 .ms-modal-back { position: fixed; inset: 0; z-index: 1600; background: rgba(15, 23, 42, 0.45); display: grid; place-items: center; padding: 16px; }
@@ -180,7 +180,7 @@
   border: 1px solid var(--gh-border-strong); background: var(--gh-surface); font: inherit; color: var(--gh-text-2); font-size: 0.8rem; }
 .ms-choice button span { display: flex; flex-direction: column; gap: 0.15rem; }
 .ms-choice strong { color: var(--gh-heading); font-size: 0.9rem; }
-.ms-choice button[aria-checked="true"] { border-color: var(--gh-purple); background: var(--gh-purple-50); color: var(--gh-purple-600); }
+.ms-choice button[aria-checked="true"] { border-color: var(--gh-purple); background: var(--gh-purple-50); color: var(--gh-purple-text); }
 .ms-field { display: flex; flex-direction: column; gap: 0.35rem; }
 .ms-field > span { font-weight: 600; font-size: 0.86rem; }
 .ms-field em { font-weight: 400; color: var(--gh-text-3); }

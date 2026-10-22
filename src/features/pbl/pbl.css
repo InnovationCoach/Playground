@@ -1,6 +1,6 @@
 /* PBL Studio. Builds on admin.css (.gh-app tokens); every class is pb- prefixed. */
 .pb-page { max-width: 1180px; }
-.pb-kicker { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gh-purple-600); }
+.pb-kicker { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gh-purple-text); }
 .pb-draft { text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 0.72rem; padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--gh-amber-50); color: var(--gh-amber-text); }
 .pb-sub { color: var(--gh-text-2); font-size: 0.87rem; margin: 0.25rem 0 0.5rem; }
 .pb-muted { color: var(--gh-text-3); font-size: 0.8rem; }
@@ -51,17 +51,17 @@
 .pb-bullets { margin: 0 0 0.5rem; padding-left: 1.1rem; font-size: 0.9rem; }
 .pb-bullets li + li { margin-top: 0.25rem; }
 .pb-chips { list-style: none; margin: 0 0 0.25rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.pb-chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--gh-purple-50); color: var(--gh-purple-600); font-size: 0.78rem; font-weight: 600; cursor: help; }
+.pb-chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--gh-purple-50); color: var(--gh-purple-text); font-size: 0.78rem; font-weight: 600; cursor: help; }
 .pb-chip-adv { background: #fbeaf2; color: #9a1f5e; }
 .pb-chips-sm .pb-chip { font-size: 0.72rem; }
 .pb-code { font-family: ui-monospace, Menlo, monospace; font-size: 0.72rem; opacity: 0.75; }
 .pb-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .pb-pill { border: 1px solid var(--gh-border-strong); background: var(--gh-surface); color: var(--gh-text-2); border-radius: 999px; padding: 0.35rem 0.8rem; font: 500 0.84rem var(--gh-font); cursor: pointer; min-height: 34px; }
-.pb-pill[aria-pressed="true"] { background: var(--gh-purple-50); border-color: var(--gh-purple); color: var(--gh-purple-600); font-weight: 600; }
+.pb-pill[aria-pressed="true"] { background: var(--gh-purple-50); border-color: var(--gh-purple); color: var(--gh-purple-text); font-weight: 600; }
 .pb-textarea { min-height: 0 !important; }
 .pb-field { margin-bottom: 0.8rem; }
 .pb-mini-list { display: grid; gap: 0.35rem; }
-.pb-link { display: inline-flex; align-items: center; gap: 0.35rem; background: none; border: none; padding: 0.2rem 0; cursor: pointer; color: var(--gh-purple-600); font: 600 0.88rem var(--gh-font); }
+.pb-link { display: inline-flex; align-items: center; gap: 0.35rem; background: none; border: none; padding: 0.2rem 0; cursor: pointer; color: var(--gh-purple-text); font: 600 0.88rem var(--gh-font); }
 .pb-link:hover { text-decoration: underline; }
 .pb-meter { height: 8px; border-radius: 999px; background: var(--gh-subtle); overflow: hidden; margin-bottom: 0.75rem; }
 .pb-meter span { display: block; height: 100%; background: var(--gh-green); border-radius: 999px; transition: width 0.3s; }
@@ -83,7 +83,7 @@
 .pb-ev-phase { font-size: 0.74rem; color: var(--gh-text-3); }
 .pb-del { padding: 0.2rem 0.4rem; min-height: 28px; }
 .pb-kind { font-size: 0.7rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 6px; background: var(--gh-subtle); color: var(--gh-text-2); }
-.pb-kind-ai { background: var(--gh-purple-50); color: var(--gh-purple-600); }
+.pb-kind-ai { background: var(--gh-purple-50); color: var(--gh-purple-text); }
 .pb-kind-code { background: #eef0fb; color: #3b4a9a; }
 .pb-kind-data { background: var(--gh-amber-50); color: var(--gh-amber-text); }
 .pb-kind-feedback { background: #eef6ff; color: #1d5a8f; }
@@ -92,7 +92,7 @@
 .pb-ai-log dt { font-weight: 600; color: var(--gh-text-3); }
 .pb-ai-log dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .pb-code-block { margin: 0.5rem 0; padding: 0.75rem 0.9rem; background: #0f1b2d; color: #e6ecf7; border-radius: 8px; overflow-x: auto; white-space: pre; line-height: 1.45; }
-.pb-ev-link { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.84rem; color: var(--gh-purple-600); margin: 0.25rem 0; overflow-wrap: anywhere; }
+.pb-ev-link { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.84rem; color: var(--gh-purple-text); margin: 0.25rem 0; overflow-wrap: anywhere; }
 
 /* Co-pilot */
 .pb-copilot { position: sticky; top: 124px; border-color: var(--gh-purple-100); }
@@ -119,17 +119,17 @@
 .pb-pe-code { font-family: ui-monospace, Menlo, monospace; font-size: 0.76rem; font-weight: 700; color: #1d5a8f; background: #eef6ff; padding: 0.05rem 0.4rem; border-radius: 5px; white-space: nowrap; }
 .pb-bridge { font-size: 0.86rem; margin: 0.5rem 0; }
 .pb-note { font-size: 0.8rem; color: var(--gh-amber-text); background: var(--gh-amber-50); padding: 0.4rem 0.6rem; border-radius: 8px; }
-.pb-disclose { display: inline-flex; align-items: center; gap: 0.35rem; background: none; border: none; padding: 0.3rem 0; cursor: pointer; font: 600 0.86rem var(--gh-font); color: var(--gh-purple-600); }
+.pb-disclose { display: inline-flex; align-items: center; gap: 0.35rem; background: none; border: none; padding: 0.3rem 0; cursor: pointer; font: 600 0.86rem var(--gh-font); color: var(--gh-purple-text); }
 .pb-disclose[aria-expanded="true"] svg { transform: rotate(180deg); }
 .pb-rubric-wrap { margin-top: 0.5rem; overflow-x: auto; }
 .pb-rubric { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 640px; }
 .pb-rubric th, .pb-rubric td { border: 1px solid var(--gh-border); padding: 0.5rem 0.55rem; vertical-align: top; text-align: left; text-transform: none; letter-spacing: normal; color: var(--gh-text); font-size: 0.8rem; background: var(--gh-surface); }
 .pb-rubric thead th { background: var(--gh-subtle); font-weight: 700; color: var(--gh-text-2); }
-.pb-rubric .pb-dim { color: var(--gh-purple-600); }
+.pb-rubric .pb-dim { color: var(--gh-purple-text); }
 .pb-rubric .pb-look { color: var(--gh-text-3); }
 .pb-rubric tbody th { width: 30%; font-weight: 400; }
 .pb-rubric tbody th strong { display: block; font-size: 0.84rem; }
-.pb-dim { font-size: 0.68rem; font-weight: 700; color: var(--gh-purple-600); }
+.pb-dim { font-size: 0.68rem; font-weight: 700; color: var(--gh-purple-text); }
 .pb-look { display: block; color: var(--gh-text-3); font-size: 0.76rem; margin-top: 0.25rem; font-weight: 400; }
 .pb-glance { min-width: 720px; font-size: 0.85rem; }
 
