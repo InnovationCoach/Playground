@@ -1,175 +1,156 @@
 import { useRef, useState } from 'react';
 import {
-  Brain, Lightbulb, Cpu, Megaphone, HeartHandshake, Mountain, ShieldCheck, Sparkles, Play, Copy, Check, ArrowRight, Users
+  Brain, Lightbulb, Cpu, Megaphone, HeartHandshake, Mountain, ShieldCheck, Sparkles, Copy, Check, Compass, Bot, ChartLine
 } from 'lucide-react';
-import { TERM } from '../pbl/content/pblModel.js';
-import { hrefFor } from '../../app/routes.js';
-import { VIDEO, WORRIES, SKILLS, PROMISES, AT_HOME } from './content.js';
+import { TERM, PHASES, AI_PRINCIPLES } from '../pbl/content/pblModel.js';
+import { SKILLS, GROWTH } from './content.js';
 import '../admin/admin.css';
 import './futureSkills.css';
 
 const ICONS = { Brain, Lightbulb, Cpu, Megaphone, HeartHandshake, Mountain, ShieldCheck };
+const phaseTitle = (id) => PHASES.find((p) => p.id === id)?.title || id;
+const skillsFor = (phaseId) => SKILLS.filter((s) => s.phases.includes(phaseId));
+
+const SECTIONS = [
+  { id: 'fs-skills', label: 'The seven skills', icon: Sparkles },
+  { id: 'fs-process', label: 'How you master them', icon: Compass },
+  { id: 'fs-ai', label: 'Your AI ground rules', icon: Bot },
+  { id: 'fs-growth', label: 'How you’ll know you’re growing', icon: ChartLine }
+];
 
 /**
- * Future Skills (#/future-skills): why AI in education is an opportunity,
- * not a threat, and the seven skills WeLearn builds with it. Copy lives in
- * content.js, with the rules for keeping it true.
+ * Future Skills (#/future-skills), for learners only. Explains WeLearn's seven
+ * Future Skills and how the design thinking phases and AI build them. It is an
+ * explainer, not a landing page: no calls to action. The phases and AI rules
+ * come from pblModel.js, so this page says what PBL Studio says.
  */
 export function FutureSkillsPage({ isPrimary }) {
-  const [active, setActive] = useState(SKILLS[0].id);
-  const skillsRef = useRef(null);
-
-  const openSkill = (id) => {
-    setActive(id);
-    skillsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  const [skill, setSkill] = useState(SKILLS[0].id);
+  const [phase, setPhase] = useState(PHASES[0].id);
+  const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   return (
     <div className="gh-app fs-page">
-      <Hero onPick={openSkill} />
-      <Worries />
-      <section className="fs-section fs-skills" id="fs-skills" ref={skillsRef} aria-labelledby="fs-skills-h">
-        <div className="fs-wrap">
-          <div className="fs-section-head">
-            <span className="fs-eyebrow">The 7 Future Skills</span>
-            <h2 id="fs-skills-h">Seven skills AI can’t practise for you</h2>
-            <p>Each one gets stronger when AI is used well. None of them can be done by AI on your behalf.</p>
+      <section className="fs-intro" aria-labelledby="fs-title">
+        <div className="fs-wrap fs-intro-grid">
+          <div className="fs-intro-copy">
+            <span className="fs-eyebrow"><Sparkles size={14} aria-hidden="true" />{TERM.theme}</span>
+            <h1 id="fs-title">Your Future Skills</h1>
+            <p className="fs-lead">
+              At WeLearn you build seven skills that matter in a world full of AI. You don’t learn them from a textbook.
+              You grow them by working on a real project, step by step, with the design thinking process, and with AI
+              as your co-pilot.
+            </p>
+            <p className="fs-lead fs-lead-sm">
+              AI can answer questions, write code and suggest ideas. It can’t decide what problem is worth solving,
+              listen to the people it affects, or take responsibility for the result. That part is you, and these skills
+              are how you get good at it.
+            </p>
           </div>
-          <SkillExplorer active={active} setActive={setActive} isPrimary={isPrimary} />
+          <nav className="fs-toc" aria-label="On this page">
+            <span className="fs-toc-title">On this page</span>
+            <ol>
+              {SECTIONS.map(({ id, label, icon: Icon }) => (
+                <li key={id}>
+                  <a href={`#${id}`} onClick={(e) => { e.preventDefault(); jump(id); }}>
+                    <Icon size={16} aria-hidden="true" />{label}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
         </div>
       </section>
-      <Promises />
-      <AtHome />
-      <section className="fs-section fs-final" aria-labelledby="fs-final-h">
-        <div className="fs-wrap fs-final-inner">
-          <h2 id="fs-final-h">Start with one skill this week.</h2>
-          <p>Pick the skill that excites you most, set one small goal, and build it into your term project.</p>
-          <div className="fs-actions">
-            <a className="gh-btn gh-btn-primary fs-btn-lg" href={hrefFor.goals()}>Set a goal<ArrowRight size={16} aria-hidden="true" /></a>
-            <a className="gh-btn fs-btn-lg fs-btn-onDark" href={hrefFor.pbl()}>Open PBL Studio</a>
+
+      <section className="fs-section" id="fs-skills" aria-labelledby="fs-skills-h">
+        <div className="fs-wrap">
+          <div className="fs-section-head">
+            <span className="fs-eyebrow">1 · The seven skills</span>
+            <h2 id="fs-skills-h">What you’re building</h2>
+            <p>Pick a skill to see why it matters, what it looks like at your age, and a way to practise it with AI.</p>
           </div>
+          <SkillExplorer active={skill} setActive={setSkill} isPrimary={isPrimary} onPhase={(id) => { setPhase(id); jump('fs-process'); }} />
+        </div>
+      </section>
+
+      <section className="fs-section fs-alt" id="fs-process" aria-labelledby="fs-process-h">
+        <div className="fs-wrap">
+          <div className="fs-section-head">
+            <span className="fs-eyebrow">2 · Design thinking</span>
+            <h2 id="fs-process-h">How you master them</h2>
+            <p>
+              Your term project follows the same phases every time: {PHASES.map((p) => p.title).join(', ')}. Each phase
+              trains different skills. Pick a phase to see what you do, which skills it builds, and how AI can help.
+            </p>
+          </div>
+          <PhaseExplorer active={phase} setActive={setPhase} onSkill={(id) => { setSkill(id); jump('fs-skills'); }} />
+        </div>
+      </section>
+
+      <section className="fs-section" id="fs-ai" aria-labelledby="fs-ai-h">
+        <div className="fs-wrap">
+          <div className="fs-section-head">
+            <span className="fs-eyebrow">3 · Using AI well</span>
+            <h2 id="fs-ai-h">Your AI ground rules</h2>
+            <p>AI is your co-pilot, not your autopilot. These are the rules for using it at WeLearn. They are the same ones your coach uses.</p>
+          </div>
+          <ol className="fs-rules">
+            {AI_PRINCIPLES.map((r) => (
+              <li key={r.title}>
+                <strong>{r.title}</strong>
+                <p>{r.body}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="fs-note">
+            {isPrimary
+              ? 'You use AI together with your coach, not on your own, and voice input is switched off.'
+              : 'If you are under 13, you use AI together with your coach, not on your own, and voice input is switched off.'}
+          </p>
+        </div>
+      </section>
+
+      <section className="fs-section fs-alt" id="fs-growth" aria-labelledby="fs-growth-h">
+        <div className="fs-wrap">
+          <div className="fs-section-head">
+            <span className="fs-eyebrow">4 · Your progress</span>
+            <h2 id="fs-growth-h">How you’ll know you’re growing</h2>
+            <p>Skills grow slowly, so it helps to see them. Here is where your progress shows up.</p>
+          </div>
+          <ul className="fs-growth">
+            {GROWTH.map((g) => (
+              <li key={g.title}><strong>{g.title}</strong><p>{g.body}</p></li>
+            ))}
+          </ul>
         </div>
       </section>
     </div>
   );
 }
 
-/* ---------------- Hero ---------------- */
-
-function Hero({ onPick }) {
-  return (
-    <section className="fs-hero" aria-labelledby="fs-hero-h">
-      <div className="fs-wrap fs-hero-grid">
-        <div className="fs-hero-copy">
-          <span className="fs-eyebrow"><Sparkles size={14} aria-hidden="true" />{TERM.theme}</span>
-          <h1 id="fs-hero-h">
-            AI isn’t replacing our children’s thinking. <mark>It’s raising the bar for it.</mark>
-          </h1>
-          <p className="fs-lead">
-            At WeLearn, learners use AI the way a scientist uses a microscope: to see further, test ideas faster and ask
-            better questions. The thinking, the choices and the work stay theirs.
-          </p>
-          <div className="fs-actions">
-            <a className="gh-btn gh-btn-accent fs-btn-lg" href="#fs-skills"
-               onClick={(e) => { e.preventDefault(); onPick(SKILLS[0].id); }}>
-              Explore the 7 skills<ArrowRight size={16} aria-hidden="true" />
-            </a>
-            <a className="gh-btn fs-btn-lg" href={hrefFor.pbl()}>Start your term project</a>
-          </div>
-          <ul className="fs-chips" aria-label="The seven skills">
-            {SKILLS.map((s) => {
-              const Icon = ICONS[s.icon];
-              return (
-                <li key={s.id}>
-                  <button type="button" onClick={() => onPick(s.id)}><Icon size={14} aria-hidden="true" />{s.name}</button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-        <VideoFrame />
-      </div>
-    </section>
-  );
-}
-
-/** Square video frame. Speech, so it starts on a click, with sound, not muted autoplay. */
-function VideoFrame() {
-  const [playing, setPlaying] = useState(false);
-  const video = useRef(null);
-  const start = () => {
-    setPlaying(true);
-    requestAnimationFrame(() => video.current?.play().catch(() => {}));
-  };
-  return (
-    <figure className="fs-video">
-      <div className="fs-video-frame">
-        {playing ? (
-          <video ref={video} src={VIDEO.src} poster={VIDEO.poster} controls playsInline preload="auto"
-                 aria-label={`Video message from ${VIDEO.speaker}`} />
-        ) : (
-          <button type="button" className="fs-video-poster" onClick={start} aria-label={`Play the video message from ${VIDEO.speaker}, ${VIDEO.length}`}>
-            <img src={VIDEO.poster} alt="" width="900" height="900" />
-            <span className="fs-play"><Play size={26} aria-hidden="true" /></span>
-            <span className="fs-video-tag">Watch · {VIDEO.length}</span>
-          </button>
-        )}
-      </div>
-      <figcaption>
-        <strong>{VIDEO.speaker}</strong>
-        <span>on why we build these skills with AI, not against it</span>
-      </figcaption>
-    </figure>
-  );
-}
-
-/* ---------------- Is AI a threat? ---------------- */
-
-function Worries() {
-  return (
-    <section className="fs-section fs-worries" aria-labelledby="fs-worries-h">
-      <div className="fs-wrap">
-        <div className="fs-section-head">
-          <span className="fs-eyebrow">Is AI a threat to learning?</span>
-          <h2 id="fs-worries-h">Only if we use it badly.</h2>
-          <p>Parents and teachers raise real worries about AI. Here is what we hear most, and what we do about it.</p>
-        </div>
-        <ul className="fs-worry-grid">
-          {WORRIES.map((w) => (
-            <li key={w.worry} className="fs-worry">
-              <p className="fs-worry-q">{w.worry}</p>
-              <p className="fs-worry-a">{w.answer}</p>
-            </li>
-          ))}
-        </ul>
-        <blockquote className="fs-quote">
-          The goal isn’t to compete with AI. It’s to grow into the kind of person who knows what to do with it.
-        </blockquote>
-      </div>
-    </section>
-  );
-}
-
 /* ---------------- The seven skills ---------------- */
 
-function SkillExplorer({ active, setActive, isPrimary }) {
-  const index = Math.max(0, SKILLS.findIndex((s) => s.id === active));
-  const skill = SKILLS[index];
-  const Icon = ICONS[skill.icon];
-  const tabs = useRef([]);
-
+function useArrowTabs(items, activeId, setActive) {
+  const refs = useRef([]);
+  const index = Math.max(0, items.findIndex((x) => x.id === activeId));
   const onKey = (e) => {
     const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
     let next = null;
-    if (step) next = (index + step + SKILLS.length) % SKILLS.length;
+    if (step) next = (index + step + items.length) % items.length;
     if (e.key === 'Home') next = 0;
-    if (e.key === 'End') next = SKILLS.length - 1;
+    if (e.key === 'End') next = items.length - 1;
     if (next === null) return;
     e.preventDefault();
-    setActive(SKILLS[next].id);
-    tabs.current[next]?.focus();
+    setActive(items[next].id);
+    refs.current[next]?.focus();
   };
+  return { refs, index, onKey };
+}
 
+function SkillExplorer({ active, setActive, isPrimary, onPhase }) {
+  const { refs, index, onKey } = useArrowTabs(SKILLS, active, setActive);
+  const skill = SKILLS[index];
+  const Icon = ICONS[skill.icon];
   return (
     <div className="fs-explorer">
       <div className="fs-tabs" role="tablist" aria-label="Future skills" aria-orientation="vertical" onKeyDown={onKey}>
@@ -177,7 +158,7 @@ function SkillExplorer({ active, setActive, isPrimary }) {
           const TabIcon = ICONS[s.icon];
           const on = s.id === active;
           return (
-            <button key={s.id} ref={(el) => { tabs.current[i] = el; }} type="button" role="tab" id={`fs-tab-${s.id}`}
+            <button key={s.id} ref={(el) => { refs.current[i] = el; }} type="button" role="tab" id={`fs-tab-${s.id}`}
                     aria-selected={on} aria-controls="fs-panel" tabIndex={on ? 0 : -1}
                     className={`fs-tab${on ? ' on' : ''}`} onClick={() => setActive(s.id)}>
               <span className="fs-tab-icon"><TabIcon size={18} aria-hidden="true" /></span>
@@ -202,9 +183,17 @@ function SkillExplorer({ active, setActive, isPrimary }) {
           <div><span className="fs-age">Ages 13–17</span><p>{skill.teens}</p></div>
         </div>
         <TryIt text={skill.tryIt} isPrimary={isPrimary} />
-        <a className="fs-where" href={skill.where.href()}>
-          Practise it on WeLearn: <strong>{skill.where.label}</strong><ArrowRight size={15} aria-hidden="true" />
-        </a>
+        <div className="fs-built">
+          <span>You build it most in</span>
+          <div className="fs-phase-chips">
+            {skill.phases.map((id) => (
+              <button key={id} type="button" className="fs-phase-chip" onClick={() => onPhase(id)}
+                      aria-label={`${phaseTitle(id)} phase: show what you do there`}>
+                {phaseTitle(id)}
+              </button>
+            ))}
+          </div>
+        </div>
       </article>
     </div>
   );
@@ -229,7 +218,7 @@ function TryIt({ text, isPrimary }) {
   return (
     <div className="fs-try">
       <div className="fs-try-head">
-        <span><Sparkles size={14} aria-hidden="true" />Try it with AI</span>
+        <span><Sparkles size={14} aria-hidden="true" />Practise it with AI</span>
         <small>{isPrimary ? 'Do this one with your coach' : 'Ages 13+, or with your coach'}</small>
       </div>
       <p ref={box} className="fs-try-text">{text}</p>
@@ -242,46 +231,67 @@ function TryIt({ text, isPrimary }) {
   );
 }
 
-/* ---------------- Promises ---------------- */
+/* ---------------- Design thinking phases ---------------- */
 
-function Promises() {
+function PhaseExplorer({ active, setActive, onSkill }) {
+  const { refs, index, onKey } = useArrowTabs(PHASES, active, setActive);
+  const p = PHASES[index];
+  const skills = skillsFor(p.id);
   return (
-    <section className="fs-section fs-promises" aria-labelledby="fs-promises-h">
-      <div className="fs-wrap">
-        <div className="fs-section-head">
-          <span className="fs-eyebrow">How we use AI</span>
-          <h2 id="fs-promises-h">Our promises</h2>
-          <p>AI on WeLearn works under rules that put learners, and the people who care for them, first.</p>
-        </div>
-        <ul className="fs-promise-grid">
-          {PROMISES.map((p) => (
-            <li key={p.title}>
-              <span className="fs-promise-icon"><Check size={16} aria-hidden="true" /></span>
-              <strong>{p.title}</strong>
-              <p>{p.body}</p>
+    <div className="fs-phases">
+      <ol className="fs-stepper" role="tablist" aria-label="Design thinking phases" onKeyDown={onKey}>
+        {PHASES.map((ph, i) => {
+          const on = ph.id === active;
+          return (
+            <li key={ph.id} role="presentation">
+              <button ref={(el) => { refs.current[i] = el; }} type="button" role="tab" id={`fs-ph-${ph.id}`}
+                      aria-selected={on} aria-controls="fs-phase-panel" tabIndex={on ? 0 : -1}
+                      className={`fs-step${on ? ' on' : ''}${i < index ? ' done' : ''}`} onClick={() => setActive(ph.id)}>
+                <span className="fs-step-n">{i + 1}</span>
+                <span className="fs-step-text"><strong>{ph.title}</strong><small>Weeks {ph.weeks[0]}–{ph.weeks[1]}</small></span>
+              </button>
             </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
+          );
+        })}
+      </ol>
 
-/* ---------------- At home ---------------- */
-
-function AtHome() {
-  return (
-    <section className="fs-section fs-home" aria-labelledby="fs-home-h">
-      <div className="fs-wrap">
-        <div className="fs-section-head">
-          <span className="fs-eyebrow"><Users size={14} aria-hidden="true" />For families</span>
-          <h2 id="fs-home-h">Talk about it at dinner</h2>
-          <p>Three questions that show you how your child is really using AI, and what they are learning from it.</p>
+      <article className="fs-phase" id="fs-phase-panel" role="tabpanel" aria-labelledby={`fs-ph-${p.id}`} key={p.id}>
+        <div className="fs-phase-main">
+          <span className="fs-panel-count">Phase {index + 1} of {PHASES.length} · Weeks {p.weeks[0]}–{p.weeks[1]}</span>
+          <h3>{p.title}<span className="fs-phase-strap"> · {p.strap}</span></h3>
+          <p className="fs-panel-why">{p.goal}</p>
+          <div className="fs-phase-cols">
+            <div>
+              <h4>What you do</h4>
+              <ul className="fs-list">{p.tasks.map((t) => <li key={t}>{t}</li>)}</ul>
+            </div>
+            <div>
+              <h4>What you collect</h4>
+              <ul className="fs-list">{p.evidence.map((t) => <li key={t}>{t}</li>)}</ul>
+            </div>
+          </div>
         </div>
-        <ol className="fs-home-list">
-          {AT_HOME.map((q) => <li key={q}>{q}</li>)}
-        </ol>
-      </div>
-    </section>
+        <aside className="fs-phase-side">
+          <h4>Skills you build here</h4>
+          {skills.length ? (
+            <div className="fs-phase-chips">
+              {skills.map((s) => {
+                const Icon = ICONS[s.icon];
+                return (
+                  <button key={s.id} type="button" className="fs-phase-chip" onClick={() => onSkill(s.id)}
+                          aria-label={`${s.name}: show this skill`}>
+                    <Icon size={14} aria-hidden="true" />{s.name}
+                  </button>
+                );
+              })}
+            </div>
+          ) : <p className="fs-muted">All seven, a little at a time.</p>}
+          <h4>How AI can help</h4>
+          <ul className="fs-prompts">
+            {p.ai.slice(0, 2).map((t) => <li key={t}>“{t}”</li>)}
+          </ul>
+        </aside>
+      </article>
+    </div>
   );
 }

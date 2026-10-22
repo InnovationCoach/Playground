@@ -320,7 +320,7 @@ export function App() {
 
       {role === 'student' && !isPrimary && user && route?.screen !== 'goals' && <DailyGoalsNotice uid={user.uid} />}
 
-      {route?.screen === 'futureSkills' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
+      {route?.screen === 'futureSkills' && role === 'student' ? (
         <FutureSkillsPage isPrimary={isPrimary} />
       ) : route?.screen === 'pbl' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
         <div className="gh-app">

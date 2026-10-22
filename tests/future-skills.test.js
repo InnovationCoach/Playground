@@ -1,10 +1,13 @@
 /**
- * Future Skills page content: seven complete skills, links that resolve to a
- * real screen, and the route.
+ * Learner Future Skills page: seven complete skills, each tied to real design
+ * thinking phases, every phase building at least one skill, and the route.
  */
 import { describe, it, expect } from 'vitest';
-import { SKILLS, WORRIES, PROMISES, AT_HOME, VIDEO } from '../src/features/futureSkills/content.js';
+import { SKILLS, GROWTH } from '../src/features/futureSkills/content.js';
+import { PHASES, AI_PRINCIPLES } from '../src/features/pbl/content/pblModel.js';
 import { parseRoute, hrefFor } from '../src/app/routes.js';
+
+const phaseIds = new Set(PHASES.map((p) => p.id));
 
 describe('future skills content', () => {
   it('has exactly seven skills, each complete and unique', () => {
@@ -15,15 +18,30 @@ describe('future skills content', () => {
     }
   });
 
-  it('every "practise it" link opens a real screen', () => {
-    for (const s of SKILLS) expect(parseRoute(s.where.href()), s.id).not.toBeNull();
+  it('ties every skill to real design thinking phases', () => {
+    for (const s of SKILLS) {
+      expect(s.phases.length, s.id).toBeGreaterThan(0);
+      for (const p of s.phases) expect(phaseIds.has(p), `${s.id} -> ${p}`).toBe(true);
+    }
   });
 
-  it('has the supporting sections', () => {
-    expect(WORRIES).toHaveLength(3);
-    expect(PROMISES.length).toBeGreaterThanOrEqual(4);
-    expect(AT_HOME).toHaveLength(3);
-    expect(VIDEO.src).toMatch(/^https:\/\/res\.cloudinary\.com\/dkplz6vbx\/video\//);
+  it('every phase builds at least one skill', () => {
+    for (const p of PHASES) expect(SKILLS.some((s) => s.phases.includes(p.id)), p.id).toBe(true);
+  });
+
+  it('reuses the AI rules and phases learners already see in PBL Studio', () => {
+    expect(AI_PRINCIPLES.length).toBeGreaterThan(0);
+    for (const p of PHASES) {
+      expect(p.goal).toBeTruthy();
+      expect(p.tasks.length).toBeGreaterThan(0);
+      expect(p.ai.length).toBeGreaterThan(0);
+    }
+    expect(GROWTH.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('is written to the learner, not as a sales page', () => {
+    const text = JSON.stringify(SKILLS) + JSON.stringify(GROWTH);
+    expect(text).not.toMatch(/sign up|book a|talk to us|contact us|enrol now/i);
   });
 
   it('#/future-skills is the page', () => {

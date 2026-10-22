@@ -30,9 +30,6 @@ export function TopNav({ role, view, onNavigate, onOpenGoals, onOpenCourses, isP
         <NavLink icon={Rocket} active={view === 'pbl'} onClick={() => { window.location.hash = '#/pbl'; }}>
           {t('nav.pblFramework')}
         </NavLink>
-        <NavLink icon={Sparkles} active={view === 'futureSkills'} onClick={() => { window.location.hash = hrefFor.futureSkills(); }}>
-          {t('nav.futureSkills')}
-        </NavLink>
         <NavLink icon={Users} active={view === 'community'} onClick={() => { window.location.hash = '#/community'; }}>
           Community
         </NavLink>
