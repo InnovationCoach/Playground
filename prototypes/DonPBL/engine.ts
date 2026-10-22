@@ -489,3 +489,92 @@ export function simulateMarketStep(
     latestCost: productionCost
   };
 }
+
+/**
+ * Pure deterministic calculator for the Interstellar Ark 500-Colonist Closed-Loop Biosphere (ECLSS),
+ * 1,500 THB classroom prototyping budget, and Red-Team stochastic crisis survival margins.
+ * Guarded against NaN and Infinity.
+ */
+export function simulateArkBiosphere(params: {
+  colonistCount?: number;
+  hydroponicAreaSqM: number;
+  algaeBioreactorLiters: number;
+  waterRecoveryEfficiencyPct: number;
+  restorativeSpacePct: number;
+  repairDroneBays: number;
+  prototypingCostTHB: number;
+  caloricShockPct?: number;
+  waterShockPct?: number;
+  moraleShockPts?: number;
+}) {
+  const colonists = Number.isFinite(params.colonistCount) && (params.colonistCount || 0) > 0
+    ? Math.floor(params.colonistCount!)
+    : 500;
+  const hydroArea = Number.isFinite(params.hydroponicAreaSqM) ? Math.max(0, params.hydroponicAreaSqM) : 0;
+  const algaeLiters = Number.isFinite(params.algaeBioreactorLiters) ? Math.max(0, params.algaeBioreactorLiters) : 0;
+  const waterRecPct = Number.isFinite(params.waterRecoveryEfficiencyPct)
+    ? Math.min(100, Math.max(0, params.waterRecoveryEfficiencyPct))
+    : 0;
+  const restorativePct = Number.isFinite(params.restorativeSpacePct)
+    ? Math.min(50, Math.max(0, params.restorativeSpacePct))
+    : 0;
+  const droneBays = Number.isFinite(params.repairDroneBays) ? Math.max(0, Math.floor(params.repairDroneBays)) : 0;
+  const protoTHB = Number.isFinite(params.prototypingCostTHB) ? Math.max(0, Math.round(params.prototypingCostTHB)) : 0;
+
+  const calShock = Number.isFinite(params.caloricShockPct)
+    ? Math.min(95, Math.max(0, params.caloricShockPct!))
+    : 0;
+  const waterShock = Number.isFinite(params.waterShockPct)
+    ? Math.min(95, Math.max(0, params.waterShockPct!))
+    : 0;
+  const moraleShock = Number.isFinite(params.moraleShockPts)
+    ? Math.max(0, params.moraleShockPts!)
+    : 0;
+
+  // Target: 2,500 kcal/colonist/day -> 1,250,000 kcal/day for 500 colonists
+  const targetDailyKcal = colonists * 2500;
+  // Hydroponics yields ~620 kcal/m2/day; Spirulina bioreactors yield ~110 kcal/L/day (immune to root-rot blight)
+  const effectiveHydroKcal = Math.round(hydroArea * 620 * (1 - calShock / 100));
+  const algaeKcal = Math.round(algaeLiters * 110);
+  const dailyKcalProduced = effectiveHydroKcal + algaeKcal;
+  const caloricSufficiencyPct = targetDailyKcal > 0
+    ? Math.min(150, Math.round((dailyKcalProduced / targetDailyKcal) * 1000) / 10)
+    : 0;
+
+  // Oxygen loop: hydro + algae O2 generation vs colonist demand
+  const o2TargetUnits = colonists;
+  const o2GeneratedUnits = hydroArea * 0.24 + algaeLiters * 0.065;
+  const oxygenSufficiencyPct = o2TargetUnits > 0
+    ? Math.min(150, Math.round((o2GeneratedUnits / o2TargetUnits) * 1000) / 10)
+    : 0;
+
+  // Water loop net efficiency after crisis shock + drone repair recovery (+1.5% per drone bay under shock)
+  const droneRecoveryBoost = waterShock > 0 ? Math.min(waterShock, droneBays * 2.5) : 0;
+  const netWaterLoopPct = Math.min(100, Math.max(0, Math.round((waterRecPct - waterShock + droneRecoveryBoost) * 10) / 10));
+
+  // Crew psychological morale (0..100)
+  const baseMorale = 52 + restorativePct * 1.6 + (caloricSufficiencyPct >= 100 ? 12 : -15) + droneBays * 2;
+  const moraleScore = Math.min(100, Math.max(0, Math.round(baseMorale - moraleShock)));
+
+  const withinThbBudget = protoTHB <= 1500;
+  const isSelfSustaining =
+    caloricSufficiencyPct >= 100 &&
+    oxygenSufficiencyPct >= 100 &&
+    netWaterLoopPct >= 95 &&
+    moraleScore >= 65 &&
+    withinThbBudget;
+
+  return {
+    colonists,
+    targetDailyKcal,
+    dailyKcalProduced,
+    caloricSufficiencyPct,
+    oxygenSufficiencyPct,
+    netWaterLoopPct,
+    moraleScore,
+    prototypingCostTHB: protoTHB,
+    withinThbBudget,
+    isSelfSustaining
+  };
+}
+

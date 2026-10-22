@@ -13,13 +13,14 @@ This directory contains the isolated Project-Based Learning (PBL) prototype buil
 
 Key architectural properties:
 - **100% Isolated inside `prototypes/DonPBL/`**: No root configuration (`package.json`, `vite.config.*`, `firestore.rules`, `firebase.json`), `src/`, `server/`, `scripts/`, or GitHub workflows are modified.
-- **6 Complete 12-Week (120-Hour) PBL Programs + 1 Explicit Stub**:
-  1. `entrepreneurship-product-creation-2026` — **PBL: Entrepreneurship: Product Creation** (12 Weeks / 120h • 18 Sessions)
-  2. `storytelling-genesis-2026` — **Project "Genesis Engine": Creative IP & Cinematic Narrative** (12 Weeks / 120h • 24 Sessions)
-  3. `passion-project-blueprint-2026` — **The Passion Project Blueprint: Discovering Your Next Big Idea** (12 Weeks / 120h • 24 Sessions)
-  4. `biomechanics-robotics-2026` — **Quantitative Biomechanics & Bio-Inspired Robotics** (12 Weeks / 120h • 24 Sessions)
-  5. `hex-city-thailand-2026` — **Hex-City Thailand: Modular Resilient Floating City** (12 Weeks / 120h • 24 Sessions)
-  6. `ecocool-smart-garden-2026` — **EcoCool: Smart Urban Heat & Community Garden Monitor** (12 Weeks / 120h • 24 Sessions)
+- **7 Complete 12-Week (120-Hour) PBL Programs + 1 Explicit Stub**:
+  1. `interstellar-ark-horizon-2026` — **Engineering Humanity's Next Horizon: Interstellar Ark & Exoplanet Civilization** (12 Weeks / 120h • 24 Sessions)
+  2. `entrepreneurship-product-creation-2026` — **PBL: Entrepreneurship: Product Creation** (12 Weeks / 120h • 18 Sessions)
+  3. `storytelling-genesis-2026` — **Project "Genesis Engine": Creative IP & Cinematic Narrative** (12 Weeks / 120h • 24 Sessions)
+  4. `passion-project-blueprint-2026` — **The Passion Project Blueprint: Discovering Your Next Big Idea** (12 Weeks / 120h • 24 Sessions)
+  5. `biomechanics-robotics-2026` — **Quantitative Biomechanics & Bio-Inspired Robotics** (12 Weeks / 120h • 24 Sessions)
+  6. `hex-city-thailand-2026` — **Hex-City Thailand: Modular Resilient Floating City** (12 Weeks / 120h • 24 Sessions)
+  7. `ecocool-smart-garden-2026` — **EcoCool: Smart Urban Heat & Community Garden Monitor** (12 Weeks / 120h • 24 Sessions)
   - *Stub Program (excluded from `PROGRAM_REGISTRY` and `PROGRAM_LIST` until dedicated sessions are authored)*: `cleanstream-stormwater-2026` (`status: 'stub'`, `totalSessions: 0`, `phases: []`).
 - **Offline Persistence (`prototypes/DonPBL/store.ts`)**:
   - Keys student projects by `(uid, pbl-<programId>)` so learners across different programs never overwrite each other's documents.
@@ -109,10 +110,11 @@ Because no external citation record with person, ISO date, and message source is
 
 ---
 
-## 5. Complete 6-Program Catalog Summary
+## 5. Complete 7-Program Catalog Summary
 
 | Program ID | Title | Duration | Contact Hours | Total Sessions | Phase Week Ranges |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| `interstellar-ark-horizon-2026` | Engineering Humanity's Next Horizon: Interstellar Ark & Exoplanet Civilization | 12 Weeks | 120h | **24 Sessions** | `[1,1], [2,2], [3,4], [5,6], [7,8], [9,10], [11,12]` |
 | `entrepreneurship-product-creation-2026` | PBL: Entrepreneurship: Product Creation | 12 Weeks | 120h | **18 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
 | `storytelling-genesis-2026` | Project "Genesis Engine": Creative IP & Cinematic Narrative | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
 | `passion-project-blueprint-2026` | The Passion Project Blueprint: Discovering Your Next Big Idea | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |

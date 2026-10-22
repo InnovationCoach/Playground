@@ -15,6 +15,7 @@ import { BiomechanicsSimulator } from './components/BiomechanicsSimulator';
 import { PassionBlueprintSimulator } from './components/PassionBlueprintSimulator';
 import { StorytellingSimulator } from './components/StorytellingSimulator';
 import { EntrepreneurshipSimulator } from './components/EntrepreneurshipSimulator';
+import { InterstellarArkSimulator } from './components/InterstellarArkSimulator';
 import { AiCopilotModal } from './components/AiCopilotModal';
 import { EvidenceModal } from './components/EvidenceModal';
 import { IntegrationDrawer } from './components/IntegrationDrawer';
@@ -58,6 +59,7 @@ export default function App() {
   const [isPassionSimulatorOpen, setIsPassionSimulatorOpen] = useState(false);
   const [isStorySimulatorOpen, setIsStorySimulatorOpen] = useState(false);
   const [isEntrepreneurshipSimulatorOpen, setIsEntrepreneurshipSimulatorOpen] = useState(false);
+  const [isArkSimulatorOpen, setIsArkSimulatorOpen] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [evidenceModalPhase, setEvidenceModalPhase] = useState<string>('prototype');
@@ -166,6 +168,7 @@ export default function App() {
         onOpenPassionSimulator={() => setIsPassionSimulatorOpen(true)}
         onOpenStorySimulator={() => setIsStorySimulatorOpen(true)}
         onOpenEntrepreneurshipSimulator={() => setIsEntrepreneurshipSimulatorOpen(true)}
+        onOpenArkSimulator={() => setIsArkSimulatorOpen(true)}
         onOpenCopilot={() => handleOpenCopilot()}
         onOpenIntegration={() => setIsIntegrationDrawerOpen(true)}
         onOpenAssumptions={() => setIsIntegrationDrawerOpen(true)}
@@ -292,6 +295,24 @@ export default function App() {
             handleUpdateProject(res.updatedProject);
           }
           setIsEntrepreneurshipSimulatorOpen(false);
+        }}
+      />
+
+      <InterstellarArkSimulator
+        isOpen={isArkSimulatorOpen}
+        onClose={() => setIsArkSimulatorOpen(false)}
+        onSaveToPortfolio={(title, summary) => {
+          const res = validateAndAddEvidence(activeProject, {
+            title,
+            phase: 'test',
+            kind: 'data',
+            body: summary,
+            competencies: ['ctps-05', 'ct-02', 'ent-01', 'sea-03']
+          });
+          if (res.success && res.updatedProject) {
+            handleUpdateProject(res.updatedProject);
+          }
+          setIsArkSimulatorOpen(false);
         }}
       />
 

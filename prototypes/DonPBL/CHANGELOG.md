@@ -9,6 +9,15 @@
 
 ## Change Log Entries
 
+### [2026-10-21] - Added "Engineering Humanity's Next Horizon: Interstellar Ark & Exoplanet Civilization" PBL
+- **Program Curriculum (`prototypes/DonPBL/interstellarArkProgram.ts`):**
+  - Authored `INTERSTELLAR_ARK_PROGRAM` (`id: 'interstellar-ark-horizon-2026'`), structured across all 7 Design Thinking phases (`explore`, `empathise`, `define`, `ideate`, `prototype`, `test`, `share`), `durationWeeks: 12` (10h/week, 120h total), and `totalSessions: 24`.
+  - Incorporated all 35 weekly activities from the PDF curriculum (Deep-Space Physiology/Psychology, Goldilocks Exoplanet Reconnaissance, 500-Colonist Closed-Loop ECLSS & THB/Tonnage Budgets, New World Constitution & Legal Code, Centrifuge/Propulsion & 100-Year Maintenance Drone Bays, 3D/Isometric Schematics & 1,500 THB Low-Fidelity Physical Scale Model, Red-Team Stochastic & Constitutional Crisis Trials, and 4-Pillar United Earth Exodus Council Pitch).
+  - Embedded the complete **WeLearn 7 Future Skills Framework Rubric** (Mastery Transcript Consortium aligned: Emerging, Proficient, Advanced, and Project Evidence Required).
+- **Interactive Digital Twin Simulator & Gamification (`prototypes/DonPBL/ui/components/InterstellarArkSimulator.tsx` & `engine.ts`):**
+  - Added `simulateArkBiosphere` in `engine.ts` to deterministically model 500-colonist caloric yield, oxygen regeneration, water loop recovery, crew psychological morale, 1,500 THB physical build budget compliance, and Red-Team crisis survival margins.
+  - Built `InterstellarArkSimulator.tsx` with 4 interactive tabs: (1) Goldilocks Exoplanet & Propulsion Configurator, (2) Digital Twin ECLSS & 1,500 THB Physical Model Planner, (3) Red-Team & Constitutional Crisis Arena, and (4) MTC 7 Future Skills Rubric & 7 Mission Badges (`ARK_GAMIFICATION_BADGES` / `ARK_GAMIFICATION_LEVELS`).
+
 ### [2026-10-20] - Platform Lead Pre-Migration Audit Remediation
 
 #### Fixed & Added

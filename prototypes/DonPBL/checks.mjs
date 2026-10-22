@@ -367,13 +367,52 @@ async function main() {
     const seededRun1 = simulateMarketStep(initialState, 20, 15, makeSeededRng(42));
     const seededRun2 = simulateMarketStep(initialState, 20, 15, makeSeededRng(42));
     assert.deepEqual(seededRun1, seededRun2);
+
+    // Also test simulateArkBiosphere deterministic 500-colonist ECLSS and crisis survival math
+    const { simulateArkBiosphere } = pbl;
+    const nominalArk = simulateArkBiosphere({
+      colonistCount: 500,
+      hydroponicAreaSqM: 1650,
+      algaeBioreactorLiters: 3200,
+      waterRecoveryEfficiencyPct: 98.5,
+      restorativeSpacePct: 22,
+      repairDroneBays: 6,
+      prototypingCostTHB: 1310
+    });
+    assert.equal(nominalArk.colonists, 500);
+    assert.equal(nominalArk.targetDailyKcal, 1250000);
+    assert.equal(nominalArk.dailyKcalProduced, 1375000);
+    assert.equal(nominalArk.withinThbBudget, true);
+    assert.equal(nominalArk.isSelfSustaining, true);
+
+    const badArk = simulateArkBiosphere({
+      hydroponicAreaSqM: Number.NaN,
+      algaeBioreactorLiters: Number.POSITIVE_INFINITY,
+      waterRecoveryEfficiencyPct: -50,
+      restorativeSpacePct: 200,
+      repairDroneBays: -2,
+      prototypingCostTHB: 2000
+    });
+    assert.equal(badArk.withinThbBudget, false);
+    assert.equal(badArk.isSelfSustaining, false);
   });
 
   // 8. Test PROGRAM_REGISTRY and PROGRAM_LIST alignment
   await runCheck('8. PROGRAM_REGISTRY keys match program.id and PROGRAM_LIST has identical IDs in order', () => {
-    const { PROGRAM_REGISTRY, PROGRAM_LIST, CLEAN_STREAM_PROGRAM } = pbl;
+    const {
+      PROGRAM_REGISTRY,
+      PROGRAM_LIST,
+      CLEAN_STREAM_PROGRAM,
+      ARK_WELEARN_MTC_RUBRIC,
+      ARK_GAMIFICATION_BADGES,
+      EXOPLANET_CANDIDATES
+    } = pbl;
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
-    assert.equal(registryKeys.length, 6, 'Expected 6 complete programs in PROGRAM_REGISTRY');
+    assert.equal(registryKeys.length, 7, 'Expected 7 complete programs in PROGRAM_REGISTRY');
+    assert.ok('interstellar-ark-horizon-2026' in PROGRAM_REGISTRY, 'interstellar-ark-horizon-2026 must be registered');
+    assert.equal(ARK_WELEARN_MTC_RUBRIC.length, 7, 'Expected all 7 WeLearn Future Skills in MTC rubric');
+    assert.equal(ARK_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Interstellar Ark');
+    assert.equal(EXOPLANET_CANDIDATES.length, 4, 'Expected 4 NASA Exoplanet Archive candidates');
 
     for (const [key, prog] of Object.entries(PROGRAM_REGISTRY)) {
       assert.equal(prog.id, key, `Registry key ${key} must equal program.id (${prog.id})`);

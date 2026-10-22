@@ -27,6 +27,7 @@ interface HeaderProps {
   onOpenPassionSimulator?: () => void;
   onOpenStorySimulator?: () => void;
   onOpenEntrepreneurshipSimulator?: () => void;
+  onOpenArkSimulator?: () => void;
   onOpenCopilot: () => void;
   onOpenIntegration: () => void;
   onOpenAssumptions: () => void;
@@ -50,6 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPassionSimulator,
   onOpenStorySimulator,
   onOpenEntrepreneurshipSimulator,
+  onOpenArkSimulator,
   onOpenCopilot,
   onOpenIntegration,
   onOpenAssumptions,
@@ -150,7 +152,16 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Action Controls & Role Switcher */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Quick interactive tools */}
-          {activeProgramId === 'entrepreneurship-product-creation-2026' ? (
+          {activeProgramId === 'interstellar-ark-horizon-2026' ? (
+            <button
+              onClick={onOpenArkSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-700 hover:bg-indigo-800 rounded-md transition-colors shadow-2xs"
+              title="Open Interstellar Ark & Exoplanet Civilization Digital Twin Simulator"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Interstellar Ark Digital Twin &amp; Crisis Hub
+            </button>
+          ) : activeProgramId === 'entrepreneurship-product-creation-2026' ? (
             <button
               onClick={onOpenEntrepreneurshipSimulator}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-md transition-colors shadow-2xs"

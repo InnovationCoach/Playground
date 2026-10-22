@@ -15,7 +15,8 @@ This document provides the pre-migration handover for `prototypes/DonPBL/` follo
 1. **Builds Cleanly with `esbuild`**: `prototypes/DonPBL/ui/pbl.ts` provides explicit named re-exports (`export { ... }` and `export type { ... }`) for `PblStudioApp.tsx` and all `ui/components/*.tsx` files.
 2. **Self-Contained Demo on Port 5180**: `prototypes/DonPBL/demo/` mounts `PblStudioApp` using the root's Vite binary (`node_modules/.bin/vite --config prototypes/DonPBL/demo/vite.config.mjs`) and pinned Tailwind Play CDN (`3.4.17`).
 3. **Real Automated Tests (`prototypes/DonPBL/checks.mjs`)**: Bundles the actual TypeScript modules via `esbuild` and tests `engine.ts`, `programRegistry.ts`, `mockFixtures.ts`, and `store.ts`.
-4. **6 Complete 12-Week (120-Hour) PBL Programs + 1 Stub**:
+4. **7 Complete 12-Week (120-Hour) PBL Programs + 1 Stub**:
+   - `interstellar-ark-horizon-2026` (12 Weeks / 120h • 24 Sessions)
    - `entrepreneurship-product-creation-2026` (12 Weeks / 120h • 18 Sessions)
    - `storytelling-genesis-2026` (12 Weeks / 120h • 24 Sessions)
    - `passion-project-blueprint-2026` (12 Weeks / 120h • 24 Sessions)
