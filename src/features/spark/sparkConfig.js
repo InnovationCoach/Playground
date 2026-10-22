@@ -27,7 +27,6 @@ const card = (id, icon, tone, status, route = null, ctx = null) => ({ id, icon, 
 export const SPARK_ROLES = {
   student: {
     tone: 'lime',
-    search: true,
     cards: [
       card('student.path', 'BookOpen', 'lime', 'live', hrefFor.courses()),
       card('student.projects', 'Rocket', 'purple', 'live', hrefFor.pbl('project'), 'project'),

@@ -75,6 +75,15 @@ describe('SPARK Home configuration', () => {
     for (const cfg of Object.values(SPARK_ROLES)) for (const c of cfg.cards) expect(cardHref(c, 'x') || '').not.toContain('messages');
   });
 
+  it('students have a Search for Programs menu item that opens the course search page', () => {
+    const nav = readFileSync(new URL('../src/features/shell/TopNav.jsx', import.meta.url), 'utf8');
+    expect(nav).toContain("t('nav.searchPrograms')");
+    expect(nav).toContain('hrefFor.homeSearch()');
+    for (const locale of ['en', 'zh', 'th']) expect(messages[locale]['nav.searchPrograms']).toBeTruthy();
+    expect(parseRoute(hrefFor.homeSearch())).toEqual({ screen: 'homeSearch', q: '' });
+    expect(ALLOWED.student).toContain('homeSearch');
+  });
+
   it('the legacy router lets #/spark through', () => {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
     const allow = /\^\(([^)]*)\)\(\\\/\|\$\)/.exec(html.slice(html.indexOf('Screens React routes itself')));

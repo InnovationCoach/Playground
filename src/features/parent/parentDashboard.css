@@ -16,7 +16,7 @@
 .pd-stat-label { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--gh-text-2); font-weight: 600; }
 .pd-stat-value { font: 700 1.65rem/1 var(--gh-font-display); color: var(--gh-heading); }
 .pd-stat-detail { font-size: 0.78rem; color: var(--gh-text-3); }
-.pd-tone-purple .pd-stat-label svg { color: var(--gh-purple); }
+.pd-tone-purple .pd-stat-label svg { color: var(--gh-purple-text); }
 .pd-tone-green .pd-stat-label svg { color: var(--gh-green-text); }
 .pd-tone-magenta .pd-stat-label svg { color: var(--gh-magenta); }
 .pd-tone-navy .pd-stat-label svg { color: var(--gh-navy); }
@@ -41,7 +41,7 @@
 .pd-section-head h2 { font: 700 1.02rem/1.3 var(--gh-font-display); color: var(--gh-heading); margin: 0; }
 .pd-aside { margin-left: auto; font-size: 0.78rem; color: var(--gh-text-3); white-space: nowrap; }
 .pd-icon { width: 32px; height: 32px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.pd-icon-purple { background: var(--gh-purple-50); color: var(--gh-purple); }
+.pd-icon-purple { background: var(--gh-purple-50); color: var(--gh-purple-text); }
 .pd-icon-green { background: var(--gh-green-50); color: var(--gh-green-text); }
 .pd-icon-magenta { background: var(--pd-magenta-50); color: var(--gh-magenta); }
 .pd-icon-navy { background: var(--pd-navy-50); color: var(--gh-navy); }
@@ -50,7 +50,7 @@
 .pd-kicker { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gh-text-3); }
 .pd-small { font-size: 0.8rem; color: var(--gh-text-3); }
 p.pd-small { margin: 0.35rem 0 0; }
-.pd-theme { margin: -0.4rem 0 0.75rem; font-weight: 600; color: var(--gh-purple); font-size: 0.88rem; }
+.pd-theme { margin: -0.4rem 0 0.75rem; font-weight: 600; color: var(--gh-purple-text); font-size: 0.88rem; }
 .pd-question { background: var(--gh-purple-50); border-radius: 10px; padding: 0.7rem 0.85rem; margin-bottom: 0.9rem; }
 .pd-question p { margin: 0.25rem 0 0; color: var(--gh-text); font-weight: 600; }
 .pd-now { margin: 0.5rem 0 0.8rem; font-size: 0.86rem; color: var(--gh-text-2); }
@@ -67,7 +67,7 @@ p.pd-small { margin: 0.35rem 0 0; }
 .pd-phases li[data-state="done"] .pd-phase-dot { background: var(--gh-green); border-color: var(--gh-green); color: var(--gh-green-ink); }
 .pd-phases li[data-state="current"] .pd-phase-dot { border-color: var(--gh-purple); box-shadow: 0 0 0 4px var(--gh-purple-50); }
 .pd-phase-name { font-size: 0.72rem; font-weight: 600; color: var(--gh-text-2); overflow-wrap: anywhere; }
-.pd-phases li[data-state="current"] .pd-phase-name { color: var(--gh-purple); }
+.pd-phases li[data-state="current"] .pd-phase-name { color: var(--gh-purple-text); }
 .pd-phase-count { font-size: 0.68rem; color: var(--gh-text-3); }
 
 .pd-goals, .pd-courses, .pd-domains, .pd-activities, .pd-results, .pd-comp-list, .pd-starters, .pd-timeline { list-style: none; padding: 0; margin: 0; }
@@ -93,7 +93,7 @@ p.pd-small { margin: 0.35rem 0 0; }
 .pd-courses > li + li { padding-top: 1rem; border-top: 1px solid var(--gh-border); }
 .pd-course-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
 .pd-details { margin-top: 0.55rem; }
-.pd-details > summary { cursor: pointer; font-size: 0.84rem; font-weight: 600; color: var(--gh-purple); list-style-position: inside; }
+.pd-details > summary { cursor: pointer; font-size: 0.84rem; font-weight: 600; color: var(--gh-purple-text); list-style-position: inside; }
 .pd-details > summary:focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 3px; border-radius: 4px; }
 .pd-score { margin-left: 0.5rem; font-weight: 500; color: var(--gh-text-3); }
 .pd-results { margin-top: 0.5rem; display: grid; gap: 0.4rem; }

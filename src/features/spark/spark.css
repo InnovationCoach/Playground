@@ -70,7 +70,7 @@
 .sk-mini ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
 .sk-mini li { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; font-size: 0.86rem; color: var(--gh-text-3); align-items: start; }
 .sk-mini li b, .sk-mini li a { display: block; color: var(--gh-text); font-weight: 600; text-decoration: none; }
-.sk-mini li a:hover { color: var(--gh-purple); text-decoration: underline; }
+.sk-mini li a:hover { color: var(--gh-purple-text); text-decoration: underline; }
 .sk-li-icon { color: var(--gh-text-3); margin-top: 0.15rem; }
 .sk-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 0.4rem; background: var(--gh-purple); }
 .sk-next { border-color: var(--gh-green); }
@@ -87,10 +87,10 @@
 .sk-empty { display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; background: var(--gh-surface); border: 1px solid var(--gh-border); border-radius: 14px; padding: 1.2rem 1.3rem; }
 .sk .sk-empty h2 { margin: 0; font: 700 1.05rem var(--gh-font-display); color: var(--gh-heading); }
 .sk-empty p { margin: 0.2rem 0 0; color: var(--gh-text-2); font-size: 0.9rem; }
-.sk-empty-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--gh-purple-50); color: var(--gh-purple); }
+.sk-empty-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--gh-purple-50); color: var(--gh-purple-text); }
 
 .sk-foot { max-width: 1180px; margin: 0 auto; padding: 1.75rem 1.5rem 2.25rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; color: var(--gh-text-3); font-size: 0.82rem; }
-.sk-tagline { font-weight: 600; color: var(--gh-purple); }
+.sk-tagline { font-weight: 600; color: var(--gh-purple-text); }
 
 @media (max-width: 640px) {
   .sk-hero-inner { padding: 1.6rem 1rem 1.8rem; }

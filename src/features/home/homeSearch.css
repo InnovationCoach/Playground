@@ -35,7 +35,7 @@
 .hs-clear:hover { background: var(--gh-subtle); color: var(--gh-text); }
 .hs-clear:focus-visible, .mc-add:focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 2px; }
 .hs-hint { margin: 0; color: var(--gh-text-3); font-size: 0.9rem; }
-.hs-hint a { color: var(--gh-purple); font-weight: 600; }
+.hs-hint a { color: var(--gh-purple-text); font-weight: 600; }
 .hs-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .hs-results { padding-top: 0.5rem; padding-bottom: 2.5rem; }
@@ -46,4 +46,4 @@
 .mc-card-btn { display: flex; flex-direction: column; gap: 0.5rem; }
 .mc-card-btn .gh-course { padding-right: 1.15rem; flex: 1; }
 .mc-add { width: 100%; }
-.mc-add.is-added { background: var(--gh-purple-50); border-color: var(--gh-purple-100); color: var(--gh-purple-600); }
+.mc-add.is-added { background: var(--gh-purple-50); border-color: var(--gh-purple-100); color: var(--gh-purple-text); }
