@@ -181,8 +181,47 @@
   .pb-steam-head { flex-wrap: wrap; }
 }
 
+/* Media in evidence: Canva designs, Cloudinary images/videos, YouTube (engine/mediaEmbed.js). */
+.pb-help { margin: 0.3rem 0 0; font-size: 0.8rem; color: var(--gh-text-3); }
+.pb-embed { margin: 0.6rem 0 0.2rem; border: 1px solid var(--gh-border); border-radius: 12px; overflow: hidden; background: var(--gh-subtle); max-width: 720px; }
+.pb-embed img, .pb-embed video { display: block; width: 100%; max-height: 460px; object-fit: contain; background: #0f1419; }
+.pb-embed-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; }
+.pb-embed-canva .pb-embed-frame { aspect-ratio: 4 / 3; }
+.pb-embed-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.pb-embed figcaption { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.4rem 0.7rem; font-size: 0.78rem; color: var(--gh-text-3); background: var(--gh-surface); }
+.pb-embed figcaption a { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--gh-purple-text); font-weight: 600; text-decoration: none; }
+.pb-embed-hint { display: flex; gap: 0.45rem; align-items: flex-start; margin: 0.5rem 0 0; padding: 0.55rem 0.75rem; border-radius: 10px; background: var(--gh-amber-50); color: var(--gh-amber-text); font-size: 0.84rem; }
+.pb-embed-hint svg { flex: none; margin-top: 0.1rem; }
+
+.pb-portfolio-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.pb-view-toggle { display: inline-flex; gap: 0.25rem; padding: 0.2rem; border-radius: 10px; background: var(--gh-subtle); }
+.pb-view-toggle .gh-btn { border-color: transparent; background: transparent; }
+.pb-view-toggle .gh-btn[aria-pressed="true"] { background: var(--gh-surface); border-color: var(--gh-border); color: var(--gh-purple-text); box-shadow: var(--gh-shadow-sm); }
+
+/* Showcase */
+.pb-showcase { display: grid; gap: 1.5rem; margin-top: 1rem; }
+.pb-sc-hero { border-radius: 16px; padding: 1.5rem 1.5rem 1.4rem; color: #fff; background: linear-gradient(120deg, #003c69, #3b2a63); display: grid; gap: 0.45rem; }
+.pb-sc-kicker { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #d6efa6; }
+.gh-app .pb-sc-hero h2 { color: #fff; font-size: clamp(1.3rem, 3vw, 1.75rem); line-height: 1.25; text-wrap: balance; max-width: 40ch; }
+.pb-sc-by { margin: 0; color: rgba(255, 255, 255, 0.82); font-weight: 600; }
+.pb-sc-facts { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0 0; font-size: 0.88rem; }
+.pb-sc-facts dt { color: rgba(255, 255, 255, 0.7); font-weight: 600; }
+.pb-sc-facts dd { margin: 0; color: #fff; }
+.pb-sc-phase { display: grid; gap: 0.75rem; }
+.gh-app .pb-sc-phase h3 { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; }
+.pb-sc-n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--gh-purple-50); color: var(--gh-purple-text); font-size: 0.85rem; font-weight: 800; }
+.pb-sc-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.9rem; }
+.pb-sc-card { display: grid; gap: 0.4rem; align-content: start; background: var(--gh-surface); border: 1px solid var(--gh-border); border-radius: 14px; padding: 0.9rem; min-width: 0; }
+.pb-sc-media { grid-column: span 2; }
+.pb-sc-card .pb-embed { margin: 0 0 0.3rem; max-width: none; }
+.pb-sc-card .pb-kind { justify-self: start; }
+.gh-app .pb-sc-card h4 { margin: 0; font: 700 0.98rem/1.3 var(--gh-font-display); color: var(--gh-heading); }
+.pb-sc-card p { margin: 0; font-size: 0.88rem; color: var(--gh-text-2); line-height: 1.5; overflow-wrap: anywhere; }
+.pb-sc-code { max-height: 180px; overflow: auto; font-size: 0.78rem; }
+@media (max-width: 640px) { .pb-sc-media { grid-column: auto; } .pb-sc-hero { padding: 1.2rem 1rem; } }
+
 @media print {
-  header.gh-topbar, .gh-subnav, .pb-hero, .pb-tabs, .pb-filters, .pb-del, .pb-sync, .pb-portfolio-head .gh-btn { display: none !important; }
+  header.gh-topbar, .gh-subnav, .pb-hero, .pb-tabs, .pb-filters, .pb-del, .pb-sync, .pb-portfolio-head .gh-btn, .pb-embed-frame { display: none !important; }
   .gh-app { background: #fff; }
   .pb-print-only { display: block; font-weight: 600; }
   .pb-code-block { background: #f4f4f4; color: #000; white-space: pre-wrap; }

@@ -374,7 +374,7 @@ export function App() {
         <div className="gh-app">
           <PblStudio uid={user?.uid} role={role} tab={route.tab} programId={route.programId} section={route.section}
                      classIds={role === 'student' ? (profile?.classIds || []) : (classIds || profile?.classIds || [])}
-                     onOpenActivity={navigate} />
+                     onOpenActivity={navigate} displayName={profile?.displayName} />
         </div>
       ) : role === 'student' && !isPrimary && route?.screen === 'homeSearch' ? (
         <HomeSearch uid={user?.uid} displayName={profile?.displayName} onOpenActivity={navigate} initialQuery={route.q} />
