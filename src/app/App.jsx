@@ -15,7 +15,7 @@ import { DailyGoalsNotice } from '../features/goals/DailyGoalsNotice.jsx';
 import { ParentPortal } from '../features/parent/ParentPortal.jsx';
 import { Worksheet, TeacherGuide, PrimaryResources } from '../features/primary/print/PrintSheets.jsx';
 import { LoginPage } from '../features/auth/LoginPage.jsx';
-import { TopNav } from '../features/shell/TopNav.jsx';
+import { Sidebar, readCollapsed, writeCollapsed } from '../features/shell/Sidebar.jsx';
 import { Header } from '../features/shell/Header.jsx';
 import { StudentDashboard } from '../features/student/StudentDashboard.jsx';
 import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
@@ -42,11 +42,14 @@ export function App() {
   const { status, user, profile, role, classIds, error, signOut, refreshProfile } = useAuth();
   const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(readCollapsed);
   // Primary learners get Junior Explorers only: no secondary activities, no AI
   // chatbot and no goal-setting popup (see the 2026-09-25 primary plan).
   const isPrimary = role === 'student' && isPrimaryProfile(profile);
 
   const route = parseRoute(hash);
+  useEffect(() => { setMenuOpen(false); }, [hash, view]);
   const hashScreen = route?.screen || null;
 
   // Legacy auth code calls switchPhase('home') around sign-in and sign-out.
@@ -185,6 +188,26 @@ export function App() {
     }
   };
 
+  // Which menu item is the current screen (Sidebar.jsx keys).
+  const activeKey = (() => {
+    const s = route?.screen;
+    if (s === 'admin') return ['list', 'detail', 'create'].includes(route.page) ? `admin:${route.kind || 'students'}` : `admin:${route.page}`;
+    if (s === 'worksheet' || s === 'guide') return 'resources';
+    if (s) return s;
+    if (role === 'teacher' || role === 'coach') return 'coach';
+    return view === 'home' ? null : view;
+  })();
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const sidebar = status === 'ready' && role && !isPrimary ? (
+    <Sidebar role={role} active={activeKey} onNavigate={navigate} onOpenCourses={() => setHash(hrefFor.courses())}
+             onOpenGoals={openGoals} open={menuOpen} onClose={closeMenu} collapsed={collapsed}
+             onToggleCollapsed={() => setCollapsed((c) => { writeCollapsed(!c); return !c; })} />
+  ) : null;
+  if (sidebar) {
+    headerProps.onMenu = () => setMenuOpen((o) => !o);
+    headerProps.menuOpen = menuOpen;
+  }
+
   const spark = (
     <div className="gh-app">
       <SparkHome role={role} uid={user?.uid} displayName={profile?.displayName || user?.email?.split('@')[0] || ''}
@@ -214,6 +237,7 @@ export function App() {
     return (
       <>
         <Header {...headerProps} />
+        {sidebar}
         <div className="gh-app">
           {route.screen === 'worksheet' ? <Worksheet activityId={route.activityId} />
             : route.screen === 'guide' ? <TeacherGuide activityId={route.activityId} />
@@ -229,16 +253,7 @@ export function App() {
     return (
       <>
         <Header {...headerProps} />
-        {!isPrimary && (
-          <TopNav
-            isPrimary={isPrimary}
-            role={role}
-            view="community"
-            onNavigate={navigate}
-            onOpenCourses={() => setHash(hrefFor.courses())}
-            onOpenGoals={openGoals}
-          />
-        )}
+        {sidebar}
         <div className="gh-app">
           <CommunityFeed />
         </div>
@@ -253,16 +268,7 @@ export function App() {
     return (
       <>
         <Header {...headerProps} />
-        {!isPrimary && (
-          <TopNav
-            isPrimary={isPrimary}
-            role={role}
-            view="messages"
-            onNavigate={navigate}
-            onOpenCourses={() => setHash(hrefFor.courses())}
-            onOpenGoals={openGoals}
-          />
-        )}
+        {sidebar}
         {CONSOLE_ROLES.includes(role) ? (
           <div className="gh-app">
             <AdminAuditView />
@@ -281,7 +287,7 @@ export function App() {
   if (CONSOLE_ROLES.includes(role)) {
     // SPARK Home, and PBL Studio in its read-only coach view (program library,
     // phases, rubrics, competencies), sit beside the console.
-    const consoleNav = <TopNav role={role} view={route?.screen === 'pbl' ? 'pbl' : route?.screen === 'admin' || route?.screen === 'settings' ? 'admin' : 'spark'} onNavigate={navigate} />;
+    const consoleNav = sidebar;
     if (route?.screen === 'pbl') {
       return (
         <>
@@ -300,8 +306,9 @@ export function App() {
     return (
       <>
         <Header {...headerProps} />
+        {sidebar}
         <div className="gh-app">
-          <AdminConsole route={route} role={role} user={user} profile={profile} navigate={setHash} />
+          <AdminConsole route={route} role={role} user={user} profile={profile} navigate={setHash} embedded={Boolean(sidebar)} />
         </div>
       </>
     );
@@ -312,7 +319,7 @@ export function App() {
     return (
       <>
         <Header {...headerProps} />
-        <TopNav role={role} view={parentView} onNavigate={navigate} />
+        {sidebar}
         {parentView === 'spark' ? spark : (
           <div className="gh-app">
             {parentView === 'settings'
@@ -328,11 +335,7 @@ export function App() {
     return (
       <>
         <Header {...headerProps} />
-        {!isPrimary && (
-          <TopNav isPrimary={isPrimary} role={role} view="settings" onNavigate={navigate}
-                  onOpenCourses={() => setHash(hrefFor.courses())}
-                  onOpenGoals={openGoals} />
-        )}
+        {sidebar}
         <div className="gh-app">
           <SettingsPage user={user} profile={profile} role={role} />
         </div>
@@ -352,14 +355,7 @@ export function App() {
   return (
     <>
       <Header {...headerProps} />
-      <TopNav
-        isPrimary={isPrimary}
-        role={role}
-        view={['courses', 'pbl', 'community', 'messages', 'goals', 'homeSearch', 'futureSkills', 'dashboard', 'spark', 'coach'].includes(route?.screen) ? route.screen : view}
-        onNavigate={navigate}
-        onOpenCourses={() => setHash(hrefFor.courses())}
-        onOpenGoals={openGoals}
-      />
+      {sidebar}
 
       {/* Not on Goal setting or My Dashboard: both show today's checklist, and two copies of the plan on one screen would overwrite each other. */}
       {role === 'student' && !isPrimary && user && !['goals', 'dashboard', 'spark'].includes(route?.screen) && <DailyGoalsNotice uid={user.uid} />}

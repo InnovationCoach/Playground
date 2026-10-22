@@ -1,0 +1,102 @@
+/* Main menu (Sidebar.jsx). Fixed under the 64px header; the page shifts right to make room.
+   Light/dark colours come from fixed values here because the sidebar sits outside .gh-app. */
+
+:root { --sb-w: 248px; --sb-w-collapsed: 72px; }
+
+.gh-sidebar {
+  --sb-bg: #ffffff; --sb-border: #e4e6ee; --sb-text: #3d4762; --sb-muted: #5d6680; --sb-hover: #f0f1f6;
+  --sb-active-bg: #f5eefa; --sb-active: #6e3f8b; --sb-bar: #8250a0;
+  position: fixed; z-index: 45; left: 0; top: 64px; bottom: 0; width: var(--sb-w);
+  display: flex; flex-direction: column; gap: 0.5rem; padding: 0.9rem 0.75rem 0.75rem;
+  background: var(--sb-bg); border-right: 1px solid var(--sb-border);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Noto Sans Thai', sans-serif;
+  overflow-y: auto; overscroll-behavior: contain; transition: width 0.18s ease;
+}
+[data-theme="dark"] .gh-sidebar {
+  --sb-bg: #141a23; --sb-border: #2c3544; --sb-text: #d3d9e6; --sb-muted: #9ea6b8; --sb-hover: #1f2733;
+  --sb-active-bg: #2d1a47; --sb-active: #d3b0f2; --sb-bar: #c79be6;
+}
+
+.gh-sidebar-top { display: none; align-items: center; justify-content: space-between; padding: 0.15rem 0.35rem 0.4rem; }
+.gh-sidebar-brand { display: inline-flex; align-items: center; gap: 0.4rem; font: 800 0.95rem 'Plus Jakarta Sans', 'Inter', sans-serif; letter-spacing: 0.08em; color: var(--sb-active); }
+.gh-sidebar-close { border: 0; background: none; color: var(--sb-muted); width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; cursor: pointer; }
+.gh-sidebar-close:hover { background: var(--sb-hover); }
+
+.gh-sidebar-search .as { min-width: 0; flex: none; }
+.gh-sidebar-search .as-list { position: static; min-width: 0; margin-top: 0.4rem; max-height: 50vh; box-shadow: none; }
+.gh-sidebar-search .as-kbd { display: none; }
+
+.gh-sidebar-groups { display: grid; gap: 0.6rem; }
+.gh-sidebar-group { display: grid; gap: 2px; }
+.gh-sidebar-label { padding: 0.55rem 0.75rem 0.3rem; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sb-muted); }
+.gh-sidebar-link {
+  position: relative; display: flex; align-items: center; gap: 0.75rem; min-height: 42px; padding: 0.55rem 0.75rem;
+  border-radius: 11px; color: var(--sb-text); text-decoration: none; font-size: 0.92rem; font-weight: 500;
+}
+.gh-sidebar-link svg { color: var(--sb-muted); flex: none; }
+.gh-sidebar-link:hover { background: var(--sb-hover); }
+.gh-sidebar-link:focus-visible, .gh-sidebar-collapse:focus-visible, .gh-sidebar-close:focus-visible { outline: 2px solid var(--sb-bar); outline-offset: 2px; }
+.gh-sidebar-link[aria-current="page"] { background: var(--sb-active-bg); color: var(--sb-active); font-weight: 600; }
+.gh-sidebar-link[aria-current="page"] svg { color: var(--sb-active); }
+.gh-sidebar-link[aria-current="page"]::before { content: ''; position: absolute; left: -0.75rem; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--sb-bar); }
+.gh-sidebar-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.gh-sidebar-collapse {
+  margin-top: auto; display: flex; align-items: center; gap: 0.75rem; min-height: 40px; padding: 0.5rem 0.75rem;
+  border: 0; border-radius: 11px; background: none; color: var(--sb-muted); font: 500 0.85rem inherit; cursor: pointer; text-align: left;
+}
+.gh-sidebar-collapse:hover { background: var(--sb-hover); color: var(--sb-text); }
+
+/* Collapsed: icons only. */
+.gh-sidebar.is-collapsed { width: var(--sb-w-collapsed); padding-inline: 0.6rem; }
+.gh-sidebar.is-collapsed .gh-sidebar-text, .gh-sidebar.is-collapsed .gh-sidebar-label { display: none; }
+.gh-sidebar.is-collapsed .gh-sidebar-group + .gh-sidebar-group { border-top: 1px solid var(--sb-border); padding-top: 0.5rem; }
+.gh-sidebar.is-collapsed .gh-sidebar-link, .gh-sidebar.is-collapsed .gh-sidebar-collapse { justify-content: center; padding-inline: 0; }
+.gh-sidebar.is-collapsed .gh-sidebar-link[aria-current="page"]::before { left: -0.6rem; }
+
+/* Room for the menu: React screens (everything after the header) and the legacy activity pages. */
+body.has-sidebar #react-root > :not(.gh-topbar):not(.gh-sidebar):not(.gh-sidebar-scrim),
+body.has-sidebar > .container { margin-left: var(--sb-w); transition: margin-left 0.18s ease; }
+body.has-sidebar.sidebar-collapsed #react-root > :not(.gh-topbar):not(.gh-sidebar):not(.gh-sidebar-scrim),
+body.has-sidebar.sidebar-collapsed > .container { margin-left: var(--sb-w-collapsed); }
+
+/* The header's menu button only exists on narrow screens. */
+.gh-menu-btn { display: none; }
+
+@media (max-width: 900px) {
+  .gh-sidebar, .gh-sidebar.is-collapsed {
+    top: 0; width: min(300px, 86vw); padding-inline: 0.75rem; z-index: 1600;
+    transform: translateX(-102%); transition: transform 0.2s ease; box-shadow: 0 0 40px rgba(0, 0, 0, 0.25);
+    padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
+  }
+  .gh-sidebar.is-open { transform: none; }
+  .gh-sidebar.is-collapsed .gh-sidebar-text, .gh-sidebar.is-collapsed .gh-sidebar-label { display: revert; }
+  .gh-sidebar-top { display: flex; }
+  .gh-sidebar-collapse { display: none; }
+  .gh-sidebar-scrim { position: fixed; inset: 0; z-index: 1550; background: rgba(8, 12, 20, 0.45); }
+  body.has-sidebar #react-root > :not(.gh-topbar):not(.gh-sidebar):not(.gh-sidebar-scrim),
+  body.has-sidebar > .container,
+  body.has-sidebar.sidebar-collapsed #react-root > :not(.gh-topbar):not(.gh-sidebar):not(.gh-sidebar-scrim),
+  body.has-sidebar.sidebar-collapsed > .container { margin-left: 0; }
+  .gh-menu-btn {
+    display: inline-grid; place-items: center; width: 42px; height: 42px; margin-right: 0.25rem; border: 0; border-radius: 10px;
+    background: none; color: inherit; cursor: pointer;
+  }
+  .gh-menu-btn:hover { background: rgba(127, 127, 127, 0.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-sidebar, body.has-sidebar #react-root > *, body.has-sidebar > .container { transition: none !important; }
+}
+@media print {
+  .gh-sidebar, .gh-sidebar-scrim, .gh-menu-btn { display: none !important; }
+  body.has-sidebar #react-root > *, body.has-sidebar > .container { margin-left: 0 !important; }
+}
+
+/* Activity search inside the sidebar follows the theme. */
+[data-theme="dark"] .gh-sidebar-search .as-field { background: #1f2733; border-color: #2c3544; }
+[data-theme="dark"] .gh-sidebar-search .as-field.is-open,
+[data-theme="dark"] .gh-sidebar-search .as-field:focus-within { background: #1f2733; border-color: #c79be6; }
+[data-theme="dark"] .gh-sidebar-search .as-field input { color: #e6eaf2; }
+[data-theme="dark"] .gh-sidebar-search .as-field input::placeholder { color: #9ea6b8; }
+[data-theme="dark"] .gh-sidebar-search .as-icon { color: #9ea6b8; }

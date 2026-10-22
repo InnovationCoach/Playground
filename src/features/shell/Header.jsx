@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Settings, LogOut } from 'lucide-react';
+import { ChevronDown, Settings, LogOut, Menu } from 'lucide-react';
 import { SparkWordmark } from '../spark/SparkMark.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { hrefFor } from '../../app/routes.js';
@@ -10,7 +10,7 @@ import { Avatar } from './Avatar.jsx';
  * Top bar for every signed-in screen: logo on the left, the account menu on
  * the right (name, role, Settings, Sign out). Signed out, it shows the logo only.
  */
-export function Header({ email, displayName, role, uid, onSignOut, onHome }) {
+export function Header({ email, displayName, role, uid, onSignOut, onHome, onMenu, menuOpen = false }) {
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
@@ -28,6 +28,12 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome }) {
 
   return (
     <header className="gh-topbar">
+      {onMenu && (
+        <button type="button" className="gh-menu-btn" onClick={onMenu} aria-controls="gh-sidebar" aria-expanded={menuOpen}
+                aria-label={t(menuOpen ? 'nav.closeMenu' : 'nav.openMenu')}>
+          <Menu size={22} aria-hidden="true" />
+        </button>
+      )}
       <button type="button" className="gh-brand" onClick={onHome} aria-label={`WeLearn ${t('nav.home')}`}>
         {!logoFailed && <img src={LOGO_URL} alt="WeLearn" onError={() => setLogoFailed(true)} />}
         {!logoFailed && <span className="gh-brand-divider" aria-hidden="true" />}

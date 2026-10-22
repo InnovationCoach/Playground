@@ -138,6 +138,7 @@ header.gh-topbar {
 
 /* ---------- Console shell ---------- */
 .gh-shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: calc(100vh - 64px); }
+.gh-shell-embedded { grid-template-columns: minmax(0, 1fr); }
 .gh-side { background: var(--gh-surface); border-right: 1px solid var(--gh-border); padding: 1.25rem 0.85rem; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; }
 .gh-side-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gh-text-3); padding: 1rem 0.75rem 0.4rem; }
 .gh-side-label:first-child { padding-top: 0; }
@@ -475,3 +476,4 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
 .gh-auth-spark .sk-wordmark { font-size: 1.15rem; color: #fff; }
 .gh-auth-spark .sk-wordmark-spark { color: #ceaaee; }
 .gh-auth-spark span.gh-auth-tag { font-size: 0.85rem; font-weight: 600; color: #d6efa6; letter-spacing: 0.02em; }
+.gh-side[hidden] { display: none !important; }

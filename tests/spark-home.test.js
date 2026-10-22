@@ -4,13 +4,14 @@ import { SPARK_ROLES, sparkRoleFor, cardHref, cardsFor, pushRecent, RECENT_LIMIT
 import { studentContext, parentContext, consoleContext, nextStepHref } from '../src/features/spark/sparkContext.js';
 import { parseRoute, hrefFor } from '../src/app/routes.js';
 import { messages, translate } from '../src/app/i18n/messages.js';
+import { menuFor } from '../src/features/shell/Sidebar.jsx';
 import { buildChildProgress } from '../src/features/parent/childProgress.js';
 import { childRecords } from '../src/services/api/mockChildRecords.js';
 
 // The screens App.jsx renders for each role. A SPARK card may only point at one of these.
 const ALLOWED = {
-  student: ['courses', 'pbl', 'goals', 'dashboard', 'futureSkills', 'homeSearch', 'community', 'spark'],
-  teacher: ['coach', 'pbl', 'resources', 'community', 'spark'],
+  student: ['courses', 'pbl', 'goals', 'dashboard', 'futureSkills', 'homeSearch', 'community', 'spark', 'settings'],
+  teacher: ['coach', 'pbl', 'resources', 'community', 'spark', 'settings'],
   parent: ['parent', 'settings', 'spark'],
   supervisor: ['admin', 'pbl', 'settings', 'resources', 'spark'],
   admin: ['admin', 'pbl', 'settings', 'resources', 'spark']
@@ -75,10 +76,9 @@ describe('SPARK Home configuration', () => {
     for (const cfg of Object.values(SPARK_ROLES)) for (const c of cfg.cards) expect(cardHref(c, 'x') || '').not.toContain('messages');
   });
 
-  it('students have a Search for Programs menu item that opens the course search page', () => {
-    const nav = readFileSync(new URL('../src/features/shell/TopNav.jsx', import.meta.url), 'utf8');
-    expect(nav).toContain("t('nav.searchPrograms')");
-    expect(nav).toContain('hrefFor.homeSearch()');
+  it('students have a Search for Programs sidebar item that opens the course search page', () => {
+    const nav = readFileSync(new URL('../src/features/shell/Sidebar.jsx', import.meta.url), 'utf8');
+    expect(nav).toContain("label: 'nav.searchPrograms', href: hrefFor.homeSearch()");
     for (const locale of ['en', 'zh', 'th']) expect(messages[locale]['nav.searchPrograms']).toBeTruthy();
     expect(parseRoute(hrefFor.homeSearch())).toEqual({ screen: 'homeSearch', q: '' });
     expect(ALLOWED.student).toContain('homeSearch');
@@ -151,4 +151,21 @@ describe('context lines', () => {
     expect(nextStepHref({ type: 'activity', id: 'solar' }, hrefFor)).toEqual({ activity: 'solar' });
     expect(nextStepHref(null, hrefFor)).toBeNull();
   });
+});
+
+describe('sidebar menu', () => {
+  for (const role of ['student', 'teacher', 'parent', 'supervisor', 'admin']) {
+    it(`${role}: every link opens a screen the role can open, with labels in all languages`, () => {
+      const items = menuFor(role, { onOpenCourses() {}, onOpenGoals() {}, onNavigate() {} }).flatMap((g) => g.items);
+      expect(items[0].key).toBe('spark');
+      const keys = items.map((i) => i.key);
+      expect(new Set(keys).size).toBe(keys.length);
+      for (const i of items) {
+        if (i.href) expect(ALLOWED[role], `${role} ${i.href}`).toContain(parseRoute(i.href).screen);
+        else expect(typeof i.onClick).toBe('function');
+        for (const locale of ['en', 'zh', 'th']) expect(messages[locale][i.label], `${locale} ${i.label}`).toBeTruthy();
+      }
+      expect(keys.some((k) => k.includes('messages'))).toBe(false);
+    });
+  }
 });
