@@ -35,6 +35,7 @@ export const listProgrammes = () => apiRequest('GET', '/api/admin/programmes');
 export const issueParentInvite = (studentUid) => apiRequest('POST', `/api/students/${enc(studentUid)}/parent-invite`);
 export const redeemParentCode = (code) => apiRequest('POST', '/api/parent/redeem', { body: { code } });
 export const getParentChildren = () => apiRequest('GET', '/api/parent/children');
+export const getChildProgress = (uid) => apiRequest('GET', `/api/parent/children/${enc(uid)}/progress`);
 export const revokeParentLink = (linkId) => apiRequest('DELETE', `/api/admin/parent-links/${enc(linkId)}`);
 
 // Financial Billing & Material Requests

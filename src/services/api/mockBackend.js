@@ -13,6 +13,8 @@
  */
 import { buildFixtures, makePublicId, mulberry32, DEMO_PARENT_INVITE_CODE } from './mockFixtures.js';
 import { generateJoinCode, normaliseJoinCode } from '../../utils/joinCode.js';
+import { childRecords, profileFor } from './mockChildRecords.js';
+import { buildChildProgress } from '../../features/parent/childProgress.js';
 
 const ROLES = ['admin', 'supervisor', 'teacher', 'student', 'parent'];
 const STATUSES = ['pending', 'active', 'suspended'];
@@ -51,6 +53,21 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     && !db.parentLinks.some((l) => l.studentUid === u.uid));
   if (demoChild) {
     db.parentInvites.push({ inviteId: 'invite-demo', orgId: db.organization.orgId, studentUid: demoChild.uid, codeHash: hashCode(DEMO_PARENT_INVITE_CODE), expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(), createdBy: 'mock-admin-001' });
+  }
+
+  // Links a reviewer redeems survive a reload (mock only), so the parent
+  // dashboard can be reopened without a new invite code each time.
+  const SAVED_LINKS = 'hearisland.mock.parentLinks.v1';
+  const savedLinks = () => {
+    try { return JSON.parse(globalThis.localStorage?.getItem(SAVED_LINKS) || '[]'); } catch { return []; }
+  };
+  const saveLink = (link) => {
+    try { globalThis.localStorage?.setItem(SAVED_LINKS, JSON.stringify([...savedLinks(), link])); } catch { /* storage unavailable */ }
+  };
+  for (const l of savedLinks()) {
+    if (db.users.some((u) => u.uid === l.studentUid) && !db.parentLinks.some((x) => x.parentUid === l.parentUid && x.studentUid === l.studentUid)) {
+      db.parentLinks.push({ ...l, status: 'active' });
+    }
   }
 
   const findUser = (uid) => db.users.find((u) => u.uid === uid);
@@ -431,7 +448,9 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     invite.redeemedAt = now(); invite.redeemedBy = caller.uid;
     const already = activeLinks().some((l) => l.parentUid === caller.uid && l.studentUid === child.uid);
     if (!already) {
-      db.parentLinks.push({ linkId: newId('link'), orgId: db.organization.orgId, parentUid: caller.uid, studentUid: child.uid, status: 'active', createdAt: now(), createdVia: invite.inviteId });
+      const link = { linkId: newId('link'), orgId: db.organization.orgId, parentUid: caller.uid, studentUid: child.uid, status: 'active', createdAt: now(), createdVia: invite.inviteId };
+      db.parentLinks.push(link);
+      saveLink(link);
       audit(caller, child, 'PARENT_LINKED', `Parent ${caller.name} linked`);
     }
     return ok({ child: childSummary(child) });
@@ -448,10 +467,22 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     return ok({ items, nextPageToken: null, total: items.length });
   });
 
+  // ADDITION (docs/PARENT-DASHBOARD-CONTRACT.md): one linked child's progress.
+  // A child the caller is not actively linked to is NOT_FOUND, not FORBIDDEN,
+  // so the response does not confirm that the uid exists.
+  route('GET', '/api/parent/children/:uid/progress', ['parent'], ({ params, caller }) => {
+    const link = activeLinks().find((l) => l.parentUid === caller.uid && l.studentUid === params.uid);
+    const child = link && findUser(params.uid);
+    if (!child) return fail(404, 'NOT_FOUND', 'No such child.');
+    const records = childRecords(profileFor(child.uid, demoChild?.uid));
+    return ok(buildChildProgress({ child: { linkId: link.linkId, ...childSummary(child) }, ...records }));
+  });
+
   route('DELETE', '/api/admin/parent-links/:linkId', ADMIN, ({ params, caller }) => {
     const link = db.parentLinks.find((l) => l.linkId === params.linkId && l.status === 'active');
     if (!link) return fail(404, 'NOT_FOUND', 'No such link.');
     Object.assign(link, { status: 'revoked', revokedAt: now(), revokedBy: caller.uid });
+    try { globalThis.localStorage?.setItem(SAVED_LINKS, JSON.stringify(savedLinks().filter((l) => l.linkId !== link.linkId))); } catch { /* storage unavailable */ }
     const student = findUser(link.studentUid);
     const parent = findUser(link.parentUid);
     audit(caller, student, 'PARENT_UNLINKED', `Parent ${parent?.displayName || link.parentUid} unlinked`);

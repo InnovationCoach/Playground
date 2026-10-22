@@ -4,7 +4,7 @@
  *   #/admin/staff | #/admin/students | #/admin/parents   account lists
  *   #/admin/users/<uid>                                  one account
  *   #/admin/new/<kind>                                   create
- *   #/settings   #/courses   #/parent                    everyone else
+ *   #/settings   #/courses   #/parent  #/parent/:childUid  everyone else
  *   #/primary-resources  #/worksheet/<id>  #/guide/<id>  printable primary material
  *   #/pbl  #/pbl/<tab>                                   PBL Studio (term project)
  *   #/pbl/programs/<programId>/<section>                 one program in the PBL library
@@ -43,7 +43,7 @@ export function parseRoute(hash) {
   if (head === 'courses') return { screen: 'courses' };
   if (head === 'pbl' && a === 'programs' && b) return { screen: 'pbl', tab: 'programs', programId: b, section: c || null };
   if (head === 'pbl') return { screen: 'pbl', tab: a || null };
-  if (head === 'parent') return { screen: 'parent' };
+  if (head === 'parent') return { screen: 'parent', childUid: a || null };
   if (head === 'community') return { screen: 'community' };
   if (head === 'messages') return { screen: 'messages', conversationId: a || null };
   if (head === 'goals') return { screen: 'goals' };
@@ -62,6 +62,7 @@ export const hrefFor = {
   settings: () => '#/settings',
   courses: () => '#/courses',
   parent: () => '#/parent',
+  parentChild: (uid) => `#/parent/${encodeURIComponent(uid)}`,
   resources: () => '#/primary-resources',
   worksheet: (id) => `#/worksheet/${id}`,
   guide: (id) => `#/guide/${id}`,

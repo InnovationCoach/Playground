@@ -287,7 +287,7 @@ export function App() {
         <div className="gh-app">
           {route?.screen === 'settings'
             ? <SettingsPage user={user} profile={profile} role={role} />
-            : <ParentPortal />}
+            : <ParentPortal childUid={route?.screen === 'parent' ? route.childUid : null} navigate={setHash} />}
         </div>
       </>
     );

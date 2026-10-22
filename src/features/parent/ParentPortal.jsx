@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { FlaskConical, UserPlus, School, GraduationCap, Layers, ChartLine, Users } from 'lucide-react';
+import { FlaskConical, UserPlus, School, GraduationCap, Layers, ChartLine, Users, ArrowRight } from 'lucide-react';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { getParentChildren, redeemParentCode } from '../../services/api/endpoints.js';
 import { describeApiError, isMockApi } from '../../services/api/apiClient.js';
 import { useAsync } from '../admin/ui/useAsync.js';
 import { Alert, Field, StatusBadge } from '../admin/ui/bits.jsx';
 import { Avatar } from '../shell/Avatar.jsx';
+import { hrefFor } from '../../app/routes.js';
+import { ParentChildDashboard } from './ParentChildDashboard.jsx';
 import '../admin/admin.css';
 
 /**
@@ -14,9 +16,15 @@ import '../admin/admin.css';
  * by typing an email (the wireframes' design), which let anyone attach
  * themselves to any child.
  *
- * Grades and progress arrive with the gradebook (Phase D); consent (Phase E).
+ * Each child opens a progress dashboard at #/parent/:childUid
+ * (ParentChildDashboard). Consent arrives in Phase E.
  */
-export function ParentPortal() {
+export function ParentPortal({ childUid = null, navigate }) {
+  if (childUid) return <ParentChildDashboard childUid={childUid} onBack={() => navigate(hrefFor.parent())} />;
+  return <ChildList onOpen={(uid) => navigate(hrefFor.parentChild(uid))} />;
+}
+
+function ChildList({ onOpen }) {
   const { t } = useLocale();
   const children = useAsync(() => getParentChildren(), []);
   const [linkedName, setLinkedName] = useState(null);
@@ -40,7 +48,7 @@ export function ParentPortal() {
         <div className="gh-card"><div className="gh-skel" style={{ width: '40%' }} /></div>
       ) : items.length ? (
         <ul className="gh-child-grid">
-          {items.map((c) => <ChildCard key={c.uid} child={c} />)}
+          {items.map((c) => <ChildCard key={c.uid} child={c} onOpen={() => onOpen(c.uid)} />)}
         </ul>
       ) : (
         <div className="gh-card gh-table-state">
@@ -54,7 +62,7 @@ export function ParentPortal() {
   );
 }
 
-function ChildCard({ child }) {
+function ChildCard({ child, onOpen }) {
   const { t } = useLocale();
   const row = (Icon, label, value) => value && (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem' }}>
@@ -78,10 +86,11 @@ function ChildCard({ child }) {
         {row(Layers, t('form.cohort'), child.cohortCode)}
       </div>
       {child.consentStatus === 'required' && <div style={{ marginTop: '1rem' }}><Alert type="info">{t('parent.consentRequired')}</Alert></div>}
-      <div className="gh-placeholder" style={{ marginTop: '1rem', padding: '0.8rem 0.9rem', fontSize: '0.84rem' }}>
-        <ChartLine size={18} aria-hidden="true" style={{ color: 'var(--gh-text-3)' }} />
-        {t('parent.progressPending')}
-      </div>
+      <button type="button" className="gh-btn gh-btn-primary" onClick={onOpen} style={{ marginTop: '1rem', width: '100%' }}>
+        <ChartLine size={17} aria-hidden="true" />
+        {t('parent.d.viewProgress', { name: child.givenNames || child.displayName })}
+        <ArrowRight size={16} aria-hidden="true" />
+      </button>
     </li>
   );
 }
