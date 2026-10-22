@@ -182,7 +182,7 @@ function PresentCode({ cls, onClose }) {
       {program && <p className="cp-present-program">{program.title}</p>}
       <p className="cp-present-code">{cls.joinCode || 'No code'}</p>
       <ol className="cp-present-steps">
-        <li>Sign in to Growth Hub (new? type the code when you sign up)</li>
+        <li>Sign in to WeLearn SPARK (new? type the code when you sign up)</li>
         <li>On Home, find <strong>Join your class</strong></li>
         <li>Type the code - capitals and the dash are optional</li>
       </ol>

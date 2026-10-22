@@ -460,3 +460,15 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
   .gh-brand-divider, .gh-brand-name, .gh-user-btn .gh-user-name { display: none; }
   .gh-subnav .as { flex: 1 1 100%; margin-left: 0; }
 }
+
+/* WeLearn SPARK wordmark (Header, BrandMark, sign-in). */
+.sk-wordmark { display: inline-flex; align-items: center; gap: 0.4rem; }
+.sk-wordmark-we { font-weight: 700; }
+.sk-wordmark-spark { font-weight: 800; letter-spacing: 0.08em; color: #8250a0; }
+[data-theme="dark"] .sk-wordmark-spark { color: #ceaaee; }
+.sk-glyph { flex: none; }
+
+.gh-auth-spark { display: grid; gap: 0.35rem; margin-top: 0.4rem; }
+.gh-auth-spark .sk-wordmark { font-size: 1.15rem; color: #fff; }
+.gh-auth-spark .sk-wordmark-spark { color: #ceaaee; }
+.gh-auth-spark span.gh-auth-tag { font-size: 0.85rem; font-weight: 600; color: #d6efa6; letter-spacing: 0.02em; }

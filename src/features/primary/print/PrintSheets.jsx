@@ -153,7 +153,7 @@ export function Worksheet({ activityId, backHref = '#/primary-resources' }) {
           </ul>
         </section>
 
-        <div className="ws-foot"><span>WeLearn Growth Hub · Junior Explorers</span><span>Activity {activity.number}: {activity.title}</span></div>
+        <div className="ws-foot"><span>WeLearn SPARK · Junior Explorers</span><span>Activity {activity.number}: {activity.title}</span></div>
       </article>
     </div>
   );
@@ -416,7 +416,7 @@ export function TeacherGuide({ activityId }) {
             Curriculum links (for teacher review): {activity.standards.join(' · ')}
           </p>
         )}
-        <div className="ws-foot"><span>WeLearn Growth Hub · Teacher guide</span><span>Activity {activity.number}: {activity.title}</span></div>
+        <div className="ws-foot"><span>WeLearn SPARK · Teacher guide</span><span>Activity {activity.number}: {activity.title}</span></div>
       </article>
     </div>
   );

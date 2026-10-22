@@ -9,7 +9,8 @@ import { hrefFor } from '../../app/routes.js';
 import { getChildProgress, getParentChildren, listUsers } from '../../services/api/endpoints.js';
 import { useAsync } from '../admin/ui/useAsync.js';
 import { useRelativeTime } from '../shell/useRelativeTime.js';
-import { loadSignals, nextStep } from '../dashboard/dashboardModel.js';
+import { loadSignals, nextStep, goalSummary } from '../dashboard/dashboardModel.js';
+import { useGoalPlan } from '../goals/useGoalPlan.js';
 import { SPARK_ROLES, sparkRoleFor, cardHref, pushRecent, recentKey } from './sparkConfig.js';
 import { studentContext, parentContext, consoleContext, nextStepHref } from './sparkContext.js';
 import { SparkGlyph } from './SparkMark.jsx';
@@ -90,7 +91,11 @@ function SearchBox({ navigate }) {
 function RoleBody({ roleKey, uid, config, recent, remember, onOpenActivity }) {
   const { t } = useLocale();
   const isConsole = roleKey === 'admin' || roleKey === 'supervisor';
-  const signals = useMemo(() => (roleKey === 'student' && uid ? loadSignals(uid, storage() || { getItem: () => null }) : null), [roleKey, uid]);
+  // Goals come from the same live plan as Goal setting (device copy, then the
+  // newer cloud copy); the rest of the student's saved work is read from this device.
+  const { plan } = useGoalPlan(roleKey === 'student' ? uid : null);
+  const deviceSignals = useMemo(() => (roleKey === 'student' && uid ? loadSignals(uid, storage() || { getItem: () => null }) : null), [roleKey, uid]);
+  const signals = useMemo(() => (deviceSignals ? { ...deviceSignals, goals: goalSummary(plan) } : null), [deviceSignals, plan]);
   const pending = useAsync(() => (isConsole ? listUsers({ status: 'pending', pageSize: 1 }) : Promise.resolve(null)), [isConsole]);
 
   const ctx = roleKey === 'student'

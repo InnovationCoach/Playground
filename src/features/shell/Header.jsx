@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Settings, LogOut } from 'lucide-react';
+import { SparkWordmark } from '../spark/SparkMark.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { hrefFor } from '../../app/routes.js';
 import { LOGO_URL } from '../../app/brand.js';
@@ -30,7 +31,7 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome }) {
       <button type="button" className="gh-brand" onClick={onHome} aria-label={`WeLearn ${t('nav.home')}`}>
         {!logoFailed && <img src={LOGO_URL} alt="WeLearn" onError={() => setLogoFailed(true)} />}
         {!logoFailed && <span className="gh-brand-divider" aria-hidden="true" />}
-        <span className="gh-brand-name">{logoFailed ? 'WeLearn Growth Hub' : 'Growth Hub'}</span>
+        <span className="gh-brand-name"><SparkWordmark full={logoFailed} /></span>
       </button>
 
       {email && (

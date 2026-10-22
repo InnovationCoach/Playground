@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { LOGO_URL } from '../../app/brand.js';
+import { SparkWordmark } from '../spark/SparkMark.jsx';
 
 /**
- * The WeLearn logo followed by "Growth Hub". The logo already carries the
+ * The WeLearn logo followed by the SPARK wordmark. The logo already carries the
  * WeLearn name, so the text does not repeat it. It sits on a light rounded badge:
  * its purple lettering all but disappears on the dark header otherwise. If the image
  * cannot load (offline classroom, blocked CDN) the full name is shown instead,
@@ -17,7 +18,7 @@ export function BrandMark({ size = 36 }) {
              style={{ height: size, width: 'auto', display: 'block', borderRadius: 8, background: '#f8fafc', padding: '3px 8px', boxSizing: 'border-box' }}
              onError={() => setFailed(true)} />
       )}
-      <span style={{ whiteSpace: 'nowrap' }}>{failed ? 'WeLearn Growth Hub' : 'Growth Hub'}</span>
+      <span style={{ whiteSpace: 'nowrap' }}><SparkWordmark full={failed} /></span>
     </span>
   );
 }

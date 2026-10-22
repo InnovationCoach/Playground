@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, ChartLine, Languages, Eye, EyeOff } from 'lucide-react';
+import { SparkWordmark } from '../spark/SparkMark.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { LOCALES } from '../../app/i18n/messages.js';
 import { LOGO_URL } from '../../app/brand.js';
@@ -71,6 +72,10 @@ export function LoginPage({ initialError }) {
     <div className="gh-app gh-auth">
       <aside className="gh-auth-aside" aria-hidden="true">
         <span className="gh-auth-logo"><img src={LOGO_URL} alt="" /></span>
+        <div className="gh-auth-spark">
+          <SparkWordmark full />
+          <span className="gh-auth-tag">{t('spark.tagline')}</span>
+        </div>
         <div>
           <h2>{t('auth.asideTitle')}</h2>
           <p>{t('auth.asideBody')}</p>
@@ -80,7 +85,7 @@ export function LoginPage({ initialError }) {
             <li><span><Languages size={17} /></span>{t('auth.point3')}</li>
           </ul>
         </div>
-        <div className="gh-auth-foot">© WeLearn · Growth Hub</div>
+        <div className="gh-auth-foot">© WeLearn Academy · SPARK</div>
       </aside>
 
       <main className="gh-auth-main">

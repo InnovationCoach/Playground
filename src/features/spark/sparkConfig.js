@@ -36,8 +36,7 @@ export const SPARK_ROLES = {
       card('student.resources', 'Compass', 'navy', 'live', hrefFor.pbl('explore'), 'activities'),
       card('student.goals', 'Target', 'lime', 'live', hrefFor.goals(), 'goalsToday'),
       card('student.dashboard', 'LayoutDashboard', 'purple', 'live', hrefFor.dashboard()),
-      card('student.futureSkills', 'Sparkles', 'magenta', 'live', hrefFor.futureSkills()),
-      card('student.messages', 'MessageCircle', 'navy', 'live', hrefFor.messages())
+      card('student.futureSkills', 'Sparkles', 'magenta', 'live', hrefFor.futureSkills())
     ]
   },
   teacher: {
@@ -49,7 +48,6 @@ export const SPARK_ROLES = {
       card('teacher.portfolio', 'FolderOpen', 'purple', 'partial', hrefFor.coach()),
       card('teacher.assessment', 'ClipboardCheck', 'magenta', 'soon'),
       card('teacher.reports', 'FileText', 'navy', 'soon'),
-      card('teacher.messages', 'MessageCircle', 'navy', 'live', hrefFor.messages()),
       card('teacher.community', 'Heart', 'magenta', 'live', hrefFor.community())
     ]
   },
@@ -87,8 +85,7 @@ export const SPARK_ROLES = {
       card('admin.portfolio', 'FolderOpen', 'purple', 'soon'),
       card('admin.reports', 'FileText', 'navy', 'soon'),
       card('admin.insights', 'ChartLine', 'lime', 'soon'),
-      card('admin.operations', 'Settings', 'navy', 'live', hrefFor.billing()),
-      card('admin.audit', 'MessageCircle', 'navy', 'live', hrefFor.messages())
+      card('admin.operations', 'Settings', 'navy', 'live', hrefFor.billing())
     ]
   }
 };

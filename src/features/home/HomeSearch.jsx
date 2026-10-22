@@ -21,9 +21,10 @@ import './homeSearch.css';
  */
 const CATALOG = buildCatalog({ activities: ACTIVITY_NAV, programs: PROGRAMS, parseLabel: parseActivityLabel, includePartners: true });
 
-export function HomeSearch({ uid, displayName, onOpenActivity }) {
+export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = '' }) {
   const { t } = useLocale();
-  const [q, setQ] = useState('');
+  // SPARK Home's search box opens this page at #/search/<query>.
+  const [q, setQ] = useState(initialQuery);
   const query = q.trim();
   const results = useMemo(() => (query ? searchCatalog(CATALOG, query) : []), [query]);
   const { keys, added, toggle } = useAddedCourses(uid, CATALOG);

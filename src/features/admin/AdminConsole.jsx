@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Users, GraduationCap, HeartHandshake, Settings, FlaskConical, ArrowLeft, Printer, CreditCard, PackageCheck } from 'lucide-react';
+import { Users, GraduationCap, HeartHandshake, Settings, FlaskConical, ArrowLeft, Printer, CreditCard, PackageCheck, House, Rocket } from 'lucide-react';
 import { Avatar } from '../shell/Avatar.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { consolePermissions } from '../../app/roles.js';
@@ -89,6 +89,8 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
   return (
     <div className="gh-shell">
       <nav className="gh-side" aria-label={t('nav.console')}>
+        <a href={hrefFor.spark()} className="gh-nav-link"><House size={18} strokeWidth={2} aria-hidden="true" />{t('nav.home')}</a>
+        <a href={hrefFor.pbl()} className="gh-nav-link"><Rocket size={18} strokeWidth={2} aria-hidden="true" />{t('nav.pbl')}</a>
         <div className="gh-side-label">{t('nav.people')}</div>
         {NAV.map((item) => (
           <a key={item.kind} href={hrefFor.list(item.kind)} className="gh-nav-link"

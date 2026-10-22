@@ -227,7 +227,8 @@ describe('routes', () => {
     expect(parseRoute('#/admin/new/wizards')).toEqual({ screen: 'admin', page: 'list', kind: 'students' });
     expect(parseRoute('#/settings')).toEqual({ screen: 'settings' });
     expect(parseRoute('#/courses')).toEqual({ screen: 'courses' });
-    expect(parseRoute('#/coach/dashboard')).toBeNull();
+    expect(parseRoute('#/coach/dashboard')).toEqual({ screen: 'coach' });
+    expect(parseRoute('#/unknown/route')).toBeNull();
     expect(parseRoute('')).toBeNull();
   });
 });
