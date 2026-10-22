@@ -33,7 +33,11 @@ export async function loadClasses(classIds) {
       const snap = await getDoc(doc(db, 'classes', id));
       if (!exists(snap)) return { id, missing: true };
       const d = snap.data() || {};
-      return { id, name: d.name || id, joinCode: d.joinCode || null, programId: d.programId || null };
+      return {
+        id, name: d.name || id, joinCode: d.joinCode || null, programId: d.programId || null,
+        programMedia: Array.isArray(d.programMedia) ? d.programMedia : [],
+        programCovers: d.programCovers && typeof d.programCovers === 'object' ? d.programCovers : {}
+      };
     } catch (err) {
       console.warn('[Coach] Could not read class', id, err?.code || err?.message);
       return { id, error: true };
@@ -87,6 +91,16 @@ export async function revokeCode(cls) {
 /** Assign (or clear, with null) the PBL program a class runs. */
 export function setClassProgram(cls, programId) {
   return updateDoc(doc(db, 'classes', cls.id), { programId: programId || null, updatedAt: serverTimestamp() });
+}
+
+/** Replace a class's program media list (see pbl/programs/programMedia.js for the shape). */
+export function saveClassMedia(cls, programMedia) {
+  return updateDoc(doc(db, 'classes', cls.id), { programMedia, updatedAt: serverTimestamp() });
+}
+
+/** Set (or clear, with null) the cover a class sees for one program. */
+export function saveClassCover(cls, programId, url) {
+  return updateDoc(doc(db, 'classes', cls.id), { [`programCovers.${programId}`]: url || null, updatedAt: serverTimestamp() });
 }
 
 /** What a coach should hear when a write is refused. */

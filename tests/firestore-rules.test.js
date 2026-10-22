@@ -896,3 +896,25 @@ describe('coaches manage join codes and programs for their own classes', () => {
     await assertFails(setDoc(doc(db, 'classes', 'class_new'), { name: 'New', coachIds: ['coach_a'], joinCode: A_CODE }));
   });
 });
+
+describe('coach media on a class program', () => {
+  const media = [{ id: 'm1', programId: 'p1', place: 'overview', title: 'Welcome', url: 'https://youtu.be/dQw4w9WgXcQ', type: 'video', createdBy: 'coach_a', createdAt: 1 }];
+
+  it('the class coach can add media and a cover', async () => {
+    const db = coachA().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'classes', CLASS_A), { programMedia: media, 'programCovers.p1': 'https://res.cloudinary.com/x/image/upload/a.png' }));
+  });
+
+  it('another class coach cannot', async () => {
+    await assertFails(updateDoc(doc(coachB().firestore(), 'classes', CLASS_A), { programMedia: media }));
+  });
+
+  it('a student in the class can read it but not change it', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'classes', CLASS_A), { programMedia: media });
+    });
+    const db = studentA().firestore();
+    await assertSucceeds(getDoc(doc(db, 'classes', CLASS_A)));
+    await assertFails(updateDoc(doc(db, 'classes', CLASS_A), { programMedia: [] }));
+  });
+});

@@ -11,6 +11,10 @@ import { ProgramIcon } from './ProgramIcon.jsx';
 import { CompetencyChips } from '../ProjectJourney.jsx';
 import { COMPETENCY_DOMAINS, competencyById } from '../content/competencies.js';
 import { hrefFor } from '../../../app/routes.js';
+import { useClassPrograms } from './useClassPrograms.js';
+import { coverFor } from './programMedia.js';
+import { ProgramPoster } from './ProgramPoster.jsx';
+import { ProgramMediaProvider, MediaGallery, MediaManager, SessionMedia } from './ProgramMediaPanel.jsx';
 
 const SECTIONS = [
   { id: 'overview', label: 'Overview', icon: Compass },
@@ -30,8 +34,9 @@ const EVIDENCE_LABEL = { note: 'Note', media: 'Photo or video', code: 'Code', da
  * (sessions done, choices, reflections - saved); coaches get the same plan
  * read-only plus the teaching guide and the content checks.
  */
-export function ProgramDetail({ programId, section, uid, isCoach }) {
+export function ProgramDetail({ programId, section, uid, isCoach, classIds = [] }) {
   const program = programById(programId);
+  const { classes, classCovers, reload } = useClassPrograms(classIds);
   if (!program) {
     return (
       <div className="gh-card">
@@ -40,17 +45,24 @@ export function ProgramDetail({ programId, section, uid, isCoach }) {
       </div>
     );
   }
-  return isCoach
-    ? <DetailView program={program} section={section} isCoach />
-    : <LearnerDetail program={program} section={section} uid={uid} />;
+  // Media and covers come from the viewer's classes that run this program.
+  const running = classes.filter((c) => c.programId === program.id && !c.missing && !c.error);
+  const cover = coverFor(program, running.map((c) => c.programCovers));
+  return (
+    <ProgramMediaProvider value={{ classes: running, isCoach, uid, reload }}>
+      {isCoach
+        ? <DetailView program={program} section={section} cover={cover} isCoach />
+        : <LearnerDetail program={program} section={section} uid={uid} cover={cover} />}
+    </ProgramMediaProvider>
+  );
 }
 
-function LearnerDetail({ program, section, uid }) {
+function LearnerDetail({ program, section, uid, cover }) {
   const { progress, apply, syncState } = useProgramProgress(uid, program);
-  return <DetailView program={program} section={section} progress={progress} apply={apply} syncState={syncState} />;
+  return <DetailView program={program} section={section} cover={cover} progress={progress} apply={apply} syncState={syncState} />;
 }
 
-function DetailView({ program: p, section, isCoach = false, progress = null, apply = null, syncState }) {
+function DetailView({ program: p, section, cover, isCoach = false, progress = null, apply = null, syncState }) {
   const sections = SECTIONS.filter((s) => !s.coach || isCoach);
   const active = sections.some((s) => s.id === section) ? section : 'overview';
   const summary = progress ? programProgress(progress, p) : null;
@@ -59,7 +71,8 @@ function DetailView({ program: p, section, isCoach = false, progress = null, app
     <div className="pg-detail">
       <a className="pb-link pg-back" href={hrefFor.pbl('programs')}><ArrowLeft size={15} aria-hidden="true" />All programs</a>
 
-      <header className="pg-hero" data-tone={p.identity.tone}>
+      <header className="pg-hero pg-hero-poster" data-tone={p.identity.tone}>
+        <div className="pg-hero-main">
         <div className="pg-hero-top">
           <span className="pg-hero-icon"><ProgramIcon name={p.identity.icon} size={26} /></span>
           <div className="pb-grow">
@@ -82,6 +95,8 @@ function DetailView({ program: p, section, isCoach = false, progress = null, app
           ))}
         </ol>
         {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} />}
+        </div>
+        <div className="pg-hero-aside"><ProgramPoster program={p} cover={cover} size="hero" /></div>
       </header>
 
       {syncState && <SyncNote state={syncState} />}
@@ -96,7 +111,13 @@ function DetailView({ program: p, section, isCoach = false, progress = null, app
         ))}
       </nav>
 
-      {active === 'overview' && <Overview program={p} />}
+      {active === 'overview' && (
+        <>
+          <MediaGallery program={p} />
+          <MediaManager program={p} />
+          <Overview program={p} />
+        </>
+      )}
       {active === 'plan' && <TermPlan program={p} isCoach={isCoach} progress={progress} apply={apply} />}
       {active === 'kit' && <KitAndSafety program={p} />}
       {active === 'guide' && <TeachingGuide program={p} />}
@@ -239,7 +260,7 @@ function TermPlan({ program: p, isCoach, progress, apply }) {
           <div className="pb-col">
             {phase.sessions.length === 0 && <p className="pb-empty">No sessions are written for this phase yet.</p>}
             {phase.sessions.map((s) => (
-              <SessionCard key={s.sessionNumber} session={s} isCoach={isCoach} progress={progress} apply={apply}
+              <SessionCard key={s.sessionNumber} program={p} session={s} isCoach={isCoach} progress={progress} apply={apply}
                            defaultOpen={summary ? summary.next?.sessionNumber === s.sessionNumber : false} />
             ))}
           </div>
@@ -274,7 +295,7 @@ function TermPlan({ program: p, isCoach, progress, apply }) {
   );
 }
 
-function SessionCard({ session: s, isCoach, progress, apply, defaultOpen }) {
+function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpen }) {
   const [expanded, setExpanded] = useState(defaultOpen);
   const entry = progress?.sessions[s.sessionNumber];
   const done = !!entry?.done;
@@ -301,6 +322,7 @@ function SessionCard({ session: s, isCoach, progress, apply, defaultOpen }) {
       {expanded && (
         <div className="pg-session-body" id={bodyId}>
           <p className="pg-goal"><Target size={15} aria-hidden="true" />{s.learningGoal}</p>
+          <SessionMedia program={program} sessionNumber={s.sessionNumber} />
 
           <h4 className="pg-h4">What happens</h4>
           <ol className="pg-activities">{s.activities.map((a) => <li key={a}>{a}</li>)}</ol>

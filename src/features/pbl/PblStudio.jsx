@@ -49,7 +49,7 @@ export function PblStudio({ uid, role, tab, programId, section, classIds, onOpen
   if (active === 'programs' && programId) {
     return (
       <div className="gh-page pb-page">
-        <ProgramDetail programId={programId} section={section} uid={uid} isCoach={!isStudent} />
+        <ProgramDetail programId={programId} section={section} uid={uid} isCoach={!isStudent} classIds={classIds} />
       </div>
     );
   }

@@ -22,6 +22,14 @@ export const TERM_WEEKS = SCHOOL_SCHEDULE_CONFIG.weeksPerTerm;
 export const AGE_TRACKS = LEARNER_AGE_CONFIG.tracks;
 export const SCHEDULE = SCHOOL_SCHEDULE_CONFIG;
 
+/**
+ * School-wide cover posters, one Cloudinary image link per program id. Design
+ * the poster in Canva, download it as PNG, upload it to the school's Cloudinary
+ * and paste the image link here. A program without one gets a poster drawn
+ * from its colours and icon; a coach can also set a cover for their own class.
+ */
+export const SCHOOL_COVERS = {};
+
 /** Look and feel per program. Content stays in the prototype; this is presentation only. */
 const IDENTITY = {
   'entrepreneurship-product-creation-2026': { icon: 'Store', tone: 'amber', short: 'Entrepreneurship' },
@@ -100,7 +108,7 @@ export function normaliseProgram(raw) {
     ...raw,
     phases,
     sessions,
-    identity: IDENTITY[raw.id] || { icon: 'Compass', tone: 'purple', short: raw.title },
+    identity: { ...(IDENTITY[raw.id] || { icon: 'Compass', tone: 'purple', short: raw.title }), cover: SCHOOL_COVERS[raw.id] || null },
     listedAs: listing?.theme || null,
     sharesPhasesWith: null,
     issues: []
