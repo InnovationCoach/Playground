@@ -29,7 +29,7 @@ Use signed uploads. Unsigned presets can be used by anyone who finds the preset 
   - Enable a Cloudinary moderation add-on on image uploads.
   - The frontend shows "Waiting for review" until the asset is approved.
 - The frontend uses the Upload Widget with these parameters, then stores the returned `secure_url` on the evidence item (`link`). Those links already embed (`res.cloudinary.com/.../image|video/upload/...`).
-- To decide with Mani: should portfolio media be public URLs (simple), or Cloudinary authenticated delivery with short-lived signed URLs (more private, needs a URL-signing endpoint)?
+- **Decided (Mani, 2026-10-22): public delivery URLs.** Uploads are project work only, so the normal `secure_url` is fine, and no URL-signing endpoint is needed. Keep the random public IDs (Cloudinary's default) so URLs can't be guessed. The frontend tells learners to upload project work only: no faces or personal documents.
 
 ## 2. Canva Connect ("Create in Canva", then bring the design back)
 
