@@ -64,6 +64,7 @@ export function PblStudio({ uid, role, tab, programId, section, classIds, onOpen
           </span>
           <h1>{TERM.theme}</h1>
           <p className="pb-dq">{TERM.drivingQuestion}</p>
+          <a className="pb-fs-link" href={hrefFor.futureSkills()}>Why these skills, and how we use AI →</a>
         </div>
         <ol className="pb-term-strip" aria-label={`Term plan, ${TERM.weeks} weeks`}>
           {PHASES.map((p) => (

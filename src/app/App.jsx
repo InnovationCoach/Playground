@@ -8,6 +8,7 @@ import { SettingsPage } from '../features/settings/SettingsPage.jsx';
 import { MyCourses } from '../features/courses/MyCourses.jsx';
 import { HomeSearch } from '../features/home/HomeSearch.jsx';
 import { GoalsPage } from '../features/goals/GoalsPage.jsx';
+import { FutureSkillsPage } from '../features/futureSkills/FutureSkillsPage.jsx';
 import { DailyGoalsNotice } from '../features/goals/DailyGoalsNotice.jsx';
 import { ParentPortal } from '../features/parent/ParentPortal.jsx';
 import { Worksheet, TeacherGuide, PrimaryResources } from '../features/primary/print/PrintSheets.jsx';
@@ -152,7 +153,7 @@ export function App() {
   // The new Growth Hub screens are light; the legacy activity pages are still
   // dark. The body colour follows, so overscroll and short pages match.
   const lightSurface = status !== 'ready' || CONSOLE_ROLES.includes(role) || role === 'parent'
-    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch'].includes(route?.screen);
+    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills'].includes(route?.screen);
   useEffect(() => {
     document.body.dataset.surface = lightSurface ? 'light' : 'dark';
   }, [lightSurface]);
@@ -311,7 +312,7 @@ export function App() {
       <TopNav
         isPrimary={isPrimary}
         role={role}
-        view={['courses', 'pbl', 'community', 'messages', 'goals', 'homeSearch'].includes(route?.screen) ? route.screen : view}
+        view={['courses', 'pbl', 'community', 'messages', 'goals', 'homeSearch', 'futureSkills'].includes(route?.screen) ? route.screen : view}
         onNavigate={navigate}
         onOpenCourses={() => setHash(hrefFor.courses())}
         onOpenGoals={openGoals}
@@ -319,7 +320,9 @@ export function App() {
 
       {role === 'student' && !isPrimary && user && route?.screen !== 'goals' && <DailyGoalsNotice uid={user.uid} />}
 
-      {route?.screen === 'pbl' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
+      {route?.screen === 'futureSkills' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
+        <FutureSkillsPage isPrimary={isPrimary} />
+      ) : route?.screen === 'pbl' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
         <div className="gh-app">
           <PblStudio uid={user?.uid} role={role} tab={route.tab} programId={route.programId} section={route.section}
                      classIds={role === 'student' ? (profile?.classIds || []) : (classIds || profile?.classIds || [])}

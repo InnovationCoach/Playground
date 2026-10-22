@@ -203,3 +203,7 @@
 .pb-impact label:has(input:focus-visible) { outline: 2px solid var(--gh-purple); outline-offset: 2px; }
 .pb-impact strong { font-size: 0.9rem; }
 .pb-impact small { font-size: 0.76rem; color: var(--gh-text-3); }
+
+/* Link from the term hero to the Future Skills page. */
+.pb-fs-link { display: inline-block; margin-top: 0.6rem; color: #c4ef5e; font-weight: 600; font-size: 0.9rem; text-decoration: none; }
+.pb-fs-link:hover { text-decoration: underline; }

@@ -1,4 +1,4 @@
-import { House, BookOpen, Target, LayoutDashboard, Printer, Rocket, MessageCircle, Users } from 'lucide-react';
+import { House, BookOpen, Target, LayoutDashboard, Printer, Rocket, MessageCircle, Users, Sparkles } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { ACTIVITY_NAV } from '../../features/activities/activityHost.js';
 import { ActivitySearch } from './ActivitySearch.jsx';
@@ -30,6 +30,9 @@ export function TopNav({ role, view, onNavigate, onOpenGoals, onOpenCourses, isP
         <NavLink icon={Rocket} active={view === 'pbl'} onClick={() => { window.location.hash = '#/pbl'; }}>
           {t('nav.pblFramework')}
         </NavLink>
+        <NavLink icon={Sparkles} active={view === 'futureSkills'} onClick={() => { window.location.hash = hrefFor.futureSkills(); }}>
+          {t('nav.futureSkills')}
+        </NavLink>
         <NavLink icon={Users} active={view === 'community'} onClick={() => { window.location.hash = '#/community'; }}>
           Community
         </NavLink>
@@ -54,6 +57,7 @@ export function TopNav({ role, view, onNavigate, onOpenGoals, onOpenCourses, isP
       </NavLink>
       <NavLink icon={BookOpen} active={view === 'courses'} onClick={onOpenCourses}>{t('nav.myCourses')}</NavLink>
       <NavLink icon={Rocket} active={view === 'pbl'} onClick={() => { window.location.hash = '#/pbl'; }}>{t('nav.pbl')}</NavLink>
+      <NavLink icon={Sparkles} active={view === 'futureSkills'} onClick={() => { window.location.hash = hrefFor.futureSkills(); }}>{t('nav.futureSkills')}</NavLink>
       <NavLink icon={Users} active={view === 'community'} onClick={() => { window.location.hash = '#/community'; }}>
         Community
       </NavLink>
