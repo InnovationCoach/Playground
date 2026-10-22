@@ -1,4 +1,4 @@
-import { House, BookOpen, Target, LayoutDashboard, Printer, Rocket, Users, Sparkles, HeartHandshake } from 'lucide-react';
+import { House, BookOpen, Target, LayoutDashboard, Printer, Rocket, Users, Sparkles, HeartHandshake, Search } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { ACTIVITY_NAV } from '../../features/activities/activityHost.js';
 import { ActivitySearch } from './ActivitySearch.jsx';
@@ -57,6 +57,9 @@ export function TopNav({ role, view, onNavigate, onOpenGoals, onOpenCourses, isP
       {isPrimary
         ? <NavLink icon={House} active={view === 'home'} onClick={() => onNavigate('home')}>{t('nav.home')}</NavLink>
         : home}
+      {!isPrimary && (
+        <NavLink icon={Search} active={view === 'homeSearch'} onClick={go(hrefFor.homeSearch())}>{t('nav.searchPrograms')}</NavLink>
+      )}
       {!isPrimary && (
         <NavLink icon={LayoutDashboard} active={view === 'dashboard'} onClick={go(hrefFor.dashboard())}>{t('nav.myDashboard')}</NavLink>
       )}
