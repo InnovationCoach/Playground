@@ -49,9 +49,13 @@ export function TopNav({ role, view, onNavigate, onOpenGoals, onOpenCourses, isP
       {!isPrimary && (
         <NavLink icon={House} active={view === 'homeSearch'} onClick={() => { window.location.hash = hrefFor.homeSearch(); }}>{t('nav.home')}</NavLink>
       )}
-      <NavLink icon={LayoutDashboard} active={view === 'home'} onClick={() => onNavigate('home')}>
-        {isPrimary ? t('nav.home') : t('nav.myDashboard')}
-      </NavLink>
+      {isPrimary ? (
+        <NavLink icon={LayoutDashboard} active={view === 'home'} onClick={() => onNavigate('home')}>{t('nav.home')}</NavLink>
+      ) : (
+        <NavLink icon={LayoutDashboard} active={view === 'dashboard'} onClick={() => { window.location.hash = hrefFor.dashboard(); }}>
+          {t('nav.myDashboard')}
+        </NavLink>
+      )}
       <NavLink icon={BookOpen} active={view === 'courses'} onClick={onOpenCourses}>{t('nav.myCourses')}</NavLink>
       <NavLink icon={Rocket} active={view === 'pbl'} onClick={() => { window.location.hash = '#/pbl'; }}>{t('nav.pbl')}</NavLink>
       <NavLink icon={Sparkles} active={view === 'futureSkills'} onClick={() => { window.location.hash = hrefFor.futureSkills(); }}>{t('nav.futureSkills')}</NavLink>

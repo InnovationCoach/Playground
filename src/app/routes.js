@@ -11,6 +11,7 @@
  *   #/community                                          community posts
  *   #/messages  #/messages/<convId>                      private messages
  *   #/goals                                              goal setting (secondary learners)
+ *   #/dashboard                                          My Dashboard (secondary learners)
  *   #/future-skills                                      Future Skills: AI in education + the 7 skills
  *   #/search                                             Home: course search (secondary learners);
  *                                                        "My Dashboard" is the no-hash default.
@@ -48,6 +49,7 @@ export function parseRoute(hash) {
   if (head === 'goals') return { screen: 'goals' };
   if (head === 'search') return { screen: 'homeSearch' };
   if (head === 'future-skills') return { screen: 'futureSkills' };
+  if (head === 'dashboard') return { screen: 'dashboard' };
   return null;
 }
 
@@ -69,5 +71,6 @@ export const hrefFor = {
   messages: (convId) => (convId ? `#/messages/${convId}` : '#/messages'),
   goals: () => '#/goals',
   homeSearch: () => '#/search',
-  futureSkills: () => '#/future-skills'
+  futureSkills: () => '#/future-skills',
+  dashboard: () => '#/dashboard'
 };

@@ -9,6 +9,7 @@ import { MyCourses } from '../features/courses/MyCourses.jsx';
 import { HomeSearch } from '../features/home/HomeSearch.jsx';
 import { GoalsPage } from '../features/goals/GoalsPage.jsx';
 import { FutureSkillsPage } from '../features/futureSkills/FutureSkillsPage.jsx';
+import { MyDashboard } from '../features/dashboard/MyDashboard.jsx';
 import { DailyGoalsNotice } from '../features/goals/DailyGoalsNotice.jsx';
 import { ParentPortal } from '../features/parent/ParentPortal.jsx';
 import { Worksheet, TeacherGuide, PrimaryResources } from '../features/primary/print/PrintSheets.jsx';
@@ -137,6 +138,17 @@ export function App() {
     if (!parseRoute(window.location.hash) && view === 'home') setHash(hrefFor.courses());
   }, [status, role, isPrimary, user, view, setHash]);
 
+  // Secondary learners' home is My Dashboard (#/dashboard): the logo and the
+  // legacy switchPhase('home') land there too, so there is only one dashboard.
+  // Sign-in still lands on My Courses (see the landing effect above).
+  useEffect(() => {
+    if (status !== 'ready' || role !== 'student' || isPrimary || hashScreen || view !== 'home') return;
+    if (landedRef.current !== user?.uid) return; // let the sign-in landing run first
+    // The landing may have just set #/courses in this same pass; read the address, not state.
+    if (parseRoute(window.location.hash)) return;
+    setHash(hrefFor.dashboard());
+  }, [status, role, isPrimary, hashScreen, view, user, setHash]);
+
   // "My Dashboard" keeps its goals panel (secondary learners only, as before).
   useEffect(() => {
     if (status !== 'ready' || role !== 'student' || isPrimary || !user || hashScreen || view !== 'home') return undefined;
@@ -153,7 +165,7 @@ export function App() {
   // The new Growth Hub screens are light; the legacy activity pages are still
   // dark. The body colour follows, so overscroll and short pages match.
   const lightSurface = status !== 'ready' || CONSOLE_ROLES.includes(role) || role === 'parent'
-    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills'].includes(route?.screen);
+    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard'].includes(route?.screen);
   useEffect(() => {
     document.body.dataset.surface = lightSurface ? 'light' : 'dark';
   }, [lightSurface]);
@@ -312,15 +324,19 @@ export function App() {
       <TopNav
         isPrimary={isPrimary}
         role={role}
-        view={['courses', 'pbl', 'community', 'messages', 'goals', 'homeSearch', 'futureSkills'].includes(route?.screen) ? route.screen : view}
+        view={['courses', 'pbl', 'community', 'messages', 'goals', 'homeSearch', 'futureSkills', 'dashboard'].includes(route?.screen) ? route.screen : view}
         onNavigate={navigate}
         onOpenCourses={() => setHash(hrefFor.courses())}
         onOpenGoals={openGoals}
       />
 
-      {role === 'student' && !isPrimary && user && route?.screen !== 'goals' && <DailyGoalsNotice uid={user.uid} />}
+      {/* Not on Goal setting or My Dashboard: both show today's checklist, and two copies of the plan on one screen would overwrite each other. */}
+      {role === 'student' && !isPrimary && user && !['goals', 'dashboard'].includes(route?.screen) && <DailyGoalsNotice uid={user.uid} />}
 
-      {route?.screen === 'futureSkills' && role === 'student' ? (
+      {route?.screen === 'dashboard' && role === 'student' && !isPrimary ? (
+        <MyDashboard uid={user?.uid} profile={profile} classIds={profile?.classIds || []} onJoined={refreshProfile}
+                     onOpenActivity={navigate} />
+      ) : route?.screen === 'futureSkills' && role === 'student' ? (
         <FutureSkillsPage isPrimary={isPrimary} />
       ) : route?.screen === 'pbl' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
         <div className="gh-app">
