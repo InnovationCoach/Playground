@@ -100,3 +100,56 @@ body.has-sidebar.sidebar-collapsed > .container { margin-left: var(--sb-w-collap
 [data-theme="dark"] .gh-sidebar-search .as-field input { color: #e6eaf2; }
 [data-theme="dark"] .gh-sidebar-search .as-field input::placeholder { color: #9ea6b8; }
 [data-theme="dark"] .gh-sidebar-search .as-icon { color: #9ea6b8; }
+
+/* ---------- Auto-hide rail, peek and the gliding highlight ---------- */
+.gh-sidebar-groups { position: relative; }
+.gh-sidebar-link, .gh-sidebar-collapse { position: relative; z-index: 1; }
+.gh-sidebar-link:hover { background: transparent; }
+.gh-sidebar-glow { position: absolute; left: 0; right: 0; top: 0; z-index: 0; border-radius: 11px; background: var(--sb-active-bg);
+  transition: transform 0.22s cubic-bezier(.3, .9, .3, 1.15), height 0.22s, background 0.15s; pointer-events: none; }
+.gh-sidebar-glow.is-hover { background: var(--sb-hover); }
+.gh-sidebar-link[aria-current="page"] { background: transparent; }
+.gh-sidebar-icon { position: relative; display: grid; place-items: center; flex: none; transition: transform 0.2s cubic-bezier(.3, .9, .3, 1.4); }
+.gh-sidebar-link:hover .gh-sidebar-icon { transform: scale(1.15) rotate(-6deg); }
+.gh-sidebar-link[aria-current="page"] .gh-sidebar-icon { transform: scale(1.08); }
+.gh-sidebar-badge { margin-left: auto; padding: 0.05rem 0.5rem; border-radius: 999px; font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  background: var(--sb-bar); color: #fff; }
+.gh-sidebar-dot { position: absolute; top: -3px; right: -4px; width: 9px; height: 9px; border-radius: 50%; background: #e0a800;
+  box-shadow: 0 0 0 2px var(--sb-bg); animation: gh-sb-ping 2s ease-out infinite; }
+@keyframes gh-sb-ping { 0% { box-shadow: 0 0 0 2px var(--sb-bg), 0 0 0 2px rgba(224, 168, 0, 0.6); } 100% { box-shadow: 0 0 0 2px var(--sb-bg), 0 0 0 9px rgba(224, 168, 0, 0); } }
+.gh-sidebar-kbd { margin-left: auto; padding: 0.05rem 0.4rem; border-radius: 5px; font: 600 0.72rem inherit; background: var(--sb-hover); color: var(--sb-muted); }
+
+@media (min-width: 901px) {
+  /* The rail keeps the page's left margin at rail width; peeking overlays the page instead of pushing it. */
+  .gh-sidebar.is-collapsed { transition: width 0.24s cubic-bezier(.2, .8, .2, 1), box-shadow 0.24s; }
+  .gh-sidebar.is-collapsed.is-peek { width: var(--sb-w); padding-inline: 0.75rem; box-shadow: 12px 0 40px rgba(16, 24, 40, 0.18); }
+  [data-theme="dark"] .gh-sidebar.is-collapsed.is-peek { box-shadow: 12px 0 40px rgba(0, 0, 0, 0.5); }
+  .gh-sidebar.is-collapsed.is-peek .gh-sidebar-text, .gh-sidebar.is-collapsed.is-peek .gh-sidebar-label { display: revert; }
+  .gh-sidebar.is-collapsed.is-peek .gh-sidebar-text { display: block; }
+  .gh-sidebar.is-collapsed.is-peek .gh-sidebar-link, .gh-sidebar.is-collapsed.is-peek .gh-sidebar-collapse { justify-content: flex-start; padding-inline: 0.75rem; }
+  .gh-sidebar.is-collapsed.is-peek .gh-sidebar-group + .gh-sidebar-group { border-top: 0; padding-top: 0; }
+  .gh-sidebar.is-collapsed .gh-sidebar-kbd { display: none; }
+  .gh-sidebar.is-collapsed.is-peek .gh-sidebar-kbd { display: inline-block; }
+  /* Labels slide in one after another as the rail opens. */
+  .gh-sidebar.is-collapsed.is-peek .gh-sidebar-text, .gh-sidebar.is-collapsed.is-peek .gh-sidebar-label { animation: gh-sb-in 0.26s ease-out both; }
+  .gh-sidebar.is-collapsed.is-peek .gh-sidebar-group:nth-child(3) .gh-sidebar-text { animation-delay: 0.03s; }
+  .gh-sidebar.is-collapsed.is-peek .gh-sidebar-group:nth-child(4) .gh-sidebar-text { animation-delay: 0.06s; }
+  .gh-sidebar.is-collapsed.is-peek .gh-sidebar-group:nth-child(5) .gh-sidebar-text { animation-delay: 0.09s; }
+  @keyframes gh-sb-in { from { opacity: 0; transform: translateX(-8px); } }
+  /* A soft edge on the rail hints that it opens. */
+  .gh-sidebar.is-collapsed:not(.is-peek)::after { content: ''; position: fixed; left: calc(var(--sb-w-collapsed) - 2px); top: 50%; width: 4px; height: 44px;
+    margin-top: -22px; border-radius: 4px; background: var(--sb-border); transition: background 0.2s; }
+  .gh-sidebar.is-collapsed:not(.is-peek):hover::after { background: var(--sb-bar); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-sidebar-glow, .gh-sidebar-icon { transition: none; }
+  .gh-sidebar-dot, .gh-sidebar.is-collapsed.is-peek .gh-sidebar-text, .gh-sidebar.is-collapsed.is-peek .gh-sidebar-label { animation: none; }
+  .gh-sidebar-link:hover .gh-sidebar-icon { transform: none; }
+}
+/* The phone drawer always shows full rows, whatever the desktop mode. */
+@media (max-width: 900px) {
+  .gh-sidebar.is-collapsed .gh-sidebar-link { justify-content: flex-start; padding-inline: 0.75rem; }
+  .gh-sidebar.is-collapsed .gh-sidebar-group + .gh-sidebar-group { border-top: 0; padding-top: 0; }
+  .gh-sidebar-dot { display: none; }
+}
