@@ -10,6 +10,7 @@ import '../enrolment/joinPanel.css';
 import { useGoalPlan } from '../goals/useGoalPlan.js';
 import { todayItems, checkedToday, toggleToday } from '../goals/goalPlan.js';
 import { NotesWidget } from './NotesWidget.jsx';
+import { FocusWidget } from '../focus/FocusWidget.jsx';
 import '../admin/admin.css';
 import '../pbl/pbl.css';
 import './myDashboard.css';
@@ -109,6 +110,8 @@ export function MyDashboard({ uid, profile, classIds = [], onJoined, onOpenActiv
           <TodayWidget items={model.today} checked={model.ticked} onOpenGoals={() => openTarget({ type: 'goals' })}
                        onToggle={(item) => updatePlan((p) => toggleToday(p, item, signals.today))} />
         );
+      case 'focus':
+        return <FocusWidget focusOn={model.today.find((i) => !model.ticked.has(i.id))?.text} />;
       case 'skill':
         return <SkillWidget skill={model.skill} onOpenSkills={() => { window.location.hash = hrefFor.futureSkills(); }} />;
       case 'notes':

@@ -23,6 +23,7 @@ const part = (done, total) => ({ done, total, percent: pct(done, total) });
 export const WIDGETS = [
   { id: 'progress', title: 'Your progress', hint: 'Academic study and your PBL work', wide: true },
   { id: 'today', title: 'Today', hint: 'Your daily checklist from Goal setting' },
+  { id: 'focus', title: 'Focus sounds', hint: 'Calm sounds and a focus timer for study time' },
   { id: 'nextStep', title: 'Your next step', hint: 'The one thing that moves you forward' },
   { id: 'goals', title: 'My goals', hint: 'Big goals, their steps and your daily habit' },
   { id: 'journey', title: 'Project journey', hint: 'Where you are in the term project', wide: true },
