@@ -11,6 +11,8 @@
  */
 let ctx = null;
 let master = null;
+let wanted = false;
+let suspendTimer = null;
 let analyser = null;
 const channels = {};
 
@@ -103,11 +105,23 @@ function keysChannel() {
   return { gain, scale: 0.9 };
 }
 
+/*
+ * A page can re-run this module (a hot reload, or the app crashing and being
+ * re-imported) while sound plays; the old AudioContext would then keep playing
+ * with no button left to stop it. Each new engine closes the one before.
+ */
+const GLOBAL_KEY = '__welearnFocusAudio';
+if (typeof window !== 'undefined' && window[GLOBAL_KEY]) {
+  try { window[GLOBAL_KEY].close(); } catch { /* already closed */ }
+  window[GLOBAL_KEY] = null;
+}
+
 function ensure() {
   if (ctx) return true;
   const AC = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
   if (!AC) return false;
   ctx = new AC();
+  window[GLOBAL_KEY] = ctx;
   master = ctx.createGain();
   master.gain.value = 0.8;
   analyser = ctx.createAnalyser();
@@ -140,6 +154,8 @@ function channel(id) {
 /** Bring every channel to the levels in `mix` ({ id: 0..1 }), smoothly. */
 export function applyMix(mix) {
   if (!ensure()) return false;
+  clearTimeout(suspendTimer);
+  wanted = Object.values(mix).some((v) => v > 0);
   if (ctx.state === 'suspended') ctx.resume();
   const ids = new Set([...Object.keys(channels), ...Object.keys(mix)]);
   for (const id of ids) {
@@ -158,12 +174,17 @@ export function setMaster(v) {
 /** Fade everything out over `seconds` (used when a focus block ends or the learner presses stop). */
 export function fadeOut(seconds = 1.5) {
   if (!ctx) return;
+  wanted = false;
   for (const ch of Object.values(channels)) ch.gain.gain.setTargetAtTime(0, ctx.currentTime, seconds / 4);
+  // After the fade, switch the audio off completely: true silence, and no CPU spent on muted sound.
+  clearTimeout(suspendTimer);
+  suspendTimer = setTimeout(() => { if (!wanted && ctx.state === 'running') ctx.suspend(); }, seconds * 1000 + 300);
 }
 
 /** A soft two-note chime for the end of a block. */
 export function chime(up = true) {
   if (!ensure()) return;
+  clearTimeout(suspendTimer);
   if (ctx.state === 'suspended') ctx.resume();
   const notes = up ? [659.25, 987.77] : [987.77, 659.25];
   notes.forEach((f, i) => {
@@ -176,11 +197,14 @@ export function chime(up = true) {
     chain(o, g, ctx.destination);
     o.start(t); o.stop(t + 1.5);
   });
+  // Let the chime ring out, then go quiet again if nothing else is playing.
+  suspendTimer = setTimeout(() => { if (!wanted && ctx.state === 'running') ctx.suspend(); }, 2500);
 }
 
 /** Loudness right now, 0..1, for the visualiser. */
 export function level() {
-  if (!analyser) return 0;
+  // A suspended engine keeps its last snapshot; it is silent, so report silence.
+  if (!analyser || ctx.state !== 'running') return 0;
   const data = new Uint8Array(analyser.fftSize);
   analyser.getByteTimeDomainData(data);
   let sum = 0;

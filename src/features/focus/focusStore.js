@@ -96,9 +96,20 @@ export const focus = {
     if (!state.playing) focus.play();
   },
   choose(minutes) { if (state.timer.phase === 'idle') set({ timer: { ...IDLE, minutes } }); },
-  pause() { set({ timer: pauseTimer(state.timer), now: Date.now() }); },
-  resume() { set({ timer: resumeTimer(state.timer), now: Date.now() }); },
-  reset() { set({ timer: { ...IDLE, minutes: state.timer.minutes }, now: Date.now() }); },
+  // Pause and End act on the sound too: one focus session, one set of controls.
+  pause() {
+    const wasPlaying = state.playing;
+    if (wasPlaying) fadeOut(0.8);
+    set({ timer: pauseTimer(state.timer), now: Date.now(), playing: false, resumeSound: wasPlaying });
+  },
+  resume() {
+    set({ timer: resumeTimer(state.timer), now: Date.now() });
+    if (state.resumeSound) focus.play();
+  },
+  reset() {
+    if (state.playing) fadeOut(1.2);
+    set({ timer: { ...IDLE, minutes: state.timer.minutes }, now: Date.now(), playing: false, resumeSound: false });
+  },
   skipBreak() { if (state.timer.phase === 'break') set({ timer: { ...IDLE, minutes: state.timer.minutes } }); }
 };
 
