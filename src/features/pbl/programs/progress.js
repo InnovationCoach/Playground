@@ -7,17 +7,20 @@
  * coach - so a coach review screen needs no new rules to read it. One
  * document per program, so two programs can never overwrite each other.
  *
- * Per session the learner records: done, which learner choice they made, and
- * a short reflection. Evidence stays in the term portfolio for now.
+ * Per session the learner records: done, which learner choice they made, a
+ * short reflection, which "what happens" steps they ticked and how confident
+ * they feel (1-5). Program tools (tools/) keep their own small object under
+ * `tools`, cleaned by the tool that owns it. Evidence stays in the term
+ * portfolio for now.
  */
-export const LIMITS = { reflection: 1200, choiceId: 60, sessions: 60 };
+export const LIMITS = { reflection: 1200, choiceId: 60, sessions: 60, toolBytes: 12000 };
 
 const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
 
 export const progressDocId = (programId) => `pbl-program-${programId}`;
 
 export function newProgress(programId) {
-  return { version: 1, programId, startedAt: null, sessions: {}, updatedAt: null };
+  return { version: 1, programId, startedAt: null, sessions: {}, tools: {}, updatedAt: null };
 }
 
 /** Whatever came back from storage, return well-formed progress for this program. */
@@ -32,17 +35,28 @@ export function hydrateProgress(stored, program) {
     const entry = {
       done: raw.done === true,
       choice: optionIds.includes(raw.choice) ? raw.choice : null,
-      reflection: str(raw.reflection, LIMITS.reflection)
+      reflection: str(raw.reflection, LIMITS.reflection),
+      steps: [...new Set(Array.isArray(raw.steps) ? raw.steps.filter((i) => Number.isInteger(i) && i >= 0 && i < s.activities.length) : [])].sort((a, b) => a - b),
+      confidence: Number.isInteger(raw.confidence) && raw.confidence >= 1 && raw.confidence <= 5 ? raw.confidence : null
     };
-    if (entry.done || entry.choice || entry.reflection) sessions[s.sessionNumber] = entry;
+    if (hasContent(entry)) sessions[s.sessionNumber] = entry;
+  }
+  const tools = {};
+  if (stored.tools && typeof stored.tools === 'object' && !Array.isArray(stored.tools)) {
+    for (const [k, v] of Object.entries(stored.tools)) {
+      if (/^[a-z0-9-]{1,40}$/.test(k) && v && typeof v === 'object' && JSON.stringify(v).length <= LIMITS.toolBytes) tools[k] = v;
+    }
   }
   return {
     ...base,
     startedAt: Number.isFinite(stored.startedAt) ? stored.startedAt : null,
     sessions,
+    tools,
     updatedAt: Number.isFinite(stored.updatedAt) ? stored.updatedAt : null
   };
 }
+
+const hasContent = (e) => e.done || e.choice || e.reflection || e.steps?.length > 0 || e.confidence;
 
 const touch = (progress, patch, now) => ({ ...progress, ...patch, updatedAt: now });
 
@@ -51,10 +65,10 @@ export function startProgram(progress, now = Date.now()) {
 }
 
 function patchSession(progress, n, patch, now) {
-  const prev = progress.sessions[n] || { done: false, choice: null, reflection: '' };
-  const next = { ...prev, ...patch };
+  const prev = progress.sessions[n] || { done: false, choice: null, reflection: '', steps: [], confidence: null };
+  const next = { steps: [], confidence: null, ...prev, ...patch };
   const sessions = { ...progress.sessions };
-  if (next.done || next.choice || next.reflection) sessions[n] = next; else delete sessions[n];
+  if (hasContent(next)) sessions[n] = next; else delete sessions[n];
   return touch(progress, { sessions, startedAt: progress.startedAt || now }, now);
 }
 
@@ -72,6 +86,27 @@ export function chooseOption(progress, session, optionId, now = Date.now()) {
 
 export function setReflection(progress, n, text, now = Date.now()) {
   return patchSession(progress, n, { reflection: str(text, LIMITS.reflection) }, now);
+}
+
+/** Tick or untick one "what happens" step (by its index in session.activities). */
+export function toggleStep(progress, session, index, now = Date.now()) {
+  if (!Number.isInteger(index) || index < 0 || index >= session.activities.length) return progress;
+  const cur = progress.sessions[session.sessionNumber]?.steps || [];
+  const steps = cur.includes(index) ? cur.filter((i) => i !== index) : [...cur, index].sort((a, b) => a - b);
+  return patchSession(progress, session.sessionNumber, { steps }, now);
+}
+
+/** 1 (not yet) to 5 (I could teach it); picking the same value again clears it. */
+export function setConfidence(progress, n, value, now = Date.now()) {
+  const cur = progress.sessions[n]?.confidence;
+  const v = Number.isInteger(value) && value >= 1 && value <= 5 && value !== cur ? value : null;
+  return patchSession(progress, n, { confidence: v }, now);
+}
+
+/** Replace one tool's saved state. The tool cleans its own data before saving. */
+export function setTool(progress, toolId, data, now = Date.now()) {
+  if (!/^[a-z0-9-]{1,40}$/.test(toolId) || JSON.stringify(data).length > LIMITS.toolBytes) return progress;
+  return touch(progress, { tools: { ...progress.tools, [toolId]: data }, startedAt: progress.startedAt || now }, now);
 }
 
 /** Summary for meters and the "next up" pointer. */
