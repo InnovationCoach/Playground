@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Search, ArrowRight, Sparkles, LibraryBig, FolderOpen, Link2, SearchX, Ticket, Rocket,
   Bookmark, Globe, Compass, TrendingUp, Route
@@ -17,10 +17,18 @@ import { buildCatalog, searchCatalog, countBySource, SOURCES } from './catalog.j
 import { useAddedCourses } from './useAddedCourses.js';
 import { CatalogCard } from './CatalogCard.jsx';
 import { useProgramSummaries } from './useProgramSummaries.js';
+import { getCustomPrograms } from '../coach/programs/customProgramsStore.js';
+import {
+  CONNECTED_EDMENTUM_COURSES,
+  getEdmentumConfig,
+  getEdmentumLearnerScores,
+  launchEdmentumCourse
+} from '../edmentum/edmentumService.js';
 import { srOnly } from './CatalogCard.jsx';
 import '../admin/admin.css';
 import '../pbl/pbl.css';
 import '../pbl/programs/programs.css';
+import '../edmentum/edmentum.css';
 import './courses.css';
 
 /**
@@ -62,20 +70,40 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
     return base.filter((c) => `${c.kicker} ${c.title} ${c.description} ${c.keywords}`.toLowerCase().includes(needle));
   }, [q, isPrimary]);
 
+  const [customPrograms, setCustomPrograms] = useState(() => Object.values(getCustomPrograms()));
+  const [edScores, setEdScores] = useState(() => getEdmentumLearnerScores(uid));
+  const edConfig = useMemo(() => getEdmentumConfig(), []);
+
+  useEffect(() => {
+    const onScoreUpdated = () => setEdScores(getEdmentumLearnerScores(uid));
+    window.addEventListener('hearisland-edmentum-score-updated', onScoreUpdated);
+    return () => window.removeEventListener('hearisland-edmentum-score-updated', onScoreUpdated);
+  }, [uid]);
+
+  useEffect(() => {
+    const onCustomChanged = () => {
+      setCustomPrograms(Object.values(getCustomPrograms()));
+    };
+    window.addEventListener('pbl-custom-programs-changed', onCustomChanged);
+    return () => window.removeEventListener('pbl-custom-programs-changed', onCustomChanged);
+  }, []);
+
+  const allPrograms = useMemo(() => [...customPrograms, ...PROGRAMS], [customPrograms]);
+
   // Secondary only: the combined catalogue, program progress and My Path.
   const catalog = useMemo(() => (isPrimary ? [] : buildCatalog({
-    activities: ACTIVITY_NAV, programs: PROGRAMS, parseLabel: parseActivityLabel, includePartners: true
-  })), [isPrimary]);
+    activities: ACTIVITY_NAV, programs: allPrograms, parseLabel: parseActivityLabel, includePartners: true
+  })), [isPrimary, allPrograms]);
   const searching = !isPrimary && (q.trim() !== '' || source !== 'all');
   const results = useMemo(() => searchCatalog(catalog, q, source), [catalog, q, source]);
   const counts = useMemo(() => countBySource(catalog, q), [catalog, q]);
 
   const { byProgram } = useClassPrograms(isPrimary ? [] : classIds);
-  const summaries = useProgramSummaries(uid, PROGRAMS, !isPrimary);
-  const continuing = PROGRAMS.filter((p) => byProgram[p.id] || summaries[p.id]?.startedAt);
+  const summaries = useProgramSummaries(uid, allPrograms, !isPrimary);
+  const continuing = allPrograms.filter((p) => byProgram[p.id] || summaries[p.id]?.startedAt);
   const stats = {
-    started: PROGRAMS.filter((p) => summaries[p.id]?.startedAt).length,
-    sessions: PROGRAMS.reduce((n, p) => n + (summaries[p.id]?.done || 0), 0)
+    started: allPrograms.filter((p) => summaries[p.id]?.startedAt).length,
+    sessions: allPrograms.reduce((n, p) => n + (summaries[p.id]?.done || 0), 0)
   };
 
   const { keys: path, added: saved, toggle: onToggleSave } = useAddedCourses(uid, isPrimary ? NO_COURSES : catalog);
@@ -249,11 +277,62 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
       )}
 
       <section className="gh-section" aria-labelledby="mc-edmentum">
-        <SectionHead id="mc-edmentum" icon={LibraryBig} bg="#eef6ff" fg="#1d5a8f" title={t('courses.provider.edmentum')} />
-        <div className="gh-placeholder">
-          <span className="gh-empty-icon"><Link2 size={20} aria-hidden="true" /></span>
-          {t('courses.edmentumPending')}
-        </div>
+        <SectionHead id="mc-edmentum" icon={LibraryBig} bg="#eef6ff" fg="#1d5a8f" title={t('courses.provider.edmentum')} count={edConfig.connected && !isPrimary ? CONNECTED_EDMENTUM_COURSES.length : undefined} />
+        {edConfig.connected && !isPrimary ? (
+          <ul className="mc-edmentum-list">
+            {CONNECTED_EDMENTUM_COURSES.map((course) => {
+              const scoreRec = edScores[course.id];
+              const progress = scoreRec?.progressPercent ?? 0;
+              const avgScore = scoreRec?.averageScore ?? null;
+              return (
+                <li key={course.id} className="mc-edmentum-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="mc-ed-badge">
+                      <Link2 size={12} /> {course.code}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#8b949e' }}>{course.gradeRange}</span>
+                  </div>
+
+                  <div>
+                    <h3 className="mc-ed-title">{course.title}</h3>
+                    <p className="mc-ed-desc">{course.description}</p>
+                  </div>
+
+                  <div className="mc-ed-stats-row">
+                    <div className="mc-ed-stat-col">
+                      <span className="mc-ed-stat-val">{progress}%</span>
+                      <span className="mc-ed-stat-lbl">Coursework Progress</span>
+                    </div>
+                    {avgScore !== null && (
+                      <div className="mc-ed-stat-col" style={{ alignItems: 'flex-end' }}>
+                        <span className="mc-ed-stat-val" style={{ color: avgScore >= 80 ? '#3fb950' : '#d29922' }}>
+                          {avgScore}%
+                        </span>
+                        <span className="mc-ed-stat-lbl">AGS Average Score</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="mc-ed-launch-btn"
+                    onClick={async () => {
+                      const res = await launchEdmentumCourse(course.id, { uid, displayName });
+                      if (res?.launchUrl) window.open(res.launchUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    <Rocket size={15} /> 1-Click Launch into Edmentum
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="gh-placeholder">
+            <span className="gh-empty-icon"><Link2 size={20} aria-hidden="true" /></span>
+            {t('courses.edmentumPending')}
+          </div>
+        )}
       </section>
 
       <section className="gh-section" aria-labelledby="mc-materials">

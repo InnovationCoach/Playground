@@ -55,10 +55,12 @@ export function parseRoute(hash) {
   if (head === 'dashboard') return { screen: 'dashboard' };
   if (head === 'spark') return { screen: 'spark' };
   if (head === 'coach') return { screen: 'coach' };
+  if (head === 'edmentum') return { screen: 'edmentum' };
   return null;
 }
 
 export const hrefFor = {
+  edmentum: () => '#/edmentum',
   list: (kind) => `#/admin/${kind}`,
   billing: () => '#/admin/billing',
   materials: () => '#/admin/materials',

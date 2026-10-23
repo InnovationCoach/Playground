@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   House, Search, LayoutDashboard, BookOpen, Rocket, Target, Sparkles, Users, Printer, HeartHandshake,
-  GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X
+  GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2
 } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';

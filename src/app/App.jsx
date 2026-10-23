@@ -19,6 +19,8 @@ import { Sidebar, readCollapsed, writeCollapsed } from '../features/shell/Sideba
 import { Header } from '../features/shell/Header.jsx';
 import { StudentDashboard } from '../features/student/StudentDashboard.jsx';
 import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
+import { CoachPblStudio } from '../features/coach/studio/CoachPblStudio.jsx';
+import { EdmentumIntegrationConsole } from '../features/edmentum/EdmentumIntegrationConsole.jsx';
 import { showActivity, hideAllActivities, isLegacyActivity, isReactActivity, trackActivityOpen, ACTIVITY_NAV } from '../features/activities/activityHost.js';
 import { SolarCarChallenge } from '../features/activities/solarCar/SolarCarChallenge.jsx';
 import { So2SulfateSimulation } from '../features/activities/so2Sulfate/So2SulfateSimulation.jsx';
@@ -208,7 +210,19 @@ export function App() {
     headerProps.menuOpen = menuOpen;
   }
 
-  const spark = (
+  const isCoachRole = role === 'teacher' || role === 'coach';
+  const spark = isCoachRole ? (
+    <CoachPblStudio
+      coachUser={{
+        uid: user?.uid,
+        email: user?.email,
+        displayName: profile?.displayName || user?.email?.split('@')[0] || 'Coach',
+        classIds: classIds || profile?.classIds || [],
+        role
+      }}
+      navigate={setHash}
+    />
+  ) : (
     <div className="gh-app">
       <SparkHome role={role} uid={user?.uid} displayName={profile?.displayName || user?.email?.split('@')[0] || ''}
                  navigate={setHash} onOpenActivity={navigate} />
@@ -382,6 +396,17 @@ export function App() {
         <div className="gh-app">
           <MyCourses isPrimary={isPrimary} onOpenActivity={navigate} displayName={profile?.displayName}
                      uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
+        </div>
+      ) : route?.screen === 'edmentum' ? (
+        <div className="gh-app">
+          <EdmentumIntegrationConsole
+            coachUser={{
+              uid: user?.uid,
+              email: user?.email,
+              displayName: profile?.displayName || user?.email?.split('@')[0] || 'Coach',
+              role
+            }}
+          />
         </div>
       ) : (role === 'teacher' || role === 'coach') && (route?.screen === 'coach' || !route?.screen) ? (
         <CoachDashboardHost

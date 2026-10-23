@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, CircleCheck, Circle, ChevronDown, Target, Users, Leaf, HeartHandshake,
   Cpu, Wrench, Package, Laptop, ShieldAlert, GraduationCap, Bot, Printer, TriangleAlert, Clock,
-  Lightbulb, MessageSquareQuote, ListChecks, Compass, CalendarDays, Wrench as ToolIcon, NotebookPen, Rocket, Undo2
+  Lightbulb, MessageSquareQuote, ListChecks, Compass, CalendarDays, Wrench as ToolIcon, NotebookPen, Rocket, Undo2,
+  Video, GitBranch, Box
 } from 'lucide-react';
 import { programById, PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges, isSourcedConfirmation } from './catalog.js';
 import {
-  programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, LIMITS
+  programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, LIMITS
 } from './progress.js';
+import { subscribeToPblTransfers } from '../../coach/studio/pblTransferService.js';
 import { toolkitFor } from './tools/index.js';
 import { ToolFor, FounderPanel } from './tools/EntrepreneurshipTools.jsx';
 import { confettiFrom, buzz } from '../../goals/celebrate.js';
@@ -44,6 +46,15 @@ const EVIDENCE_LABEL = { note: 'Note', media: 'Photo or video', code: 'Code', da
  * read-only plus the teaching guide and the content checks.
  */
 export function ProgramDetail({ programId, section, uid, isCoach, classIds = [] }) {
+  const [, setReloadTick] = useState(0);
+  useEffect(() => {
+    return subscribeToPblTransfers((data) => {
+      if (data.programId === programId) {
+        setReloadTick((t) => t + 1);
+      }
+    });
+  }, [programId]);
+
   const program = programById(programId);
   const { classes, classCovers, reload } = useClassPrograms(classIds);
   if (!program) {
@@ -379,6 +390,76 @@ const CONFIDENCE = [
 ];
 const TOOL_EMOJI = { 'friction-log': '🔍', 'crazy-8s': '⚡', 'unit-economics': '📊', 'pitch-timer': '🎤' };
 
+function MultiModalSubmissions({ session: s, progress, apply, say }) {
+  const submissions = progress?.sessions[s.sessionNumber]?.submissions || {};
+  const [activeType, setActiveType] = useState('video');
+  const [val, setVal] = useState('');
+
+  const submit = (type, inputVal) => {
+    if (!inputVal || !inputVal.trim()) return;
+    apply((p) => setSubmission(p, s.sessionNumber, type, inputVal.trim()));
+    buzz([20, 40]);
+    say?.(`${type === 'video' ? '📹 Video demo' : type === 'github' ? '💻 GitHub repo' : '🛠️ Prototype'} submitted!`);
+    setVal('');
+  };
+
+  return (
+    <div className="pg-submissions-box" style={{ marginTop: '0.85rem', padding: '0.85rem', background: 'var(--gh-surface-2, #1b212c)', border: '1px solid var(--gh-border, #30363d)', borderRadius: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f0f6fc', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Multi-Modal Submissions
+        </span>
+        <div style={{ display: 'flex', gap: '0.35rem' }}>
+          <button type="button" className={`gh-btn gh-btn-sm ${activeType === 'video' ? 'gh-btn-primary' : 'gh-btn-ghost'}`} onClick={() => { setActiveType('video'); setVal(''); }}>
+            <Video size={13} style={{ marginRight: '0.25rem' }} /> Video Link
+          </button>
+          <button type="button" className={`gh-btn gh-btn-sm ${activeType === 'github' ? 'gh-btn-primary' : 'gh-btn-ghost'}`} onClick={() => { setActiveType('github'); setVal(''); }}>
+            <GitBranch size={13} style={{ marginRight: '0.25rem' }} /> GitHub Repo
+          </button>
+          <button type="button" className={`gh-btn gh-btn-sm ${activeType === 'prototype' ? 'gh-btn-primary' : 'gh-btn-ghost'}`} onClick={() => { setActiveType('prototype'); setVal(''); }}>
+            <Box size={13} style={{ marginRight: '0.25rem' }} /> Prototype
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <input
+          type="text"
+          className="gh-input"
+          style={{ fontSize: '0.82rem', padding: '0.45rem 0.65rem' }}
+          placeholder={activeType === 'video' ? 'Paste YouTube, Loom, or Drive video URL...' : activeType === 'github' ? 'Paste GitHub repo URL (e.g. https://github.com/org/repo)...' : 'MakerSpace Bench #, Box Tag, or Photo Link...'}
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(activeType, val); } }}
+        />
+        <button type="button" className="gh-btn gh-btn-primary gh-btn-sm" onClick={() => submit(activeType, val)}>
+          {activeType === 'video' ? 'Submit Video' : activeType === 'github' ? 'Link Repo' : 'Register Tag'}
+        </button>
+      </div>
+
+      {Object.keys(submissions).length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginTop: '0.65rem' }}>
+          {submissions.video && (
+            <span className="gh-badge gh-badge-active" style={{ fontSize: '0.74rem' }}>
+              <Video size={12} style={{ marginRight: '0.3rem' }} /> Video Demo: {submissions.video.url.slice(0, 32)}... ✓
+            </span>
+          )}
+          {submissions.github && (
+            <span className="gh-badge gh-badge-active" style={{ fontSize: '0.74rem' }}>
+              <GitBranch size={12} style={{ marginRight: '0.3rem' }} /> GitHub: {submissions.github.url.slice(0, 32)}... ✓
+            </span>
+          )}
+          {submissions.prototype && (
+            <span className="gh-badge gh-badge-active" style={{ fontSize: '0.74rem' }}>
+              <Box size={12} style={{ marginRight: '0.3rem' }} /> Prototype Tag: {submissions.prototype.url.slice(0, 32)}... ✓
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Stage({ icon, title, children }) {
   return (
     <section className="pg-stage">
@@ -498,6 +579,9 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
                 </a>
               )}
             </div>
+            {progress && (
+              <MultiModalSubmissions session={s} progress={progress} apply={apply} say={say} />
+            )}
           </Stage>
 
           <Stage icon="💭" title="Reflect">

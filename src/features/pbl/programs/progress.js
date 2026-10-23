@@ -39,6 +39,9 @@ export function hydrateProgress(stored, program) {
       steps: [...new Set(Array.isArray(raw.steps) ? raw.steps.filter((i) => Number.isInteger(i) && i >= 0 && i < s.activities.length) : [])].sort((a, b) => a - b),
       confidence: Number.isInteger(raw.confidence) && raw.confidence >= 1 && raw.confidence <= 5 ? raw.confidence : null
     };
+    if (raw.submissions && typeof raw.submissions === 'object' && Object.keys(raw.submissions).length > 0) {
+      entry.submissions = raw.submissions;
+    }
     if (hasContent(entry)) sessions[s.sessionNumber] = entry;
   }
   const tools = {};
@@ -56,7 +59,7 @@ export function hydrateProgress(stored, program) {
   };
 }
 
-const hasContent = (e) => e.done || e.choice || e.reflection || e.steps?.length > 0 || e.confidence;
+const hasContent = (e) => e.done || e.choice || e.reflection || e.steps?.length > 0 || e.confidence || Object.keys(e.submissions || {}).length > 0;
 
 const touch = (progress, patch, now) => ({ ...progress, ...patch, updatedAt: now });
 
@@ -101,6 +104,14 @@ export function setConfidence(progress, n, value, now = Date.now()) {
   const cur = progress.sessions[n]?.confidence;
   const v = Number.isInteger(value) && value >= 1 && value <= 5 && value !== cur ? value : null;
   return patchSession(progress, n, { confidence: v }, now);
+}
+
+/** Record multi-modal submission for a session: 'video' | 'github' | 'prototype' */
+export function setSubmission(progress, n, kind, value, now = Date.now()) {
+  const prev = progress.sessions[n] || { done: false, choice: null, reflection: '', steps: [], confidence: null, submissions: {} };
+  const prevSubmissions = prev.submissions || {};
+  const nextSubmissions = { ...prevSubmissions, [kind]: { url: str(value, 500), submittedAt: now } };
+  return patchSession(progress, n, { submissions: nextSubmissions }, now);
 }
 
 /** Replace one tool's saved state. The tool cleans its own data before saving. */

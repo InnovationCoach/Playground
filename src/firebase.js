@@ -16,17 +16,17 @@ const firebaseConfig = {
 // contest anyway. Duplicating the config here produced a real bug - the module's
 // projectId override was silently discarded, sign-in succeeded against the
 // emulator while every document read landed in an empty project namespace.
-const USE_EMULATORS = window.__hearIslandUseEmulators === true;
+const USE_EMULATORS = typeof window !== 'undefined' && window.__hearIslandUseEmulators === true;
 
 // Fallback only: index.html has normally initialised the app already. This keeps
 // the module usable in isolation, e.g. from a test harness.
-if (!firebase.apps || !firebase.apps.length) {
+if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)) {
   firebase.initializeApp(firebaseConfig);
 }
 
-const auth = firebase.auth();
-const db = firebase.firestore();
-const storage = firebase.storage();
+const auth = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth() : null;
+const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
+const storage = (typeof firebase !== 'undefined' && firebase.storage) ? firebase.storage() : null;
 
 export const usingEmulators = USE_EMULATORS;
 

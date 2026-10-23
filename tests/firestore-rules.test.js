@@ -918,3 +918,41 @@ describe('coach media on a class program', () => {
     await assertFails(updateDoc(doc(db, 'classes', CLASS_A), { programMedia: [] }));
   });
 });
+
+describe('pbl_programs: authoring and publishing', () => {
+  const programData = {
+    title: 'Smart Garden 2026',
+    authorUid: 'coach_a',
+    durationWeeks: 12
+  };
+
+  it('unauthenticated users cannot read or write programs', async () => {
+    const db = anon().firestore();
+    await assertFails(getDoc(doc(db, 'pbl_programs', 'prog-1')));
+    await assertFails(setDoc(doc(db, 'pbl_programs', 'prog-1'), programData));
+  });
+
+  it('coaches can create and update programs', async () => {
+    const db = coachA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'pbl_programs', 'prog-1'), programData));
+    await assertSucceeds(updateDoc(doc(db, 'pbl_programs', 'prog-1'), { title: 'Updated Title' }));
+  });
+
+  it('students can read programs but cannot create or update them', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'pbl_programs', 'prog-read'), programData);
+    });
+    const db = studentA().firestore();
+    await assertSucceeds(getDoc(doc(db, 'pbl_programs', 'prog-read')));
+    await assertFails(setDoc(doc(db, 'pbl_programs', 'prog-student'), programData));
+    await assertFails(updateDoc(doc(db, 'pbl_programs', 'prog-read'), { title: 'Hacked' }));
+  });
+
+  it('deleting programs is disallowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'pbl_programs', 'prog-del'), programData);
+    });
+    await assertFails(deleteDoc(doc(coachA().firestore(), 'pbl_programs', 'prog-del')));
+    await assertFails(deleteDoc(doc(studentA().firestore(), 'pbl_programs', 'prog-del')));
+  });
+});
