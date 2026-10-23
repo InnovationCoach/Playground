@@ -306,3 +306,51 @@ export function coachGoalDocs(plan, now = Date.now()) {
   }
   return docs;
 }
+
+/*
+ * Game layer for the goals page. Points come only from things the learner
+ * actually did and that stay in the plan (no decay, no streak penalties), so
+ * the level never drops because days age out of `days`.
+ */
+export const XP = { setup: 10, focus: 15, goal: 20, step: 10, achieved: 40, perLevel: 100 };
+export const LEVELS = ['Starter', 'Explorer', 'Builder', 'Trailblazer', 'Innovator', 'Visionary'];
+
+export function planXp(plan) {
+  let xp = 0;
+  for (const list of [plan.strengths, plan.supports, plan.phrases, plan.recharge]) if (list.length) xp += XP.setup;
+  if (plan.focus) xp += XP.focus;
+  for (const g of plan.goals) {
+    xp += XP.goal + g.steps.filter((s) => s.done).length * XP.step;
+    if (g.done) xp += XP.achieved;
+  }
+  return xp;
+}
+
+export function planLevel(plan) {
+  const xp = planXp(plan);
+  const n = Math.floor(xp / XP.perLevel);
+  return { xp, level: n + 1, title: LEVELS[Math.min(n, LEVELS.length - 1)], into: xp % XP.perLevel, perLevel: XP.perLevel };
+}
+
+/** Days in a row with at least one item ticked, ending today (or yesterday, so today is not yet a break). */
+export function streak(plan, today = new Date()) {
+  const ticked = (d) => (plan.days[dayKey(d)] || []).length > 0;
+  const d = new Date(today);
+  if (!ticked(d)) d.setDate(d.getDate() - 1);
+  let n = 0;
+  while (ticked(d) && n < LIMITS.days) { n += 1; d.setDate(d.getDate() - 1); }
+  return n;
+}
+
+/** The four stations of the quest map, in order, and which one to do next. */
+export function questStations(plan, day = dayKey()) {
+  const items = todayItems(plan, day);
+  const ticked = checkedToday(plan, day);
+  const stations = [
+    { id: 'strengths', title: 'Spot your strengths', done: plan.strengths.length > 0 },
+    { id: 'goal', title: 'Set a big goal', done: plan.goals.length > 0 },
+    { id: 'focus', title: 'Pick a tiny habit', done: !!plan.focus },
+    { id: 'today', title: 'Tick off today', done: items.length > 0 && items.every((i) => ticked.has(i.id)) }
+  ];
+  return { stations, next: stations.find((s) => !s.done)?.id || null };
+}

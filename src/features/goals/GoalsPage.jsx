@@ -1,13 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Target, Sparkles, CircleCheck, Circle, Plus, Trash, Flag, Zap, Heart, MessageCircle, BatteryCharging,
-  Cloud, CloudOff, Eye, Trophy, RotateCcw
+  Cloud, CloudOff, Eye, Trophy, RotateCcw, Flame, Rocket, Check, ChevronRight
 } from 'lucide-react';
 import {
-  STRENGTHS, SUPPORTS, SHOW_HOW, FOCUS_SKILLS, PHRASES, RECHARGE, LIMITS,
-  touch, newId, hasPlan, goalSentence, todayItems, checkedToday, toggleToday, habitWeek, dayKey
+  STRENGTHS, SUPPORTS, FOCUS_SKILLS, PHRASES, RECHARGE, LIMITS, XP,
+  touch, newId, goalSentence, todayItems, checkedToday, toggleToday, habitWeek, dayKey,
+  planLevel, streak, questStations
 } from './goalPlan.js';
 import { useGoalPlan } from './useGoalPlan.js';
+import { GoalQuest, SHOW_EMOJI } from './GoalQuest.jsx';
+import { confetti, confettiFrom, buzz } from './celebrate.js';
 import '../admin/admin.css';
 import './goals.css';
 
@@ -15,36 +18,51 @@ import './goals.css';
  * Full-page goal setting (#/goals), replacing the pop-up wizard for secondary
  * learners. Strength-based: see goalPlan.js for the model and why it never
  * asks for a diagnosis.
+ *
+ * The banner turns the page into a short quest (four stations, XP from real
+ * progress, a streak) so a first-time learner can see what to do next; new
+ * goals are built a question at a time in GoalQuest.
  */
 export function GoalsPage({ uid, displayName }) {
   const { plan, update, syncState, loaded } = useGoalPlan(uid);
+  const [questOpen, setQuestOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
   const firstName = String(displayName || '').split(' ')[0];
   const set = (patch) => update((p) => touch(p, patch));
   const toggleIn = (key, id) => update((p) => touch(p, { [key]: p[key].includes(id) ? p[key].filter((x) => x !== id) : [...p[key], id] }));
+  const cheer = (text) => {
+    clearTimeout(toastTimer.current);
+    setToast({ text, at: Date.now() });
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  };
+  const canAdd = plan.goals.length < LIMITS.goals;
+  const startQuest = () => { if (canAdd) setQuestOpen(true); else scrollTo('gl-goals'); };
+
+  function launch(goal) {
+    update((p) => touch(p, { goals: [...p.goals, goal] }));
+    setQuestOpen(false);
+    confetti({ big: true });
+    buzz([20, 40, 20]);
+    cheer(`Goal launched! +${XP.goal} XP`);
+  }
 
   return (
     <div className="gh-page gl-page">
-      <header className="gl-head">
-        <div>
-          <span className="gl-kicker"><Target size={15} aria-hidden="true" />My goals</span>
-          <h1>{firstName ? `${firstName}, build on what you are great at` : 'Build on what you are great at'}</h1>
-          <p>Big goals start from what you love. Small daily steps, the support that works for you, and time to recharge get you there.</p>
-        </div>
-        <SyncBadge state={syncState} />
-      </header>
+      <QuestHero plan={plan} firstName={firstName} syncState={syncState} loaded={loaded}
+                 onStation={(id) => (id === 'goal' ? startQuest() : scrollTo(`gl-${id}`))}
+                 onStart={startQuest} canAdd={canAdd} />
 
       <p className="gl-visible"><Eye size={15} aria-hidden="true" />Your coach can see this page, so they know what helps you. You never need to name a diagnosis here.</p>
 
-      {loaded && !hasPlan(plan) && <GettingStarted />}
-
       <div className="gl-grid">
         <div className="gl-col">
-          <TodayCard plan={plan} update={update} />
-          <BigGoals plan={plan} update={update} />
+          <TodayCard plan={plan} update={update} cheer={cheer} />
+          <BigGoals plan={plan} update={update} onStart={startQuest} cheer={cheer} />
           <FocusSkill plan={plan} set={set} />
         </div>
         <div className="gl-col">
-          <ChipCard id="gl-strengths" icon={Sparkles} title="My strengths" hint="What are you good at, or love doing?"
+          <ChipCard id="gl-strengths" icon={Sparkles} title="My strengths" hint="What are you good at, or love doing? Your goal ideas start here."
                     items={STRENGTHS} selected={plan.strengths} onToggle={(id) => toggleIn('strengths', id)}
                     own={plan.strengthsOwn} onOwn={(v) => set({ strengthsOwn: v })} ownLabel="Another strength" />
           <ChipCard id="gl-supports" icon={Heart} title="What helps me" hint="Pick the things that make work easier for you."
@@ -56,8 +74,21 @@ export function GoalsPage({ uid, displayName }) {
                     items={RECHARGE} selected={plan.recharge} onToggle={(id) => toggleIn('recharge', id)} />
         </div>
       </div>
+
+      <GoalQuest open={questOpen} onClose={() => setQuestOpen(false)} onLaunch={launch}
+                 strengths={plan.strengths} supportsFirst={plan.supports} />
+      <div className="gl-toast-host" aria-live="polite">{toast && <span className="gl-toast" key={toast.at}>{toast.text}</span>}</div>
     </div>
   );
+}
+
+function scrollTo(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  el.classList.remove('gl-flash');
+  void el.offsetWidth; // restart the highlight animation
+  el.classList.add('gl-flash');
 }
 
 function SyncBadge({ state }) {
@@ -67,20 +98,74 @@ function SyncBadge({ state }) {
   return null;
 }
 
-function GettingStarted() {
-  const steps = [
-    ['gl-strengths', 'Pick your strengths', 'and what helps you work.'],
-    ['gl-goals', 'Set one big goal', 'from something you want to explore.'],
-    ['gl-focus', 'Choose one focus skill', 'and a tiny daily habit.']
-  ];
+const STATION_ICON = { strengths: Sparkles, goal: Flag, focus: Zap, today: CircleCheck };
+const STATION_HELP = {
+  strengths: 'Tap what you are good at',
+  goal: 'Answer 5 quick questions',
+  focus: 'One small daily habit',
+  today: 'Tick steps, earn XP'
+};
+
+function QuestHero({ plan, firstName, syncState, loaded, onStation, onStart, canAdd }) {
+  const { stations, next } = questStations(plan);
+  const lvl = planLevel(plan);
+  const days = streak(plan);
+  const C = 2 * Math.PI * 34;
   return (
-    <ol className="gl-start" aria-label="Getting started">
-      {steps.map(([href, title, body], i) => (
-        <li key={href}><a href={`#${href}`} onClick={(e) => { e.preventDefault(); document.getElementById(href)?.scrollIntoView({ behavior: 'smooth' }); }}>
-          <span className="gl-start-n">{i + 1}</span><span><strong>{title}</strong> {body}</span>
-        </a></li>
-      ))}
-    </ol>
+    // A <section>, not <header>: index.html still styles every bare `header` for the legacy app.
+    <section className="gl-hero" aria-labelledby="gl-hero-title">
+      <div className="gl-hero-top">
+        <div className="gl-hero-text">
+          <span className="gl-kicker"><Target size={15} aria-hidden="true" />My goals</span>
+          <h1 id="gl-hero-title">{firstName ? `${firstName}, build on what you are great at` : 'Build on what you are great at'}</h1>
+          <p>Set a goal in five quick questions, then tick off one tiny step a day. Every step earns XP.</p>
+          <div className="gl-hero-actions">
+            {canAdd && (
+              <button type="button" className="gh-btn gh-btn-primary gl-hero-cta" onClick={onStart}>
+                <Rocket size={17} aria-hidden="true" />{plan.goals.length ? 'Start a new goal' : 'Start my first goal'}
+              </button>
+            )}
+            <SyncBadge state={syncState} />
+          </div>
+        </div>
+        <div className="gl-hero-stats">
+          <div className="gl-level" role="img" aria-label={`Level ${lvl.level}, ${lvl.title}. ${lvl.into} of ${lvl.perLevel} XP to the next level.`}>
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle cx="40" cy="40" r="34" className="gl-level-track" />
+              <circle cx="40" cy="40" r="34" className="gl-level-fill"
+                      strokeDasharray={C} strokeDashoffset={C * (1 - lvl.into / lvl.perLevel)} />
+            </svg>
+            <span className="gl-level-n"><small>Level</small>{lvl.level}</span>
+          </div>
+          <div className="gl-hero-meta">
+            <strong>{lvl.title}</strong>
+            <span>{lvl.xp} XP · {lvl.perLevel - lvl.into} to next level</span>
+            <span className={days ? 'gl-streak on' : 'gl-streak'}><Flame size={15} aria-hidden="true" />
+              {days ? `${days}-day streak` : 'Tick one thing today to start a streak'}</span>
+          </div>
+        </div>
+      </div>
+
+      <ol className="gl-map" aria-label="How goal setting works">
+        {stations.map((s, i) => {
+          const Icon = STATION_ICON[s.id];
+          const isNext = loaded && s.id === next;
+          return (
+            <li key={s.id}>
+              <button type="button" className={`gl-station${s.done ? ' done' : ''}${isNext ? ' next' : ''}`} onClick={() => onStation(s.id)}
+                      aria-label={`Step ${i + 1}: ${s.title}. ${s.done ? 'Done.' : isNext ? 'Do this next.' : ''}`}>
+                <span className="gl-station-dot">{s.done ? <Check size={16} aria-hidden="true" /> : <Icon size={16} aria-hidden="true" />}</span>
+                <span className="gl-station-text">
+                  <strong>{i + 1}. {s.title}</strong>
+                  <span>{isNext ? 'Start here' : STATION_HELP[s.id]}</span>
+                </span>
+                <ChevronRight size={16} className="gl-station-go" aria-hidden="true" />
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -131,7 +216,7 @@ function ChipCard({ id, icon, title, hint, items, selected, onToggle, own, onOwn
 
 /* ---------------- Today ---------------- */
 
-function TodayCard({ plan, update }) {
+function TodayCard({ plan, update, cheer }) {
   const items = todayItems(plan);
   const checked = checkedToday(plan);
   const done = items.filter((i) => checked.has(i.id)).length;
@@ -149,7 +234,13 @@ function TodayCard({ plan, update }) {
               const on = checked.has(it.id);
               return (
                 <li key={it.id}>
-                  <button type="button" className="gl-check" aria-pressed={on} onClick={() => update((p) => toggleToday(p, it))}>
+                  <button type="button" className="gl-check" aria-pressed={on} onClick={(e) => {
+                    update((p) => toggleToday(p, it));
+                    if (on) return;
+                    buzz();
+                    if (done + 1 === items.length) { confettiFrom(e.currentTarget, { big: true }); cheer('Everything done today!'); }
+                    else { confettiFrom(e.currentTarget); if (it.kind === 'step') cheer(`Step done! +${XP.step} XP`); }
+                  }}>
                     {on ? <CircleCheck size={20} aria-hidden="true" /> : <Circle size={20} aria-hidden="true" />}
                     <span>
                       <span className="gl-check-text">{it.text}</span>
@@ -165,7 +256,7 @@ function TodayCard({ plan, update }) {
           {done === items.length && <p className="gl-cheer"><Trophy size={16} aria-hidden="true" />All done for today. Nice work.</p>}
         </>
       ) : (
-        <p className="gl-empty">Your daily checklist builds itself from your focus habit, the next step of each big goal, and your recharge plan. Add those below.</p>
+        <p className="gl-empty">Nothing to tick yet. Your list fills itself in from your goal steps, your tiny habit and your recharge plan. Start with the quest map above.</p>
       )}
     </Card>
   );
@@ -173,84 +264,30 @@ function TodayCard({ plan, update }) {
 
 /* ---------------- Big goals ---------------- */
 
-function BigGoals({ plan, update }) {
-  const [adding, setAdding] = useState(plan.goals.length === 0);
+function BigGoals({ plan, update, onStart, cheer }) {
   const full = plan.goals.length >= LIMITS.goals;
   const patchGoal = (id, fn) => update((p) => touch(p, { goals: p.goals.map((g) => (g.id === id ? fn(g) : g)) }));
   const removeGoal = (id) => update((p) => touch(p, { goals: p.goals.filter((g) => g.id !== id) }));
   return (
     <Card id="gl-goals" icon={Flag} title="My big goals"
-          hint="Start from something you want to explore. Then choose how you will show it and what will help."
-          action={!adding && !full && (
-            <button type="button" className="gh-btn gh-btn-sm" onClick={() => setAdding(true)}><Plus size={15} aria-hidden="true" />Add</button>
+          hint="Something you want to explore, how you will show it, and the tiny steps to get there."
+          action={plan.goals.length > 0 && !full && (
+            <button type="button" className="gh-btn gh-btn-sm" onClick={onStart}><Plus size={15} aria-hidden="true" />New goal</button>
           )}>
-      {plan.goals.map((g) => <GoalItem key={g.id} goal={g} patch={(fn) => patchGoal(g.id, fn)} remove={() => removeGoal(g.id)} />)}
-      {adding && !full && (
-        <NewGoalForm supportsFirst={plan.supports} onCancel={plan.goals.length ? () => setAdding(false) : null}
-                     onAdd={(g) => { update((p) => touch(p, { goals: [...p.goals, g] })); setAdding(false); }} />
+      {plan.goals.map((g) => <GoalItem key={g.id} goal={g} cheer={cheer} patch={(fn) => patchGoal(g.id, fn)} remove={() => removeGoal(g.id)} />)}
+      {plan.goals.length === 0 && (
+        <button type="button" className="gl-empty-quest" onClick={onStart}>
+          <span className="gl-empty-quest-emoji" aria-hidden="true">🚀</span>
+          <strong>Start your first goal quest</strong>
+          <span>Five quick questions. No long forms, and you can change anything later.</span>
+        </button>
       )}
       {full && <p className="gl-note">Three big goals at a time keeps things manageable. Finish or remove one to add another.</p>}
     </Card>
   );
 }
 
-function NewGoalForm({ onAdd, onCancel, supportsFirst }) {
-  const [explore, setExplore] = useState('');
-  const [showHow, setShowHow] = useState(null);
-  // Follows "What helps me" until the learner changes it here.
-  const [ownSupports, setSupports] = useState(null);
-  const supports = ownSupports ?? supportsFirst.slice(0, 3);
-  const [steps, setSteps] = useState(['', '']);
-  const ordered = useMemo(() => [...SUPPORTS].sort((a, b) => supportsFirst.includes(b.id) - supportsFirst.includes(a.id)), [supportsFirst]);
-
-  function submit(e) {
-    e.preventDefault();
-    if (!explore.trim()) return;
-    onAdd({
-      id: newId('g'), explore: explore.trim().slice(0, LIMITS.text), showHow, supports, done: false, createdAt: Date.now(),
-      steps: steps.map((s) => s.trim()).filter(Boolean).slice(0, LIMITS.steps).map((text) => ({ id: newId('s'), text, done: false }))
-    });
-  }
-  const preview = explore.trim() ? goalSentence({ explore: explore.trim(), showHow, supports }) : null;
-
-  return (
-    <form className="gl-form" onSubmit={submit}>
-      <label className="gl-field">
-        <span>1. What do you want to explore?</span>
-        <input className="gh-input" value={explore} maxLength={LIMITS.text} onChange={(e) => setExplore(e.target.value)}
-               placeholder="e.g. how black holes bend light, or how to build a walking robot" required />
-      </label>
-      <div className="gl-field">
-        <span>2. How will you show what you learn?</span>
-        <Chips items={SHOW_HOW} selected={showHow} single label="How you will show it"
-               onToggle={(id) => setShowHow((cur) => (cur === id ? null : id))} />
-      </div>
-      <div className="gl-field">
-        <span>3. What will help you?</span>
-        <Chips items={ordered} selected={supports} label="What will help"
-               onToggle={(id) => setSupports(supports.includes(id) ? supports.filter((x) => x !== id) : [...supports, id])} />
-      </div>
-      <div className="gl-field">
-        <span>4. First small steps <em>(optional)</em></span>
-        {steps.map((s, i) => (
-          <input key={i} className="gh-input" value={s} maxLength={LIMITS.text} aria-label={`Step ${i + 1}`}
-                 placeholder={i === 0 ? 'e.g. Watch one video about it' : 'e.g. Write 3 questions I want answered'}
-                 onChange={(e) => setSteps((cur) => cur.map((x, j) => (j === i ? e.target.value : x)))} />
-        ))}
-        {steps.length < LIMITS.steps && (
-          <button type="button" className="gl-link" onClick={() => setSteps((cur) => [...cur, ''])}><Plus size={14} aria-hidden="true" />Another step</button>
-        )}
-      </div>
-      {preview && <p className="gl-preview"><strong>Your goal:</strong> {preview}</p>}
-      <div className="gl-actions">
-        <button type="submit" className="gh-btn gh-btn-accent" disabled={!explore.trim()}>Save goal</button>
-        {onCancel && <button type="button" className="gh-btn gh-btn-ghost" onClick={onCancel}>Cancel</button>}
-      </div>
-    </form>
-  );
-}
-
-function GoalItem({ goal, patch, remove }) {
+function GoalItem({ goal, patch, remove, cheer }) {
   const [step, setStep] = useState('');
   const [confirming, setConfirming] = useState(false);
   const done = goal.steps.filter((s) => s.done).length;
@@ -262,15 +299,22 @@ function GoalItem({ goal, patch, remove }) {
   }
   return (
     <article className={goal.done ? 'gl-goal is-done' : 'gl-goal'}>
-      <p className="gl-goal-sentence">{goalSentence(goal)}</p>
+      <div className="gl-goal-head">
+        <span className="gl-goal-emoji" aria-hidden="true">{goal.done ? '🏆' : SHOW_EMOJI[goal.showHow] || '🌟'}</span>
+        <p className="gl-goal-sentence">{goalSentence(goal)}</p>
+      </div>
       {goal.steps.length > 0 && (
         <>
           <span className="gl-goal-meta">{done} of {goal.steps.length} steps done</span>
+          <span className="gl-bar gl-bar-sm" aria-hidden="true"><i style={{ width: `${(done / goal.steps.length) * 100}%` }} /></span>
           <ul className="gl-steps">
             {goal.steps.map((s) => (
               <li key={s.id}>
                 <button type="button" className="gl-check gl-check-sm" aria-pressed={s.done}
-                        onClick={() => patch((g) => ({ ...g, steps: g.steps.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x)) }))}>
+                        onClick={(e) => {
+                          patch((g) => ({ ...g, steps: g.steps.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x)) }));
+                          if (!s.done) { buzz(); confettiFrom(e.currentTarget); cheer(done + 1 === goal.steps.length ? 'All steps done! Ready to press "I did it"?' : `Step done! +${XP.step} XP`); }
+                        }}>
                   {s.done ? <CircleCheck size={17} aria-hidden="true" /> : <Circle size={17} aria-hidden="true" />}
                   <span className="gl-check-text">{s.text}</span>
                 </button>
@@ -291,7 +335,10 @@ function GoalItem({ goal, patch, remove }) {
         </form>
       )}
       <div className="gl-goal-actions">
-        <button type="button" className="gh-btn gh-btn-sm" onClick={() => patch((g) => ({ ...g, done: !g.done }))}>
+        <button type="button" className={goal.done ? 'gh-btn gh-btn-sm' : 'gh-btn gh-btn-sm gh-btn-primary'} onClick={(e) => {
+          patch((g) => ({ ...g, done: !g.done }));
+          if (!goal.done) { buzz([20, 40, 20]); confettiFrom(e.currentTarget, { big: true }); cheer(`Goal achieved! +${XP.achieved} XP`); }
+        }}>
           {goal.done ? <><RotateCcw size={14} aria-hidden="true" />Reopen</> : <><Trophy size={14} aria-hidden="true" />I did it</>}
         </button>
         {confirming ? (

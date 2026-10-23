@@ -1,27 +1,65 @@
 /* Goals page (#/goals) and the daily goals notification. Built on the gh-* brand tokens. */
 
 .gl-page { display: flex; flex-direction: column; gap: 1.25rem; }
-.gl-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem;
-  padding: 1.6rem 1.75rem; border-radius: 18px; color: #fff;
-  background: linear-gradient(135deg, var(--gh-navy) 0%, #2b2a6b 55%, var(--gh-purple) 100%); }
-.gl-head > div { max-width: 62ch; min-width: 0; }
-.gl-head h1 { color: #fff; font-size: clamp(1.4rem, 3vw, 1.85rem); margin: 0.35rem 0 0.4rem; text-wrap: balance; }
-.gl-head p { margin: 0; color: rgba(255, 255, 255, 0.85); font-size: 0.95rem; }
-.gl-kicker { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--gh-green); }
+/* ---------- Banner ----------
+ * Colours are literal, not tokens: the banner is always dark, in both themes,
+ * and must not pick up `.gh-app h1 { color: var(--gh-heading) }` (navy) if the
+ * bundled CSS order changes. `.gh-app .gl-hero` outranks that rule either way. */
+.gl-hero { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 1.25rem; padding: 1.6rem 1.75rem; border-radius: 20px; color: #fff;
+  background-color: #0b2447;
+  background-image: radial-gradient(120% 140% at 100% 0%, rgba(150, 215, 0, 0.14) 0%, transparent 45%),
+    linear-gradient(135deg, #062a4d 0%, #23265e 55%, #4e2a6c 100%);
+  box-shadow: 0 14px 34px rgba(11, 36, 71, 0.22); }
+.gl-hero-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; }
+.gl-hero-text { max-width: 60ch; min-width: 0; flex: 1 1 320px; }
+.gh-app .gl-hero h1 { color: #fff; font-size: clamp(1.45rem, 3vw, 1.95rem); line-height: 1.2; margin: 0.4rem 0 0.45rem; text-wrap: balance; }
+.gh-app .gl-hero p { margin: 0; color: #e6eaf5; font-size: 1rem; line-height: 1.5; }
+.gl-kicker { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #b9f03c; }
+.gl-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 1rem; }
+.gl-hero-cta { min-height: 44px; padding: 0.55rem 1.15rem; font-size: 0.95rem; }
 .gl-sync { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 600; padding: 0.3rem 0.7rem;
-  border-radius: 999px; background: rgba(255, 255, 255, 0.14); color: #fff; white-space: nowrap; }
+  border-radius: 999px; background: rgba(255, 255, 255, 0.16); color: #fff; white-space: nowrap; }
 .gl-sync-warn { background: #fff6e0; color: #8a5700; }
 
-.gl-visible { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 0.85rem; color: var(--gh-text-2); }
+.gl-hero-stats { display: flex; align-items: center; gap: 0.9rem; padding: 0.85rem 1.1rem 0.85rem 0.85rem; border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.16); }
+.gl-level { position: relative; width: 76px; height: 76px; flex-shrink: 0; }
+.gl-level svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.gl-level circle { fill: none; stroke-width: 8; }
+.gl-level-track { stroke: rgba(255, 255, 255, 0.18); }
+.gl-level-fill { stroke: #96d700; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(.2, .8, .2, 1); }
+.gl-level-n { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; font: 800 1.5rem/1 var(--gh-font-display, sans-serif); color: #fff; }
+.gl-level-n small { display: block; font: 600 0.62rem/1.2 var(--gh-font, sans-serif); letter-spacing: 0.06em; text-transform: uppercase; color: #d6dcec; }
+.gl-hero-meta { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.85rem; color: #e6eaf5; }
+.gl-hero-meta strong { font-size: 1.05rem; color: #fff; }
+.gl-streak { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.2rem; color: #d6dcec; }
+.gl-streak.on { color: #ffd166; font-weight: 700; }
+.gl-streak.on svg { animation: gl-flicker 1.6s ease-in-out infinite; }
+@keyframes gl-flicker { 50% { transform: scale(1.15) rotate(-6deg); } }
 
-.gl-start { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.6rem; }
-.gl-start a { display: flex; gap: 0.75rem; align-items: center; padding: 0.85rem 1rem; border-radius: 14px; text-decoration: none;
-  background: var(--gh-surface); border: 1px dashed var(--gh-purple-100); color: var(--gh-text-2); font-size: 0.88rem; }
-.gl-start a:hover { border-style: solid; }
-.gl-start strong { color: var(--gh-heading); }
-.gl-start-n { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center;
-  background: var(--gh-purple-50); color: var(--gh-purple-text); font-weight: 700; font-size: 0.85rem; }
+/* Quest map: four stations that explain the page and jump to each part. */
+.gl-map { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; counter-reset: none; }
+@media (max-width: 1100px) { .gl-map { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .gl-map { grid-template-columns: 1fr; } }
+.gl-station { width: 100%; height: 100%; display: flex; align-items: center; gap: 0.65rem; padding: 0.7rem 0.8rem; border-radius: 14px; cursor: pointer;
+  text-align: left; font: inherit; color: #fff; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16);
+  transition: background 0.15s, transform 0.15s; }
+.gl-station:hover { background: rgba(255, 255, 255, 0.15); transform: translateY(-2px); }
+.gl-station-dot { width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.16); color: #fff; }
+.gl-station-text { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; flex: 1; }
+.gl-station-text strong { font-size: 0.9rem; color: #fff; }
+.gl-station-text span { font-size: 0.8rem; color: #d6dcec; }
+.gl-station-go { color: #d6dcec; flex-shrink: 0; }
+.gl-station.done .gl-station-dot { background: #96d700; color: #1c2b00; }
+.gl-station.next { background: rgba(150, 215, 0, 0.16); border-color: #96d700; }
+.gl-station.next .gl-station-text span { color: #c8f56a; font-weight: 700; }
+.gl-station.next .gl-station-dot { background: #96d700; color: #1c2b00; animation: gl-pulse 1.8s ease-out infinite; }
+@keyframes gl-pulse { 0% { box-shadow: 0 0 0 0 rgba(150, 215, 0, 0.6); } 100% { box-shadow: 0 0 0 12px rgba(150, 215, 0, 0); } }
+.gl-station:focus-visible { outline: 3px solid #b9f03c; outline-offset: 2px; }
+
+.gl-visible { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 0.85rem; color: var(--gh-text-2); }
 
 .gl-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
 @media (max-width: 900px) { .gl-grid { grid-template-columns: 1fr; } }
@@ -98,7 +136,7 @@
 .gl-phrase[aria-pressed="true"] { background: var(--gh-purple-50); border-color: var(--gh-purple); color: var(--gh-purple-text); font-weight: 500; }
 
 .gl-chip:focus-visible, .gl-check:focus-visible, .gl-phrase:focus-visible, .gl-icon-btn:focus-visible, .gl-link:focus-visible,
-.gl-start a:focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 2px; }
+.gl-tile:focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 2px; }
 
 /* ---------- Daily notification ---------- */
 /* .gh-app only to inherit the brand tokens; the host itself takes no space. */
@@ -118,3 +156,115 @@
 .gl-notice .gh-btn { text-decoration: none; }
 
 @media (prefers-reduced-motion: reduce) { .gl-notice { animation: none; } .gl-bar i { transition: none; } }
+
+/* ---------- Goals list extras ---------- */
+.gl-goal-head { display: flex; gap: 0.7rem; align-items: flex-start; }
+.gl-goal-emoji { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
+.gl-bar-sm { height: 6px; }
+.gl-empty-quest { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 1.4rem 1rem; border-radius: 14px; cursor: pointer;
+  border: 2px dashed var(--gh-purple-100); background: var(--gh-purple-50); color: var(--gh-text-2); font: inherit; text-align: center;
+  transition: transform 0.15s, border-color 0.15s; }
+.gl-empty-quest:hover { transform: translateY(-2px); border-color: var(--gh-purple); }
+.gl-empty-quest strong { color: var(--gh-heading); font-size: 1.02rem; }
+.gl-empty-quest span:last-child { font-size: 0.86rem; }
+.gl-empty-quest-emoji { font-size: 2rem; animation: gl-bob 2.4s ease-in-out infinite; }
+@keyframes gl-bob { 50% { transform: translateY(-5px); } }
+.gl-empty-quest:focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 2px; }
+
+.gl-check[aria-pressed="true"] svg { animation: gl-pop 0.35s ease-out; }
+@keyframes gl-pop { 40% { transform: scale(1.35); } }
+
+/* Highlight a card the quest map jumped to. */
+.gl-flash { animation: gl-flash 1.4s ease-out; }
+@keyframes gl-flash { 0%, 40% { box-shadow: 0 0 0 4px var(--gh-green); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* ---------- Goal quest dialog ---------- */
+.gl-quest { margin: auto; inset: 0; width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 0; border-radius: 22px;
+  background: var(--gh-surface); color: var(--gh-text); box-shadow: 0 30px 80px rgba(11, 20, 40, 0.35); overflow: auto; }
+.gl-quest::backdrop { background: rgba(8, 18, 38, 0.55); backdrop-filter: blur(4px); }
+.gl-quest[open] { animation: gl-quest-in 0.28s cubic-bezier(.2, .9, .3, 1.2); }
+@keyframes gl-quest-in { from { transform: translateY(18px) scale(0.97); opacity: 0; } }
+.gl-quest-inner { display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem 1.4rem 1.3rem; }
+.gl-quest-top { display: flex; align-items: center; justify-content: space-between; }
+.gl-quest-count { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gh-purple-text); }
+.gl-quest-tools { display: flex; gap: 0.2rem; }
+.gl-quest-path { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 0; }
+.gl-quest-path li { display: flex; align-items: center; flex: 1; }
+.gl-quest-path li:first-child { flex: 0 0 auto; }
+.gl-quest-path li + li::before { content: ''; flex: 1; height: 3px; margin: 0 6px; border-radius: 3px; background: var(--gh-subtle); transition: background 0.3s; }
+.gl-quest-path li.done + li::before, .gl-quest-path li.now::before { background: var(--gh-green); }
+.gl-quest-dot { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; font-size: 0.78rem; font-weight: 700;
+  background: var(--gh-subtle); color: var(--gh-text-3); transition: background 0.3s, color 0.3s; }
+.gl-quest-path li.done .gl-quest-dot { background: var(--gh-green); color: var(--gh-green-ink); }
+.gl-quest-path li.now .gl-quest-dot { background: var(--gh-purple); color: #fff; box-shadow: 0 0 0 4px var(--gh-purple-100); }
+
+.gl-quest-step { display: flex; flex-direction: column; gap: 0.85rem; min-height: 230px; view-transition-name: gl-quest-step; }
+.gh-app .gl-quest-step h2 { font-size: clamp(1.3rem, 3.5vw, 1.6rem); margin: 0; color: var(--gh-heading); text-wrap: balance; }
+.gl-quest-hint { margin: 0; color: var(--gh-text-2); font-size: 0.92rem; }
+.gl-quest-note { margin: 0; color: var(--gh-text-3); font-size: 0.8rem; }
+.gl-quest-explore { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.gl-quest-input { flex: 1 1 260px; min-height: 48px; font-size: 1rem; }
+.gl-dice { min-height: 48px; }
+.gl-dice.is-rolling svg { animation: gl-roll 0.5s ease-out; }
+@keyframes gl-roll { to { transform: rotate(360deg) scale(1.1); } }
+
+.gl-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.55rem; }
+.gl-tiles-sm { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); }
+.gl-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; padding: 0.75rem 0.8rem; min-height: 84px; border-radius: 14px;
+  cursor: pointer; text-align: left; font: 500 0.88rem/1.3 var(--gh-font); color: var(--gh-text); background: var(--gh-surface);
+  border: 2px solid var(--gh-border); transition: transform 0.12s, border-color 0.12s, background 0.12s; }
+.gl-tiles-sm .gl-tile { min-height: 0; flex-direction: row; align-items: center; }
+.gl-tile:hover { transform: translateY(-2px); border-color: var(--gh-purple-100); }
+.gl-tile { position: relative; padding-right: 1.9rem; }
+.gl-tile[aria-pressed="true"] { background: var(--gh-purple-50); border-color: var(--gh-purple); color: var(--gh-purple-text); font-weight: 600;
+  box-shadow: 0 6px 16px rgba(130, 80, 160, 0.18); }
+.gl-tile[aria-pressed="true"]::after { content: '✓'; position: absolute; top: 6px; right: 8px; width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 0.72rem; font-weight: 800; background: var(--gh-purple); color: #fff; }
+.gl-tile[aria-pressed="true"] .gl-tile-emoji { animation: gl-pop 0.35s ease-out; }
+.gl-tile-emoji { font-size: 1.6rem; line-height: 1; }
+.gl-tiles-sm .gl-tile-emoji { font-size: 1.25rem; }
+.gl-chip-add { display: inline-flex; align-items: center; gap: 0.3rem; border-style: dashed; }
+.gl-quest-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.gl-quest-steps li { display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.4rem 0.45rem 0.6rem; border-radius: 12px;
+  background: var(--gh-subtle); font-size: 0.92rem; animation: gl-in 0.2s ease-out; }
+.gl-quest-step-n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; font-size: 0.76rem; font-weight: 700;
+  background: var(--gh-purple); color: #fff; }
+
+.gl-quest-card { position: relative; display: flex; flex-direction: column; gap: 0.6rem; padding: 1.2rem 1.25rem; border-radius: 18px;
+  background: linear-gradient(135deg, #062a4d 0%, #23265e 60%, #4e2a6c 100%); color: #fff; box-shadow: 0 12px 28px rgba(11, 36, 71, 0.25);
+  animation: gl-card-in 0.5s cubic-bezier(.2, .9, .3, 1.3); }
+@keyframes gl-card-in { from { transform: rotateX(25deg) translateY(16px) scale(0.95); opacity: 0; } }
+.gl-quest-card-emoji { font-size: 2.2rem; line-height: 1; }
+.gh-app .gl-quest-card p.gl-quest-card-sentence { margin: 0; font: 600 1.08rem/1.45 var(--gh-font-display, sans-serif); color: #fff; }
+.gl-quest-card-steps { margin: 0; padding-left: 1.2rem; color: #e6eaf5; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.gh-app .gl-quest-card p.gl-quest-card-xp { margin: 0; font-size: 0.82rem; font-weight: 700; color: #c8f56a; }
+
+.gl-quest-nav { display: flex; justify-content: space-between; gap: 0.5rem; padding-top: 0.25rem; }
+.gl-quest-nav .gh-btn { min-height: 44px; padding: 0.5rem 1.1rem; }
+.gl-launch { font-size: 0.95rem; }
+.gl-launch svg { transition: transform 0.2s; }
+.gl-launch:hover svg { transform: translate(2px, -2px) rotate(-8deg); }
+
+/* View Transitions between questions (Chrome, Edge, Safari 18+); others just swap. */
+::view-transition-old(gl-quest-step) { animation: gl-vt-out 0.18s ease-in both; }
+::view-transition-new(gl-quest-step) { animation: gl-vt-in 0.26s ease-out both; }
+@keyframes gl-vt-out { to { opacity: 0; transform: translateX(-24px); } }
+@keyframes gl-vt-in { from { opacity: 0; transform: translateX(24px); } }
+:root[data-gl-dir="back"]::view-transition-old(gl-quest-step) { animation-name: gl-vt-out-back; }
+:root[data-gl-dir="back"]::view-transition-new(gl-quest-step) { animation-name: gl-vt-in-back; }
+@keyframes gl-vt-out-back { to { opacity: 0; transform: translateX(24px); } }
+@keyframes gl-vt-in-back { from { opacity: 0; transform: translateX(-24px); } }
+
+/* ---------- Rewards ---------- */
+.gl-confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 3000; }
+.gl-toast-host { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 2500; pointer-events: none; }
+.gl-toast { display: inline-block; padding: 0.65rem 1.1rem; border-radius: 999px; background: #0b2447; color: #fff; font-weight: 700; font-size: 0.92rem;
+  box-shadow: 0 12px 30px rgba(11, 20, 40, 0.3); border: 2px solid #96d700; white-space: nowrap; animation: gl-toast 2.6s ease forwards; }
+@keyframes gl-toast { 0% { transform: translateY(20px) scale(0.9); opacity: 0; } 10%, 85% { transform: none; opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-station.next .gl-station-dot, .gl-streak.on svg, .gl-empty-quest-emoji, .gl-check[aria-pressed="true"] svg,
+  .gl-tile[aria-pressed="true"] .gl-tile-emoji, .gl-quest[open], .gl-quest-card, .gl-flash, .gl-dice.is-rolling svg { animation: none; }
+  .gl-toast { animation-duration: 0.01s; animation-delay: 0s; opacity: 1; animation: none; }
+  .gl-level-fill, .gl-station, .gl-tile { transition: none; }
+}
