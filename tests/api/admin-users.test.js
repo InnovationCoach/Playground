@@ -281,4 +281,126 @@ describe('API: Admin Users Management', () => {
       expect(res.body.items).toBeInstanceOf(Array);
     });
   });
+
+  describe('Cohort Boundaries & Consent Requirements', () => {
+    it('Age 11 boundary (primary): sets consent to required', async () => {
+      const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+      const res = await env.request('POST', '/api/admin/users', {
+        token,
+        body: {
+          role: 'student',
+          email: `primary.11.${Date.now()}@welearn.test`,
+          givenNames: 'Eleven',
+          surname: 'Learner',
+          schoolIds: ['sch-bkk'],
+          cohortId: 'cohort-w2e',
+          cohort: 'primary',
+          dateOfBirth: '2015-01-01'
+        }
+      });
+      expect(res.status).toBe(201);
+      const userDoc = await env.db.collection('users').doc(res.body.uid).get();
+      expect(userDoc.data().cohort).toBe('primary');
+      expect(userDoc.data().consent).toEqual({ status: 'required' });
+    });
+
+    it('Age 12 boundary (lower-secondary start): creates learner without consent requirement', async () => {
+      const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+      const res = await env.request('POST', '/api/admin/users', {
+        token,
+        body: {
+          role: 'student',
+          email: `lower.12.${Date.now()}@welearn.test`,
+          givenNames: 'Twelve',
+          surname: 'Learner',
+          schoolIds: ['sch-bkk'],
+          cohortId: 'cohort-w2e',
+          cohort: 'lower-secondary',
+          dateOfBirth: '2014-01-01'
+        }
+      });
+      expect(res.status).toBe(201);
+      const userDoc = await env.db.collection('users').doc(res.body.uid).get();
+      expect(userDoc.data().cohort).toBe('lower-secondary');
+      expect(userDoc.data().consent).toBeNull();
+    });
+
+    it('Age 14 boundary (lower-secondary end): creates learner in lower-secondary', async () => {
+      const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+      const res = await env.request('POST', '/api/admin/users', {
+        token,
+        body: {
+          role: 'student',
+          email: `lower.14.${Date.now()}@welearn.test`,
+          givenNames: 'Fourteen',
+          surname: 'Learner',
+          schoolIds: ['sch-bkk'],
+          cohortId: 'cohort-w2e',
+          cohort: 'lower-secondary',
+          dateOfBirth: '2012-01-01'
+        }
+      });
+      expect(res.status).toBe(201);
+      const userDoc = await env.db.collection('users').doc(res.body.uid).get();
+      expect(userDoc.data().cohort).toBe('lower-secondary');
+    });
+
+    it('Age 15 boundary (higher-secondary start): creates learner in higher-secondary', async () => {
+      const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+      const res = await env.request('POST', '/api/admin/users', {
+        token,
+        body: {
+          role: 'student',
+          email: `higher.15.${Date.now()}@welearn.test`,
+          givenNames: 'Fifteen',
+          surname: 'Learner',
+          schoolIds: ['sch-bkk'],
+          cohortId: 'cohort-w2e',
+          cohort: 'higher-secondary',
+          dateOfBirth: '2011-01-01'
+        }
+      });
+      expect(res.status).toBe(201);
+      const userDoc = await env.db.collection('users').doc(res.body.uid).get();
+      expect(userDoc.data().cohort).toBe('higher-secondary');
+    });
+
+    it('Age 18 boundary (higher-secondary end): creates learner in higher-secondary', async () => {
+      const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+      const res = await env.request('POST', '/api/admin/users', {
+        token,
+        body: {
+          role: 'student',
+          email: `higher.18.${Date.now()}@welearn.test`,
+          givenNames: 'Eighteen',
+          surname: 'Learner',
+          schoolIds: ['sch-bkk'],
+          cohortId: 'cohort-w2e',
+          cohort: 'higher-secondary',
+          dateOfBirth: '2008-01-01'
+        }
+      });
+      expect(res.status).toBe(201);
+      const userDoc = await env.db.collection('users').doc(res.body.uid).get();
+      expect(userDoc.data().cohort).toBe('higher-secondary');
+    });
+
+    it('rejects invalid cohort with 400 VALIDATION', async () => {
+      const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+      const res = await env.request('POST', '/api/admin/users', {
+        token,
+        body: {
+          role: 'student',
+          email: `invalid.cohort.${Date.now()}@welearn.test`,
+          givenNames: 'Invalid',
+          surname: 'Cohort',
+          schoolIds: ['sch-bkk'],
+          cohortId: 'cohort-w2e',
+          cohort: 'invalid-cohort'
+        }
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION');
+    });
+  });
 });

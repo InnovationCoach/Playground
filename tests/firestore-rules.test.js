@@ -956,3 +956,107 @@ describe('pbl_programs: authoring and publishing', () => {
     await assertFails(deleteDoc(doc(studentA().firestore(), 'pbl_programs', 'prog-del')));
   });
 });
+
+describe('WeLearn SPARK: enrolments and phaseProgress rules', () => {
+  const enrolmentId = 'student_a_prog-1';
+  const enrolmentData = {
+    learnerId: 'student_a',
+    programId: 'prog-1',
+    source: 'self-added',
+    currentPhaseId: 'explore',
+    status: 'active'
+  };
+
+  it('learner can create own enrolment and read it', async () => {
+    const db = studentA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'enrolments', enrolmentId), enrolmentData));
+    await assertSucceeds(getDoc(doc(db, 'enrolments', enrolmentId)));
+  });
+
+  it('learner CANNOT create enrolment for another learner', async () => {
+    const db = studentA().firestore();
+    await assertFails(setDoc(doc(db, 'enrolments', 'student_a2_prog-1'), {
+      ...enrolmentData,
+      learnerId: 'student_a2'
+    }));
+  });
+
+  it('learner CANNOT read another learner enrolment unless coach', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'enrolments', 'student_b_prog-1'), {
+        learnerId: 'student_b',
+        programId: 'prog-1',
+        status: 'active'
+      });
+    });
+    await assertFails(getDoc(doc(studentA().firestore(), 'enrolments', 'student_b_prog-1')));
+  });
+
+  it('learner can submit evidence to phaseProgress', async () => {
+    const db = studentA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'enrolments', enrolmentId, 'phaseProgress', 'explore'), {
+      status: 'submitted',
+      evidence: [{ type: 'text', note: 'Learner research findings' }],
+      updatedAt: Date.now()
+    }));
+  });
+
+  it('learner CANNOT write coachFeedback or set status to reviewed', async () => {
+    const db = studentA().firestore();
+    await assertFails(setDoc(doc(db, 'enrolments', enrolmentId, 'phaseProgress', 'explore'), {
+      status: 'reviewed',
+      evidence: [],
+      coachFeedback: { text: 'Self graded A+' }
+    }));
+  });
+
+  it('coach can write coachFeedback and mark status reviewed', async () => {
+    const db = coachA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'enrolments', enrolmentId, 'phaseProgress', 'explore'), {
+      status: 'reviewed',
+      coachFeedback: { text: 'Excellent prototype', rating: 5, coachId: 'coach_a' },
+      updatedAt: Date.now()
+    }));
+  });
+});
+
+describe('WeLearn SPARK: privilege boundaries and audit trail', () => {
+  it('user CANNOT change their own role on users doc', async () => {
+    const db = studentA().firestore();
+    await assertFails(updateDoc(doc(db, 'users', 'student_a'), { role: 'coach' }));
+  });
+
+  it('auditLogs are append-only: create succeeds, update and delete fail', async () => {
+    const db = studentA().firestore();
+    const logData = {
+      actorId: 'student_a',
+      eventType: 'COURSE_ENROLLED',
+      source: 'client',
+      timestamp: Date.now()
+    };
+    await assertSucceeds(setDoc(doc(db, 'auditLogs', 'log-1'), logData));
+    await assertFails(updateDoc(doc(db, 'auditLogs', 'log-1'), { eventType: 'TAMPERED' }));
+    await assertFails(deleteDoc(doc(db, 'auditLogs', 'log-1')));
+  });
+
+  it('user can manage own session document', async () => {
+    const db = studentA().firestore();
+    await assertSucceeds(setDoc(doc(db, 'sessions', 'session-1'), {
+      uid: 'student_a',
+      startedAt: Date.now(),
+      lastHeartbeatAt: Date.now()
+    }));
+    await assertSucceeds(updateDoc(doc(db, 'sessions', 'session-1'), {
+      lastHeartbeatAt: Date.now()
+    }));
+  });
+
+  it('user CANNOT hijack another user session', async () => {
+    const db = studentA().firestore();
+    await assertFails(setDoc(doc(db, 'sessions', 'session-other'), {
+      uid: 'student_b',
+      startedAt: Date.now()
+    }));
+  });
+});
+
