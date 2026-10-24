@@ -7,6 +7,7 @@
 import { db, doc, setDoc } from '../../../firebase.js';
 import { hrefFor } from '../../../app/routes.js';
 import { saveCustomProgram } from '../programs/customProgramsStore.js';
+import { publishProgram } from '../../../services/pblService.js';
 
 const BROADCAST_CHANNEL_NAME = 'hearisland_pbl_transfer_channel';
 
@@ -126,30 +127,11 @@ export async function publishAndTransferToStudent(pblUnit, studentUid, coachUid)
     console.warn('[PBL Transfer] localStorage write warning:', err);
   }
 
-  // 3. Save to Firestore (both student progress document and pbl_programs collection)
-  try {
-    const programDocRef = doc(db, 'pbl_programs', program.id);
-    await setDoc(programDocRef, {
-      ...program,
-      authorUid: coachUid || 'coach',
-      studentUid,
-      transferredAt: now,
-      updatedAt: now
-    }, { merge: true });
-
-    // Also update student user document with active enrolled program pointer
-    if (studentUid) {
-      const studentUserRef = doc(db, 'users', studentUid);
-      await setDoc(studentUserRef, {
-        activeProgramId: program.id,
-        activeProgramTitle: program.title,
-        programTransferredAt: now
-      }, { merge: true }).catch(() => {});
-    }
-    console.log('[PBL Transfer] Cloud save successful to pbl_programs/' + program.id);
-  } catch (err) {
-    console.info('[PBL Transfer] Firestore save notice (offline/emulator mock mode active):', err.message);
-  }
+  // 3. Save to Firestore via publishProgram service (atomic batch + strict contract validation)
+  const { enrolmentIds } = await publishProgram(program, {
+    assignTo: { learnerId: studentUid }
+  });
+  console.log('[PBL Transfer] Cloud save successful to pbl_programs/' + program.id, enrolmentIds);
 
   // 4. Emit real-time Broadcast Channel event for instant live multi-tab sync
   try {

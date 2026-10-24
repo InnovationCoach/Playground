@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Search, CalendarDays, Layers, Users, TriangleAlert, ArrowRight, School } from 'lucide-react';
-import { PROGRAMS, PLATFORM_NOTES, SCHEDULE, shortAges } from './catalog.js';
+import { PROGRAMS, COACH_PLATFORM_NOTES, SCHEDULE, shortAges } from './catalog.js';
 import { programProgress } from './progress.js';
 import { readLocalProgress } from './useProgramProgress.js';
 import { ProgramIcon } from './ProgramIcon.jsx';
@@ -63,10 +63,10 @@ export function ProgramLibrary({ uid, isCoach, classIds = [] }) {
         <p className="pb-note pg-platform-note" role="note">Join your class on Home to see the program your teacher chose for you.</p>
       )}
 
-      {isCoach && PLATFORM_NOTES.length > 0 && (
+      {isCoach && COACH_PLATFORM_NOTES.length > 0 && (
         <div className="pb-note pg-platform-note" role="note">
           <TriangleAlert size={15} aria-hidden="true" />
-          <span>All programs are drafts awaiting school review. {PLATFORM_NOTES.map((n) => n.text).join(' ')}</span>
+          <span>All programs are drafts awaiting coach review. {COACH_PLATFORM_NOTES.map((n) => n.text).join(' ')}</span>
         </div>
       )}
 

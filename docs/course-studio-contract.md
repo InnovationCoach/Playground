@@ -25,7 +25,7 @@ AI produces **drafts only**. A coach reviews and edits every draft. Nothing reac
 
    Allowed learner context, only when the coach asks for a learner-tailored draft: consuming passions, strengths, and applied accommodations, as plain phrases.
 4. **No invented facts.** Every factual claim in a slide or quiz must be supported by a supplied source. Otherwise it must be marked `ASSUMPTION` in the item. Never invent statistics, dates, or guarantees.
-5. **Age:** all content is for learners aged **11–18**. Use `ageBand` (`11-13`, `14-16`, `17-18`) to set reading level. Never produce content that targets a private individual.
+5. **Cohort:** all content is for learners aged **6–18**. Use `cohort` (`primary` = ages 6–11, `lower-secondary` = ages 12–14, `higher-secondary` = ages 15–18) to set reading level. Never produce content that targets a private individual.
 6. **Language:** British English. Terms: "programme", "coach", "learning centre". Never "teacher" or "school" in generated copy.
 7. **Logging:** log counts, durations, the output type and the model name. Never log prompts, sources, or output text.
 
@@ -44,7 +44,7 @@ Generate one draft. One call returns one output type.
   programId?: string,            // required for 'slides' | 'quiz' | 'script' when the programme exists
   futureSkillId?: string,        // required for 'milestones' when editing one of the seven Future Skills
   phaseId?: 'explore' | 'empathise' | 'define' | 'ideate' | 'prototype' | 'test' | 'showcase' | 'reflect',
-  ageBand: '11-13' | '14-16' | '17-18',
+  cohort: 'primary' | 'lower-secondary' | 'higher-secondary',
   sources: Array<{ id: string, title: string, text: string }>,   // coach-supplied; see limits
   learnerContext?: { consumingPassions: string[], strengths: string[], accommodations: string[] },
   instructions?: string,         // coach's own words, max 500 chars
