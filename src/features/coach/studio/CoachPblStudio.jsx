@@ -354,7 +354,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               <div className="cp-tag-group">
                 <span className="cp-tag-label">Cognitive Profile & Diagnosis:</span>
                 <div className="cp-tag-chips">
-                  {learner.traitBadges.map((badge) => (
+                  {(learner.traitBadges || []).map((badge) => (
                     <span key={badge} className="cp-chip cp-chip-trait">{badge}</span>
                   ))}
                 </div>
@@ -372,7 +372,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               <div className="cp-tag-group">
                 <span className="cp-tag-label">Executive Function Hurdles:</span>
                 <div className="cp-tag-chips">
-                  {learner.hurdleBadges.map((badge) => (
+                  {(learner.hurdleBadges || []).map((badge) => (
                     <span key={badge} className="cp-chip cp-chip-hurdle">{badge}</span>
                   ))}
                 </div>
@@ -382,7 +382,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               <div className="cp-tag-group">
                 <span className="cp-tag-label">Applied Accommodations:</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  {learner.appliedAccommodations.map((accom, idx) => (
+                  {(learner.appliedAccommodations || []).map((accom, idx) => (
                     <span key={idx} className="cp-chip cp-chip-accom">
                       <ShieldCheck size={13} /> {accom}
                     </span>
