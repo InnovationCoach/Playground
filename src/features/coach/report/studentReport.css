@@ -1,0 +1,37 @@
+/* Student report: on screen it sits in the Growth Hub layout; when printed it becomes a clean one-page-style document. */
+
+.sr-page { display: grid; gap: 1rem; }
+.sr-title { margin: 0; font-size: 1.4rem; color: var(--gh-heading); }
+.sr-muted { margin: 0; color: var(--gh-text-2); font-size: 0.88rem; }
+.sr-toolbar { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+.sr-actions { display: flex; gap: 0.6rem; align-items: flex-end; flex-wrap: wrap; }
+.sr-field { display: grid; gap: 0.25rem; font-size: 0.8rem; font-weight: 600; color: var(--gh-text-2); }
+.sr-field select { min-width: 200px; padding: 0.45rem 0.55rem; border-radius: 8px; border: 1px solid var(--gh-border-strong); background: var(--gh-surface); color: var(--gh-text); }
+.sr-empty { padding: 1.5rem; display: grid; gap: 0.4rem; }
+.sr-error { color: var(--gh-red); margin: 0; }
+
+.sr-report { background: var(--gh-surface); border: 1px solid var(--gh-border); border-radius: 12px; padding: 1.75rem; display: grid; gap: 1.25rem; color: var(--gh-text); }
+.sr-head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-bottom: 2px solid var(--gh-purple); padding-bottom: 0.9rem; }
+.sr-head h2 { margin: 0.1rem 0 0.2rem; font-size: 1.5rem; color: var(--gh-heading); }
+.sr-brand { margin: 0; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gh-purple-text); font-weight: 700; }
+.sr-meta { display: grid; grid-template-columns: auto auto; gap: 0.2rem 0.8rem; margin: 0; font-size: 0.86rem; }
+.sr-meta dt { color: var(--gh-text-2); }
+.sr-meta dd { margin: 0; }
+.sr-section { display: grid; gap: 0.5rem; }
+.sr-section h3 { margin: 0; font-size: 1rem; color: var(--gh-heading); }
+.sr-section p { margin: 0; }
+.sr-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.sr-table th, .sr-table td { text-align: left; padding: 0.4rem 0.35rem; border-bottom: 1px solid var(--gh-border); }
+.sr-list { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.2rem; }
+.sr-foot { font-size: 0.75rem; color: var(--gh-text-2); border-top: 1px solid var(--gh-border); padding-top: 0.6rem; }
+
+@media print {
+  .sr-noprint, .gh-topbar, .gh-sidebar, .gh-banner, .gh-btn { display: none !important; }
+  html, body, .gh-app, .gh-page, .sr-page { background: #ffffff !important; color: #000000 !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; }
+  .sr-report { border: 0; border-radius: 0; padding: 0; background: #ffffff !important; color: #000000 !important; }
+  .sr-report h2, .sr-section h3, .sr-title, .sr-brand { color: #000000 !important; }
+  .sr-muted, .sr-meta dt, .sr-foot { color: #444444 !important; }
+  .sr-table th, .sr-table td, .sr-head, .sr-foot { border-color: #bbbbbb !important; }
+  .sr-section, .sr-table tr { break-inside: avoid; }
+  @page { margin: 16mm; }
+}

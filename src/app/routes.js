@@ -54,6 +54,7 @@ export function parseRoute(hash) {
   if (head === 'future-skills') return { screen: 'futureSkills' };
   if (head === 'dashboard') return { screen: 'dashboard' };
   if (head === 'spark') return { screen: 'spark' };
+  if (head === 'coach' && a === 'report') return { screen: 'coachReport' };
   if (head === 'coach') return { screen: 'coach' };
   if (head === 'edmentum') return { screen: 'edmentum' };
   return null;
@@ -71,6 +72,7 @@ export const hrefFor = {
   parent: () => '#/parent',
   parentChild: (uid, section) => `#/parent/${encodeURIComponent(uid)}${section ? `/${section}` : ''}`,
   resources: () => '#/primary-resources',
+  coachReport: () => '#/coach/report',
   worksheet: (id) => `#/worksheet/${id}`,
   guide: (id) => `#/guide/${id}`,
   pbl: (tab) => (tab ? `#/pbl/${tab}` : '#/pbl'),

@@ -67,7 +67,7 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
       { items: [home, { key: 'coach', icon: LayoutDashboard, label: 'nav.coachDashboard', onClick: () => onNavigate('coach') }] },
       { label: 'nav.teaching', items: [
         { key: 'pbl', icon: Rocket, label: 'nav.pblFramework', href: hrefFor.pbl() },
-        { key: 'resources', icon: Printer, label: 'nav.primaryResources', href: hrefFor.resources() }
+        { key: 'coachReport', icon: Printer, label: 'nav.printStudentReport', href: hrefFor.coachReport() }
       ] },
       { label: 'nav.together', items: [{ key: 'community', icon: Users, label: 'nav.community', href: hrefFor.community() }] },
       { label: 'nav.account', items: [settings] }

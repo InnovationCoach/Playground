@@ -126,6 +126,12 @@ describe('components render', () => {
     expect(html).toMatch(/Loading profile/);
   });
 
+  it('student report shows an empty state when the coach has no learners', async () => {
+    const html = await render('../src/features/coach/report/StudentReportPage.jsx', 'StudentReportPage', { learners: [], coach: COACH });
+    expect(html).toContain('No learners in your classes yet.');
+    expect(html).not.toContain('Save as PDF');
+  });
+
   it('bell renders with no unread count before the list loads', async () => {
     const html = await render('../src/features/studentProfile/NotificationBell.jsx', 'NotificationBell', { uid: PARENT.viewerUid });
     expect(html).toContain('aria-label="Notifications"');

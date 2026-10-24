@@ -66,6 +66,7 @@ export const messages = {
     'nav.console': 'Admin console',
     'nav.goals': 'Goal setting',
     'nav.primaryResources': 'Primary resources',
+    'nav.printStudentReport': 'Print student report',
     'nav.teaching': 'Teaching',
     'nav.coachDashboard': 'Coach dashboard',
     'nav.pbl': 'PBL Studio',
