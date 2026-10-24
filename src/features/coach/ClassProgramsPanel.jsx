@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { KeyRound, Copy, Check, RefreshCw, Ban, Presentation, X, ExternalLink, Library, Users } from 'lucide-react';
 import { PROGRAMS, programById } from '../pbl/programs/catalog.js';
+import { LIBRARY_PROGRAMS } from '../pbl/programs/libraryProgramsData.js';
+import { db, collection, getDocs } from '../../firebase.js';
 import { hrefFor } from '../../app/routes.js';
 import { loadClasses, issueCode, revokeCode, setClassProgram, explainError } from './classCodes.js';
 import './classPanel.css';
@@ -14,6 +16,7 @@ export function ClassProgramsPanel({ coachUser }) {
   const classIds = coachUser?.classIds || [];
   const [classes, setClasses] = useState(null);
   const [presenting, setPresenting] = useState(null);
+  const [availablePrograms, setAvailablePrograms] = useState(() => PROGRAMS);
 
   const reload = useCallback(async () => {
     setClasses(await loadClasses(classIds));
@@ -21,6 +24,45 @@ export function ClassProgramsPanel({ coachUser }) {
   }, [classIds.join('|')]);
 
   useEffect(() => { reload(); }, [reload]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchPblPrograms() {
+      try {
+        const snap = await getDocs(collection(db, 'pbl_programs'));
+        const map = new Map();
+        snap.forEach((d) => {
+          const data = d.data();
+          map.set(d.id, {
+            id: d.id,
+            title: data.title || d.id,
+            identity: { short: (data.title || d.id).slice(0, 24) },
+            source: data.source || 'studio'
+          });
+        });
+
+        // Add prototype PROGRAMS and LIBRARY_PROGRAMS if not already present
+        for (const p of PROGRAMS) {
+          if (!map.has(p.id)) map.set(p.id, p);
+        }
+        for (const p of LIBRARY_PROGRAMS) {
+          if (!map.has(p.id)) {
+            map.set(p.id, {
+              id: p.id,
+              title: p.title,
+              identity: { short: p.title.slice(0, 24) },
+              source: 'library'
+            });
+          }
+        }
+        if (!cancelled) setAvailablePrograms(Array.from(map.values()));
+      } catch (err) {
+        console.warn('[ClassProgramsPanel] Could not load pbl_programs from Firestore:', err?.message);
+      }
+    }
+    fetchPblPrograms();
+    return () => { cancelled = true; };
+  }, []);
 
   const patch = (id, next) => setClasses((list) => list.map((c) => (c.id === id ? { ...c, ...next } : c)));
 
@@ -42,7 +84,13 @@ export function ClassProgramsPanel({ coachUser }) {
         <ul className="cp-list">
           {classes.map((c) => (
             <li key={c.id}>
-              <ClassRow cls={c} uid={coachUser.uid} onChange={(next) => patch(c.id, next)} onPresent={() => setPresenting(c)} />
+              <ClassRow
+                cls={c}
+                uid={coachUser.uid}
+                availablePrograms={availablePrograms}
+                onChange={(next) => patch(c.id, next)}
+                onPresent={() => setPresenting(c)}
+              />
             </li>
           ))}
         </ul>
@@ -53,12 +101,12 @@ export function ClassProgramsPanel({ coachUser }) {
   );
 }
 
-function ClassRow({ cls, uid, onChange, onPresent }) {
+function ClassRow({ cls, uid, availablePrograms = PROGRAMS, onChange, onPresent }) {
   const [busy, setBusy] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [message, setMessage] = useState(null);
   const [copied, setCopied] = useState(false);
-  const program = programById(cls.programId);
+  const program = availablePrograms.find((p) => p.id === cls.programId) || programById(cls.programId);
 
   if (cls.missing || cls.error) {
     return (
@@ -88,7 +136,7 @@ function ClassRow({ cls, uid, onChange, onPresent }) {
   const revoke = () => run('code', async () => { await revokeCode(cls); onChange({ joinCode: null }); },
     'Code revoked. Nobody can join until you issue a new one.');
   const chooseProgram = (id) => run('program', async () => { await setClassProgram(cls, id); onChange({ programId: id || null }); },
-    id ? `${cls.name} now runs ${programById(id)?.identity.short || 'this program'}.` : 'Program removed from this class.');
+    id ? `${cls.name} now runs ${(availablePrograms.find((p) => p.id === id) || programById(id))?.identity?.short || 'this program'}.` : 'Program removed from this class.');
 
   async function copy() {
     try {
@@ -106,8 +154,10 @@ function ClassRow({ cls, uid, onChange, onPresent }) {
           <span>PBL program</span>
           <select value={cls.programId || ''} disabled={busy === 'program'} onChange={(e) => chooseProgram(e.target.value)}>
             <option value="">No program yet</option>
-            {PROGRAMS.map((p) => (
-              <option key={p.id} value={p.id}>{p.identity.short}{p.sharesPhasesWith ? ' (outline only)' : ''}</option>
+            {availablePrograms.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.identity?.short || p.title}{p.source === 'studio' ? ' (Studio)' : ''}{p.sharesPhasesWith ? ' (outline only)' : ''}
+              </option>
             ))}
           </select>
         </label>

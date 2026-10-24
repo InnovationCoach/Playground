@@ -5,12 +5,13 @@ import {
   Layers, Video, GitBranch, Box, RefreshCw, Eye, Check, Clock, ShieldCheck, Link2
 } from 'lucide-react';
 import { STUDENT_2E_PROFILES, getLearnerById } from './learnerProfiles.js';
+import { useCoachClasses, useClassLearners } from './useCoachStudioData.js';
 import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from './groundingSources.js';
 import { synthesizeGroundedUnit } from './pblSynthesizer.js';
 import { publishAndTransferToStudent } from './pblTransferService.js';
 import { LearnerSupervisionView } from '../supervision/LearnerSupervisionView.jsx';
-import { EvaluationDeskView } from '../evaluation/EvaluationDeskView.jsx';
 import { CourseStudioPanel } from './CourseStudioPanel.jsx';
+import { EvaluationDeskView } from '../evaluation/EvaluationDeskView.jsx';
 import { getEvaluations } from '../evaluation/evaluationsStore.js';
 import { EdmentumIntegrationConsole } from '../../edmentum/EdmentumIntegrationConsole.jsx';
 import { hrefFor } from '../../../app/routes.js';
@@ -29,6 +30,17 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
     return () => window.removeEventListener('hearisland-evaluations-updated', onEvalsUpdated);
   }, []);
 
+  // Real Classes & Real Learners from Firestore
+  const { classes: coachClasses } = useCoachClasses(coachUser);
+  const [selectedClassId, setSelectedClassId] = useState('all');
+  const [showTestLearners, setShowTestLearners] = useState(false);
+  const { learners: realLearners } = useClassLearners(selectedClassId, { includeTest: showTestLearners });
+
+  const availableLearners = useMemo(() => {
+    if (realLearners.length > 0) return realLearners;
+    return STUDENT_2E_PROFILES;
+  }, [realLearners]);
+
   // Column 1 State
   const [sources, setSources] = useState(DEFAULT_GROUNDING_SOURCES);
   const [selectedLearnerId, setSelectedLearnerId] = useState('student-liam-chen');
@@ -36,7 +48,11 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
-  const learner = useMemo(() => getLearnerById(selectedLearnerId), [selectedLearnerId]);
+  const learner = useMemo(() => {
+    const found = availableLearners.find((l) => (l.id === selectedLearnerId || l.uid === selectedLearnerId));
+    if (found) return found;
+    return availableLearners[0] || getLearnerById('student-liam-chen');
+  }, [availableLearners, selectedLearnerId]);
   const totalTokens = useMemo(() => calculateTotalTokens(sources), [sources]);
   const activeSourcesCount = useMemo(() => sources.filter((s) => s.active).length, [sources]);
 
@@ -48,6 +64,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   // Column 3 State (Transfer Pipeline)
   const [transferring, setTransferring] = useState(false);
   const [transferredInfo, setTransferredInfo] = useState(null);
+  const [transferError, setTransferError] = useState(null);
 
   // Auto-synthesize initial grounded unit on mount for selected learner
   useEffect(() => {
@@ -124,14 +141,17 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const handleTransfer = async (e) => {
     if (!unit) return;
     setTransferring(true);
+    setTransferError(null);
     const triggerEl = e.currentTarget;
     try {
-      const res = await publishAndTransferToStudent(unit, learner.id, coachUser?.uid);
+      const res = await publishAndTransferToStudent(unit, learner.id || learner.uid, coachUser?.uid);
       setTransferredInfo(res);
       confettiFrom(triggerEl, { big: true });
       buzz([30, 60, 30]);
     } catch (err) {
       console.error('Transfer failed:', err);
+      setTransferredInfo(null);
+      setTransferError(err?.message || 'Failed to transfer program');
     } finally {
       setTransferring(false);
     }
@@ -247,6 +267,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
       )}
 
       {/* Tab 3: Curriculum Studio (NotebookLM 3-Column Studio Grid) */}
+      {workspaceTab === 'studio' && <CourseStudioPanel />}
       {workspaceTab === 'studio' && (
         <div className="cp-grid">
         {/* =========================================================
@@ -267,7 +288,6 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
                 <span className="cp-pulse-dot" /> {activeSourcesCount} Sources Grounded
               </span>
               <span>{totalTokens.toLocaleString()} tokens indexed</span>
-      {workspaceTab === 'studio' && <CourseStudioPanel />}
             </div>
 
             {/* Document Dropzone */}
@@ -326,16 +346,45 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               <span className="cp-badge-pill">Adaptive Scaffolding</span>
             </div>
 
-            <label htmlFor="learner-picker" className="cp-label">Select Twice-Exceptional Learner</label>
+            {coachClasses.length > 0 && (
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label htmlFor="class-picker" className="cp-label">Filter by Class</label>
+                <select
+                  id="class-picker"
+                  className="cp-learner-select"
+                  value={selectedClassId}
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                  style={{ marginBottom: '0.5rem' }}
+                >
+                  <option value="all">All My Classes</option>
+                  {coachClasses.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label htmlFor="learner-picker" className="cp-label">Select Learner</label>
+              <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={showTestLearners}
+                  onChange={(e) => setShowTestLearners(e.target.checked)}
+                />
+                Show test accounts
+              </label>
+            </div>
+
             <select
               id="learner-picker"
               className="cp-learner-select"
               value={selectedLearnerId}
               onChange={(e) => setSelectedLearnerId(e.target.value)}
             >
-              {STUDENT_2E_PROFILES.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.avatar} {p.name} ({p.grade}) — {p.traitBadges[0]}
+              {availableLearners.map((p) => (
+                <option key={p.id || p.uid} value={p.id || p.uid}>
+                  {p.avatar || '👤'} {p.name || p.displayName} {p.grade ? `(${p.grade})` : ''} {p.traitBadges?.[0] ? `— ${p.traitBadges[0]}` : ''}
                 </option>
               ))}
             </select>
@@ -717,6 +766,15 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
                   >
                     Open in Student View <ExternalLink size={14} />
                   </a>
+                </div>
+              )}
+
+              {transferError && (
+                <div className="cp-transferred-toast" style={{ borderLeft: '4px solid #ef4444', background: 'rgba(239, 68, 68, 0.12)', color: '#fca5a5' }} role="alert">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: '#f87171' }}>
+                    <AlertTriangle size={16} /> Transfer Failed
+                  </div>
+                  <span>{transferError}</span>
                 </div>
               )}
 

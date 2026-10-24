@@ -4,6 +4,7 @@ import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';
 import { parseActivityLabel } from '../shell/activityIcons.jsx';
 import { PROGRAMS } from '../pbl/programs/catalog.js';
+import { LIBRARY_PROGRAMS } from '../pbl/programs/libraryProgramsData.js';
 import { hrefFor } from '../../app/routes.js';
 import { HOME_HERO_URL } from '../../app/brand.js';
 import { buildCatalog, searchCatalog } from '../courses/catalog.js';
@@ -36,7 +37,11 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
   }, []);
 
   const catalog = useMemo(() => {
-    const allPrograms = [...customPrograms, ...PROGRAMS];
+    const map = new Map();
+    for (const p of PROGRAMS) map.set(p.id, p);
+    for (const p of LIBRARY_PROGRAMS) map.set(p.id, p);
+    for (const p of customPrograms) map.set(p.id, p);
+    const allPrograms = Array.from(map.values());
     return buildCatalog({
       activities: ACTIVITY_NAV,
       programs: allPrograms,

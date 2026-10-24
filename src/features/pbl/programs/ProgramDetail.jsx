@@ -5,7 +5,8 @@ import {
   Lightbulb, MessageSquareQuote, ListChecks, Compass, CalendarDays, Wrench as ToolIcon, NotebookPen, Rocket, Undo2,
   Video, GitBranch, Box
 } from 'lucide-react';
-import { programById, PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges, isSourcedConfirmation } from './catalog.js';
+import { programById, COACH_PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges, isSourcedConfirmation } from './catalog.js';
+import { getProgram } from '../../../services/pblService.js';
 import {
   programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, LIMITS
 } from './progress.js';
@@ -46,7 +47,10 @@ const EVIDENCE_LABEL = { note: 'Note', media: 'Photo or video', code: 'Code', da
  * read-only plus the teaching guide and the content checks.
  */
 export function ProgramDetail({ programId, section, uid, isCoach, classIds = [] }) {
-  const [, setReloadTick] = useState(0);
+  const [reloadTick, setReloadTick] = useState(0);
+  const [asyncProg, setAsyncProg] = useState(() => programById(programId));
+  const [loading, setLoading] = useState(!asyncProg);
+
   useEffect(() => {
     return subscribeToPblTransfers((data) => {
       if (data.programId === programId) {
@@ -55,8 +59,37 @@ export function ProgramDetail({ programId, section, uid, isCoach, classIds = [] 
     });
   }, [programId]);
 
-  const program = programById(programId);
+  useEffect(() => {
+    let cancelled = false;
+    getProgram(programId).then((res) => {
+      if (!cancelled) {
+        if (res.status === 'found') {
+          setAsyncProg(res.program);
+        } else {
+          setAsyncProg(programById(programId));
+        }
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) {
+        setAsyncProg(programById(programId));
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [programId, reloadTick]);
+
+  const program = asyncProg || programById(programId);
   const { classes, classCovers, reload } = useClassPrograms(classIds);
+
+  if (loading && !program) {
+    return (
+      <div className="gh-card" style={{ padding: '2rem', textAlign: 'center' }}>
+        <p>Loading program…</p>
+      </div>
+    );
+  }
+
   if (!program) {
     return (
       <div className="gh-card">
@@ -752,7 +785,7 @@ function Checks({ program: p, kit }) {
       )}
       <section className="gh-card">
         <h3 className="pb-h3"><ShieldAlert size={17} aria-hidden="true" />All programs</h3>
-        <IssueList issues={PLATFORM_NOTES} />
+        <IssueList issues={COACH_PLATFORM_NOTES} />
       </section>
       {p.assumptions?.length > 0 && (
         <section className="gh-card">

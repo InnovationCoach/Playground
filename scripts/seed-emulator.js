@@ -15,6 +15,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { generateJoinCode, JOIN_CODE_ALPHABET } from '../src/utils/joinCode.js';
+import { seedFrameworkAndPrograms } from './seed-pbl-programs.js';
 
 const PROJECT_ID = 'demo-hearisland-local';
 
@@ -225,14 +226,14 @@ for (const staff of REVIEW_STAFF) {
 
 // 8. Students (Existing + Primary + Suspended)
 const STUDENTS = [
-  { email: 'mia@school.edu', givenNames: 'Mia', surname: 'Chen', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', ageBand: '13-15', yearLevel: 'Year 9', minutes: 125, sessions: 6, status: 'active' },
-  { email: 'leo@school.edu', givenNames: 'Leo', surname: 'Martins', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', ageBand: '13-15', yearLevel: 'Year 9', minutes: 95, sessions: 4, status: 'active' },
-  { email: 'noor@school.edu', givenNames: 'Noor', surname: 'Haddad', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', ageBand: '13-15', yearLevel: 'Year 9', minutes: 160, sessions: 8, status: 'active' },
-  { email: 'tom@school.edu', givenNames: 'Tom', surname: 'Becker', classId: 'class_yr12_eng', cohortId: 'cohort-w2e', ageBand: '16-18', yearLevel: 'Year 12', minutes: 210, sessions: 9, status: 'active' },
-  { email: 'ines@school.edu', givenNames: 'Inès', surname: 'Dupont', classId: 'class_yr12_eng', cohortId: 'cohort-w2e', ageBand: '16-18', yearLevel: 'Year 12', minutes: 175, sessions: 7, status: 'active' },
+  { email: 'mia@school.edu', givenNames: 'Mia', surname: 'Chen', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', cohort: 'lower-secondary', ageBand: 'lower-secondary', yearLevel: 'Year 9', minutes: 125, sessions: 6, status: 'active' },
+  { email: 'leo@school.edu', givenNames: 'Leo', surname: 'Martins', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', cohort: 'lower-secondary', ageBand: 'lower-secondary', yearLevel: 'Year 9', minutes: 95, sessions: 4, status: 'active' },
+  { email: 'noor@school.edu', givenNames: 'Noor', surname: 'Haddad', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', cohort: 'lower-secondary', ageBand: 'lower-secondary', yearLevel: 'Year 9', minutes: 160, sessions: 8, status: 'active' },
+  { email: 'tom@school.edu', givenNames: 'Tom', surname: 'Becker', classId: 'class_yr12_eng', cohortId: 'cohort-w2e', cohort: 'higher-secondary', ageBand: 'higher-secondary', yearLevel: 'Year 12', minutes: 210, sessions: 9, status: 'active' },
+  { email: 'ines@school.edu', givenNames: 'Inès', surname: 'Dupont', classId: 'class_yr12_eng', cohortId: 'cohort-w2e', cohort: 'higher-secondary', ageBand: 'higher-secondary', yearLevel: 'Year 12', minutes: 175, sessions: 7, status: 'active' },
   // Phase 0 additions:
-  { email: 'primary.student@school.edu', givenNames: 'Penny', surname: 'Primary', classId: 'class_yr9_climate', cohortId: 'cohort-wpr', ageBand: 'primary', yearLevel: 'Year 3', minutes: 0, sessions: 0, status: 'pending', consent: { status: 'required' } },
-  { email: 'suspended.student@school.edu', givenNames: 'Sam', surname: 'Suspended', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', ageBand: '13-15', yearLevel: 'Year 9', minutes: 10, sessions: 1, status: 'suspended', disabled: true }
+  { email: 'primary.student@school.edu', givenNames: 'Penny', surname: 'Primary', classId: 'class_yr9_climate', cohortId: 'cohort-wpr', cohort: 'primary', ageBand: 'primary', yearLevel: 'Year 3', minutes: 0, sessions: 0, status: 'pending', consent: { status: 'required' } },
+  { email: 'suspended.student@school.edu', givenNames: 'Sam', surname: 'Suspended', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', cohort: 'lower-secondary', ageBand: 'lower-secondary', yearLevel: 'Year 9', minutes: 10, sessions: 1, status: 'suspended', disabled: true }
 ];
 
 let miaStudentUid = null;
@@ -263,6 +264,7 @@ for (const s of STUDENTS) {
     classIds: [s.classId],
     groupName: className,
     cohortId: s.cohortId,
+    cohort: s.cohort,
     ageBand: s.ageBand,
     yearLevel: s.yearLevel,
     createdAt: FieldValue.serverTimestamp()
@@ -318,6 +320,9 @@ for (const entry of auditEntries) {
     createdAt: FieldValue.serverTimestamp()
   });
 }
+
+// 11. Seed Framework and PBL Programs
+await seedFrameworkAndPrograms(db);
 
 // Output summary table
 console.log('\n======================================================================');

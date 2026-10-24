@@ -11,6 +11,7 @@ import { ActivityIcon, parseActivityLabel } from '../shell/activityIcons.jsx';
 import { TERM } from '../pbl/content/pblModel.js';
 import { hrefFor } from '../../app/routes.js';
 import { PROGRAMS } from '../pbl/programs/catalog.js';
+import { LIBRARY_PROGRAMS } from '../pbl/programs/libraryProgramsData.js';
 import { ProgramIcon } from '../pbl/programs/ProgramIcon.jsx';
 import { useClassPrograms } from '../pbl/programs/useClassPrograms.js';
 import { buildCatalog, searchCatalog, countBySource, SOURCES } from './catalog.js';
@@ -88,7 +89,13 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
     return () => window.removeEventListener('pbl-custom-programs-changed', onCustomChanged);
   }, []);
 
-  const allPrograms = useMemo(() => [...customPrograms, ...PROGRAMS], [customPrograms]);
+  const allPrograms = useMemo(() => {
+    const map = new Map();
+    for (const p of PROGRAMS) map.set(p.id, p);
+    for (const p of LIBRARY_PROGRAMS) map.set(p.id, p);
+    for (const p of customPrograms) map.set(p.id, p);
+    return Array.from(map.values());
+  }, [customPrograms]);
 
   // Secondary only: the combined catalogue, program progress and My Path.
   const catalog = useMemo(() => (isPrimary ? [] : buildCatalog({

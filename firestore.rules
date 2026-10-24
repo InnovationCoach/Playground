@@ -43,6 +43,16 @@ service cloud.firestore {
       return isTeacher() && userData.get('classIds', []).hasAny(myClassIds());
     }
 
+    // Tenancy check from the learner's perspective: does the learner share at least one
+    // class with a given coach?
+    function learnerHasClassWithCoach(coachId) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/users/$(coachId))
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+             .data.get('classIds', []).hasAny(get(/databases/$(database)/documents/users/$(coachId)).data.get('classIds', []));
+    }
+
     // Same check for SUBcollection rules, where the parent user document is not
     // `resource` and genuinely has to be fetched. Costs one document read, and
     // is only ever paid on coach-initiated access.
@@ -191,20 +201,22 @@ service cloud.firestore {
       // unconstrained collection read is rejected in full.
       allow read: if isOwner(userId) || isAdminOrSupervisor() || coachSharesClassWith(resource.data);
 
-      // New accounts are always students. Coach access is granted out-of-band
+      // New accounts are always learners/students. Coach access is granted out-of-band
       // with the Admin SDK (scripts/grant-coach.js), which bypasses these rules.
       allow create: if isOwner(userId)
-        && request.resource.data.get('role', 'student') == 'student';
+        && request.resource.data.get('role', 'student') in ['student', 'learner'];
 
-      // `role` may never be self-assigned - it is the privilege boundary.
+      // `role` may never be self-assigned or changed - it is the privilege boundary.
       // `classIds` is the tenancy boundary and is equally closed, with one
       // narrow exception: a learner may add themselves to a class whose join
       // code they can produce.
-      allow update: if isOwner(userId) && (
-        !request.resource.data.diff(resource.data).affectedKeys()
-           .hasAny(['role', 'orgId', 'schoolIds', 'classIds', 'status', 'publicId', 'consent', 'enrolledVia'])
-        || isSelfEnrolment()
-      );
+      allow update: if isOwner(userId)
+        && request.resource.data.get('role', resource.data.get('role', 'student')) == resource.data.get('role', 'student')
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['role', 'orgId', 'schoolIds', 'classIds', 'status', 'publicId', 'consent', 'enrolledVia'])
+          || isSelfEnrolment()
+        );
       allow delete: if isOwner(userId);
 
       match /notes/{noteId} {
@@ -279,8 +291,197 @@ service cloud.firestore {
     // PBL Programs (Authoring & Publishing)
     // ---------------------------------------------------------------------
     match /pbl_programs/{programId} {
+      // Coaches and admins can read any program (including drafts).
+      // Learners can read published programs that are visible centre-wide,
+      // where the coach shares a class, or where the learner is enrolled / in the assigned class.
+      allow read: if isTeacher()
+        || isAdminOrSupervisor()
+        || (
+          isAuthenticated()
+          && resource.data.get('status', 'published') == 'published'
+          && (
+            resource.data.get('visibility', 'centre') == 'centre'
+            || exists(/databases/$(database)/documents/enrolments/$(request.auth.uid + '_' + programId))
+            || (('classId' in resource.data) && inClass(resource.data.classId))
+            || (('authorId' in resource.data) && learnerHasClassWithCoach(resource.data.authorId))
+            || (('authorUid' in resource.data) && learnerHasClassWithCoach(resource.data.authorUid))
+          )
+        );
+      // Teachers/coaches can create and update programs
+      allow create: if isTeacher()
+        && (
+          request.resource.data.get('authorId', request.resource.data.get('authorUid', request.auth.uid)) == request.auth.uid
+          || isTeacher()
+        );
+      allow update: if isTeacher();
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Frameworks (WeLearn Design Thinking framework single source of truth)
+    // ---------------------------------------------------------------------
+    match /frameworks/{frameworkId} {
       allow read: if isAuthenticated();
-      allow create, update: if isTeacher();
+      allow create, update: if isTeacher() || isAdminOrSupervisor();
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Enrolments & Phase Progress
+    // Document ID format: {learnerUid}_{programId}
+    // ---------------------------------------------------------------------
+    function isValidEnrolmentStatus(status) {
+      return status in ['active', 'completed', 'dropped'];
+    }
+
+    match /enrolments/{enrolmentId} {
+      // Read: learner owns it or coach of learner
+      allow read: if isAuthenticated() && (
+        resource.data.learnerId == request.auth.uid
+        || isCoachOf(resource.data.learnerId)
+        || isAdminOrSupervisor()
+      );
+
+      // Create: learner self-enrolls or coach assigns to learner in coach's class
+      allow create: if isAuthenticated() && (
+        (
+          request.resource.data.learnerId == request.auth.uid
+          && enrolmentId == request.auth.uid + '_' + request.resource.data.programId
+          && isValidEnrolmentStatus(request.resource.data.get('status', 'active'))
+        )
+        ||
+        (
+          isTeacher()
+          && (isCoachOf(request.resource.data.learnerId) || (('classId' in request.resource.data) && request.resource.data.classId != null && teachesClass(request.resource.data.classId)))
+          && enrolmentId == request.resource.data.learnerId + '_' + request.resource.data.programId
+          && isValidEnrolmentStatus(request.resource.data.get('status', 'active'))
+        )
+      );
+
+      // Update: learner can update own enrolment fields (status, currentPhaseId, updatedAt); coach can update
+      allow update: if isAuthenticated() && (
+        (
+          resource.data.learnerId == request.auth.uid
+          && request.resource.data.learnerId == request.auth.uid
+          && request.resource.data.programId == resource.data.programId
+          && request.resource.data.get('source', '') == resource.data.get('source', '')
+          && isValidEnrolmentStatus(request.resource.data.get('status', resource.data.status))
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'currentPhaseId', 'updatedAt'])
+        )
+        ||
+        (
+          isTeacher()
+          && (isCoachOf(resource.data.learnerId) || (('classId' in resource.data) && resource.data.classId != null && teachesClass(resource.data.classId)))
+          && request.resource.data.learnerId == resource.data.learnerId
+          && request.resource.data.programId == resource.data.programId
+          && isValidEnrolmentStatus(request.resource.data.get('status', resource.data.status))
+        )
+      );
+
+      allow delete: if false;
+
+      // Subcollection: phaseProgress
+      match /phaseProgress/{phaseId} {
+        allow read: if isAuthenticated() && (
+          (
+            exists(/databases/$(database)/documents/enrolments/$(enrolmentId))
+            && (
+              get(/databases/$(database)/documents/enrolments/$(enrolmentId)).data.learnerId == request.auth.uid
+              || isCoachOf(get(/databases/$(database)/documents/enrolments/$(enrolmentId)).data.learnerId)
+            )
+          )
+          ||
+          (
+            !exists(/databases/$(database)/documents/enrolments/$(enrolmentId))
+            && (enrolmentId.matches('^' + request.auth.uid + '_.*') || isTeacher())
+          )
+          || isAdminOrSupervisor()
+        );
+
+        allow create: if isAuthenticated() && (
+          // Learner creating/initializing phase progress
+          (
+            (
+              (
+                exists(/databases/$(database)/documents/enrolments/$(enrolmentId))
+                && get(/databases/$(database)/documents/enrolments/$(enrolmentId)).data.learnerId == request.auth.uid
+              )
+              ||
+              (
+                !exists(/databases/$(database)/documents/enrolments/$(enrolmentId))
+                && enrolmentId.matches('^' + request.auth.uid + '_.*')
+              )
+            )
+            && !('coachFeedback' in request.resource.data)
+            && request.resource.data.get('status', 'in_progress') in ['not_started', 'in_progress', 'submitted']
+          )
+          ||
+          // Coach creating/initializing phase progress
+          (
+            isTeacher()
+            && (
+              (
+                exists(/databases/$(database)/documents/enrolments/$(enrolmentId))
+                && isCoachOf(get(/databases/$(database)/documents/enrolments/$(enrolmentId)).data.learnerId)
+              )
+              || !exists(/databases/$(database)/documents/enrolments/$(enrolmentId))
+            )
+          )
+        );
+
+        allow update: if isAuthenticated() && (
+          // Learner update: allowed ONLY for evidence & learner fields, MUST NOT touch coachFeedback,
+          // and CANNOT set status == 'reviewed'
+          (
+            (
+              (
+                exists(/databases/$(database)/documents/enrolments/$(enrolmentId))
+                && get(/databases/$(database)/documents/enrolments/$(enrolmentId)).data.learnerId == request.auth.uid
+              )
+              ||
+              (
+                !exists(/databases/$(database)/documents/enrolments/$(enrolmentId))
+                && enrolmentId.matches('^' + request.auth.uid + '_.*')
+              )
+            )
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['coachFeedback'])
+            && request.resource.data.get('status', '') != 'reviewed'
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['status', 'evidence', 'updatedAt', 'notes', 'reflection', 'deliverables'])
+          )
+          ||
+          // Coach update: coaches can write coachFeedback and set status == 'reviewed'
+          (
+            isTeacher()
+            && (
+              (
+                exists(/databases/$(database)/documents/enrolments/$(enrolmentId))
+                && isCoachOf(get(/databases/$(database)/documents/enrolments/$(enrolmentId)).data.learnerId)
+              )
+              || !exists(/databases/$(database)/documents/enrolments/$(enrolmentId))
+            )
+          )
+        );
+
+        allow delete: if false;
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Sessions (Time Tracking & Activity Heartbeats)
+    // ---------------------------------------------------------------------
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated() && (
+        resource.data.uid == request.auth.uid
+        || isCoachOf(resource.data.uid)
+        || isAdminOrSupervisor()
+      );
+      allow create: if isAuthenticated()
+        && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuthenticated()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid;
       allow delete: if false;
     }
 
@@ -716,7 +917,7 @@ service cloud.firestore {
     // Audit trail (FERPA/COPPA). Append-only: never updatable or deletable.
     // ---------------------------------------------------------------------
     match /auditLogs/{logId} {
-      allow read: if false;
+      allow read: if isTeacher() || isAdminOrSupervisor();
       allow create: if isAuthenticated()
         && request.resource.data.actorId == request.auth.uid
         && request.resource.data.get('source', 'client') == 'client';

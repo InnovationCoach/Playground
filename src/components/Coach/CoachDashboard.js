@@ -7,6 +7,7 @@
 import { db, collection, getDocs, doc, setDoc, updateDoc, arrayUnion, query, where, getAuthClaims, registerStudentAccount } from '../../firebase.js';
 import { logAuditEvent } from '../../utils/auditLogger.js';
 import { listMaterialRequests, createMaterialRequest, listUsers } from '../../services/api/endpoints.js';
+import { loadClasses } from '../../features/coach/classCodes.js';
 
 export class CoachDashboard {
   constructor(options = {}) {
@@ -19,6 +20,9 @@ export class CoachDashboard {
     this.searchQuery = '';
 
     this.students = [];
+    this.coaches = [];
+    this.classes = [];
+    this.isDestroyed = false;
     this.allPrototypes = [];
     this.allGoals = [];
     this.allTimeStats = [];
@@ -48,9 +52,17 @@ export class CoachDashboard {
     }
   }
 
+  destroy() {
+    this.isDestroyed = true;
+    if (this.container) {
+      this.container.innerHTML = '';
+    }
+  }
+
   async init() {
     this.renderSkeleton();
     await this.loadData();
+    if (this.isDestroyed) return;
     this.render();
     logAuditEvent('COACH_DASHBOARD_LOADED', { coachUid: this.coachUser?.uid });
   }
@@ -100,9 +112,47 @@ export class CoachDashboard {
     }
 
     try {
+      try {
+        const loadedClasses = await loadClasses(this.classIds);
+        this.classes = (loadedClasses || []).filter(c => !c.missing && !c.error);
+        if (this.classes.length === 0) {
+          const allClsSnap = await getDocs(collection(db, 'classes')).catch(() => null);
+          if (allClsSnap && !allClsSnap.empty) {
+            this.classes = allClsSnap.docs.map(d => ({ id: d.id, name: d.data().name || d.id, ...d.data() }));
+          }
+        }
+      } catch (err) {
+        console.warn('[CoachDashboard] Could not load classes:', err);
+        this.classes = [];
+      }
+
+      try {
+        const coachSnaps = await getDocs(query(collection(db, 'users'), where('role', 'in', ['coach', 'teacher']))).catch(() => null);
+        this.coaches = coachSnaps ? coachSnaps.docs.map(d => ({ uid: d.id, ...d.data() })) : [];
+      } catch (err) {
+        console.warn('[CoachDashboard] Could not load coaches:', err);
+        this.coaches = [];
+      }
+
       const fetchedStudents = [];
       const fetchedGoals = [];
       const fetchedStats = [];
+
+      const STAFF_ROLES = new Set(['teacher', 'coach', 'admin', 'supervisor', 'parent']);
+      const isLearnerData = (d) => {
+        if (!d || !d.role) return false;
+        if (STAFF_ROLES.has(d.role)) return false;
+        return d.role === 'learner' || d.role === 'student';
+      };
+
+      const getGroupName = (data) => {
+        const cIds = Array.isArray(data.classIds) ? data.classIds : [];
+        if (cIds.length > 0) {
+          const foundCls = this.classes.find(c => cIds.includes(c.id));
+          if (foundCls?.name) return foundCls.name;
+        }
+        return data.groupName || 'Unassigned';
+      };
 
       const seen = new Set();
       const studentDocs = [];
@@ -119,7 +169,7 @@ export class CoachDashboard {
           snap.docs.forEach((d) => {
             if (seen.has(d.id)) return;
             seen.add(d.id);
-            if (d.data().role === 'teacher' || d.data().role === 'coach') return;
+            if (!isLearnerData(d.data())) return;
             studentDocs.push(d);
           });
         });
@@ -131,7 +181,7 @@ export class CoachDashboard {
           defaultSnap.docs.forEach((d) => {
             if (seen.has(d.id)) return;
             seen.add(d.id);
-            if (d.data().role !== 'teacher' && d.data().role !== 'coach') {
+            if (isLearnerData(d.data())) {
               studentDocs.push(d);
             }
           });
@@ -145,12 +195,12 @@ export class CoachDashboard {
           userListRes.items.forEach((u) => {
             if (seen.has(u.uid)) return;
             seen.add(u.uid);
-            if (u.role !== 'teacher' && u.role !== 'coach') {
+            if (isLearnerData(u)) {
               fetchedStudents.push({
                 uid: u.uid,
                 displayName: u.displayName || `${u.givenNames || ''} ${u.surname || ''}`.trim() || u.email?.split('@')[0] || 'Student',
                 email: u.email || '',
-                groupName: u.groupName || 'Unassigned',
+                groupName: getGroupName(u),
                 classIds: Array.isArray(u.classIds) ? u.classIds : [],
                 cohortId: u.cohortId,
                 ageBand: u.ageBand,
@@ -158,7 +208,8 @@ export class CoachDashboard {
                 solarCar: null,
                 activityProgress: {},
                 goals: [],
-                dailyStats: []
+                dailyStats: [],
+                enrolments: []
               });
             }
           });
@@ -169,7 +220,7 @@ export class CoachDashboard {
               if (seen.has(d.id)) return;
               seen.add(d.id);
               const data = d.data();
-              if (data.role !== 'teacher' && data.role !== 'coach') {
+              if (isLearnerData(data)) {
                 studentDocs.push(d);
               }
             });
@@ -184,13 +235,14 @@ export class CoachDashboard {
           uid: userId,
           displayName: userData.displayName || userData.email?.split('@')[0] || 'Student',
           email: userData.email || '',
-          groupName: userData.groupName || 'Unassigned',
+          groupName: getGroupName(userData),
           classIds: Array.isArray(userData.classIds) ? userData.classIds : [],
           createdAt: userData.createdAt || Date.now(),
           solarCar: null,
           activityProgress: {},
           goals: [],
-          dailyStats: []
+          dailyStats: [],
+          enrolments: []
         };
 
         const [goalsSnap, statsSnap, actSnap] = await Promise.all([
@@ -227,9 +279,6 @@ export class CoachDashboard {
       const durationMs = (performance.now() - startTime).toFixed(1);
       console.log(`[CoachDashboard] Loaded ${fetchedStudents.length} students across ${this.classIds.length} class(es) in ${durationMs} ms`);
 
-      // An empty roster renders an empty state. It used to be padded with four
-      // fabricated students ("Alex Test Student" and friends), which made a real
-      // coach with a real empty class believe they had data.
       this.students = fetchedStudents;
       this.allGoals = fetchedGoals;
       this.allTimeStats = fetchedStats;
@@ -275,6 +324,23 @@ export class CoachDashboard {
       } catch (e) {
         console.warn('[Coach] Could not load prototypes:', e.code || e.message);
         this.allPrototypes = [];
+      }
+
+      // 3b. Enrolments in PBL programs
+      try {
+        if (studentUids.length > 0) {
+          const enrSnaps = await Promise.all(
+            CoachDashboard.chunk(studentUids).map((uids) =>
+              getDocs(query(collection(db, 'enrolments'), where('learnerId', 'in', uids))).catch(() => null)
+            )
+          );
+          const allEnrs = enrSnaps.filter(Boolean).flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
+          this.students.forEach(st => {
+            st.enrolments = allEnrs.filter(e => e.learnerId === st.uid);
+          });
+        }
+      } catch (e) {
+        console.warn('[Coach] Could not load enrolments:', e.code || e.message);
       }
 
       // 4. Weekly tasks, scoped to this coach's classes.
@@ -369,10 +435,8 @@ export class CoachDashboard {
             </div>
             <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
               <select id="coach-group-select" style="background: #0f172a; color: white; border: 1px solid #475569; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600;">
-                <option value="all">🌐 All Classes & Groups</option>
-                <option value="Climate Champions 7A">Climate Champions 7A</option>
-                <option value="Eco-Designers 8B">Eco-Designers 8B</option>
-                <option value="Green Tech 9C">Green Tech 9C</option>
+                <option value="all" ${this.selectedGroup === 'all' ? 'selected' : ''}>🌐 All Classes & Groups</option>
+                ${this.classes.map(c => `<option value="${c.name || c.id}" ${this.selectedGroup === (c.name || c.id) ? 'selected' : ''}>${c.name || c.id}</option>`).join('')}
               </select>
               <button id="coach-register-student-btn" style="background: #10b981; color: #000; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 800; display: flex; align-items: center; gap: 0.4rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
                 ➕ Register Student
@@ -399,7 +463,7 @@ export class CoachDashboard {
             </div>
             <div style="background: linear-gradient(135deg, #78350f 0%, #b45309 100%); padding: 1.25rem; border-radius: 12px; border: 1px solid #d97706;">
               <p style="margin: 0; color: #fde68a; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">📊 Active STEM Projects</p>
-              <h2 style="margin: 0.5rem 0 0 0; font-size: 2.2rem; font-weight: 800; color: #fef08a;">${this.allPrototypes.length || totalStudents}</h2>
+              <h2 style="margin: 0.5rem 0 0 0; font-size: 2.2rem; font-weight: 800; color: #fef08a;">${this.allPrototypes.length}</h2>
             </div>
           </div>
 
@@ -834,7 +898,7 @@ export class CoachDashboard {
                 </div>
                 <div style="text-align: right; display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
                   <span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.9rem;">
-                    ${score} pts
+                    ${sc ? `${score} pts` : st.enrolments?.length ? `${st.enrolments.length} enrolled` : 'Active'}
                   </span>
                   <!-- Rating System -->
                   <div class="student-rating" data-uid="${st.uid}" style="font-size: 1.2rem; cursor: pointer; user-select: none;">
@@ -844,6 +908,7 @@ export class CoachDashboard {
               </div>
 
               <!-- Solar Car Telemetry -->
+              ${sc ? `
               <div style="background: #0f172a; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid #1e293b;">
                 <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; font-weight: 700; color: #38bdf8; text-transform: uppercase;">☀️ Solar Car Telemetry</p>
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; text-align: center;">
@@ -860,13 +925,14 @@ export class CoachDashboard {
                     <p style="margin: 0; font-weight: 700; color: #a78bfa; text-transform: capitalize;">${motor}</p>
                   </div>
                 </div>
-              </div>
+              </div>` : ''}
 
               <!-- Activities Engaged Badges -->
               <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem;">
-                <span style="font-size: 0.75rem; background: rgba(245, 158, 11, 0.15); color: #fde047; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.3);">☀️ Solar Car</span>
+                ${sc ? `<span style="font-size: 0.75rem; background: rgba(245, 158, 11, 0.15); color: #fde047; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.3);">☀️ Solar Car</span>` : ''}
                 ${actKeys.includes('urban-heat') ? `<span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">🌴 Urban Heat</span>` : ''}
                 ${actKeys.includes('bunker') ? `<span style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.15); color: #7dd3fc; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3);">🛡️ Bunker</span>` : ''}
+                ${(st.enrolments || []).map(e => `<span style="font-size: 0.75rem; background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(168, 85, 247, 0.3);">📚 ${e.programId}</span>`).join('')}
               </div>
 
               <!-- Time Tracking -->
@@ -1210,6 +1276,7 @@ export class CoachDashboard {
             </div>
 
             <!-- Activity 5: Solar Car -->
+            ${st.solarCar ? `
             <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
               <h4 style="margin: 0 0 0.75rem 0; color: #fbbf24; font-size: 1.05rem;">☀️ Activity 5: Solar Car STEM Challenge</h4>
               <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; text-align: center;">
@@ -1236,7 +1303,11 @@ export class CoachDashboard {
                   Chassis: <span style="color: #38bdf8;">${components.chassis}</span> | Motor: <span style="color: #34d399;">${components.motor}</span> | Panel: <span style="color: #fbbf24;">${components.solarPanel}</span>
                 </span>
               </div>
-            </div>
+            </div>` : `
+            <div style="background: #0f172a; padding: 1rem; border-radius: 12px; border: 1px solid #334155;">
+              <h4 style="margin: 0 0 0.5rem 0; color: #94a3b8; font-size: 1.05rem;">☀️ Activity 5: Solar Car STEM Challenge</h4>
+              <p style="margin: 0; color: #64748b; font-size: 0.85rem;">No Solar Car prototype recorded for this learner.</p>
+            </div>`}
 
             <!-- Activity 6: SO2 Sulfate -->
             <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
@@ -1342,13 +1413,16 @@ export class CoachDashboard {
               <input type="email" id="reg-student-email" placeholder="e.g. maya.lin@school.edu" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
             </div>
             <div>
-              <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Initial Password</label>
-              <input type="password" id="reg-student-password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
-              <small style="color: #94a3b8; font-size: 0.78rem;">Choose a password and share it with the student privately.</small>
+              <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Initial Password (Optional)</label>
+              <input type="password" id="reg-student-password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters (or leave empty to auto-generate)" style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
+              <small style="color: #94a3b8; font-size: 0.78rem;">If left blank, a secure random one-time temporary password will be created.</small>
             </div>
             <div>
-              <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Class Code / Group Name</label>
-              <input type="text" id="reg-student-group" value="${this.selectedGroup === 'all' ? 'Climate Champions 7A' : this.selectedGroup}" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
+              <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Assign to Class</label>
+              <select id="reg-student-class" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;">
+                <option value="">-- Select Class --</option>
+                ${this.classes.map(c => `<option value="${c.id}">${c.name || c.id}</option>`).join('')}
+              </select>
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.75rem;">
               <button type="button" id="cancel-reg-student-btn" style="background: #334155; color: white; border: none; padding: 0.65rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
@@ -1653,27 +1727,43 @@ export class CoachDashboard {
 
         const name = this.container.querySelector('#reg-student-name').value.trim();
         const email = this.container.querySelector('#reg-student-email').value.trim();
-        const password = this.container.querySelector('#reg-student-password').value;
-        const groupName = this.container.querySelector('#reg-student-group').value.trim();
+        const password = this.container.querySelector('#reg-student-password').value.trim();
+        const classSelect = this.container.querySelector('#reg-student-class');
+        const classId = classSelect ? classSelect.value : '';
+
+        if (!classId) {
+          alert('Please select a class for this student.');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '✨ Create Student Account';
+          }
+          return;
+        }
 
         try {
-          const studentData = await registerStudentAccount(email, password, name, groupName);
+          const studentData = await registerStudentAccount(email, password || undefined, name, classId);
 
-          // Add student to local state
+          const foundCls = this.classes.find(c => c.id === classId);
           const newStudentObj = {
             ...studentData,
-            solarCar: { score: { total: 0 }, currentVersion: 1, weight: { total: 3200 }, components: { chassis: 'aluminum_frame', motor: 'brushed_dc' } },
+            displayName: name,
+            email,
+            groupName: foundCls?.name || classId,
+            classIds: [classId],
+            solarCar: null,
             activityProgress: {},
             goals: [],
-            dailyStats: [{ timeSpentMinutes: 0, sessionsCount: 1 }]
+            dailyStats: [],
+            enrolments: []
           };
 
           this.students.unshift(newStudentObj);
-          logAuditEvent('STUDENT_REGISTERED_BY_COACH', { coachUid: this.coachUser?.uid, studentEmail: email, groupName });
+          logAuditEvent('STUDENT_REGISTERED_BY_COACH', { coachUid: this.coachUser?.uid, studentEmail: email, classId });
 
           this.showRegisterStudentModal = false;
           this.render();
-          this.showNotification(`✅ Student "${name}" (${email}) registered successfully!`);
+          const tempMsg = studentData?.temporaryPassword ? ` Temporary password: ${studentData.temporaryPassword}` : '';
+          this.showNotification(`✅ Student "${name}" (${email}) registered successfully!${tempMsg}`);
         } catch (err) {
           console.error('[CoachDashboard] Registration failed:', err);
           alert('Failed to register student: ' + err.message);

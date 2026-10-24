@@ -7,6 +7,7 @@ import {
   buildPersonaInstruction,
   buildSystemInstruction,
   resolveAgeBand,
+  resolveCohort,
   wrapStudentInput,
   extractText
 } from './safety.js';
@@ -19,6 +20,7 @@ import referenceRouter from './routes/reference.js';
 import parentsRouter from './routes/parents.js';
 import ltiRouter from './routes/lti.js';
 import oneRosterRouter from './routes/oneroster.js';
+import createLearnerRouter from './routes/create-learner.js';
 
 const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const THINKING_OFF = { thinkingBudget: 0 };
@@ -76,11 +78,12 @@ export function createApp() {
   app.use('/api', parentsRouter);
   app.use('/api/lti', ltiRouter);
   app.use('/api/oneroster/v1p1', oneRosterRouter);
+  app.use('/api/coach/learners', requireAuth, createLearnerRouter);
 
   // ============= EXISTING AI ENDPOINTS =============
   async function callGemini(prompt, maxOutputTokens = 256, opts = {}) {
-    const { ageBand, uid, endpoint = 'unknown', systemExtra = '' } = opts;
-    const band = resolveAgeBand(ageBand);
+    const { cohort, ageBand, uid, endpoint = 'unknown', systemExtra = '' } = opts;
+    const band = resolveCohort(cohort || ageBand);
 
     try {
       const result = await model.generateContent({
@@ -103,8 +106,8 @@ export function createApp() {
   }
 
   async function callGeminiWithImage(prompt, image, maxOutputTokens = 700, opts = {}) {
-    const { ageBand, uid, endpoint = 'unknown', systemExtra = '' } = opts;
-    const band = resolveAgeBand(ageBand);
+    const { cohort, ageBand, uid, endpoint = 'unknown', systemExtra = '' } = opts;
+    const band = resolveCohort(cohort || ageBand);
     const parts = [{ text: prompt }];
     if (image?.base64 && image?.mimeType) {
       parts.push({ inlineData: { mimeType: image.mimeType, data: image.base64 } });
