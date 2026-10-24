@@ -89,19 +89,38 @@ export function normaliseContractProgram(raw) {
         }))
       : []);
 
-  const phases = rawPhases.map((ph, idx) => ({
-    phaseId: ph.phaseId || ph.id || `phase-${idx + 1}`,
-    title: ph.title || '',
-    learningGoal: ph.learningGoal || ph.goal || '',
-    sessions: Array.isArray(ph.sessions) ? ph.sessions.map((s, sIdx) => ({
-      title: s.title || `Session ${sIdx + 1}`,
-      minutes: Number(s.minutes || s.durationMin || 90),
-      activities: Array.isArray(s.activities) ? s.activities : []
-    })) : [],
-    tools: Array.isArray(ph.tools) ? ph.tools : (Array.isArray(ph.makerSpaceTools) ? ph.makerSpaceTools : []),
-    deliverables: Array.isArray(ph.deliverables) ? ph.deliverables : (Array.isArray(ph.evidence) ? ph.evidence : []),
-    coachCue: ph.coachCue || ph.teacherTips || ''
-  }));
+  const phases = rawPhases.map((ph, idx) => {
+    const phaseId = ph.phaseId || ph.id || `phase-${idx + 1}`;
+    const pWeeks = Array.isArray(ph.weeks) && ph.weeks.length >= 2 ? ph.weeks : [idx + 1, idx + 1];
+    return {
+      id: phaseId,
+      phaseId,
+      title: ph.title || '',
+      learningGoal: ph.learningGoal || ph.goal || '',
+      goal: ph.goal || ph.learningGoal || '',
+      strap: ph.strap || '',
+      weeks: pWeeks,
+      sessions: Array.isArray(ph.sessions) ? ph.sessions.map((s, sIdx) => ({
+        sessionNumber: s.sessionNumber || sIdx + 1,
+        title: s.title || `Session ${sIdx + 1}`,
+        minutes: Number(s.minutes || s.durationMin || 90),
+        durationMin: Number(s.durationMin || s.minutes || 90),
+        week: s.week || pWeeks[0] || idx + 1,
+        learningGoal: s.learningGoal || '',
+        activities: Array.isArray(s.activities) ? s.activities : [],
+        evidenceToCollect: s.evidenceToCollect || { kind: 'note', prompt: '', targetCompetencies: [] },
+        teacherTips: s.teacherTips || ''
+      })) : [],
+      tools: Array.isArray(ph.tools) ? ph.tools : (Array.isArray(ph.makerSpaceTools) ? ph.makerSpaceTools : []),
+      deliverables: Array.isArray(ph.deliverables) ? ph.deliverables : (Array.isArray(ph.evidence) ? ph.evidence : []),
+      tasks: Array.isArray(ph.tasks) ? ph.tasks : (Array.isArray(ph.deliverables) ? ph.deliverables : []),
+      evidence: Array.isArray(ph.evidence) ? ph.evidence : (Array.isArray(ph.deliverables) ? ph.deliverables : []),
+      competencies: Array.isArray(ph.competencies) ? ph.competencies : [],
+      stretchCompetencies: Array.isArray(ph.stretchCompetencies) ? ph.stretchCompetencies : [],
+      aiPromptStarters: Array.isArray(ph.aiPromptStarters) ? ph.aiPromptStarters : [],
+      coachCue: ph.coachCue || ph.teacherTips || ''
+    };
+  });
 
   const title = raw.title || raw.unitTitle || 'Untitled Program';
   const theme = raw.theme || 'General STEM';
@@ -111,10 +130,15 @@ export function normaliseContractProgram(raw) {
     ? raw.searchTokens
     : generateSearchTokens(title, theme, tags, drivingQuestion);
 
+  const sessions = Array.isArray(raw.sessions) && raw.sessions.length > 0
+    ? raw.sessions
+    : phases.flatMap((ph) => ph.sessions);
+
   return {
     id: raw.id || raw.slug,
     slug: raw.slug || raw.id,
     title,
+    subtitle: raw.subtitle || '',
     drivingQuestion,
     theme,
     impact: {
@@ -124,7 +148,9 @@ export function normaliseContractProgram(raw) {
     frameworkId: raw.frameworkId || 'welearn-dt',
     frameworkVersion: raw.frameworkVersion || 1,
     phases,
+    sessions,
     ageBand: raw.ageBand || raw.targetAgeRange || '11-16',
+    targetAgeRange: raw.targetAgeRange || raw.ageBand || '11-16',
     durationWeeks: raw.durationWeeks || 12,
     authorId: raw.authorId || raw.authorUid || 'coach',
     source: raw.source || 'studio',
@@ -136,6 +162,25 @@ export function normaliseContractProgram(raw) {
     updatedAt: raw.updatedAt || Date.now(),
     publishedAt: raw.publishedAt || raw.transferredAt || raw.createdAt || Date.now(),
     // Presentation helper properties for backward compatibility with UI components
+    realProblem: raw.realProblem || {
+      summary: drivingQuestion,
+      peopleImpact: raw.impact?.people || 'Community impact',
+      environmentalImpact: raw.impact?.environment || 'Sustainable design'
+    },
+    measurableImpactCriteria: Array.isArray(raw.measurableImpactCriteria) ? raw.measurableImpactCriteria : [],
+    teacherGuidance: raw.teacherGuidance || {
+      safetyProtocol: [],
+      pedagogicalScaffolding: [],
+      aiEthicsRules: [],
+      differentiationNotes: []
+    },
+    materialsAndKit: raw.materialsAndKit || {
+      microcontrollers: [],
+      sensorsAndActuators: [],
+      fabricationMaterials: [],
+      softwareAndTools: []
+    },
+    assumptions: Array.isArray(raw.assumptions) ? raw.assumptions : [],
     identity: raw.identity || {
       icon: 'Compass',
       tone: 'amber',

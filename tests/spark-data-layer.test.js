@@ -75,4 +75,26 @@ describe('WeLearn DT Framework and Library Programs', () => {
     expect(res.success).toBe(false);
     expect(res.error.issues.length).toBeGreaterThan(0);
   });
+
+  it('P0-2: guards against undefined arrays and missing program docs', () => {
+    // Normalizing an empty or partially formed document should never throw
+    const partialDoc = {
+      id: 'pbl-2e-liam-chen-2026',
+      title: 'Liam Chen 2E Project',
+      drivingQuestion: 'How can we build a solar car?'
+    };
+    const safeProg = normaliseContractProgram(partialDoc);
+    expect(safeProg).not.toBeNull();
+    expect(Array.isArray(safeProg.phases)).toBe(true);
+    expect(Array.isArray(safeProg.sessions)).toBe(true);
+    expect(Array.isArray(safeProg.tags)).toBe(true);
+    expect(Array.isArray(safeProg.searchTokens)).toBe(true);
+    expect(Array.isArray(safeProg.issues)).toBe(true);
+    expect(Array.isArray(safeProg.assumptions)).toBe(true);
+    expect(Array.isArray(safeProg.measurableImpactCriteria)).toBe(true);
+    expect(typeof safeProg.realProblem).toBe('object');
+    expect(typeof safeProg.teacherGuidance).toBe('object');
+    expect(typeof safeProg.materialsAndKit).toBe('object');
+  });
 });
+
