@@ -10,6 +10,7 @@ import { synthesizeGroundedUnit } from './pblSynthesizer.js';
 import { publishAndTransferToStudent } from './pblTransferService.js';
 import { LearnerSupervisionView } from '../supervision/LearnerSupervisionView.jsx';
 import { EvaluationDeskView } from '../evaluation/EvaluationDeskView.jsx';
+import { CourseStudioPanel } from './CourseStudioPanel.jsx';
 import { getEvaluations } from '../evaluation/evaluationsStore.js';
 import { EdmentumIntegrationConsole } from '../../edmentum/EdmentumIntegrationConsole.jsx';
 import { hrefFor } from '../../../app/routes.js';
@@ -266,6 +267,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
                 <span className="cp-pulse-dot" /> {activeSourcesCount} Sources Grounded
               </span>
               <span>{totalTokens.toLocaleString()} tokens indexed</span>
+      {workspaceTab === 'studio' && <CourseStudioPanel />}
             </div>
 
             {/* Document Dropzone */}

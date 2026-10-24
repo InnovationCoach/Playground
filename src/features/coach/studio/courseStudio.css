@@ -1,0 +1,62 @@
+/* Course material studio (CourseStudioPanel.jsx). Sits on the dark Curriculum Studio cards. */
+
+.cs-panel { margin-bottom: 1.25rem; color: #e6edf3; }
+.cs-lede { margin: 0.25rem 0 1rem; color: #b6c2d1; font-size: 0.92rem; }
+.cs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+.cs-col { display: grid; gap: 0.75rem; align-content: start; min-width: 0; }
+.cs-h3 { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 0.95rem; font-weight: 700; color: #e6edf3; }
+.cs-muted { color: #b6c2d1; font-size: 0.85rem; margin: 0; }
+.cs-note { margin: 0; color: #d2a8ff; font-size: 0.82rem; font-weight: 600; }
+
+.cs-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.cs-source { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.5rem 0.65rem; border: 1px solid #30363d; border-radius: 8px; background: #161b22; }
+.cs-source label { display: flex; align-items: center; gap: 0.5rem; min-width: 0; cursor: pointer; }
+.cs-source span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.cs-form, .cs-row { display: grid; gap: 0.6rem; }
+.cs-row { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); align-items: end; }
+.cs-field { display: grid; gap: 0.3rem; font-size: 0.8rem; font-weight: 600; color: #c9d1d9; }
+.cs-field input, .cs-field textarea, .cs-field select {
+  width: 100%; background: #0d1117; color: #e6edf3; border: 1px solid #484f58; border-radius: 8px; padding: 0.5rem 0.6rem; font: inherit; font-weight: 400;
+}
+.cs-field input:focus, .cs-field textarea:focus, .cs-field select:focus, .cs-btn:focus-visible, .cs-link:focus-visible, .cs-option:focus-visible, .cs-draft-tab:focus-visible, .cs-icon-btn:focus-visible {
+  outline: 3px solid #d2a8ff; outline-offset: 2px;
+}
+
+.cs-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 36px; padding: 0.45rem 0.9rem;
+  border-radius: 8px; border: 1px solid #484f58; background: #21262d; color: #e6edf3; font-weight: 600; cursor: pointer; justify-self: start;
+}
+.cs-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.cs-btn-primary { background: #8957e5; border-color: #8957e5; color: #ffffff; }
+.cs-link { display: inline-flex; align-items: center; gap: 0.3rem; background: none; border: 0; padding: 0; color: #d2a8ff; font-weight: 600; cursor: pointer; }
+.cs-icon-btn { background: none; border: 0; color: #b6c2d1; padding: 0.3rem; border-radius: 6px; cursor: pointer; }
+.cs-icon-btn:hover { color: #ff7b72; }
+
+.cs-status { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; min-height: 1.4rem; font-size: 0.88rem; color: #b6c2d1; }
+.cs-status-success { color: #7ee787; }
+.cs-status-error { color: #ffa198; }
+
+.cs-drafts { margin-top: 1.25rem; display: grid; gap: 0.75rem; border-top: 1px solid #30363d; padding-top: 1rem; }
+.cs-draft-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.cs-draft-tab { min-height: 34px; padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid #484f58; background: #161b22; color: #c9d1d9; font-weight: 600; cursor: pointer; }
+.cs-draft-tab.is-active { background: #8957e5; border-color: #8957e5; color: #ffffff; }
+.cs-draft { border: 1px solid #30363d; border-radius: 12px; padding: 1rem; background: #0d1117; display: grid; gap: 0.75rem; }
+.cs-draft-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+
+.cs-stages { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.6rem; }
+.cs-stage p { margin: 0.2rem 0 0; color: #c9d1d9; font-size: 0.9rem; }
+.cs-slide h4 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+.cs-slide ul { margin: 0 0 0.5rem; padding-left: 1.2rem; color: #c9d1d9; }
+.cs-quiz, .cs-script { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.9rem; }
+.cs-quiz-item p { margin: 0 0 0.4rem; }
+.cs-options { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.cs-option { min-height: 36px; padding: 0.35rem 0.8rem; border-radius: 8px; border: 1px solid #484f58; background: #161b22; color: #e6edf3; cursor: pointer; }
+.cs-option.is-chosen { border-color: #d2a8ff; background: #2d1b4e; }
+.cs-right { color: #7ee787; font-size: 0.88rem; }
+.cs-wrong { color: #ffa198; font-size: 0.88rem; }
+.cs-script p { margin: 0.2rem 0 0; color: #c9d1d9; }
+
+@media (max-width: 600px) {
+  .cs-grid { grid-template-columns: 1fr; }
+}
