@@ -30,7 +30,7 @@ export const STAGES = Object.freeze([
   { id: 'showcase', label: 'Showcase', stageNumber: 8 }
 ]);
 
-const AGE_BANDS = ['11-13', '14-16', '17-18'];
+const COHORTS = ['primary', 'lower-secondary', 'higher-secondary'];
 const TYPES = ['milestones', 'slides', 'quiz', 'script'];
 const MOCK_NOTE = 'MOCK DRAFT: built from your source text on this device. No AI model was used.';
 
@@ -189,10 +189,10 @@ function buildScript(picked) {
 
 const OUTPUT = { milestones: buildMilestones, slides: buildSlides, quiz: buildQuiz, script: buildScript };
 
-export async function generate({ type, ageBand, sourceIds, phaseId = null, programId = null, futureSkillId = null, instructions = '' }) {
+export async function generate({ type, cohort, sourceIds, phaseId = null, programId = null, futureSkillId = null, instructions = '' }) {
   await delay(400);
   if (!TYPES.includes(type)) throw new CourseStudioError(400, 'VALIDATION', 'Choose what to make.', 'type');
-  if (!AGE_BANDS.includes(ageBand)) throw new CourseStudioError(400, 'VALIDATION', 'Choose an age band.', 'ageBand');
+  if (!COHORTS.includes(cohort)) throw new CourseStudioError(400, 'VALIDATION', 'Choose a cohort.', 'cohort');
   if (String(instructions).length > LIMITS.instructionChars) {
     throw new CourseStudioError(400, 'VALIDATION', `Instructions can be ${LIMITS.instructionChars} characters.`, 'instructions');
   }
@@ -207,7 +207,7 @@ export async function generate({ type, ageBand, sourceIds, phaseId = null, progr
     id: `draft-${draftSeq}`,
     type,
     status: 'draft',
-    ageBand,
+    cohort,
     phaseId,
     programId,
     futureSkillId,

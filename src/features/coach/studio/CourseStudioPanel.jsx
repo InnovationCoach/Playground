@@ -12,7 +12,11 @@ const TYPE_LABELS = {
   script: 'Narration script (text, for video later)'
 };
 
-const AGE_LABELS = { '11-13': 'Ages 11–13', '14-16': 'Ages 14–16', '17-18': 'Ages 17–18' };
+const COHORT_LABELS = {
+  primary: 'Primary (ages 6–11)',
+  'lower-secondary': 'Lower Secondary (ages 12–14)',
+  'higher-secondary': 'Higher Secondary (ages 15–18)'
+};
 
 const errorText = (err) => (err instanceof CourseStudioError ? err.message : 'Something went wrong. Try again.');
 
@@ -27,7 +31,7 @@ export function CourseStudioPanel() {
   const [activeId, setActiveId] = useState(null);
   const [picked, setPicked] = useState([]);
   const [type, setType] = useState('milestones');
-  const [ageBand, setAgeBand] = useState('11-13');
+  const [cohort, setCohort] = useState('lower-secondary');
   const [instructions, setInstructions] = useState('');
   const [status, setStatus] = useState({ kind: 'idle', message: '' });
   const [newTitle, setNewTitle] = useState('');
@@ -75,7 +79,7 @@ export function CourseStudioPanel() {
   const onGenerate = async () => {
     setStatus({ kind: 'working', message: 'Drafting… this can take a little while.' });
     try {
-      const result = await generate({ type, ageBand, sourceIds: picked, instructions });
+      const result = await generate({ type, cohort, sourceIds: picked, instructions });
       setActiveId(result.draftId);
       await refresh();
       setStatus({ kind: 'success', message: 'Draft ready. Review it before anything is shared with learners.' });
@@ -150,9 +154,9 @@ export function CourseStudioPanel() {
               </select>
             </label>
             <label className="cs-field">
-              <span>Reading level</span>
-              <select value={ageBand} onChange={(e) => setAgeBand(e.target.value)}>
-                {Object.entries(AGE_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+              <span>Cohort</span>
+              <select value={cohort} onChange={(e) => setCohort(e.target.value)}>
+                {Object.entries(COHORT_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
               </select>
             </label>
           </div>

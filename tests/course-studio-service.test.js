@@ -29,7 +29,7 @@ describe('course studio service (mock, contract §3–§4)', () => {
 
   it('generates milestones with one entry per stage, using the contract phase ids', async () => {
     const s = await createSource({ title: 'Stages', text: LONG_PARAGRAPH });
-    const r = await generate({ type: 'milestones', ageBand: '11-13', sourceIds: [s.id] });
+    const r = await generate({ type: 'milestones', cohort: 'primary', sourceIds: [s.id] });
     expect(r.output.milestones).toHaveLength(8);
     expect(r.output.milestones.map((m) => m.phaseId)).toEqual(STAGES.map((st) => st.id));
     expect(r.output.milestones.map((m) => m.phaseId)).toContain('reflect');
@@ -38,7 +38,7 @@ describe('course studio service (mock, contract §3–§4)', () => {
 
   it('generates a quiz where every item has an explanation and an answer index', async () => {
     const s = await createSource({ title: 'Quiz source', text: LONG_PARAGRAPH });
-    const r = await generate({ type: 'quiz', ageBand: '14-16', sourceIds: [s.id] });
+    const r = await generate({ type: 'quiz', cohort: 'lower-secondary', sourceIds: [s.id] });
     expect(r.output.items.length).toBeGreaterThan(0);
     for (const item of r.output.items) {
       expect(item.explanation.length).toBeGreaterThan(0);
@@ -47,21 +47,21 @@ describe('course studio service (mock, contract §3–§4)', () => {
   });
 
   it('refuses unknown sources with 403 and an empty source list with 400', async () => {
-    await expect(generate({ type: 'slides', ageBand: '11-13', sourceIds: ['src-missing'] }))
+    await expect(generate({ type: 'slides', cohort: 'primary', sourceIds: ['src-missing'] }))
       .rejects.toMatchObject({ status: 403 });
-    await expect(generate({ type: 'slides', ageBand: '11-13', sourceIds: [] }))
+    await expect(generate({ type: 'slides', cohort: 'primary', sourceIds: [] }))
       .rejects.toMatchObject({ status: 400, code: 'VALIDATION' });
   });
 
   it('rejects instructions over 500 characters', async () => {
     const s = await createSource({ title: 'Instructions', text: LONG_PARAGRAPH });
-    await expect(generate({ type: 'slides', ageBand: '11-13', sourceIds: [s.id], instructions: 'x'.repeat(501) }))
+    await expect(generate({ type: 'slides', cohort: 'primary', sourceIds: [s.id], instructions: 'x'.repeat(501) }))
       .rejects.toMatchObject({ code: 'VALIDATION', field: 'instructions' });
   });
 
   it('lists drafts and hides discarded ones', async () => {
     const s = await createSource({ title: 'Discard me', text: LONG_PARAGRAPH });
-    const r = await generate({ type: 'script', ageBand: '17-18', sourceIds: [s.id] });
+    const r = await generate({ type: 'script', cohort: 'higher-secondary', sourceIds: [s.id] });
     expect((await listDrafts()).some((d) => d.id === r.draftId)).toBe(true);
     await discardDraft(r.draftId);
     expect((await listDrafts()).some((d) => d.id === r.draftId)).toBe(false);
@@ -77,7 +77,7 @@ describe('course studio service (mock, contract §3–§4)', () => {
 describe('milestone edits (contract §3.1 limits)', () => {
   const draftWithMilestones = async () => {
     const s = await createSource({ title: 'Edit source', text: LONG_PARAGRAPH });
-    return generate({ type: 'milestones', ageBand: '11-13', sourceIds: [s.id] });
+    return generate({ type: 'milestones', cohort: 'primary', sourceIds: [s.id] });
   };
   const copy = (ms) => ms.map((m) => ({ ...m, sessions: [...m.sessions] }));
 
