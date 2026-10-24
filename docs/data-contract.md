@@ -48,11 +48,12 @@ Single source of truth — 8 phases (Approved by Mani).
     { id: 'prototype', label: 'Prototype',            weeks: [6, 9] },
     { id: 'test',      label: 'Test and improve',     weeks: [9, 11] },
     { id: 'showcase',  label: 'Showcase or present',  weeks: [11, 12] },
-    { id: 'reflect',   label: 'Reflect and iterate',  weeks: null }
+    { id: 'reflect',   label: 'Reflect and iterate',  weeks: [12, 12] }
   ]
 }
 ```
-*Note: Confirmed with Mani: "Reflect" is officially a standalone 8th phase in the WeLearn Design Thinking framework. The week range is set to null pending Mani's confirmation of the exact weeks, due to potential overlap with Showcase (weeks [11, 12]). Do not guess the range.*
+*Note: Confirmed with Mani (24 Oct 2026): "Reflect" is officially a standalone 8th phase in the WeLearn Design Thinking framework, sharing week 12 with Showcase (`[11, 12]`).*
+*Note: Consent Rules: Per Mani's decision, no consent gating is enforced during the current testing and presentation phase as no real learner data is in use.*
 
 ### `pbl_programs/{programId}`
 ```ts

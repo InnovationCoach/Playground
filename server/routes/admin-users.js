@@ -348,7 +348,8 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
       ageBand: assignedCohort,
       yearLevel: body.yearLevel || null,
       dateOfBirth: body.dateOfBirth || null,
-      consent: isPrimary ? { status: 'required' } : null
+      // Per Mani (24 Oct 2026): no consent rules for now during testing/presentation
+      consent: null
     });
   }
 
