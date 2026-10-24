@@ -43,7 +43,7 @@ Generate one draft. One call returns one output type.
   type: 'milestones' | 'slides' | 'quiz' | 'script',
   programId?: string,            // required for 'slides' | 'quiz' | 'script' when the programme exists
   futureSkillId?: string,        // required for 'milestones' when editing one of the seven Future Skills
-  phaseId?: 'explore' | 'empathise' | 'define' | 'ideate' | 'prototype' | 'test' | 'showcase',
+  phaseId?: 'explore' | 'empathise' | 'define' | 'ideate' | 'prototype' | 'test' | 'showcase' | 'reflect',
   ageBand: '11-13' | '14-16' | '17-18',
   sources: Array<{ id: string, title: string, text: string }>,   // coach-supplied; see limits
   learnerContext?: { consumingPassions: string[], strengths: string[], accommodations: string[] },
@@ -59,7 +59,7 @@ Generate one draft. One call returns one output type.
 | Total `sources[].text` | 30,000 characters | `413 SOURCES_TOO_LARGE` |
 | `instructions` | 500 characters | `400 VALIDATION` |
 | Sources per request | 10 | `400 VALIDATION` |
-| Requests per coach | 20 per hour (proposed) | `429 RATE_LIMITED` |
+| Requests per coach | 20 per hour and 200 per day | `429 RATE_LIMITED` |
 
 **Response (200)**
 ```ts
@@ -77,18 +77,18 @@ Generate one draft. One call returns one output type.
 **Output schemas**
 
 ```ts
-// Future Skills milestones, aligned to the 7 phases in frameworks/welearn-dt
+// Future Skills milestones, aligned to the 8 stages in frameworks/welearn-dt
 MilestoneSet = {
   milestones: Array<{
     id: string,                  // stable, e.g. "ms-define-1"
-    phaseId: string,             // must be one of the 7 phase ids
+    phaseId: string,             // must be one of the 8 stage ids, including 'reflect'
     title: string,               // max 80 chars
     goal: string,                // max 240 chars
     sessions: string[],          // 1–4 items, each max 160 chars
     deliverables: string[],      // 1–4 items; multi-modal: video, link, bench, text
     coachCue: string,            // max 240 chars
     sourceRefs: string[]         // ids from sources[]; empty only if flags contain ASSUMPTION
-  }>                             // 7 for a Future Skill, one per phase, in order
+  }>                             // 8 for a Future Skill, one per stage, in order
 }
 
 // Slide deck: max 12 slides
@@ -173,7 +173,25 @@ course_drafts/{draftId} = {
 - Learners and parents have no read access to `course_drafts`.
 - Publishing copies the approved output into `pbl_programs` through `publishProgram`. It does not copy the draft itself.
 
-**Sources:** v1 keeps source text in the request only. It is not stored by the server. Persisted source library is a follow-up decision (see §7).
+**Reusable source library:**
+
+```ts
+course_sources/{sourceId} = {
+  id: string,
+  coachUid: string,              // owner; only this coach reads or writes it
+  title: string,                 // max 120 chars
+  text: string,                  // max 30,000 characters, plain text
+  kind: 'paste' | 'upload_text', // no binary uploads in v1
+  createdAt: number,
+  updatedAt: number,
+  archived: boolean
+}
+```
+
+- Sources are reused across drafts. A `generate` request names them by `sources[].id`. The server loads them, checks the coach owns them, and then applies the same limits as §3.1.
+- Source text is not copied into `course_drafts`. Drafts store ids only.
+- Before a source is saved, the server rejects text that looks like personal data (email addresses, phone numbers, or learner names from the class roster). This is a best-effort check; coaches are told not to paste learner records.
+- Rules: a coach reads and writes only sources where `coachUid == request.auth.uid`.
 
 ## 5. Publish path (existing, unchanged)
 
@@ -187,13 +205,14 @@ course_drafts/{draftId} = {
 - Show a quiet "Drafting is unavailable" state when the endpoint fails. No endpoint names in the UI.
 - Never send learner names, emails, or diagnosis fields. The UI sends `learnerContext` only when the coach ticks "Tailor to this learner", and only the three fields above.
 
-## 7. Open questions (for Mani and Gemini)
+## 7. Decisions
 
-1. **Phases:** the framework has 7 phases, but the PBL studio shows 8 stages including "Reflect". Until Mani decides, `phaseId` uses the 7 framework ids and reflection is a step inside each phase.
-2. **Source storage:** keep sources only in the request (v1), or add a `course_sources` collection the coach can reuse?
-3. **Rate limit:** is 20 generations per coach per hour the right number?
-4. **Video (deferred):** when we add video, does it take `NarrationScript` as input and call a video provider, or should it be a separate contract? The script is produced in v1 so that the video step has its input ready.
-5. **Model:** keep `gemini-3.6-flash` (current default), or use a stronger model for quiz quality?
+1. **Stages: 8, not 7.** The PBL studio shows 8 stages, including Reflect, so `frameworks/welearn-dt` becomes 8 stages and `phaseId` accepts `reflect`. Gemini to update the framework document and the milestone schema. Mani to confirm the week range for Reflect (the current 7 phases run weeks 1–12, so Reflect needs a range too). This also closes audit item P1-6.
+2. **Source library: yes.** Reusable `course_sources` collection, as in §4.
+3. **Rate limit: 20 generations per coach per hour and 200 per day.** I chose these as a starting point; Gemini can tune them after the first week of use.
+4. **Video: yes, later.** The video step takes `NarrationScript` as input. It gets its own contract when it is built.
+5. **Model: a stronger model than the current default.** Gemini stays the primary provider, because it already runs the backend and the rules in this contract. Gemini to pick the model and test quiz quality against `gemini-3.6-flash`.
+   - **GPT 6.1 as an option:** it would be a second AI vendor that receives content for learners aged 11–18. That needs Mani's approval and a data-processing agreement first. I have not checked GPT 6.1's availability or terms, so I make no claim about it here.
 
 ## 8. Acceptance checks (Gemini to run before the UI is wired)
 
@@ -201,3 +220,5 @@ course_drafts/{draftId} = {
 - A prompt built from a test learner contains no name, email, or diagnosis label. Add a unit test that fails if one appears.
 - `course_drafts` rules: coach A cannot read coach B's draft; a learner cannot read any draft.
 - A request with more than 30,000 characters of sources returns `413` before any model call.
+- `frameworks/welearn-dt` lists 8 stages including `reflect`, and milestone output rejects any other `phaseId`.
+- `course_sources`: coach A cannot read, update or reference coach B's source (`generate` returns `403`).
