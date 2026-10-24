@@ -10,6 +10,10 @@ import '../enrolment/joinPanel.css';
 import { useGoalPlan } from '../goals/useGoalPlan.js';
 import { todayItems, checkedToday, toggleToday } from '../goals/goalPlan.js';
 import { NotesWidget } from './NotesWidget.jsx';
+import { FocusWidget } from '../focus/FocusWidget.jsx';
+import { useFocus } from '../focus/focusStore.js';
+import { remainingMs, fmt } from '../focus/focusModel.js';
+import { Launchpad } from './Launchpad.jsx';
 import '../admin/admin.css';
 import '../pbl/pbl.css';
 import './myDashboard.css';
@@ -82,6 +86,12 @@ export function MyDashboard({ uid, profile, classIds = [], onJoined, onOpenActiv
   const firstName = String(profile?.displayName || '').split(' ')[0];
   const name = profile?.displayName || 'Learner';
   const visible = prefs.order.filter((id) => !prefs.hidden.includes(id));
+  const focusState = useFocus();
+  const [view, setView] = useDeviceChoice(uid, 'view', 'slides', ['slides', 'grid']);
+  const [savedActive, setActive] = useDeviceChoice(uid, 'section', visible[0] || 'today', WIDGETS.map((w) => w.id));
+  const active = visible.includes(savedActive) ? savedActive : visible[0];
+  const titles = Object.fromEntries(WIDGETS.map((w) => [w.id, w.title]));
+  const stats = sectionStats(model, focusState);
 
   function openTarget(target) {
     if (target.type === 'goals') window.location.hash = hrefFor.goals();
@@ -109,6 +119,8 @@ export function MyDashboard({ uid, profile, classIds = [], onJoined, onOpenActiv
           <TodayWidget items={model.today} checked={model.ticked} onOpenGoals={() => openTarget({ type: 'goals' })}
                        onToggle={(item) => updatePlan((p) => toggleToday(p, item, signals.today))} />
         );
+      case 'focus':
+        return <FocusWidget focusOn={model.today.find((i) => !model.ticked.has(i.id))?.text} />;
       case 'skill':
         return <SkillWidget skill={model.skill} onOpenSkills={() => { window.location.hash = hrefFor.futureSkills(); }} />;
       case 'notes':
@@ -142,7 +154,8 @@ export function MyDashboard({ uid, profile, classIds = [], onJoined, onOpenActiv
   return (
     <div className={`gh-app md-root${prefs.calm ? ' md-calm' : ''}`} style={{ '--md-accent': accent }}>
       <div className="gh-page md-page">
-        <header className="md-hero" style={{ background: cover.css }}>
+        {/* A <section>, not <header>: index.html still styles every bare `header` for the legacy app. */}
+        <section className="md-hero" style={{ background: cover.css }} aria-label="Your dashboard">
           <div className="md-hero-top">
             <span className="md-kicker">My Dashboard · {TERM.label}</span>
             <button type="button" className="md-btn md-btn-light" onClick={() => setPanelOpen(true)} aria-expanded={panelOpen}>
@@ -165,10 +178,15 @@ export function MyDashboard({ uid, profile, classIds = [], onJoined, onOpenActiv
               </div>
             </div>
           </div>
-        </header>
+        </section>
 
         {uid && classIds.length === 0 && (
           <JoinClassPanel uid={uid} classIds={classIds} onJoined={onJoined} />
+        )}
+
+        {visible.length > 0 && (
+          <Launchpad sections={visible} titles={titles} stats={stats} active={active} onActive={setActive}
+                     view={view} onView={setView} renderSection={renderWidget} />
         )}
 
         {visible.length === 0 ? (
@@ -176,7 +194,7 @@ export function MyDashboard({ uid, profile, classIds = [], onJoined, onOpenActiv
             <p>Every widget is hidden. Bring some back to see your dashboard.</p>
             <button type="button" className="md-btn md-btn-primary" onClick={() => setPanelOpen(true)}>Personalise</button>
           </div>
-        ) : (
+        ) : view === 'grid' && (
           <div className="md-grid">
             {visible.map((id) => (
               <section
@@ -208,6 +226,30 @@ export function MyDashboard({ uid, profile, classIds = [], onJoined, onOpenActiv
       )}
     </div>
   );
+}
+
+/** A small per-device choice (layout, last section), remembered in localStorage. */
+function useDeviceChoice(uid, name, fallback, allowed) {
+  const key = `md_${name}_${uid || 'anon'}`;
+  const [value, setValue] = useState(() => {
+    try { const v = localStorage.getItem(key); return allowed.includes(v) ? v : fallback; } catch { return fallback; }
+  });
+  const set = (v) => { setValue(v); try { localStorage.setItem(key, v); } catch { /* private mode */ } };
+  return [value, set];
+}
+
+/** The small live number on each Launchpad tile. */
+function sectionStats(model, focusState) {
+  const t = focusState.timer;
+  const earned = model.badges.filter((b) => b.earned).length;
+  const openGoals = model.goals ? model.goals.items.filter((g) => !g.done).length : 0;
+  return {
+    today: model.today.length ? `${model.today.filter((i) => model.ticked.has(i.id)).length}/${model.today.length}` : null,
+    focus: t.phase !== 'idle' ? fmt(remainingMs(t, focusState.now)) : focusState.playing ? '♪ on' : null,
+    goals: openGoals ? String(openGoals) : null,
+    badges: `${earned}/${model.badges.length}`,
+    progress: `${model.pbl.overall ?? 0}%`
+  };
 }
 
 function CustomisePanel({ prefs, update, syncState, onClose }) {

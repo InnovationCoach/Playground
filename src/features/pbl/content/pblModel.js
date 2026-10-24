@@ -210,6 +210,7 @@ export const phaseById = (id) => PHASES.find((p) => p.id === id) || null;
 export const EVIDENCE_KINDS = [
   { id: 'note', label: 'Note or observation' },
   { id: 'media', label: 'Photo / video link' },
+  { id: 'design', label: 'Canva design' },
   { id: 'code', label: 'Code' },
   { id: 'data', label: 'Data or results' },
   { id: 'feedback', label: 'Feedback I received' },

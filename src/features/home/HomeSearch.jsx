@@ -9,6 +9,7 @@ import { HOME_HERO_URL } from '../../app/brand.js';
 import { buildCatalog, searchCatalog } from '../courses/catalog.js';
 import { useAddedCourses } from '../courses/useAddedCourses.js';
 import { CatalogCard } from '../courses/CatalogCard.jsx';
+import { getCustomPrograms } from '../coach/programs/customProgramsStore.js';
 import '../admin/admin.css';
 import '../pbl/programs/programs.css';
 import '../courses/courses.css';
@@ -19,15 +20,34 @@ import './homeSearch.css';
  * listed until the learner types; results come from the same catalogue as My
  * Courses, and "Add to My Courses" puts a course in "Courses I added" there.
  */
-const CATALOG = buildCatalog({ activities: ACTIVITY_NAV, programs: PROGRAMS, parseLabel: parseActivityLabel, includePartners: true });
 
 export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = '' }) {
   const { t } = useLocale();
   // SPARK Home's search box opens this page at #/search/<query>.
   const [q, setQ] = useState(initialQuery);
+  const [customPrograms, setCustomPrograms] = useState(() => Object.values(getCustomPrograms()));
+
+  useEffect(() => {
+    const onCustomChanged = () => {
+      setCustomPrograms(Object.values(getCustomPrograms()));
+    };
+    window.addEventListener('pbl-custom-programs-changed', onCustomChanged);
+    return () => window.removeEventListener('pbl-custom-programs-changed', onCustomChanged);
+  }, []);
+
+  const catalog = useMemo(() => {
+    const allPrograms = [...customPrograms, ...PROGRAMS];
+    return buildCatalog({
+      activities: ACTIVITY_NAV,
+      programs: allPrograms,
+      parseLabel: parseActivityLabel,
+      includePartners: true
+    });
+  }, [customPrograms]);
+
   const query = q.trim();
-  const results = useMemo(() => (query ? searchCatalog(CATALOG, query) : []), [query]);
-  const { keys, added, toggle } = useAddedCourses(uid, CATALOG);
+  const results = useMemo(() => (query ? searchCatalog(catalog, query) : []), [catalog, query]);
+  const { keys, added, toggle } = useAddedCourses(uid, catalog);
   const firstName = String(displayName || '').split(' ')[0];
   const inputRef = useRef(null);
   // Ready to type, like a search engine, without scrolling the hero image away.

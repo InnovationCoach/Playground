@@ -41,7 +41,7 @@ const COACH_TABS = [
   { id: 'competencies', label: 'Competencies', icon: Award }
 ];
 
-export function PblStudio({ uid, role, tab, programId, section, classIds, onOpenActivity }) {
+export function PblStudio({ uid, role, tab, programId, section, classIds, onOpenActivity, displayName }) {
   const isStudent = role === 'student';
   const tabs = isStudent ? STUDENT_TABS : COACH_TABS;
   const active = tabs.some((t) => t.id === tab) ? tab : tabs[0].id;
@@ -49,7 +49,7 @@ export function PblStudio({ uid, role, tab, programId, section, classIds, onOpen
   if (active === 'programs' && programId) {
     return (
       <div className="gh-page pb-page">
-        <ProgramDetail programId={programId} section={section} uid={uid} isCoach={!isStudent} />
+        <ProgramDetail programId={programId} section={section} uid={uid} isCoach={!isStudent} classIds={classIds} />
       </div>
     );
   }
@@ -87,7 +87,7 @@ export function PblStudio({ uid, role, tab, programId, section, classIds, onOpen
       {active === 'programs' ? (
         <ProgramLibrary uid={uid} isCoach={!isStudent} classIds={classIds} />
       ) : isStudent ? (
-        <StudentTabs uid={uid} active={active} onOpenActivity={onOpenActivity} />
+        <StudentTabs uid={uid} active={active} onOpenActivity={onOpenActivity} displayName={displayName} />
       ) : (
         <>
           {active === 'approach' && <Approach />}
@@ -101,14 +101,14 @@ export function PblStudio({ uid, role, tab, programId, section, classIds, onOpen
 }
 
 /** Split out so the project document is only loaded for a learner. */
-function StudentTabs({ uid, active, onOpenActivity }) {
+function StudentTabs({ uid, active, onOpenActivity, displayName }) {
   const { project, apply, syncState } = usePblProject(uid, TERM.id);
   return (
     <>
       <SyncNote state={syncState} />
       {active === 'project' && <ProjectJourney project={project} apply={apply} onOpenActivity={onOpenActivity} />}
       {active === 'explore' && <ExploreSteam onOpenActivity={onOpenActivity} />}
-      {active === 'portfolio' && <Portfolio project={project} apply={apply} />}
+      {active === 'portfolio' && <Portfolio project={project} apply={apply} displayName={displayName} />}
       {active === 'competencies' && <CompetencyFramework project={project} />}
       {active === 'approach' && <Approach />}
     </>

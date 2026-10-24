@@ -276,6 +276,15 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // PBL Programs (Authoring & Publishing)
+    // ---------------------------------------------------------------------
+    match /pbl_programs/{programId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isTeacher();
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------------
     // Student work
     // ---------------------------------------------------------------------
     match /solarCar_prototypes/{docId} {

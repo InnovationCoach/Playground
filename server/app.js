@@ -17,6 +17,8 @@ import sessionRouter from './routes/session.js';
 import adminUsersRouter from './routes/admin-users.js';
 import referenceRouter from './routes/reference.js';
 import parentsRouter from './routes/parents.js';
+import ltiRouter from './routes/lti.js';
+import oneRosterRouter from './routes/oneroster.js';
 
 const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const THINKING_OFF = { thinkingBudget: 0 };
@@ -72,6 +74,8 @@ export function createApp() {
   app.use('/api/admin/users', adminUsersRouter);
   app.use('/api/admin', referenceRouter);
   app.use('/api', parentsRouter);
+  app.use('/api/lti', ltiRouter);
+  app.use('/api/oneroster/v1p1', oneRosterRouter);
 
   // ============= EXISTING AI ENDPOINTS =============
   async function callGemini(prompt, maxOutputTokens = 256, opts = {}) {
@@ -308,6 +312,53 @@ export function createApp() {
       res.json({ reply, trust, blocked, timestamp: new Date().toISOString() });
     } catch (error) {
       res.status(500).json({ error: 'That character is unavailable right now.' });
+    }
+  });
+
+  app.post('/api/pbl/synthesize', requireAuth, async (req, res) => {
+    try {
+      const { learner, groundingContext, customFocus } = req.body;
+      const userId = req.user.uid;
+
+      if (!learner || !learner.name) {
+        return res.status(400).json({ error: 'Learner profile is required' });
+      }
+
+      const prompt = [
+        'You are the WeLearn SPARK PBL Curriculum Architect.',
+        'Synthesize an authentic 8-stage PBL Unit specifically tailored for this 2e learner, fully grounded in the provided reference sources.',
+        '',
+        'LEARNER 2e PROFILE:',
+        `Name: ${learner.name}`,
+        `Diagnosis / Traits: ${learner.diagnosisTraits}`,
+        `Consuming Passions: ${learner.consumingPassions}`,
+        `Executive Function Hurdles: ${learner.executiveFunctionHurdles}`,
+        `Applied Accommodations: ${(learner.appliedAccommodations || []).join('; ')}`,
+        customFocus ? `Custom Coach Focus: ${customFocus}` : '',
+        '',
+        'GROUNDING REFERENCE CONTEXT:',
+        String(groundingContext || '').slice(0, 4000),
+        '',
+        'CRITICAL: Return ONLY a valid JSON object with unitTitle, theme, drivingQuestion, realProblem, makerSpaceSpecs, coachCues, and milestones (8 stages from Curiosity to Showcase).',
+        'Return ONLY valid JSON. No markdown, no code fences.'
+      ].filter(Boolean).join('\n');
+
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: 2500,
+          temperature: 0.4,
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const { text } = extractText(result);
+      const cleanJson = text.replace(/```(?:json)?/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+      res.json({ unit: parsed, timestamp: new Date().toISOString() });
+    } catch (error) {
+      console.error('[PBL Synthesizer] Server synthesis error:', error.message);
+      res.status(500).json({ error: 'Failed to synthesize unit via server AI' });
     }
   });
 

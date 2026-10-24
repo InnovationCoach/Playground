@@ -4,6 +4,8 @@ import { PROGRAMS, PLATFORM_NOTES, SCHEDULE, shortAges } from './catalog.js';
 import { programProgress } from './progress.js';
 import { readLocalProgress } from './useProgramProgress.js';
 import { ProgramIcon } from './ProgramIcon.jsx';
+import { ProgramPoster } from './ProgramPoster.jsx';
+import { coverFor } from './programMedia.js';
 import { useClassPrograms } from './useClassPrograms.js';
 import { hrefFor } from '../../../app/routes.js';
 
@@ -15,7 +17,7 @@ import { hrefFor } from '../../../app/routes.js';
  * read the warnings.
  */
 export function ProgramLibrary({ uid, isCoach, classIds = [] }) {
-  const { assigned, byProgram } = useClassPrograms(classIds);
+  const { assigned, byProgram, classCovers } = useClassPrograms(classIds);
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
   const shown = useMemo(() => PROGRAMS.filter((p) => !q
@@ -72,23 +74,22 @@ export function ProgramLibrary({ uid, isCoach, classIds = [] }) {
         <p className="pb-empty">No program matches “{query}”.</p>
       ) : (
         <ul className="pg-grid">
-          {shown.map((p) => <li key={p.id}><ProgramCard program={p} uid={uid} isCoach={isCoach} classNames={byProgram[p.id]} /></li>)}
+          {shown.map((p) => <li key={p.id}><ProgramCard program={p} uid={uid} isCoach={isCoach} classNames={byProgram[p.id]} cover={coverFor(p, classCovers)} /></li>)}
         </ul>
       )}
     </div>
   );
 }
 
-function ProgramCard({ program: p, uid, isCoach, classNames }) {
+function ProgramCard({ program: p, uid, isCoach, classNames, cover }) {
   const local = !isCoach ? readLocalProgress(uid, p) : null;
   const prog = local?.startedAt ? programProgress(local, p) : null;
   const blocking = p.issues.filter((i) => i.level === 'block').length;
 
   return (
     <a className="pg-card" data-tone={p.identity.tone} data-assigned={classNames ? true : undefined} href={hrefFor.program(p.id)}>
-      <div className="pg-card-band">
-        <span className="pg-card-icon"><ProgramIcon name={p.identity.icon} size={22} /></span>
-        <span className="pg-card-kicker">{p.identity.short}</span>
+      <div className="pg-card-cover">
+        <ProgramPoster program={p} cover={cover} />
         {p.sharesPhasesWith && <span className="pg-outline-tag">Outline only</span>}
       </div>
       {classNames && (

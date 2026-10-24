@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   newPlan, hydratePlan, migrateLegacy, touch, hasPlan, goalSentence, todayItems, checkedToday,
-  toggleToday, habitWeek, coachGoalDocs, dayKey, LIMITS, FOCUS_SKILLS
+  toggleToday, habitWeek, coachGoalDocs, dayKey, LIMITS, FOCUS_SKILLS, XP, LEVELS, planXp, planLevel, streak, questStations
 } from '../src/features/goals/goalPlan.js';
 import { parseRoute, hrefFor } from '../src/app/routes.js';
 
@@ -136,5 +136,35 @@ describe('route', () => {
     expect(hrefFor.homeSearch()).toBe('#/search');
     expect(parseRoute('#/search')).toEqual({ screen: 'homeSearch', q: '' });
     expect(parseRoute('#/home')).toBeNull();
+  });
+});
+
+describe('game layer', () => {
+  it('scores only what the learner did', () => {
+    expect(planXp(newPlan())).toBe(0);
+    const p = withGoal({ steps: [{ id: 's1', text: 'a', done: true }, { id: 's2', text: 'b', done: false }] });
+    expect(planXp(p)).toBe(XP.goal + XP.step);
+    expect(planXp({ ...p, strengths: ['creative'], focus: { skill: 'starting', habit: 'x', daysPerWeek: 5 } }))
+      .toBe(XP.goal + XP.step + XP.setup + XP.focus);
+    expect(planXp(withGoal({ done: true }))).toBe(XP.goal + XP.achieved);
+  });
+
+  it('levels up every 100 points', () => {
+    const p = hydratePlan({ goals: [goal({ id: 'a', done: true }), goal({ id: 'b', done: true })] });
+    expect(planLevel(p)).toMatchObject({ xp: 120, level: 2, title: LEVELS[1], into: 20 });
+  });
+
+  it('counts a streak that today has not broken yet', () => {
+    const today = new Date(2026, 9, 23);
+    const k = (n) => dayKey(new Date(2026, 9, 23 - n));
+    expect(streak({ ...newPlan(), days: {} }, today)).toBe(0);
+    expect(streak({ ...newPlan(), days: { [k(1)]: ['habit'], [k(2)]: ['habit'] } }, today)).toBe(2);
+    expect(streak({ ...newPlan(), days: { [k(0)]: ['habit'], [k(1)]: ['habit'], [k(3)]: ['habit'] } }, today)).toBe(2);
+  });
+
+  it('points the quest map at the first unfinished station', () => {
+    expect(questStations(newPlan()).next).toBe('strengths');
+    const p = { ...withGoal(), strengths: ['creative'] };
+    expect(questStations(p, '2026-10-23').next).toBe('focus');
   });
 });
