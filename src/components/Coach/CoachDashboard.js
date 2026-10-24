@@ -370,7 +370,6 @@ export class CoachDashboard {
             <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
               <select id="coach-group-select" style="background: #0f172a; color: white; border: 1px solid #475569; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600;">
                 <option value="all">🌐 All Classes & Groups</option>
-                <option value="Climate Champions 7A">Climate Champions 7A</option>
                 <option value="Eco-Designers 8B">Eco-Designers 8B</option>
                 <option value="Green Tech 9C">Green Tech 9C</option>
               </select>
@@ -547,7 +546,7 @@ export class CoachDashboard {
                   <tr style="border-bottom: 1px solid #334155;">
                     <td style="padding: 0.75rem 1rem; font-weight: 700; color: white;">${c.displayName || c.email?.split('@')[0] || 'Coach'}</td>
                     <td style="padding: 0.75rem 1rem; color: #cbd5e1;">${c.email}</td>
-                    <td style="padding: 0.75rem 1rem; color: #38bdf8;">${c.groupName || 'Climate Champions 7A'}</td>
+                    <td style="padding: 0.75rem 1rem; color: #38bdf8;">${c.groupName || '—'}</td>
                     <td style="padding: 0.75rem 1rem;"><span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">Coach / Teacher</span></td>
                     <td style="padding: 0.75rem 1rem;"><span style="color: #34d399; font-weight: 700;">Active ✓</span></td>
                   </tr>
@@ -1348,7 +1347,7 @@ export class CoachDashboard {
             </div>
             <div>
               <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Class Code / Group Name</label>
-              <input type="text" id="reg-student-group" value="${this.selectedGroup === 'all' ? 'Climate Champions 7A' : this.selectedGroup}" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
+              <input type="text" id="reg-student-group" value="${this.selectedGroup === 'all' ? '' : this.selectedGroup}" placeholder="Class or group name" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.75rem;">
               <button type="button" id="cancel-reg-student-btn" style="background: #334155; color: white; border: none; padding: 0.65rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>

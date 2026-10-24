@@ -7,7 +7,6 @@ import {
   CONNECTED_EDMENTUM_COURSES,
   getEdmentumConfig,
   saveEdmentumConfig,
-  recordAgsScore,
   launchEdmentumCourse
 } from './edmentumService.js';
 import { confettiFrom, buzz } from '../goals/celebrate.js';
@@ -19,7 +18,6 @@ export function EdmentumIntegrationConsole({ coachUser }) {
   const [diagnosticsRunning, setDiagnosticsRunning] = useState(false);
   const [diagResults, setDiagResults] = useState(null);
   const [launchingCourseId, setLaunchingCourseId] = useState(null);
-  const [passbackStatus, setPassbackStatus] = useState(null);
 
   const ltiParams = [
     { key: 'issuer', label: 'Platform ID / Issuer (iss)', value: 'https://welearn.spark.org' },
@@ -89,20 +87,6 @@ export function EdmentumIntegrationConsole({ coachUser }) {
     }
   };
 
-  const handleSimulatePassback = (course) => {
-    const scoreVal = Math.floor(Math.random() * 11) + 88; // 88 - 98
-    const studentUid = 'student-liam-chen';
-    recordAgsScore(studentUid, {
-      courseId: course.id,
-      title: `${course.title}: Unit Mastery Test`,
-      scoreGiven: scoreVal,
-      scoreMaximum: 100
-    });
-    setPassbackStatus(`Simulated AGS score passback: ${scoreVal}/100 recorded for Liam Chen in ${course.title}!`);
-    buzz([20, 40]);
-    setTimeout(() => setPassbackStatus(null), 5000);
-  };
-
   return (
     <div className="ed-console-wrap">
       {/* Header */}
@@ -141,13 +125,6 @@ export function EdmentumIntegrationConsole({ coachUser }) {
           </button>
         </div>
       </header>
-
-      {passbackStatus && (
-        <div style={{ background: 'rgba(46, 160, 67, 0.15)', border: '1px solid rgba(46, 160, 67, 0.4)', borderRadius: 8, padding: '0.75rem 1rem', color: '#7ee787', fontSize: '0.85rem' }}>
-          <CheckCircle2 size={16} style={{ display: 'inline', marginRight: 6 }} />
-          {passbackStatus}
-        </div>
-      )}
 
       {/* Diagnostics Report (if run) */}
       {diagResults && (
@@ -248,14 +225,6 @@ export function EdmentumIntegrationConsole({ coachUser }) {
                   Test 1-Click Launch
                 </button>
 
-                <button
-                  type="button"
-                  className="ed-btn-simulate-passback"
-                  onClick={() => handleSimulatePassback(course)}
-                  title="Simulate student completing a test and sending grade over AGS"
-                >
-                  <Sparkles size={12} /> Test AGS Passback
-                </button>
               </div>
             </div>
           ))}
