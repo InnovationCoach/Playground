@@ -354,7 +354,7 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
 .gh-link-form > div { flex: 1 1 220px; max-width: 280px; }
 
 /* ---------- Login ---------- */
-.gh-auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); background: #fff; }
+.gh-auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); background: var(--gh-surface); }
 .gh-auth-aside { position: relative; overflow: hidden; background: linear-gradient(150deg, #003c69 0%, #2f4185 52%, #8250a0 100%); color: #fff; padding: 2.75rem clamp(24px, 5vw, 64px); display: flex; flex-direction: column; justify-content: space-between; gap: 2rem; }
 .gh-auth-aside::after { content: ''; position: absolute; right: -140px; bottom: -140px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(150, 215, 0, 0.32), transparent 70%); pointer-events: none; }
 .gh-auth-aside > * { position: relative; z-index: 1; }
@@ -366,7 +366,7 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
 .gh-auth-points li { display: flex; gap: 0.75rem; align-items: center; color: rgba(255, 255, 255, 0.92); font-size: 0.93rem; }
 .gh-auth-points span { width: 34px; height: 34px; border-radius: 10px; background: rgba(255, 255, 255, 0.13); display: grid; place-items: center; }
 .gh-auth-foot { font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); }
-.gh-auth-main { display: flex; align-items: center; justify-content: center; padding: 2.5rem 16px; background: #fff; }
+.gh-auth-main { display: flex; align-items: center; justify-content: center; padding: 2.5rem 16px; background: var(--gh-surface); }
 .gh-auth-card { width: min(400px, 100%); }
 .gh-auth-mobile-logo-img { visibility: hidden; }
 .gh-auth-card h1 { font-size: 1.65rem; }

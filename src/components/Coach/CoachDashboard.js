@@ -377,7 +377,7 @@ export class CoachDashboard {
               <button id="coach-register-student-btn" style="background: #10b981; color: #000; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 800; display: flex; align-items: center; gap: 0.4rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
                 ➕ Register Student
               </button>
-              <button id="coach-refresh-btn" style="background: #3b82f6; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
+              <button id="coach-refresh-btn" style="background: #2563eb; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
                 🔄 Refresh
               </button>
             </div>
@@ -509,7 +509,7 @@ export class CoachDashboard {
                     <td style="padding: 0.75rem 1rem; color: #a78bfa;">Ages ${st.ageBand || '13-15'}</td>
                     <td style="padding: 0.75rem 1rem;"><span style="background: rgba(16,185,129,0.2); color: #34d399; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">Student</span></td>
                     <td style="padding: 0.75rem 1rem; text-align: right;">
-                      <button class="inspect-btn" data-uid="${st.uid}" style="background: #3b82f6; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 700; cursor: pointer;">
+                      <button class="inspect-btn" data-uid="${st.uid}" style="background: #2563eb; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 700; cursor: pointer;">
                         🔍 Review Learner Activities
                       </button>
                     </td>
@@ -594,7 +594,7 @@ export class CoachDashboard {
             <tbody>
               ${list.length === 0 ? `
                 <tr>
-                  <td colspan="7" style="padding: 2rem; text-align: center; color: #64748b;">No material requests submitted yet. Click "Request Materials" above to submit one.</td>
+                  <td colspan="7" style="padding: 2rem; text-align: center; color: #94a3b8;">No material requests submitted yet. Click "Request Materials" above to submit one.</td>
                 </tr>
               ` : list.map(m => {
                 let badge = '<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">⏳ Pending Review</span>';
@@ -715,15 +715,15 @@ export class CoachDashboard {
               <!-- Activity Engagement Telemetry -->
               <div style="display: flex; gap: 1.5rem; align-items: center; text-align: center;">
                 <div>
-                  <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Class Active</span>
+                  <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Class Active</span>
                   <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #34d399; font-size: 1rem;">${act.activeStudents} students</p>
                 </div>
                 <div>
-                  <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Class Avg</span>
+                  <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Class Avg</span>
                   <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #fbbf24; font-size: 1rem;">${act.avgMetric}</p>
                 </div>
                 <div>
-                  <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Total Time</span>
+                  <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total Time</span>
                   <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #a78bfa; font-size: 1rem;">${act.totalHours} hrs</p>
                 </div>
               </div>
@@ -749,7 +749,7 @@ export class CoachDashboard {
 
   renderWorkTab(students) {
     if (students.length === 0) {
-      return `<div style="text-align: center; padding: 4rem; color: #64748b;">No registered student work found for current filters.</div>`;
+      return `<div style="text-align: center; padding: 4rem; color: #94a3b8;">No registered student work found for current filters.</div>`;
     }
 
     return `
@@ -775,7 +775,7 @@ export class CoachDashboard {
                   : 'background: repeating-linear-gradient(45deg, #1e293b, #1e293b 4px, #0f172a 4px, #0f172a 8px); border: 1px dashed #334155;';
                 return `
                   <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;">
-                    <span style="font-size: 0.7rem; color: ${hasData ? '#34d399' : '#64748b'}; font-weight: 700;">${hasData ? mins + 'm' : 'no data'}</span>
+                    <span style="font-size: 0.7rem; color: ${hasData ? '#34d399' : '#94a3b8'}; font-weight: 700;">${hasData ? mins + 'm' : 'no data'}</span>
                     <div style="width: 100%; height: ${heightPct}%; ${barStyle} border-radius: 4px 4px 0 0;"></div>
                     <span style="font-size: 0.68rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50px;">${st.displayName.split(' ')[0]}</span>
                   </div>
@@ -797,7 +797,7 @@ export class CoachDashboard {
                   : 'background: repeating-linear-gradient(45deg, #1e293b, #1e293b 4px, #0f172a 4px, #0f172a 8px); border: 1px dashed #334155;';
                 return `
                   <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;">
-                    <span style="font-size: 0.7rem; color: ${hasScore ? '#fbbf24' : '#64748b'}; font-weight: 700;">${hasScore ? score : 'no data'}</span>
+                    <span style="font-size: 0.7rem; color: ${hasScore ? '#fbbf24' : '#94a3b8'}; font-weight: 700;">${hasScore ? score : 'no data'}</span>
                     <div style="width: 100%; height: ${heightPct}%; ${barStyle} border-radius: 4px 4px 0 0;"></div>
                     <span style="font-size: 0.68rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50px;">${st.displayName.split(' ')[0]}</span>
                   </div>
@@ -848,15 +848,15 @@ export class CoachDashboard {
                 <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; font-weight: 700; color: #38bdf8; text-transform: uppercase;">☀️ Solar Car Telemetry</p>
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; text-align: center;">
                   <div>
-                    <span style="font-size: 0.75rem; color: #64748b;">Iteration</span>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Iteration</span>
                     <p style="margin: 0; font-weight: 700; color: white;">v${version}</p>
                   </div>
                   <div>
-                    <span style="font-size: 0.75rem; color: #64748b;">Weight</span>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Weight</span>
                     <p style="margin: 0; font-weight: 700; color: #34d399;">${weight} kg</p>
                   </div>
                   <div>
-                    <span style="font-size: 0.75rem; color: #64748b;">Motor</span>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Motor</span>
                     <p style="margin: 0; font-weight: 700; color: #a78bfa; text-transform: capitalize;">${motor}</p>
                   </div>
                 </div>
@@ -876,10 +876,10 @@ export class CoachDashboard {
                 st.dailyStats.forEach(ds => totalMins += ds.timeSpentMinutes || 0);
                 const hours = Math.floor(totalMins / 60);
                 const timeStr = hours > 0 ? hours + 'h ' + (totalMins % 60) + 'm' : totalMins + 'm';
-                return '<div style="background: #0f172a; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #1e293b;"><p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 600;">⏱️ Total Time Spent</p><p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #34d399; font-weight: 700;">' + timeStr + '</p></div>';
+                return '<div style="background: #0f172a; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #1e293b;"><p style="margin: 0; font-size: 0.75rem; color: #94a3b8; font-weight: 600;">⏱️ Total Time Spent</p><p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #34d399; font-weight: 700;">' + timeStr + '</p></div>';
               })()}
 
-              <button class="inspect-btn" data-uid="${st.uid}" style="width: 100%; background: #3b82f6; color: white; border: none; padding: 0.6rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem;">
+              <button class="inspect-btn" data-uid="${st.uid}" style="width: 100%; background: #2563eb; color: white; border: none; padding: 0.6rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem;">
                 🔍 View Details & Provide Feedback
               </button>
             </div>
@@ -936,7 +936,7 @@ export class CoachDashboard {
       return `
         <div style="background: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 3rem; text-align: center;">
           <p style="color: #94a3b8; margin: 0;">📊 No student goals set yet</p>
-          <p style="color: #64748b; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Students will set their learning goals when they first log in. Check back soon!</p>
+          <p style="color: #94a3b8; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Students will set their learning goals when they first log in. Check back soon!</p>
         </div>
       `;
     }
@@ -963,7 +963,7 @@ export class CoachDashboard {
                 <tr style="border-bottom: 1px solid #334155; transition: background 0.2s;">
                   <td style="padding: 1rem 1.5rem; font-weight: 700; color: white;">
                     ${g.studentName}
-                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 400;">${g.groupName}</div>
+                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 400;">${g.groupName}</div>
                   </td>
                   <td style="padding: 1rem; color: #e2e8f0;">${g.title || g.goalTitle || 'Learning Goal'}</td>
                   <td style="padding: 1rem; color: #38bdf8; font-weight: 600; font-size: 0.9rem;">${g.targetMetric || 'Achieve target'}</td>
@@ -1285,7 +1285,7 @@ export class CoachDashboard {
             <!-- Student Goals & Self-Reflection -->
             <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
               <h3 style="margin: 0 0 1rem 0; color: #a78bfa; font-size: 1.1rem;">🎯 Learner Goals (${student.goals.length})</h3>
-              ${student.goals.length === 0 ? `<p style="margin: 0; color: #64748b; font-style: italic;">No goals logged yet by this student.</p>` : `
+              ${student.goals.length === 0 ? `<p style="margin: 0; color: #94a3b8; font-style: italic;">No goals logged yet by this student.</p>` : `
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                   ${student.goals.map(g => `
                     <div style="background: #1e293b; padding: 0.75rem 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
@@ -1343,8 +1343,8 @@ export class CoachDashboard {
             </div>
             <div>
               <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Initial Password</label>
-              <input type="password" id="reg-student-password" value="Student123!" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
-              <small style="color: #64748b; font-size: 0.78rem;">Default: Student123!</small>
+              <input type="password" id="reg-student-password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 0.65rem; border-radius: 8px; margin-top: 0.3rem; outline: none;" />
+              <small style="color: #94a3b8; font-size: 0.78rem;">Choose a password and share it with the student privately.</small>
             </div>
             <div>
               <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Class Code / Group Name</label>
