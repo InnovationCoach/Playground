@@ -11,13 +11,15 @@
 | # | Decision | Source |
 |---|---|---|
 | D1 | Parents may start a thread, one per child per coach. **Superseded by D7** (messaging moves to Teams). | Mani |
-| D2 | No parent contact with a child under 13 before consent is recorded. | Mani |
+| D2 | No parent contact with a learner under 15 before consent is recorded. Mani: consent applies under 15 (ages 6–14). Rule written before real learners; see §5. | Mani |
 | D3 | Parents see evidence text, for transparency, with the exclusions in §4.1. | Mani |
 | D4 | A learner can choose to share an evidence item with parents, default off. | Mani |
 | D5 | Messages, threads and notification retention: agreed as drafted. | Mani |
 | D6 | Safeguarding: flag only, no automatic blocking. | Mani |
 | D7 | **Parent–coach messages do not live in WeLearn.** Parents use Microsoft Teams for messages. WeLearn shows a "Message the coach on Teams" link. | Mani |
 | D9 | GPA is on a 4.0 scale. | School (confirmed by Mani) |
+| D10 | Reflect is the final week (week 12). Learners reflect on how their Showcase went. Showcase is week 11. | Mani |
+| D11 | Cohorts: the three level cohorts replace the old age bands. W2E and WPR move to a separate pathway field (see §6). | Proposed, Mani to confirm |
 | D8 | The parent sees the child's **school ID, age, cohort, mentor, grades, GPA, badges, academic progress and a school summary.** Coaches maintain these in a student profile. | Mani |
 
 ## 1. Teams link (replaces the messaging design)
@@ -120,11 +122,25 @@ profile: {
 
 Under D3, `pbl.evidence` includes the **text** of each item. Still excluded: mood check-ins, the child's private notes, AI conversation logs, and goal strengths and supports. §5 decides whether this is right.
 
-## 5. Questions still open
+## 5. Consent (D2)
 
-1. **Under-13 evidence text.** D3 lets parents read evidence text. Does a learner under 13 need consent for that, on top of the D2 rule? Mani to decide.
+- **Rule (decided by Mani):** parental consent is required for every learner under 15. That covers the Primary cohort (6–11) and the Lower Secondary cohort (12–14). Higher Secondary (15–18) does not need it.
+- **Status:** the rule is deferred until real learners are added. Until then consent is recorded as `required` and shown as a notice, but nothing is blocked (see the project note on deferral).
+- **Before real learners:** the rule must be enforced on the server, and no parent-facing data may be shown for an under-15 learner without `consent.status == 'verified'`. This includes evidence text (D3) and the school profile (D8).
+- Under-15 evidence text (D3): covered by the same rule. No separate decision is needed.
 
-Resolved: GPA is on a 4.0 scale (`gpa.scale` = 4.0). Evidence text is visible to parents with the §4.1 exclusions. Before go-live, learners must be told that their parents can read their evidence.
+## 6. Cohort structure (D11, proposed)
+
+- **Level cohorts (replace the old age bands):** `primary` (6–11), `lower-secondary` (12–14), `higher-secondary` (15–18). These set the reading level, the safety guidance and the consent rule.
+- **Pathway (new field, separate from cohort):** `pathway` on each learner and class, with values for the W2E and WPR programmes. A learner keeps one level cohort and may also have a pathway. This stops "W2E (secondary)" from implying an age range.
+- **Why:** W2E spans both secondary cohorts and WPR is primary, so using them as age cohorts would repeat the problem this change fixes.
+- **Migration:** the `cohorts` collection keeps its documents for now, as pathway records. Gemini to propose the rename; no live write until Mani approves.
+
+## 6a. Reflect and Showcase (D10)
+
+- Reflect: week 12, the last week. Learners reflect on how their Showcase went.
+- Showcase: week 11, so `showcase: weeks [11, 11]` and `reflect: weeks [12, 12]`. The previous Showcase range [11, 12] overlapped Reflect.
+- Gemini to update `frameworks/welearn-dt` to these values and note the change in the changelog.
 
 ## 6. Build order
 
