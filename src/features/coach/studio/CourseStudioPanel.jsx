@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BookOpen, Sparkles, Trash2, Plus, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Check } from 'lucide-react';
 import {
-  LIMITS, STAGES, listSources, createSource, archiveSource, generate, listDrafts, discardDraft, CourseStudioError
+  LIMITS, STAGES, MILESTONE_LIMITS, listSources, createSource, archiveSource, generate, listDrafts, discardDraft, updateMilestones, CourseStudioError
 } from '../../../services/courseStudioService.js';
 import './courseStudio.css';
 
@@ -82,6 +82,11 @@ export function CourseStudioPanel() {
     } catch (err) {
       setStatus({ kind: 'error', message: errorText(err) });
     }
+  };
+
+  const onSaveMilestones = async (id, milestones) => {
+    await updateMilestones(id, milestones);
+    await refresh();
   };
 
   const onDiscard = async (id) => {
@@ -188,20 +193,22 @@ export function CourseStudioPanel() {
             </button>
           ))}
         </div>
-        {activeDraft && <DraftView draft={activeDraft} onDiscard={() => onDiscard(activeDraft.id)} />}
+        {activeDraft && (
+          <DraftView draft={activeDraft} onDiscard={() => onDiscard(activeDraft.id)} onSaveMilestones={onSaveMilestones} />
+        )}
       </div>
     </section>
   );
 }
 
-function DraftView({ draft, onDiscard }) {
+function DraftView({ draft, onDiscard, onSaveMilestones }) {
   return (
     <div className="cs-draft" role="tabpanel">
       <div className="cs-draft-head">
         <p className="cs-note">{draft.note}</p>
         <button type="button" className="cs-link" onClick={onDiscard}><Trash2 size={13} aria-hidden="true" /> Discard draft</button>
       </div>
-      {draft.type === 'milestones' && <MilestoneList output={draft.output} />}
+      {draft.type === 'milestones' && <MilestoneEditor key={draft.id} draft={draft} onSave={onSaveMilestones} />}
       {draft.type === 'slides' && <SlideViewer output={draft.output} />}
       {draft.type === 'quiz' && <QuizPlayer output={draft.output} />}
       {draft.type === 'script' && <ScriptView output={draft.output} />}
@@ -209,20 +216,64 @@ function DraftView({ draft, onDiscard }) {
   );
 }
 
-function MilestoneList({ output }) {
+function MilestoneEditor({ draft, onSave }) {
+  const [form, setForm] = useState(() => draft.output.milestones.map((m) => ({ ...m, sessionsText: m.sessions.join('\n') })));
+  const [saveState, setSaveState] = useState({ kind: 'idle', message: '' });
+
+  const update = (index, patch) => {
+    setForm((cur) => cur.map((m, i) => (i === index ? { ...m, ...patch } : m)));
+  };
+
+  const save = async () => {
+    setSaveState({ kind: 'working', message: 'Saving…' });
+    const milestones = form.map(({ sessionsText, ...m }) => ({
+      ...m,
+      sessions: sessionsText.split('\n').map((s) => s.trim()).filter(Boolean)
+    }));
+    try {
+      await onSave(draft.id, milestones);
+      setSaveState({ kind: 'success', message: 'Saved. The draft is updated; nothing has been published.' });
+    } catch (err) {
+      setSaveState({ kind: 'error', message: errorText(err) });
+    }
+  };
+
   return (
-    <ol className="cs-stages">
-      {STAGES.map((stage) => {
-        const m = output.milestones.find((x) => x.phaseId === stage.id);
-        return (
-          <li key={stage.id} className="cs-stage">
-            <strong>{stage.stageNumber}. {stage.label}</strong>
-            {m && <span className="cs-muted"> {m.title}</span>}
-            {m && <p>{m.goal}</p>}
-          </li>
-        );
-      })}
-    </ol>
+    <div className="cs-editor">
+      <ol className="cs-stages">
+        {form.map((m, i) => {
+          const stage = STAGES[i];
+          const id = `cs-${draft.id}-${stage.id}`;
+          return (
+            <li key={stage.id} className="cs-stage">
+              <strong>{stage.stageNumber}. {stage.label}</strong>
+              <label className="cs-field" htmlFor={`${id}-title`}>
+                <span>Title ({MILESTONE_LIMITS.title} characters)</span>
+                <input id={`${id}-title`} value={m.title} maxLength={MILESTONE_LIMITS.title} onChange={(e) => update(i, { title: e.target.value })} />
+              </label>
+              <label className="cs-field" htmlFor={`${id}-goal`}>
+                <span>Goal</span>
+                <textarea id={`${id}-goal`} rows={2} maxLength={MILESTONE_LIMITS.goal} value={m.goal} onChange={(e) => update(i, { goal: e.target.value })} />
+              </label>
+              <label className="cs-field" htmlFor={`${id}-sessions`}>
+                <span>Sessions (one per line, up to {MILESTONE_LIMITS.sessions})</span>
+                <textarea id={`${id}-sessions`} rows={3} value={m.sessionsText} onChange={(e) => update(i, { sessionsText: e.target.value })} />
+              </label>
+              <label className="cs-field" htmlFor={`${id}-cue`}>
+                <span>Coach cue</span>
+                <textarea id={`${id}-cue`} rows={2} maxLength={MILESTONE_LIMITS.coachCue} value={m.coachCue} onChange={(e) => update(i, { coachCue: e.target.value })} />
+              </label>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="cs-row">
+        <button type="button" className="cs-btn cs-btn-primary" onClick={save} disabled={saveState.kind === 'working'}>
+          <Check size={14} aria-hidden="true" /> {saveState.kind === 'working' ? 'Saving…' : 'Save milestone edits'}
+        </button>
+      </div>
+      <div role="status" aria-live="polite" className={`cs-status cs-status-${saveState.kind}`}>{saveState.message}</div>
+    </div>
   );
 }
 

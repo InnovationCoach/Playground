@@ -45,6 +45,8 @@
 .cs-draft-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
 
 .cs-stages { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.6rem; }
+.cs-editor { display: grid; gap: 0.75rem; }
+.cs-stage { display: grid; gap: 0.4rem; }
 .cs-stage p { margin: 0.2rem 0 0; color: #c9d1d9; font-size: 0.9rem; }
 .cs-slide h4 { margin: 0 0 0.5rem; font-size: 1.05rem; }
 .cs-slide ul { margin: 0 0 0.5rem; padding-left: 1.2rem; color: #c9d1d9; }

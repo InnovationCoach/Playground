@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import React, { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import {
-  LIMITS, STAGES, createSource, listSources, generate, listDrafts, discardDraft, archiveSource, CourseStudioError
+  LIMITS, STAGES, MILESTONE_LIMITS, createSource, listSources, generate, listDrafts, discardDraft, archiveSource, updateMilestones, CourseStudioError
 } from '../src/services/courseStudioService.js';
 
 const LONG_PARAGRAPH = 'Floods change how a city moves water, so engineers map low ground before they build. '.repeat(3);
@@ -71,6 +71,38 @@ describe('course studio service (mock, contract §3–§4)', () => {
     const s = await createSource({ title: 'Archive me', text: LONG_PARAGRAPH });
     await archiveSource(s.id);
     expect((await listSources()).some((x) => x.id === s.id)).toBe(false);
+  });
+});
+
+describe('milestone edits (contract §3.1 limits)', () => {
+  const draftWithMilestones = async () => {
+    const s = await createSource({ title: 'Edit source', text: LONG_PARAGRAPH });
+    return generate({ type: 'milestones', ageBand: '11-13', sourceIds: [s.id] });
+  };
+  const copy = (ms) => ms.map((m) => ({ ...m, sessions: [...m.sessions] }));
+
+  it('saves a valid edit and keeps stage ids and order', async () => {
+    const r = await draftWithMilestones();
+    const ms = copy(r.output.milestones);
+    ms[0].title = 'Explore the flood map';
+    const saved = await updateMilestones(r.draftId, ms);
+    expect(saved.output.milestones[0].title).toBe('Explore the flood map');
+    expect(saved.output.milestones.map((m) => m.phaseId)).toEqual(STAGES.map((st) => st.id));
+  });
+
+  it('rejects an empty title, an over-long goal, a changed stage, and too many sessions', async () => {
+    const r = await draftWithMilestones();
+    const base = copy(r.output.milestones);
+    const bad = (mutate) => { const ms = copy(base); mutate(ms); return ms; };
+    await expect(updateMilestones(r.draftId, bad((ms) => { ms[1].title = '  '; }))).rejects.toMatchObject({ code: 'VALIDATION', field: 'title' });
+    await expect(updateMilestones(r.draftId, bad((ms) => { ms[2].goal = 'g'.repeat(MILESTONE_LIMITS.goal + 1); }))).rejects.toMatchObject({ field: 'goal' });
+    await expect(updateMilestones(r.draftId, bad((ms) => { ms[3].phaseId = 'explore'; }))).rejects.toMatchObject({ field: 'phaseId' });
+    await expect(updateMilestones(r.draftId, bad((ms) => { ms[4].sessions = ['a', 'b', 'c', 'd', 'e']; }))).rejects.toMatchObject({ field: 'sessions' });
+  });
+
+  it('rejects a list that does not cover all 8 stages', async () => {
+    const r = await draftWithMilestones();
+    await expect(updateMilestones(r.draftId, copy(r.output.milestones).slice(0, 7))).rejects.toMatchObject({ code: 'VALIDATION' });
   });
 });
 

@@ -129,7 +129,7 @@ function buildMilestones(picked) {
     milestones: STAGES.map((stage, i) => ({
       id: `ms-${stage.id}-1`,
       phaseId: stage.id,
-      title: `${stage.label}: ${lines[i] ? lines[i].slice(0, 70) : 'add a title'}`,
+      title: `${stage.label}: ${lines[i] ? lines[i].slice(0, 60) : 'add a title'}`,
       goal: lines[i] || 'Add the learning goal for this stage.',
       sessions: [lines[i + 1] || 'Add a session.'].map((x) => x.slice(0, 160)),
       deliverables: ['Note: a short written reflection'],
@@ -181,7 +181,7 @@ function buildScript(picked) {
     title: deck.title,
     sections: deck.slides.map((s) => ({
       slideId: s.id,
-      narration: `${s.heading}. ${s.bullets.join(' ')}`.slice(0, 500),
+      narration: `${s.heading.replace(/[.!?]$/, '')}. ${s.bullets.join(' ')}`.slice(0, 500),
       durationSec: 30
     }))
   };
@@ -235,4 +235,44 @@ export async function discardDraft(id) {
   await delay(80);
   const draft = drafts.get(id);
   if (draft) draft.status = 'discarded';
+}
+
+export const MILESTONE_LIMITS = Object.freeze({ title: 80, goal: 240, session: 160, sessions: 4, coachCue: 240 });
+
+/**
+ * Saves a coach's edits to a milestone draft. Stage ids and order are fixed by the
+ * framework, so only the text fields change. Limits follow contract §3.1.
+ */
+export async function updateMilestones(draftId, milestones) {
+  await delay(80);
+  const draft = drafts.get(draftId);
+  if (!draft || draft.type !== 'milestones' || draft.status === 'discarded') {
+    throw new CourseStudioError(404, 'NOT_FOUND', 'That draft is no longer available.');
+  }
+  if (!Array.isArray(milestones) || milestones.length !== STAGES.length) {
+    throw new CourseStudioError(400, 'VALIDATION', 'Milestones must cover all 8 stages.');
+  }
+  milestones.forEach((m, i) => {
+    const field = (name, value, max) => {
+      if (String(value || '').trim().length === 0) {
+        throw new CourseStudioError(400, 'VALIDATION', `Stage ${i + 1}: ${name} cannot be empty.`, name);
+      }
+      if (String(value).length > max) {
+        throw new CourseStudioError(400, 'VALIDATION', `Stage ${i + 1}: ${name} is over ${max} characters.`, name);
+      }
+    };
+    if (m.phaseId !== STAGES[i].id) {
+      throw new CourseStudioError(400, 'VALIDATION', `Stage ${i + 1} must stay ${STAGES[i].label}.`, 'phaseId');
+    }
+    field('title', m.title, MILESTONE_LIMITS.title);
+    field('goal', m.goal, MILESTONE_LIMITS.goal);
+    field('coachCue', m.coachCue, MILESTONE_LIMITS.coachCue);
+    if (!Array.isArray(m.sessions) || m.sessions.length < 1 || m.sessions.length > MILESTONE_LIMITS.sessions) {
+      throw new CourseStudioError(400, 'VALIDATION', `Stage ${i + 1}: use 1 to ${MILESTONE_LIMITS.sessions} sessions.`, 'sessions');
+    }
+    m.sessions.forEach((s) => field('session', s, MILESTONE_LIMITS.session));
+  });
+  draft.output = { milestones: milestones.map((m) => ({ ...m, sessions: [...m.sessions] })) };
+  draft.updatedAt = Date.now();
+  return draft;
 }
