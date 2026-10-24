@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { StudentProfileCard } from '../studentProfile/StudentProfileCard.jsx';
+import { auth } from '../../firebase.js';
 import { ArrowLeft, BookOpen, Check, ChevronDown, CircleCheck, Circle, Clock, EyeOff, Eye, FlaskConical, Lightbulb, MessageCircle, Rocket, ShieldCheck, Sparkles, Target, Trophy } from 'lucide-react';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { getChildProgress } from '../../services/api/endpoints.js';
@@ -37,6 +39,11 @@ export function ParentChildDashboard({ childUid, section = null, onBack }) {
       <button type="button" className="gh-btn gh-btn-ghost pd-back" onClick={onBack}>
         <ArrowLeft size={16} aria-hidden="true" /> {t('parent.d.back')}
       </button>
+      <StudentProfileCard
+        learnerUid={childUid}
+        viewer={{ uid: auth.currentUser?.uid, role: 'parent', linkedParentUids: auth.currentUser?.uid ? [auth.currentUser.uid] : [] }}
+        childName={p?.child?.givenNames}
+      />
 
       {res.error ? (
         <Alert type="error">{res.error.code === 'NOT_FOUND' ? t('parent.d.notFound') : describeApiError(res.error, t)}</Alert>
