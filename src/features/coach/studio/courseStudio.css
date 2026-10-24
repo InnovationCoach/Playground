@@ -62,3 +62,13 @@
 @media (max-width: 600px) {
   .cs-grid { grid-template-columns: 1fr; }
 }
+
+/* Three-step flow: Sources, Create, Review. One step is on screen at a time. */
+.cs-steps { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.25rem 0 0.75rem; }
+.cs-step { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 36px; padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid #484f58; background: #161b22; color: #c9d1d9; font-weight: 600; cursor: pointer; }
+.cs-step.is-active { border-color: #d2a8ff; background: #2d1b4e; color: #ffffff; }
+.cs-step-num { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: #30363d; font-size: 0.75rem; }
+.cs-step.is-active .cs-step-num { background: #8957e5; }
+.cs-step-count { font-size: 0.75rem; color: #b6c2d1; }
+.cs-step-body { display: grid; gap: 0.9rem; }
+.cs-next { justify-content: space-between; }

@@ -4,7 +4,6 @@ import {
   AlertTriangle, Users, Bot, ArrowRight, ExternalLink, Send, ChevronDown, ChevronRight,
   Layers, Video, GitBranch, Box, RefreshCw, Eye, Check, Clock, ShieldCheck, Link2
 } from 'lucide-react';
-import { STUDENT_2E_PROFILES, getLearnerById } from './learnerProfiles.js';
 import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from './groundingSources.js';
 import { synthesizeGroundedUnit } from './pblSynthesizer.js';
 import { publishAndTransferToStudent } from './pblTransferService.js';
@@ -17,7 +16,10 @@ import { hrefFor } from '../../../app/routes.js';
 import { confettiFrom, buzz } from '../../goals/celebrate.js';
 import './coachStudio.css';
 
-export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision' }) {
+/** Edmentum is parked for now (Mani). Flip to true when the integration is ready to show coaches. */
+const SHOW_EDMENTUM = false;
+
+export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision', learners = [] }) {
   // Top-level Navigation Workspace Tab: 'supervision' | 'evaluation' | 'studio'
   const [workspaceTab, setWorkspaceTab] = useState(initialTab);
   const [evalList, setEvalList] = useState(() => getEvaluations());
@@ -31,12 +33,17 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
 
   // Column 1 State
   const [sources, setSources] = useState(DEFAULT_GROUNDING_SOURCES);
-  const [selectedLearnerId, setSelectedLearnerId] = useState('student-liam-chen');
+  const [selectedLearnerId, setSelectedLearnerId] = useState(null);
   const [customFocus, setCustomFocus] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
-  const learner = useMemo(() => getLearnerById(selectedLearnerId), [selectedLearnerId]);
+  // The learner the course tools work on: the picked one, or the first in the coach's classes.
+  // Null when there are no learners yet; the learner-tailored tools then stay hidden.
+  const learner = useMemo(
+    () => learners.find((l) => l.id === selectedLearnerId) || learners[0] || null,
+    [learners, selectedLearnerId]
+  );
   const totalTokens = useMemo(() => calculateTotalTokens(sources), [sources]);
   const activeSourcesCount = useMemo(() => sources.filter((s) => s.active).length, [sources]);
 
@@ -53,6 +60,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   useEffect(() => {
     let cancelled = false;
     async function loadInitial() {
+      if (!learner) return;
       setSynthesizing(true);
       try {
         const initialUnit = await synthesizeGroundedUnit({
@@ -159,9 +167,9 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             <Sparkles size={14} /> SPARK Studio
           </span>
           <div>
-            <h1 className="cp-title">AI PBL Authoring & Mentorship Studio</h1>
+            <h1 className="cp-title">Coach workspace</h1>
             <p className="cp-subtitle">
-              NotebookLM-grounded 2e curriculum synthesizer • Instant 1-click student dashboard transfer
+              Learners, reviews and course material in one place
             </p>
           </div>
         </div>
@@ -184,8 +192,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             className={`cp-nav-tab ${workspaceTab === 'supervision' ? 'active' : ''}`}
             onClick={() => setWorkspaceTab('supervision')}
           >
-            <Users size={16} /> Learner Supervision
-            <span className="cp-tab-pill">4 Active</span>
+            <Users size={16} /> Learners
           </button>
 
           <button
@@ -193,7 +200,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             className={`cp-nav-tab ${workspaceTab === 'evaluation' ? 'active' : ''}`}
             onClick={() => setWorkspaceTab('evaluation')}
           >
-            <CheckCircle2 size={16} /> Evaluation Desk
+            <CheckCircle2 size={16} /> Reviews
             <span className="cp-tab-pill pill-amber">
               {pendingCount > 0 && <span className="cp-tab-pulse-dot" />}
               {pendingCount} Pending
@@ -205,10 +212,10 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             className={`cp-nav-tab ${workspaceTab === 'studio' ? 'active' : ''}`}
             onClick={() => setWorkspaceTab('studio')}
           >
-            <Sparkles size={16} /> Curriculum Studio (NotebookLM)
-            <span className="cp-tab-pill">AI Authoring</span>
+            <Sparkles size={16} /> Course studio
           </button>
 
+          {SHOW_EDMENTUM && (
           <button
             type="button"
             className={`cp-nav-tab ${workspaceTab === 'edmentum' ? 'active' : ''}`}
@@ -219,12 +226,15 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               LTI 1.3 Ready
             </span>
           </button>
+          )}
         </div>
       </nav>
 
       {/* Tab 1: Learner Supervision */}
       {workspaceTab === 'supervision' && (
         <LearnerSupervisionView
+          learners={learners}
+          pendingEvals={pendingCount}
           onSelectLearnerForStudio={(learnerId) => {
             setSelectedLearnerId(learnerId);
             setWorkspaceTab('studio');
@@ -246,8 +256,9 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
         />
       )}
 
-      {/* Tab 3: Curriculum Studio (NotebookLM 3-Column Studio Grid) */}
-      {workspaceTab === 'studio' && (
+      {/* Tab 3: Course studio, then the learner-tailored unit (only when a learner exists) */}
+      {workspaceTab === 'studio' && <CourseStudioPanel />}
+      {workspaceTab === 'studio' && learner && (
         <div className="cp-grid">
         {/* =========================================================
             COLUMN 1: Knowledge Grounding Vault (NotebookLM Source Panel)
@@ -259,7 +270,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               <h2 className="cp-card-title">
                 <BookOpen size={16} /> Grounding Vault
               </h2>
-              <span className="cp-badge-pill">NotebookLM Mode</span>
+              <span className="cp-badge-pill">Sources</span>
             </div>
 
             <div className="cp-vault-status">
@@ -267,7 +278,6 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
                 <span className="cp-pulse-dot" /> {activeSourcesCount} Sources Grounded
               </span>
               <span>{totalTokens.toLocaleString()} tokens indexed</span>
-      {workspaceTab === 'studio' && <CourseStudioPanel />}
             </div>
 
             {/* Document Dropzone */}
@@ -333,10 +343,8 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               value={selectedLearnerId}
               onChange={(e) => setSelectedLearnerId(e.target.value)}
             >
-              {STUDENT_2E_PROFILES.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.avatar} {p.name} ({p.grade}) — {p.traitBadges[0]}
-                </option>
+              {learners.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
 
@@ -743,7 +751,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
       )}
 
       {/* Tab 4: Edmentum LTI 1.3 Advantage & Rostering Hub */}
-      {workspaceTab === 'edmentum' && (
+      {SHOW_EDMENTUM && workspaceTab === 'edmentum' && (
         <EdmentumIntegrationConsole coachUser={coachUser} />
       )}
     </div>

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { STUDENT_2E_PROFILES, getLearnerById } from '../src/features/coach/studio/learnerProfiles.js';
+import { STUDENT_2E_PROFILES, getLearnerById } from './fixtures/learnerProfiles.fixture.js';
+import { SAMPLE_EVALUATIONS } from './fixtures/evaluations.fixture.js';
 import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from '../src/features/coach/studio/groundingSources.js';
 import { PblUnitSchema } from '../src/features/coach/studio/pblUnitSchema.js';
 import { generateGroundedUnitLocal } from '../src/features/coach/studio/pblSynthesizer.js';
@@ -80,7 +81,9 @@ describe('Coach AI PBL Authoring Studio', () => {
   });
 
   it('manages coach evaluations desk with formative assessment and XP awards', async () => {
-    const { getEvaluations, approveSubmission, requestRevisionSubmission } = await import('../src/features/coach/evaluation/evaluationsStore.js');
+    const { getEvaluations, approveSubmission, requestRevisionSubmission, saveEvaluations } = await import('../src/features/coach/evaluation/evaluationsStore.js');
+    expect(getEvaluations()).toEqual([]);
+    saveEvaluations(structuredClone(SAMPLE_EVALUATIONS));
     const evals = getEvaluations();
     expect(evals.length).toBeGreaterThanOrEqual(3);
 
