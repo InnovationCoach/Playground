@@ -12,11 +12,12 @@
 |---|---|---|
 | D1 | Parents may start a thread, one per child per coach. **Superseded by D7** (messaging moves to Teams). | Mani |
 | D2 | No parent contact with a child under 13 before consent is recorded. | Mani |
-| D3 | Parents see evidence text, for transparency. **Open point, see §5.** | Mani |
+| D3 | Parents see evidence text, for transparency, with the exclusions in §4.1. | Mani |
 | D4 | A learner can choose to share an evidence item with parents, default off. | Mani |
 | D5 | Messages, threads and notification retention: agreed as drafted. | Mani |
 | D6 | Safeguarding: flag only, no automatic blocking. | Mani |
 | D7 | **Parent–coach messages do not live in WeLearn.** Parents use Microsoft Teams for messages. WeLearn shows a "Message the coach on Teams" link. | Mani |
+| D9 | GPA is on a 4.0 scale. | School (confirmed by Mani) |
 | D8 | The parent sees the child's **school ID, age, cohort, mentor, grades, GPA, badges, academic progress and a school summary.** Coaches maintain these in a student profile. | Mani |
 
 ## 1. Teams link (replaces the messaging design)
@@ -52,7 +53,7 @@ studentProfiles/{learnerUid} = {
     comment?: string,                 // max 240 characters
     enteredBy: string, enteredAt: number
   }>,
-  gpa?: { value: number, scale: number, term: string, enteredBy: string, enteredAt: number },   // see §5
+  gpa?: { value: number, scale: 4.0, term: string, enteredBy: string, enteredAt: number },   // 4.0 scale, D9
   schoolSummary?: { text: string, updatedBy: string, updatedAt: number },   // max 500 characters
   updatedAt: number
 }
@@ -105,7 +106,7 @@ profile: {
   mentor: { name: string, teamsUrl?: string },
   academicProgress: { percent: number, note?: string, setBy: string, setAt: number } | null,
   grades: Array<{ subject, term, grade, comment? }>,
-  gpa: { value, scale, term } | null,
+  gpa: { value, scale: 4.0, term } | null,
   badges: Array<{ id, title, earnedAt }>,
   schoolSummary: { text, updatedAt } | null
 }
@@ -121,8 +122,9 @@ Under D3, `pbl.evidence` includes the **text** of each item. Still excluded: moo
 
 ## 5. Questions still open
 
-1. **GPA scale.** Which scale does the school use? Options: 4.0, or 0–100 as a percent. The `gpa.scale` field stores whichever is chosen. Without an answer, GPA is entered as the school reports it, with its scale shown next to it.
-2. **Evidence text (D3).** Confirm the exclusions in §4.1. If they are right, a learner should see a line on their dashboard saying their parents can read their evidence, before go-live. Under 13, does this need consent as well?
+1. **Under-13 evidence text.** D3 lets parents read evidence text. Does a learner under 13 need consent for that, on top of the D2 rule? Mani to decide.
+
+Resolved: GPA is on a 4.0 scale (`gpa.scale` = 4.0). Evidence text is visible to parents with the §4.1 exclusions. Before go-live, learners must be told that their parents can read their evidence.
 
 ## 6. Build order
 
