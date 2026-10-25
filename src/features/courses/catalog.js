@@ -69,7 +69,7 @@ export function buildCatalog({ activities = [], programs = [], parseLabel = (l) 
     key: `program:${p.id}`, source: 'program', id: p.id,
     kicker: 'PBL program', title: p.title, icon: p.identity?.icon, tone: p.identity?.tone,
     description: p.subtitle || p.drivingQuestion || '',
-    keywords: [p.theme, p.drivingQuestion, p.identity?.short].filter(Boolean).join(' '),
+    keywords: [p.theme, p.drivingQuestion, p.identity?.short, ...(p.tags || []), ...(p.searchTokens || [])].filter(Boolean).join(' '),
     facts: [p.durationWeeks ? `${p.durationWeeks} weeks` : null, p.sessions?.length ? `${p.sessions.length} sessions` : null].filter(Boolean)
   }));
 

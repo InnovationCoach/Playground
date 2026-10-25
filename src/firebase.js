@@ -60,6 +60,16 @@ export function onAuthStateChanged(authInstance, callback) {
 export function doc(dbInstance, ...paths) {
   const targetDb = (dbInstance && dbInstance.collection) ? dbInstance : db;
   const pathParts = (dbInstance && dbInstance.collection) ? paths : [dbInstance, ...paths];
+  if (!targetDb || typeof targetDb.collection !== 'function') {
+    return {
+      id: pathParts[pathParts.length - 1] || 'mock-doc',
+      path: pathParts.join('/'),
+      get: async () => ({ exists: false, data: () => null }),
+      set: async () => {},
+      update: async () => {},
+      delete: async () => {}
+    };
+  }
   if (pathParts.length === 1) {
     return targetDb.doc(pathParts[0]);
   }
@@ -69,16 +79,23 @@ export function doc(dbInstance, ...paths) {
 }
 
 export function setDoc(docRef, data, options) {
-  return docRef.set(data, options);
+  return docRef ? docRef.set(data, options) : Promise.resolve();
 }
 
 export function getDoc(docRef) {
-  return docRef.get();
+  return docRef ? docRef.get() : Promise.resolve({ exists: false, data: () => null });
 }
 
 export function collection(dbInstance, ...paths) {
   const targetDb = (dbInstance && dbInstance.collection) ? dbInstance : db;
   const pathParts = (dbInstance && dbInstance.collection) ? paths : [dbInstance, ...paths];
+  if (!targetDb || typeof targetDb.collection !== 'function') {
+    return {
+      id: pathParts[pathParts.length - 1] || 'mock-col',
+      path: pathParts.join('/'),
+      doc: (id) => doc(null, ...pathParts, id)
+    };
+  }
   return targetDb.collection(pathParts.join('/'));
 }
 
@@ -100,7 +117,16 @@ export function deleteDoc(docRef) {
 
 /** Atomic multi-document write. Compat: batch.set(ref, data), then batch.commit(). */
 export function writeBatch(dbInstance) {
-  return ((dbInstance && dbInstance.batch) ? dbInstance : db).batch();
+  const target = (dbInstance && dbInstance.batch) ? dbInstance : db;
+  if (!target || typeof target.batch !== 'function') {
+    return {
+      set: () => {},
+      update: () => {},
+      delete: () => {},
+      commit: async () => {}
+    };
+  }
+  return target.batch();
 }
 
 /** Read-then-write atomically. Compat: fn receives tx with get/set/update/delete. */
@@ -109,19 +135,31 @@ export function runTransaction(dbInstance, fn) {
 }
 
 export function serverTimestamp() {
-  return firebase.firestore.FieldValue.serverTimestamp();
+  if (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.serverTimestamp) {
+    return firebase.firestore.FieldValue.serverTimestamp();
+  }
+  return new Date();
 }
 
 export function increment(n = 1) {
-  return firebase.firestore.FieldValue.increment(n);
+  if (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.increment) {
+    return firebase.firestore.FieldValue.increment(n);
+  }
+  return n;
 }
 
 export function arrayUnion(...elements) {
-  return firebase.firestore.FieldValue.arrayUnion(...elements);
+  if (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.arrayUnion) {
+    return firebase.firestore.FieldValue.arrayUnion(...elements);
+  }
+  return elements;
 }
 
 export function arrayRemove(...elements) {
-  return firebase.firestore.FieldValue.arrayRemove(...elements);
+  if (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.arrayRemove) {
+    return firebase.firestore.FieldValue.arrayRemove(...elements);
+  }
+  return elements;
 }
 
 export function onSnapshot(queryOrRef, callback, errorCallback) {

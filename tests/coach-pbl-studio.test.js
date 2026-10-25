@@ -118,4 +118,53 @@ describe('Coach AI PBL Authoring Studio', () => {
     expect(results[0].title).toContain('Biomimetic');
     expect(results[0].source).toBe('program');
   });
+
+  it('publishes program to open catalog without selecting a specific learner', async () => {
+    const { publishProgramToCatalog } = await import('../src/features/coach/studio/pblTransferService.js');
+    const { UNIVERSAL_LEARNER } = await import('../src/features/coach/studio/learnerProfiles.js');
+    const unit = generateGroundedUnitLocal({
+      learner: UNIVERSAL_LEARNER,
+      activeSources: DEFAULT_GROUNDING_SOURCES,
+      customFocus: 'Autonomous Mars Rover Telemetry'
+    });
+
+    const res = await publishProgramToCatalog(unit, 'coach-donovan');
+    expect(res.success).toBe(true);
+    expect(res.programId).toContain('pbl-open');
+    expect(res.searchUrl).toContain('#/search');
+    expect(res.studentUrl).toContain('#/pbl/programs');
+
+    // Program resolves cleanly from library and catalog
+    const resolved = programById(res.programId);
+    expect(resolved).not.toBeNull();
+    expect(resolved.title).toContain('Autonomous Mars Rover Telemetry');
+    expect(resolved.visibility).toBe('centre');
+    expect(resolved.status).toBe('published');
+  });
+
+  it('allows any learner to find published program on #/search and add/start it', async () => {
+    const { buildCatalog, searchCatalog } = await import('../src/features/courses/catalog.js');
+    const { getCustomPrograms } = await import('../src/features/coach/programs/customProgramsStore.js');
+    const { addToMyCourse } = await import('../src/services/pblService.js');
+
+    const custom = Object.values(getCustomPrograms());
+    const catalog = buildCatalog({
+      activities: [],
+      programs: custom,
+      includePartners: false
+    });
+
+    // Student searches for 'Mars' or 'Rover' or 'Telemetry'
+    const results = searchCatalog(catalog, 'Mars Rover');
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    const marsCourse = results.find((r) => r.title.includes('Mars Rover'));
+    expect(marsCourse).toBeDefined();
+    expect(marsCourse.source).toBe('program');
+
+    // Any learner self-enrols in the course
+    const studentUid = 'student-test-learner-99';
+    const enrolRes = await addToMyCourse(marsCourse.id, studentUid);
+    expect(enrolRes.success).toBe(true);
+    expect(enrolRes.enrolmentId).toBe(`${studentUid}_${marsCourse.id}`);
+  });
 });

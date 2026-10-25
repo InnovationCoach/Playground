@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Sparkles, BookOpen, Award, Wrench, Leaf, Upload, FileText, CheckCircle2,
   AlertTriangle, Users, Bot, ArrowRight, ExternalLink, Send, ChevronDown, ChevronRight,
-  Layers, Video, GitBranch, Box, RefreshCw, Eye, Check, Clock, ShieldCheck, Link2
+  Layers, Video, GitBranch, Box, RefreshCw, Eye, Check, Clock, ShieldCheck, Link2,
+  Globe, Search
 } from 'lucide-react';
-import { STUDENT_2E_PROFILES, getLearnerById } from './learnerProfiles.js';
+import { STUDENT_2E_PROFILES, UNIVERSAL_LEARNER, getLearnerById } from './learnerProfiles.js';
 import { useCoachClasses, useClassLearners } from './useCoachStudioData.js';
 import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from './groundingSources.js';
 import { synthesizeGroundedUnit } from './pblSynthesizer.js';
-import { publishAndTransferToStudent } from './pblTransferService.js';
+import { publishAndTransferToStudent, publishProgramToCatalog } from './pblTransferService.js';
 import { LearnerSupervisionView } from '../supervision/LearnerSupervisionView.jsx';
 import { CourseStudioPanel } from './CourseStudioPanel.jsx';
 import { EvaluationDeskView } from '../evaluation/EvaluationDeskView.jsx';
@@ -37,13 +38,13 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const { learners: realLearners } = useClassLearners(selectedClassId, { includeTest: showTestLearners });
 
   const availableLearners = useMemo(() => {
-    if (realLearners.length > 0) return realLearners;
+    if (realLearners.length > 0) return [UNIVERSAL_LEARNER, ...realLearners];
     return STUDENT_2E_PROFILES;
   }, [realLearners]);
 
   // Column 1 State
   const [sources, setSources] = useState(DEFAULT_GROUNDING_SOURCES);
-  const [selectedLearnerId, setSelectedLearnerId] = useState('student-liam-chen');
+  const [selectedLearnerId, setSelectedLearnerId] = useState('universal-all');
   const [customFocus, setCustomFocus] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
@@ -179,7 +180,31 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
     }
   };
 
-  // 1-Click Publish & Transfer to Student
+  // 1-Click Publish to Course Catalog (Search Engine - No specific student required)
+  const handlePublishToCatalog = async (e) => {
+    if (!unit) return;
+    setTransferring(true);
+    setTransferError(null);
+    const triggerEl = e.currentTarget;
+    try {
+      const targetClassId = selectedClassId !== 'all' ? selectedClassId : null;
+      const res = await publishProgramToCatalog(unit, coachUser?.uid, targetClassId);
+      setTransferredInfo({
+        ...res,
+        mode: 'catalog'
+      });
+      confettiFrom(triggerEl, { big: true });
+      buzz([30, 60, 30]);
+    } catch (err) {
+      console.error('Catalog publish failed:', err);
+      setTransferredInfo(null);
+      setTransferError(err?.message || 'Failed to publish program to catalog');
+    } finally {
+      setTransferring(false);
+    }
+  };
+
+  // 1-Click Direct Publish & Transfer to Individual Student
   const handleTransfer = async (e) => {
     if (!unit) return;
     setTransferring(true);
@@ -188,7 +213,10 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
     try {
       const targetClassId = learner.classIds?.[0] || (selectedClassId !== 'all' ? selectedClassId : null);
       const res = await publishAndTransferToStudent(unit, learner.id || learner.uid, coachUser?.uid, targetClassId);
-      setTransferredInfo(res);
+      setTransferredInfo({
+        ...res,
+        mode: 'direct'
+      });
       confettiFrom(triggerEl, { big: true });
       buzz([30, 60, 30]);
     } catch (err) {
@@ -443,9 +471,15 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
                 </div>
               </div>
 
+              {learner.isUniversal && (
+                <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '6px', padding: '0.45rem 0.6rem', marginBottom: '0.65rem', fontSize: '0.78rem', color: '#7dd3fc', lineHeight: 1.35 }}>
+                  🌐 <strong>Open Catalog Mode:</strong> You do not need to choose a specific learner. The synthesized program will be published directly to the Student Search engine (<code>#/search</code>) where any learner can find, add, and start it.
+                </div>
+              )}
+
               {/* Diagnosis / Traits */}
               <div className="cp-tag-group">
-                <span className="cp-tag-label">Cognitive Profile & Diagnosis:</span>
+                <span className="cp-tag-label">{learner.isUniversal ? 'Universal Design & Accessibility:' : 'Cognitive Profile & Diagnosis:'}</span>
                 <div className="cp-tag-chips">
                   {traitBadges.map((badge) => (
                     <span key={badge} className="cp-chip cp-chip-trait">{badge}</span>
@@ -738,7 +772,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
                 <Eye size={16} /> Live Student Dashboard Preview
               </h2>
               <span className="cp-badge-pill" style={{ background: 'rgba(63, 185, 80, 0.15)', color: '#3fb950', borderColor: 'rgba(63, 185, 80, 0.4)' }}>
-                Target: {learner.name}
+                Target: {learner.isUniversal ? 'Open Catalog (All Learners)' : learner.name}
               </span>
             </div>
 
@@ -808,52 +842,86 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               </div>
             )}
 
-            {/* 1-Click Transfer Section */}
+            {/* 1-Click Publishing & Transfer Section */}
             <div className="cp-transfer-section">
               {transferredInfo && (
                 <div className="cp-transferred-toast">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}>
-                    <CheckCircle2 size={16} /> Transferred Successfully!
+                    <CheckCircle2 size={16} /> {transferredInfo.mode === 'catalog' ? 'Published to Course Catalog!' : 'Transferred Successfully!'}
                   </div>
-                  <span>
-                    Active in <strong>{learner.name}'s</strong> dashboard. Real-time updates emitted to <code>#/pbl/programs/{transferredInfo.programId}</code>.
-                  </span>
-                  <a
-                    href={transferredInfo.studentUrl}
-                    className="cp-btn-student-view"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open in Student View <ExternalLink size={14} />
-                  </a>
+                  {transferredInfo.mode === 'catalog' ? (
+                    <span>
+                      <strong>{unit.unitTitle}</strong> is now live and findable in Student Search. Any learner can search for this course at <code>#/search</code>, add it, and start it.
+                    </span>
+                  ) : (
+                    <span>
+                      Active in <strong>{learner.name}'s</strong> dashboard. Real-time updates emitted to <code>#/pbl/programs/{transferredInfo.programId}</code>.
+                    </span>
+                  )}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                    <a
+                      href={transferredInfo.searchUrl || '#/search'}
+                      className="cp-btn-student-view"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Search size={14} /> Open in Student Search (#/search)
+                    </a>
+                    <a
+                      href={transferredInfo.studentUrl}
+                      className="cp-btn-student-view"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Eye size={14} /> Open Course View
+                    </a>
+                  </div>
                 </div>
               )}
 
               {transferError && (
                 <div className="cp-transferred-toast" style={{ borderLeft: '4px solid #ef4444', background: 'rgba(239, 68, 68, 0.12)', color: '#fca5a5' }} role="alert">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: '#f87171' }}>
-                    <AlertTriangle size={16} /> Transfer Failed
+                    <AlertTriangle size={16} /> Publishing Failed
                   </div>
                   <span>{transferError}</span>
                 </div>
               )}
 
-              <button
-                type="button"
-                className={`cp-btn-transfer ${transferredInfo ? 'success' : ''}`}
-                onClick={handleTransfer}
-                disabled={transferring || !unit}
-              >
-                {transferring ? (
-                  <>
-                    <RefreshCw size={18} className="spin" /> Publishing to Database...
-                  </>
-                ) : (
-                  <>
-                    <Send size={18} /> Publish & Transfer to {learner.name.split(' ')[0]}
-                  </>
+              <div className="cp-publish-actions" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <button
+                  type="button"
+                  className={`cp-btn-transfer ${transferredInfo?.mode === 'catalog' ? 'success' : ''}`}
+                  onClick={handlePublishToCatalog}
+                  disabled={transferring || !unit}
+                >
+                  {transferring ? (
+                    <>
+                      <RefreshCw size={18} className="spin" /> Publishing to Database...
+                    </>
+                  ) : (
+                    <>
+                      <Globe size={18} /> Publish to Course Catalog (Search Engine)
+                    </>
+                  )}
+                </button>
+
+                {!learner.isUniversal && (
+                  <button
+                    type="button"
+                    className="cp-btn-direct-transfer"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem',
+                      padding: '0.55rem 1rem', background: '#21262d', color: '#c9d1d9', border: '1px solid #30363d',
+                      borderRadius: '8px', font: '600 0.82rem var(--gh-font)', cursor: 'pointer', transition: 'all 0.15s'
+                    }}
+                    onClick={handleTransfer}
+                    disabled={transferring || !unit}
+                  >
+                    <Send size={14} /> Direct Assign & Send to {learner.name.split(' ')[0]}
+                  </button>
                 )}
-              </button>
+              </div>
             </div>
           </div>
         </section>

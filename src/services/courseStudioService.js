@@ -32,6 +32,7 @@ export const STAGES = Object.freeze([
 
 const COHORTS = ['primary', 'lower-secondary', 'higher-secondary'];
 const TYPES = ['milestones', 'slides', 'quiz', 'script'];
+const MOCK_NOTE = 'MOCK DRAFT: built from your source text on this device. No AI model was used.';
 import { DEFAULT_GROUNDING_SOURCES } from '../features/coach/studio/groundingSources.js';
 
 let sourceSeq = 0;

@@ -6,7 +6,7 @@ import {
   Video, GitBranch, Box
 } from 'lucide-react';
 import { programById, COACH_PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges, isSourcedConfirmation } from './catalog.js';
-import { getProgram } from '../../../services/pblService.js';
+import { getProgram, addToMyCourse } from '../../../services/pblService.js';
 import {
   programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, LIMITS
 } from './progress.js';
@@ -112,10 +112,10 @@ export function ProgramDetail({ programId, section, uid, isCoach, classIds = [] 
 
 function LearnerDetail({ program, section, uid, cover }) {
   const { progress, apply, syncState } = useProgramProgress(uid, program);
-  return <DetailView program={program} section={section} cover={cover} progress={progress} apply={apply} syncState={syncState} />;
+  return <DetailView program={program} section={section} cover={cover} progress={progress} apply={apply} syncState={syncState} uid={uid} />;
 }
 
-function DetailView({ program: p, section, cover, isCoach = false, progress = null, apply = null, syncState }) {
+function DetailView({ program: p, section, cover, isCoach = false, progress = null, apply = null, syncState, uid = null }) {
   const kit = toolkitFor(p.id);
   const sections = SECTIONS.filter((s) => (!s.coach || isCoach) && (!s.kit || kit));
   const active = sections.some((s) => s.id === section) ? section : 'overview';
@@ -164,7 +164,7 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
             );
           })}
         </ol>
-        {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} />}
+        {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} uid={uid} />}
         {kit && progress?.startedAt && <FounderPanel program={p} progress={progress} />}
         </div>
         <div className="pg-hero-aside"><ProgramPoster program={p} cover={cover} size="hero" /></div>
@@ -252,12 +252,15 @@ function Toolkit({ program: p, kit, tools }) {
   );
 }
 
-function LearnerBar({ program: p, progress, summary, apply }) {
+function LearnerBar({ program: p, progress, summary, apply, uid = null }) {
   if (!progress.startedAt) {
     return (
       <div className="pg-learner-bar">
         <span>Ready when you are: {(p.sessions || []).length} sessions over {p.durationWeeks || 12} weeks.</span>
-        <a className="gh-btn gh-btn-primary" href={hrefFor.program(p.id, 'plan')} onClick={() => apply((x) => startProgram(x))}>
+        <a className="gh-btn gh-btn-primary" href={hrefFor.program(p.id, 'plan')} onClick={() => {
+          apply((x) => startProgram(x));
+          if (uid) addToMyCourse(p.id, uid).catch(() => {});
+        }}>
           Start this program<ArrowRight size={16} aria-hidden="true" />
         </a>
       </div>

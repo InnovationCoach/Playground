@@ -45,11 +45,25 @@ export function CatalogCard({ item, onOpenActivity, addedKeys, onToggleAdd, vari
         </a>
       )}
       {variant === 'button' ? (
-        <button type="button" className={isAdded ? 'gh-btn mc-add is-added' : 'gh-btn gh-btn-accent mc-add'}
-                aria-pressed={isAdded} onClick={() => onToggleAdd(item.key)} aria-label={`${label}: ${item.title}`}>
-          {isAdded ? <Check size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
-          {isAdded ? t('courses.added') : t('courses.save')}
-        </button>
+        <div className="mc-card-actions">
+          <button type="button" className={isAdded ? 'gh-btn mc-add is-added' : 'gh-btn gh-btn-accent mc-add'}
+                  aria-pressed={isAdded} onClick={() => onToggleAdd(item.key)} aria-label={`${label}: ${item.title}`}>
+            {isAdded ? <Check size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
+            {isAdded ? t('courses.added') : t('courses.save')}
+          </button>
+          {item.source === 'program' && (
+            <a
+              className="gh-btn gh-btn-primary mc-start-link"
+              href={hrefFor.program(item.id)}
+              onClick={() => {
+                if (!isAdded) onToggleAdd(item.key);
+              }}
+            >
+              <span>Start Course</span>
+              <ArrowRight size={15} aria-hidden="true" />
+            </a>
+          )}
+        </div>
       ) : (
         <button type="button" className="mc-save" aria-pressed={isAdded} onClick={() => onToggleAdd(item.key)}
                 aria-label={`${label}: ${item.title}`} title={label}>

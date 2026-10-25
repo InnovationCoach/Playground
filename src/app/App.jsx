@@ -386,7 +386,7 @@ export function App() {
                      classIds={role === 'student' ? (profile?.classIds || []) : (classIds || profile?.classIds || [])}
                      onOpenActivity={navigate} displayName={profile?.displayName} />
         </div>
-      ) : role === 'student' && !isPrimary && route?.screen === 'homeSearch' ? (
+      ) : (!isPrimary && route?.screen === 'homeSearch') ? (
         <HomeSearch uid={user?.uid} displayName={profile?.displayName} onOpenActivity={navigate} initialQuery={route.q} />
       ) : role === 'student' && !isPrimary && route?.screen === 'goals' ? (
         <div className="gh-app">
