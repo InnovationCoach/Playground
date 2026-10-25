@@ -6,7 +6,21 @@ Phase 2 below needs server code and rules, which Gemini owns. The frontend build
 
 Every secret stays on the server: the Cloudinary API secret, the Canva client secret, and Canva access and refresh tokens. None of them goes in the bundle, the repository or Firestore documents that clients can read.
 
-## 1. Cloudinary uploads (portfolio files and coach resources)
+## 0. Two stores, one rule each (decided 2026-10-25)
+
+Both stores stay. Each has one job.
+
+| Store | Use for | Visibility | Why |
+| :-- | :-- | :-- | :-- |
+| **Cloudinary** | Public or class-visible media that needs transforms: program covers, coach resources, showcase images and videos | Public delivery URLs (decision of 2026-10-22) | On-the-fly resize, thumbnails and video transcoding |
+| **Firebase Storage** | Private work: a learner's evidence files, portfolio uploads, Canva exports of a learner's own design, submissions | Never public. Rules-based reads, tokenised download URLs | Children's work stays behind the same sign-in and class rules as the database |
+
+Rules for choosing:
+- If a learner or coach uploads something about a child, it goes to Firebase Storage first.
+- A coach resource or a program cover goes to Cloudinary.
+- A private file becomes public only if a coach publishes it to a class resource. Publishing copies it to Cloudinary; the private original stays where it is.
+
+## 1. Cloudinary uploads (public and class-visible media)
 
 Use signed uploads. Unsigned presets can be used by anyone who finds the preset name, and these files come from children.
 
@@ -31,6 +45,22 @@ Use signed uploads. Unsigned presets can be used by anyone who finds the preset 
 - The frontend uses the Upload Widget with these parameters, then stores the returned `secure_url` on the evidence item (`link`). Those links already embed (`res.cloudinary.com/.../image|video/upload/...`).
 - **Decided (Mani, 2026-10-22): public delivery URLs.** Uploads are project work only, so the normal `secure_url` is fine, and no URL-signing endpoint is needed. Keep the random public IDs (Cloudinary's default) so URLs can't be guessed. The frontend tells learners to upload project work only: no faces or personal documents.
 
+## 1b. Firebase Storage (private learner work)
+
+Paths (Gemini to confirm against `storage.rules`):
+- `evidence/{learnerUid}/{evidenceId}/{file}` — learner's submitted files.
+- `portfolio/{learnerUid}/{file}` — portfolio uploads.
+- `canva-exports/{ownerUid}/{exportId}.{ext}` — Canva exports of the owner's own design.
+
+Rules (Gemini to write and test):
+- **Write:** only the owner (`request.auth.uid == learnerUid`), under the existing type and 20 MB limit. Video above 20 MB needs a separate decision before the limit changes.
+- **Read:** the owner; their coaches (class members) for evidence; a linked parent only when the learner has shared the item (decision D4 in `docs/parent-engagement-contract.md`); never anyone else.
+- **Default deny** stays in place for every other path.
+- **Download:** tokenised URLs issued by the server, short-lived where Firebase allows. No public links.
+- **Under 15:** uploads from learners under 15 are blocked until the consent rule exists (see `docs/parent-engagement-contract.md` §5 and the consent deferral note).
+
+Tests (Gemini): owner can write; another learner cannot read; a coach outside the class cannot read; a parent reads only shared items; no public path.
+
 ## 2. Canva Connect ("Create in Canva", then bring the design back)
 
 - Register the integration in the Canva Developer Portal under the school's account. Mani currently has Canva Pro.
@@ -46,7 +76,7 @@ Endpoints:
   - Uses Canva's return navigation so the user comes back to WeLearn when they finish.
 - `POST /api/canva/designs/:designId/export`
   - Body: `{ format: 'png' | 'pdf' }`
-  - Runs Canva's export job, uploads the result to Cloudinary (section 1 folders, server-to-server) and returns `{ url }`.
+  - Runs Canva's export job, uploads the result to Cloudinary (section 1 folders for class-visible results; private results go to Firebase Storage under section 1b) and returns `{ url }`.
 - `DELETE /api/canva/connection` revokes and deletes the stored tokens.
 
 Scopes: request only design create/read and export (exact scope names from canva.dev).
