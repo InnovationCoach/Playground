@@ -58,31 +58,43 @@ export async function synthesizeGroundedUnit({ learner, sources, customFocus = '
  * tailored specifically to the learner's 2e traits, consuming passions, and executive function accommodations.
  */
 export function generateGroundedUnitLocal({ learner, activeSources, customFocus = '' }) {
-  const learnerId = learner.id || 'student-liam-chen';
-  const passion = learner.consumingPassions || 'Robotics';
-  const name = learner.name || 'Learner';
+  const learnerId = learner.id || learner.uid || 'student-liam-chen';
+  const name = learner.name || learner.displayName || 'Learner';
+  const passion = Array.isArray(learner.consumingPassions) ? learner.consumingPassions.join(', ') : (learner.consumingPassions || 'Robotics');
   const unitId = `pbl-2e-${learnerId.replace('student-', '')}-2026`;
+
+  const normTraits = Array.isArray(learner.diagnosisTraits) ? learner.diagnosisTraits.join(', ') : String(learner.diagnosisTraits || 'Gifted Inquiry');
+  const normPassions = Array.isArray(learner.consumingPassions) ? learner.consumingPassions.join(', ') : String(learner.consumingPassions || passion);
+  const normHurdles = Array.isArray(learner.executiveFunctionHurdles) ? learner.executiveFunctionHurdles.join(', ') : String(learner.executiveFunctionHurdles || 'Task initiation on unstructured prompts');
+  const normAccommodations = Array.isArray(learner.appliedAccommodations) && learner.appliedAccommodations.length > 0
+    ? learner.appliedAccommodations
+    : ['Micro-deadlines with visible 15-minute countdown timers', 'Multi-modal deliverables (GitHub & 60s demo videos instead of essays)'];
+
+  const isTom = (learnerId.toLowerCase().includes('tom') || (learner.email && learner.email.includes('tom')) || name.toLowerCase().includes('tom'));
+  const isInes = (learnerId.toLowerCase().includes('ines') || learnerId.toLowerCase().includes('inès') || (learner.email && learner.email.includes('ines')) || name.toLowerCase().includes('ines') || name.toLowerCase().includes('inès'));
 
   let unitData;
 
-  if (learnerId === 'student-liam-chen') {
+  if (learnerId === 'student-liam-chen' || isTom) {
     unitData = {
       id: unitId,
-      unitTitle: customFocus ? `Autonomous Rover: ${customFocus}` : 'Bio-Inspired Obstacle-Traversing Rover & Micro-Telemetry',
+      unitTitle: customFocus ? `Autonomous Rover: ${customFocus}` : (isTom ? 'Autonomous Rover & Microclimate Telemetry' : 'Bio-Inspired Obstacle-Traversing Rover & Micro-Telemetry'),
       theme: 'Autonomous Robotics & Environmental Terrain Mapping',
-      drivingQuestion: 'How might we design a lightweight, modular 4-wheel rover with custom 3D-printed suspension and micro:bit distance telemetry to map hazardous flood debris without risking human rescue workers?',
+      drivingQuestion: isTom
+        ? 'How might we design a solar-powered autonomous rover with microclimate telemetry to detect urban heat islands without risking human volunteers?'
+        : 'How might we design a lightweight, modular 4-wheel rover with custom 3D-printed suspension and micro:bit distance telemetry to map hazardous flood debris without risking human rescue workers?',
       realProblem: {
-        summary: 'Emergency first responders in urban flood scenarios (SDG 11) face unseen submerged hazards and unstable debris fields that stall rescue operations.',
-        peopleImpact: 'Prevents injuries to human volunteers and accelerates location of stranded residents.',
-        environmentalImpact: 'Detects chemical and particulate runoff in urban floodwaters using non-destructive telemetry.'
+        summary: 'Emergency first responders and urban communities face hazardous heat and submerged debris fields that stall rescue operations.',
+        peopleImpact: 'Prevents injuries to human volunteers and accelerates location of stranded residents in extreme conditions.',
+        environmentalImpact: 'Detects chemical and particulate runoff in urban areas using non-destructive autonomous telemetry.'
       },
       targetLearner: {
-        id: learner.id,
-        name: learner.name,
-        diagnosisTraits: learner.diagnosisTraits,
-        consumingPassions: learner.consumingPassions,
-        executiveFunctionHurdles: learner.executiveFunctionHurdles,
-        appliedAccommodations: learner.appliedAccommodations
+        id: learnerId,
+        name,
+        diagnosisTraits: normTraits,
+        consumingPassions: normPassions,
+        executiveFunctionHurdles: normHurdles,
+        appliedAccommodations: normAccommodations
       },
       makerSpaceSpecs: [
         {

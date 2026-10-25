@@ -355,15 +355,8 @@ export async function publishProgram(draft, { assignTo = {} } = {}) {
     await batch.commit();
     return { programId, enrolmentIds };
   } catch (err) {
-    // Contract requirement P0-1: REJECT on error. Delete mock mode in production.
-    // Allow mock fallback ONLY when explicitly in DEV mode with emulator flag.
-    const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV === true;
-    const isEmulatorActive = Boolean(usingEmulators || (typeof process !== 'undefined' && process.env?.FIRESTORE_EMULATOR_HOST));
-    if (isDev && isEmulatorActive) {
-      console.warn('[PBL Service] Dev emulator fallback active:', err?.message);
-      return { programId, enrolmentIds, mockMode: true };
-    }
-    // Strict throw in production
+    // Contract requirement P0-1: REJECT on error. Strictly throw on failure so caller knows status.
+    console.error('[PBL Service] Failed to commit program to Firestore:', err);
     throw new Error(`Failed to publish program to Firestore: ${err?.message || 'Permission denied'}`);
   }
 }

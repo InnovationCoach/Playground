@@ -16,9 +16,12 @@ import { ProgramIcon } from '../pbl/programs/ProgramIcon.jsx';
 import { useClassPrograms } from '../pbl/programs/useClassPrograms.js';
 import { buildCatalog, searchCatalog, countBySource, SOURCES } from './catalog.js';
 import { useAddedCourses } from './useAddedCourses.js';
-import { CatalogCard } from './CatalogCard.jsx';
 import { useProgramSummaries } from './useProgramSummaries.js';
-import { getCustomPrograms } from '../coach/programs/customProgramsStore.js';
+import { getCustomPrograms, saveCustomProgram } from '../coach/programs/customProgramsStore.js';
+import { subscribeToPblTransfers } from '../coach/studio/pblTransferService.js';
+import { getProgram } from '../../services/pblService.js';
+import { db, collection, query, where, getDocs } from '../../firebase.js';
+import { loadClasses } from '../coach/classCodes.js';
 import {
   CONNECTED_EDMENTUM_COURSES,
   getEdmentumConfig,
@@ -72,6 +75,7 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
   }, [q, isPrimary]);
 
   const [customPrograms, setCustomPrograms] = useState(() => Object.values(getCustomPrograms()));
+  const [remotePrograms, setRemotePrograms] = useState([]);
   const [edScores, setEdScores] = useState(() => getEdmentumLearnerScores(uid));
   const edConfig = useMemo(() => getEdmentumConfig(), []);
 
@@ -89,13 +93,103 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
     return () => window.removeEventListener('pbl-custom-programs-changed', onCustomChanged);
   }, []);
 
+  // Real-time transfer listener: when coach transfers or publishes, reflect immediately
+  useEffect(() => {
+    const unsub = subscribeToPblTransfers(async (event) => {
+      if (!event) return;
+      if (event.program) {
+        saveCustomProgram(event.program);
+        setRemotePrograms((prev) => {
+          const map = new Map(prev.map((p) => [p.id, p]));
+          map.set(event.program.id, event.program);
+          return Array.from(map.values());
+        });
+      } else if (event.programId) {
+        try {
+          const res = await getProgram(event.programId);
+          if (res.status === 'found' && res.program) {
+            saveCustomProgram(res.program);
+            setRemotePrograms((prev) => {
+              const map = new Map(prev.map((p) => [p.id, p]));
+              map.set(res.program.id, res.program);
+              return Array.from(map.values());
+            });
+          }
+        } catch (err) {
+          console.warn('[MyCourses] Real-time transfer fetch notice:', err?.message);
+        }
+      }
+    });
+    return unsub;
+  }, []);
+
+  // Fetch remote programs associated with learner (enrolments, class assignments, and centre published)
+  useEffect(() => {
+    if (!uid) return undefined;
+    let cancelled = false;
+
+    async function loadRemotePrograms() {
+      try {
+        const idsToFetch = new Set();
+
+        // 1. Enrolments for this learner
+        const enrolSnap = await getDocs(query(collection(db, 'enrolments'), where('learnerId', '==', uid)));
+        enrolSnap.forEach((d) => {
+          const pId = d.data()?.programId;
+          if (pId) idsToFetch.add(pId);
+        });
+
+        // 2. Class assignments for learner's classes
+        if (Array.isArray(classIds) && classIds.length > 0) {
+          const loadedClasses = await loadClasses(classIds);
+          loadedClasses.forEach((c) => {
+            if (c.programId) idsToFetch.add(c.programId);
+          });
+        }
+
+        // 3. Centre published programs
+        try {
+          const publishedSnap = await getDocs(query(collection(db, 'pbl_programs'), where('status', '==', 'published')));
+          publishedSnap.forEach((d) => idsToFetch.add(d.id));
+        } catch {
+          // Non-fatal
+        }
+
+        if (cancelled || idsToFetch.size === 0) return;
+
+        const loaded = [];
+        for (const pId of idsToFetch) {
+          const res = await getProgram(pId);
+          if (res.status === 'found' && res.program) {
+            saveCustomProgram(res.program);
+            loaded.push(res.program);
+          }
+        }
+
+        if (!cancelled && loaded.length > 0) {
+          setRemotePrograms((prev) => {
+            const map = new Map(prev.map((p) => [p.id, p]));
+            for (const p of loaded) map.set(p.id, p);
+            return Array.from(map.values());
+          });
+        }
+      } catch (err) {
+        console.warn('[MyCourses] Remote programs load notice:', err?.message);
+      }
+    }
+
+    loadRemotePrograms();
+    return () => { cancelled = true; };
+  }, [uid, (classIds || []).join('|')]);
+
   const allPrograms = useMemo(() => {
     const map = new Map();
     for (const p of PROGRAMS) map.set(p.id, p);
     for (const p of LIBRARY_PROGRAMS) map.set(p.id, p);
     for (const p of customPrograms) map.set(p.id, p);
+    for (const p of remotePrograms) map.set(p.id, p);
     return Array.from(map.values());
-  }, [customPrograms]);
+  }, [customPrograms, remotePrograms]);
 
   // Secondary only: the combined catalogue, program progress and My Path.
   const catalog = useMemo(() => (isPrimary ? [] : buildCatalog({

@@ -42,10 +42,10 @@ export const PblUnitSchema = z.object({
   targetLearner: z.object({
     id: z.string(),
     name: z.string(),
-    diagnosisTraits: z.string(),
-    consumingPassions: z.string(),
-    executiveFunctionHurdles: z.string(),
-    appliedAccommodations: z.array(z.string())
+    diagnosisTraits: z.union([z.string(), z.array(z.string())]).transform((v) => (Array.isArray(v) ? v.join(', ') : v || '')),
+    consumingPassions: z.union([z.string(), z.array(z.string())]).transform((v) => (Array.isArray(v) ? v.join(', ') : v || '')),
+    executiveFunctionHurdles: z.union([z.string(), z.array(z.string())]).transform((v) => (Array.isArray(v) ? v.join(', ') : v || '')),
+    appliedAccommodations: z.array(z.string()).default([])
   }),
   makerSpaceSpecs: z.array(MakerSpaceSpecSchema),
   coachCues: CoachCuesSchema,

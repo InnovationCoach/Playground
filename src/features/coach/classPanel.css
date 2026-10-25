@@ -12,7 +12,7 @@
 .cp-class { display: grid; gap: 0.5rem; align-content: start; min-width: 0; }
 .cp-class > strong { font-size: 1.1rem; color: #f8fafc; }
 .cp-field { display: grid; gap: 0.3rem; font-size: 0.78rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
-.cp-field select { max-width: 320px; background: #1e293b; color: #f8fafc; border: 1px solid #475569; border-radius: 8px; padding: 0.5rem 0.65rem; font-family: inherit; font-size: 0.92rem; font-weight: 500; text-transform: none; letter-spacing: 0; }
+.cp-field select { max-width: 100%; width: 100%; min-width: 280px; background: #1e293b; color: #f8fafc; border: 1px solid #475569; border-radius: 8px; padding: 0.5rem 0.65rem; font-family: inherit; font-size: 0.92rem; font-weight: 500; text-transform: none; letter-spacing: 0; }
 .cp-field select:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
 .cp-link { display: inline-flex; align-items: center; gap: 0.3rem; color: #38bdf8; font-size: 0.88rem; text-decoration: none; overflow-wrap: anywhere; }
 .cp-link:hover { text-decoration: underline; }

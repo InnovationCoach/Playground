@@ -70,7 +70,9 @@ export function convertUnitToProgram(unit) {
     subtitle: `${unit.theme} · 2e Customized for ${unit.targetLearner.name}`,
     theme: unit.theme,
     drivingQuestion: unit.drivingQuestion,
-    status: 'approved',
+    status: 'published',
+    visibility: 'centre',
+    authorId: unit.authorId || coachUid || 'coach',
     realProblem: unit.realProblem,
     targetAgeRange: 'Ages 12–16 (2e Adapted Secondary)',
     durationWeeks: 12,
@@ -105,10 +107,12 @@ export function convertUnitToProgram(unit) {
  * @param {object} pblUnit - The authored unit
  * @param {string} studentUid - The recipient student ID
  * @param {string} coachUid - Current coach ID
+ * @param {string} [classId] - Optional student class ID
  * @returns {Promise<{success: boolean, programId: string, studentUrl: string}>}
  */
-export async function publishAndTransferToStudent(pblUnit, studentUid, coachUid) {
+export async function publishAndTransferToStudent(pblUnit, studentUid, coachUid, classId = null) {
   const program = convertUnitToProgram(pblUnit);
+  if (coachUid) program.authorId = coachUid;
   const now = Date.now();
 
   // 1. Save to local Custom Programs Store (instant client persistence)
@@ -128,9 +132,9 @@ export async function publishAndTransferToStudent(pblUnit, studentUid, coachUid)
   }
 
   // 3. Save to Firestore via publishProgram service (atomic batch + strict contract validation)
-  const { enrolmentIds } = await publishProgram(program, {
-    assignTo: { learnerId: studentUid }
-  });
+  const assignTo = { learnerId: studentUid };
+  if (classId) assignTo.classId = classId;
+  const { enrolmentIds } = await publishProgram(program, { assignTo });
   console.log('[PBL Transfer] Cloud save successful to pbl_programs/' + program.id, enrolmentIds);
 
   // 4. Emit real-time Broadcast Channel event for instant live multi-tab sync
@@ -142,6 +146,7 @@ export async function publishAndTransferToStudent(pblUnit, studentUid, coachUid)
         programId: program.id,
         programTitle: program.title,
         studentUid,
+        program,
         transferredAt: now
       });
       channel.close();

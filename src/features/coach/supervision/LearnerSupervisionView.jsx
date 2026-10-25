@@ -4,6 +4,7 @@ import {
   Award, Shield, ExternalLink, Activity, BookOpen, Wrench, Eye
 } from 'lucide-react';
 import { STUDENT_2E_PROFILES } from '../studio/learnerProfiles.js';
+import { getEvaluations } from '../evaluation/evaluationsStore.js';
 import { hrefFor } from '../../../app/routes.js';
 
 const WELEARN_8_STAGES = [
@@ -11,13 +12,18 @@ const WELEARN_8_STAGES = [
   'Testing', 'Iteration', 'Polish', 'Showcase'
 ];
 
-export function LearnerSupervisionView({ onSelectLearnerForStudio, onGoToEvaluation }) {
+export function LearnerSupervisionView({ learners: providedLearners, onSelectLearnerForStudio, onGoToEvaluation }) {
   const [selectedCohort, setSelectedCohort] = useState('all');
 
-  // Hardcoded cohort metrics representative of SPARK Innovation Lab
-  const learners = STUDENT_2E_PROFILES;
+  const learners = (providedLearners && providedLearners.length > 0)
+    ? providedLearners
+    : STUDENT_2E_PROFILES;
   const activeCount = learners.length;
-  const pendingEvals = 2; // Liam & Maya
+  const allEvals = getEvaluations();
+  const pendingEvals = allEvals.filter(e => e.status === 'pending').length;
+  const onTrackPercent = learners.length > 0
+    ? Math.round((learners.filter(l => l.status !== 'needs_support' && l.status !== 'behind').length / learners.length) * 100)
+    : 100;
 
   return (
     <div className="cp-supervision-view">
@@ -53,7 +59,7 @@ export function LearnerSupervisionView({ onSelectLearnerForStudio, onGoToEvaluat
             <CheckCircle2 size={20} />
           </div>
           <div className="cp-metric-info">
-            <span className="cp-metric-val">88%</span>
+            <span className="cp-metric-val">{onTrackPercent}%</span>
             <span className="cp-metric-lbl">PBL Milestone On-Track</span>
           </div>
         </div>
@@ -82,18 +88,30 @@ export function LearnerSupervisionView({ onSelectLearnerForStudio, onGoToEvaluat
 
         <div className="cp-learner-grid">
           {learners.map((learner, idx) => {
-            // Representative mock stage positions for the 4 learners
+            const learnerId = learner.id || learner.uid;
+            // Representative stage positions
             const currentStageIndex = idx === 0 ? 3 : idx === 1 ? 2 : idx === 2 ? 4 : 1;
             const currentStage = WELEARN_8_STAGES[currentStageIndex];
             const pct = Math.round(((currentStageIndex + 1) / 8) * 100);
 
+            const diagnosisSummary = Array.isArray(learner.diagnosisTraits)
+              ? learner.diagnosisTraits.join(', ')
+              : String(learner.diagnosisTraits || '').split('(')[0];
+
+            const hurdleBadge = (learner.hurdleBadges && learner.hurdleBadges[0])
+              || (Array.isArray(learner.executiveFunctionHurdles) ? learner.executiveFunctionHurdles[0] : String(learner.executiveFunctionHurdles || 'Task initiation'));
+
+            const passions = Array.isArray(learner.consumingPassions)
+              ? learner.consumingPassions.join(', ')
+              : (learner.consumingPassions || 'Robotics');
+
             return (
-              <div key={learner.id} className="cp-learner-card">
+              <div key={learnerId} className="cp-learner-card">
                 <div className="cp-learner-head">
-                  <div className="cp-avatar-badge">{learner.avatar}</div>
+                  <div className="cp-avatar-badge">{learner.avatar || '👤'}</div>
                   <div className="cp-learner-name-block">
-                    <h3 className="cp-learner-name">{learner.name}</h3>
-                    <span className="cp-learner-grade">{learner.grade} • {learner.diagnosisTraits.split('(')[0]}</span>
+                    <h3 className="cp-learner-name">{learner.name || learner.displayName}</h3>
+                    <span className="cp-learner-grade">{[learner.grade || learner.yearLevel, diagnosisSummary].filter(Boolean).join(' • ')}</span>
                   </div>
                   <span className={`cp-status-pill ${idx < 2 ? 'status-pending' : 'status-active'}`}>
                     {idx < 2 ? 'Submission Pending' : 'Prototyping'}
@@ -104,11 +122,11 @@ export function LearnerSupervisionView({ onSelectLearnerForStudio, onGoToEvaluat
                 <div className="cp-learner-tags">
                   <div className="cp-tag-row">
                     <span className="cp-tag-label">Consuming Passion:</span>
-                    <span className="cp-tag-value">{learner.consumingPassions}</span>
+                    <span className="cp-tag-value">{passions}</span>
                   </div>
                   <div className="cp-tag-row">
                     <span className="cp-tag-label">EF Accommodation:</span>
-                    <span className="cp-tag-hurdle">{learner.hurdleBadges[0]} (Applied)</span>
+                    <span className="cp-tag-hurdle">{hurdleBadge} (Applied)</span>
                   </div>
                 </div>
 
@@ -140,14 +158,14 @@ export function LearnerSupervisionView({ onSelectLearnerForStudio, onGoToEvaluat
                 <div className="cp-card-footer">
                   <button
                     className="cp-btn-secondary"
-                    onClick={() => onSelectLearnerForStudio?.(learner.id)}
+                    onClick={() => onSelectLearnerForStudio?.(learnerId)}
                   >
                     <Sparkles size={14} /> Open in Studio
                   </button>
 
                   <button
                     className="cp-btn-primary"
-                    onClick={() => onGoToEvaluation?.(learner.id)}
+                    onClick={() => onGoToEvaluation?.(learnerId)}
                   >
                     <CheckCircle2 size={14} /> Evaluate Work
                   </button>

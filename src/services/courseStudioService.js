@@ -32,13 +32,26 @@ export const STAGES = Object.freeze([
 
 const COHORTS = ['primary', 'lower-secondary', 'higher-secondary'];
 const TYPES = ['milestones', 'slides', 'quiz', 'script'];
-const MOCK_NOTE = 'MOCK DRAFT: built from your source text on this device. No AI model was used.';
+import { DEFAULT_GROUNDING_SOURCES } from '../features/coach/studio/groundingSources.js';
 
 let sourceSeq = 0;
 let draftSeq = 0;
 const sources = new Map();
 const drafts = new Map();
 const generateLog = [];
+
+// Seed default curriculum sources so Sources count matches Grounding Vault
+if (DEFAULT_GROUNDING_SOURCES && Array.isArray(DEFAULT_GROUNDING_SOURCES)) {
+  for (const src of DEFAULT_GROUNDING_SOURCES) {
+    sources.set(src.id, {
+      id: src.id,
+      title: src.title,
+      text: src.excerpt || src.summary,
+      charCount: (src.excerpt || src.summary || '').length,
+      createdAt: new Date().toISOString()
+    });
+  }
+}
 
 const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
 

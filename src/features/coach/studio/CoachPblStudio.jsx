@@ -48,17 +48,55 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Synchronize selected learner when availableLearners changes
+  useEffect(() => {
+    if (availableLearners.length > 0 && !availableLearners.some((l) => (l.id || l.uid) === selectedLearnerId)) {
+      setSelectedLearnerId(availableLearners[0].id || availableLearners[0].uid);
+    }
+  }, [availableLearners, selectedLearnerId]);
+
   const learner = useMemo(() => {
     const found = availableLearners.find((l) => (l.id === selectedLearnerId || l.uid === selectedLearnerId));
     if (found) return found;
     return availableLearners[0] || getLearnerById('student-liam-chen');
   }, [availableLearners, selectedLearnerId]);
+
+  const traitBadges = useMemo(() => {
+    if (Array.isArray(learner.traitBadges) && learner.traitBadges.length > 0) return learner.traitBadges;
+    if (Array.isArray(learner.diagnosisTraits) && learner.diagnosisTraits.length > 0) return learner.diagnosisTraits;
+    if (typeof learner.diagnosisTraits === 'string' && learner.diagnosisTraits) {
+      return learner.diagnosisTraits.split(/[,+]/).map((s) => s.trim()).filter(Boolean);
+    }
+    return [learner.traits || learner.learningStyle || '2e Learner'];
+  }, [learner]);
+
+  const hurdleBadges = useMemo(() => {
+    if (Array.isArray(learner.hurdleBadges) && learner.hurdleBadges.length > 0) return learner.hurdleBadges;
+    if (Array.isArray(learner.executiveFunctionHurdles) && learner.executiveFunctionHurdles.length > 0) return learner.executiveFunctionHurdles;
+    if (typeof learner.executiveFunctionHurdles === 'string' && learner.executiveFunctionHurdles) {
+      return learner.executiveFunctionHurdles.split(/[,+]/).map((s) => s.trim()).filter(Boolean);
+    }
+    return ['Open-ended task initiation & working memory'];
+  }, [learner]);
+
+  const passionsDisplay = useMemo(() => {
+    if (Array.isArray(learner.consumingPassions)) {
+      return learner.consumingPassions.join(', ');
+    }
+    return learner.consumingPassions || learner.interests || 'None specified';
+  }, [learner]);
+
+  const gradeDisplay = useMemo(() => {
+    return [learner.grade || learner.yearLevel, learner.cohort].filter(Boolean).join(' • ') || 'Individual Learner';
+  }, [learner]);
+
   const totalTokens = useMemo(() => calculateTotalTokens(sources), [sources]);
   const activeSourcesCount = useMemo(() => sources.filter((s) => s.active).length, [sources]);
 
   // Column 2 State (Synthesized Unit & In-line Editor)
   const [unit, setUnit] = useState(null);
   const [synthesizing, setSynthesizing] = useState(false);
+  const [synthesisError, setSynthesisError] = useState(null);
   const [openMilestoneIndex, setOpenMilestoneIndex] = useState(0);
 
   // Column 3 State (Transfer Pipeline)
@@ -71,6 +109,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
     let cancelled = false;
     async function loadInitial() {
       setSynthesizing(true);
+      setSynthesisError(null);
       try {
         const initialUnit = await synthesizeGroundedUnit({
           learner,
@@ -80,6 +119,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
         if (!cancelled) setUnit(initialUnit);
       } catch (err) {
         console.error('Failed synthesizing initial unit:', err);
+        if (!cancelled) setSynthesisError(err?.message || 'Synthesis failed. Please review grounding sources.');
       } finally {
         if (!cancelled) setSynthesizing(false);
       }
@@ -121,6 +161,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   // Synthesize / Re-synthesize unit
   const handleSynthesize = async () => {
     setSynthesizing(true);
+    setSynthesisError(null);
     setTransferredInfo(null);
     try {
       const result = await synthesizeGroundedUnit({
@@ -132,6 +173,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
       buzz(15);
     } catch (err) {
       console.error('Synthesis failed:', err);
+      setSynthesisError(err?.message || 'Synthesis failed. Please review grounding sources.');
     } finally {
       setSynthesizing(false);
     }
@@ -144,7 +186,8 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
     setTransferError(null);
     const triggerEl = e.currentTarget;
     try {
-      const res = await publishAndTransferToStudent(unit, learner.id || learner.uid, coachUser?.uid);
+      const targetClassId = learner.classIds?.[0] || (selectedClassId !== 'all' ? selectedClassId : null);
+      const res = await publishAndTransferToStudent(unit, learner.id || learner.uid, coachUser?.uid, targetClassId);
       setTransferredInfo(res);
       confettiFrom(triggerEl, { big: true });
       buzz([30, 60, 30]);
@@ -205,7 +248,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             onClick={() => setWorkspaceTab('supervision')}
           >
             <Users size={16} /> Learner Supervision
-            <span className="cp-tab-pill">4 Active</span>
+            <span className="cp-tab-pill">{availableLearners.length} Active</span>
           </button>
 
           <button
@@ -245,6 +288,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
       {/* Tab 1: Learner Supervision */}
       {workspaceTab === 'supervision' && (
         <LearnerSupervisionView
+          learners={availableLearners}
           onSelectLearnerForStudio={(learnerId) => {
             setSelectedLearnerId(learnerId);
             setWorkspaceTab('studio');
@@ -392,10 +436,10 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             {/* Selected Profile Detail Box */}
             <div className="cp-profile-box">
               <div className="cp-profile-header">
-                <span className="cp-profile-avatar">{learner.avatar}</span>
+                <span className="cp-profile-avatar">{learner.avatar || '👤'}</span>
                 <div>
-                  <h3 className="cp-profile-name">{learner.name}</h3>
-                  <p className="cp-profile-grade">{learner.grade} • {learner.cohort}</p>
+                  <h3 className="cp-profile-name">{learner.name || learner.displayName}</h3>
+                  <p className="cp-profile-grade">{gradeDisplay}</p>
                 </div>
               </div>
 
@@ -403,7 +447,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               <div className="cp-tag-group">
                 <span className="cp-tag-label">Cognitive Profile & Diagnosis:</span>
                 <div className="cp-tag-chips">
-                  {(learner.traitBadges || []).map((badge) => (
+                  {traitBadges.map((badge) => (
                     <span key={badge} className="cp-chip cp-chip-trait">{badge}</span>
                   ))}
                 </div>
@@ -413,7 +457,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               <div className="cp-tag-group">
                 <span className="cp-tag-label">Consuming Passions:</span>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: '#f0f6fc', fontWeight: 600 }}>
-                  {learner.consumingPassions}
+                  {passionsDisplay}
                 </p>
               </div>
 
@@ -421,7 +465,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               <div className="cp-tag-group">
                 <span className="cp-tag-label">Executive Function Hurdles:</span>
                 <div className="cp-tag-chips">
-                  {(learner.hurdleBadges || []).map((badge) => (
+                  {hurdleBadges.map((badge) => (
                     <span key={badge} className="cp-chip cp-chip-hurdle">{badge}</span>
                   ))}
                 </div>
@@ -464,11 +508,27 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
                 </>
               ) : (
                 <>
-                  <Sparkles size={16} /> Synthesize for {learner.name.split(' ')[0]}
+                  <Sparkles size={16} /> Synthesize for {(learner.name || learner.displayName || 'Learner').split(' ')[0]}
                 </>
               )}
             </button>
           </div>
+
+          {synthesisError && (
+            <div style={{ background: 'rgba(248, 81, 73, 0.15)', border: '1px solid #f85149', borderRadius: 8, padding: '0.75rem 1rem', margin: '0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#ff7b72' }}>
+              <AlertTriangle size={18} />
+              <div style={{ flex: 1, fontSize: '0.85rem' }}>
+                <strong>Unit Synthesis Notice:</strong> {synthesisError}
+              </div>
+              <button
+                type="button"
+                onClick={handleSynthesize}
+                style={{ background: '#f85149', color: '#fff', border: 'none', borderRadius: 6, padding: '0.3rem 0.75rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {unit && (
             <>
