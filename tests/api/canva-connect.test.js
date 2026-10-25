@@ -112,18 +112,17 @@ describe('API: Canva Connect Integration', () => {
   // -------------------------------------------------------------------------
   // 1. Age Restriction Tests (< 15 refused)
   // -------------------------------------------------------------------------
-  describe('Under-15 Age Restrictions', () => {
-    it('refuses a student under 15 without consent with a clear error', async () => {
+  describe('OAuth Initiation for Learners and Coaches (Under-15 check disabled)', () => {
+    it('allows a student under 15 to initiate OAuth without restriction', async () => {
       const token = await env.getIdToken('student_under15', { role: 'student' });
       const res = await env.request('GET', '/api/canva/oauth/start', {
         token,
         query: { format: 'json' }
       });
 
-      expect(res.status).toBe(403);
-      expect(res.body.error).toBeDefined();
-      expect(res.body.error.code).toBe('UNDER_AGE_LIMIT');
-      expect(res.body.error.message).toMatch(/under 15/i);
+      expect(res.status).toBe(200);
+      expect(res.body.url).toBeDefined();
+      expect(res.body.state).toBeDefined();
     });
 
     it('allows a coach to initiate OAuth', async () => {

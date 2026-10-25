@@ -65,22 +65,9 @@ router.get('/oauth/start', requireClaims, async (req, res) => {
   const db = getFirestore();
   const caller = req.caller;
 
-  // Retrieve user document for age/consent checks
+  // Retrieve user document (under-15 check removed for now per requirement)
   const userDocSnap = await db.collection('users').doc(caller.uid).get();
   const userData = userDocSnap.exists ? userDocSnap.data() : {};
-
-  // Under-15 check for students
-  if (caller.role === 'student' && isUserUnder15(userData)) {
-    const consentGranted = userData.consent?.status === 'granted';
-    if (!consentGranted) {
-      return sendError(
-        res,
-        403,
-        'UNDER_AGE_LIMIT',
-        'Learners under 15 are not permitted to connect Canva without parental consent.'
-      );
-    }
-  }
 
   // Generate cryptographically secure state and PKCE code_verifier (43-128 chars)
   const state = crypto.randomBytes(32).toString('hex');
