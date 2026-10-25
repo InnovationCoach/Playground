@@ -1,8 +1,14 @@
 .canva-page {
+  --cv-text: var(--gh-text, #14213a);
+  --cv-muted: var(--gh-text-2, #4b5670);
+  --cv-surface: var(--gh-surface, #ffffff);
+  --cv-subtle: var(--gh-subtle, #f0f1f6);
+  --cv-border: var(--gh-border, #e4e6ee);
+  --cv-accent: var(--gh-purple, #8250a0);
   max-width: 1100px;
   margin: 0 auto;
   padding: 2rem 1.5rem 4rem;
-  color: #f1f5f9;
+  color: var(--cv-text);
 }
 
 .canva-header {
@@ -41,15 +47,15 @@
 
 .canva-lead {
   font-size: 1.05rem;
-  color: #94a3b8;
+  color: var(--cv-muted);
   max-width: 720px;
   margin-top: 0.75rem;
   line-height: 1.5;
 }
 
 .canva-card {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--cv-surface);
+  border: 1px solid var(--cv-border);
   border-radius: 14px;
   padding: 1.75rem;
   margin-bottom: 2rem;
@@ -72,7 +78,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #f8fafc;
+  color: var(--cv-text);
 }
 
 .canva-status-pill {
@@ -93,7 +99,7 @@
 
 .canva-status-disconnected {
   background: rgba(148, 163, 184, 0.1);
-  color: #94a3b8;
+  color: var(--cv-muted);
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
@@ -123,9 +129,9 @@
 }
 
 .canva-btn-secondary {
-  background: #334155;
-  color: #f1f5f9;
-  border: 1px solid #475569;
+  background: var(--cv-subtle);
+  color: var(--cv-text);
+  border: 1px solid var(--cv-border);
 }
 
 .canva-btn-secondary:hover {
@@ -152,8 +158,8 @@
 }
 
 .canva-starter-card {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--cv-surface);
+  border: 1px solid var(--cv-border);
   border-radius: 12px;
   padding: 1.25rem;
   display: flex;
@@ -165,7 +171,7 @@
 }
 
 .canva-starter-card:hover {
-  border-color: #818cf8;
+  border-color: var(--cv-accent);
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
 }
@@ -184,12 +190,12 @@
   font-size: 1.1rem;
   font-weight: 700;
   margin: 0 0 0.4rem;
-  color: #f8fafc;
+  color: var(--cv-text);
 }
 
 .canva-starter-desc {
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: var(--cv-muted);
   margin: 0 0 1rem;
   line-height: 1.4;
   flex-grow: 1;
@@ -211,8 +217,8 @@
 }
 
 .canva-guide-card {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--cv-surface);
+  border: 1px solid var(--cv-border);
   border-radius: 12px;
   padding: 1.5rem;
 }
@@ -251,17 +257,17 @@
 
 .canva-input {
   flex: 1;
-  background: #0f172a;
+  background: var(--cv-surface);
   border: 1px solid #475569;
   border-radius: 10px;
   padding: 0.65rem 1rem;
-  color: #f8fafc;
+  color: var(--cv-text);
   font-size: 0.95rem;
 }
 
 .canva-input:focus {
   outline: none;
-  border-color: #818cf8;
+  border-color: var(--cv-accent);
   box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
 }
 
@@ -272,3 +278,54 @@
   border: 1px solid rgba(99, 102, 241, 0.3);
   border-radius: 10px;
 }
+
+/* ---- Refinement (UX pass): theme tokens, one set of states, no inline colours ---- */
+.canva-page {
+  color: var(--gh-text, #14213a);
+}
+.canva-page .canva-muted { color: var(--gh-text-2, #4b5670); font-size: 0.875rem; margin: 0.2rem 0 0; }
+.canva-page .canva-body-text { margin: 0; color: var(--gh-text, #14213a); }
+.canva-page .canva-lead { color: var(--gh-text-2, #4b5670); }
+.canva-page .canva-title { color: var(--gh-heading, #0f2c4c); }
+.canva-page .canva-card-title { color: var(--gh-heading, #0f2c4c); }
+.canva-page .canva-connection-body {
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;
+}
+.canva-page .canva-connection-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.canva-page .canva-confirm { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.canva-page .canva-status-muted {
+  background: var(--gh-subtle, #f0f1f6); color: var(--gh-text-2, #4b5670);
+}
+.canva-page .canva-notice {
+  display: flex; align-items: center; gap: 0.4rem; margin: 0.75rem 0 0; padding: 0.55rem 0.75rem;
+  border-radius: 8px; font-size: 0.9rem;
+}
+.canva-page .canva-notice-success { background: var(--gh-green-50, #f2fadf); color: var(--gh-green-text, #4a6a00); }
+.canva-page .canva-notice-error { background: var(--gh-red-50, #fcecec); color: var(--gh-red, #ae3435); }
+.canva-page .canva-notice-warn { background: var(--gh-amber-50, #fff6e0); color: var(--gh-amber-text, #8a5700); }
+.canva-page .canva-steps { margin: 0 0 0.75rem; padding-left: 1.2rem; display: grid; gap: 0.35rem; color: var(--gh-text, #14213a); }
+.canva-page .canva-link-form { display: grid; gap: 0.6rem; margin-top: 0.5rem; }
+.canva-page .canva-field { display: grid; gap: 0.25rem; font-size: 0.8rem; font-weight: 600; color: var(--gh-text-2, #4b5670); }
+.canva-page .canva-link-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.canva-page .canva-starter-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; }
+.canva-page .canva-tone-indigo { background: rgba(129, 140, 248, 0.18); color: #6366f1; }
+.canva-page .canva-tone-sky { background: rgba(56, 189, 248, 0.18); color: #0284c7; }
+.canva-page .canva-tone-violet { background: rgba(192, 132, 252, 0.18); color: #9333ea; }
+.canva-page .canva-tone-rose { background: rgba(251, 113, 133, 0.18); color: #e11d48; }
+.canva-page .canva-tone-green { background: rgba(52, 211, 153, 0.18); color: #059669; }
+.canva-page .canva-tone-amber { background: rgba(245, 158, 11, 0.18); color: #b45309; }
+.canva-page .canva-starter-title { font-weight: 700; color: var(--gh-heading, #0f2c4c); }
+.canva-page .canva-starter-desc { color: var(--gh-text-2, #4b5670); font-size: 0.875rem; }
+.canva-page .canva-starter-action { color: var(--gh-purple-text, #6e3f8b); font-weight: 600; font-size: 0.875rem; }
+.canva-page a:focus-visible, .canva-page button:focus-visible, .canva-page input:focus-visible {
+  outline: 3px solid var(--gh-sky, #9bd2ff); outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .canva-page .spin { animation: none; }
+}
+
+.canva-page ul.canva-grid { list-style: none; margin: 0; padding: 0; }
+
+/* The app styles every <header> as the navy top bar; this page header is content. */
+.canva-page header.canva-header { background: none; color: var(--cv-text); padding: 0; border: 0; box-shadow: none; }
+.canva-page .canva-eyebrow { color: var(--cv-accent); }

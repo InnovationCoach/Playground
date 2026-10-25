@@ -1,331 +1,233 @@
 import { useState, useEffect } from 'react';
 import {
   Palette, ExternalLink, CheckCircle2, AlertCircle, Sparkles,
-  Presentation, FileText, Layout, Image, Copy, Check, LogOut, RefreshCw, Link as LinkIcon
+  Presentation, FileText, Layout, Image, Copy, Check, LogOut, RefreshCw, Link as LinkIcon, AlertTriangle
 } from 'lucide-react';
 import { apiRequest } from '../../services/api/apiClient.js';
 import './canva.css';
 
 const STARTERS = [
-  {
-    title: 'Presentations & Pitches',
-    desc: '16:9 widescreen slides for your PBL presentations, elevator pitches, and showcase decks.',
-    url: 'https://www.canva.com/create/presentations/',
-    icon: Presentation,
-    color: '#818cf8',
-    bg: 'rgba(129, 140, 248, 0.15)'
-  },
-  {
-    title: 'Infographics & Data',
-    desc: 'Visual data reports, timelines, and process diagrams to communicate research findings.',
-    url: 'https://www.canva.com/create/infographics/',
-    icon: Layout,
-    color: '#38bdf8',
-    bg: 'rgba(56, 189, 248, 0.15)'
-  },
-  {
-    title: 'Posters & Course Covers',
-    desc: 'Eye-catching graphic banners for program covers, project campaigns, and classroom posters.',
-    url: 'https://www.canva.com/create/posters/',
-    icon: Image,
-    color: '#c084fc',
-    bg: 'rgba(192, 132, 252, 0.15)'
-  },
-  {
-    title: 'Whiteboards & Mind Maps',
-    desc: 'Infinite canvas for empathy mapping, problem ideation, and collaborative team brainstorming.',
-    url: 'https://www.canva.com/create/whiteboards/',
-    icon: Sparkles,
-    color: '#fb7185',
-    bg: 'rgba(251, 113, 133, 0.15)'
-  },
-  {
-    title: 'Reports & Worksheets',
-    desc: 'Structured project portfolios, summary briefs, and learner task sheets.',
-    url: 'https://www.canva.com/create/documents/',
-    icon: FileText,
-    color: '#34d399',
-    bg: 'rgba(52, 211, 153, 0.15)'
-  },
-  {
-    title: 'Open Canva Workspace',
-    desc: 'Jump directly to your personal Canva dashboard to access all recent designs and assets.',
-    url: 'https://www.canva.com/',
-    icon: Palette,
-    color: '#f59e0b',
-    bg: 'rgba(245, 158, 11, 0.15)'
-  }
+  { title: 'Presentations & pitches', desc: 'Widescreen slides for PBL presentations, elevator pitches and showcase decks.', url: 'https://www.canva.com/create/presentations/', icon: Presentation, tone: 'indigo' },
+  { title: 'Infographics & data', desc: 'Data reports, timelines and process diagrams for research findings.', url: 'https://www.canva.com/create/infographics/', icon: Layout, tone: 'sky' },
+  { title: 'Posters & course covers', desc: 'Banners for program covers, project campaigns and classroom posters.', url: 'https://www.canva.com/create/posters/', icon: Image, tone: 'violet' },
+  { title: 'Whiteboards & mind maps', desc: 'An open canvas for empathy maps, problem ideas and team brainstorms.', url: 'https://www.canva.com/create/whiteboards/', icon: Sparkles, tone: 'rose' },
+  { title: 'Reports & worksheets', desc: 'Project portfolios, summary briefs and learner task sheets.', url: 'https://www.canva.com/create/documents/', icon: FileText, tone: 'green' },
+  { title: 'Open Canva', desc: 'Go to your Canva home page to find your recent designs.', url: 'https://www.canva.com/', icon: Palette, tone: 'amber' }
 ];
 
-export function CanvaPage({ uid, role, profile }) {
+/** Same rules as the server-side link check: only a Canva view link is accepted. */
+export function checkViewLink(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return { ok: false, reason: 'Paste your Canva link first.' };
+  if (/canva\.link/i.test(s)) return { ok: false, reason: 'Short canva.link addresses cannot be used. Open the design and copy the full canva.com/design link.' };
+  if (/\/design\/[^/]+\/[^/]+\/edit/i.test(s)) return { ok: false, reason: 'That is an edit link. In Canva choose Share, then Anyone with the link can view, and copy that link.' };
+  if (!/^https:\/\/(www\.)?canva\.com\/design\/[A-Za-z0-9_-]{6,40}\/[A-Za-z0-9_-]{6,40}\/view\/?$/.test(s)) {
+    return { ok: false, reason: 'That does not look like a Canva view link. It should start with https://www.canva.com/design/.' };
+  }
+  return { ok: true };
+}
+
+export function CanvaPage({ uid, role }) {
   const [connection, setConnection] = useState({ loading: true, connected: false });
-  const [disconnecting, setDisconnecting] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [pasteLink, setPasteLink] = useState('');
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(null); // 'connect' | 'disconnect'
+  const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
+  const [linkText, setLinkText] = useState('');
+  const [linkCheck, setLinkCheck] = useState(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let active = true;
-    async function checkStatus() {
-      try {
-        const res = await apiRequest('GET', '/api/canva/connection');
-        if (active) {
-          setConnection({
-            loading: false,
-            connected: !!res?.connected,
-            connectedAt: res?.connectedAt,
-            scope: res?.scope
-          });
-        }
-      } catch {
-        if (active) {
-          setConnection({ loading: false, connected: false });
-        }
-      }
-    }
-    checkStatus();
+    apiRequest('GET', '/api/canva/connection')
+      .then((res) => { if (active) setConnection({ loading: false, connected: !!res?.connected, connectedAt: res?.connectedAt }); })
+      .catch(() => { if (active) setConnection({ loading: false, connected: false, error: true }); });
     return () => { active = false; };
-  }, []);
+  }, [uid]);
 
   const handleConnect = async () => {
+    setStatus(null);
+    setBusy('connect');
     try {
-      setConnecting(true);
       const res = await apiRequest('GET', '/api/canva/oauth/start?format=json');
-      if (res?.url) {
-        window.location.href = res.url;
-      } else {
-        window.location.href = '/api/canva/oauth/start';
-      }
-    } catch {
-      window.location.href = '/api/canva/oauth/start';
-    } finally {
-      setConnecting(false);
+      if (!res?.url) throw new Error('Canva did not return a sign-in address.');
+      window.location.assign(res.url);
+    } catch (err) {
+      setBusy(null);
+      setStatus({ kind: 'error', message: err?.message || 'We could not start the Canva sign-in. Try again in a moment.' });
     }
   };
 
   const handleDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect your Canva account?')) return;
+    setBusy('disconnect');
+    setStatus(null);
     try {
-      setDisconnecting(true);
       await apiRequest('POST', '/api/canva/disconnect');
       setConnection({ loading: false, connected: false });
+      setStatus({ kind: 'success', message: 'Canva is disconnected. Your designs in Canva are unchanged.' });
     } catch (err) {
-      alert(err.message || 'Failed to disconnect Canva.');
+      setStatus({ kind: 'error', message: err?.message || 'We could not disconnect Canva. Try again.' });
     } finally {
-      setDisconnecting(false);
+      setBusy(null);
+      setConfirmingDisconnect(false);
     }
   };
 
-  const copyEmbedCode = () => {
-    if (!pasteLink) return;
-    navigator.clipboard.writeText(pasteLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const checkLink = (e) => {
+    e?.preventDefault();
+    setCopied(false);
+    setLinkCheck(checkViewLink(linkText));
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(linkText.trim());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setLinkCheck({ ok: false, reason: 'Your browser blocked copying. Select the link and copy it yourself.' });
+    }
   };
 
   const isCoach = role === 'teacher' || role === 'coach' || role === 'admin';
+  const connected = connection.connected;
 
   return (
-    <div className="canva-page">
+    <div className="gh-app canva-page">
       <header className="canva-header">
-        <span className="canva-eyebrow">
-          <Sparkles size={15} aria-hidden="true" />
-          Creative Tools
-        </span>
+        <span className="canva-eyebrow"><Sparkles size={15} aria-hidden="true" /> Creative tools</span>
         <div className="canva-title-row">
-          <h1 className="canva-title">
-            <Palette size={32} color="#818cf8" aria-hidden="true" />
-            Canva Studio
-          </h1>
-          {connection.connected && (
-            <span className="canva-status-pill canva-status-connected">
-              <CheckCircle2 size={15} /> Connected to Canva
-            </span>
-          )}
+          <h1 className="canva-title"><Palette size={28} aria-hidden="true" /> Canva Studio</h1>
+          {connected && <span className="canva-status-pill canva-status-connected"><CheckCircle2 size={15} aria-hidden="true" /> Connected</span>}
         </div>
-        <p className="canva-lead">
-          Design high-impact pitch decks, infographics, posters, and course artifacts directly in Canva, and link your visual work with WeLearn SPARK.
-        </p>
+        <p className="canva-lead">Design posters, slides and showcase material in Canva, then bring the link into your WeLearn project.</p>
       </header>
 
-      {/* Account Connection Status */}
-      <section className="canva-card">
+      <section className="canva-card" aria-labelledby="canva-connection-title">
         <div className="canva-card-header">
-          <h2 className="canva-card-title">
-            <Sparkles size={18} color="#a855f7" />
-            Canva Account Connection
-          </h2>
+          <h2 id="canva-connection-title" className="canva-card-title"><Sparkles size={18} aria-hidden="true" /> Your Canva account</h2>
           {connection.loading ? (
-            <span className="canva-status-pill canva-status-disconnected">
-              <RefreshCw size={14} className="spin" /> Checking...
-            </span>
-          ) : connection.connected ? (
-            <span className="canva-status-pill canva-status-connected">
-              <CheckCircle2 size={14} /> Active
-            </span>
+            <span className="canva-status-pill canva-status-muted"><RefreshCw size={14} aria-hidden="true" /> Checking…</span>
+          ) : connected ? (
+            <span className="canva-status-pill canva-status-connected"><CheckCircle2 size={14} aria-hidden="true" /> Active</span>
           ) : (
-            <span className="canva-status-pill canva-status-disconnected">
-              <AlertCircle size={14} /> Not Connected
-            </span>
+            <span className="canva-status-pill canva-status-muted"><AlertCircle size={14} aria-hidden="true" /> Not connected</span>
           )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="canva-connection-body">
           <div>
-            <p style={{ margin: 0, color: '#cbd5e1', fontSize: '0.95rem' }}>
-              {connection.connected
-                ? `Connected to your Canva account. Designs you authorize can be exported directly into your WeLearn storage.`
-                : `Connect your Canva account to export and publish your designs seamlessly into WeLearn.`}
+            <p className="canva-body-text">
+              {connected
+                ? 'Connected. Designs you choose can be brought into WeLearn.'
+                : 'Connect to bring designs into WeLearn without copying links. You can still use Canva without connecting.'}
             </p>
             {connection.connectedAt && (
-              <p style={{ margin: '0.4rem 0 0', color: '#94a3b8', fontSize: '0.85rem' }}>
-                Connected on {new Date(connection.connectedAt).toLocaleDateString()}
-              </p>
+              <p className="canva-muted">Connected on {new Date(connection.connectedAt).toLocaleDateString()}</p>
             )}
           </div>
 
-          <div>
-            {connection.connected ? (
-              <button
-                type="button"
-                className="canva-btn canva-btn-danger"
-                onClick={handleDisconnect}
-                disabled={disconnecting}
-              >
-                <LogOut size={16} />
-                {disconnecting ? 'Disconnecting...' : 'Disconnect Canva'}
+          <div className="canva-connection-actions">
+            {connected && !confirmingDisconnect && (
+              <button type="button" className="canva-btn canva-btn-danger" onClick={() => setConfirmingDisconnect(true)} disabled={busy !== null}>
+                <LogOut size={16} aria-hidden="true" /> Disconnect
               </button>
-            ) : (
-              <button
-                type="button"
-                className="canva-btn canva-btn-primary"
-                onClick={handleConnect}
-                disabled={connecting}
-              >
-                <ExternalLink size={16} />
-                {connecting ? 'Redirecting...' : 'Connect with Canva'}
+            )}
+            {connected && confirmingDisconnect && (
+              <div className="canva-confirm" role="group" aria-label="Confirm disconnect">
+                <span>Disconnect your Canva account?</span>
+                <button type="button" className="canva-btn canva-btn-danger" onClick={handleDisconnect} disabled={busy !== null}>
+                  {busy === 'disconnect' ? 'Disconnecting…' : 'Yes, disconnect'}
+                </button>
+                <button type="button" className="canva-btn canva-btn-secondary" onClick={() => setConfirmingDisconnect(false)}>Keep connected</button>
+              </div>
+            )}
+            {!connected && !connection.loading && (
+              <button type="button" className="canva-btn canva-btn-primary" onClick={handleConnect} disabled={busy !== null}>
+                <ExternalLink size={16} aria-hidden="true" /> {busy === 'connect' ? 'Opening Canva…' : 'Connect with Canva'}
               </button>
             )}
           </div>
+        </div>
+
+        <div role="status" aria-live="polite">
+          {connection.error && <p className="canva-notice canva-notice-warn"><AlertTriangle size={15} aria-hidden="true" /> We could not check your Canva connection. You can still open Canva and add links.</p>}
+          {status && <p className={`canva-notice canva-notice-${status.kind}`}>{status.message}</p>}
         </div>
       </section>
 
-      {/* Quick Design Starters */}
-      <section className="canva-card">
+      <section className="canva-card" aria-labelledby="canva-starters-title">
         <div className="canva-card-header">
-          <h2 className="canva-card-title">
-            <Palette size={18} color="#38bdf8" />
-            Quick Design Starters
-          </h2>
-          <span style={{ fontSize: '0.875rem', color: '#94a3b8' }}>Opens directly in Canva</span>
+          <h2 id="canva-starters-title" className="canva-card-title"><Palette size={18} aria-hidden="true" /> Start a design</h2>
+          <span className="canva-muted">Opens in Canva in a new tab</span>
         </div>
-
-        <div className="canva-grid">
+        <ul className="canva-grid">
           {STARTERS.map((s) => {
             const Icon = s.icon;
             return (
-              <a
-                key={s.title}
-                href={s.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="canva-starter-card"
-              >
-                <div>
-                  <div className="canva-starter-icon" style={{ background: s.bg, color: s.color }}>
-                    <Icon size={22} />
-                  </div>
-                  <h3 className="canva-starter-title">{s.title}</h3>
-                  <p className="canva-starter-desc">{s.desc}</p>
-                </div>
-                <span className="canva-starter-action">
-                  Open template <ExternalLink size={14} />
-                </span>
-              </a>
+              <li key={s.title}>
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className="canva-starter-card">
+                  <span className={`canva-starter-icon canva-tone-${s.tone}`} aria-hidden="true"><Icon size={20} /></span>
+                  <span className="canva-starter-title">{s.title}</span>
+                  <span className="canva-starter-desc">{s.desc}</span>
+                  <span className="canva-starter-action">Open in Canva <ExternalLink size={14} aria-hidden="true" /></span>
+                </a>
+              </li>
             );
           })}
+        </ul>
+      </section>
+
+      <section className="canva-card" aria-labelledby="canva-link-title">
+        <div className="canva-card-header">
+          <h2 id="canva-link-title" className="canva-card-title"><LinkIcon size={18} aria-hidden="true" /> Add a design to your project</h2>
+        </div>
+        <ol className="canva-steps">
+          <li>In Canva, choose <strong>Share</strong>, then <strong>Anyone with the link can view</strong>.</li>
+          <li>Copy the link and paste it below to check it.</li>
+          <li>Paste the checked link into your PBL project as evidence{isCoach ? ', or into a class resource.' : '.'}</li>
+        </ol>
+
+        <form className="canva-link-form" onSubmit={checkLink}>
+          <label className="canva-field">
+            <span>Canva view link</span>
+            <input type="url" className="canva-input" value={linkText} placeholder="https://www.canva.com/design/…/view"
+              onChange={(e) => { setLinkText(e.target.value); setLinkCheck(null); }} />
+          </label>
+          <div className="canva-link-buttons">
+            <button type="submit" className="canva-btn canva-btn-primary" disabled={!linkText.trim()}>Check link</button>
+            <button type="button" className="canva-btn canva-btn-secondary" onClick={copyLink} disabled={!linkCheck?.ok}>
+              {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />} {copied ? 'Copied' : 'Copy link'}
+            </button>
+          </div>
+        </form>
+        <div role="status" aria-live="polite">
+          {linkCheck && linkCheck.ok && <p className="canva-notice canva-notice-success"><CheckCircle2 size={15} aria-hidden="true" /> This is a valid Canva view link.</p>}
+          {linkCheck && !linkCheck.ok && <p className="canva-notice canva-notice-error"><AlertCircle size={15} aria-hidden="true" /> {linkCheck.reason}</p>}
         </div>
       </section>
 
-      {/* Guide: How to use Canva in WeLearn */}
-      <section className="canva-card">
+      <section className="canva-card" aria-labelledby="canva-guide-title">
         <div className="canva-card-header">
-          <h2 className="canva-card-title">
-            <LinkIcon size={18} color="#34d399" />
-            How to use Canva in WeLearn
-          </h2>
+          <h2 id="canva-guide-title" className="canva-card-title">{isCoach ? 'For coaches' : 'For teams'}</h2>
         </div>
-
-        <div className="canva-guide-grid">
-          <div className="canva-guide-card">
-            <h3>For Students: Attaching Evidence</h3>
-            <ol className="canva-guide-list">
-              <li>Open any template above or your design on Canva.</li>
-              <li>Click <strong>Share</strong> in the top-right corner of Canva.</li>
-              <li>Under <em>Collaboration link</em> or <em>Public view link</em>, choose <strong>Anyone with the link can view</strong>.</li>
-              <li>Copy the link and paste it into your <strong>PBL Studio</strong> artifact or submission box.</li>
-            </ol>
-          </div>
-
-          <div className="canva-guide-card">
-            <h3>{isCoach ? 'For Coaches: Program & Course Assets' : 'For PBL Teams: Collaboration'}</h3>
-            <ol className="canva-guide-list">
-              {isCoach ? (
-                <>
-                  <li>Create course banners or poster rubrics using Canva's 16:9 or banner templates.</li>
-                  <li>Click <strong>Share</strong> &gt; <strong>Download</strong> (as PNG or JPG).</li>
-                  <li>Upload the image into your Course Creator / PBL Program Studio as the cover photo.</li>
-                  <li>You can also share editable team links with your student cohorts during studio sessions.</li>
-                </>
-              ) : (
-                <>
-                  <li>Invite teammates to your Canva design using their email addresses.</li>
-                  <li>Collaborate live on your prototype diagrams and pitch slides.</li>
-                  <li>Export the final slides as a PDF or image to submit during the Exhibit phase.</li>
-                </>
-              )}
-            </ol>
-          </div>
-        </div>
-
-        {/* Link helper */}
-        <div className="canva-link-helper">
-          <h3 style={{ fontSize: '1rem', color: '#e2e8f0', margin: '0 0 0.4rem' }}>
-            Canva Link Checker
-          </h3>
-          <p style={{ margin: 0, fontSize: '0.875rem', color: '#94a3b8' }}>
-            Paste your Canva share link here to verify it and quickly copy it for your project:
-          </p>
-          <div className="canva-input-group">
-            <input
-              type="url"
-              className="canva-input"
-              placeholder="https://www.canva.com/design/..."
-              value={pasteLink}
-              onChange={(e) => setPasteLink(e.target.value)}
-            />
-            <button
-              type="button"
-              className="canva-btn canva-btn-secondary"
-              onClick={copyEmbedCode}
-              disabled={!pasteLink}
-            >
-              {copied ? <Check size={16} color="#4ade80" /> : <Copy size={16} />}
-              {copied ? 'Copied!' : 'Copy Link'}
-            </button>
-          </div>
-
-          {pasteLink && pasteLink.includes('canva.com') && (
-            <div className="canva-preview-box">
-              <span style={{ fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600 }}>Valid Canva Link detected:</span>
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#e0e7ff', wordBreak: 'break-all' }}>
-                {pasteLink}
-              </p>
-            </div>
+        <ul className="canva-steps">
+          {isCoach ? (
+            <>
+              <li>Make course banners and rubrics with the posters or presentations templates.</li>
+              <li>Download the finished design as PNG or JPG, then upload it as a program cover.</li>
+              <li>Share an editable link with a class for studio sessions.</li>
+            </>
+          ) : (
+            <>
+              <li>Invite teammates to a design by email from inside Canva.</li>
+              <li>Work on prototype diagrams and pitch slides together.</li>
+              <li>Export the final slides as PDF or PNG for the showcase.</li>
+            </>
           )}
-        </div>
+        </ul>
       </section>
     </div>
   );
 }
+
 export default CanvaPage;
