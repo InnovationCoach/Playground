@@ -490,6 +490,18 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     return ok({ linkId: link.linkId, status: 'revoked' });
   });
 
+  route('GET', '/api/canva/connection', ['admin', 'supervisor', 'teacher', 'student'], () => {
+    return ok({ connected: false });
+  });
+
+  route('GET', '/api/canva/oauth/start', ['admin', 'supervisor', 'teacher', 'student'], () => {
+    return ok({ url: 'https://www.canva.com', state: 'mock-canva-state' });
+  });
+
+  route('POST', '/api/canva/disconnect', ['admin', 'supervisor', 'teacher', 'student'], () => {
+    return ok({ success: true, disconnected: true });
+  });
+
   async function handle({ method, path, query = {}, body = null, caller }) {
     if (latencyMs) await new Promise((r) => setTimeout(r, latencyMs));
     if (!caller?.uid) return fail(401, 'UNAUTHENTICATED', 'Sign in again.');

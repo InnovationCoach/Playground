@@ -20,6 +20,7 @@ import { Header } from '../features/shell/Header.jsx';
 import { StudentDashboard } from '../features/student/StudentDashboard.jsx';
 import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
 import { CoachPblStudio } from '../features/coach/studio/CoachPblStudio.jsx';
+import { CanvaPage } from '../features/canva/CanvaPage.jsx';
 import { EdmentumIntegrationConsole } from '../features/edmentum/EdmentumIntegrationConsole.jsx';
 import { showActivity, hideAllActivities, isLegacyActivity, isReactActivity, trackActivityOpen, ACTIVITY_NAV } from '../features/activities/activityHost.js';
 import { SolarCarChallenge } from '../features/activities/solarCar/SolarCarChallenge.jsx';
@@ -407,6 +408,10 @@ export function App() {
               role
             }}
           />
+        </div>
+      ) : route?.screen === 'canva' ? (
+        <div className="gh-app">
+          <CanvaPage uid={user?.uid} role={role} profile={profile} />
         </div>
       ) : (role === 'teacher' || role === 'coach') && (route?.screen === 'coach' || !route?.screen) ? (
         <CoachDashboardHost

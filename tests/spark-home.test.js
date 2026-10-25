@@ -10,11 +10,11 @@ import { childRecords } from '../src/services/api/mockChildRecords.js';
 
 // The screens App.jsx renders for each role. A SPARK card may only point at one of these.
 const ALLOWED = {
-  student: ['courses', 'pbl', 'goals', 'dashboard', 'futureSkills', 'homeSearch', 'community', 'spark', 'settings'],
-  teacher: ['coach', 'pbl', 'resources', 'community', 'spark', 'settings'],
+  student: ['courses', 'pbl', 'goals', 'dashboard', 'futureSkills', 'homeSearch', 'community', 'spark', 'settings', 'canva'],
+  teacher: ['coach', 'pbl', 'resources', 'community', 'spark', 'settings', 'canva'],
   parent: ['parent', 'settings', 'spark'],
-  supervisor: ['admin', 'pbl', 'settings', 'resources', 'spark'],
-  admin: ['admin', 'pbl', 'settings', 'resources', 'spark']
+  supervisor: ['admin', 'pbl', 'settings', 'resources', 'spark', 'canva'],
+  admin: ['admin', 'pbl', 'settings', 'resources', 'spark', 'canva']
 };
 const t = (key, vars) => translate('en', key, vars);
 

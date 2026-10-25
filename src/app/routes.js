@@ -55,6 +55,7 @@ export function parseRoute(hash) {
   if (head === 'dashboard') return { screen: 'dashboard' };
   if (head === 'spark') return { screen: 'spark' };
   if (head === 'coach') return { screen: 'coach' };
+  if (head === 'canva') return { screen: 'canva' };
   if (head === 'edmentum') return { screen: 'edmentum' };
   return null;
 }
@@ -82,5 +83,6 @@ export const hrefFor = {
   futureSkills: () => '#/future-skills',
   dashboard: () => '#/dashboard',
   spark: () => '#/spark',
-  coach: () => '#/coach/dashboard'
+  coach: () => '#/coach/dashboard',
+  canva: () => '#/canva'
 };
