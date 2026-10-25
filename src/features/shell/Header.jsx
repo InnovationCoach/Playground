@@ -5,6 +5,7 @@ import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { hrefFor } from '../../app/routes.js';
 import { LOGO_URL } from '../../app/brand.js';
 import { Avatar } from './Avatar.jsx';
+import { NotificationBell } from '../studentProfile/NotificationBell.jsx';
 
 /**
  * Top bar for every signed-in screen: logo on the left, the account menu on
@@ -42,6 +43,7 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome, onMen
 
       {email && (
         <div className="gh-topbar-right" ref={wrapRef}>
+          {uid && <NotificationBell uid={uid} />}
           <button type="button" className="gh-user-btn" aria-haspopup="menu" aria-expanded={open}
                   onClick={() => setOpen((o) => !o)}>
             <Avatar name={name} seed={uid || email} size={30} />

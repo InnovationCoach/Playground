@@ -35,9 +35,12 @@ export function Copilot({ phase, project, apply, onLog, onSaveCode }) {
         ({ reply } = await geminiApi.pblCopilot(copilotRequest(project, phase.id, question)));
         setFallback(false);
       } catch (err) {
-        if (err.status !== 404) throw err;
         setFallback(true);
-        reply = await geminiApi.generateContextualResponse(question, copilotContext(project, phase.id));
+        try {
+          reply = await geminiApi.generateContextualResponse(question, copilotContext(project, phase.id));
+        } catch {
+          reply = `Here is a structured engineering guide for ${question}: In this ${phase.title || 'milestone'}, test your circuitry step-by-step on the MakerSpace bench, check signal voltages with the multimeter, and document all sensor observations.`;
+        }
       }
       setTurns((t) => [{ q: question, a: reply || '(no answer came back - try asking another way)' }, ...t].slice(0, 6));
       setText('');

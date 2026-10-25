@@ -57,10 +57,12 @@ export function useCoachClasses(coachUser = null) {
  * @param {string} classId - Target class ID
  * @param {object} options - { includeTest: boolean }
  */
-export function useClassLearners(classId, { includeTest = false } = {}) {
+export function useClassLearners(classId, { includeTest = false, fallbackClassIds = [] } = {}) {
   const [learners, setLearners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const fallbackKey = (fallbackClassIds || []).join('|');
 
   const fetchLearners = useCallback(async () => {
     if (!classId) {
@@ -77,7 +79,10 @@ export function useClassLearners(classId, { includeTest = false } = {}) {
       if (classId === 'all') {
         // Fetch for all coach classIds
         const claims = await getAuthClaims().catch(() => ({}));
-        const ids = (claims.classIds || []).filter(Boolean);
+        let ids = (claims.classIds || []).filter(Boolean);
+        if (ids.length === 0 && fallbackKey) {
+          ids = fallbackKey.split('|').filter(Boolean);
+        }
         if (ids.length === 0) {
           setLearners([]);
           setLoading(false);
@@ -107,20 +112,33 @@ export function useClassLearners(classId, { includeTest = false } = {}) {
           return;
         }
 
+        const rawTraits = Array.isArray(data.diagnosisTraits) ? data.diagnosisTraits : (data.diagnosisTraits ? [data.diagnosisTraits] : ['Gifted Inquiry', 'Kinesthetic Prototyper']);
+        const rawHurdles = Array.isArray(data.executiveFunctionHurdles) ? data.executiveFunctionHurdles : (data.executiveFunctionHurdles ? [data.executiveFunctionHurdles] : ['Task initiation on unstructured prompts']);
+        const rawPassions = Array.isArray(data.consumingPassions) ? data.consumingPassions.join(', ') : (data.consumingPassions || 'Hands-on Making, Robotics');
+
         list.push({
           id: docSnap.id,
           uid: docSnap.id,
           name: data.displayName || data.email?.split('@')[0] || 'Learner',
           displayName: data.displayName || data.email?.split('@')[0] || 'Learner',
           email: data.email || '',
+          avatar: data.avatar || '👤',
           classIds: Array.isArray(data.classIds) ? data.classIds : [],
+          grade: data.yearLevel || data.grade || (data.ageBand === 'higher-secondary' ? 'Year 12 (Higher Secondary)' : (data.ageBand || 'Secondary')),
+          yearLevel: data.yearLevel || data.grade || '',
+          cohort: data.cohortId || data.cohort || 'cohort-w2e',
+          cohortId: data.cohortId || data.cohort || 'cohort-w2e',
           ageBand: data.ageBand || '11-16',
           isTest: Boolean(data.isTest),
           // Synthetic / seed traits for 2e scaffolding compatibility
-          diagnosisTraits: data.diagnosisTraits || ['Gifted Inquiry', 'Fast Processor'],
-          consumingPassions: data.consumingPassions || ['Hands-on Making', 'Robotics'],
-          executiveFunctionHurdles: data.executiveFunctionHurdles || ['Task initiation'],
-          appliedAccommodations: data.appliedAccommodations || ['Visual progress tracking', 'Milestone chunking']
+          diagnosisTraits: rawTraits,
+          traitBadges: Array.isArray(data.traitBadges) && data.traitBadges.length > 0 ? data.traitBadges : rawTraits,
+          consumingPassions: rawPassions,
+          executiveFunctionHurdles: rawHurdles,
+          hurdleBadges: Array.isArray(data.hurdleBadges) && data.hurdleBadges.length > 0 ? data.hurdleBadges : rawHurdles,
+          appliedAccommodations: Array.isArray(data.appliedAccommodations) && data.appliedAccommodations.length > 0
+            ? data.appliedAccommodations
+            : ['Micro-deadlines with visible 15-minute countdown timers', 'Multi-modal deliverables (GitHub & 60s demo videos instead of essays)']
         });
       });
 
@@ -131,7 +149,7 @@ export function useClassLearners(classId, { includeTest = false } = {}) {
     } finally {
       setLoading(false);
     }
-  }, [classId, includeTest]);
+  }, [classId, includeTest, fallbackKey]);
 
   useEffect(() => {
     fetchLearners();

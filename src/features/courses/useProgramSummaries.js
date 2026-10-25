@@ -42,9 +42,7 @@ export function useProgramSummaries(uid, programs, enabled = true) {
       }));
     });
     return () => { cancelled = true; };
-    // programs is a module constant; re-run only when the learner changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, enabled]);
+  }, [uid, enabled, (programs || []).map((p) => p.id).join(',')]);
 
   return byId;
 }

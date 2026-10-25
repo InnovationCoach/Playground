@@ -6,7 +6,7 @@ import {
   Video, GitBranch, Box
 } from 'lucide-react';
 import { programById, COACH_PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges, isSourcedConfirmation } from './catalog.js';
-import { getProgram } from '../../../services/pblService.js';
+import { getProgram, addToMyCourse } from '../../../services/pblService.js';
 import {
   programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, LIMITS
 } from './progress.js';
@@ -34,10 +34,10 @@ const SECTIONS = [
 ];
 
 /** [5, 5] -> "wk 5", [3, 4] -> "wk 3–4". */
-const weekLabel = ([a, b], word = 'wk') => (a === b ? `${word} ${a}` : `${word}${word === 'Week' ? 's' : ''} ${a}–${b}`);
+const weekLabel = (w, word = 'wk') => (!Array.isArray(w) || w.length < 2 || w[0] == null || w[1] == null ? '' : w[0] === w[1] ? `${word} ${w[0]}` : `${word}${word === 'Week' ? 's' : ''} ${w[0]}–${w[1]}`);
 
 /** "Phase 1A: Problem Discovery" -> "1A", so 1-week phases stay legible; other titles unchanged. */
-const stripLabel = (t) => /^Phase\s+[\w.&\s]{1,8}?:/i.test(t) ? t.split(':')[0].replace(/^Phase\s+/i, '') : t;
+const stripLabel = (t) => (!t ? '' : /^Phase\s+[\w.&\s]{1,8}?:/i.test(t) ? t.split(':')[0].replace(/^Phase\s+/i, '') : t);
 
 const EVIDENCE_LABEL = { note: 'Note', media: 'Photo or video', code: 'Code', data: 'Data', feedback: 'Feedback', ai: 'AI log', reflection: 'Reflection' };
 
@@ -112,10 +112,10 @@ export function ProgramDetail({ programId, section, uid, isCoach, classIds = [] 
 
 function LearnerDetail({ program, section, uid, cover }) {
   const { progress, apply, syncState } = useProgramProgress(uid, program);
-  return <DetailView program={program} section={section} cover={cover} progress={progress} apply={apply} syncState={syncState} />;
+  return <DetailView program={program} section={section} cover={cover} progress={progress} apply={apply} syncState={syncState} uid={uid} />;
 }
 
-function DetailView({ program: p, section, cover, isCoach = false, progress = null, apply = null, syncState }) {
+function DetailView({ program: p, section, cover, isCoach = false, progress = null, apply = null, syncState, uid = null }) {
   const kit = toolkitFor(p.id);
   const sections = SECTIONS.filter((s) => (!s.coach || isCoach) && (!s.kit || kit));
   const active = sections.some((s) => s.id === section) ? section : 'overview';
@@ -135,10 +135,10 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
       <a className="pb-link pg-back" href={hrefFor.pbl('programs')}><ArrowLeft size={15} aria-hidden="true" />All programs</a>
 
       {/* A <section>, not <header>: index.html still styles every bare `header` for the legacy app. */}
-      <section className="pg-hero pg-hero-poster" data-tone={p.identity.tone} aria-labelledby="pg-hero-title">
+      <section className="pg-hero pg-hero-poster" data-tone={p.identity?.tone || 'amber'} aria-labelledby="pg-hero-title">
         <div className="pg-hero-main">
         <div className="pg-hero-top">
-          <span className="pg-hero-icon"><ProgramIcon name={p.identity.icon} size={26} /></span>
+          <span className="pg-hero-icon"><ProgramIcon name={p.identity?.icon || 'Compass'} size={26} /></span>
           <div className="pb-grow">
             <span className="pb-kicker">
               PBL program · {p.theme}
@@ -149,16 +149,22 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
           </div>
         </div>
         <p className="pb-dq pg-hero-dq"><MessageSquareQuote size={18} aria-hidden="true" /><span>{p.drivingQuestion}</span></p>
-        <ol className="pb-term-strip" aria-label={`Program plan, ${p.durationWeeks} weeks`}>
-          {p.phases.map((ph) => (
-            <li key={ph.id} style={{ flexGrow: ph.weeks[1] - ph.weeks[0] + 1 }}
-                data-done={summary?.byPhase[ph.id]?.complete || undefined}>
-              <span title={ph.title}>{stripLabel(ph.title)}</span>
-              <small>{weekLabel(ph.weeks)}</small>
-            </li>
-          ))}
+        <ol className="pb-term-strip" aria-label={`Program plan, ${p.durationWeeks || 12} weeks`}>
+          {(p.phases || []).map((ph, idx) => {
+            const wRange = Array.isArray(ph.weeks) && ph.weeks.length >= 2 && ph.weeks[0] != null && ph.weeks[1] != null
+              ? ph.weeks[1] - ph.weeks[0] + 1
+              : 1;
+            const phId = ph.id || ph.phaseId || `phase-${idx + 1}`;
+            return (
+              <li key={phId} style={{ flexGrow: Math.max(1, wRange) }}
+                  data-done={summary?.byPhase?.[phId]?.complete || undefined}>
+                <span title={ph.title}>{stripLabel(ph.title)}</span>
+                <small>{weekLabel(ph.weeks)}</small>
+              </li>
+            );
+          })}
         </ol>
-        {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} />}
+        {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} uid={uid} />}
         {kit && progress?.startedAt && <FounderPanel program={p} progress={progress} />}
         </div>
         <div className="pg-hero-aside"><ProgramPoster program={p} cover={cover} size="hero" /></div>
@@ -171,7 +177,7 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
           <a key={id} className="gh-tab" aria-current={active === id ? 'page' : undefined} aria-selected={active === id}
              href={hrefFor.program(p.id, id === 'overview' ? null : id)}>
             <Icon size={16} aria-hidden="true" />{label}
-            {id === 'checks' && p.issues.length > 0 && <span className="pg-count">{p.issues.length}</span>}
+            {id === 'checks' && (p.issues?.length || 0) > 0 && <span className="pg-count">{p.issues.length}</span>}
           </a>
         ))}
       </nav>
@@ -246,12 +252,15 @@ function Toolkit({ program: p, kit, tools }) {
   );
 }
 
-function LearnerBar({ program: p, progress, summary, apply }) {
+function LearnerBar({ program: p, progress, summary, apply, uid = null }) {
   if (!progress.startedAt) {
     return (
       <div className="pg-learner-bar">
-        <span>Ready when you are: {p.sessions.length} sessions over {p.durationWeeks} weeks.</span>
-        <a className="gh-btn gh-btn-primary" href={hrefFor.program(p.id, 'plan')} onClick={() => apply((x) => startProgram(x))}>
+        <span>Ready when you are: {(p.sessions || []).length} sessions over {p.durationWeeks || 12} weeks.</span>
+        <a className="gh-btn gh-btn-primary" href={hrefFor.program(p.id, 'plan')} onClick={() => {
+          apply((x) => startProgram(x));
+          if (uid) addToMyCourse(p.id, uid).catch(() => {});
+        }}>
           Start this program<ArrowRight size={16} aria-hidden="true" />
         </a>
       </div>
@@ -280,39 +289,47 @@ function Overview({ program: p }) {
   const compIds = programCompetencies(p);
   const byDomain = COMPETENCY_DOMAINS.map((d) => ({ d, n: compIds.filter((id) => competencyById(id)?.domain === d.id).length }))
     .filter((x) => x.n > 0);
+  const realProblem = p.realProblem || {
+    summary: p.drivingQuestion || '',
+    peopleImpact: p.impact?.people || 'Community impact',
+    environmentalImpact: p.impact?.environment || 'Sustainable design'
+  };
+  const measurableImpact = Array.isArray(p.measurableImpactCriteria) ? p.measurableImpactCriteria : [];
 
   return (
     <div className="pg-overview">
       <section className="gh-card">
         <h3 className="pb-h3"><Target size={17} aria-hidden="true" />The real problem</h3>
-        <p className="pg-problem">{p.realProblem.summary}</p>
+        <p className="pg-problem">{realProblem.summary}</p>
         <div className="pg-impact-pair">
           <div className="pg-impact" data-kind="people">
             <span className="pg-impact-label"><HeartHandshake size={15} aria-hidden="true" />For people</span>
-            <p>{p.realProblem.peopleImpact}</p>
+            <p>{realProblem.peopleImpact}</p>
           </div>
           <div className="pg-impact" data-kind="environment">
             <span className="pg-impact-label"><Leaf size={15} aria-hidden="true" />For the environment</span>
-            <p>{p.realProblem.environmentalImpact}</p>
+            <p>{realProblem.environmentalImpact}</p>
           </div>
         </div>
       </section>
 
-      <section className="gh-card">
-        <h3 className="pb-h3"><ListChecks size={17} aria-hidden="true" />How success is measured</h3>
-        <ul className="pg-metrics">
-          {p.measurableImpactCriteria.map((m) => (
-            <li key={m.id} className="pg-metric">
-              <strong>{m.metric}</strong>
-              <span className="pg-metric-target">{m.target}</span>
-              <small>Checked by: {m.verificationMethod}</small>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {measurableImpact.length > 0 && (
+        <section className="gh-card">
+          <h3 className="pb-h3"><ListChecks size={17} aria-hidden="true" />How success is measured</h3>
+          <ul className="pg-metrics">
+            {measurableImpact.map((m) => (
+              <li key={m.id || m.metric} className="pg-metric">
+                <strong>{m.metric}</strong>
+                <span className="pg-metric-target">{m.target}</span>
+                <small>Checked by: {m.verificationMethod}</small>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="gh-card">
-        <h3 className="pb-h3"><Users size={17} aria-hidden="true" />Who it is for · {shortAges(p.targetAgeRange)}</h3>
+        <h3 className="pb-h3"><Users size={17} aria-hidden="true" />Who it is for · {shortAges(p.targetAgeRange || p.ageBand)}</h3>
         <p className="pb-sub">The same program runs at three levels. Your coach places you on a track.</p>
         <ul className="pg-tracks">
           {AGE_TRACKS.map((t) => (
@@ -344,24 +361,40 @@ function Overview({ program: p }) {
 
 function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say }) {
   const summary = progress ? programProgress(progress, p) : null;
-  const startPhase = summary?.next?.phaseId || p.phases[0].id;
+  const phases = Array.isArray(p.phases) && p.phases.length > 0
+    ? p.phases
+    : [{ id: 'phase-1', phaseId: 'phase-1', title: 'Phase 1', weeks: [1, 1], sessions: [], tasks: [], evidence: [], competencies: [], stretchCompetencies: [] }];
+  const startPhase = summary?.next?.phaseId || phases[0]?.id || phases[0]?.phaseId || 'phase-1';
   const [open, setOpen] = useState(startPhase);
-  const phase = p.phases.find((ph) => ph.id === open) || p.phases[0];
+  const phase = phases.find((ph) => (ph.id || ph.phaseId) === open) || phases[0] || {
+    id: 'phase-1',
+    phaseId: 'phase-1',
+    title: 'Phase 1',
+    weeks: [1, 1],
+    sessions: [],
+    tasks: [],
+    evidence: [],
+    competencies: [],
+    stretchCompetencies: [],
+    aiPromptStarters: []
+  };
 
   return (
     <div className="pb-journey">
       <ol className="pb-steps" aria-label="Program phases">
-        {p.phases.map((ph, i) => {
-          const pp = summary?.byPhase[ph.id];
+        {phases.map((ph, i) => {
+          const phId = ph.id || ph.phaseId || `phase-${i + 1}`;
+          const pp = summary?.byPhase?.[phId];
+          const sessionCount = Array.isArray(ph.sessions) ? ph.sessions.length : 0;
           return (
-            <li key={ph.id}>
-              <button type="button" className="pb-step" aria-current={ph.id === open ? 'step' : undefined} onClick={() => setOpen(ph.id)}>
+            <li key={phId}>
+              <button type="button" className="pb-step" aria-current={phId === open ? 'step' : undefined} onClick={() => setOpen(phId)}>
                 <span className="pb-step-num" data-done={pp?.complete || undefined}>
                   {pp?.complete ? <CircleCheck size={18} aria-label="complete" /> : i + 1}
                 </span>
                 <span className="pb-step-text">
                   <strong>{ph.title}</strong>
-                  <small>{pp ? `${pp.done}/${pp.total} sessions` : `${weekLabel(ph.weeks)} · ${ph.sessions.length} sessions`}</small>
+                  <small>{pp ? `${pp.done}/${pp.total} sessions` : `${weekLabel(ph.weeks)} · ${sessionCount} sessions`}</small>
                 </span>
               </button>
             </li>
@@ -371,16 +404,16 @@ function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say }) {
 
       <section className="pb-phase" aria-labelledby="pg-phase-title">
         <div className="pb-phase-head">
-          <span className="pb-kicker">{weekLabel(phase.weeks, 'Week')} · {phase.strap}</span>
-          <h2 id="pg-phase-title">{phase.title}</h2>
-          <p>{phase.goal}</p>
+          <span className="pb-kicker">{weekLabel(phase.weeks, 'Week')}{phase.strap ? ` · ${phase.strap}` : ''}</span>
+          <h2 id="pg-phase-title">{phase.title || 'Phase'}</h2>
+          <p>{phase.goal || phase.learningGoal}</p>
         </div>
 
         <div className="pb-phase-grid">
           <div className="pb-col">
-            {phase.sessions.length === 0 && <p className="pb-empty">No sessions are written for this phase yet.</p>}
-            {phase.sessions.map((s) => (
-              <SessionCard key={s.sessionNumber} program={p} session={s} isCoach={isCoach} progress={progress} apply={apply}
+            {(phase.sessions || []).length === 0 && <p className="pb-empty">No sessions are written for this phase yet.</p>}
+            {(phase.sessions || []).map((s) => (
+              <SessionCard key={s.sessionNumber || s.title} program={p} session={s} isCoach={isCoach} progress={progress} apply={apply}
                            kit={kit} tools={tools} say={say}
                            defaultOpen={summary ? summary.next?.sessionNumber === s.sessionNumber : false} />
             ))}
@@ -388,19 +421,19 @@ function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say }) {
           <div className="pb-col">
             <div className="gh-card">
               <h3 className="pb-h3"><ListChecks size={17} aria-hidden="true" />Phase tasks</h3>
-              <ul className="pb-bullets">{phase.tasks.map((t) => <li key={t}>{t}</li>)}</ul>
+              <ul className="pb-bullets">{(phase.tasks || phase.deliverables || []).map((t) => <li key={t}>{t}</li>)}</ul>
             </div>
             <div className="gh-card">
               <h3 className="pb-h3"><Lightbulb size={17} aria-hidden="true" />Evidence for this phase</h3>
-              <ul className="pb-bullets">{phase.evidence.map((e) => <li key={e}>{e}</li>)}</ul>
+              <ul className="pb-bullets">{(phase.evidence || phase.deliverables || []).map((e) => <li key={e}>{e}</li>)}</ul>
               <p className="pb-sub">Competencies {isCoach ? 'to look for' : 'your coach looks for'}:</p>
-              <CompetencyChips ids={phase.competencies} />
-              {phase.stretchCompetencies.length > 0 && <>
+              <CompetencyChips ids={phase.competencies || []} />
+              {(phase.stretchCompetencies || []).length > 0 && <>
                 <p className="pb-sub">Stretch (advanced):</p>
                 <CompetencyChips ids={phase.stretchCompetencies} advanced />
               </>}
             </div>
-            {phase.aiPromptStarters?.length > 0 && (
+            {(phase.aiPromptStarters || []).length > 0 && (
               <div className="gh-card">
                 <h3 className="pb-h3"><Bot size={17} aria-hidden="true" />Ask the AI co-pilot</h3>
                 <p className="pb-sub">Starting points. Log what you asked, and what you kept or changed.</p>
@@ -603,9 +636,9 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
 
           <Stage icon="📸" title="Capture your evidence">
             <div className="pg-evidence">
-              <span className={`pb-kind pb-kind-${s.evidenceToCollect.kind}`}>{EVIDENCE_LABEL[s.evidenceToCollect.kind] || 'Evidence'}</span>
-              <p>{s.evidenceToCollect.prompt}</p>
-              <CompetencyChips ids={s.evidenceToCollect.targetCompetencies} />
+              <span className={`pb-kind pb-kind-${s.evidenceToCollect?.kind || 'note'}`}>{EVIDENCE_LABEL[s.evidenceToCollect?.kind] || 'Evidence'}</span>
+              <p>{s.evidenceToCollect?.prompt || ''}</p>
+              <CompetencyChips ids={s.evidenceToCollect?.targetCompetencies || []} />
               {progress && (
                 <a className="gh-btn gh-btn-sm pg-evidence-go" href={hrefFor.pbl('portfolio')}>
                   <NotebookPen size={15} aria-hidden="true" />Add it to my portfolio
@@ -677,19 +710,21 @@ function KitAndSafety({ program: p }) {
     { key: 'fabricationMaterials', label: 'Building materials', icon: Package },
     { key: 'softwareAndTools', label: 'Software & tools', icon: Laptop }
   ];
+  const materials = p.materialsAndKit || {};
+  const safety = p.teacherGuidance?.safetyProtocol || [];
   return (
     <div className="pg-kit">
       <div className="pg-kit-grid">
         {groups.map(({ key, label, icon: Icon }) => (
           <section key={key} className="gh-card">
             <h3 className="pb-h3"><Icon size={17} aria-hidden="true" />{label}</h3>
-            <ul className="pb-bullets">{(p.materialsAndKit[key] || []).map((i) => <li key={i}>{i}</li>)}</ul>
+            <ul className="pb-bullets">{(materials[key] || []).map((i) => <li key={i}>{i}</li>)}</ul>
           </section>
         ))}
       </div>
       <section className="gh-card pg-safety">
         <h3 className="pb-h3"><ShieldAlert size={17} aria-hidden="true" />Safety rules</h3>
-        <ul className="pb-bullets">{p.teacherGuidance.safetyProtocol.map((r) => <li key={r}>{r}</li>)}</ul>
+        <ul className="pb-bullets">{safety.map((r) => <li key={r}>{r}</li>)}</ul>
       </section>
     </div>
   );
@@ -698,10 +733,11 @@ function KitAndSafety({ program: p }) {
 /* ------------------------------------------------------------ Teaching guide */
 
 function TeachingGuide({ program: p }) {
-  const weeks = [...new Set(p.sessions.map((s) => s.week))].sort((a, b) => a - b);
-  const [week, setWeek] = useState(weeks[0]);
+  const allSessions = Array.isArray(p.sessions) ? p.sessions : [];
+  const weeks = [...new Set(allSessions.map((s) => s.week).filter((w) => w != null))].sort((a, b) => a - b);
+  const [week, setWeek] = useState(weeks[0] || 1);
   const sessions = sessionsInWeek(p, week);
-  const g = p.teacherGuidance;
+  const g = p.teacherGuidance || {};
 
   return (
     <div className="pg-guide">
@@ -723,11 +759,11 @@ function TeachingGuide({ program: p }) {
         <p className="pb-print-only">{p.title} · Week {week}</p>
         <ol className="pg-week-list">
           {sessions.map((s) => (
-            <li key={s.sessionNumber}>
-              <span className="pg-session-meta">Session {s.sessionNumber} · {p.phases.find((ph) => ph.id === s.phaseId)?.title} · {s.durationMin} min</span>
+            <li key={s.sessionNumber || s.title}>
+              <span className="pg-session-meta">Session {s.sessionNumber} · {(p.phases || []).find((ph) => (ph.id || ph.phaseId) === s.phaseId)?.title || ''} · {s.durationMin || 90} min</span>
               <strong>{s.title}</strong>
               <p className="pg-goal"><Target size={15} aria-hidden="true" />{s.learningGoal}</p>
-              <ol className="pg-activities">{s.activities.map((a) => <li key={a}>{a}</li>)}</ol>
+              <ol className="pg-activities">{(s.activities || []).map((a) => <li key={a}>{a}</li>)}</ol>
               <p className="pg-tip"><GraduationCap size={15} aria-hidden="true" /><span>{s.teacherTips}</span></p>
             </li>
           ))}
@@ -766,7 +802,7 @@ function Checks({ program: p, kit }) {
       </p>
       <section className="gh-card">
         <h3 className="pb-h3"><TriangleAlert size={17} aria-hidden="true" />This program</h3>
-        {p.issues.length === 0 ? <p className="pb-empty">No problems found.</p> : <IssueList issues={p.issues} />}
+        {(p.issues || []).length === 0 ? <p className="pb-empty">No problems found.</p> : <IssueList issues={p.issues || []} />}
       </section>
       {kit && (
         <section className="gh-card">

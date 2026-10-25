@@ -156,7 +156,7 @@ function ClassRow({ cls, uid, availablePrograms = PROGRAMS, onChange, onPresent 
             <option value="">No program yet</option>
             {availablePrograms.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.identity?.short || p.title}{p.source === 'studio' ? ' (Studio)' : ''}{p.sharesPhasesWith ? ' (outline only)' : ''}
+                {p.title || p.identity?.short}{p.source === 'studio' ? ' (Studio)' : ''}{p.sharesPhasesWith ? ' (outline only)' : ''}
               </option>
             ))}
           </select>

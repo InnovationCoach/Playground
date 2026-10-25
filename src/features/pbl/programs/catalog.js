@@ -218,17 +218,17 @@ export const programById = (id) => {
 /** Every phase-level and session-level competency in a program, in framework order. */
 export function programCompetencies(program) {
   const ids = new Set();
-  for (const ph of program.phases) {
-    ph.competencies.forEach((id) => ids.add(id));
-    ph.stretchCompetencies.forEach((id) => ids.add(id));
-    ph.sessions.forEach((s) => s.evidenceToCollect.targetCompetencies.forEach((id) => ids.add(id)));
+  for (const ph of program?.phases || []) {
+    (ph.competencies || []).forEach((id) => ids.add(id));
+    (ph.stretchCompetencies || []).forEach((id) => ids.add(id));
+    (ph.sessions || []).forEach((s) => (s?.evidenceToCollect?.targetCompetencies || []).forEach((id) => ids.add(id)));
   }
   return [...ids];
 }
 
 /** Sessions that fall in one week of the program. */
 export function sessionsInWeek(program, week) {
-  return program.sessions.filter((s) => s.week === week);
+  return (program?.sessions || []).filter((s) => s.week === week);
 }
 
 /** "Ages 9–17 (Primary through Upper Secondary: ...)" -> "Ages 9–17". */

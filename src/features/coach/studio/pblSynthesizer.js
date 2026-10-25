@@ -58,31 +58,227 @@ export async function synthesizeGroundedUnit({ learner, sources, customFocus = '
  * tailored specifically to the learner's 2e traits, consuming passions, and executive function accommodations.
  */
 export function generateGroundedUnitLocal({ learner, activeSources, customFocus = '' }) {
-  const learnerId = learner.id || 'student-liam-chen';
-  const passion = learner.consumingPassions || 'Robotics';
-  const name = learner.name || 'Learner';
+  const learnerId = learner.id || learner.uid || 'student-liam-chen';
+  const name = learner.name || learner.displayName || 'Learner';
+  const passion = Array.isArray(learner.consumingPassions) ? learner.consumingPassions.join(', ') : (learner.consumingPassions || 'Robotics');
   const unitId = `pbl-2e-${learnerId.replace('student-', '')}-2026`;
+
+  const normTraits = Array.isArray(learner.diagnosisTraits) ? learner.diagnosisTraits.join(', ') : String(learner.diagnosisTraits || 'Gifted Inquiry');
+  const normPassions = Array.isArray(learner.consumingPassions) ? learner.consumingPassions.join(', ') : String(learner.consumingPassions || passion);
+  const normHurdles = Array.isArray(learner.executiveFunctionHurdles) ? learner.executiveFunctionHurdles.join(', ') : String(learner.executiveFunctionHurdles || 'Task initiation on unstructured prompts');
+  const normAccommodations = Array.isArray(learner.appliedAccommodations) && learner.appliedAccommodations.length > 0
+    ? learner.appliedAccommodations
+    : ['Micro-deadlines with visible 15-minute countdown timers', 'Multi-modal deliverables (GitHub & 60s demo videos instead of essays)'];
+
+  const isTom = (learnerId.toLowerCase().includes('tom') || (learner.email && learner.email.includes('tom')) || name.toLowerCase().includes('tom'));
+  const isInes = (learnerId.toLowerCase().includes('ines') || learnerId.toLowerCase().includes('inès') || (learner.email && learner.email.includes('ines')) || name.toLowerCase().includes('ines') || name.toLowerCase().includes('inès'));
+  const isUniversal = learner.isUniversal || learnerId === 'universal-all' || learnerId === 'open-catalog' || !learnerId;
 
   let unitData;
 
-  if (learnerId === 'student-liam-chen') {
+  if (isUniversal) {
     unitData = {
-      id: unitId,
-      unitTitle: customFocus ? `Autonomous Rover: ${customFocus}` : 'Bio-Inspired Obstacle-Traversing Rover & Micro-Telemetry',
+      id: `pbl-open-${customFocus ? customFocus.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'autonomous-rover'}-2026`,
+      unitTitle: customFocus ? `STEM Innovation: ${customFocus}` : 'Autonomous Rover: Environmental Terrain Mapping & Telemetry',
       theme: 'Autonomous Robotics & Environmental Terrain Mapping',
-      drivingQuestion: 'How might we design a lightweight, modular 4-wheel rover with custom 3D-printed suspension and micro:bit distance telemetry to map hazardous flood debris without risking human rescue workers?',
+      drivingQuestion: 'How might we design and build a modular, sensor-guided autonomous rover that collects environmental telemetry across challenging terrain without risking human operators?',
       realProblem: {
-        summary: 'Emergency first responders in urban flood scenarios (SDG 11) face unseen submerged hazards and unstable debris fields that stall rescue operations.',
-        peopleImpact: 'Prevents injuries to human volunteers and accelerates location of stranded residents.',
-        environmentalImpact: 'Detects chemical and particulate runoff in urban floodwaters using non-destructive telemetry.'
+        summary: 'Emergency first responders and environmental researchers need autonomous rovers to inspect hazardous terrain without risking human operators.',
+        peopleImpact: 'Protects researchers and responders while gathering critical air, thermal, and obstacle telemetry in real time.',
+        environmentalImpact: 'Maps local microclimates and environmental hazards using low-power, non-invasive autonomous telemetry.'
       },
       targetLearner: {
-        id: learner.id,
-        name: learner.name,
-        diagnosisTraits: learner.diagnosisTraits,
-        consumingPassions: learner.consumingPassions,
-        executiveFunctionHurdles: learner.executiveFunctionHurdles,
-        appliedAccommodations: learner.appliedAccommodations
+        id: 'universal-all',
+        name: 'All Learners (Open Course Catalog)',
+        diagnosisTraits: normTraits,
+        consumingPassions: normPassions,
+        executiveFunctionHurdles: normHurdles,
+        appliedAccommodations: normAccommodations,
+        isUniversal: true
+      },
+      makerSpaceSpecs: [
+        {
+          toolType: '3D Printer (Bambu Lab X1-Carbon)',
+          specs: 'PETG / Tough PLA, 0.4mm hardened nozzle, 0.20mm layer height, 4 outer perimeters, 25% gyroid infill for high torsional shock resistance on rocker-bogie suspension.',
+          safetyGuidelines: 'Allow heated print bed to cool below 35°C before part release; wear protective safety goggles when clearing support struts.'
+        },
+        {
+          toolType: 'Microcontroller & Telemetry',
+          specs: 'BBC micro:bit V2 with I2C motor driver board, HC-SR04 ultrasonic distance sensor, MicroPython firmware with 50Hz telemetry loop, 5V isolated battery pack.',
+          safetyGuidelines: 'Low-voltage DC 5V battery power only; ensure polarity verification on H-bridge driver before power up.'
+        },
+        {
+          toolType: 'Rapid Prototyping Bench',
+          specs: 'Digital calipers, acrylic mounting chassis plates, M3 machine screws, silicone non-slip crawler tires, 6V dual DC gearmotors (1:48 reduction).',
+          safetyGuidelines: 'Use bench vice for mechanical assembly; verify motor current draw does not exceed 1.2A under stall conditions.'
+        }
+      ],
+      coachCues: {
+        leadCoach: 'Coach Donovan',
+        initiationCue: 'Prompt learners to pick an investigation domain (microclimate sensors, obstacle avoidance, or terrain chassis) and sketch their drivetrain.',
+        frustrationDeescalationCue: 'Offer modular starter code blocks and chassis templates; encourage learners to test their ultrasonic sensor on the test bench.',
+        midCheckCue: 'Inspect telemetry serial output at 115200 baud and verify motor current limits on the bench.',
+        showcaseCue: 'Applaud every autonomous turn and telemetry log captured on the bench.'
+      },
+      milestones: [
+        {
+          id: 'ms-stage-1',
+          stageNumber: 1,
+          stageName: 'Curiosity & Inquiry',
+          week: 1,
+          title: 'Field Challenge & Autonomous Rover Inquiry',
+          learningGoal: 'Deconstruct real-world autonomous rover missions and articulate engineering constraints for environmental sensing.',
+          activities: [
+            'Explore planetary rover and disaster-response robotics case studies',
+            'Define core chassis dimensions, weight budget, and power constraints',
+            'Draft inquiry journal question: what environmental data matters most in your simulation?'
+          ],
+          evidencePrompt: 'Post your Rover Problem Statement and initial hand-sketched drivetrain concept.',
+          coachCue: 'Encourage curiosity about planetary rovers and rescue drones. Show physical chassis samples.',
+          makerSpaceTools: ['Inquiry Board', 'Digital Calipers', 'Engineering Logbook'],
+          allowedSubmissions: ['video', 'github', 'prototype']
+        },
+        {
+          id: 'ms-stage-2',
+          stageNumber: 2,
+          stageName: 'Research & Grounding',
+          week: 2,
+          title: 'Sensor & Mechanical Drivetrain Exploration',
+          learningGoal: 'Evaluate ultrasonic, thermal, and infrared sensors alongside differential steering mechanisms.',
+          activities: [
+            'Test HC-SR04 ultrasonic distance sensor with microcontroller on breadboard',
+            'Calculate gear ratios and motor RPM for steady terrain crawling vs wheel stall torque',
+            'Log sensor accuracy across 10cm, 30cm, and 50cm obstacle benchmarks'
+          ],
+          evidencePrompt: 'Breadboard wiring diagram and sensor calibration table with distance measurements.',
+          coachCue: 'Help calibrate trigger/echo pulse timing in micro:bit or Python editor.',
+          makerSpaceTools: ['Microcontroller Bench', 'HC-SR04 Ultrasonic Sensor', 'Breadboard & Jumper Wire Kit'],
+          allowedSubmissions: ['video', 'github', 'prototype']
+        },
+        {
+          id: 'ms-stage-3',
+          stageNumber: 3,
+          stageName: 'Ideation & Prototyping',
+          week: 3,
+          title: 'CAD Chassis & Suspension Modeling',
+          learningGoal: 'Model a custom 3D-printable or laser-cut chassis housing battery, motors, and sensor mounts.',
+          activities: [
+            'Model 2D motor bracket profiles in Tinkercad or Onshape',
+            'Design modular clips for sensor faceplate to allow 15-degree tilt adjustment',
+            'Export STL/DXF files and inspect slicing preview in Bambu Studio / Laser software'
+          ],
+          evidencePrompt: 'CAD rendering or 3D slice preview showing component layout and center of gravity.',
+          coachCue: 'Emphasize fillet corners and bolt clearance tolerances (+0.3mm for 3D prints).',
+          makerSpaceTools: ['Onshape / CAD Workstation', 'Bambu Studio', '3D Printer / Laser Cutter'],
+          allowedSubmissions: ['video', 'github', 'prototype']
+        },
+        {
+          id: 'ms-stage-4',
+          stageNumber: 4,
+          stageName: 'Fabrication & Bench Assembly',
+          week: 4,
+          title: 'Chassis Fabrication & Drivetrain Integration',
+          learningGoal: 'Fabricate physical chassis components and assemble dual DC gearmotors with motor driver circuits.',
+          activities: [
+            'Print or laser-cut chassis base plates and wheel hubs',
+            'Mount motors, drive wheels, and caster bearing',
+            'Solder header pins and power switch harness with heat shrink insulation'
+          ],
+          evidencePrompt: 'Physical rolling chassis photo with motors securely wired to H-bridge driver.',
+          coachCue: 'Guide safe soldering iron operation (350°C, brass sponge tip cleaning, exhaust hood).',
+          makerSpaceTools: ['Soldering Station', 'Heat Gun', 'Hardware Fasteners (M3 Machine Screws)'],
+          allowedSubmissions: ['prototype', 'video']
+        },
+        {
+          id: 'ms-stage-5',
+          stageNumber: 5,
+          stageName: 'Firmware & Autonomous Logic',
+          week: 5,
+          title: 'Autonomous Obstacle-Avoidance Algorithm',
+          learningGoal: 'Implement reactive control loop: measure distance, trigger turn subroutine when obstacle < 20cm.',
+          activities: [
+            'Write state machine in MicroPython or MakeCode: Forward, Stop, Scan, Pivot, Resume',
+            'Implement ultrasonic threshold check with 50ms polling interval',
+            'Commit firmware codebase to GitHub repository with descriptive commit messages'
+          ],
+          evidencePrompt: 'GitHub firmware repository link with README documenting control logic flow.',
+          coachCue: 'Demonstrate non-blocking sensor loops; prevent rovers from getting stuck in infinite pivot loops.',
+          makerSpaceTools: ['Python / MakeCode IDE', 'GitHub Classroom / Repo', 'Bench Test Track'],
+          allowedSubmissions: ['github', 'video']
+        },
+        {
+          id: 'ms-stage-6',
+          stageNumber: 6,
+          stageName: 'Telemetry & Environmental Sensing',
+          week: 6,
+          title: 'Microclimate Telemetry & Data Logging',
+          learningGoal: 'Add temperature/humidity or ambient light sensor and log telemetry packets over serial/radio.',
+          activities: [
+            'Integrate DHT11 or analog light sensor onto analog input pin',
+            'Format real-time serial telemetry strings: [TIME, TEMP_C, DIST_CM, STATE]',
+            'Stream telemetry data to live laptop dashboard or radio receiver micro:bit'
+          ],
+          evidencePrompt: 'Screenshot of live telemetry serial stream during active rover run.',
+          coachCue: 'Help parse serial baud rates (115200) and format CSV output.',
+          makerSpaceTools: ['Telemetry Radio / Serial Terminal', 'Environmental Sensor Module'],
+          allowedSubmissions: ['video', 'github', 'prototype']
+        },
+        {
+          id: 'ms-stage-7',
+          stageNumber: 7,
+          stageName: 'Field Testing & Iteration',
+          week: 7,
+          title: 'Obstacle Course Verification & Calibration',
+          learningGoal: 'Run 5 consecutive trials through standard obstacle maze; record navigation success rate and telemetry drift.',
+          activities: [
+            'Set up 3m x 2m obstacle test course with varied surface textures',
+            'Record 3 autonomous navigation runs; calculate mean obstacle avoidance latency',
+            'Refine wheel traction or ultrasonic sensor bracket angle based on trial anomalies'
+          ],
+          evidencePrompt: '60-second video demo showing autonomous run with obstacle avoidance and telemetry output.',
+          coachCue: 'Celebrate unexpected edge-case collisions as valuable debugging insights.',
+          makerSpaceTools: ['Timed Test Track', 'Obstacle Course Cones', 'Stopwatch & Video Cam'],
+          allowedSubmissions: ['video', 'prototype']
+        },
+        {
+          id: 'ms-stage-8',
+          stageNumber: 8,
+          stageName: 'Showcase & Pitch',
+          week: 8,
+          title: 'Engineering Showcase & Video Demonstration',
+          learningGoal: 'Synthesize engineering journey into a concise video pitch highlighting telemetry and iterations.',
+          activities: [
+            'Record 60-second video walkthrough explaining design decisions, CAD modeling, and code',
+            'Package final GitHub repository with schematics, bill of materials, and firmware',
+            'Submit project to MakerSpace Innovation Showcase for peer & coach review'
+          ],
+          evidencePrompt: 'Final Project Submission: 60s pitch video, GitHub repo, and physical rover verification.',
+          coachCue: 'Encourage learners to articulate the hardest bug they solved and what they learned.',
+          makerSpaceTools: ['Video Recording Studio', 'Showcase Display Pedestal', 'Rubric Assessment'],
+          allowedSubmissions: ['video', 'github', 'prototype']
+        }
+      ]
+    };
+  } else if (learnerId === 'student-liam-chen' || isTom) {
+    unitData = {
+      id: unitId,
+      unitTitle: customFocus ? `Autonomous Rover: ${customFocus}` : (isTom ? 'Autonomous Rover & Microclimate Telemetry' : 'Bio-Inspired Obstacle-Traversing Rover & Micro-Telemetry'),
+      theme: 'Autonomous Robotics & Environmental Terrain Mapping',
+      drivingQuestion: isTom
+        ? 'How might we design a solar-powered autonomous rover with microclimate telemetry to detect urban heat islands without risking human volunteers?'
+        : 'How might we design a lightweight, modular 4-wheel rover with custom 3D-printed suspension and micro:bit distance telemetry to map hazardous flood debris without risking human rescue workers?',
+      realProblem: {
+        summary: 'Emergency first responders and urban communities face hazardous heat and submerged debris fields that stall rescue operations.',
+        peopleImpact: 'Prevents injuries to human volunteers and accelerates location of stranded residents in extreme conditions.',
+        environmentalImpact: 'Detects chemical and particulate runoff in urban areas using non-destructive autonomous telemetry.'
+      },
+      targetLearner: {
+        id: learnerId,
+        name,
+        diagnosisTraits: normTraits,
+        consumingPassions: normPassions,
+        executiveFunctionHurdles: normHurdles,
+        appliedAccommodations: normAccommodations
       },
       makerSpaceSpecs: [
         {

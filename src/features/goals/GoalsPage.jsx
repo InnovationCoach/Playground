@@ -1,251 +1,362 @@
-import { useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Target, Sparkles, CircleCheck, Circle, Plus, Trash, Flag, Zap, Heart, MessageCircle, BatteryCharging,
-  Cloud, CloudOff, Eye, Trophy, RotateCcw, Flame, Rocket, Check, ChevronRight
+  Cloud, CloudOff, Eye, Trophy, RotateCcw, Flame, Check, Copy, ArrowRight, ChevronRight, Compass,
+  CheckCircle2, Sparkle, Shield, Award
 } from 'lucide-react';
 import {
-  STRENGTHS, SUPPORTS, FOCUS_SKILLS, PHRASES, RECHARGE, LIMITS, XP,
-  touch, newId, goalSentence, todayItems, checkedToday, toggleToday, habitWeek, dayKey,
-  planLevel, streak, questStations
+  STRENGTHS, SUPPORTS, SHOW_HOW, FOCUS_SKILLS, PHRASES, RECHARGE, LIMITS,
+  touch, newId, hasPlan, goalSentence, todayItems, checkedToday, toggleToday, habitWeek, dayKey
 } from './goalPlan.js';
 import { useGoalPlan } from './useGoalPlan.js';
-import { GoalQuest, SHOW_EMOJI } from './GoalQuest.jsx';
-import { confetti, confettiFrom, buzz } from './celebrate.js';
+import { ArchetypeRadar } from './ArchetypeRadar.jsx';
+import { QuestEnergyBar } from './QuestEnergyBar.jsx';
+import { DailyBountyBoard } from './DailyBountyBoard.jsx';
+import { computeArchetypeProfile } from './archetypes.js';
+import { playSfx } from './soundEffects.js';
+import { triggerSparkParticles } from './confetti.js';
 import '../admin/admin.css';
 import './goals.css';
 
 /**
- * Full-page goal setting (#/goals), replacing the pop-up wizard for secondary
- * learners. Strength-based: see goalPlan.js for the model and why it never
- * asks for a diagnosis.
- *
- * The banner turns the page into a short quest (four stations, XP from real
- * progress, a streak) so a first-time learner can see what to do next; new
- * goals are built a question at a time in GoalQuest.
+ * Modern, teen-centric Goal Setting (#/goals).
+ * High-momentum, gamified executive flow:
+ *   - ⚡ Daily Flow: Bounties, micro-habits, today checklist, streak tracker & celebration
+ *   - 🎯 Active Quests: Goal roadmaps, waypoint node progression & milestone wins
+ *   - 🛡️ Skill Tree: Superpower archetypes radar & RPG levels
+ *   - 🚀 Superpower Toolkit: Strengths, classroom hacks, power phrases & recharge
  */
 export function GoalsPage({ uid, displayName }) {
   const { plan, update, syncState, loaded } = useGoalPlan(uid);
-  const [questOpen, setQuestOpen] = useState(false);
-  const [toast, setToast] = useState(null);
-  const toastTimer = useRef(null);
+  const [activeTab, setActiveTab] = useState('today');
   const firstName = String(displayName || '').split(' ')[0];
+
   const set = (patch) => update((p) => touch(p, patch));
-  const toggleIn = (key, id) => update((p) => touch(p, { [key]: p[key].includes(id) ? p[key].filter((x) => x !== id) : [...p[key], id] }));
-  const cheer = (text) => {
-    clearTimeout(toastTimer.current);
-    setToast({ text, at: Date.now() });
-    toastTimer.current = setTimeout(() => setToast(null), 2600);
-  };
-  const canAdd = plan.goals.length < LIMITS.goals;
-  const startQuest = () => { if (canAdd) setQuestOpen(true); else scrollTo('gl-goals'); };
+  const toggleIn = (key, id) =>
+    update((p) => touch(p, { [key]: p[key].includes(id) ? p[key].filter((x) => x !== id) : [...p[key], id] }));
 
-  function launch(goal) {
-    update((p) => touch(p, { goals: [...p.goals, goal] }));
-    setQuestOpen(false);
-    confetti({ big: true });
-    buzz([20, 40, 20]);
-    cheer(`Goal launched! +${XP.goal} XP`);
-  }
+  // Archetype & Level Profile
+  const profile = useMemo(() => computeArchetypeProfile(plan), [plan]);
+
+  // Quick counts for tab badges
+  const todayList = useMemo(() => todayItems(plan), [plan]);
+  const checkedSet = useMemo(() => checkedToday(plan), [plan]);
+  const todayDone = todayList.filter((i) => checkedSet.has(i.id)).length;
+  const activeGoalsCount = plan.goals.filter((g) => !g.done).length;
+  const toolkitCount = plan.strengths.length + plan.supports.length + plan.recharge.length;
+
+  const week = useMemo(() => habitWeek(plan), [plan]);
 
   return (
-    <div className="gh-page gl-page">
-      <QuestHero plan={plan} firstName={firstName} syncState={syncState} loaded={loaded}
-                 onStation={(id) => (id === 'goal' ? startQuest() : scrollTo(`gl-${id}`))}
-                 onStart={startQuest} canAdd={canAdd} />
-
-      <p className="gl-visible"><Eye size={15} aria-hidden="true" />Your coach can see this page, so they know what helps you. You never need to name a diagnosis here.</p>
-
-      <div className="gl-grid">
-        <div className="gl-col">
-          <TodayCard plan={plan} update={update} cheer={cheer} />
-          <BigGoals plan={plan} update={update} onStart={startQuest} cheer={cheer} />
-          <FocusSkill plan={plan} set={set} />
-        </div>
-        <div className="gl-col">
-          <ChipCard id="gl-strengths" icon={Sparkles} title="My strengths" hint="What are you good at, or love doing? Your goal ideas start here."
-                    items={STRENGTHS} selected={plan.strengths} onToggle={(id) => toggleIn('strengths', id)}
-                    own={plan.strengthsOwn} onOwn={(v) => set({ strengthsOwn: v })} ownLabel="Another strength" />
-          <ChipCard id="gl-supports" icon={Heart} title="What helps me" hint="Pick the things that make work easier for you."
-                    items={SUPPORTS} selected={plan.supports} onToggle={(id) => toggleIn('supports', id)}
-                    own={plan.supportsOwn} onOwn={(v) => set({ supportsOwn: v })} ownLabel="Something else that helps" />
-          <Phrases plan={plan} toggle={(id) => toggleIn('phrases', id)} set={set} />
-          <ChipCard id="gl-recharge" icon={BatteryCharging} title="My recharge plan"
-                    hint="After a hard day, what gets you back into flow? Your first pick shows up as a daily break."
-                    items={RECHARGE} selected={plan.recharge} onToggle={(id) => toggleIn('recharge', id)} />
-        </div>
-      </div>
-
-      <GoalQuest open={questOpen} onClose={() => setQuestOpen(false)} onLaunch={launch}
-                 strengths={plan.strengths} supportsFirst={plan.supports} />
-      <div className="gl-toast-host" aria-live="polite">{toast && <span className="gl-toast" key={toast.at}>{toast.text}</span>}</div>
-    </div>
-  );
-}
-
-function scrollTo(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  el.classList.remove('gl-flash');
-  void el.offsetWidth; // restart the highlight animation
-  el.classList.add('gl-flash');
-}
-
-function SyncBadge({ state }) {
-  if (state === 'local-only') return <span className="gl-sync gl-sync-warn"><CloudOff size={14} aria-hidden="true" />Saved on this device only</span>;
-  if (state === 'saving') return <span className="gl-sync"><Cloud size={14} aria-hidden="true" />Saving…</span>;
-  if (state === 'saved') return <span className="gl-sync gl-sync-ok"><Cloud size={14} aria-hidden="true" />Saved</span>;
-  return null;
-}
-
-const STATION_ICON = { strengths: Sparkles, goal: Flag, focus: Zap, today: CircleCheck };
-const STATION_HELP = {
-  strengths: 'Tap what you are good at',
-  goal: 'Answer 5 quick questions',
-  focus: 'One small daily habit',
-  today: 'Tick steps, earn XP'
-};
-
-function QuestHero({ plan, firstName, syncState, loaded, onStation, onStart, canAdd }) {
-  const { stations, next } = questStations(plan);
-  const lvl = planLevel(plan);
-  const days = streak(plan);
-  const C = 2 * Math.PI * 34;
-  return (
-    // A <section>, not <header>: index.html still styles every bare `header` for the legacy app.
-    <section className="gl-hero" aria-labelledby="gl-hero-title">
-      <div className="gl-hero-top">
-        <div className="gl-hero-text">
-          <span className="gl-kicker"><Target size={15} aria-hidden="true" />My goals</span>
-          <h1 id="gl-hero-title">{firstName ? `${firstName}, build on what you are great at` : 'Build on what you are great at'}</h1>
-          <p>Set a goal in five quick questions, then tick off one tiny step a day. Every step earns XP.</p>
-          <div className="gl-hero-actions">
-            {canAdd && (
-              <button type="button" className="gh-btn gh-btn-primary gl-hero-cta" onClick={onStart}>
-                <Rocket size={17} aria-hidden="true" />{plan.goals.length ? 'Start a new goal' : 'Start my first goal'}
-              </button>
+    <div className="gh-page gl-page gl-teen">
+      {/* Hero Banner */}
+      <header className="gl-hero">
+        <div className="gl-hero-content">
+          <div className="gl-hero-badges">
+            <span className="gl-tag gl-tag-glow">
+              <Zap size={14} aria-hidden="true" />
+              <span>SPARK Momentum</span>
+            </span>
+            <span className="gl-tag" style={{ background: profile.primary.accentGlow, color: profile.primary.color, borderColor: profile.primary.color }}>
+              <span>{profile.primary.icon} {profile.title} (Lv. {profile.level})</span>
+            </span>
+            {week.count > 0 && (
+              <span className="gl-tag gl-tag-streak" title={`${week.count} active days in the last 7 days`}>
+                <Flame size={14} aria-hidden="true" />
+                <span>{week.count} Day Streak</span>
+              </span>
             )}
             <SyncBadge state={syncState} />
           </div>
+
+          <h1 className="gl-hero-title">
+            {firstName ? `Let's make moves, ${firstName}` : 'Build on what makes you unstoppable'}
+          </h1>
+          <p className="gl-hero-subtitle">
+            Turn your curiosity into real-world quests. Small daily habits, your personal classroom hacks, and time to recharge.
+          </p>
+
+          <div className="gl-privacy-pill">
+            <Eye size={14} aria-hidden="true" />
+            <span>Shared with your coach so they know what helps you fly. Never any diagnosis or labels.</span>
+          </div>
         </div>
+
+        {/* Hero Quick Stat Ring / Card */}
         <div className="gl-hero-stats">
-          <div className="gl-level" role="img" aria-label={`Level ${lvl.level}, ${lvl.title}. ${lvl.into} of ${lvl.perLevel} XP to the next level.`}>
-            <svg viewBox="0 0 80 80" aria-hidden="true">
-              <circle cx="40" cy="40" r="34" className="gl-level-track" />
-              <circle cx="40" cy="40" r="34" className="gl-level-fill"
-                      strokeDasharray={C} strokeDashoffset={C * (1 - lvl.into / lvl.perLevel)} />
-            </svg>
-            <span className="gl-level-n"><small>Level</small>{lvl.level}</span>
+          <div className="gl-stat-card">
+            <div className="gl-stat-num">{todayDone}/{todayList.length}</div>
+            <div className="gl-stat-label">Today's Focus</div>
+            <div className="gl-mini-progress">
+              <div
+                className="gl-mini-bar"
+                style={{ width: `${todayList.length ? (todayDone / todayList.length) * 100 : 0}%` }}
+              />
+            </div>
           </div>
-          <div className="gl-hero-meta">
-            <strong>{lvl.title}</strong>
-            <span>{lvl.xp} XP · {lvl.perLevel - lvl.into} to next level</span>
-            <span className={days ? 'gl-streak on' : 'gl-streak'}><Flame size={15} aria-hidden="true" />
-              {days ? `${days}-day streak` : 'Tick one thing today to start a streak'}</span>
+          <div className="gl-stat-card">
+            <div className="gl-stat-num">{activeGoalsCount}</div>
+            <div className="gl-stat-label">Active Quests</div>
+            <div className="gl-stat-sub">Max {LIMITS.goals}</div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <ol className="gl-map" aria-label="How goal setting works">
-        {stations.map((s, i) => {
-          const Icon = STATION_ICON[s.id];
-          const isNext = loaded && s.id === next;
-          return (
-            <li key={s.id}>
-              <button type="button" className={`gl-station${s.done ? ' done' : ''}${isNext ? ' next' : ''}`} onClick={() => onStation(s.id)}
-                      aria-label={`Step ${i + 1}: ${s.title}. ${s.done ? 'Done.' : isNext ? 'Do this next.' : ''}`}>
-                <span className="gl-station-dot">{s.done ? <Check size={16} aria-hidden="true" /> : <Icon size={16} aria-hidden="true" />}</span>
-                <span className="gl-station-text">
-                  <strong>{i + 1}. {s.title}</strong>
-                  <span>{isNext ? 'Start here' : STATION_HELP[s.id]}</span>
-                </span>
-                <ChevronRight size={16} className="gl-station-go" aria-hidden="true" />
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
-  );
-}
+      {/* Onboarding Assistant if brand new */}
+      {loaded && !hasPlan(plan) && (
+        <GettingStarted onSelectTab={setActiveTab} />
+      )}
 
-function Card({ id, icon: Icon, title, hint, action, children }) {
-  return (
-    <section className="gl-card" id={id} aria-labelledby={`${id}-h`}>
-      <div className="gl-card-head">
-        <span className="gl-card-icon"><Icon size={17} aria-hidden="true" /></span>
-        <div className="gl-grow">
-          <h2 id={`${id}-h`}>{title}</h2>
-          {hint && <p>{hint}</p>}
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
+      {/* Segmented Navigation Bar */}
+      <nav className="gl-tabs" role="tablist" aria-label="Goal views">
+        <button
+          type="button"
+          role="tab"
+          id="tab-today"
+          aria-selected={activeTab === 'today'}
+          aria-controls="panel-today"
+          className={`gl-tab ${activeTab === 'today' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('today')}
+        >
+          <span className="gl-tab-icon"><Zap size={16} aria-hidden="true" /></span>
+          <span className="gl-tab-text">Today's Flow</span>
+          {todayList.length > 0 && (
+            <span className={`gl-tab-badge ${todayDone === todayList.length ? 'is-complete' : ''}`}>
+              {todayDone}/{todayList.length}
+            </span>
+          )}
+        </button>
 
-function Chips({ items, selected, onToggle, single = false, label }) {
-  return (
-    <div className="gl-chips" role="group" aria-label={label}>
-      {items.map((it) => {
-        const on = single ? selected === it.id : selected.includes(it.id);
-        return (
-          <button key={it.id} type="button" className="gl-chip" aria-pressed={on} onClick={() => onToggle(it.id)}>
-            {it.label}
-          </button>
-        );
-      })}
+        <button
+          type="button"
+          role="tab"
+          id="tab-quests"
+          aria-selected={activeTab === 'quests'}
+          aria-controls="panel-quests"
+          className={`gl-tab ${activeTab === 'quests' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('quests')}
+        >
+          <span className="gl-tab-icon"><Flag size={16} aria-hidden="true" /></span>
+          <span className="gl-tab-text">My Quests</span>
+          {plan.goals.length > 0 && (
+            <span className="gl-tab-badge">{plan.goals.length}</span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          id="tab-skills"
+          aria-selected={activeTab === 'skills'}
+          aria-controls="panel-skills"
+          className={`gl-tab ${activeTab === 'skills' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('skills')}
+        >
+          <span className="gl-tab-icon"><Shield size={16} aria-hidden="true" /></span>
+          <span className="gl-tab-text">Skill Tree</span>
+          <span className="gl-tab-badge">Lv. {profile.level}</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          id="tab-toolkit"
+          aria-selected={activeTab === 'toolkit'}
+          aria-controls="panel-toolkit"
+          className={`gl-tab ${activeTab === 'toolkit' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('toolkit')}
+        >
+          <span className="gl-tab-icon"><Sparkles size={16} aria-hidden="true" /></span>
+          <span className="gl-tab-text">Superpower Toolkit</span>
+          {toolkitCount > 0 && (
+            <span className="gl-tab-badge">{toolkitCount}</span>
+          )}
+        </button>
+      </nav>
+
+      {/* Tab Panels */}
+      <main className="gl-tab-content">
+        {/* TAB 1: Today's Flow */}
+        {activeTab === 'today' && (
+          <div id="panel-today" role="tabpanel" aria-labelledby="tab-today" className="gl-pane gl-pane-today">
+            {/* Daily Quick-Win Bounty Board */}
+            <DailyBountyBoard plan={plan} update={update} />
+
+            <div className="gl-grid-two">
+              {/* Daily Checklist */}
+              <TodayCard
+                plan={plan}
+                update={update}
+                onGoQuests={() => setActiveTab('quests')}
+                onGoToolkit={() => setActiveTab('toolkit')}
+              />
+
+              {/* Habit Spotlight & Habit Week Tracker */}
+              <div className="gl-side-col">
+                <FocusSkillCard plan={plan} set={set} />
+                <QuickRechargeCard plan={plan} update={update} onGoToolkit={() => setActiveTab('toolkit')} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: Quests (Big Goals) */}
+        {activeTab === 'quests' && (
+          <div id="panel-quests" role="tabpanel" aria-labelledby="tab-quests" className="gl-pane gl-pane-quests">
+            <BigGoalsSection plan={plan} update={update} onGoToolkit={() => setActiveTab('toolkit')} />
+          </div>
+        )}
+
+        {/* TAB 3: Skill Tree & Radar */}
+        {activeTab === 'skills' && (
+          <div id="panel-skills" role="tabpanel" aria-labelledby="tab-skills" className="gl-pane gl-pane-skills">
+            <ArchetypeRadar plan={plan} />
+          </div>
+        )}
+
+        {/* TAB 4: Superpower Toolkit */}
+        {activeTab === 'toolkit' && (
+          <div id="panel-toolkit" role="tabpanel" aria-labelledby="tab-toolkit" className="gl-pane gl-pane-toolkit">
+            <ToolkitSection plan={plan} set={set} toggleIn={toggleIn} />
+          </div>
+        )}
+      </main>
     </div>
   );
 }
 
-function ChipCard({ id, icon, title, hint, items, selected, onToggle, own, onOwn, ownLabel }) {
+/* =========================================================================
+   COMPONENTS
+   ========================================================================= */
+
+function SyncBadge({ state }) {
+  if (state === 'local-only') {
+    return (
+      <span className="gl-tag gl-tag-warn" title="Only stored locally in your browser">
+        <CloudOff size={13} aria-hidden="true" />
+        <span>Local only</span>
+      </span>
+    );
+  }
+  if (state === 'saving') {
+    return (
+      <span className="gl-tag gl-tag-saving">
+        <Cloud size={13} aria-hidden="true" />
+        <span>Saving…</span>
+      </span>
+    );
+  }
+  if (state === 'saved') {
+    return (
+      <span className="gl-tag gl-tag-saved">
+        <Check size={13} aria-hidden="true" />
+        <span>Synced</span>
+      </span>
+    );
+  }
+  return null;
+}
+
+function GettingStarted({ onSelectTab }) {
   return (
-    <Card id={id} icon={icon} title={title} hint={hint}>
-      <Chips items={items} selected={selected} onToggle={onToggle} label={title} />
-      {onOwn && (
-        <label className="gl-own">
-          <span>{ownLabel}</span>
-          <input className="gh-input" value={own} maxLength={LIMITS.own} onChange={(e) => onOwn(e.target.value)} placeholder="Optional" />
-        </label>
-      )}
-    </Card>
+    <div className="gl-onboarding-card">
+      <div className="gl-onboarding-icon">
+        <Sparkle size={24} aria-hidden="true" />
+      </div>
+      <div className="gl-onboarding-info">
+        <h3>Welcome to your Goals Command Center</h3>
+        <p>Three quick steps to kickstart your personal learning momentum:</p>
+      </div>
+      <div className="gl-onboarding-steps">
+        <button type="button" className="gl-step-btn" onClick={() => onSelectTab('toolkit')}>
+          <span className="gl-step-num">1</span>
+          <div>
+            <strong>Pick your Superpowers</strong>
+            <span>What you love doing & what helps you focus</span>
+          </div>
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
+
+        <button type="button" className="gl-step-btn" onClick={() => onSelectTab('quests')}>
+          <span className="gl-step-num">2</span>
+          <div>
+            <strong>Launch one Big Quest</strong>
+            <span>Pick a real project you want to explore</span>
+          </div>
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
+
+        <button type="button" className="gl-step-btn" onClick={() => onSelectTab('today')}>
+          <span className="gl-step-num">3</span>
+          <div>
+            <strong>Choose a Micro-Habit</strong>
+            <span>One tiny action to practice each day</span>
+          </div>
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
   );
 }
 
-/* ---------------- Today ---------------- */
+/* ---------------- TODAY VIEW ---------------- */
 
-function TodayCard({ plan, update, cheer }) {
+function TodayCard({ plan, update, onGoQuests, onGoToolkit }) {
   const items = todayItems(plan);
   const checked = checkedToday(plan);
   const done = items.filter((i) => checked.has(i.id)).length;
-  const date = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+  const isAllComplete = items.length > 0 && done === items.length;
+  const dateStr = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+
   return (
-    <Card id="gl-today" icon={CircleCheck} title="Today" hint={date}
-          action={items.length > 0 && <span className="gl-today-count">{done} of {items.length} done</span>}>
-      {items.length ? (
-        <>
-          <span className="gl-bar" role="progressbar" aria-valuenow={done} aria-valuemin={0} aria-valuemax={items.length} aria-label="Today's goals">
-            <i style={{ width: `${(done / items.length) * 100}%` }} />
+    <section className="gl-card gl-today-hero" id="gl-today">
+      <div className="gl-card-header">
+        <div className="gl-card-title-group">
+          <span className="gl-icon-bubble gl-bubble-lime">
+            <Zap size={18} aria-hidden="true" />
           </span>
-          <ul className="gl-today">
+          <div>
+            <h2>Today's Checklist</h2>
+            <p className="gl-subtitle">{dateStr}</p>
+          </div>
+        </div>
+        {items.length > 0 && (
+          <span className={`gl-meter-pill ${isAllComplete ? 'is-complete' : ''}`}>
+            {done} of {items.length} done
+          </span>
+        )}
+      </div>
+
+      {items.length > 0 ? (
+        <>
+          <QuestEnergyBar
+            current={done}
+            total={items.length}
+            title="Today's Momentum Energy"
+          />
+
+          <ul className="gl-task-list">
             {items.map((it) => {
               const on = checked.has(it.id);
               return (
                 <li key={it.id}>
-                  <button type="button" className="gl-check" aria-pressed={on} onClick={(e) => {
-                    update((p) => toggleToday(p, it));
-                    if (on) return;
-                    buzz();
-                    if (done + 1 === items.length) { confettiFrom(e.currentTarget, { big: true }); cheer('Everything done today!'); }
-                    else { confettiFrom(e.currentTarget); if (it.kind === 'step') cheer(`Step done! +${XP.step} XP`); }
-                  }}>
-                    {on ? <CircleCheck size={20} aria-hidden="true" /> : <Circle size={20} aria-hidden="true" />}
-                    <span>
-                      <span className="gl-check-text">{it.text}</span>
-                      <span className="gl-check-kind">
-                        {it.kind === 'habit' ? 'Focus skill habit' : it.kind === 'recharge' ? 'Recharge' : `Step towards: ${it.goal}`}
+                  <button
+                    type="button"
+                    className={`gl-task-item ${on ? 'is-checked' : ''}`}
+                    aria-pressed={on}
+                    onClick={(e) => {
+                      triggerSparkParticles(e.currentTarget, on ? 10 : 22);
+                      playSfx(on ? 'step' : (done + 1 === items.length ? 'levelup' : 'step'));
+                      update((p) => toggleToday(p, it));
+                    }}
+                  >
+                    <span className="gl-checkbox">
+                      {on ? <CheckCircle2 size={22} className="gl-checked-icon" /> : <Circle size={22} className="gl-unchecked-icon" />}
+                    </span>
+                    <span className="gl-task-body">
+                      <span className="gl-task-text">{it.text}</span>
+                      <span className="gl-task-tag">
+                        {it.kind === 'habit' ? '⚡ Focus Habit' : it.kind === 'recharge' ? '🔋 Recharge Break' : `🎯 Step for: ${it.goal}`}
                       </span>
                     </span>
                   </button>
@@ -253,179 +364,760 @@ function TodayCard({ plan, update, cheer }) {
               );
             })}
           </ul>
-          {done === items.length && <p className="gl-cheer"><Trophy size={16} aria-hidden="true" />All done for today. Nice work.</p>}
+
+          {isAllComplete && (
+            <div className="gl-celebration-banner">
+              <Trophy size={20} className="gl-trophy-pulse" aria-hidden="true" />
+              <div>
+                <strong>You crushed all goals for today!</strong>
+                <p>Momentum saved. Take a breather or explore a passion project.</p>
+              </div>
+            </div>
+          )}
         </>
       ) : (
-        <p className="gl-empty">Nothing to tick yet. Your list fills itself in from your goal steps, your tiny habit and your recharge plan. Start with the quest map above.</p>
+        <div className="gl-empty-box">
+          <Compass size={32} className="gl-empty-icon" aria-hidden="true" />
+          <h3>Your daily queue is clear</h3>
+          <p>Your checklist builds automatically from your focus habit, quest next steps, and recharge picks.</p>
+          <div className="gl-empty-actions">
+            <button type="button" className="gh-btn gh-btn-sm gh-btn-accent" onClick={onGoQuests}>
+              <Plus size={14} aria-hidden="true" />Add a Quest
+            </button>
+            <button type="button" className="gh-btn gh-btn-sm gh-btn-ghost" onClick={onGoToolkit}>
+              Set Daily Habit
+            </button>
+          </div>
+        </div>
       )}
-    </Card>
+    </section>
   );
 }
 
-/* ---------------- Big goals ---------------- */
+function FocusSkillCard({ plan, set }) {
+  const focus = plan.focus;
+  const skill = FOCUS_SKILLS.find((s) => s.id === focus?.skill);
+  const week = habitWeek(plan);
+  const today = dayKey();
 
-function BigGoals({ plan, update, onStart, cheer }) {
-  const full = plan.goals.length >= LIMITS.goals;
-  const patchGoal = (id, fn) => update((p) => touch(p, { goals: p.goals.map((g) => (g.id === id ? fn(g) : g)) }));
-  const removeGoal = (id) => update((p) => touch(p, { goals: p.goals.filter((g) => g.id !== id) }));
+  const choose = (id) => {
+    const s = FOCUS_SKILLS.find((x) => x.id === id);
+    set({ focus: focus?.skill === id ? null : { skill: id, habit: s.habits[0], daysPerWeek: focus?.daysPerWeek || 5 } });
+  };
+
   return (
-    <Card id="gl-goals" icon={Flag} title="My big goals"
-          hint="Something you want to explore, how you will show it, and the tiny steps to get there."
-          action={plan.goals.length > 0 && !full && (
-            <button type="button" className="gh-btn gh-btn-sm" onClick={onStart}><Plus size={15} aria-hidden="true" />New goal</button>
-          )}>
-      {plan.goals.map((g) => <GoalItem key={g.id} goal={g} cheer={cheer} patch={(fn) => patchGoal(g.id, fn)} remove={() => removeGoal(g.id)} />)}
-      {plan.goals.length === 0 && (
-        <button type="button" className="gl-empty-quest" onClick={onStart}>
-          <span className="gl-empty-quest-emoji" aria-hidden="true">🚀</span>
-          <strong>Start your first goal quest</strong>
-          <span>Five quick questions. No long forms, and you can change anything later.</span>
-        </button>
+    <section className="gl-card gl-focus-card" id="gl-focus">
+      <div className="gl-card-header">
+        <div className="gl-card-title-group">
+          <span className="gl-icon-bubble gl-bubble-purple">
+            <Zap size={18} aria-hidden="true" />
+          </span>
+          <div>
+            <h2>Daily Focus Habit</h2>
+            <p className="gl-subtitle">One executive skill made tiny enough to repeat</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="gl-chip-group" role="group" aria-label="Choose executive focus skill">
+        {FOCUS_SKILLS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className={`gl-pill ${focus?.skill === s.id ? 'is-selected' : ''}`}
+            aria-pressed={focus?.skill === s.id}
+            onClick={() => choose(s.id)}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {skill && (
+        <div className="gl-focus-active-box">
+          <div className="gl-field">
+            <span className="gl-field-label">Current Micro-Habit</span>
+            <div className="gl-chip-group gl-habit-options" role="group" aria-label="Suggested habits">
+              {skill.habits.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  className={`gl-pill gl-pill-subtle ${focus.habit === h ? 'is-selected' : ''}`}
+                  aria-pressed={focus.habit === h}
+                  onClick={() => set({ focus: { ...focus, habit: h } })}
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+            <input
+              className="gh-input gl-habit-input"
+              value={focus.habit}
+              maxLength={LIMITS.text}
+              aria-label="Custom habit text"
+              onChange={(e) => set({ focus: { ...focus, habit: e.target.value } })}
+              placeholder="Or write your own custom habit"
+            />
+          </div>
+
+          <div className="gl-field">
+            <span className="gl-field-label">Target Days per Week</span>
+            <div className="gl-chip-group" role="group" aria-label="Days per week target">
+              {[3, 4, 5, 6, 7].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={`gl-pill gl-pill-num ${focus.daysPerWeek === n ? 'is-selected' : ''}`}
+                  aria-pressed={focus.daysPerWeek === n}
+                  onClick={() => set({ focus: { ...focus, daysPerWeek: n } })}
+                >
+                  {n} days
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="gl-streak-tracker">
+            <span className="gl-streak-title">Past 7 Days</span>
+            <div className="gl-dot-row">
+              {week.days.map((d) => (
+                <div key={d.day} className="gl-dot-col">
+                  <span
+                    className={`gl-dot ${d.done ? 'is-done' : ''} ${d.day === today ? 'is-today' : ''}`}
+                    title={`${new Date(`${d.day}T12:00`).toLocaleDateString(undefined, { weekday: 'long' })}: ${d.done ? 'Done' : 'Pending'}`}
+                  >
+                    {d.done ? '✓' : new Date(`${d.day}T12:00`).toLocaleDateString(undefined, { weekday: 'narrow' })}
+                  </span>
+                  <span className="gl-dot-day">{new Date(`${d.day}T12:00`).toLocaleDateString(undefined, { weekday: 'narrow' })}</span>
+                </div>
+              ))}
+            </div>
+            <div className="gl-streak-stat">
+              <strong>{week.count} of {week.target}</strong> completed this week
+              {week.count >= week.target && <span className="gl-goal-hit">🎯 Target hit!</span>}
+            </div>
+          </div>
+        </div>
       )}
-      {full && <p className="gl-note">Three big goals at a time keeps things manageable. Finish or remove one to add another.</p>}
-    </Card>
+    </section>
   );
 }
 
-function GoalItem({ goal, patch, remove, cheer }) {
-  const [step, setStep] = useState('');
+function QuickRechargeCard({ plan, onGoToolkit }) {
+  const topRecharge = plan.recharge[0];
+  const item = RECHARGE.find((r) => r.id === topRecharge);
+
+  return (
+    <section className="gl-card gl-recharge-compact">
+      <div className="gl-card-header">
+        <div className="gl-card-title-group">
+          <span className="gl-icon-bubble gl-bubble-cyan">
+            <BatteryCharging size={18} aria-hidden="true" />
+          </span>
+          <div>
+            <h2>Recharge Station</h2>
+            <p className="gl-subtitle">Your brain break strategy</p>
+          </div>
+        </div>
+      </div>
+      {item ? (
+        <div className="gl-recharge-pill-active">
+          <span>Current break pick: <strong>{item.label}</strong></span>
+          <button type="button" className="gl-link-action" onClick={onGoToolkit}>
+            Change in toolkit →
+          </button>
+        </div>
+      ) : (
+        <div className="gl-recharge-empty">
+          <span>No recharge activity picked yet.</span>
+          <button type="button" className="gl-link-action" onClick={onGoToolkit}>
+            Choose your vibe →
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ---------------- QUESTS (BIG GOALS) VIEW ---------------- */
+
+function BigGoalsSection({ plan, update, onGoToolkit }) {
+  const [adding, setAdding] = useState(plan.goals.length === 0);
+  const full = plan.goals.length >= LIMITS.goals;
+
+  const patchGoal = (id, fn) =>
+    update((p) => touch(p, { goals: p.goals.map((g) => (g.id === id ? fn(g) : g)) }));
+
+  const removeGoal = (id) =>
+    update((p) => touch(p, { goals: p.goals.filter((g) => g.id !== id) }));
+
+  return (
+    <div className="gl-quests-layout" id="gl-goals">
+      <div className="gl-quests-top">
+        <div>
+          <h2>Active Learning Quests</h2>
+          <p className="gl-subtitle">
+            Big goals you want to explore. Pick how you will show what you learned and what hacks keep you in flow.
+          </p>
+        </div>
+        {!adding && !full && (
+          <button type="button" className="gh-btn gh-btn-accent" onClick={() => setAdding(true)}>
+            <Plus size={16} aria-hidden="true" />
+            <span>New Quest</span>
+          </button>
+        )}
+      </div>
+
+      {adding && !full && (
+        <NewQuestCard
+          supportsFirst={plan.supports}
+          onCancel={plan.goals.length ? () => setAdding(false) : null}
+          onAdd={(g) => {
+            update((p) => touch(p, { goals: [...p.goals, g] }));
+            setAdding(false);
+          }}
+          onGoToolkit={onGoToolkit}
+        />
+      )}
+
+      {plan.goals.length === 0 && !adding && (
+        <div className="gl-empty-box gl-empty-large">
+          <Flag size={36} className="gl-empty-icon" aria-hidden="true" />
+          <h3>No Quests Yet</h3>
+          <p>Pick a topic or curiosity you love, set a couple of bite-sized steps, and start building.</p>
+          <button type="button" className="gh-btn gh-btn-accent" onClick={() => setAdding(true)}>
+            <Plus size={16} aria-hidden="true" />
+            <span>Launch Your First Quest</span>
+          </button>
+        </div>
+      )}
+
+      <div className="gl-quest-cards-grid">
+        {plan.goals.map((g) => (
+          <QuestCard
+            key={g.id}
+            goal={g}
+            patch={(fn) => patchGoal(g.id, fn)}
+            remove={() => removeGoal(g.id)}
+          />
+        ))}
+      </div>
+
+      {full && (
+        <p className="gl-capacity-note">
+          ⚡ 3 active quests is the sweet spot to stay focused without burning out. Wrap up or retire one to add another.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function QuestCard({ goal, patch, remove }) {
+  const [newStepText, setNewStepText] = useState('');
   const [confirming, setConfirming] = useState(false);
-  const done = goal.steps.filter((s) => s.done).length;
+  const doneCount = goal.steps.filter((s) => s.done).length;
+  const isGoalFinished = goal.done;
+
   function addStep(e) {
     e.preventDefault();
-    if (!step.trim()) return;
-    patch((g) => ({ ...g, steps: [...g.steps, { id: newId('s'), text: step.trim().slice(0, LIMITS.text), done: false }].slice(0, LIMITS.steps) }));
-    setStep('');
+    if (!newStepText.trim()) return;
+    patch((g) => ({
+      ...g,
+      steps: [...g.steps, { id: newId('s'), text: newStepText.trim().slice(0, LIMITS.text), done: false }].slice(0, LIMITS.steps)
+    }));
+    setNewStepText('');
   }
+
   return (
-    <article className={goal.done ? 'gl-goal is-done' : 'gl-goal'}>
-      <div className="gl-goal-head">
-        <span className="gl-goal-emoji" aria-hidden="true">{goal.done ? '🏆' : SHOW_EMOJI[goal.showHow] || '🌟'}</span>
-        <p className="gl-goal-sentence">{goalSentence(goal)}</p>
-      </div>
-      {goal.steps.length > 0 && (
-        <>
-          <span className="gl-goal-meta">{done} of {goal.steps.length} steps done</span>
-          <span className="gl-bar gl-bar-sm" aria-hidden="true"><i style={{ width: `${(done / goal.steps.length) * 100}%` }} /></span>
-          <ul className="gl-steps">
-            {goal.steps.map((s) => (
-              <li key={s.id}>
-                <button type="button" className="gl-check gl-check-sm" aria-pressed={s.done}
-                        onClick={(e) => {
-                          patch((g) => ({ ...g, steps: g.steps.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x)) }));
-                          if (!s.done) { buzz(); confettiFrom(e.currentTarget); cheer(done + 1 === goal.steps.length ? 'All steps done! Ready to press "I did it"?' : `Step done! +${XP.step} XP`); }
-                        }}>
-                  {s.done ? <CircleCheck size={17} aria-hidden="true" /> : <Circle size={17} aria-hidden="true" />}
-                  <span className="gl-check-text">{s.text}</span>
-                </button>
-                <button type="button" className="gl-icon-btn" aria-label={`Remove step: ${s.text}`}
-                        onClick={() => patch((g) => ({ ...g, steps: g.steps.filter((x) => x.id !== s.id) }))}>
-                  <Trash size={14} aria-hidden="true" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-      {!goal.done && goal.steps.length < LIMITS.steps && (
-        <form className="gl-addstep" onSubmit={addStep}>
-          <input className="gh-input" value={step} maxLength={LIMITS.text} onChange={(e) => setStep(e.target.value)}
-                 placeholder="Add a small step" aria-label={`Add a step to: ${goal.explore}`} />
-          <button type="submit" className="gh-btn gh-btn-sm" disabled={!step.trim()}><Plus size={14} aria-hidden="true" />Add</button>
-        </form>
-      )}
-      <div className="gl-goal-actions">
-        <button type="button" className={goal.done ? 'gh-btn gh-btn-sm' : 'gh-btn gh-btn-sm gh-btn-primary'} onClick={(e) => {
-          patch((g) => ({ ...g, done: !g.done }));
-          if (!goal.done) { buzz([20, 40, 20]); confettiFrom(e.currentTarget, { big: true }); cheer(`Goal achieved! +${XP.achieved} XP`); }
-        }}>
-          {goal.done ? <><RotateCcw size={14} aria-hidden="true" />Reopen</> : <><Trophy size={14} aria-hidden="true" />I did it</>}
-        </button>
-        {confirming ? (
-          <span className="gl-confirm">Remove this goal?
-            <button type="button" className="gh-btn gh-btn-sm gh-btn-danger" onClick={remove}>Remove</button>
-            <button type="button" className="gh-btn gh-btn-sm gh-btn-ghost" onClick={() => setConfirming(false)}>Keep</button>
+    <article className={`gl-card gl-quest-card ${isGoalFinished ? 'is-completed-quest' : ''}`}>
+      <div className="gl-quest-card-head">
+        <div className="gl-quest-title-area">
+          <span className={`gl-quest-badge ${isGoalFinished ? 'is-done' : ''}`}>
+            {isGoalFinished ? <Trophy size={14} aria-hidden="true" /> : <Flag size={14} aria-hidden="true" />}
+            <span>{isGoalFinished ? 'Quest Completed' : 'Active Quest'}</span>
           </span>
+          <h3 className="gl-quest-sentence">{goalSentence(goal)}</h3>
+        </div>
+      </div>
+
+      {/* Gamified Quest Energy Bar & Waypoint Map */}
+      <QuestEnergyBar
+        current={doneCount}
+        total={goal.steps.length || 1}
+        steps={goal.steps}
+        title="Quest Charge & Waypoints"
+        onToggleStep={(stepId) => {
+          patch((g) => ({
+            ...g,
+            steps: g.steps.map((x) => (x.id === stepId ? { ...x, done: !x.done } : x))
+          }));
+        }}
+      />
+
+      {/* Steps checklist */}
+      <div className="gl-quest-steps-wrapper">
+        <div className="gl-steps-header">
+          <span className="gl-steps-count">
+            Steps Done: <strong>{doneCount} / {goal.steps.length}</strong>
+          </span>
+        </div>
+
+        <ul className="gl-quest-step-list">
+          {goal.steps.map((s) => (
+            <li key={s.id} className="gl-step-row">
+              <button
+                type="button"
+                className={`gl-step-check ${s.done ? 'is-done' : ''}`}
+                aria-pressed={s.done}
+                onClick={(e) => {
+                  triggerSparkParticles(e.currentTarget, s.done ? 8 : 18);
+                  playSfx(s.done ? 'step' : 'bounty');
+                  patch((g) => ({
+                    ...g,
+                    steps: g.steps.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x))
+                  }));
+                }}
+              >
+                {s.done ? <CheckCircle2 size={18} className="gl-check-icon" /> : <Circle size={18} />}
+                <span className="gl-step-text">{s.text}</span>
+              </button>
+              <button
+                type="button"
+                className="gl-icon-btn gl-step-delete"
+                aria-label={`Remove step: ${s.text}`}
+                onClick={() => patch((g) => ({ ...g, steps: g.steps.filter((x) => x.id !== s.id) }))}
+              >
+                <Trash size={14} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {!isGoalFinished && goal.steps.length < LIMITS.steps && (
+          <form className="gl-step-form" onSubmit={addStep}>
+            <input
+              className="gh-input gl-step-input"
+              value={newStepText}
+              maxLength={LIMITS.text}
+              onChange={(e) => setNewStepText(e.target.value)}
+              placeholder="Add next small milestone step…"
+              aria-label={`Add step to ${goal.explore}`}
+            />
+            <button type="submit" className="gh-btn gh-btn-sm" disabled={!newStepText.trim()}>
+              <Plus size={14} aria-hidden="true" />
+              <span>Add</span>
+            </button>
+          </form>
+        )}
+      </div>
+
+      {/* Quest Actions */}
+      <div className="gl-quest-footer">
+        <button
+          type="button"
+          className={`gh-btn gh-btn-sm ${isGoalFinished ? 'gh-btn-ghost' : 'gh-btn-accent'}`}
+          onClick={(e) => {
+            if (!isGoalFinished) {
+              triggerSparkParticles(e.currentTarget, 35);
+              playSfx('levelup');
+            }
+            patch((g) => ({ ...g, done: !g.done }));
+          }}
+        >
+          {isGoalFinished ? (
+            <>
+              <RotateCcw size={14} aria-hidden="true" />
+              <span>Reopen Quest</span>
+            </>
+          ) : (
+            <>
+              <Trophy size={14} aria-hidden="true" />
+              <span>Mission Accomplished</span>
+            </>
+          )}
+        </button>
+
+        {confirming ? (
+          <div className="gl-confirm-strip">
+            <span>Retire quest?</span>
+            <button type="button" className="gh-btn gh-btn-sm gh-btn-danger" onClick={remove}>
+              Delete
+            </button>
+            <button type="button" className="gh-btn gh-btn-sm gh-btn-ghost" onClick={() => setConfirming(false)}>
+              Keep
+            </button>
+          </div>
         ) : (
-          <button type="button" className="gh-btn gh-btn-sm gh-btn-ghost" onClick={() => setConfirming(true)}><Trash size={14} aria-hidden="true" />Remove</button>
+          <button type="button" className="gl-delete-ghost" onClick={() => setConfirming(true)} aria-label="Delete quest">
+            <Trash size={14} aria-hidden="true" />
+            <span>Retire</span>
+          </button>
         )}
       </div>
     </article>
   );
 }
 
-/* ---------------- Focus skill ---------------- */
+function NewQuestCard({ onAdd, onCancel, supportsFirst, onGoToolkit }) {
+  const [explore, setExplore] = useState('');
+  const [showHow, setShowHow] = useState(null);
+  const [ownSupports, setSupports] = useState(null);
+  const supports = ownSupports ?? supportsFirst.slice(0, 3);
+  const [steps, setSteps] = useState(['', '']);
 
-function FocusSkill({ plan, set }) {
-  const focus = plan.focus;
-  const skill = FOCUS_SKILLS.find((s) => s.id === focus?.skill);
-  const week = habitWeek(plan);
-  const today = dayKey();
-  const choose = (id) => {
-    const s = FOCUS_SKILLS.find((x) => x.id === id);
-    set({ focus: focus?.skill === id ? null : { skill: id, habit: s.habits[0], daysPerWeek: focus?.daysPerWeek || 5 } });
-  };
+  const ordered = useMemo(
+    () => [...SUPPORTS].sort((a, b) => supportsFirst.includes(b.id) - supportsFirst.includes(a.id)),
+    [supportsFirst]
+  );
+
+  function submit(e) {
+    e.preventDefault();
+    if (!explore.trim()) return;
+    onAdd({
+      id: newId('g'),
+      explore: explore.trim().slice(0, LIMITS.text),
+      showHow,
+      supports,
+      done: false,
+      createdAt: Date.now(),
+      steps: steps
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, LIMITS.steps)
+        .map((text) => ({ id: newId('s'), text, done: false }))
+    });
+  }
+
+  const preview = explore.trim() ? goalSentence({ explore: explore.trim(), showHow, supports }) : null;
+
   return (
-    <Card id="gl-focus" icon={Zap} title="One focus skill"
-          hint="Work on one thinking-and-organising skill at a time, with a habit so small it is easy to start.">
-      <Chips items={FOCUS_SKILLS} selected={focus?.skill || null} single onToggle={choose} label="Focus skill" />
-      {skill && (
-        <div className="gl-focus">
-          <div className="gl-field">
-            <span>My tiny daily habit</span>
-            <div className="gl-chips" role="group" aria-label="Suggested habits">
-              {skill.habits.map((h) => (
-                <button key={h} type="button" className="gl-chip" aria-pressed={focus.habit === h}
-                        onClick={() => set({ focus: { ...focus, habit: h } })}>{h}</button>
-              ))}
-            </div>
-            <input className="gh-input" value={focus.habit} maxLength={LIMITS.text} aria-label="Your own habit"
-                   onChange={(e) => set({ focus: { ...focus, habit: e.target.value } })} placeholder="Or write your own" />
-          </div>
-          <div className="gl-field">
-            <span>How many days a week?</span>
-            <div className="gl-chips" role="group" aria-label="Days a week">
-              {[3, 4, 5, 6, 7].map((n) => (
-                <button key={n} type="button" className="gl-chip gl-chip-n" aria-pressed={focus.daysPerWeek === n}
-                        onClick={() => set({ focus: { ...focus, daysPerWeek: n } })}>{n}</button>
-              ))}
-            </div>
-          </div>
-          <div className="gl-week" aria-label={`Habit done on ${week.count} of the last 7 days, aiming for ${week.target}`}>
-            {week.days.map((d) => (
-              <span key={d.day} className={`gl-dot${d.done ? ' on' : ''}${d.day === today ? ' today' : ''}`}
-                    title={`${new Date(`${d.day}T12:00`).toLocaleDateString(undefined, { weekday: 'long' })}: ${d.done ? 'done' : 'not yet'}`}>
-                {new Date(`${d.day}T12:00`).toLocaleDateString(undefined, { weekday: 'narrow' })}
-              </span>
-            ))}
-            <span className="gl-week-text">{week.count} of {week.target} this week</span>
+    <div className="gl-card gl-new-quest-modal">
+      <div className="gl-card-header">
+        <div className="gl-card-title-group">
+          <span className="gl-icon-bubble gl-bubble-lime">
+            <Plus size={18} aria-hidden="true" />
+          </span>
+          <div>
+            <h3>Design a New Quest</h3>
+            <p className="gl-subtitle">Turn what you love into an exciting project</p>
           </div>
         </div>
-      )}
-    </Card>
+      </div>
+
+      <form className="gl-quest-builder-form" onSubmit={submit}>
+        {/* Step 1 */}
+        <div className="gl-builder-step">
+          <label className="gl-builder-label" htmlFor="quest-explore-input">
+            <span className="gl-step-tag">1</span>
+            <strong>What do you want to explore?</strong>
+          </label>
+          <input
+            id="quest-explore-input"
+            className="gh-input gl-main-input"
+            value={explore}
+            maxLength={LIMITS.text}
+            onChange={(e) => setExplore(e.target.value)}
+            placeholder="e.g. how autonomous cars navigate, how to build a game in Python, solar energy"
+            required
+            autoFocus
+          />
+        </div>
+
+        {/* Step 2 */}
+        <div className="gl-builder-step">
+          <label className="gl-builder-label">
+            <span className="gl-step-tag">2</span>
+            <strong>How will you show what you build or learn?</strong>
+          </label>
+          <div className="gl-chip-group" role="group" aria-label="Show how options">
+            {SHOW_HOW.map((it) => (
+              <button
+                key={it.id}
+                type="button"
+                className={`gl-pill ${showHow === it.id ? 'is-selected' : ''}`}
+                aria-pressed={showHow === it.id}
+                onClick={() => setShowHow((cur) => (cur === it.id ? null : it.id))}
+              >
+                {it.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Step 3 */}
+        <div className="gl-builder-step">
+          <div className="gl-builder-label">
+            <span className="gl-step-tag">3</span>
+            <div>
+              <strong>What hacks or support will help you?</strong>
+              <p className="gl-micro-hint">Choose up to 3 things that keep you in flow</p>
+            </div>
+          </div>
+          <div className="gl-chip-group" role="group" aria-label="Supports options">
+            {ordered.map((it) => {
+              const selected = supports.includes(it.id);
+              return (
+                <button
+                  key={it.id}
+                  type="button"
+                  className={`gl-pill ${selected ? 'is-selected' : ''}`}
+                  aria-pressed={selected}
+                  onClick={() =>
+                    setSupports(selected ? supports.filter((x) => x !== id) : [...supports, it.id])
+                  }
+                >
+                  {it.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Step 4 */}
+        <div className="gl-builder-step">
+          <label className="gl-builder-label">
+            <span className="gl-step-tag">4</span>
+            <div>
+              <strong>First 2 small steps</strong>
+              <p className="gl-micro-hint">Make them tiny so you can start right away</p>
+            </div>
+          </label>
+          <div className="gl-mini-steps-inputs">
+            {steps.map((s, i) => (
+              <input
+                key={i}
+                className="gh-input"
+                value={s}
+                maxLength={LIMITS.text}
+                aria-label={`Step ${i + 1}`}
+                placeholder={i === 0 ? 'e.g. Watch one breakdown video' : 'e.g. Write 3 questions to explore'}
+                onChange={(e) => setSteps((cur) => cur.map((x, j) => (j === i ? e.target.value : x)))}
+              />
+            ))}
+          </div>
+        </div>
+
+        {preview && (
+          <div className="gl-quest-live-preview">
+            <Sparkles size={16} aria-hidden="true" />
+            <div>
+              <span className="gl-preview-title">Quest Preview</span>
+              <p>{preview}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="gl-builder-actions">
+          <button type="submit" className="gh-btn gh-btn-accent" disabled={!explore.trim()}>
+            Launch Quest
+          </button>
+          {onCancel && (
+            <button type="button" className="gh-btn gh-btn-ghost" onClick={onCancel}>
+              Cancel
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
   );
 }
 
-/* ---------------- Self-advocacy ---------------- */
+/* ---------------- TOOLKIT VIEW ---------------- */
 
-function Phrases({ plan, toggle, set }) {
+function ToolkitSection({ plan, set, toggleIn }) {
+  const [copiedPhrase, setCopiedPhrase] = useState(null);
+
+  const copyPhrase = (text, id) => {
+    try {
+      navigator.clipboard?.writeText(text);
+      setCopiedPhrase(id);
+      setTimeout(() => setCopiedPhrase(null), 2000);
+    } catch {
+      /* clipboard write denied in some contexts */
+    }
+  };
+
   return (
-    <Card id="gl-phrases" icon={MessageCircle} title="What I can say"
-          hint="Pick phrases you can use when you need something in class. Practise them so they feel easy.">
-      <ul className="gl-phrases">
-        {PHRASES.map((p) => (
-          <li key={p.id}>
-            <button type="button" className="gl-phrase" aria-pressed={plan.phrases.includes(p.id)} onClick={() => toggle(p.id)}>
-              “{p.text}”
-            </button>
-          </li>
-        ))}
-      </ul>
-      <label className="gl-own">
-        <span>My own words</span>
-        <input className="gh-input" value={plan.phraseOwn} maxLength={LIMITS.own} placeholder="Optional"
-               onChange={(e) => set({ phraseOwn: e.target.value })} />
-      </label>
-    </Card>
+    <div className="gl-toolkit-grid">
+      {/* 1. Superpowers (Strengths) */}
+      <section className="gl-card gl-toolkit-card" id="gl-strengths">
+        <div className="gl-card-header">
+          <div className="gl-card-title-group">
+            <span className="gl-icon-bubble gl-bubble-purple">
+              <Sparkles size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <h2>My Superpowers</h2>
+              <p className="gl-subtitle">What are you naturally good at or love doing?</p>
+            </div>
+          </div>
+          <span className="gl-counter-chip">{plan.strengths.length} picked</span>
+        </div>
+
+        <div className="gl-chip-group" role="group" aria-label="Strengths">
+          {STRENGTHS.map((it) => {
+            const on = plan.strengths.includes(it.id);
+            return (
+              <button
+                key={it.id}
+                type="button"
+                className={`gl-pill ${on ? 'is-selected' : ''}`}
+                aria-pressed={on}
+                onClick={() => toggleIn('strengths', it.id)}
+              >
+                {it.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="gl-own-field">
+          <label htmlFor="own-strength">Have another superpower?</label>
+          <input
+            id="own-strength"
+            className="gh-input"
+            value={plan.strengthsOwn || ''}
+            maxLength={LIMITS.own}
+            onChange={(e) => set({ strengthsOwn: e.target.value })}
+            placeholder="e.g. 3D modeling, trivia, storytelling"
+          />
+        </div>
+      </section>
+
+      {/* 2. Classroom Hacks (Supports) */}
+      <section className="gl-card gl-toolkit-card" id="gl-supports">
+        <div className="gl-card-header">
+          <div className="gl-card-title-group">
+            <span className="gl-icon-bubble gl-bubble-lime">
+              <Heart size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <h2>Classroom Hacks & Supports</h2>
+              <p className="gl-subtitle">The tools and setup that make learning effortless for you</p>
+            </div>
+          </div>
+          <span className="gl-counter-chip">{plan.supports.length} picked</span>
+        </div>
+
+        <div className="gl-chip-group" role="group" aria-label="Supports">
+          {SUPPORTS.map((it) => {
+            const on = plan.supports.includes(it.id);
+            return (
+              <button
+                key={it.id}
+                type="button"
+                className={`gl-pill ${on ? 'is-selected' : ''}`}
+                aria-pressed={on}
+                onClick={() => toggleIn('supports', it.id)}
+              >
+                {it.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="gl-own-field">
+          <label htmlFor="own-support">Anything else that helps you thrive?</label>
+          <input
+            id="own-support"
+            className="gh-input"
+            value={plan.supportsOwn || ''}
+            maxLength={LIMITS.own}
+            onChange={(e) => set({ supportsOwn: e.target.value })}
+            placeholder="e.g. sitting near a window, dark mode screen"
+          />
+        </div>
+      </section>
+
+      {/* 3. Power Phrases */}
+      <section className="gl-card gl-toolkit-card" id="gl-phrases">
+        <div className="gl-card-header">
+          <div className="gl-card-title-group">
+            <span className="gl-icon-bubble gl-bubble-blue">
+              <MessageCircle size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <h2>Self-Advocacy Phrases</h2>
+              <p className="gl-subtitle">Say it with confidence when you need room to do your best work</p>
+            </div>
+          </div>
+        </div>
+
+        <ul className="gl-phrase-cards">
+          {PHRASES.map((p) => {
+            const active = plan.phrases.includes(p.id);
+            const isCopied = copiedPhrase === p.id;
+            return (
+              <li key={p.id}>
+                <div className={`gl-phrase-card ${active ? 'is-selected' : ''}`}>
+                  <button
+                    type="button"
+                    className="gl-phrase-toggle"
+                    aria-pressed={active}
+                    onClick={() => toggleIn('phrases', p.id)}
+                  >
+                    <span className="gl-phrase-quote">“{p.text}”</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="gl-phrase-copy-btn"
+                    onClick={() => copyPhrase(p.text, p.id)}
+                    title="Copy phrase to clipboard"
+                  >
+                    {isCopied ? <Check size={14} className="gl-copied-icon" /> : <Copy size={14} />}
+                    <span>{isCopied ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="gl-own-field">
+          <label htmlFor="own-phrase">My own go-to phrase</label>
+          <input
+            id="own-phrase"
+            className="gh-input"
+            value={plan.phraseOwn || ''}
+            maxLength={LIMITS.own}
+            onChange={(e) => set({ phraseOwn: e.target.value })}
+            placeholder="Write a sentence you feel comfortable using in class"
+          />
+        </div>
+      </section>
+
+      {/* 4. Vibe Reset (Recharge Plan) */}
+      <section className="gl-card gl-toolkit-card" id="gl-recharge">
+        <div className="gl-card-header">
+          <div className="gl-card-title-group">
+            <span className="gl-icon-bubble gl-bubble-cyan">
+              <BatteryCharging size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <h2>Vibe Reset & Flow State</h2>
+              <p className="gl-subtitle">What pulls you into deep flow when you need to recharge?</p>
+            </div>
+          </div>
+          <span className="gl-counter-chip">{plan.recharge.length} picked</span>
+        </div>
+
+        <div className="gl-chip-group" role="group" aria-label="Recharge activities">
+          {RECHARGE.map((it) => {
+            const on = plan.recharge.includes(it.id);
+            return (
+              <button
+                key={it.id}
+                type="button"
+                className={`gl-pill ${on ? 'is-selected' : ''}`}
+                aria-pressed={on}
+                onClick={() => toggleIn('recharge', it.id)}
+              >
+                {it.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </div>
   );
 }

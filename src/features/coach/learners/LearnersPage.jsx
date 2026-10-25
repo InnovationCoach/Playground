@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { StudentProfileEditor } from '../../studentProfile/StudentProfileEditor.jsx';
+import { auth } from '../../../firebase.js';
 import {
   Users, BellRing, CheckCircle2, Rocket, RefreshCw, Search, X, Target, Clock, MessageSquareQuote, AlertTriangle, ArrowUpRight
 } from 'lucide-react';
@@ -243,6 +245,10 @@ function LearnerDrawer({ row: r, className, onClose }) {
             <ul className="cl-suggest">{r.flags.map((f) => <li key={f.id}><strong>{f.label}.</strong> {SUGGEST[f.id]}</li>)}</ul>
           </section>
         )}
+
+        <section className="cl-section">
+          <StudentProfileEditor learnerUid={r.uid} coach={{ uid: auth.currentUser?.uid, role: 'coach' }} learnerName={r.name} />
+        </section>
 
         <section className="cl-section">
           <h3><Target size={16} aria-hidden="true" />Goals</h3>

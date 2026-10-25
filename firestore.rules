@@ -216,13 +216,22 @@ service cloud.firestore {
       // `classIds` is the tenancy boundary and is equally closed, with one
       // narrow exception: a learner may add themselves to a class whose join
       // code they can produce.
-      allow update: if isOwner(userId)
+      //
+      // Coaches who teach the student may update ONLY activeProgramId and updatedAt
+      // when assigning or publishing a program to that learner.
+      allow update: if (
+        isOwner(userId)
         && request.resource.data.get('role', resource.data.get('role', 'student')) == resource.data.get('role', 'student')
         && (
           !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny(['role', 'orgId', 'schoolIds', 'classIds', 'status', 'publicId', 'consent', 'enrolledVia'])
           || isSelfEnrolment()
-        );
+        )
+      ) || (
+        isCoachOf(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['activeProgramId', 'updatedAt'])
+      );
       allow delete: if isOwner(userId);
 
       match /notes/{noteId} {

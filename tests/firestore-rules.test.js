@@ -160,6 +160,33 @@ describe('coach access is scoped to their own classes', () => {
     const db = coachB().firestore();
     await assertFails(getDoc(doc(db, 'users', 'student_a', 'goals', 'g1')));
   });
+
+  it('a coach can update activeProgramId and updatedAt for a student in their class', async () => {
+    const db = coachA().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users', 'student_a'), {
+      activeProgramId: 'prog-123',
+      updatedAt: serverTimestamp()
+    }));
+  });
+
+  it('a coach CANNOT update activeProgramId for a student in another class', async () => {
+    const db = coachA().firestore();
+    await assertFails(updateDoc(doc(db, 'users', 'student_b'), {
+      activeProgramId: 'prog-123',
+      updatedAt: serverTimestamp()
+    }));
+  });
+
+  it('a coach CANNOT update unauthorized fields on a student profile', async () => {
+    const db = coachA().firestore();
+    await assertFails(updateDoc(doc(db, 'users', 'student_a'), {
+      activeProgramId: 'prog-123',
+      role: 'coach'
+    }));
+    await assertFails(updateDoc(doc(db, 'users', 'student_a'), {
+      displayName: 'Hacked Name'
+    }));
+  });
 });
 
 describe('weeklyTasks are no longer world-writable', () => {

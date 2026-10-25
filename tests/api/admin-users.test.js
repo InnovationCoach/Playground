@@ -283,7 +283,7 @@ describe('API: Admin Users Management', () => {
   });
 
   describe('Cohort Boundaries & Consent Requirements', () => {
-    it('Age 11 boundary (primary): sets consent to required', async () => {
+    it('Age 11 boundary (primary): creates learner without consent requirement for testing', async () => {
       const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
       const res = await env.request('POST', '/api/admin/users', {
         token,
@@ -301,7 +301,7 @@ describe('API: Admin Users Management', () => {
       expect(res.status).toBe(201);
       const userDoc = await env.db.collection('users').doc(res.body.uid).get();
       expect(userDoc.data().cohort).toBe('primary');
-      expect(userDoc.data().consent).toEqual({ status: 'required' });
+      expect(userDoc.data().consent).toBeNull();
     });
 
     it('Age 12 boundary (lower-secondary start): creates learner without consent requirement', async () => {

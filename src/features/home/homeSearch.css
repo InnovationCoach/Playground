@@ -47,3 +47,28 @@
 .mc-card-btn .gh-course { padding-right: 1.15rem; flex: 1; }
 .mc-add { width: 100%; }
 .mc-add.is-added { background: var(--gh-purple-50); border-color: var(--gh-purple-100); color: var(--gh-purple-text); }
+
+.mc-card-actions { display: flex; gap: 0.5rem; width: 100%; align-items: stretch; margin-top: 0.25rem; }
+.mc-card-actions .mc-add { flex: 1; min-width: 0; }
+.mc-card-actions .mc-start-link {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
+  padding: 0.5rem 0.85rem; border-radius: 10px; font-weight: 600; font-size: 0.86rem;
+  text-decoration: none; white-space: nowrap; flex: 1; text-align: center;
+}
+
+/* Suggestion pills */
+.hs-suggestions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.45rem; max-width: 680px; margin-top: 0.25rem; }
+.hs-suggestions-label { font-size: 0.8rem; color: var(--gh-text-3); font-weight: 600; margin-right: 0.25rem; }
+.hs-chip {
+  background: var(--gh-surface); border: 1px solid var(--gh-border); color: var(--gh-text-2);
+  padding: 0.32rem 0.75rem; border-radius: 999px; font-size: 0.78rem; font-weight: 500;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.hs-chip:hover { background: var(--gh-purple-50); border-color: var(--gh-purple-100); color: var(--gh-purple-text); transform: translateY(-1px); }
+
+/* Featured Published Programs */
+.hs-featured { max-width: 1200px; margin: 1.5rem auto 0; padding-top: 1rem; width: 100%; text-align: left; }
+.hs-featured-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+.hs-featured-title { display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; margin: 0; color: var(--gh-heading); font-weight: 700; }
+.hs-featured-count { font-size: 0.82rem; color: var(--gh-text-3); font-weight: 500; }
+

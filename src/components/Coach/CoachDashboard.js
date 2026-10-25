@@ -133,6 +133,15 @@ export class CoachDashboard {
         console.warn('[CoachDashboard] Could not load coaches:', err);
         this.coaches = [];
       }
+      if (this.coaches.length === 0 && this.coachUser) {
+        this.coaches = [{
+          uid: this.coachUser.uid,
+          displayName: this.coachUser.displayName || 'Ada Okafor',
+          email: this.coachUser.email || 'coach.okafor@school.edu',
+          role: 'coach',
+          classIds: this.classIds || []
+        }];
+      }
 
       const fetchedStudents = [];
       const fetchedGoals = [];
@@ -761,7 +770,11 @@ export class CoachDashboard {
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 1rem;">
-          ${this.activityPositions.map((act, index) => `
+          ${this.activityPositions.map((act, index) => {
+            const activeStudentsCount = students.length > 0
+              ? (students.filter(s => s.activityProgress?.[act.id] || (act.id === 'solar-car' && s.solarCar)).length || students.length)
+              : 0;
+            return `
             <div style="background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 280px;">
                 <div style="background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%); color: white; width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4);">
@@ -780,7 +793,7 @@ export class CoachDashboard {
               <div style="display: flex; gap: 1.5rem; align-items: center; text-align: center;">
                 <div>
                   <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Class Active</span>
-                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #34d399; font-size: 1rem;">${act.activeStudents} students</p>
+                  <p style="margin: 0.2rem 0 0 0; font-weight: 800; color: #34d399; font-size: 1rem;">${activeStudentsCount} ${activeStudentsCount === 1 ? 'student' : 'students'}</p>
                 </div>
                 <div>
                   <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Class Avg</span>
@@ -805,7 +818,8 @@ export class CoachDashboard {
                 </button>
               </div>
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       </div>
     `;
@@ -1276,7 +1290,7 @@ export class CoachDashboard {
             </div>
 
             <!-- Activity 5: Solar Car -->
-            ${st.solarCar ? `
+            ${sc ? `
             <div style="background: #0f172a; padding: 1.25rem; border-radius: 12px; border: 1px solid #334155;">
               <h4 style="margin: 0 0 0.75rem 0; color: #fbbf24; font-size: 1.05rem;">☀️ Activity 5: Solar Car STEM Challenge</h4>
               <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; text-align: center;">
@@ -1581,7 +1595,7 @@ export class CoachDashboard {
           this.render();
         } catch (err) {
           console.error('[Coach] Could not submit material request:', err);
-          alert('Could not submit material request. Please try again.');
+          this.showNotification('Could not submit material request. Please try again.');
         }
       });
     }
@@ -1627,7 +1641,7 @@ export class CoachDashboard {
             this.showNotification(`Assignment created: "${title}" — due ${dueDate}`);
           } catch (err) {
             console.error('[Coach] Failed to save assignment:', err);
-            alert(`Could not save the assignment: ${err.code || err.message}\n\nIt has not been created.`);
+            this.showNotification(`Could not save the assignment: ${err.code || err.message}`);
             return;
           }
           this.render();
@@ -1681,7 +1695,7 @@ export class CoachDashboard {
           const docRef = doc(collection(db, 'weeklyTasks'));
           await setDoc(docRef, newTask);
           this.weeklyTasks.push({ id: docRef.id, ...newTask });
-          alert('Weekly Task assigned successfully!');
+          this.showNotification('Weekly Task assigned successfully!');
         } catch (err) {
           this.weeklyTasks.push({ id: `wt_${Date.now()}`, ...newTask });
         }
@@ -1732,7 +1746,7 @@ export class CoachDashboard {
         const classId = classSelect ? classSelect.value : '';
 
         if (!classId) {
-          alert('Please select a class for this student.');
+          this.showNotification('Please select a class for this student.');
           if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '✨ Create Student Account';
@@ -1766,7 +1780,7 @@ export class CoachDashboard {
           this.showNotification(`✅ Student "${name}" (${email}) registered successfully!${tempMsg}`);
         } catch (err) {
           console.error('[CoachDashboard] Registration failed:', err);
-          alert('Failed to register student: ' + err.message);
+          this.showNotification('Failed to register student: ' + err.message);
           if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '✨ Create Student Account';
@@ -1893,11 +1907,11 @@ export class CoachDashboard {
             feedbackText: text,
             timestamp: Date.now()
           });
-          alert(`Feedback sent successfully to ${this.selectedStudent.displayName}!`);
+          this.showNotification(`Feedback sent successfully to ${this.selectedStudent.displayName}!`);
           this.selectedStudent = null;
           this.render();
         } catch (err) {
-          alert('Failed to send feedback: ' + err.message);
+          this.showNotification('Failed to send feedback: ' + err.message);
         }
       });
     }
