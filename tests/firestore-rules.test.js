@@ -483,6 +483,17 @@ describe('Phase 0 security boundaries', () => {
     }
   });
 
+  it('client CANNOT read or write Canva Connect server-managed collections', async () => {
+    const clients = [studentA().firestore(), coachA().firestore(), anon().firestore()];
+    const collections = ['canvaConnections', 'canvaOAuthStates'];
+    for (const db of clients) {
+      for (const col of collections) {
+        await assertFails(getDoc(doc(db, col, 'test-doc')));
+        await assertFails(setDoc(doc(db, col, 'test-doc'), { data: 'secret' }));
+      }
+    }
+  });
+
   it('client CANNOT create an auditLog entry with source: server', async () => {
     const db = coachA().firestore();
     await assertFails(addDoc(collection(db, 'auditLogs'), {

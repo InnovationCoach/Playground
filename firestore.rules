@@ -125,6 +125,12 @@ service cloud.firestore {
     match /parentInvites/{docId} { allow read, write: if false; }
 
     // ---------------------------------------------------------------------
+    // Canva Connect Integration (Server Admin SDK only, client read/write false)
+    // ---------------------------------------------------------------------
+    match /canvaConnections/{userId} { allow read, write: if false; }
+    match /canvaOAuthStates/{stateId} { allow read, write: if false; }
+
+    // ---------------------------------------------------------------------
     // Join codes. classCodes/{CODE} -> { classId, className, createdBy, createdAt }
     //
     // Readable one document at a time by exact code, which is what a learner

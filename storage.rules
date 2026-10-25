@@ -72,5 +72,11 @@ service firebase.storage {
       allow read: if isAuthenticated();
       allow write: if isOwner(uid) && request.resource.size <= 10 * 1024 * 1024;
     }
+
+    // Canva Exports (Private exports of learner designs)
+    match /canva-exports/{ownerUid}/{filename} {
+      allow read: if isOwner(ownerUid);
+      allow write: if false; // written only by Admin SDK / server
+    }
   }
 }
