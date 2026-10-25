@@ -14,7 +14,7 @@ export async function requireClaims(req, res, next) {
   }
 
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = header.startsWith('Bearer ') ? header.slice(7) : (req.query?.token || null);
 
   if (!token) {
     return sendError(res, 401, 'UNAUTHENTICATED', 'Sign-in required.');

@@ -495,7 +495,11 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
   });
 
   route('GET', '/api/canva/oauth/start', ['admin', 'supervisor', 'teacher', 'student'], () => {
-    return ok({ url: 'https://www.canva.com', state: 'mock-canva-state' });
+    const clientId = 'OC-AaFyafCLmW1w';
+    const redirectUri = encodeURIComponent('http://127.0.0.1:3001/api/canva/oauth/callback');
+    const scope = encodeURIComponent('design:content design:meta asset folder profile');
+    const url = `https://www.canva.com/api/oauth/authorize?code_challenge=mock_challenge&code_challenge_method=s256&scope=${scope}&response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=mock_state`;
+    return ok({ url, state: 'mock-canva-state' });
   });
 
   route('POST', '/api/canva/disconnect', ['admin', 'supervisor', 'teacher', 'student'], () => {

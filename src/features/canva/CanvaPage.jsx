@@ -4,6 +4,7 @@ import {
   Presentation, FileText, Layout, Image, Copy, Check, LogOut, RefreshCw, Link as LinkIcon
 } from 'lucide-react';
 import { apiRequest } from '../../services/api/apiClient.js';
+import { auth } from '../../firebase.js';
 import './canva.css';
 
 const STARTERS = [
@@ -90,17 +91,28 @@ export function CanvaPage({ uid, role, profile }) {
   const handleConnect = async () => {
     try {
       setConnecting(true);
-      const res = await apiRequest('GET', '/api/canva/oauth/start?format=json');
+      const res = await apiRequest('GET', '/api/canva/oauth/start', { query: { format: 'json' } });
       if (res?.url) {
         window.location.href = res.url;
-      } else {
-        window.location.href = '/api/canva/oauth/start';
+        return;
       }
-    } catch {
-      window.location.href = '/api/canva/oauth/start';
-    } finally {
-      setConnecting(false);
+    } catch (err) {
+      console.warn('Canva JSON start endpoint error:', err);
     }
+
+    try {
+      const user = auth.currentUser;
+      const token = await user?.getIdToken();
+      if (token) {
+        window.location.href = `/api/canva/oauth/start?token=${encodeURIComponent(token)}`;
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to get token for Canva connect:', err);
+    }
+
+    setConnecting(false);
+    alert('Please ensure you are signed in to connect your Canva account.');
   };
 
   const handleDisconnect = async () => {
