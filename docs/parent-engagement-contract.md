@@ -124,7 +124,7 @@ Under D3, `pbl.evidence` includes the **text** of each item. Still excluded: moo
 
 ## 5. Consent (D2)
 
-- **Decision (2026-10-26):** no consent gate. Physical consent is kept at WeLearn, and staff enrol learners. Nothing in the platform checks a consent status, and no consent field is built.
+- **Decision (2026-10-26, confirmed by Mani in writing):** no consent gate. Physical consent is kept at WeLearn, and staff enrol learners. Nothing in the platform checks a consent status, and no consent field is built.
 - **Replaces:** the earlier rule that parental consent is required for every learner under 15 (Mani, deferred until real learners).
 - **Still in force:** the safeguarding rules that do not depend on consent, such as no speech-to-text or voice recording for under-13 learners.
 - Under-15 evidence text (D3): no consent-based restriction. The other D3 rules still apply.
