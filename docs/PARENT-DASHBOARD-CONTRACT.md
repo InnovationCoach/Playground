@@ -27,6 +27,10 @@ The `input` is built like this:
 | `confirmedCompetencies` | Optional. Competency ids a coach has confirmed. Leave it out until coach confirmation exists; the page then shows none as confirmed. |
 | `now` | Server time. |
 
+## Parent visibility rule (approved by Mani, 2026-10-26)
+
+Parents see what coaches see about the child's learning output (work, evidence, progress, Plant Lab lab book), **except** the privacy list below and 2e support notes (visible only to the learner's own teachers).
+
 ## Privacy (tested)
 
 The function deliberately drops:

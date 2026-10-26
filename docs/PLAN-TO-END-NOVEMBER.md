@@ -21,11 +21,12 @@ This plan covers what is left in the project notes. Each item has an owner, a de
 | D3 | Canva: public integration for now. Enterprise later. | Decided. Workstream E follows the public path. |
 | D4 | Dead code | Open. The list is in `PLAN-WEEK1-FINDINGS.md`. Coordinate with `refactor/clean-legacy-components`. |
 | D5 | Deploy freeze lifted, "let's deploy" | **Not yet a written go for a named step.** See below. |
-| PL | Plant Lab lab book visible to coaches and to parents | Decided yes for coaches. Parents: see the conflict below. |
+| PL | Plant Lab lab book visible to coaches and to parents | Coaches: yes. Parents: approved by Mani in writing, 2026-10-26, under the rule in PD below. |
+| PD | Parent visibility: parents see what coaches see about the child's learning output, except the parent privacy list and 2e support notes | **Approved by Mani in writing, 2026-10-26.** |
 
 **D5, what is needed before any deploy:** a written go from Mani for each named step (the release branch, then a Hosting preview channel, then live). A release branch does not exist yet. Gemini's integration prompt is the next step.
 
-**Conflict to resolve before parent visibility is built:** "anything coaches can see, parents can too" conflicts with two rules already in the docs:
+**Resolved by PD (approved 2026-10-26).** The original conflict was: "anything coaches can see, parents can too" conflicts with two rules already in the docs:
 - `docs/PARENT-DASHBOARD-CONTRACT.md` (tested privacy): parents never see the child's mood check-ins and notes, evidence text, AI logs, sparks, goal strengths/supports/phrases, or recharge choices. Coaches can read several of these today (goals, dailyStats, evidence).
 - `docs/lms-plan.html` (W2E): 2e support notes are visible only to the learner's own teachers.
 
