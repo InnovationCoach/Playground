@@ -28,7 +28,7 @@ import {
   getEdmentumLearnerScores,
   launchEdmentumCourse
 } from '../edmentum/edmentumService.js';
-import { srOnly } from './CatalogCard.jsx';
+import { CatalogCard, srOnly } from './CatalogCard.jsx';
 import '../admin/admin.css';
 import '../pbl/pbl.css';
 import '../pbl/programs/programs.css';
