@@ -101,6 +101,14 @@ describe('Coach Private Notes (M5, M6)', () => {
     await assertFails(getDoc(doc(adminUser().firestore(), NOTE_PATH)));
     await assertFails(getDoc(doc(parentUser().firestore(), NOTE_PATH)));
   });
+
+  it('denies outsider coach (coach_b) from creating private note for student_a (scope check)', async () => {
+    const db = coachB().firestore();
+    const OUTSIDER_NOTE = 'coachPrivate/coach_b/learners/student_a/notes/note_b1';
+    await assertFails(setDoc(doc(db, OUTSIDER_NOTE), {
+      id: 'note_b1', text: 'Outsider note', at: Date.now()
+    }));
+  });
 });
 
 describe('Coaching Records: Check-ins (M1, M2, M3, M4b, M8, M10)', () => {
@@ -189,6 +197,10 @@ describe('Coaching Records: Agreed Milestones & Coach Goals (M4, M7)', () => {
     const coCoachDb = coachA2().firestore();
     await assertSucceeds(updateDoc(doc(coCoachDb, MILESTONE_PATH), { doneOn: '2026-11-05' }));
     await assertSucceeds(updateDoc(doc(coCoachDb, GOAL_PATH), { doneOn: '2026-11-05' }));
+
+    // But co-coach CANNOT rewrite milestone title or goal text (M4 field constraint)
+    await assertFails(updateDoc(doc(coCoachDb, MILESTONE_PATH), { title: 'Rewritten by co-coach' }));
+    await assertFails(updateDoc(doc(coCoachDb, GOAL_PATH), { text: 'Rewritten by co-coach' }));
   });
 });
 
@@ -229,7 +241,7 @@ describe('Coaching Records: Feedback & Assessments (M7, M13)', () => {
   });
 });
 
-describe('Coaching Records: Coach Evidence & Parent Reports (M12, M14)', () => {
+describe('Coaching Records: Coach Evidence & Parent Reports (M11, M12, M14)', () => {
   it('enforces M14: coach-added evidence requires http/https link if link provided', async () => {
     const coachDb = coachA().firestore();
     const EV_1 = 'learners/student_a/coachEvidence/ev_1';
@@ -248,7 +260,7 @@ describe('Coaching Records: Coach Evidence & Parent Reports (M12, M14)', () => {
     await assertSucceeds(getDoc(doc(studentA().firestore(), EV_1)));
   });
 
-  it('enforces M12: approved report cannot be deleted or text rewritten', async () => {
+  it('enforces M11 & M12: report approval requires approvedAt, and approved report cannot be deleted or text rewritten', async () => {
     const coachDb = coachA().firestore();
     const RP_PATH = 'learners/student_a/reports/rp_1';
 
@@ -262,20 +274,50 @@ describe('Coaching Records: Coach Evidence & Parent Reports (M12, M14)', () => {
       updatedAt: Date.now()
     }));
 
-    // 2. Approve report
+    // 2. Fails: approving without approvedAt (M11)
+    await assertFails(updateDoc(doc(coachDb, RP_PATH), {
+      status: 'approved',
+      updatedAt: Date.now()
+    }));
+
+    // 3. Succeeds: approving with approvedAt (M11)
     await assertSucceeds(updateDoc(doc(coachDb, RP_PATH), {
       status: 'approved',
       approvedAt: Date.now(),
       updatedAt: Date.now()
     }));
 
-    // 3. Fails: rewriting text of an approved report directly (M12)
+    // 4. Fails: rewriting text of an approved report directly (M12)
     await assertFails(updateDoc(doc(coachDb, RP_PATH), {
       text: { summary: 'Rewritten after approval' },
       updatedAt: Date.now()
     }));
 
-    // 4. Fails: deleting an approved report
+    // 5. Fails: deleting an approved report
     await assertFails(deleteDoc(doc(coachDb, RP_PATH)));
+  });
+});
+
+describe('Admin & Supervisor Read-Only Oversight (M8b, Q5)', () => {
+  it('allows admin/supervisor to read check-ins, assessments, and reports (read-only)', async () => {
+    const CHECKIN_PATH = 'learners/student_a/checkIns/ci_audit';
+    const RP_PATH = 'learners/student_a/reports/rp_audit';
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), CHECKIN_PATH), {
+        id: 'ci_audit', strength: 'Strong', nextAction: 'Build', authorUid: 'coach_a', at: Date.now()
+      });
+      await setDoc(doc(ctx.firestore(), RP_PATH), {
+        id: 'rp_audit', status: 'approved', text: { summary: 'Audit report' }, authorUid: 'coach_a', createdAt: Date.now(), updatedAt: Date.now()
+      });
+    });
+
+    const adminDb = adminUser().firestore();
+    // Admin can read (M8b)
+    await assertSucceeds(getDoc(doc(adminDb, CHECKIN_PATH)));
+    await assertSucceeds(getDoc(doc(adminDb, RP_PATH)));
+
+    // Admin cannot write or delete (read-only)
+    await assertFails(updateDoc(doc(adminDb, CHECKIN_PATH), { strength: 'Tampered' }));
+    await assertFails(deleteDoc(doc(adminDb, RP_PATH)));
   });
 });
