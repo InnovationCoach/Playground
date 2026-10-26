@@ -117,10 +117,10 @@ When the backend lands, offer each coach a one-time "Move my records from this d
   - Check-ins, judgements, parent notes and reports stay coach-only (M8).
 - **Q2, co-coaches:** yes, co-coaches of the class may edit each other's milestones and coach-set goals (M4). Check-ins, judgements, notes and reports stay with their author (M4b).
 - **Q3, private notes:** they stay private: the author only, with no admin, supervisor or server read path (M6).
-- **Q4, retention:** "a month maybe", so **30 days, still to be confirmed by Mani** before it is built.
-  - Proposal: a Firestore TTL policy on private notes and on unapproved report drafts, deleting 30 days after their last update.
+- **Q4, retention: 30 days, confirmed by Mani on 2026-10-26.**
+  - A Firestore TTL policy deletes private notes and unapproved report drafts 30 days after their last update.
   - Approved reports are not deleted by this rule.
-  - Show the coach "deleted after 30 days" next to private notes when it goes live.
-  - Raise with Mani before building: a safeguarding concern written in a private note would also be deleted after 30 days. Those concerns need their own recording route outside private notes.
+  - The coach is told "Deleted after 30 days" next to private notes and drafts.
+  - Still open: a safeguarding concern written in a private note would also be deleted after 30 days, so concerns need their own recording route outside private notes.
 
 The frontend now has coach-set goals, stored on the device until `coachGoals` exists. Learners can't see them yet, and the screen says so.
