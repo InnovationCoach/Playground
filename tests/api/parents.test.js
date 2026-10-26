@@ -128,6 +128,41 @@ describe('API: Parent Portal & Invites', () => {
     });
   });
 
+  describe('GET /api/parent/children/:uid/progress', () => {
+    it('returns child learning progress for actively linked parent', async () => {
+      const token = await env.getIdToken('parent1', { role: 'parent', orgId: 'org-welearn' });
+      const res = await env.request('GET', '/api/parent/children/kid1/progress', { token });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('child');
+      expect(res.body.child.uid).toBe('kid1');
+      expect(res.body).toHaveProperty('pbl');
+      expect(res.body).toHaveProperty('goals');
+      expect(res.body).toHaveProperty('competencies');
+      expect(res.body).toHaveProperty('activities');
+      expect(res.body).toHaveProperty('starters');
+      // Privacy invariant: mood check-ins, internal AI transcripts, and private text must not be present
+      expect(res.body).not.toHaveProperty('mood');
+      expect(res.body).not.toHaveProperty('aiConversations');
+    });
+
+    it('returns 404 NOT_FOUND if parent is not linked to the requested child', async () => {
+      const token = await env.getIdToken('parent1', { role: 'parent', orgId: 'org-welearn' });
+      const res = await env.request('GET', '/api/parent/children/unknown_kid/progress', { token });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('denies child progress access to non-parent role (403)', async () => {
+      const token = await env.getIdToken('kid1', { role: 'student', orgId: 'org-welearn' });
+      const res = await env.request('GET', '/api/parent/children/kid1/progress', { token });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
+  });
+
   describe('DELETE /api/admin/parent-links/:linkId', () => {
     it('revokes link and audits PARENT_UNLINKED on student and parent', async () => {
       const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });

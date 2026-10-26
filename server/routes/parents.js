@@ -5,6 +5,8 @@ import { requireClaims } from '../middleware/auth.js';
 import { sendError } from '../lib/errors.js';
 import { generateJoinCode, normaliseJoinCode } from '../../src/utils/joinCode.js';
 import { writeAuditLog } from '../lib/audit.js';
+import { buildChildProgress } from '../../src/features/parent/childProgress.js';
+import { TERM } from '../../src/features/pbl/content/pblModel.js';
 
 const router = Router();
 const SECRET = process.env.PARENT_INVITE_SECRET || 'dev-secret-key-phase0';
@@ -222,6 +224,74 @@ router.get('/parent/children', requireClaims, async (req, res) => {
   }
 
   return res.json({ items, nextPageToken: null, total: items.length });
+});
+
+// GET /api/parent/children/:uid/progress (parent only)
+router.get('/parent/children/:uid/progress', requireClaims, async (req, res) => {
+  if (req.caller.role !== 'parent') {
+    return sendError(res, 403, 'FORBIDDEN', 'Only parents can view child progress.');
+  }
+
+  const db = getFirestore();
+  const childUid = req.params.uid;
+
+  // Verify active parent link. If not linked, return 404 (per security contract).
+  const linkSnap = await db.collection('parentLinks')
+    .where('parentUid', '==', req.caller.uid)
+    .where('studentUid', '==', childUid)
+    .where('status', '==', 'active')
+    .limit(1)
+    .get();
+
+  if (linkSnap.empty) {
+    return sendError(res, 404, 'NOT_FOUND', 'No such child.');
+  }
+
+  const link = linkSnap.docs[0].data();
+  const linkId = link.linkId || linkSnap.docs[0].id;
+
+  const studentSnap = await db.collection('users').doc(childUid).get();
+  if (!studentSnap.exists) {
+    return sendError(res, 404, 'NOT_FOUND', 'No such child.');
+  }
+
+  const studentData = studentSnap.data();
+  const childSummary = await buildChildSummary(db, studentData);
+  const child = { linkId, ...childSummary };
+
+  // Load progress records in parallel using Admin SDK
+  const progressCol = db.collection('users').doc(childUid).collection('activityProgress');
+  const [pblSnap, solarSnap, plantSnap, hexSnap] = await Promise.all([
+    progressCol.doc(`pbl-${TERM.id}`).get().catch(() => null),
+    progressCol.doc('solar-car').get().catch(() => null),
+    progressCol.doc('plant-lab').get().catch(() => null),
+    progressCol.doc('hex-grid').get().catch(() => null)
+  ]);
+
+  const pblProject = pblSnap?.exists ? pblSnap.data() : null;
+  const activityDocs = {
+    'solar-car': solarSnap?.exists ? solarSnap.data() : null,
+    'plant-lab': plantSnap?.exists ? plantSnap.data() : null,
+    'hex-grid': hexSnap?.exists ? hexSnap.data() : null
+  };
+
+  const goalPlan = studentData.goalPlan || null;
+  const edmentum = studentData.edmentum || null;
+  const confirmedCompetencies = Array.isArray(studentData.confirmedCompetencies)
+    ? studentData.confirmedCompetencies
+    : [];
+
+  const progress = buildChildProgress({
+    child,
+    goalPlan,
+    pblProject,
+    activityDocs,
+    edmentum,
+    confirmedCompetencies,
+    now: new Date()
+  });
+
+  return res.json(progress);
 });
 
 // DELETE /api/admin/parent-links/:linkId (admin)
