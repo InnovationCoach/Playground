@@ -921,6 +921,123 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // COACH PRIVATE NOTES: Coach-specific private observations about learners
+    // ---------------------------------------------------------------------
+    // Private notes remain accessible ONLY to the authoring coach.
+    // Inaccessible to other coaches, learners, parents, admins, or supervisors (M5, M6).
+    match /coachPrivate/{coachUid}/learners/{learnerId}/notes/{noteId} {
+      allow read, write: if isOwner(coachUid) && isTeacher();
+    }
+
+    // ---------------------------------------------------------------------
+    // COACHING RECORDS: My Learners (Coach Dashboard & Supervision)
+    // ---------------------------------------------------------------------
+    match /learners/{learnerId} {
+      // Default deny on root doc
+      allow read, write: if false;
+
+      // 1. Check-ins: coach-only review (M1, M3, M4b, M8, M10)
+      match /checkIns/{checkInId} {
+        allow read: if isCoachOf(learnerId) || isAdminOrSupervisor();
+        allow create: if isCoachOf(learnerId)
+          && request.resource.data.authorUid == request.auth.uid;
+        allow update, delete: if isCoachOf(learnerId)
+          && resource.data.authorUid == request.auth.uid;
+      }
+
+      // 2. Agreed milestones: visible to learner and coach (M1, M4, M7)
+      // Co-coaches can update milestones (e.g. mark done)
+      match /milestones/{milestoneId} {
+        allow read: if isOwner(learnerId) || isCoachOf(learnerId) || isAdminOrSupervisor();
+        allow create: if isCoachOf(learnerId)
+          && request.resource.data.authorUid == request.auth.uid;
+        allow update: if isCoachOf(learnerId);
+        allow delete: if isCoachOf(learnerId)
+          && resource.data.authorUid == request.auth.uid;
+      }
+
+      // 3. Coach-set goals: visible to learner and coach (M1, M4, M7)
+      // Co-coaches can update coach goals (e.g. mark done)
+      match /coachGoals/{goalId} {
+        allow read: if isOwner(learnerId) || isCoachOf(learnerId) || isAdminOrSupervisor();
+        allow create: if isCoachOf(learnerId)
+          && request.resource.data.authorUid == request.auth.uid;
+        allow update: if isCoachOf(learnerId);
+        allow delete: if isCoachOf(learnerId)
+          && resource.data.authorUid == request.auth.uid;
+      }
+
+      // 4. Feedback on evidence: visible to learner and coach (M1, M4b, M7)
+      match /feedback/{feedbackId} {
+        allow read: if isOwner(learnerId) || isCoachOf(learnerId) || isAdminOrSupervisor();
+        allow create: if isCoachOf(learnerId)
+          && request.resource.data.authorUid == request.auth.uid;
+        allow update, delete: if isCoachOf(learnerId)
+          && resource.data.authorUid == request.auth.uid;
+      }
+
+      // 5. Competency judgements: coach-only (M1, M4b, M8, M13)
+      // No judgement without evidence unless level is insufficient (M13)
+      match /assessments/{assessmentId} {
+        allow read: if isCoachOf(learnerId) || isAdminOrSupervisor();
+        allow create: if isCoachOf(learnerId)
+          && request.resource.data.authorUid == request.auth.uid
+          && (
+            request.resource.data.get('level', '') == 'insufficient'
+            || (request.resource.data.get('evidenceKeys', []).size() > 0)
+          );
+        allow update, delete: if isCoachOf(learnerId)
+          && resource.data.authorUid == request.auth.uid;
+      }
+
+      // 6. Coach-added evidence: visible to learner and coach (M1, M4b, M7, M14)
+      // Non-empty link must be http(s) (M14)
+      match /coachEvidence/{evidenceId} {
+        allow read: if isOwner(learnerId) || isCoachOf(learnerId) || isAdminOrSupervisor();
+        allow create: if isCoachOf(learnerId)
+          && request.resource.data.authorUid == request.auth.uid
+          && (
+            !('link' in request.resource.data)
+            || request.resource.data.link == ''
+            || request.resource.data.link.matches('^https?://.*')
+          );
+        allow update, delete: if isCoachOf(learnerId)
+          && resource.data.authorUid == request.auth.uid;
+      }
+
+      // 7. Notes for parents: coach-only draft in Firestore (M1, M4b, M8, M10)
+      match /parentNotes/{noteId} {
+        allow read: if isCoachOf(learnerId) || isAdminOrSupervisor();
+        allow create: if isCoachOf(learnerId)
+          && request.resource.data.authorUid == request.auth.uid;
+        allow update, delete: if isCoachOf(learnerId)
+          && resource.data.authorUid == request.auth.uid;
+      }
+
+      // 8. Parent reports: coach-only in Firestore; parent access is mediated via server S3 (M1, M4b, M8, M10, M11, M12)
+      match /reports/{reportId} {
+        allow read: if isCoachOf(learnerId) || isAdminOrSupervisor();
+        allow create: if isCoachOf(learnerId)
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.get('status', 'draft') in ['draft', 'approved'];
+        allow update: if isCoachOf(learnerId)
+          && resource.data.authorUid == request.auth.uid
+          && (
+            // Draft report can be updated freely
+            resource.data.get('status', 'draft') != 'approved'
+            // Or coach is approving the report
+            || (
+              request.resource.data.get('status', '') == 'approved'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approvedAt', 'updatedAt'])
+            )
+          );
+        allow delete: if isCoachOf(learnerId)
+          && resource.data.authorUid == request.auth.uid
+          && resource.data.get('status', 'draft') != 'approved';
+      }
+    }
+
+    // ---------------------------------------------------------------------
     // Audit trail (FERPA/COPPA). Append-only: never updatable or deletable.
     // ---------------------------------------------------------------------
     match /auditLogs/{logId} {
