@@ -53,7 +53,7 @@
 .mc-card-actions .mc-start-link {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
   padding: 0.5rem 0.85rem; border-radius: 10px; font-weight: 600; font-size: 0.86rem;
-  text-decoration: none; white-space: nowrap; flex: 1; text-align: center;
+  text-decoration: none; white-space: nowrap; flex: 1; min-width: 0; text-align: center;
 }
 
 /* Suggestion pills */

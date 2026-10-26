@@ -49,7 +49,7 @@ export function CatalogCard({ item, onOpenActivity, addedKeys, onToggleAdd, vari
           <button type="button" className={isAdded ? 'gh-btn mc-add is-added' : 'gh-btn gh-btn-accent mc-add'}
                   aria-pressed={isAdded} onClick={() => onToggleAdd(item.key)} aria-label={`${label}: ${item.title}`}>
             {isAdded ? <Check size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
-            {isAdded ? t('courses.added') : t('courses.save')}
+            {isAdded ? t('courses.added') : t('courses.add')}
           </button>
           {item.source === 'program' && (
             <a

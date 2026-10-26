@@ -1828,6 +1828,14 @@
 .gl-notice-more { font-size: 0.8rem; color: var(--gh-text-3, #737d93); padding-left: 0.6rem; }
 .gl-notice-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .gl-notice .gh-btn { text-decoration: none; }
+.gl-notice-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.2rem; }
+.gl-check { display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.4rem 0.5rem; border: 0; border-radius: 10px;
+  background: transparent; color: var(--gh-text, #14213a); font: inherit; font-size: 0.88rem; line-height: 1.3; text-align: left; cursor: pointer; }
+.gl-check:hover { background: var(--gh-subtle, #f5f6fa); }
+.gl-check:focus-visible { outline: 2px solid var(--gh-purple, #8250a0); outline-offset: 2px; }
+.gl-check svg { flex: none; color: var(--gh-text-3, #737d93); }
+.gl-check[aria-pressed="true"] { color: var(--gh-text-3, #737d93); text-decoration: line-through; }
+.gl-check[aria-pressed="true"] svg { color: var(--gh-green-600, #4a6a00); }
 .gl-icon-btn { width: 30px; height: 30px; border-radius: 8px; border: 0; background: transparent; color: #64748b; display: grid; place-items: center; cursor: pointer; }
 .gl-icon-btn:hover { background: #f1f5f9; color: #0f172a; }
 
