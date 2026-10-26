@@ -124,11 +124,11 @@ describe('mock backend follows the §7 contract', () => {
     expect(dup.body.error.field).toBe('email');
   });
 
-  it('creates primary learners as pending with consent required', async () => {
+  it('creates primary learners as pending with consent gate removed', async () => {
     const api = fresh();
     const res = await call(api, admin, 'POST', '/api/admin/users', { body: { role: 'student', email: 'little@welearn.test', givenNames: 'Little', surname: 'One', schoolIds: ['sch-bkk'], cohortId: 'cohort-wpr', ageBand: 'primary' } });
     expect(res.body.status).toBe('pending');
-    expect(res.body.consent).toEqual({ status: 'required' });
+    expect(res.body.consent).toBeNull();
   });
 
   it('suspends with a reason, cannot suspend self, and unsuspends back to the right status', async () => {

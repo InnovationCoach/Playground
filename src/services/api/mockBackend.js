@@ -197,7 +197,6 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     const email = body.email.trim().toLowerCase();
     if (db.users.some((u) => u.email === email)) return fail(409, 'CONFLICT', 'That email is already in use.', 'email');
     const createdAt = now();
-    const primary = body.role === 'student' && body.ageBand === 'primary';
     const user = {
       uid: newId('mock-user'), publicId: makePublicId(rand, takenIds), role: body.role,
       status: 'pending',
@@ -208,7 +207,7 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
       auth: { lastSignInAt: null, createdAt, disabled: false }
     };
     if (body.role === 'student') {
-      Object.assign(user, { cohortId: body.cohortId, ageBand: body.ageBand, yearLevel: body.yearLevel || null, dateOfBirth: body.dateOfBirth || null, consent: primary ? { status: 'required' } : null });
+      Object.assign(user, { cohortId: body.cohortId, ageBand: body.ageBand, yearLevel: body.yearLevel || null, dateOfBirth: body.dateOfBirth || null, consent: null });
     }
     db.users.push(user);
     audit(caller, user, 'ACCOUNT_CREATED', `Account created as ${user.role}`);
