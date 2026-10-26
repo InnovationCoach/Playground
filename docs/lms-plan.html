@@ -116,7 +116,7 @@
 <table>
   <tr><th style="width:18%">Cohort</th><th style="width:26%">Learners</th><th>What the platform provides for them</th></tr>
   <tr><td><strong>W2E</strong></td><td>Twice-exceptional (2e) learners, secondary</td><td>A learning profile per student with accommodations (extended time, reduced visual load, text-to-speech, tasks broken into steps), stretch challenges that build on strengths, and support notes visible only to that student's teachers.</td></tr>
-  <tr><td><strong>WPR</strong></td><td>International students, primary</td><td>A simpler, age-appropriate interface; accounts activated only after verified parental consent; English/Chinese/Thai throughout; AI tutor limited or off by default for younger children.</td></tr>
+  <tr><td><strong>WPR</strong></td><td>International students, primary</td><td>A simpler, age-appropriate interface; accounts activated by staff enrolment (physical consent is kept by WeLearn); English/Chinese/Thai throughout; AI tutor limited or off by default for younger children.</td></tr>
   <tr><td><strong>All cohorts</strong></td><td>Every learner</td><td>One sign-in, My Courses, gradebook and transcripts, parent portal, mobile-friendly and accessible design.</td></tr>
 </table>
 <div class="callout">
@@ -185,7 +185,7 @@
 <p>Data inconsistencies in the mock-ups have been fixed in our designs. Examples: the same User ID assigned
   to three different people, a parent shown with 0 students who has 2, and "page 1 of 3" for 129 records.
   One mock-up student is 12: with the WPR primary cohort, under-13 learners are in scope, and the plan provides
-  the parental consent this requires (Phase E).</p>
+  the enrolment this requires (Phase E). No consent gate is built.</p>
 
 
 <h2 id="s4">4. How it fits together</h2>
@@ -302,9 +302,8 @@
   </ul>
 </div>
 <div class="phase">
-  <div class="head"><strong>Phase E · Parent portal and parental consent</strong><span class="dur">about 3 weeks</span></div>
+  <div class="head"><strong>Phase E · Parent portal</strong><span class="dur">about 3 weeks</span></div>
   <ul>
-    <li>Verified parental consent before any primary (WPR) account is activated, with consent records kept</li>
     <li>Parents link to a child with a one-time invite code from the school; read-only progress and grades</li>
     <li>Optional weekly email summary in English or Chinese</li>
   </ul>
@@ -313,7 +312,7 @@
   <div class="head"><strong>Phase F · Launch readiness</strong><span class="dur">2–3 weeks</span></div>
   <ul>
     <li>Independent security test and fixes; privacy review; staff training material</li>
-    <li>Pilot with one W2E class first; WPR primary classes join once parental consent is live; then all cohorts after sign-off</li>
+    <li>Pilot with one W2E class first; WPR primary classes join once staff enrolment is set up; then all cohorts after sign-off</li>
   </ul>
 </div>
 <div class="phase" style="border-left-color:#d97706">
@@ -340,7 +339,7 @@
   <div class="lbl" style="grid-row:7">Guidebook &amp; import</div><div class="bar lite" style="grid-row:7; grid-column: 10 / span 5"></div>
   <div class="lbl" style="grid-row:6">C · Catalogue &amp; cohorts</div><div class="bar" style="grid-row:6; grid-column: 12 / span 5"></div>
   <div class="lbl" style="grid-row:8">D · Gradebook</div><div class="bar" style="grid-row:8; grid-column: 17 / span 4"></div>
-  <div class="lbl" style="grid-row:9">E · Parents &amp; consent</div><div class="bar" style="grid-row:9; grid-column: 20 / span 3"></div>
+  <div class="lbl" style="grid-row:9">E · Parents</div><div class="bar" style="grid-row:9; grid-column: 20 / span 3"></div>
   <div class="lbl" style="grid-row:10">F · Launch readiness</div><div class="bar" style="grid-row:10; grid-column: 22 / span 3"></div>
   <div class="lbl" style="grid-row:11">Pilot → go-live</div><div class="bar lite" style="grid-row:11; grid-column: 24 / span 2"></div>
 </div>
@@ -356,7 +355,7 @@
   <tr><td>4</td><td><strong>Set up sending from Microsoft 365</strong>: a no-reply shared mailbox and an app registration allowed to send only from it (Microsoft Graph)</td><td>Microsoft 365 admin</td><td class="nowrap">Before Phase A ends</td><td>Account activation emails</td></tr>
   <tr><td>5</td><td><strong>Supply the Firebase admin key</strong> securely to the platform lead (never by email or chat)</td><td>Firebase owner</td><td class="nowrap">Phase A</td><td>Setting up first admin accounts</td></tr>
   <tr><td>6</td><td><strong>List the tools and features teachers rely on daily</strong></td><td>Teaching leads</td><td class="nowrap">Within 2 weeks</td><td>Build order; go-live readiness</td></tr>
-  <tr><td>7</td><td><strong>Commission a security test and privacy review</strong>, covering parental consent for primary learners and 2e support data</td><td>Leadership</td><td class="nowrap">Book by week 12</td><td>Go-live</td></tr>
+  <tr><td>7</td><td><strong>Commission a security test and privacy review</strong>, covering primary learners and 2e support data</td><td>Leadership</td><td class="nowrap">Book by week 12</td><td>Go-live</td></tr>
   <tr><td>8</td><td><strong>Define the Thai Diploma course</strong>: subjects, credits, grading, assessment and transcript requirements, and who awards the diploma</td><td>Academic lead with the Thai Diploma teacher</td><td class="nowrap">Before Phase C</td><td>Thai Diploma catalogue and transcripts</td></tr>
   <tr><td>9</td><td><strong>Native Thai speaker review</strong> of the Thai interface and messages</td><td>Thai-speaking staff member</td><td class="nowrap">Phase C</td><td>Thai Diploma go-live</td></tr>
   <tr><td>10</td><td><strong>Export the existing course data</strong> (about 1,030 courses) from the previous WeLearn course system</td><td>Platform Lead with the previous developer</td><td class="nowrap">Before Phase C</td><td>Course import</td></tr>
@@ -390,7 +389,7 @@
 <h2 id="s10">10. Main risks</h2>
 <table>
   <tr><th style="width:30%">Risk</th><th>Mitigation</th></tr>
-  <tr><td>Primary learners' data and 2e support notes are especially sensitive</td><td>Parental consent before activation; support notes visible only to the learner's own teachers; privacy review covers both.</td></tr>
+  <tr><td>Primary learners' data and 2e support notes are especially sensitive</td><td>Staff enrolment (physical consent is kept by WeLearn); support notes visible only to the learner's own teachers; privacy review covers both.</td></tr>
   <tr><td>Children's data exposed by a defect</td><td>Automated security-rule tests, server-side audit log, independent security test before go-live.</td></tr>
   <tr><td>Features reported done that do not work</td><td>"Done" means verified on the running system; Platform Lead approves every release; CEO receives milestone updates; pilot with one class first.</td></tr>
   <tr><td>Outside services change (AI model retired, library updates)</td><td>Settings, not code, control the AI model; monthly maintenance by the Platform Lead.</td></tr>

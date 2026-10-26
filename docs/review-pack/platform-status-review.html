@@ -344,7 +344,7 @@
   <div class="screen" style="margin-top: 10px">
     <div class="screen-head"><span class="sid">6.8</span><h3>Add a student</h3><span class="chip part">Partly done</span></div>
     <img class="shot tall" src="shots/47-admin-create.jpg" alt="Add student">
-    <p class="cap">Staff never choose or see a password: the new user gets an email to set their own. <b>Until the school's Microsoft 365 no-reply mailbox exists, no email is sent</b>, and the screen says so honestly. Primary learners stay "pending" until a parent gives consent.</p>
+    <p class="cap">Staff never choose or see a password: the new user gets an email to set their own. <b>Until the school's Microsoft 365 no-reply mailbox exists, no email is sent</b>, and the screen says so honestly.</p>
     <p class="ask"><b>Question:</b> Which details must we collect for each student, and which should we not collect at all?</p>
   </div>
 </section>
@@ -366,7 +366,7 @@
   <div class="screen">
     <div class="screen-head"><span class="sid">7.1</span><h3>Parent portal</h3><span class="chip part">Partly done</span></div>
     <img class="shot tall" src="shots/50-parent.jpg" alt="Parent portal">
-    <p class="cap">A read-only view of each linked child, and a box to link a child with the school's invite code. Grades and progress arrive with the gradebook (Phase D); the parental-consent step and weekly email summaries arrive in Phase E.</p>
+    <p class="cap">A read-only view of each linked child, and a box to link a child with the school's invite code. Grades and progress arrive with the gradebook (Phase D); weekly email summaries arrive in Phase E.</p>
     <p class="ask"><b>Question:</b> What would parents most want to see here?</p>
   </div>
 </section>
@@ -414,7 +414,7 @@
     <tr><th></th><th>Item</th><th style="width: 110px">Status</th></tr>
     <tr><td class="c">☐</td><td>Put the server online (needs the Firebase billing plan)</td><td><span class="chip school">Needs school</span></td></tr>
     <tr><td class="c">☐</td><td>Move existing accounts to the new structure (trial run first), then switch on the new privacy rules on the live site</td><td><span class="chip todo">Phase A</span></td></tr>
-    <tr><td class="c">☐</td><td>Parental consent before any primary account can be used (currently switched off for testing)</td><td><span class="chip todo">Phase E</span></td></tr>
+    <tr><td class="c">☐</td><td>Parental consent step: not needed (physical consent is kept by WeLearn; staff enrol learners)</td><td><span class="chip todo">Removed</span></td></tr>
     <tr><td class="c">☐</td><td>Replace the AI service key that is stored in older project history</td><td><span class="chip todo">To do</span></td></tr>
     <tr><td class="c">☐</td><td>Activation and password emails from a school no-reply mailbox</td><td><span class="chip school">Needs school</span></td></tr>
     <tr><td class="c">☐</td><td>Native-speaker check of the Chinese and Thai text</td><td><span class="chip school">Needs school</span></td></tr>
@@ -446,7 +446,7 @@
     <tr><td><b>B</b></td><td>One-click Edmentum from My Courses, with scores coming back</td><td>Edmentum registration</td></tr>
     <tr><td><b>C</b></td><td>Course catalogue, teacher uploads, Thai Diploma, primary-friendly and W2E support settings</td><td>Thai Diploma definition</td></tr>
     <tr><td><b>D</b></td><td>Gradebook, terms and transcripts</td><td>Phase B</td></tr>
-    <tr><td><b>E</b></td><td>Parental consent and the full parent portal</td><td>Privacy review</td></tr>
+    <tr><td><b>E</b></td><td>The full parent portal</td><td>Privacy review</td></tr>
     <tr><td><b>F</b></td><td>Security test, training, pilot, then everyone</td><td>Actions 7 and 1</td></tr>
   </table>
   <p class="muted" style="margin-top: 8px">In parallel, the front-end team will restyle the student Home, the activities and the coach dashboard, and build the school and class management screens.</p>
@@ -462,7 +462,6 @@
     <tr><td>2.1</td><td>An older goal-setting pop-up opens automatically when a student who has not set goals signs in, covering the page.</td><td>Show it once, or on request</td></tr>
     <tr><td>2.3–2.5, 5.1</td><td>Older dark design sits under the new white navigation. It works but looks like two products.</td><td>Restyle, starting with the most-used</td></tr>
     <tr><td>8.3</td><td>Wide tables on phones scroll sideways.</td><td>Card layout on phones, if wanted</td></tr>
-    <tr><td>3.x</td><td>A primary learner whose parent has not consented can still sign in (switched off on purpose while testing).</td><td>Must be switched on before real primary learners</td></tr>
     <tr><td>6.x</td><td>Records created by the set-up script showed dates in a format the screens did not expect (fixed on the screens; the server fix is on the list).</td><td>Server fix in progress</td></tr>
   </table>
 

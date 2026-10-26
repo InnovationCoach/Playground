@@ -134,7 +134,7 @@ firebase hosting:channel:deploy qa
 
 1. **Design Thinking Framework (8th Phase Reflect Week Range)**:
    - "Reflect" is officially added as an 8th phase in `frameworks/welearn-dt`. However, Showcase occupies weeks `[11, 12]`. To avoid guessing whether Reflect shares week 12 (`[12, 12]`) or extends the program, Reflect's `weeks` field has been set to `null` pending your confirmation.
-2. **Parental Consent for Lower Secondary 12-Year-Olds**:
+2. **Parental Consent for Lower Secondary 12-Year-Olds** (resolved 2026-10-26: no consent gate; WeLearn keeps physical consent and staff enrol learners):
    - Primary learners (ages 6–11) strictly require parental consent (`consent: { status: 'required' }`). Lower Secondary spans ages 12–14. Does the parental consent requirement apply to 12-year-olds in Lower Secondary as well, or strictly under 12?
 3. **Reference Cohorts Collection (W2E & WPR)**:
    - The reference Firestore collection `cohorts` contains `cohort-w2e` (secondary) and `cohort-wpr` (primary). Should these documents be migrated to three records matching the cohorts (`primary`, `lower-secondary`, `higher-secondary`), or stay as an institutional grouping layer above cohorts? Left unmodified until your written decision.

@@ -95,7 +95,6 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
 
       <div style={{ marginTop: '1rem' }}>
         {notice && <Alert type={notice.type}>{notice.text}</Alert>}
-        {user.consent?.status === 'required' && <Alert type="info">{t('form.consentNote')}</Alert>}
       </div>
 
       <div className="gh-tabs" role="tablist">

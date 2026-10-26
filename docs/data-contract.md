@@ -53,7 +53,7 @@ Single source of truth — 8 phases (Approved by Mani).
 }
 ```
 *Note: Confirmed with Mani (24 Oct 2026): "Reflect" is officially a standalone 8th phase in the WeLearn Design Thinking framework, sharing week 12 with Showcase (`[11, 12]`).*
-*Note: Consent Rules: Per Mani's decision, no consent gating is enforced during the current testing and presentation phase as no real learner data is in use.*
+*Note: No consent gate (decided 2026-10-26). WeLearn keeps physical consent and staff enrol learners. No consent field is part of the data contract.*
 
 ### `pbl_programs/{programId}`
 ```ts

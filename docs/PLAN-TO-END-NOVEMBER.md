@@ -7,13 +7,13 @@ This plan covers what is left in the project notes. Each item has an owner, a de
 ## 1. Decisions needed first (by 31 October)
 | # | Decision | Owner | Why it matters |
 |---|---|---|---|
-| D1 | Remove the under-13 consent requirement. Physical consent is kept at WeLearn, and staff enrol learners. | Mani | The requirement is recorded in `docs/parent-engagement-contract.md` (D2, section 5) as Mani's decision. Removing it changes the contract, the Phase A prompt, the lms-plan and the review pack. See section 2. |
+| D1 | Remove the under-13 consent requirement. Physical consent is kept at WeLearn, and staff enrol learners. **Done 2026-10-26** on `chore/remove-consent-gate` at the user's instruction. Mani to confirm in writing. | Mani | The requirement is recorded in `docs/parent-engagement-contract.md` (D2, section 5) as Mani's decision. Removing it changes the contract, the Phase A prompt, the lms-plan and the review pack. See section 2. |
 | D2 | Confirm `role: 'learner'` is a real value, and whether coaches may change `activeProgramId`. | Mani + Gemini | Both are open in the rules drift brief. |
 | D3 | Canva: school-only integration needs Canva Enterprise, otherwise the app must pass Canva's public review. Which path? | Mani | Decides whether Canva ships in November or as an upload-link fallback. |
 | D4 | Keep or delete the ~4,700 lines of unused React components. | Mani | Affects the bundle and what is reviewed. Default: delete what is not imported, after a list review. |
 | D5 | Is the deploy freeze lifted? The freeze was set on 2026-09-30 "until every page is complete". | Mani | Gates the staging and live steps below. |
 
-## 2. Consent (D1), once decided
+## 2. Consent (D1), done 2026-10-26
 The gate is not enforced in code. No source file reads the consent fields. The requirement lives in:
 - `docs/parent-engagement-contract.md` D2 and section 5
 - `docs/BACKEND-PHASE-A-PROMPT-FOR-GEMINI.md` (consent gate paragraph, and the `consent` field in the data model)

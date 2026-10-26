@@ -11,7 +11,7 @@
 | # | Decision | Source |
 |---|---|---|
 | D1 | Parents may start a thread, one per child per coach. **Superseded by D7** (messaging moves to Teams). | Mani |
-| D2 | No parent contact with a learner under 15 before consent is recorded. Mani: consent applies under 15 (ages 6–14). Rule written before real learners; see §5. | Mani |
+| D2 | **Superseded 2026-10-26.** No consent gate in the platform. WeLearn keeps physical consent and staff enrol learners. The earlier rule (consent under 15) is withdrawn. See §5. | Mani |
 | D3 | Parents see evidence text, for transparency, with the exclusions in §4.1. | Mani |
 | D4 | A learner can choose to share an evidence item with parents, default off. | Mani |
 | D5 | Messages, threads and notification retention: agreed as drafted. | Mani |
@@ -92,7 +92,7 @@ studentProfiles/{learnerUid} = {
 ## 3. Bell notifications (unchanged from v1, reduced)
 
 - `users/{uid}/notifications/{id}` as in v1 §2.1.
-- Event types now: `feedback` (coach feedback posted), `evidence_review`, `profile_updated` (grades, GPA or summary changed), `consent`.
+- Event types now: `feedback` (coach feedback posted), `evidence_review`, `profile_updated` (grades, GPA or summary changed).
 - No `message` type, since messages are on Teams.
 - The bell shows an unread count. Titles contain no grades and no feedback text.
 
@@ -116,7 +116,7 @@ profile: {
 
 - `setBy` is the coach's display name, never an email.
 - The response still excludes mood check-ins, notes, AI logs, strengths and supports from goal setting.
-- Under-13 learners: with the consent gate (D2), `profile` is withheld until consent is recorded, and the page shows the consent notice instead.
+- Under-13 learners: `profile` is shown as normal. There is no consent gate (D2).
 
 ### 4.1 Evidence (D3, provisional)
 
@@ -124,14 +124,14 @@ Under D3, `pbl.evidence` includes the **text** of each item. Still excluded: moo
 
 ## 5. Consent (D2)
 
-- **Rule (decided by Mani):** parental consent is required for every learner under 15. That covers the Primary cohort (6–11) and the Lower Secondary cohort (12–14). Higher Secondary (15–18) does not need it.
-- **Status:** the rule is deferred until real learners are added. Until then consent is recorded as `required` and shown as a notice, but nothing is blocked (see the project note on deferral).
-- **Before real learners:** the rule must be enforced on the server, and no parent-facing data may be shown for an under-15 learner without `consent.status == 'verified'`. This includes evidence text (D3) and the school profile (D8).
-- Under-15 evidence text (D3): covered by the same rule. No separate decision is needed.
+- **Decision (2026-10-26):** no consent gate. Physical consent is kept at WeLearn, and staff enrol learners. Nothing in the platform checks a consent status, and no consent field is built.
+- **Replaces:** the earlier rule that parental consent is required for every learner under 15 (Mani, deferred until real learners).
+- **Still in force:** the safeguarding rules that do not depend on consent, such as no speech-to-text or voice recording for under-13 learners.
+- Under-15 evidence text (D3): no consent-based restriction. The other D3 rules still apply.
 
 ## 6. Cohort structure (D11, proposed)
 
-- **Level cohorts (replace the old age bands):** `primary` (6–11), `lower-secondary` (12–14), `higher-secondary` (15–18). These set the reading level, the safety guidance and the consent rule.
+- **Level cohorts (replace the old age bands):** `primary` (6–11), `lower-secondary` (12–14), `higher-secondary` (15–18). These set the reading level and the safety guidance.
 - **Pathway (new field, separate from cohort):** `pathway` on each learner and class, with values for the W2E and WPR programmes. A learner keeps one level cohort and may also have a pathway. This stops "W2E (secondary)" from implying an age range.
 - **Why:** W2E spans both secondary cohorts and WPR is primary, so using them as age cohorts would repeat the problem this change fixes.
 - **Migration:** the `cohorts` collection keeps its documents for now, as pathway records. Gemini to propose the rename; no live write until Mani approves.
@@ -150,7 +150,6 @@ Under D3, `pbl.evidence` includes the **text** of each item. Still excluded: moo
    - a coach outside the class cannot read or write the profile;
    - a learner cannot write the profile;
    - the privacy test still passes, with evidence text in the response only as D3 allows;
-   - a child under 13 without consent gets no profile.
 3. **UX/UI (me):** the profile card for parents, the coach profile editor with the progress bar and grade entry, the Teams button, the bell. Built on the mock first.
 4. **Integration** on the emulator, then a preview build. No production deploy without Mani's written go.
 

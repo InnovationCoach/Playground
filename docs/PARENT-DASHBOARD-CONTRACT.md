@@ -8,7 +8,7 @@ The frontend for the parent dashboard is built and runs on the mock API (`src/se
 
 - Allowed for the `parent` claim only. Any other role gets `403 FORBIDDEN`.
 - `:uid` must have an **active** `parentLinks` record with `parentUid == caller.uid`. Otherwise return `404 NOT_FOUND`, never 403, so the response doesn't confirm that a uid exists.
-- If the child's consent is still `required`, return the body anyway. The page shows the consent notice from `/api/parent/children`.
+- Return the body as normal. There is no consent gate (see `parent-engagement-contract.md` §5).
 - Error shape and codes as in §7 of `docs/BACKEND-PHASE-A-PROMPT-FOR-GEMINI.md`.
 
 ## Response body
@@ -19,7 +19,7 @@ The `input` is built like this:
 
 | Field | Source (all under `users/{childUid}`) |
 | :-- | :-- |
-| `child` | The same item `GET /api/parent/children` returns for this child: `{linkId, uid, publicId, givenNames, displayName, yearLevel, schoolName, cohortCode, status, consentStatus}` |
+| `child` | The same item `GET /api/parent/children` returns for this child: `{linkId, uid, publicId, givenNames, displayName, yearLevel, schoolName, cohortCode, status}` |
 | `goalPlan` | The `goalPlan` field of `users/{uid}`. `null` if absent. |
 | `pblProject` | `activityProgress/pbl-<TERM.id>`. `TERM` is in `src/features/pbl/content/pblModel.js`, currently `term-2026-t3`. |
 | `activityDocs` | `{ 'solar-car': …, 'plant-lab': …, 'hex-grid': … }` from `activityProgress/<id>`. Leave a key out if its doc doesn't exist. |

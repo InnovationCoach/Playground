@@ -218,8 +218,7 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
                     </select>
                   )}
                 </Field>
-                <Field id="f-age" label={t('form.ageBand')} error={errors.ageBand}
-                       hint={form.ageBand === 'primary' ? t('form.consentNote') : undefined}>
+                <Field id="f-age" label={t('form.ageBand')} error={errors.ageBand}>
                   {(a) => (
                     <select className="gh-select" value={form.ageBand} onChange={set('ageBand')} disabled={!ageBands.length} {...a}>
                       <option value="">{t('form.choose')}</option>
