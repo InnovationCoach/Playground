@@ -79,6 +79,7 @@ This works under the current rules. In the emulator, a coach of another class ge
 | M7 | Learner L | read coaches' feedback on their evidence, goals coaches set for them, milestones, and coach-added evidence about them | **yes** (decided, Q1) |
 | M7b | Coach of L | read L's own goals (`users/{L}.goalPlan`, already allowed) | yes (decided, Q1) |
 | M8 | Learner L | read check-ins, judgements, parent notes, reports | **no** |
+| M8b | Admin or supervisor | read (never write) check-ins, milestones, coach-set goals, feedback, judgements, parent notes and reports | **yes**, read-only (decided, Q5). Never private notes (M6). |
 | M9 | Learner L | write any coaching record | **no** |
 | M10 | Parent | read any coaching record directly | **no**. Parents only ever get an approved report through the server (S3). |
 | M11 | Coach of L | set `status: approved` on a report | yes, and only together with `approvedAt == request.time` |
@@ -117,6 +118,7 @@ When the backend lands, offer each coach a one-time "Move my records from this d
   - Check-ins, judgements, parent notes and reports stay coach-only (M8).
 - **Q2, co-coaches:** yes, co-coaches of the class may edit each other's milestones and coach-set goals (M4). Check-ins, judgements, notes and reports stay with their author (M4b).
 - **Q3, private notes:** they stay private: the author only, with no admin, supervisor or server read path (M6).
+- **Q5, admin and supervisor oversight (2026-10-26):** admins and supervisors may read, but never write, coaches' check-ins, judgements, parent notes and reports (and the learner-visible records). Private notes stay author-only (M8b, M6).
 - **Q4, retention: 30 days, confirmed by Mani on 2026-10-26.**
   - A Firestore TTL policy deletes private notes and unapproved report drafts 30 days after their last update.
   - Approved reports are not deleted by this rule.
