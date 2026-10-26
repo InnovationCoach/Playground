@@ -246,3 +246,11 @@
 /* Link from the term hero to the Future Skills page. */
 .pb-fs-link { display: inline-block; margin-top: 0.6rem; color: #c4ef5e; font-weight: 600; font-size: 0.9rem; text-decoration: none; }
 .pb-fs-link:hover { text-decoration: underline; }
+
+/* Showcase: Canva slot (placeholder until the Canva connection exists) */
+.pb-canva-slot { border: 1px dashed var(--gh-border-strong); border-radius: 12px; padding: 1rem 1.1rem; margin: 0 0 1.25rem; display: grid; gap: 0.5rem; background: var(--gh-surface); }
+.pb-canva-slot h3 { margin: 0; font-size: 1rem; color: var(--gh-heading); }
+.pb-canva-slot p { margin: 0; color: var(--gh-text-2); font-size: 0.9rem; }
+.pb-canva-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pb-canva-actions .gh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+

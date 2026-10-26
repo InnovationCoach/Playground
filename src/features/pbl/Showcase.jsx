@@ -2,6 +2,29 @@ import { PHASES, EVIDENCE_KINDS, TERM, IMPACT } from './content/pblModel.js';
 import { MediaEmbed } from './MediaEmbed.jsx';
 import { embedFor } from './engine/mediaEmbed.js';
 
+const CANVA_NEW = 'https://www.canva.com/create/';
+
+/**
+ * Where a Canva design goes in the showcase. Until the Canva connection exists,
+ * the learner makes the design in Canva and pastes its view link as evidence.
+ * The "Connect" action is shown but disabled, so nobody expects it to work yet.
+ */
+function CanvaSlot({ hasDesign }) {
+  if (hasDesign) return null;
+  return (
+    <section className="pb-canva-slot" aria-labelledby="pb-canva-title">
+      <h3 id="pb-canva-title">Make your showcase poster in Canva</h3>
+      <p>Design a poster or slide for your project in Canva. Then copy its view link and add it as evidence, and it appears here.</p>
+      <div className="pb-canva-actions">
+        <a className="gh-btn gh-btn-primary" href={CANVA_NEW} target="_blank" rel="noopener noreferrer">Open Canva</a>
+        <button type="button" className="gh-btn gh-btn-ghost" disabled title="Available when the school connects Canva">
+          Create in Canva from here (coming soon)
+        </button>
+      </div>
+    </section>
+  );
+}
+
 const kindLabel = (id) => EVIDENCE_KINDS.find((k) => k.id === id)?.label || id;
 const EXCERPT = 220;
 
@@ -33,6 +56,7 @@ export function Showcase({ project, displayName }) {
           </dl>
         )}
       </header>
+      <CanvaSlot hasDesign={project.evidence.some((e) => embedFor(e.link)?.type === 'canva')} />
       {phases.length === 0 ? (
         <p className="pb-empty">Your showcase fills up as you add evidence. Canva designs, photos and videos appear here as a gallery.</p>
       ) : phases.map((p, i) => (
