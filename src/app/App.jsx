@@ -315,6 +315,18 @@ export function App() {
         </>
       );
     }
+    if (route?.screen === 'courses') {
+      return (
+        <>
+          <Header {...headerProps} />
+          {consoleNav}
+          <div className="gh-app">
+            <MyCourses isPrimary={false} onOpenActivity={navigate} displayName={profile?.displayName}
+                       uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
+          </div>
+        </>
+      );
+    }
     if (route?.screen !== 'admin' && route?.screen !== 'settings') {
       return <><Header {...headerProps} />{consoleNav}{spark}</>;
     }
@@ -393,7 +405,7 @@ export function App() {
         <div className="gh-app">
           <GoalsPage uid={user?.uid} displayName={profile?.displayName} />
         </div>
-      ) : role === 'student' && route?.screen === 'courses' ? (
+      ) : route?.screen === 'courses' ? (
         <div className="gh-app">
           <MyCourses isPrimary={isPrimary} onOpenActivity={navigate} displayName={profile?.displayName}
                      uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
