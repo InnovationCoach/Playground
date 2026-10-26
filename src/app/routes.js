@@ -43,7 +43,12 @@ export function parseRoute(hash) {
   if (head === 'primary-resources') return { screen: 'resources' };
   if (head === 'worksheet' && a) return { screen: 'worksheet', activityId: a };
   if (head === 'guide' && a) return { screen: 'guide', activityId: a };
-  if (head === 'courses') return { screen: 'courses' };
+  if (head === 'courses') {
+    if (a === 'create') return { screen: 'courses', mode: 'create', draftId: b || null };
+    if (a === 'import') return { screen: 'courses', mode: 'import', draftId: b || null };
+    if (a === 'drafts') return { screen: 'courses', mode: 'drafts' };
+    return { screen: 'courses' };
+  }
   if (head === 'pbl' && a === 'programs' && b) return { screen: 'pbl', tab: 'programs', programId: b, section: c || null };
   if (head === 'pbl') return { screen: 'pbl', tab: a || null };
   if (head === 'parent') return { screen: 'parent', childUid: a || null, section: (a && PARENT_SECTIONS.includes(b)) ? b : null };
@@ -68,7 +73,14 @@ export const hrefFor = {
   detail: (uid) => `#/admin/users/${encodeURIComponent(uid)}`,
   create: (kind) => `#/admin/new/${kind}`,
   settings: () => '#/settings',
-  courses: () => '#/courses',
+  courses: (mode, draftId) => {
+    if (mode === 'create') return `#/courses/create${draftId ? `/${encodeURIComponent(draftId)}` : ''}`;
+    if (mode === 'import') return `#/courses/import${draftId ? `/${encodeURIComponent(draftId)}` : ''}`;
+    if (mode === 'drafts') return '#/courses/drafts';
+    return '#/courses';
+  },
+  createCourse: (draftId) => `#/courses/create${draftId ? `/${encodeURIComponent(draftId)}` : ''}`,
+  importCourse: () => '#/courses/import',
   parent: () => '#/parent',
   parentChild: (uid, section) => `#/parent/${encodeURIComponent(uid)}${section ? `/${section}` : ''}`,
   resources: () => '#/primary-resources',
