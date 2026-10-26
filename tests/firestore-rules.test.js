@@ -98,6 +98,11 @@ describe('privilege boundary: role', () => {
     await assertFails(updateDoc(doc(db, 'users', 'student_a'), { role: 'teacher' }));
   });
 
+  it('rejects modifying status on update', async () => {
+    const db = studentA().firestore();
+    await assertFails(updateDoc(doc(db, 'users', 'student_a'), { status: 'active' }));
+  });
+
   it('an email containing "coach" grants nothing', async () => {
     // The old client derived role from the email string. Even with such an
     // address, with no teacher claim this user is a student.
@@ -974,6 +979,24 @@ describe('pbl_programs: authoring and publishing', () => {
     const db = coachA().firestore();
     await assertSucceeds(setDoc(doc(db, 'pbl_programs', 'prog-1'), programData));
     await assertSucceeds(updateDoc(doc(db, 'pbl_programs', 'prog-1'), { title: 'Updated Title' }));
+  });
+
+  it('students can read published programs but cannot read drafts', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'pbl_programs', 'prog-published'), {
+        ...programData,
+        status: 'published',
+        visibility: 'centre'
+      });
+      await setDoc(doc(ctx.firestore(), 'pbl_programs', 'prog-draft'), {
+        ...programData,
+        status: 'draft',
+        visibility: 'centre'
+      });
+    });
+    const db = studentA().firestore();
+    await assertSucceeds(getDoc(doc(db, 'pbl_programs', 'prog-published')));
+    await assertFails(getDoc(doc(db, 'pbl_programs', 'prog-draft')));
   });
 
   it('students can read programs but cannot create or update them', async () => {

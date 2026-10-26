@@ -436,7 +436,7 @@ export function createApp() {
           () => model.generateContent({
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             generationConfig: {
-              maxOutputTokens: 2500,
+              maxOutputTokens: 3500,
               temperature: 0.4,
               responseMimeType: 'application/json'
             }
@@ -447,7 +447,10 @@ export function createApp() {
         25000
       );
 
-      const { text } = extractText(result);
+      const { text, blocked, reason } = extractText(result);
+      if (blocked) {
+        return res.status(400).json({ error: 'Synthesizer prompt or response was blocked by safety filters', reason });
+      }
       const cleanJson = text.replace(/```(?:json)?/g, '').trim();
       const parsed = JSON.parse(cleanJson);
       res.json({ unit: parsed, timestamp: new Date().toISOString() });
