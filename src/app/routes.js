@@ -5,7 +5,10 @@
  *   #/admin/users/<uid>                                  one account
  *   #/admin/new/<kind>                                   create
  *   #/spark                                              SPARK Home: every role's landing page
- *   #/coach/dashboard                                    Coach Dashboard (teachers)
+ *   #/coach/dashboard                                    My Learners: the coach's home (teachers)
+ *   #/coach/learners/<uid>[/<tab>]                       one learner's profile (overview, projects, evidence, notes)
+ *   #/coach/learners/<uid>/report                        Prepare Parent Report for that learner
+ *   #/coach/classes                                      classes, join codes and the earlier class tools
  *   #/settings   #/courses   #/parent  #/parent/:childUid[/:section]  everyone else
  *   #/primary-resources  #/worksheet/<id>  #/guide/<id>  printable primary material
  *   #/pbl  #/pbl/<tab>                                   PBL Studio (term project)
@@ -25,6 +28,8 @@
 const KINDS = ['staff', 'students', 'parents'];
 /** Sections of the parent's child dashboard a link may jump to. */
 export const PARENT_SECTIONS = ['pbl', 'goals', 'competencies', 'edmentum'];
+/** Tabs of a learner's profile in My Learners; the first is the default. */
+export const COACH_TABS = ['overview', 'projects', 'evidence', 'notes'];
 
 export function parseRoute(hash) {
   const parts = String(hash || '').replace(/^#\/?/, '').split('/').filter(Boolean).map((p) => {
@@ -54,7 +59,14 @@ export function parseRoute(hash) {
   if (head === 'future-skills') return { screen: 'futureSkills' };
   if (head === 'dashboard') return { screen: 'dashboard' };
   if (head === 'spark') return { screen: 'spark' };
-  if (head === 'coach') return { screen: 'coach' };
+  if (head === 'coach') {
+    if (a === 'learners' && b) {
+      if (c === 'report') return { screen: 'coach', page: 'report', uid: b };
+      return { screen: 'coach', page: 'learner', uid: b, tab: COACH_TABS.includes(c) ? c : 'overview' };
+    }
+    if (a === 'classes') return { screen: 'coach', page: 'classes' };
+    return { screen: 'coach', page: 'home' };
+  }
   if (head === 'canva') return { screen: 'canva' };
   if (head === 'edmentum') return { screen: 'edmentum' };
   return null;
@@ -84,5 +96,8 @@ export const hrefFor = {
   dashboard: () => '#/dashboard',
   spark: () => '#/spark',
   coach: () => '#/coach/dashboard',
+  coachLearner: (uid, tab) => `#/coach/learners/${encodeURIComponent(uid)}${tab && tab !== 'overview' ? `/${tab}` : ''}`,
+  coachReport: (uid) => `#/coach/learners/${encodeURIComponent(uid)}/report`,
+  coachClasses: () => '#/coach/classes',
   canva: () => '#/canva'
 };
