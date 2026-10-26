@@ -9,7 +9,7 @@ import {
   buildLearner, filterLearners, statusCounts, competencyRows, buildReportDraft, defaultPeriod, daysBetween, termProjectDocId
 } from '../src/features/coach/myLearners/myLearnersModel.js';
 import {
-  emptyRecords, hydrateRecords, addCheckIn, addNote, addMilestone, setMilestoneDone, setFeedback, addAssessment, addCoachEvidence,
+  emptyRecords, hydrateRecords, addGoal, setGoalDone, addCheckIn, addNote, addMilestone, setMilestoneDone, setFeedback, addAssessment, addCoachEvidence,
   saveReport, approveReport
 } from '../src/features/coach/myLearners/coachRecordsStore.js';
 import { parseRoute, hrefFor } from '../src/app/routes.js';
@@ -307,5 +307,23 @@ describe('submission feedback record', async () => {
   it('carries no invented rating', () => {
     expect(feedbackRecord('  Good  ', 'c1', 5)).toEqual({ text: 'Good', coachId: 'c1', at: 5 });
     expect(feedbackRecord('   ', 'c1')).toBeNull();
+  });
+});
+
+describe('goals set by coaches', () => {
+  it('adds, marks met and validates', () => {
+    let rec = emptyRecords();
+    rec = apply(rec, addGoal(rec, { text: 'Explain the test results to a Year 7', dueOn: '2026-11-20' }, at(TODAY)));
+    expect(rec.goals[0]).toMatchObject({ text: 'Explain the test results to a Year 7', dueOn: '2026-11-20', doneOn: null });
+    rec = apply(rec, setGoalDone(rec, rec.goals[0].id, TODAY));
+    expect(rec.goals[0].doneOn).toBe(TODAY);
+    expect(addGoal(rec, { text: '  ' }).error).toBe('goalText');
+    expect(addGoal(rec, { text: 'x', dueOn: 'soon' }).error).toBe('milestoneDate');
+    expect(apply(rec, addGoal(rec, { text: 'No date' })).goals[1].dueOn).toBeNull();
+  });
+  it('are never mixed into the learner\'s own goals', () => {
+    let rec = emptyRecords();
+    rec = apply(rec, addGoal(rec, { text: 'Coach goal' }));
+    expect(build({}, rec).goals).toEqual([]);
   });
 });

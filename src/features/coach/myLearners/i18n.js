@@ -5,6 +5,15 @@
  */
 export const ML_MESSAGES = {
   en: {
+    'ml.goals.learner': 'Set by the learner',
+    'ml.goals.coach': 'Set by coaches',
+    'ml.goals.none': 'No goals set by a coach yet.',
+    'ml.goals.add': 'Set a goal for this learner',
+    'ml.goals.placeholder': 'e.g. Explain your test results to a younger student',
+    'ml.goals.target': 'Target date (optional)',
+    'ml.goals.markMet': 'Mark met',
+    'ml.goals.visibility': 'For now these are saved on this device only. Once WeLearn stores them, the learner and the other coaches of this class will see them.',
+    'ml.err.goalText': 'Write the goal first.',
     'ml.comp.selfTaggedOne': 'Tagged on 1 piece of evidence',
     'ml.ev.submission': 'Phase submission',
     'ml.ev.submitted': 'Submitted for review',
@@ -110,7 +119,6 @@ export const ML_MESSAGES = {
     'ml.completion': 'Task completion',
 
     'ml.ov.goals': 'Current learning goals',
-    'ml.ov.goalsSource': 'Set by the learner in Goal setting.',
     'ml.ov.noGoals': 'The learner has not set any goals yet',
     'ml.ov.goalNoText': 'Untitled goal',
     'ml.ov.goalDone': 'done',
@@ -349,6 +357,15 @@ export const ML_MESSAGES = {
   },
 
   zh: {
+    'ml.goals.learner': '学员自己设定',
+    'ml.goals.coach': '教练设定',
+    'ml.goals.none': '教练尚未设定目标。',
+    'ml.goals.add': '为该学员设定目标',
+    'ml.goals.placeholder': '例如：向低年级同学讲解你的测试结果',
+    'ml.goals.target': '目标日期（可选）',
+    'ml.goals.markMet': '标记达成',
+    'ml.goals.visibility': '目前只保存在此设备上。WeLearn 保存后，学员和本班其他教练都能看到。',
+    'ml.err.goalText': '请先写下目标。',
     'ml.comp.selfTaggedOne': '标记在 1 份证据上',
     'ml.ev.submission': '阶段提交',
     'ml.ev.submitted': '已提交待审阅',
@@ -454,7 +471,6 @@ export const ML_MESSAGES = {
     'ml.completion': '任务完成情况',
 
     'ml.ov.goals': '当前学习目标',
-    'ml.ov.goalsSource': '由学员在“目标设定”中设定。',
     'ml.ov.noGoals': '学员尚未设定目标',
     'ml.ov.goalNoText': '未命名目标',
     'ml.ov.goalDone': '已完成',
@@ -693,6 +709,15 @@ export const ML_MESSAGES = {
   },
 
   th: {
+    'ml.goals.learner': 'ผู้เรียนตั้งเอง',
+    'ml.goals.coach': 'โค้ชตั้งให้',
+    'ml.goals.none': 'โค้ชยังไม่ได้ตั้งเป้าหมาย',
+    'ml.goals.add': 'ตั้งเป้าหมายให้ผู้เรียนคนนี้',
+    'ml.goals.placeholder': 'เช่น อธิบายผลการทดสอบให้รุ่นน้องฟัง',
+    'ml.goals.target': 'วันเป้าหมาย (ไม่บังคับ)',
+    'ml.goals.markMet': 'ทำเครื่องหมายว่าบรรลุ',
+    'ml.goals.visibility': 'ขณะนี้บันทึกในอุปกรณ์นี้เท่านั้น เมื่อ WeLearn จัดเก็บแล้ว ผู้เรียนและโค้ชคนอื่นของชั้นเรียนนี้จะเห็น',
+    'ml.err.goalText': 'เขียนเป้าหมายก่อน',
     'ml.comp.selfTaggedOne': 'ติดแท็กในหลักฐาน 1 ชิ้น',
     'ml.ev.submission': 'งานส่งของขั้น',
     'ml.ev.submitted': 'ส่งรอตรวจ',
@@ -798,7 +823,6 @@ export const ML_MESSAGES = {
     'ml.completion': 'การทำงานเสร็จ',
 
     'ml.ov.goals': 'เป้าหมายการเรียนรู้ปัจจุบัน',
-    'ml.ov.goalsSource': 'ผู้เรียนตั้งไว้ในหน้าตั้งเป้าหมาย',
     'ml.ov.noGoals': 'ผู้เรียนยังไม่ได้ตั้งเป้าหมาย',
     'ml.ov.goalNoText': 'เป้าหมายที่ไม่มีชื่อ',
     'ml.ov.goalDone': 'เสร็จแล้ว',

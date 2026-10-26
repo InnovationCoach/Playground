@@ -57,6 +57,7 @@ This works under the current rules. In the emulator, a coach of another class ge
 |---|---|---|
 | Check-in | `id, at, strength, challenge, nextAction, followUpOn (YYYY-MM-DD), shareWithParent (bool), authorUid` | `learners/{L}/checkIns/{id}` |
 | Agreed milestone | `id, title, dueOn, doneOn \| null, fromCheckIn?, at, authorUid` | `learners/{L}/milestones/{id}` |
+| Goal set by a coach | `id, text, dueOn \| null, doneOn \| null, at, authorUid` | `learners/{L}/coachGoals/{id}` |
 | Feedback on evidence | `evidenceKey, text, at, authorUid` (keys: `proj:<id>`, `prog:<programId>:<n>`, `coach:<id>`) | `learners/{L}/feedback/{evidenceKey}` |
 | Competency judgement | `id, competencyId, level ∈ {independent, support, insufficient}, evidenceKeys[], note, at, authorUid` | `learners/{L}/assessments/{id}` |
 | Coach-added evidence | `id, kind, title, body, link (http/https only), phase, project, at, authorUid` | `learners/{L}/coachEvidence/{id}` |
@@ -71,11 +72,13 @@ This works under the current rules. In the emulator, a coach of another class ge
 | M1 | Coach of L | read check-ins, milestones, feedback, judgements, coach evidence, parent notes and reports for L | yes |
 | M2 | Coach **not** of L (other class) | read or write any of L's coaching records | **no** |
 | M3 | Coach of L | create a check-in, milestone, feedback, judgement, coach evidence or parent note for L, with `authorUid == auth.uid` | yes |
-| M4 | Coach of L | update or delete a record whose `authorUid` is someone else | **no** (open question Q2) |
+| M4 | Coach of L | update a milestone or a coach-set goal written by another coach of L (e.g. mark it done) | **yes** (decided, Q2) |
+| M4b | Coach of L | update or delete another coach's check-in, judgement, note or report | **no** |
 | M5 | The author coach | read or write their own private notes about L | yes |
-| M6 | Anyone else, including other coaches of L, the learner, parents, admins via the client | read private notes | **no** |
-| M7 | Learner L | read milestones, feedback on their evidence, coach-added evidence about them | yes (Q1) |
-| M8 | Learner L | read check-ins, judgements, parent notes, reports | **no** by default (Q1) |
+| M6 | Anyone else: other coaches of L, the learner, parents, admins and supervisors, by any route including the server | read private notes | **no**. Private notes stay private (decided, Q3). |
+| M7 | Learner L | read coaches' feedback on their evidence, goals coaches set for them, milestones, and coach-added evidence about them | **yes** (decided, Q1) |
+| M7b | Coach of L | read L's own goals (`users/{L}.goalPlan`, already allowed) | yes (decided, Q1) |
+| M8 | Learner L | read check-ins, judgements, parent notes, reports | **no** |
 | M9 | Learner L | write any coaching record | **no** |
 | M10 | Parent | read any coaching record directly | **no**. Parents only ever get an approved report through the server (S3). |
 | M11 | Coach of L | set `status: approved` on a report | yes, and only together with `approvedAt == request.time` |
@@ -101,9 +104,23 @@ When the backend lands, offer each coach a one-time "Move my records from this d
 - it is never automatic or silent;
 - private notes go only to `coachPrivate/{coachUid}`.
 
-## Open questions for Mani
+## Decisions (Mani, 2026-10-26)
 
-- **Q1:** may learners see their agreed milestones and the coach's feedback (proposed: yes) and their check-ins or judgements (proposed: no)?
-- **Q2:** can a co-coach of the same class edit another coach's milestone, for example to mark it done?
-- **Q3:** may admins or supervisors read private notes for safeguarding (proposed: not through the client; only via an audited server path, if at all)?
-- **Q4:** retention period for private notes and drafts.
+- **Q1, what learners see:**
+  - Learners see coaches' feedback on their evidence.
+  - Coaches can set goals for learners, and learners see those goals.
+  - Coaches see the learners' own goals.
+  - Consequences:
+    - add `coachGoals` (M7);
+    - learners need a "Goals from your coach" view on `#/goals` (frontend, after the store exists);
+    - feedback on non-phase evidence must move from the device to `learners/{L}/feedback` (M7).
+  - Check-ins, judgements, parent notes and reports stay coach-only (M8).
+- **Q2, co-coaches:** yes, co-coaches of the class may edit each other's milestones and coach-set goals (M4). Check-ins, judgements, notes and reports stay with their author (M4b).
+- **Q3, private notes:** they stay private: the author only, with no admin, supervisor or server read path (M6).
+- **Q4, retention:** "a month maybe", so **30 days, still to be confirmed by Mani** before it is built.
+  - Proposal: a Firestore TTL policy on private notes and on unapproved report drafts, deleting 30 days after their last update.
+  - Approved reports are not deleted by this rule.
+  - Show the coach "deleted after 30 days" next to private notes when it goes live.
+  - Raise with Mani before building: a safeguarding concern written in a private note would also be deleted after 30 days. Those concerns need their own recording route outside private notes.
+
+The frontend now has coach-set goals, stored on the device until `coachGoals` exists. Learners can't see them yet, and the screen says so.

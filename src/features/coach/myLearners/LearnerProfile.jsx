@@ -11,7 +11,8 @@ import { COMPETENCY_DOMAINS, COMPETENCIES, competencyById } from '../../pbl/cont
 import { PHASES, EVIDENCE_KINDS } from '../../pbl/content/pblModel.js';
 import { programById, programCompetencies } from '../../pbl/programs/catalog.js';
 import {
-  useCoachRecords, addCheckIn, addNote, removeNote, addMilestone, setMilestoneDone, setFeedback, addAssessment, addCoachEvidence
+  useCoachRecords, addCheckIn, addNote, removeNote, addMilestone, setMilestoneDone, setFeedback, addAssessment, addCoachEvidence,
+  addGoal, setGoalDone
 } from './coachRecordsStore.js';
 import { competencyRows, LEVELS } from './myLearnersModel.js';
 import { saveSubmissionFeedback } from './submissionFeedback.js';
@@ -83,7 +84,7 @@ export function LearnerProfile({ coachUser, learner, classes, assignmentsFailed,
       </div>
 
       <div role="tabpanel" id={`ml-panel-${active}`} aria-labelledby={`ml-tab-${active}`}>
-        {active === 'overview' && <Overview learner={learner} go={go} />}
+        {active === 'overview' && <Overview learner={learner} go={go} records={records} update={update} today={today} />}
         {active === 'projects' && <Projects learner={learner} records={records} update={update} classes={classes} assignmentsFailed={assignmentsFailed} today={today} />}
         {active === 'evidence' && <Evidence learner={learner} records={records} update={update} coachUid={coachUser.uid} reload={reload} />}
         {active === 'notes' && <Notes learner={learner} records={records} update={update} />}
@@ -97,7 +98,7 @@ export function LearnerProfile({ coachUser, learner, classes, assignmentsFailed,
 // Overview
 // ---------------------------------------------------------------------------
 
-function Overview({ learner, go }) {
+function Overview({ learner, go, records, update, today }) {
   const { t } = useLocale();
   const day = useDay();
   const when = useWhen();
@@ -107,6 +108,7 @@ function Overview({ learner, go }) {
     <div className="ml-grid">
       <section className="gh-card">
         <h2 className="ml-h2"><Target size={17} aria-hidden="true" />{t('ml.ov.goals')}</h2>
+        <h3 className="ml-h3">{t('ml.goals.learner')}</h3>
         {learner.goals.length ? (
           <ul className="ml-list">
             {learner.goals.map((g) => (
@@ -116,7 +118,7 @@ function Overview({ learner, go }) {
             ))}
           </ul>
         ) : <NotAvailable>{t('ml.ov.noGoals')}</NotAvailable>}
-        <p className="ml-source">{t('ml.ov.goalsSource')}</p>
+        <CoachGoals records={records} update={update} today={today} />
       </section>
 
       <section className="gh-card">
@@ -171,6 +173,48 @@ function Overview({ learner, go }) {
         <NextCell next={learner.next} day={day} />
       </section>
     </div>
+  );
+}
+
+/** Goals the coach sets for the learner. Learners see them once WeLearn stores them (not on this device). */
+function CoachGoals({ records, update, today }) {
+  const { t } = useLocale();
+  const day = useDay();
+  const [text, setText] = useState('');
+  const [dueOn, setDueOn] = useState('');
+  const [error, setError] = useState(null);
+  const add = (e) => {
+    e.preventDefault();
+    const res = update((r) => addGoal(r, { text, dueOn }));
+    if (res.error) setError(res.error); else { setText(''); setDueOn(''); setError(null); }
+  };
+  return (
+    <>
+      <h3 className="ml-h3">{t('ml.goals.coach')}</h3>
+      {records.goals.length ? (
+        <ul className="ml-list ml-goal-list">
+          {records.goals.map((g) => (
+            <li key={g.id} className={g.doneOn ? 'is-done' : ''}>
+              <span>{g.text}<span className="ml-cell-sub"> · {g.doneOn ? t('ml.ms.done', { date: day(g.doneOn) })
+                : g.dueOn ? t('ml.next.due', { date: day(g.dueOn) }) : t('ml.next.noDate')}</span></span>
+              <button type="button" className="gh-link-btn" onClick={() => update((r) => setGoalDone(r, g.id, g.doneOn ? null : today))}>
+                {g.doneOn ? t('ml.ms.reopen') : t('ml.goals.markMet')}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="ml-cell-sub">{t('ml.goals.none')}</p>}
+      <form className="ml-inline-form" onSubmit={add}>
+        <label className="gh-label" htmlFor="ml-goal-text">{t('ml.goals.add')}</label>
+        <div className="ml-row">
+          <input id="ml-goal-text" className="gh-input" value={text} onChange={(e) => setText(e.target.value)} maxLength={140} placeholder={t('ml.goals.placeholder')} />
+          <input className="gh-input ml-date" type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} aria-label={t('ml.goals.target')} />
+          <button type="submit" className="gh-btn"><Plus size={15} aria-hidden="true" />{t('ml.ms.addBtn')}</button>
+        </div>
+        <p className="gh-hint">{t('ml.goals.visibility')}</p>
+        {error && <p className="gh-field-error" role="alert">{t(`ml.err.${error}`)}</p>}
+      </form>
+    </>
   );
 }
 

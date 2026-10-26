@@ -1,7 +1,7 @@
 /**
  * The coach's own records about one learner: check-ins, notes, agreed
- * milestones, feedback on evidence, competency judgements, coach-added
- * evidence and parent reports.
+ * milestones, goals the coach sets for the learner, feedback on evidence,
+ * competency judgements, coach-added evidence and parent reports.
  *
  * WHERE THEY LIVE (read before changing): on this device only, in
  * localStorage, keyed by coach uid and learner uid. No Firestore collection
@@ -20,7 +20,7 @@ import { LEVELS, EVIDENCE_KIND_IDS } from './myLearnersModel.js';
 
 export const STORE_MODE = 'device';
 const PREFIX = 'welearn.coachRecords.v1';
-export const LIMITS = { text: 1200, title: 140, notes: 300, checkIns: 200, milestones: 120, evidence: 150, reports: 60 };
+export const LIMITS = { text: 1200, title: 140, notes: 300, checkIns: 200, milestones: 120, goals: 40, evidence: 150, reports: 60 };
 
 const keyFor = (coachUid, learnerUid) => `${PREFIX}:${coachUid}:${learnerUid}`;
 const str = (v, max = LIMITS.text) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -29,7 +29,7 @@ let seq = 0;
 const newId = (p, now) => `${p}-${now.toString(36)}-${(seq++).toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 
 export function emptyRecords() {
-  return { version: 1, checkIns: [], notes: [], milestones: [], feedback: {}, assessments: [], evidence: [], reports: [] };
+  return { version: 1, checkIns: [], notes: [], milestones: [], goals: [], feedback: {}, assessments: [], evidence: [], reports: [] };
 }
 
 /** Whatever came back from storage, return well-formed records. */
@@ -42,6 +42,7 @@ export function hydrateRecords(stored) {
     checkIns: arr(stored.checkIns),
     notes: arr(stored.notes).filter((n) => n.visibility === 'private' || n.visibility === 'parent'),
     milestones: arr(stored.milestones),
+    goals: arr(stored.goals).filter((g) => typeof g.text === 'string' && g.text.trim()),
     feedback: stored.feedback && typeof stored.feedback === 'object' && !Array.isArray(stored.feedback) ? stored.feedback : {},
     assessments: arr(stored.assessments),
     evidence: arr(stored.evidence),
@@ -157,6 +158,23 @@ export function addMilestone(records, { title, dueOn }, now = Date.now()) {
 
 export function setMilestoneDone(records, id, doneOn) {
   return { records: { ...records, milestones: records.milestones.map((m) => (m.id === id ? { ...m, doneOn: isDay(doneOn) ? doneOn : null } : m)) } };
+}
+
+/**
+ * A learning goal the coach sets for the learner. Decided 2026-10-26: learners
+ * will see these (and coaches see the learner's own goals) once the backend
+ * stores them; on this device they are the coach's only.
+ */
+export function addGoal(records, { text, dueOn }, now = Date.now()) {
+  const t = str(text, LIMITS.title).trim();
+  if (!t) return { error: 'goalText' };
+  if (dueOn && !isDay(dueOn)) return { error: 'milestoneDate' };
+  const g = { id: newId('gl', now), text: t, dueOn: dueOn || null, doneOn: null, at: now };
+  return { records: { ...records, goals: [...records.goals, g].slice(-LIMITS.goals) }, id: g.id };
+}
+
+export function setGoalDone(records, id, doneOn) {
+  return { records: { ...records, goals: records.goals.map((g) => (g.id === id ? { ...g, doneOn: isDay(doneOn) ? doneOn : null } : g)) } };
 }
 
 export function setFeedback(records, evidenceKey, text, now = Date.now()) {
