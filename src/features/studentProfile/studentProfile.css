@@ -2,7 +2,9 @@
    Colours come from the gh-app design tokens, so both themes follow the app. */
 
 .sp-card { display: grid; gap: 1rem; margin-bottom: 1.25rem; padding: 1.25rem; color: var(--gh-text); }
-.sp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+/* The legacy index.html gives every <header> a navy bar; reset it, this is an in-page heading. */
+.sp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;
+  background: none; border: 0; padding: 0; box-shadow: none; }
 .sp-title { display: flex; align-items: center; gap: 0.45rem; margin: 0; font-size: 1.1rem; color: var(--gh-heading); }
 .sp-muted { margin: 0; color: var(--gh-text-2); font-size: 0.86rem; }
 .sp-h3 { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.4rem; font-size: 0.95rem; color: var(--gh-heading); }
