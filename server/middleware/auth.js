@@ -24,18 +24,9 @@ export async function requireClaims(req, res, next) {
     // verifyIdToken(token, checkRevoked = true)
     const decoded = await getAuth().verifyIdToken(token, true);
 
-    // Fetch user profile document for mirror check & full details with timeout guard
-    let userData = {};
-    try {
-      const userDocPromise = getFirestore().collection('users').doc(decoded.uid).get();
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore user lookup timeout')), 3000));
-      const userDocSnap = await Promise.race([userDocPromise, timeoutPromise]);
-      if (userDocSnap && userDocSnap.exists) {
-        userData = userDocSnap.data();
-      }
-    } catch (docErr) {
-      console.warn(`[requireClaims] Profile read fallback (${docErr.message}) for uid=${decoded.uid}`);
-    }
+    // Fetch user profile document for mirror check & full details if needed
+    const userDocSnap = await getFirestore().collection('users').doc(decoded.uid).get();
+    const userData = userDocSnap.exists ? userDocSnap.data() : {};
 
     req.callerUserData = userData;
 

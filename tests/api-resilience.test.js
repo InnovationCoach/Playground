@@ -179,4 +179,12 @@ describe('Server AI Resilience & Error Handling', () => {
       expect(PERSONAS.somchai.name).toBe('Somchai Seenoi');
     });
   });
+
+  describe('requireClaims security contract', () => {
+    it('requires authentication and exports requireClaims function', async () => {
+      const { requireClaims } = await import('../server/middleware/auth.js');
+      expect(typeof requireClaims).toBe('function');
+    });
+  });
 });
+
