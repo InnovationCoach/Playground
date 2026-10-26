@@ -207,8 +207,10 @@ router.get('/connection', requireClaims, async (req, res) => {
   }
 
   const data = connSnap.data();
+  const isExpired = Boolean(data.expiresAt && Date.now() >= data.expiresAt);
   return res.json({
     connected: true,
+    expired: isExpired,
     uid: req.caller.uid,
     connectedAt: data.connectedAt,
     expiresAt: data.expiresAt,
@@ -296,7 +298,7 @@ router.post('/designs/:designId/export', requireClaims, async (req, res) => {
 
   const client = new CanvaClient();
 
-  // Token refresh before expiry (if within 60s of expiring)
+  // Token refresh before expiry (if within 60s of expiring or already past expiry)
   if (Date.now() >= (connData.expiresAt - 60000)) {
     try {
       const refreshed = await client.refreshAccessToken({ refreshToken });
@@ -307,14 +309,19 @@ router.post('/designs/:designId/export', requireClaims, async (req, res) => {
         encryptedAccessToken: encryptToken(accessToken),
         encryptedRefreshToken: encryptToken(refreshToken),
         expiresAt: Date.now() + ((refreshed.expiresIn || 3600) * 1000),
+        expired: false,
         updatedAt: new Date().toISOString()
       });
     } catch (err) {
-      return sendError(res, 401, 'TOKEN_REFRESH_FAILED', 'Canva session expired. Please reconnect Canva.');
+      console.warn(`[CanvaExport] Token refresh failed for uid=${uid}:`, err.message);
+      try {
+        await connRef.update({ expired: true, updatedAt: new Date().toISOString() });
+      } catch {}
+      return sendError(res, 401, 'TOKEN_EXPIRED', 'Canva session expired or was revoked. Please reconnect Canva.');
     }
   }
 
-  // 1. Create async export job
+  // 1. Create async export job (with 401 recovery)
   let exportJob;
   try {
     exportJob = await client.createExportJob({
@@ -323,10 +330,37 @@ router.post('/designs/:designId/export', requireClaims, async (req, res) => {
       format
     });
   } catch (err) {
-    if (err instanceof CanvaPermissionDeniedError) {
+    if (err.status === 401) {
+      // Access token was rejected upstream. Attempt one refresh and retry.
+      console.info(`[CanvaExport] 401 received during export; refreshing token for uid=${uid}`);
+      try {
+        const refreshed = await client.refreshAccessToken({ refreshToken });
+        accessToken = refreshed.accessToken;
+        refreshToken = refreshed.refreshToken;
+        await connRef.update({
+          encryptedAccessToken: encryptToken(accessToken),
+          encryptedRefreshToken: encryptToken(refreshToken),
+          expiresAt: Date.now() + ((refreshed.expiresIn || 3600) * 1000),
+          expired: false,
+          updatedAt: new Date().toISOString()
+        });
+        exportJob = await client.createExportJob({
+          accessToken,
+          designId,
+          format
+        });
+      } catch (reauthErr) {
+        console.warn(`[CanvaExport] Re-auth after 401 failed for uid=${uid}:`, reauthErr.message);
+        try {
+          await connRef.update({ expired: true, updatedAt: new Date().toISOString() });
+        } catch {}
+        return sendError(res, 401, 'TOKEN_EXPIRED', 'Canva session expired or was revoked. Please reconnect Canva.');
+      }
+    } else if (err instanceof CanvaPermissionDeniedError) {
       return sendError(res, 403, 'PERMISSION_DENIED', err.message);
+    } else {
+      return sendError(res, err.status || 500, err.code || 'EXPORT_CREATE_FAILED', err.message);
     }
-    return sendError(res, err.status || 500, err.code || 'EXPORT_CREATE_FAILED', err.message);
   }
 
   // 2. Poll job until completion with exponential backoff

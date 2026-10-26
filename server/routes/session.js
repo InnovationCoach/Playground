@@ -5,9 +5,17 @@ import { requireClaims } from '../middleware/auth.js';
 const router = Router();
 
 router.get('/me', requireClaims, async (req, res) => {
-  const db = getFirestore();
-  const userDocSnap = await db.collection('users').doc(req.caller.uid).get();
-  const userData = userDocSnap.exists ? userDocSnap.data() : {};
+  // Use profile data already retrieved in requireClaims to prevent redundant roundtrips
+  let userData = req.callerUserData;
+  if (!userData || Object.keys(userData).length === 0) {
+    try {
+      const db = getFirestore();
+      const userDocSnap = await db.collection('users').doc(req.caller.uid).get();
+      userData = userDocSnap.exists ? userDocSnap.data() : {};
+    } catch {
+      userData = {};
+    }
+  }
 
   return res.json({
     uid: req.caller.uid,

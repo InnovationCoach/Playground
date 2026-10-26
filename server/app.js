@@ -13,6 +13,13 @@ import {
 } from './safety.js';
 import { initAdmin, requireAuth, logConversation, flagForReview } from './auth.js';
 import { sendError } from './lib/errors.js';
+import {
+  executeWithRetry,
+  withTimeout,
+  handleAiError,
+  createRateLimiter,
+  getFriendlyFeedbackFallback
+} from './lib/ai-resilience.js';
 
 import sessionRouter from './routes/session.js';
 import adminUsersRouter from './routes/admin-users.js';
@@ -35,24 +42,45 @@ export function createApp() {
 
   initAdmin();
 
-  // Middleware
+  // Robust CORS configuration supporting production domains, preview channels, and local development
+  const configuredOrigins = (process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (configuredOrigins.length === 0) {
+    configuredOrigins.push('http://localhost:5173', 'http://127.0.0.1:5173');
+  }
+
   app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow non-browser requests (e.g. server-side, curl, mobile apps without origin header)
+      if (!origin) return callback(null, true);
+
+      // Explicitly configured frontend origins
+      if (configuredOrigins.includes(origin)) return callback(null, true);
+
+      // Firebase hosting production and preview domains
+      if (/^https:\/\/dnd-master-73449(--[a-z0-9-]+)?\.(web\.app|firebaseapp\.com)$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      // In non-production, allow any localhost/127.0.0.1 port
+      if (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
+      return callback(new Error(`Origin ${origin} not allowed by CORS policy`), false);
+    },
     credentials: true
   }));
   app.use(express.json({ limit: '8mb' }));
 
-  // Rate limiting map for AI endpoints
-  const rateLimits = new Map();
-  function checkRateLimit(userId, maxRequests = 10, windowMs = 60000) {
-    const now = Date.now();
-    const userKey = `${userId}-${Math.floor(now / windowMs)}`;
-    if (!rateLimits.has(userKey)) {
-      rateLimits.set(userKey, 0);
-    }
-    const count = rateLimits.get(userKey) + 1;
-    rateLimits.set(userKey, count);
-    return count <= maxRequests;
+  // Memory-safe rate limiter with automatic pruning
+  const rateLimiter = createRateLimiter({ maxEntries: 1000 });
+  function checkRateLimit(key, maxRequests = 10, windowMs = 60000) {
+    return rateLimiter.check(key, maxRequests, windowMs);
   }
 
   // Root & health check
@@ -88,11 +116,15 @@ export function createApp() {
     const band = resolveCohort(cohort || ageBand);
 
     try {
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        systemInstruction: { parts: [{ text: buildSystemInstruction(band, systemExtra) }] },
-        generationConfig: { maxOutputTokens, temperature: 0.7, topP: 0.9, thinkingConfig: THINKING_OFF }
-      });
+      const result = await executeWithRetry(
+        () => model.generateContent({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          systemInstruction: { parts: [{ text: buildSystemInstruction(band, systemExtra) }] },
+          generationConfig: { maxOutputTokens, temperature: 0.7, topP: 0.9, thinkingConfig: THINKING_OFF }
+        }),
+        1,
+        1000
+      );
 
       const { text, blocked, reason } = extractText(result);
       await logConversation({ uid, prompt, reply: text, blocked, blockReason: reason, endpoint, ageBand: band });
@@ -102,7 +134,7 @@ export function createApp() {
       }
       return text;
     } catch (error) {
-      console.error('Gemini API Error:', error.message);
+      console.error(`[AI Error: ${endpoint}] Gemini API Error:`, error.message);
       throw error;
     }
   }
@@ -116,11 +148,15 @@ export function createApp() {
     }
 
     try {
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts }],
-        systemInstruction: { parts: [{ text: buildSystemInstruction(band, systemExtra) }] },
-        generationConfig: { maxOutputTokens, temperature: 0.6, topP: 0.9, thinkingConfig: THINKING_OFF }
-      });
+      const result = await executeWithRetry(
+        () => model.generateContent({
+          contents: [{ role: 'user', parts }],
+          systemInstruction: { parts: [{ text: buildSystemInstruction(band, systemExtra) }] },
+          generationConfig: { maxOutputTokens, temperature: 0.6, topP: 0.9, thinkingConfig: THINKING_OFF }
+        }),
+        1,
+        1000
+      );
 
       const { text, blocked, reason } = extractText(result);
       await logConversation({ uid, prompt, reply: text, blocked, blockReason: reason, endpoint, ageBand: band });
@@ -130,7 +166,7 @@ export function createApp() {
       }
       return text;
     } catch (error) {
-      console.error('Gemini vision API Error:', error.message);
+      console.error(`[AI Error: ${endpoint}] Gemini vision API Error:`, error.message);
       throw error;
     }
   }
@@ -169,10 +205,13 @@ export function createApp() {
         '**A question for your team**'
       ].join('\n');
 
-      const review = await callGeminiWithImage(prompt, image, 900, { ageBand, uid: userId, endpoint: 'design-review' });
+      const review = await withTimeout(
+        callGeminiWithImage(prompt, image, 900, { ageBand, uid: userId, endpoint: 'design-review' }),
+        15000
+      );
       res.json({ review, sawPhoto: Boolean(image), ageBand, timestamp: new Date().toISOString() });
     } catch (error) {
-      res.status(500).json({ error: 'The design reviewer is unavailable right now.' });
+      handleAiError(res, error, 'design-review', 'The design reviewer is unavailable right now.');
     }
   });
 
@@ -186,10 +225,13 @@ export function createApp() {
       if (!checkRateLimit(`${userId}-hints`, 5, 60000)) return res.status(429).json({ error: 'Too many hint requests.' });
 
       const prompt = `Challenge: ${challengeTitle}\nScenario: ${scenario}\nDifficulty: ${difficultyLevel}\nProvide a SHORT hint.`;
-      const hint = await callGemini(prompt, 150, { ageBand, uid: userId, endpoint: 'hint' });
+      const hint = await withTimeout(
+        callGemini(prompt, 150, { ageBand, uid: userId, endpoint: 'hint' }),
+        10000
+      );
       res.json({ hint, timestamp: new Date().toISOString() });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to generate hint' });
+      handleAiError(res, error, 'hint', 'Failed to generate hint');
     }
   });
 
@@ -203,10 +245,20 @@ export function createApp() {
       if (!checkRateLimit(`${userId}-feedback`, 20, 60000)) return res.status(429).json({ error: 'Too many requests.' });
 
       const prompt = `Challenge: ${challengeTitle}, Score: ${score}%, Time: ${timeSpent}m, Attempts: ${attempts}. Provide feedback.`;
-      const feedback = await callGemini(prompt, 250, { ageBand, uid: userId, endpoint: 'feedback' });
-      res.json({ feedback, timestamp: new Date().toISOString() });
+      try {
+        const feedback = await withTimeout(
+          callGemini(prompt, 250, { ageBand, uid: userId, endpoint: 'feedback' }),
+          10000
+        );
+        res.json({ feedback, timestamp: new Date().toISOString() });
+      } catch (aiErr) {
+        // Fast, friendly fallback feedback so a learner's screen never hangs
+        console.warn(`[AI Fallback: feedback] Gemini call timed out or failed (${aiErr.message}); serving fallback.`);
+        const fallback = getFriendlyFeedbackFallback(challengeTitle, score);
+        return res.json(fallback);
+      }
     } catch (error) {
-      res.status(500).json({ error: 'Failed to generate feedback' });
+      handleAiError(res, error, 'feedback', 'Failed to generate feedback');
     }
   });
 
@@ -220,10 +272,13 @@ export function createApp() {
       if (!checkRateLimit(`${userId}-explain`, 15, 60000)) return res.status(429).json({ error: 'Too many requests.' });
 
       const prompt = `Concept: ${concept}\nContext: ${context}\nExplain simply.`;
-      const explanation = await callGemini(prompt, 300, { ageBand, uid: userId, endpoint: 'explain' });
+      const explanation = await withTimeout(
+        callGemini(prompt, 300, { ageBand, uid: userId, endpoint: 'explain' }),
+        10000
+      );
       res.json({ explanation, timestamp: new Date().toISOString() });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to generate explanation' });
+      handleAiError(res, error, 'explain', 'Failed to generate explanation');
     }
   });
 
@@ -237,10 +292,13 @@ export function createApp() {
       if (!checkRateLimit(`${userId}-recommend`, 10, 60000)) return res.status(429).json({ error: 'Too many requests.' });
 
       const prompt = `Learning Path: ${learningPath}. Recommend next challenge.`;
-      const recommendation = await callGemini(prompt, 200, { ageBand, uid: userId, endpoint: 'recommendation' });
+      const recommendation = await withTimeout(
+        callGemini(prompt, 200, { ageBand, uid: userId, endpoint: 'recommendation' }),
+        10000
+      );
       res.json({ recommendation, timestamp: new Date().toISOString() });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to generate recommendation' });
+      handleAiError(res, error, 'recommendation', 'Failed to generate recommendation');
     }
   });
 
@@ -254,10 +312,13 @@ export function createApp() {
       if (!checkRateLimit(`${userId}-brief`, 10, 60000)) return res.status(429).json({ error: 'Too many requests.' });
 
       const prompt = `Learning Path: ${learningPath}, Topic: ${topic}. Brief challenge.`;
-      const brief = await callGemini(prompt, 200, { ageBand, uid: userId, endpoint: 'challenge-brief' });
+      const brief = await withTimeout(
+        callGemini(prompt, 200, { ageBand, uid: userId, endpoint: 'challenge-brief' }),
+        10000
+      );
       res.json({ brief, timestamp: new Date().toISOString() });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to generate challenge brief' });
+      handleAiError(res, error, 'challenge-brief', 'Failed to generate challenge brief');
     }
   });
 
@@ -274,15 +335,18 @@ export function createApp() {
         return res.status(429).json({ error: "You're asking very fast! Give me a moment to catch up." });
       }
 
-      const reply = await callGemini(wrapStudentInput(message), 400, {
-        ageBand,
-        uid: userId,
-        endpoint: 'tutor',
-        systemExtra: String(activityContext).slice(0, 800)
-      });
+      const reply = await withTimeout(
+        callGemini(wrapStudentInput(message), 400, {
+          ageBand,
+          uid: userId,
+          endpoint: 'tutor',
+          systemExtra: String(activityContext).slice(0, 800)
+        }),
+        12000
+      );
       res.json({ reply, ageBand, timestamp: new Date().toISOString() });
     } catch (error) {
-      res.status(500).json({ error: 'The tutor is unavailable right now.' });
+      handleAiError(res, error, 'tutor', 'The tutor is unavailable right now.');
     }
   });
 
@@ -292,20 +356,39 @@ export function createApp() {
       const ageBand = resolveAgeBand(req.body.ageBand);
       const { personaId, message } = req.body;
 
-      const persona = PERSONAS[personaId];
-      if (!persona || !message || typeof message !== 'string' || !message.trim()) {
-        return res.status(400).json({ error: 'Unknown character or empty message' });
+      if (!personaId || !PERSONAS[personaId]) {
+        const validPersonas = Object.keys(PERSONAS);
+        return res.status(400).json({
+          error: `Unknown character '${personaId || ''}'. Valid characters are: ${validPersonas.join(', ')}`,
+          code: 'UNKNOWN_PERSONA',
+          validPersonas
+        });
       }
+
+      if (!message || typeof message !== 'string' || !message.trim()) {
+        return res.status(400).json({
+          error: 'Message is required and must not be empty.',
+          code: 'EMPTY_MESSAGE'
+        });
+      }
+
       if (!checkRateLimit(`${userId}-roleplay`, 20, 60000)) {
         return res.status(429).json({ error: 'Give them a moment to reply!' });
       }
 
       const instruction = buildPersonaInstruction(personaId, ageBand);
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: wrapStudentInput(message) }] }],
-        systemInstruction: { parts: [{ text: instruction }] },
-        generationConfig: { maxOutputTokens: 300, temperature: 0.8, topP: 0.9 }
-      });
+      const result = await withTimeout(
+        executeWithRetry(
+          () => model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: wrapStudentInput(message) }] }],
+            systemInstruction: { parts: [{ text: instruction }] },
+            generationConfig: { maxOutputTokens: 300, temperature: 0.8, topP: 0.9 }
+          }),
+          1,
+          1000
+        ),
+        12000
+      );
 
       const { text, blocked, reason } = extractText(result);
       await logConversation({ uid: userId, prompt: message, reply: text, blocked, blockReason: reason, endpoint: `roleplay:${personaId}`, ageBand });
@@ -316,7 +399,7 @@ export function createApp() {
 
       res.json({ reply, trust, blocked, timestamp: new Date().toISOString() });
     } catch (error) {
-      res.status(500).json({ error: 'That character is unavailable right now.' });
+      handleAiError(res, error, 'roleplay', 'That character is unavailable right now.');
     }
   });
 
@@ -348,22 +431,28 @@ export function createApp() {
         'Return ONLY valid JSON. No markdown, no code fences.'
       ].filter(Boolean).join('\n');
 
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          maxOutputTokens: 2500,
-          temperature: 0.4,
-          responseMimeType: 'application/json'
-        }
-      });
+      const result = await withTimeout(
+        executeWithRetry(
+          () => model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              maxOutputTokens: 2500,
+              temperature: 0.4,
+              responseMimeType: 'application/json'
+            }
+          }),
+          1,
+          1000
+        ),
+        25000
+      );
 
       const { text } = extractText(result);
       const cleanJson = text.replace(/```(?:json)?/g, '').trim();
       const parsed = JSON.parse(cleanJson);
       res.json({ unit: parsed, timestamp: new Date().toISOString() });
     } catch (error) {
-      console.error('[PBL Synthesizer] Server synthesis error:', error.message);
-      res.status(500).json({ error: 'Failed to synthesize unit via server AI' });
+      handleAiError(res, error, 'pbl/synthesize', 'Failed to synthesize unit via server AI');
     }
   });
 
