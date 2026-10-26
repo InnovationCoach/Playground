@@ -26,6 +26,9 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const pendingCount = useMemo(() => evalList.filter((e) => e.status === 'pending').length, [evalList]);
 
   useEffect(() => {
+    try {
+      localStorage.removeItem('hearisland.coach_evaluations.v1');
+    } catch (_) {}
     const onEvalsUpdated = () => setEvalList(getEvaluations());
     window.addEventListener('hearisland-evaluations-updated', onEvalsUpdated);
     return () => window.removeEventListener('hearisland-evaluations-updated', onEvalsUpdated);
@@ -322,20 +325,23 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             setWorkspaceTab('studio');
           }}
           onGoToEvaluation={() => {
-            setWorkspaceTab('evaluation');
+            window.location.hash = '#/coach/dashboard';
           }}
         />
       )}
 
-      {/* Tab 2: Evaluation Desk */}
+      {/* Tab 2: Evaluation Desk (Consolidated into My Learners -> Evidence) */}
       {workspaceTab === 'evaluation' && (
-        <EvaluationDeskView
-          coachUser={coachUser}
-          onOpenStudioWithLearner={(learnerId) => {
-            setSelectedLearnerId(learnerId);
-            setWorkspaceTab('studio');
-          }}
-        />
+        <div className="cp-card" style={{ maxWidth: 640, margin: '40px auto', textAlign: 'center', padding: '40px 24px' }}>
+          <CheckCircle2 size={48} style={{ color: 'var(--brand-primary, #6366f1)', margin: '0 auto 16px' }} />
+          <h2 style={{ margin: '0 0 8px' }}>Evaluation Desk Consolidated</h2>
+          <p style={{ color: 'var(--text-muted, #64748b)', margin: '0 0 24px', lineHeight: 1.6 }}>
+            Phase submissions and evidence reviews are now handled directly inside the <strong>My Learners → Evidence</strong> tab.
+          </p>
+          <a href="#/coach/dashboard" className="cp-btn cp-btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            Open My Learners Dashboard <ArrowRight size={16} />
+          </a>
+        </div>
       )}
 
       {/* Tab 3: Curriculum Studio (NotebookLM 3-Column Studio Grid) */}

@@ -1,10 +1,17 @@
 /**
- * Coach Evaluation Desk Store
- * Manages student multi-modal submissions (Video demos, GitHub repos, MakerSpace prototypes, Reflections)
- * and coach formative evaluations, XP awards, and feedback loops.
+ * @deprecated Evaluation Desk is retired in favour of the My Learners dashboard (#/coach/dashboard).
+ * Student phase submissions and coach reviews now reside directly in Firestore:
+ * enrolments/{enrolmentId}/phaseProgress/{phaseId}.
  */
 
 const STORAGE_KEY = 'hearisland.coach_evaluations.v1';
+
+// Clear legacy browser copy to prevent stale client state
+try {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+} catch (_) {}
 
 const INITIAL_EVALUATIONS = [
   {

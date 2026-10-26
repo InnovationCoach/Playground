@@ -489,14 +489,16 @@ export async function submitPhaseEvidence(enrolmentId, phaseId, evidenceItem) {
 /**
  * Coach reviews phase progress and records feedback.
  */
-export async function saveCoachFeedback(enrolmentId, phaseId, { text, rating = 5, coachId }) {
+export async function saveCoachFeedback(enrolmentId, phaseId, { text, rating, coachId }) {
   const phaseRef = doc(db, 'enrolments', enrolmentId, 'phaseProgress', phaseId);
   const coachFeedback = {
     text: String(text || '').trim(),
-    rating: Number(rating) || 5,
     coachId: String(coachId),
     at: Date.now()
   };
+  if (rating !== undefined && rating !== null) {
+    coachFeedback.rating = Number(rating);
+  }
 
   await updateDoc(phaseRef, {
     coachFeedback,
