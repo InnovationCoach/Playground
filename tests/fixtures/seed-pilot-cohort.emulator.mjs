@@ -280,55 +280,50 @@ for (let i = 0; i < STUDENTS.length; i++) {
     } : null
   });
 
-  // 5. Coach Records Store (Firestore backend)
-  const recordsDoc = db.collection('coachingRecords').doc(sUser.uid);
-  await recordsDoc.set({
-    learnerUid: sUser.uid,
-    classId: CLASS_ID,
-    updatedAt: ago(1)
-  }, { merge: true });
+  // 5. Coach Records Store (Firestore backend matching firestore.rules)
+  const learnerDoc = db.collection('learners').doc(sUser.uid);
 
   // Agreed Milestones (co-coaches can edit)
-  await recordsDoc.collection('milestones').doc(`ms-${s.id}`).set({
+  await learnerDoc.collection('milestones').doc(`ms-${s.id}`).set({
     id: `ms-${s.id}`,
-    text: `Complete prototype bench test for ${s.focus}`,
+    title: `Complete prototype bench test for ${s.focus}`,
     dueOn: '2026-11-15',
     doneOn: i % 3 === 0 ? '2026-10-25' : null,
-    authorCoachUid: coachUids[0],
-    updatedByCoachUid: coachUids[1],
-    createdAt: ago(7),
+    authorUid: coachUids[0],
+    at: ago(7),
     updatedAt: ago(2)
   });
 
   // Coach Goals (visible to student)
-  await recordsDoc.collection('coachGoals').doc(`cg-${s.id}`).set({
+  await learnerDoc.collection('coachGoals').doc(`cg-${s.id}`).set({
     id: `cg-${s.id}`,
     text: 'Document 5 error cases during water flow calibration',
     dueOn: '2026-11-05',
     doneOn: null,
-    authorCoachUid: coachUids[1],
-    createdAt: ago(5),
+    authorUid: coachUids[1],
+    at: ago(5),
     updatedAt: ago(5)
   });
 
   // Check-ins (author coach only)
-  await recordsDoc.collection('checkIns').doc(`ci-${s.id}`).set({
+  await learnerDoc.collection('checkIns').doc(`ci-${s.id}`).set({
     id: `ci-${s.id}`,
-    notes: `1-on-1 weekly check-in: ${s.first} made significant headway on sensor integration.`,
-    nextFollowUpDate: '2026-11-02',
-    approvedForParentReport: true,
-    authorCoachUid: coachUids[0],
-    createdAt: ago(4),
+    strength: `Curious and self-directed`,
+    challenge: `Needs practice on calibration timing`,
+    nextAction: `Complete prototype bench test for ${s.focus}`,
+    followUpOn: '2026-11-02',
+    shareWithParent: true,
+    authorUid: coachUids[0],
+    at: ago(4),
     updatedAt: ago(4)
   });
 
   // Private Note (strictly private to author coach)
-  await db.collection('coachPrivate').doc(coachUids[0]).collection('learnerNotes').doc(sUser.uid).set({
-    authorCoachUid: coachUids[0],
-    learnerUid: sUser.uid,
-    note: `Coach private reflection: ${s.first} needs extra scaffolding on soldering safety next Thursday.`,
-    expireAt: ago(-26), // 30-day retention
-    createdAt: ago(4),
+  await db.collection('coachPrivate').doc(coachUids[0]).collection('learners').doc(sUser.uid).collection('notes').doc(`pnt-${s.id}`).set({
+    id: `pnt-${s.id}`,
+    text: `Coach private reflection: ${s.first} needs extra scaffolding on soldering safety next Thursday.`,
+    authorUid: coachUids[0],
+    at: ago(4),
     updatedAt: ago(4)
   });
 }

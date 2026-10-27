@@ -270,6 +270,6 @@ function defaultMilestones() {
     coachCue: '',
     targetCompetencies: ['sdl-01', 'ctps-01'],
     isAiGenerated: false,
-    approvedByCoach: true
+    approvedByCoach: false
   }));
 }

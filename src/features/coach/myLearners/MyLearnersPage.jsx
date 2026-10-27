@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Search, Users, ArrowRight, CircleAlert } from 'lucide-react';
+import { RefreshCw, Search, Users, ArrowRight, CircleAlert, UploadCloud } from 'lucide-react';
 import { useLocale } from '../../../app/i18n/LocaleProvider.jsx';
 import { hrefFor } from '../../../app/routes.js';
 import { dayKey } from '../../goals/goalPlan.js';
 import { useMyLearners } from './useMyLearners.js';
-import { loadAllRecords } from './coachRecordsStore.js';
+import { loadAllRecords, hasDeviceRecords, migrateDeviceRecords } from './coachRecordsStore.js';
 import { buildLearner, filterLearners, statusCounts, FILTERS } from './myLearnersModel.js';
 import { StatusBadge, ReasonText, REASON_TAB, NotAvailable, Empty, DeviceStoreNote, NextCell, useDay } from './ui.jsx';
 import { LearnerProfile } from './LearnerProfile.jsx';
@@ -52,16 +52,28 @@ export function MyLearnersPage({ coachUser, route, navigate }) {
       : <LearnerProfile coachUser={coachUser} learner={learner} raw={raw} classes={data.classes} assignmentsFailed={data.assignmentsFailed}
                         tab={route.tab} navigate={navigate} today={today} reload={data.reload} />;
   }
-  return <Home data={data} learners={learners} navigate={navigate} />;
+  return <Home data={data} learners={learners} navigate={navigate} coachUser={coachUser} />;
 }
 
-function Home({ data, learners, navigate }) {
+function Home({ data, learners, navigate, coachUser }) {
   const { t, formatDate } = useLocale();
   const day = useDay();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [classId, setClassId] = useState('all');
   const [shown, setShown] = useState(PAGE);
+  const [hasLocal, setHasLocal] = useState(() => hasDeviceRecords(coachUser?.uid));
+  const [migrating, setMigrating] = useState(false);
+  const [migrateResult, setMigrateResult] = useState(null);
+
+  const handleMigrate = async () => {
+    setMigrating(true);
+    const res = await migrateDeviceRecords(coachUser?.uid);
+    setMigrating(false);
+    setHasLocal(false);
+    setMigrateResult(res);
+    data.reload();
+  };
 
   const inClass = useMemo(() => (classId === 'all' ? learners : learners.filter((l) => l.classIds.includes(classId))), [learners, classId]);
   const counts = useMemo(() => statusCounts(inClass), [inClass]);
@@ -88,6 +100,28 @@ function Home({ data, learners, navigate }) {
           </button>
         </div>
       </div>
+
+      {hasLocal && (
+        <div className="gh-card ml-migration-banner" style={{ background: 'var(--card-bg)', border: '1px solid var(--primary)', padding: '0.85rem 1.25rem', borderRadius: '8px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <UploadCloud size={20} color="var(--primary)" aria-hidden="true" />
+            <div>
+              <strong>Move records from this device</strong>
+              <p className="gh-sub" style={{ margin: 0, fontSize: '0.85rem' }}>You have coaching records stored on this device. Move them to WeLearn Cloud so they sync across devices and allow co-coach collaboration.</p>
+            </div>
+          </div>
+          <button type="button" className="gh-btn gh-btn-primary gh-btn-sm" onClick={handleMigrate} disabled={migrating}>
+            {migrating ? 'Moving to Cloud...' : 'Move to WeLearn Cloud'}
+          </button>
+        </div>
+      )}
+      {migrateResult && (
+        <div className="gh-card" style={{ background: 'var(--card-bg)', border: '1px solid #22c55e', padding: '0.75rem 1.25rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
+          <p style={{ margin: 0, color: '#22c55e', fontSize: '0.85rem' }}>
+            ✓ Successfully moved {migrateResult.count} records for {migrateResult.learnersCount} learner(s) to WeLearn Cloud. Device storage cleared.
+          </p>
+        </div>
+      )}
 
       {data.status === 'loading' && <Loading />}
       {data.status === 'no-classes' && (

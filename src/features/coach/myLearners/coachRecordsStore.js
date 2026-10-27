@@ -18,7 +18,9 @@ import { safeLink } from '../../pbl/engine/pblProject.js';
 import { competencyById } from '../../pbl/content/competencies.js';
 import { LEVELS, EVIDENCE_KIND_IDS } from './myLearnersModel.js';
 
-export const STORE_MODE = 'device';
+import { db, collection, doc, getDocs, setDoc, updateDoc, deleteDoc } from '../../../firebase.js';
+
+export const STORE_MODE = 'firestore';
 const PREFIX = 'welearn.coachRecords.v1';
 export const LIMITS = { text: 1200, title: 140, notes: 300, checkIns: 200, milestones: 120, goals: 40, evidence: 150, reports: 60 };
 
@@ -70,22 +72,322 @@ export function saveRecords(coachUid, learnerUid, records) {
   }
 }
 
-/** Records for one learner, kept in step with saves from other tabs and screens. */
+/** Asynchronously load coaching records from Firestore collections matching firestore.rules. */
+export async function loadRecordsFromFirestore(coachUid, learnerUid) {
+  if (!db || typeof db.collection !== 'function' || !learnerUid) {
+    return loadRecords(coachUid, learnerUid);
+  }
+  try {
+    const fetchSubcol = async (colName) => {
+      try {
+        const snap = await getDocs(collection(db, 'learners', learnerUid, colName));
+        const list = [];
+        if (snap && snap.forEach) {
+          snap.forEach((d) => {
+            const data = d.data();
+            if (data) list.push({ ...data, id: data.id || d.id });
+          });
+        }
+        return list;
+      } catch (err) {
+        return [];
+      }
+    };
+
+    const fetchPrivateNotes = async () => {
+      if (!coachUid) return [];
+      try {
+        const snap = await getDocs(collection(db, 'coachPrivate', coachUid, 'learners', learnerUid, 'notes'));
+        const list = [];
+        if (snap && snap.forEach) {
+          snap.forEach((d) => {
+            const data = d.data();
+            if (data) list.push({ ...data, id: data.id || d.id, visibility: 'private' });
+          });
+        }
+        return list;
+      } catch (err) {
+        return [];
+      }
+    };
+
+    const [checkIns, milestones, goals, feedbackRaw, assessments, evidence, reports, parentNotes, privateNotes] = await Promise.all([
+      fetchSubcol('checkIns'),
+      fetchSubcol('milestones'),
+      fetchSubcol('coachGoals'),
+      fetchSubcol('feedback'),
+      fetchSubcol('assessments'),
+      fetchSubcol('coachEvidence'),
+      fetchSubcol('reports'),
+      fetchSubcol('parentNotes'),
+      fetchPrivateNotes()
+    ]);
+
+    const feedback = {};
+    for (const fb of feedbackRaw) {
+      if (fb.evidenceKey) {
+        feedback[fb.evidenceKey] = { text: fb.text || '', at: fb.at || Date.now() };
+      }
+    }
+
+    const notes = [
+      ...privateNotes,
+      ...parentNotes.map((pn) => ({ ...pn, visibility: 'parent' }))
+    ];
+
+    const records = hydrateRecords({
+      version: 1,
+      checkIns,
+      notes,
+      milestones,
+      goals,
+      feedback,
+      assessments,
+      evidence,
+      reports
+    });
+
+    // Cache locally for fast synchronous initial render
+    saveRecords(coachUid, learnerUid, records);
+    return records;
+  } catch (err) {
+    console.warn('[coachRecords] Firestore read failed, using cached records:', err);
+    return loadRecords(coachUid, learnerUid);
+  }
+}
+
+/** Save a single record mutation to Firestore matching firestore.rules */
+export async function saveRecordToFirestore(coachUid, learnerUid, type, data, action = 'set') {
+  if (!db || typeof db.collection !== 'function' || !learnerUid || !coachUid) return;
+  try {
+    if (type === 'checkIn') {
+      await setDoc(doc(db, 'learners', learnerUid, 'checkIns', data.id), { ...data, authorUid: coachUid, updatedAt: Date.now() });
+    } else if (type === 'milestone') {
+      if (action === 'update') {
+        await updateDoc(doc(db, 'learners', learnerUid, 'milestones', data.id), { doneOn: data.doneOn, updatedAt: Date.now() });
+      } else {
+        await setDoc(doc(db, 'learners', learnerUid, 'milestones', data.id), { ...data, authorUid: coachUid, updatedAt: Date.now() });
+      }
+    } else if (type === 'goal') {
+      if (action === 'update') {
+        await updateDoc(doc(db, 'learners', learnerUid, 'coachGoals', data.id), { doneOn: data.doneOn, updatedAt: Date.now() });
+      } else {
+        await setDoc(doc(db, 'learners', learnerUid, 'coachGoals', data.id), { ...data, authorUid: coachUid, updatedAt: Date.now() });
+      }
+    } else if (type === 'note') {
+      if (action === 'delete') {
+        if (data.visibility === 'private') {
+          await deleteDoc(doc(db, 'coachPrivate', coachUid, 'learners', learnerUid, 'notes', data.id));
+        } else {
+          await deleteDoc(doc(db, 'learners', learnerUid, 'parentNotes', data.id));
+        }
+      } else if (data.visibility === 'private') {
+        await setDoc(doc(db, 'coachPrivate', coachUid, 'learners', learnerUid, 'notes', data.id), {
+          id: data.id, text: data.text, authorUid: coachUid, at: data.at, updatedAt: Date.now()
+        });
+      } else {
+        await setDoc(doc(db, 'learners', learnerUid, 'parentNotes', data.id), {
+          id: data.id, text: data.text, authorUid: coachUid, at: data.at, updatedAt: Date.now()
+        });
+      }
+    } else if (type === 'feedback') {
+      await setDoc(doc(db, 'learners', learnerUid, 'feedback', data.evidenceKey), {
+        evidenceKey: data.evidenceKey, text: data.text, authorUid: coachUid, at: data.at || Date.now(), updatedAt: Date.now()
+      });
+    } else if (type === 'assessment') {
+      await setDoc(doc(db, 'learners', learnerUid, 'assessments', data.id), { ...data, authorUid: coachUid, updatedAt: Date.now() });
+    } else if (type === 'coachEvidence') {
+      await setDoc(doc(db, 'learners', learnerUid, 'coachEvidence', data.id), { ...data, authorUid: coachUid, updatedAt: Date.now() });
+    } else if (type === 'report') {
+      await setDoc(doc(db, 'learners', learnerUid, 'reports', data.id), { ...data, authorUid: coachUid, updatedAt: Date.now() });
+    }
+  } catch (err) {
+    console.warn(`[coachRecords] Firestore write failed for ${type}:`, err);
+  }
+}
+
+/** Diff two record snapshots and sync changes to Firestore in the background */
+export function diffAndSyncToFirestore(coachUid, learnerUid, prev, next) {
+  if (!coachUid || !learnerUid) return;
+  // Check-ins
+  const prevCiIds = new Set(prev.checkIns.map((c) => c.id));
+  next.checkIns.filter((c) => !prevCiIds.has(c.id)).forEach((c) => saveRecordToFirestore(coachUid, learnerUid, 'checkIn', c));
+
+  // Milestones
+  const prevMsMap = new Map(prev.milestones.map((m) => [m.id, m]));
+  for (const m of next.milestones) {
+    const old = prevMsMap.get(m.id);
+    if (!old) {
+      saveRecordToFirestore(coachUid, learnerUid, 'milestone', m, 'set');
+    } else if (old.doneOn !== m.doneOn) {
+      saveRecordToFirestore(coachUid, learnerUid, 'milestone', m, 'update');
+    }
+  }
+
+  // Coach Goals
+  const prevGoalsMap = new Map(prev.goals.map((g) => [g.id, g]));
+  for (const g of next.goals) {
+    const old = prevGoalsMap.get(g.id);
+    if (!old) {
+      saveRecordToFirestore(coachUid, learnerUid, 'goal', g, 'set');
+    } else if (old.doneOn !== g.doneOn) {
+      saveRecordToFirestore(coachUid, learnerUid, 'goal', g, 'update');
+    }
+  }
+
+  // Notes
+  const nextNoteIds = new Set(next.notes.map((n) => n.id));
+  prev.notes.filter((n) => !nextNoteIds.has(n.id)).forEach((n) => saveRecordToFirestore(coachUid, learnerUid, 'note', n, 'delete'));
+  const prevNoteIds = new Set(prev.notes.map((n) => n.id));
+  next.notes.filter((n) => !prevNoteIds.has(n.id)).forEach((n) => saveRecordToFirestore(coachUid, learnerUid, 'note', n, 'set'));
+
+  // Feedback
+  for (const [key, fb] of Object.entries(next.feedback)) {
+    if (!prev.feedback[key] || prev.feedback[key].text !== fb.text) {
+      saveRecordToFirestore(coachUid, learnerUid, 'feedback', { evidenceKey: key, text: fb.text, at: fb.at });
+    }
+  }
+
+  // Assessments
+  const prevAsmIds = new Set(prev.assessments.map((a) => a.id));
+  next.assessments.filter((a) => !prevAsmIds.has(a.id)).forEach((a) => saveRecordToFirestore(coachUid, learnerUid, 'assessment', a));
+
+  // Coach Evidence
+  const prevEvIds = new Set(prev.evidence.map((e) => e.id));
+  next.evidence.filter((e) => !prevEvIds.has(e.id)).forEach((e) => saveRecordToFirestore(coachUid, learnerUid, 'coachEvidence', e));
+
+  // Reports
+  const prevReps = new Map(prev.reports.map((r) => [r.id, r]));
+  for (const r of next.reports) {
+    const old = prevReps.get(r.id);
+    if (!old || old.status !== r.status || old.updatedAt !== r.updatedAt) {
+      saveRecordToFirestore(coachUid, learnerUid, 'report', r);
+    }
+  }
+}
+
+/** Check if there are local coaching records on this device for the coach */
+export function hasDeviceRecords(coachUid) {
+  if (typeof window === 'undefined' || !window.localStorage) return false;
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (key && key.startsWith(`${PREFIX}:${coachUid}:`)) {
+        const raw = window.localStorage.getItem(key);
+        if (raw && raw !== '{}') {
+          const parsed = JSON.parse(raw);
+          const hasData = (parsed.checkIns?.length || parsed.notes?.length || parsed.milestones?.length ||
+                           parsed.goals?.length || Object.keys(parsed.feedback || {}).length ||
+                           parsed.assessments?.length || parsed.evidence?.length || parsed.reports?.length);
+          if (hasData) return true;
+        }
+      }
+    }
+  } catch {}
+  return false;
+}
+
+/** Migrate device localStorage records to Firestore (one-time coach action) */
+export async function migrateDeviceRecords(coachUid) {
+  if (typeof window === 'undefined' || !window.localStorage || !db || !coachUid) return { count: 0, learnersCount: 0 };
+  let count = 0;
+  let learnersCount = 0;
+  try {
+    const keys = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith(`${PREFIX}:${coachUid}:`)) keys.push(k);
+    }
+
+    for (const key of keys) {
+      const parts = key.split(':');
+      const learnerUid = parts[2];
+      if (!learnerUid) continue;
+      const raw = window.localStorage.getItem(key);
+      if (!raw) continue;
+      const records = hydrateRecords(JSON.parse(raw));
+
+      let learnerHasItems = false;
+      for (const ci of records.checkIns) {
+        await saveRecordToFirestore(coachUid, learnerUid, 'checkIn', ci);
+        count++;
+        learnerHasItems = true;
+      }
+      for (const m of records.milestones) {
+        await saveRecordToFirestore(coachUid, learnerUid, 'milestone', m);
+        count++;
+        learnerHasItems = true;
+      }
+      for (const g of records.goals) {
+        await saveRecordToFirestore(coachUid, learnerUid, 'goal', g);
+        count++;
+        learnerHasItems = true;
+      }
+      for (const n of records.notes) {
+        await saveRecordToFirestore(coachUid, learnerUid, 'note', n);
+        count++;
+        learnerHasItems = true;
+      }
+      for (const [k, fb] of Object.entries(records.feedback)) {
+        await saveRecordToFirestore(coachUid, learnerUid, 'feedback', { evidenceKey: k, text: fb.text, at: fb.at });
+        count++;
+        learnerHasItems = true;
+      }
+      for (const a of records.assessments) {
+        await saveRecordToFirestore(coachUid, learnerUid, 'assessment', a);
+        count++;
+        learnerHasItems = true;
+      }
+      for (const ev of records.evidence) {
+        await saveRecordToFirestore(coachUid, learnerUid, 'coachEvidence', ev);
+        count++;
+        learnerHasItems = true;
+      }
+      for (const rp of records.reports) {
+        await saveRecordToFirestore(coachUid, learnerUid, 'report', rp);
+        count++;
+        learnerHasItems = true;
+      }
+
+      if (learnerHasItems) {
+        learnersCount++;
+        window.localStorage.removeItem(key);
+      }
+    }
+    window.dispatchEvent(new CustomEvent('welearn-coach-records', { detail: { coachUid } }));
+  } catch (err) {
+    console.error('[coachRecords] Migration error:', err);
+  }
+  return { count, learnersCount };
+}
+
+/** Records for one learner, kept in step with saves from other tabs, screens, and Firestore. */
 export function useCoachRecords(coachUid, learnerUid) {
   const [records, setRecords] = useState(() => (coachUid && learnerUid ? loadRecords(coachUid, learnerUid) : emptyRecords()));
   const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     if (!coachUid || !learnerUid) return undefined;
-    setRecords(loadRecords(coachUid, learnerUid));
+    let active = true;
+
+    // Load from Firestore asynchronously to get latest cloud state
+    loadRecordsFromFirestore(coachUid, learnerUid).then((fsRecords) => {
+      if (active && fsRecords) {
+        setRecords(fsRecords);
+      }
+    });
+
     const reload = (e) => {
       if (e.type === 'storage' && e.key !== keyFor(coachUid, learnerUid)) return;
-      if (e.type !== 'storage' && (e.detail?.learnerUid !== learnerUid || e.detail?.coachUid !== coachUid)) return;
-      setRecords(loadRecords(coachUid, learnerUid));
+      if (e.type !== 'storage' && (e.detail?.learnerUid && e.detail.learnerUid !== learnerUid)) return;
+      loadRecordsFromFirestore(coachUid, learnerUid).then((fsRecords) => {
+        if (active && fsRecords) setRecords(fsRecords);
+      });
     };
     window.addEventListener('storage', reload);
     window.addEventListener('welearn-coach-records', reload);
     return () => {
+      active = false;
       window.removeEventListener('storage', reload);
       window.removeEventListener('welearn-coach-records', reload);
     };
@@ -93,15 +395,23 @@ export function useCoachRecords(coachUid, learnerUid) {
 
   /** Apply a pure change. Returns { ok } or { error } (validation or storage). */
   const update = useCallback((change) => {
-    const current = loadRecords(coachUid, learnerUid);
+    const current = records;
     const result = change(current);
     if (result?.error) return { error: result.error };
     const next = result?.records || result;
-    if (!saveRecords(coachUid, learnerUid, next)) { setSaveError(true); return { error: 'storage' }; }
+
+    if (!saveRecords(coachUid, learnerUid, next)) {
+      setSaveError(true);
+      return { error: 'storage' };
+    }
     setSaveError(false);
     setRecords(next);
+
+    // Sync mutations to Firestore in the background
+    diffAndSyncToFirestore(coachUid, learnerUid, current, next);
+
     return { ok: true, ...(result?.id ? { id: result.id } : {}) };
-  }, [coachUid, learnerUid]);
+  }, [coachUid, learnerUid, records]);
 
   return { records, update, saveError };
 }
