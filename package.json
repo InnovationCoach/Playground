@@ -23,7 +23,8 @@
     "codes": "node scripts/class-codes.js",
     "codes:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GCLOUD_PROJECT=demo-hearisland-local node scripts/class-codes.js",
     "seed:programs": "node scripts/seed-pbl-programs.js",
-    "seed:programs:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GOOGLE_CLOUD_PROJECT=demo-hearisland-local node scripts/seed-pbl-programs.js"
+    "seed:programs:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GOOGLE_CLOUD_PROJECT=demo-hearisland-local node scripts/seed-pbl-programs.js",
+    "seed:pilot": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node tests/fixtures/seed-pilot-cohort.emulator.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
