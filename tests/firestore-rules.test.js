@@ -1072,11 +1072,101 @@ describe('WeLearn SPARK: enrolments and phaseProgress rules', () => {
   });
 
   it('coach can write coachFeedback and mark status reviewed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'enrolments', enrolmentId), enrolmentData);
+    });
     const db = coachA().firestore();
     await assertSucceeds(setDoc(doc(db, 'enrolments', enrolmentId, 'phaseProgress', 'explore'), {
       status: 'reviewed',
       coachFeedback: { text: 'Excellent prototype', rating: 5, coachId: 'coach_a' },
       updatedAt: Date.now()
+    }));
+  });
+
+  it('coach update on phaseProgress CANNOT alter learner evidence (restricted to coachFeedback, status, updatedAt)', async () => {
+    // 0. Ensure enrolment exists
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'enrolments', enrolmentId), enrolmentData);
+    });
+    // 1. Learner submits evidence
+    const studentDb = studentA().firestore();
+    await setDoc(doc(studentDb, 'enrolments', enrolmentId, 'phaseProgress', 'explore_p1'), {
+      status: 'submitted',
+      evidence: [{ type: 'text', note: 'Learner research findings' }],
+      updatedAt: Date.now()
+    });
+
+    // 2. Coach attempts to rewrite learner evidence -> fails
+    const coachDb = coachA().firestore();
+    await assertFails(updateDoc(doc(coachDb, 'enrolments', enrolmentId, 'phaseProgress', 'explore_p1'), {
+      evidence: [{ type: 'text', note: 'Tampered by coach' }],
+      coachFeedback: { text: 'Good work', coachId: 'coach_a' },
+      status: 'reviewed',
+      updatedAt: Date.now()
+    }));
+
+    // 3. Coach updates only coachFeedback, status, updatedAt -> succeeds
+    await assertSucceeds(updateDoc(doc(coachDb, 'enrolments', enrolmentId, 'phaseProgress', 'explore_p1'), {
+      coachFeedback: { text: 'Good work', coachId: 'coach_a' },
+      status: 'reviewed',
+      updatedAt: Date.now()
+    }));
+  });
+
+  it('unassigned coach (coachB) CANNOT read or write phaseProgress', async () => {
+    const coachBDb = coachB().firestore();
+    await assertFails(getDoc(doc(coachBDb, 'enrolments', enrolmentId, 'phaseProgress', 'explore')));
+    await assertFails(setDoc(doc(coachBDb, 'enrolments', enrolmentId, 'phaseProgress', 'explore'), {
+      status: 'reviewed',
+      coachFeedback: { text: 'Unauthorized coach review', coachId: 'coach_b' },
+      updatedAt: Date.now()
+    }));
+  });
+
+  it('unassigned coach (coachB) CANNOT read or write phaseProgress even when enrolment doc is missing', async () => {
+    const coachBDb = coachB().firestore();
+    const missingEnrolmentId = 'student_a_missing-course';
+    await assertFails(getDoc(doc(coachBDb, 'enrolments', missingEnrolmentId, 'phaseProgress', 'explore')));
+    await assertFails(setDoc(doc(coachBDb, 'enrolments', missingEnrolmentId, 'phaseProgress', 'explore'), {
+      status: 'reviewed',
+      coachFeedback: { text: 'Unauthorized coach review', coachId: 'coach_b' },
+      updatedAt: Date.now()
+    }));
+  });
+
+  it('lockdown: only coach of student can create/update feedback and ratings on student profile', async () => {
+    const studentDb = studentA().firestore();
+    const coachADb = coachA().firestore();
+    const coachBDb = coachB().firestore();
+
+    // Student cannot create their own feedback or ratings
+    await assertFails(setDoc(doc(studentDb, 'users', 'student_a', 'feedback', 'fb-1'), {
+      text: 'Self praise',
+      authorUid: 'student_a'
+    }));
+    await assertFails(setDoc(doc(studentDb, 'users', 'student_a', 'ratings', 'rt-1'), {
+      score: 5,
+      authorUid: 'student_a'
+    }));
+
+    // Unassigned coach cannot create feedback or ratings on student_a
+    await assertFails(setDoc(doc(coachBDb, 'users', 'student_a', 'feedback', 'fb-1'), {
+      text: 'Good job from wrong coach',
+      authorUid: 'coach_b'
+    }));
+    await assertFails(setDoc(doc(coachBDb, 'users', 'student_a', 'ratings', 'rt-1'), {
+      score: 5,
+      authorUid: 'coach_b'
+    }));
+
+    // Assigned coach (coachA) can create feedback and ratings
+    await assertSucceeds(setDoc(doc(coachADb, 'users', 'student_a', 'feedback', 'fb-1'), {
+      text: 'Excellent critical thinking',
+      authorUid: 'coach_a'
+    }));
+    await assertSucceeds(setDoc(doc(coachADb, 'users', 'student_a', 'ratings', 'rt-1'), {
+      score: 5,
+      authorUid: 'coach_a'
     }));
   });
 });
