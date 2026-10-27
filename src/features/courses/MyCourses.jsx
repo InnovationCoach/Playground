@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Search, ArrowRight, Sparkles, LibraryBig, FolderOpen, Link2, SearchX, Ticket, Rocket,
   Bookmark, Globe, Compass, TrendingUp, Route

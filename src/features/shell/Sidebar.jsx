@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   House, Search, LayoutDashboard, BookOpen, Rocket, Target, Sparkles, Users, Printer, HeartHandshake,
-  GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2, Palette
+  GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2, Palette,
+  PlusCircle, UploadCloud
 } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';
@@ -66,6 +67,11 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
   if (role === 'teacher' || role === 'coach') {
     return [
       { items: [home, { key: 'coach', icon: LayoutDashboard, label: 'nav.coachDashboard', onClick: () => onNavigate('coach') }] },
+      { label: 'nav.courses', items: [
+        { key: 'courses', icon: BookOpen, label: 'nav.myCourses', href: hrefFor.courses() },
+        { key: 'courses:create', icon: PlusCircle, label: 'nav.createCourse', href: hrefFor.createCourse() },
+        { key: 'courses:import', icon: UploadCloud, label: 'nav.importCourse', href: hrefFor.importCourse() }
+      ] },
       { label: 'nav.teaching', items: [
         { key: 'pbl', icon: Rocket, label: 'nav.pblFramework', href: hrefFor.pbl() },
         { key: 'canva', icon: Palette, label: 'nav.canva', href: hrefFor.canva() },

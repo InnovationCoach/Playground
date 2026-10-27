@@ -6,6 +6,7 @@ import { CONSOLE_ROLES } from './roles.js';
 import { AdminConsole } from '../features/admin/AdminConsole.jsx';
 import { SettingsPage } from '../features/settings/SettingsPage.jsx';
 import { MyCourses } from '../features/courses/MyCourses.jsx';
+import { CoursesHub } from '../features/courses/CoursesHub.jsx';
 import { HomeSearch } from '../features/home/HomeSearch.jsx';
 import { GoalsPage } from '../features/goals/GoalsPage.jsx';
 import { FutureSkillsPage } from '../features/futureSkills/FutureSkillsPage.jsx';
@@ -196,6 +197,11 @@ export function App() {
     const s = route?.screen;
     if (s === 'admin') return ['list', 'detail', 'create'].includes(route.page) ? `admin:${route.kind || 'students'}` : `admin:${route.page}`;
     if (s === 'worksheet' || s === 'guide') return 'resources';
+    if (s === 'courses') {
+      if (route.mode === 'create') return 'courses:create';
+      if (route.mode === 'import') return 'courses:import';
+      return 'courses';
+    }
     if (s) return s;
     if (role === 'teacher' || role === 'coach') return 'coach';
     return view === 'home' ? null : view;
@@ -321,8 +327,18 @@ export function App() {
           <Header {...headerProps} />
           {consoleNav}
           <div className="gh-app">
-            <MyCourses isPrimary={false} onOpenActivity={navigate} displayName={profile?.displayName}
-                       uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
+            <CoursesHub
+              role={role}
+              coachUser={{ uid: user?.uid, email: user?.email, displayName: profile?.displayName, role }}
+              isPrimary={false}
+              onOpenActivity={navigate}
+              displayName={profile?.displayName}
+              uid={user?.uid}
+              classIds={profile?.classIds || []}
+              onJoined={refreshProfile}
+              initialTab={route.mode || 'my'}
+              initialDraftId={route.draftId || null}
+            />
           </div>
         </>
       );
@@ -407,8 +423,18 @@ export function App() {
         </div>
       ) : route?.screen === 'courses' ? (
         <div className="gh-app">
-          <MyCourses isPrimary={isPrimary} onOpenActivity={navigate} displayName={profile?.displayName}
-                     uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
+          <CoursesHub
+            role={role}
+            coachUser={{ uid: user?.uid, email: user?.email, displayName: profile?.displayName, role }}
+            isPrimary={isPrimary}
+            onOpenActivity={navigate}
+            displayName={profile?.displayName}
+            uid={user?.uid}
+            classIds={profile?.classIds || []}
+            onJoined={refreshProfile}
+            initialTab={route.mode || 'my'}
+            initialDraftId={route.draftId || null}
+          />
         </div>
       ) : route?.screen === 'edmentum' ? (
         <div className="gh-app">

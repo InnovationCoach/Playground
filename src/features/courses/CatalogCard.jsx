@@ -1,3 +1,4 @@
+import React from 'react';
 import { ArrowRight, Bookmark, BookmarkCheck, ExternalLink, Globe, Plus, Check } from 'lucide-react';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { ActivityIcon } from '../shell/activityIcons.jsx';

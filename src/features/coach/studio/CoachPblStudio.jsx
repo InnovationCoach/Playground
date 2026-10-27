@@ -261,6 +261,9 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
         </div>
 
         <div className="cp-header-actions">
+          <a href="#/courses" className="cp-btn-switch">
+            <BookOpen size={15} /> Courses & Maker
+          </a>
           <a href="#/coach/dashboard" className="cp-btn-switch">
             <Users size={15} /> Learner Roster
           </a>
@@ -270,7 +273,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
         </div>
       </header>
 
-      {/* Top Navigation Tabs */}
+      {/* Top Navigation Tabs - Focused on Supervision & Evaluation */}
       <nav className="cp-top-nav-bar" aria-label="Coach Workspace Modes">
         <div className="cp-nav-tabs">
           <button
@@ -296,15 +299,6 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
 
           <button
             type="button"
-            className={`cp-nav-tab ${workspaceTab === 'studio' ? 'active' : ''}`}
-            onClick={() => setWorkspaceTab('studio')}
-          >
-            <Sparkles size={16} /> Curriculum Studio (NotebookLM)
-            <span className="cp-tab-pill">AI Authoring</span>
-          </button>
-
-          <button
-            type="button"
             className={`cp-nav-tab ${workspaceTab === 'edmentum' ? 'active' : ''}`}
             onClick={() => setWorkspaceTab('edmentum')}
           >
@@ -321,8 +315,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
         <LearnerSupervisionView
           learners={availableLearners}
           onSelectLearnerForStudio={(learnerId) => {
-            setSelectedLearnerId(learnerId);
-            setWorkspaceTab('studio');
+            window.location.hash = '#/courses/create';
           }}
           onGoToEvaluation={() => {
             window.location.hash = '#/coach/dashboard';
@@ -344,9 +337,17 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
         </div>
       )}
 
-      {/* Tab 3: Curriculum Studio (NotebookLM 3-Column Studio Grid) */}
-      {workspaceTab === 'studio' && <CourseStudioPanel />}
+      {/* Tab 3: Curriculum Studio has moved to dedicated Courses & Course Maker */}
       {workspaceTab === 'studio' && (
+        <div style={{ padding: '2rem', textAlign: 'center', background: 'rgba(15,23,42,0.6)', margin: '1rem 2rem', borderRadius: '8px', border: '1px solid rgba(56,189,248,0.2)' }}>
+          <h3 style={{ color: '#f8fafc', margin: '0 0 0.5rem' }}>Course Maker is now located in the dedicated Courses workspace</h3>
+          <p style={{ color: '#94a3b8', margin: '0 0 1.25rem' }}>Course authoring and curriculum import have been separated from learner supervision.</p>
+          <a href="#/courses/create" className="cp-btn-switch" style={{ display: 'inline-flex' }}>
+            <Sparkles size={15} /> Open Course Maker
+          </a>
+        </div>
+      )}
+      {false && (
         <div className="cp-grid">
         {/* =========================================================
             COLUMN 1: Knowledge Grounding Vault (NotebookLM Source Panel)
