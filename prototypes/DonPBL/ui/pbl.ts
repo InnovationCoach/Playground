@@ -4,7 +4,7 @@
  *
  * Uses explicit named re-exports (`export { ... }` and `export type { ... }`)
  * rather than `export *` so symbol collisions are caught at build time and
- * files can run cleanly under type-stripping or esbuild.
+ * files can run cleanly under type-stripping, Vite/Rolldown, or esbuild.
  */
 
 export {
@@ -12,8 +12,7 @@ export {
   SCHOOL_SCHEDULE_CONFIG,
   LEARNER_AGE_CONFIG,
   HARDWARE_INVENTORY_CONFIG,
-  COPILOT_DEPLOYMENT_CONFIG,
-  NGSS_ALIGNMENT_ITEMS
+  COPILOT_DEPLOYMENT_CONFIG
 } from '../programData';
 
 export type {
@@ -21,7 +20,7 @@ export type {
   ConfirmationRecord,
   PblProgram,
   ProgramPhase,
-  SessionPlan,
+  PhaseSession,
   LearnerChoiceOption,
   MeasurableImpactCriterion,
   AssumptionNote,
@@ -29,8 +28,7 @@ export type {
   AgeTierTrack,
   LearnerAgeConfig,
   HardwareInventoryConfig,
-  CopilotDeploymentConfig,
-  NgssAlignmentItem
+  CopilotDeploymentConfig
 } from '../programData';
 
 export {
@@ -83,11 +81,13 @@ export {
   SYNTHETIC_FIXTURE_NOTICE,
   COMPETENCY_DOMAINS,
   CORE_COMPETENCIES,
+  NGSS_DIMENSIONS,
+  NGSS_RUBRIC_LEVELS,
+  NGSS_ALIGNMENT_ITEMS,
   SAMPLE_STUDENT_PROJECT,
   MOCK_COHORT,
   INITIAL_COACH_FEEDBACK,
-  MOCK_TEACHER,
-  SIMULATED_COPILOT_RESPONSES
+  MOCK_TEACHER
 } from '../mockFixtures';
 
 export type {
@@ -122,8 +122,7 @@ export type {
 export {
   projectDocId,
   createLocalStore,
-  createMemoryStore,
-  defaultPblStore
+  createMemoryStore
 } from '../store';
 
 export type {
