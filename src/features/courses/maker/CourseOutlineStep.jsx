@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Plus, Trash2, CheckCircle2, AlertTriangle, RefreshCw, Layers, ArrowUp, ArrowDown } from 'lucide-react';
 import { WELEARN_DT_FRAMEWORK } from '../../pbl/programs/libraryProgramsData.js';
 import { draftCourseOutline } from './courseMakerAiService.js';
@@ -7,9 +7,13 @@ export function CourseOutlineStep({ course, onChange }) {
   const [generating, setGenerating] = useState(false);
   const [aiStatus, setAiStatus] = useState({ state: 'idle', message: '' });
 
-  const milestones = Array.isArray(course.milestones) && course.milestones.length > 0
-    ? course.milestones
-    : defaultMilestones();
+  const hasMilestones = Array.isArray(course.milestones) && course.milestones.length > 0;
+  const milestones = hasMilestones ? course.milestones : defaultMilestones();
+
+  // The default outline was shown but never saved, so step 4 found no milestones. Save what is shown.
+  useEffect(() => {
+    if (!hasMilestones) onChange({ milestones });
+  }, [hasMilestones]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpdateMilestone = (idx, patch) => {
     const next = [...milestones];

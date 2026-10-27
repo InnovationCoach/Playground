@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ArrowLeft, ArrowRight, Save, CheckCircle2, AlertTriangle, BookOpen, Layers,
   FileText, ShieldCheck, Rocket, Trash2, Plus, Clock, ExternalLink
@@ -36,6 +36,24 @@ export function CourseMaker({ coachUser, initialDraftId = null, initialStep = 1,
   const [publishing, setPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState(null);
   const [publishError, setPublishError] = useState(null);
+  const basicsValid = useMemo(() => validateCourseBasics(course).isValid, [course]);
+  const bannerRef = useRef(null);
+  const stepperRef = useRef(null);
+  const topRef = useRef(null);
+
+  // A failed "Continue" must be seen: the message sits above the form, so bring it into view and focus it.
+  useEffect(() => {
+    if (saveStatus.state === 'error' && bannerRef.current) {
+      bannerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      bannerRef.current.focus({ preventScroll: true });
+    }
+  }, [saveStatus]);
+
+  // Each new step starts at the top, with its tab visible in the (scrollable) stepper.
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ block: 'start' });
+    stepperRef.current?.querySelector('[aria-current="step"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [step]);
 
   // If initialMode is import, jump directly to Step 2
   useEffect(() => {
@@ -175,9 +193,10 @@ export function CourseMaker({ coachUser, initialDraftId = null, initialStep = 1,
   };
 
   return (
-    <div className="cm-wizard-container">
+    <div className="cm-wizard-container" ref={topRef}>
       {/* Top Header */}
-      <header className="cm-header">
+      {/* Not <header>/<footer>: index.html's legacy stylesheet paints every bare header navy. */}
+      <div className="cm-header">
         <div className="cm-header-left">
           {onExit && (
             <button type="button" className="cm-btn cm-btn-ghost" onClick={onExit}>
@@ -201,13 +220,15 @@ export function CourseMaker({ coachUser, initialDraftId = null, initialStep = 1,
             <Save size={15} /> Save Draft
           </button>
         </div>
-      </header>
+      </div>
 
       {/* Stepper Progress Bar */}
-      <nav className="cm-stepper" aria-label="Course creation steps">
+      <p className="cm-step-count" aria-live="polite">Step {step} of {STEPS.length}: {STEPS[step - 1].title}</p>
+      <nav className="cm-stepper" aria-label="Course creation steps" ref={stepperRef}>
         {STEPS.map((s) => {
           const isCurrent = s.id === step;
-          const isComplete = s.id < step;
+          // Jumping ahead in the stepper skips validation, so Basics only shows as done when it is valid.
+          const isComplete = s.id < step && (s.id !== 1 || basicsValid);
           const Icon = s.icon;
           return (
             <button
@@ -217,8 +238,10 @@ export function CourseMaker({ coachUser, initialDraftId = null, initialStep = 1,
               onClick={() => {
                 saveDraft({ ...course, step: s.id, authorId: coachUser?.uid });
                 setStep(s.id);
+                setSaveStatus({ state: 'idle', message: '' });
               }}
               aria-current={isCurrent ? 'step' : undefined}
+              aria-label={`Step ${s.id}: ${s.title}${isComplete ? ' (done)' : ''}`}
             >
               <span className="cm-step-circle">
                 {isComplete ? <CheckCircle2 size={16} /> : s.id}
@@ -231,7 +254,8 @@ export function CourseMaker({ coachUser, initialDraftId = null, initialStep = 1,
 
       {/* Save status notification bar */}
       {saveStatus.state !== 'idle' && (
-        <div className={`cm-save-banner cm-save-${saveStatus.state}`} role="status">
+        <div ref={bannerRef} tabIndex={-1} className={`cm-save-banner cm-save-${saveStatus.state}`}
+             role={saveStatus.state === 'error' ? 'alert' : 'status'}>
           {saveStatus.state === 'saved' && <CheckCircle2 size={15} />}
           {saveStatus.state === 'error' && <AlertTriangle size={15} />}
           <span>{saveStatus.message}</span>
@@ -268,7 +292,7 @@ export function CourseMaker({ coachUser, initialDraftId = null, initialStep = 1,
       </main>
 
       {/* Footer Controls */}
-      <footer className="cm-footer">
+      <div className="cm-footer">
         <div className="cm-footer-left">
           {step > 1 && (
             <button type="button" className="cm-btn cm-btn-secondary" onClick={handleBack}>
@@ -278,20 +302,14 @@ export function CourseMaker({ coachUser, initialDraftId = null, initialStep = 1,
         </div>
 
         <div className="cm-footer-right">
-          <button
-            type="button"
-            className="cm-btn cm-btn-outline"
-            onClick={handleSaveDraft}
-          >
-            <Save size={15} /> Save Draft
-          </button>
+          {/* Save Draft lives in the header only; one primary action here. */}
           {step < STEPS.length && (
             <button type="button" className="cm-btn cm-btn-primary" onClick={handleNext}>
               Continue <ArrowRight size={16} />
             </button>
           )}
         </div>
-      </footer>
+      </div>
     </div>
   );
 }

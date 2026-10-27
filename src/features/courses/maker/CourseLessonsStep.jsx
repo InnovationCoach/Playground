@@ -327,7 +327,11 @@ export function CourseLessonsStep({ course, onChange }) {
               </div>
             </div>
           ) : (
-            <p className="cm-muted">No milestone selected.</p>
+            <p className="cm-muted">
+              {milestones.length
+                ? 'Choose a milestone on the left to add its activities and assessments.'
+                : 'No milestones yet. Build the outline in step 3 (Outline) first, then come back to add activities and assessments.'}
+            </p>
           )}
         </main>
       </div>
