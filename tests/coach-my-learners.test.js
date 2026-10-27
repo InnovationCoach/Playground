@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  buildLearner, filterLearners, statusCounts, competencyRows, buildReportDraft, defaultPeriod, daysBetween, termProjectDocId
+  buildLearner, courseList, nextPhase, filterLearners, statusCounts, competencyRows, buildReportDraft, defaultPeriod, daysBetween, termProjectDocId
 } from '../src/features/coach/myLearners/myLearnersModel.js';
 import {
   emptyRecords, hydrateRecords, addGoal, setGoalDone, addCheckIn, addNote, addMilestone, setMilestoneDone, setFeedback, addAssessment, addCoachEvidence,
@@ -325,5 +325,53 @@ describe('goals set by coaches', () => {
     let rec = emptyRecords();
     rec = apply(rec, addGoal(rec, { text: 'Coach goal' }));
     expect(build({}, rec).goals).toEqual([]);
+  });
+});
+
+describe('assigned courses (enrolments)', () => {
+  const defs = { 'eco-2026': { title: 'EcoCool', drivingQuestion: 'How might we cool the garden?', phases: [
+    { id: 'explore', title: 'Explore' }, { id: 'ideate', title: 'Ideate' }, { id: 'prototype', title: 'Prototype' }, { id: 'share', title: 'Share' }] } };
+  const enrol = (over = {}, phases = [{ id: 'explore', data: { status: 'reviewed', coachFeedback: { text: 'Good' } } }, { id: 'ideate', data: { status: 'submitted', evidence: [{ note: 'Sketches', at: at('2026-10-24') }] } }]) => ({
+    id: 'u1_eco-2026', data: { learnerId: 'u1', programId: 'eco-2026', status: 'active', source: 'cohort-assignment', currentPhaseId: 'ideate', ...over }, phases
+  });
+
+  it('lists phases in course order with the recorded state', () => {
+    const [c] = courseList([enrol()], defs);
+    expect(c).toMatchObject({ title: 'EcoCool', defined: true, reviewed: 1, current: { id: 'ideate', index: 1, total: 4 } });
+    expect(c.phases.map((p) => `${p.id}:${p.state}`)).toEqual(['explore:reviewed', 'ideate:submitted', 'prototype:not_started', 'share:not_started']);
+  });
+
+  it('is the current project, with its stage, ahead of the term project', () => {
+    const l = build({ enrolments: [enrol()], progress: [project()] }, emptyRecords(), { courses: defs });
+    expect(l).toMatchObject({ currentProjectTitle: 'EcoCool', currentProjectKind: 'course', currentStage: 'Ideate' });
+  });
+
+  it('next step is the current phase when nothing dated is open', () => {
+    let rec = emptyRecords();
+    rec = apply(rec, addCheckIn(rec, { nextAction: 'x', followUpOn: '2026-11-02' }, at('2026-10-20')));
+    expect(build({ enrolments: [enrol()] }, rec, { courses: defs }).next).toMatchObject({ type: 'phase', title: 'Ideate', courseTitle: 'EcoCool', phaseState: 'submitted' });
+    rec = apply(rec, addMilestone(rec, { title: 'Pitch', dueOn: '2026-11-05' }));
+    expect(build({ enrolments: [enrol()] }, rec, { courses: defs }).next).toMatchObject({ type: 'milestone', title: 'Pitch' });
+  });
+
+  it('moves past a reviewed current phase, and handles a current phase with no record', () => {
+    const [c] = courseList([enrol({ currentPhaseId: 'explore' }, [{ id: 'explore', data: { status: 'reviewed' } }])], defs);
+    expect(nextPhase(c)).toMatchObject({ id: 'ideate', state: 'not_started' });
+    const [d] = courseList([enrol({ currentPhaseId: 'share' })], defs);
+    expect(d.current).toMatchObject({ id: 'share', state: 'not_started' });
+  });
+
+  it('still shows a course whose definition is missing, by id, with the phases that have records', () => {
+    const [c] = courseList([enrol()], {});
+    expect(c).toMatchObject({ title: 'eco-2026', defined: false });
+    expect(c.phases.map((p) => p.id)).toEqual(['explore', 'ideate']);
+  });
+
+  it('leaves withdrawn enrolments out, and a course counts as a project in the report', () => {
+    expect(courseList([enrol({ status: 'withdrawn' })], defs)).toEqual([]);
+    const l = build({ enrolments: [enrol()] }, emptyRecords(), { courses: defs });
+    const d = buildReportDraft(l, {}, { from: '2026-10-01', to: TODAY });
+    expect(d.flags.map((f) => f.id)).not.toContain('noProject');
+    expect(d.facts).toMatchObject({ projectTitle: 'EcoCool', stage: 'Ideate', courses: [{ title: 'EcoCool', reviewed: 1, total: 4, current: 'Ideate' }] });
   });
 });

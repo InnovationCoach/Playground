@@ -105,13 +105,13 @@ function projectSummary(project) {
  *   prog:<program>:<n> a PBL program session the learner reflected on or submitted work for
  *   coach:<id>         evidence the coach added (an observation, a photo link)
  */
-export function evidenceItems({ project, progressDocs, programs, records, enrolments = [] }) {
+export function evidenceItems({ project, progressDocs, programs, records, enrolments = [], courseDefs = {} }) {
   const out = [];
   // Phase submissions: the learner submitted a program phase for review. These
   // are the only evidence whose feedback lives in Firestore (phaseProgress.coachFeedback),
   // so the learner sees it; "awaiting" is the record's own status.
   for (const en of enrolments) {
-    const program = programById(en.data?.programId);
+    const program = programById(en.data?.programId) || courseDefs[en.data?.programId] || null;
     for (const ph of en.phases || []) {
       const d = ph.data || {};
       const items = (Array.isArray(d.evidence) ? d.evidence : []).filter((x) => x && typeof x === 'object');
@@ -124,7 +124,7 @@ export function evidenceItems({ project, progressDocs, programs, records, enrolm
       out.push({
         key: `phase:${en.id}:${ph.id}`, source: 'learner', kind: 'submission', remote: { enrolmentId: en.id, phaseId: ph.id },
         title: phase?.title || ph.id, project: en.data?.programId || null,
-        projectTitle: program ? (program.identity?.short || program.title) : (en.data?.programId || null),
+        projectTitle: program ? (program.identity?.short || program.title || en.data?.programId) : (en.data?.programId || null),
         body: items.map((x) => String(x.note || '').trim()).filter(Boolean).join('\n'),
         links: items.map((x) => x.url).filter((u) => typeof u === 'string' && /^https?:\/\//.test(u)),
         link: '', selfTags: [], at: latest || null, dateExact: true,
@@ -173,6 +173,52 @@ export function evidenceItems({ project, progressDocs, programs, records, enrolm
     .sort((a, b) => (b.at || 0) - (a.at || 0));
 }
 
+export const PHASE_STATES = ['reviewed', 'revision_requested', 'submitted', 'in_progress', 'not_started'];
+
+/**
+ * The courses a learner is enrolled in (enrolments + phaseProgress), each
+ * with its phases in course order and the state recorded for each phase.
+ * `courses` maps programId -> { title, drivingQuestion, phases: [{ id, title }] },
+ * from the catalog or pbl_programs; a course whose definition cannot be found
+ * still appears, titled by its id, with the phases that have records.
+ */
+export function courseList(enrolments = [], courses = {}) {
+  return enrolments
+    .filter((en) => en?.data && en.data.status !== 'withdrawn' && en.data.status !== 'archived')
+    .map((en) => {
+      const def = courses[en.data.programId] || null;
+      const records = Object.fromEntries((en.phases || []).map((ph) => [ph.id, ph.data || {}]));
+      const defined = (def?.phases || []).filter((ph) => ph && ph.id);
+      const extra = Object.keys(records).filter((id) => !defined.some((ph) => ph.id === id)).map((id) => ({ id, title: id }));
+      const phases = [...defined, ...extra].map((ph) => {
+        const r = records[ph.id];
+        const state = r && PHASE_STATES.includes(r.status) ? r.status : r ? 'in_progress' : 'not_started';
+        const hasFeedback = Boolean(r?.coachFeedback && String(r.coachFeedback.text || '').trim());
+        return { id: ph.id, title: ph.title || ph.id, state, hasFeedback };
+      });
+      const currentIndex = phases.findIndex((ph) => ph.id === en.data.currentPhaseId);
+      return {
+        enrolmentId: en.id,
+        programId: en.data.programId,
+        title: def?.title || en.data.programId || null,
+        drivingQuestion: def?.drivingQuestion || null,
+        defined: Boolean(def),
+        source: en.data.source || null,
+        phases,
+        current: currentIndex >= 0 ? { ...phases[currentIndex], index: currentIndex, total: phases.length } : null,
+        reviewed: phases.filter((ph) => ph.state === 'reviewed').length
+      };
+    });
+}
+
+/** The phase a learner is working on or waiting on: the current phase unless it is reviewed, else the first phase not reviewed. */
+export function nextPhase(course) {
+  if (!course?.phases.length) return null;
+  if (course.current && course.current.state !== 'reviewed') return course.current;
+  const from = course.current ? course.current.index + 1 : 0;
+  return course.phases.slice(from).find((ph) => ph.state !== 'reviewed') || null;
+}
+
 /** Agreed milestones, oldest due date first, each with its state on `today`. */
 export function milestoneList(records, today) {
   return (records?.milestones || [])
@@ -214,14 +260,18 @@ export function attention({ milestones, evidence, checkIn, today }) {
 
 /**
  * What comes next, in this order: the earliest open agreed milestone (even if
- * overdue), the next class assignment deadline, then the next program session
- * (which has no agreed date).
+ * overdue), the next class assignment deadline, the course phase the learner
+ * is on, then the next program session. Phases and sessions have no agreed date.
  */
-export function nextStep({ milestones, assignments, programs, today }) {
+export function nextStep({ milestones, assignments, programs, courses = [], today }) {
   const open = milestones.find((m) => m.state !== 'done');
   if (open) return { type: 'milestone', title: open.title, dueOn: open.dueOn, state: open.state };
   const due = (assignments || []).filter((a) => isDay(a.dueOn) && a.dueOn >= today).sort((a, b) => a.dueOn.localeCompare(b.dueOn))[0];
   if (due) return { type: 'assignment', title: due.title, dueOn: due.dueOn, state: 'upcoming' };
+  for (const c of courses) {
+    const ph = nextPhase(c);
+    if (ph) return { type: 'phase', title: ph.title, courseTitle: c.title, phaseState: ph.state, dueOn: null };
+  }
   const prog = (programs || []).find((p) => p.next);
   if (prog) return { type: 'session', title: prog.next.title, session: prog.next.number, programTitle: prog.title, dueOn: null };
   return null;
@@ -246,12 +296,14 @@ function learnerGoals(user) {
  * One learner, everything the home table and the profile need.
  * `raw` = { user, progress, stats, readFailed } from the loader; `records` from the coach store.
  */
-export function buildLearner(raw, records = {}, { assignments = [], classes = [], today = dayKey() } = {}) {
+export function buildLearner(raw, records = {}, { assignments = [], classes = [], courses: courseDefs = {}, today = dayKey() } = {}) {
   const { user, progress = [], stats = [], enrolments = [], readFailed = false } = raw;
   const classIds = Array.isArray(user.classIds) ? user.classIds : [];
   const project = termProject(progress);
   const programs = programSummaries(progress);
-  const evidence = evidenceItems({ project, progressDocs: progress, programs, records, enrolments });
+  const courses = courseList(enrolments, courseDefs);
+  const summary = projectSummary(project);
+  const evidence = evidenceItems({ project, progressDocs: progress, programs, records, enrolments, courseDefs });
   const milestones = milestoneList(records, today);
   const checkIn = latestCheckIn(records);
   const myAssignments = assignmentsFor(assignments, classIds);
@@ -270,21 +322,24 @@ export function buildLearner(raw, records = {}, { assignments = [], classes = []
     accountStatus: user.status || 'active',
     readFailed,
     goals: learnerGoals(user),
-    project: projectSummary(project),
+    project: summary,
     programs,
+    courses,
     evidence,
     milestones,
     assignments: myAssignments,
     checkIn,
-    next: nextStep({ milestones, assignments: myAssignments, programs, today }),
+    next: nextStep({ milestones, assignments: myAssignments, programs, courses, today }),
     status: att.status,
     reasons: att.reasons,
     waitingKeys: att.waitingKeys,
     // No academic platform is connected: every academic field is "not available".
     academic: { connected: false, source: 'edmentum' },
     lastSavedAt: lastSaved || null,
-    currentProjectTitle: project ? (project.problem.hmw.trim() || null) : (programs[0]?.title || null),
-    currentProjectKind: project ? 'term' : programs[0] ? 'program' : null
+    // An assigned course is what the learner is working on; then their own term project, then a library program.
+    currentProjectTitle: courses[0]?.title || (project ? (project.problem.hmw.trim() || null) : (programs[0]?.title || null)),
+    currentProjectKind: courses[0] ? 'course' : project ? 'term' : programs[0] ? 'program' : null,
+    currentStage: courses[0]?.current?.title || summary?.phase.title || null
   };
 }
 
@@ -371,7 +426,7 @@ export function buildReportDraft(learner, { checkIns = [], sharedNotes = [], ass
   const comps = Object.values(latest).map((a) => ({ id: a.competencyId, title: competencyById(a.competencyId).title, level: a.level, at: a.at, evidenceKeys: a.evidenceKeys || [] }));
 
   if (!learner.academic.connected) flags.push({ id: 'academicUnavailable', severity: 'missing' });
-  if (!learner.project && !learner.programs.length) flags.push({ id: 'noProject', severity: 'missing' });
+  if (!learner.project && !learner.programs.length && !learner.courses.length) flags.push({ id: 'noProject', severity: 'missing' });
   if (!milestones.length) flags.push({ id: 'noMilestones', severity: 'missing' });
   if (!evidence.length) flags.push({ id: 'noEvidence', severity: 'missing' });
   if (evidence.some((e) => !e.dateExact)) flags.push({ id: 'approxDates', severity: 'info' });
@@ -394,8 +449,9 @@ export function buildReportDraft(learner, { checkIns = [], sharedNotes = [], ass
     selectedEvidence: evidence.filter((e) => e.feedback || e.assessments.length).map((e) => e.key),
     competencies: comps,
     facts: {
-      projectTitle: learner.project?.title || learner.currentProjectTitle || null,
-      stage: learner.project?.phase.title || null,
+      projectTitle: learner.currentProjectTitle || learner.project?.title || null,
+      stage: learner.currentStage || null,
+      courses: learner.courses.map((c) => ({ title: c.title, reviewed: c.reviewed, total: c.phases.length, current: c.current?.title || null })),
       tasksDone: learner.project ? learner.project.checklist.filter((c) => c.done).length : null,
       tasksTotal: learner.project ? learner.project.checklist.length : null,
       programs: learner.programs.map((p) => ({ title: p.title, done: p.done, total: p.total, countReliable: p.countReliable })),

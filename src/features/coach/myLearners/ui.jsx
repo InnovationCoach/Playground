@@ -80,9 +80,11 @@ export function NextCell({ next, day }) {
   if (!next) return <NotAvailable>{t('ml.next.none')}</NotAvailable>;
   return (
     <>
-      <span className="ml-clamp">{next.type === 'session' ? t('ml.next.session', { n: next.session, title: next.title }) : next.title}</span>
+      <span className="ml-clamp">{next.type === 'session' ? t('ml.next.session', { n: next.session, title: next.title })
+        : next.type === 'phase' ? t('ml.next.phase', { title: next.title }) : next.title}</span>
       <div className={`ml-cell-sub${next.state === 'overdue' ? ' ml-late' : ''}`}>
-        {next.type === 'session' ? t('ml.next.noDate')
+        {next.type === 'phase' ? `${next.courseTitle ? `${next.courseTitle} · ` : ''}${t(`ml.phase.${next.phaseState}`)} · ${t('ml.next.noDate')}`
+          : next.type === 'session' ? t('ml.next.noDate')
           : next.state === 'overdue' ? t('ml.next.wasDue', { date: day(next.dueOn) })
           : t(next.type === 'assignment' ? 'ml.next.assignmentDue' : 'ml.next.due', { date: day(next.dueOn) })}
       </div>

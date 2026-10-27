@@ -240,7 +240,8 @@ function ProjectFacts({ learner, draft }) {
     <>
       <dl className="ml-dl">
         <div><dt>{t('ml.pbl.question')}</dt><dd>{f.projectTitle || <NotAvailable />}</dd></div>
-        <div><dt>{t('ml.pbl.stage')}</dt><dd>{f.stage ? `${f.stage} · ${t('ml.report.tasks', { done: f.tasksDone, total: f.tasksTotal })}` : <NotAvailable />}</dd></div>
+        <div><dt>{t('ml.pbl.stage')}</dt><dd>{f.stage ? `${f.stage}${f.tasksTotal != null ? ` · ${t('ml.report.tasks', { done: f.tasksDone, total: f.tasksTotal })}` : ''}` : <NotAvailable />}</dd></div>
+        {f.courses.map((c) => <div key={c.title}><dt>{t('ml.course.title')}</dt><dd>{c.title} · {t('ml.course.reviewedOf', { done: c.reviewed, total: c.total })}</dd></div>)}
         {f.programs.map((p) => <div key={p.title}><dt>{t('ml.pbl.program')}</dt><dd>{p.title} · <Missions p={p} /></dd></div>)}
       </dl>
       <h3 className="ml-h3">{t('ml.ms.title')}</h3>
