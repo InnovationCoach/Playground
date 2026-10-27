@@ -123,6 +123,7 @@ function Overview({ learner, go, records, update, today }) {
 
       <section className="gh-card">
         <h2 className="ml-h2"><Rocket size={17} aria-hidden="true" />{t('ml.ov.project')}</h2>
+        {learner.courses.map((c) => <CourseBlock key={c.enrolmentId} course={c} compact go={go} />)}
         {learner.project || learner.programs.length ? (
           <dl className="ml-dl">
             {learner.project && <div><dt>{t('ml.pbl.question')}</dt><dd>{learner.project.title || <NotAvailable>{t('ml.pbl.noQuestion')}</NotAvailable>}</dd></div>}
@@ -131,14 +132,14 @@ function Overview({ learner, go, records, update, today }) {
               <div key={p.id}><dt>{t('ml.pbl.program')}</dt><dd>{p.title} · <Missions p={p} /></dd></div>
             ))}
           </dl>
-        ) : <NotAvailable>{t('ml.pbl.none')}</NotAvailable>}
+        ) : !learner.courses.length && <NotAvailable>{t('ml.pbl.none')}</NotAvailable>}
         <h3 className="ml-h3">{t('ml.ov.upcoming')}</h3>
         {upcoming.length ? (
           <ul className="ml-list">
             {upcoming.map((m) => <li key={m.id}>{m.title} <span className={`ml-cell-sub${m.state === 'overdue' ? ' ml-late' : ''}`}>· {m.state === 'overdue' ? t('ml.next.wasDue', { date: day(m.dueOn) }) : t('ml.next.due', { date: day(m.dueOn) })}</span></li>)}
           </ul>
         ) : (
-          <p><NotAvailable>{t('ml.ms.none')}</NotAvailable> <button type="button" className="gh-link-btn" onClick={() => go('projects')}>{t('ml.ms.agreeOne')}</button></p>
+          <p><NotAvailable>{t('ml.ms.none')}</NotAvailable> <button type="button" className="gh-link-btn ml-link" onClick={() => go('projects')}>{t('ml.ms.agreeOne')}</button></p>
         )}
       </section>
 
@@ -172,6 +173,43 @@ function Overview({ learner, go, records, update, today }) {
         <h2 className="ml-h2">{t('ml.ov.nextStep')}</h2>
         <NextCell next={learner.next} day={day} />
       </section>
+    </div>
+  );
+}
+
+/**
+ * A course the learner is enrolled in: its phases in order, with the state
+ * recorded for each. Phase states are the learner's submissions and your
+ * reviews, not a grade.
+ */
+function CourseBlock({ course, compact, go }) {
+  const { t } = useLocale();
+  const c = course;
+  return (
+    <div className="ml-course">
+      <dl className="ml-dl">
+        <div><dt>{t('ml.course.title')}</dt><dd><strong>{c.title || t('ml.notAvailable')}</strong>
+          {!c.defined && <div className="ml-cell-sub">{t('ml.course.noDefinition')}</div>}</dd></div>
+        <div><dt>{t('ml.pbl.stage')}</dt><dd>{c.current
+          ? t('ml.course.phaseOf', { phase: c.current.title, n: c.current.index + 1, total: c.current.total })
+          : <NotAvailable />}</dd></div>
+        {!compact && c.drivingQuestion && <div className="ml-next-action"><dt>{t('ml.course.drivingQuestion')}</dt><dd>{c.drivingQuestion}</dd></div>}
+      </dl>
+      {c.phases.length > 0 && (
+        <ol className="ml-phases" aria-label={t('ml.course.phases')}>
+          {c.phases.map((ph) => (
+            <li key={ph.id} className={`ml-phase ml-phase-${ph.state}${c.current?.id === ph.id ? ' is-current' : ''}`}>
+              <span className="ml-phase-title">{ph.title}</span>
+              <span className={`ml-phase-state ml-phase-state-${ph.state}`}>{t(`ml.phase.${ph.state}`)}</span>
+              {c.current?.id === ph.id && <span className="ml-tag">{t('ml.course.current')}</span>}
+            </li>
+          ))}
+        </ol>
+      )}
+      {compact && c.phases.some((ph) => ph.state === 'submitted') && go && (
+        <button type="button" className="gh-link-btn ml-link" onClick={() => go('evidence')}>{t('ml.course.reviewSubmission')}</button>
+      )}
+      {!compact && <p className="ml-source">{t('ml.course.statesNote')}</p>}
     </div>
   );
 }
@@ -243,6 +281,8 @@ function Projects({ learner, records, update, classes, assignmentsFailed, today 
     <div className="ml-stack">
       <section className="gh-card">
         <h2 className="ml-h2"><Rocket size={17} aria-hidden="true" />{t('ml.pbl.title')}</h2>
+        {learner.courses.map((c) => <CourseBlock key={c.enrolmentId} course={c} />)}
+        {learner.courses.length > 0 && <h3 className="ml-h3">{t('ml.pbl.termProject')}</h3>}
         {p ? (
           <>
             <dl className="ml-dl">

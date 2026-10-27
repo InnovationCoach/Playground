@@ -212,3 +212,17 @@
   .ml-print-only section { break-inside: avoid; }
   .ml-print-foot { margin-top: 1.5rem !important; font-style: italic; }
 }
+
+/* Assigned course: phases in order with their recorded state (words, not just colour). */
+.ml-course + .ml-course, .ml-course + .ml-dl { margin-top: 1rem; }
+.ml-phases { list-style: none; margin: 0.75rem 0 0; padding: 0; display: grid; gap: 0.3rem; counter-reset: ph; }
+.ml-phase { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: 0.88rem; padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid var(--gh-border); counter-increment: ph; }
+.ml-phase::before { content: counter(ph); font-size: 0.72rem; font-weight: 700; color: var(--gh-text-3); min-width: 1.1rem; }
+.ml-phase.is-current { border-color: var(--gh-purple); background: var(--gh-purple-50); }
+.ml-phase-title { flex: 1 1 160px; min-width: 0; }
+.ml-phase-state { font-size: 0.76rem; font-weight: 600; color: var(--gh-text-3); }
+.ml-phase-state-reviewed { color: var(--gh-green-text); }
+.ml-phase-state-submitted { color: var(--gh-amber-text); }
+.ml-phase-state-revision_requested { color: var(--gh-red); }
+.ml-phase-state-in_progress { color: var(--gh-text-2); }
+.ml-link { color: var(--gh-purple-text); text-decoration: underline; font-weight: 600; }

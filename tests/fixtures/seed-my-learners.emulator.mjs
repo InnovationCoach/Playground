@@ -115,6 +115,20 @@ for (let i = 0; i < FIRST.length; i++) {
           evidence: [{ type: 'link', url: 'https://example.org/interviews', note: 'Notes from 3 customer interviews.', at: ago(1 + (i % 4)) }] });
   }
 
+  // A cohort-assigned course (like the pilot's), for learners with no other records:
+  // the profile must show it as the current project, not "No project started".
+  if (kind === 3) {
+    const courseId = 'ecocool-smart-garden-2026';
+    const enrolmentId = `${uid}_${courseId}`;
+    await db.collection('enrolments').doc(enrolmentId).set({
+      learnerId: uid, programId: courseId, classId: CLASS_ID, source: 'cohort-assignment', currentPhaseId: 'ideate', status: 'active', startedAt: ago(21), updatedAt: ago(3)
+    });
+    const phases = db.collection('enrolments').doc(enrolmentId).collection('phaseProgress');
+    await phases.doc('explore').set({ status: 'reviewed', updatedAt: ago(10), evidence: [{ type: 'text', url: null, note: 'Heat readings from three garden beds.', at: ago(12) }],
+      coachFeedback: { text: 'Clear readings. Note the time of day next time.', coachId: coach.uid, at: ago(10) } });
+    await phases.doc('ideate').set({ status: 'submitted', updatedAt: ago(3), evidence: [{ type: 'link', url: 'https://example.org/shade-sketches', note: 'Three shading ideas, sketched.', at: ago(3) }] });
+  }
+
   if (kind !== 3) {
     await db.collection('users').doc(uid).collection('dailyStats').doc(new Date(ago(i % 12)).toISOString().slice(0, 10)).set({ timeSpentMinutes: 20 + i, sessionsCount: 1 });
   }

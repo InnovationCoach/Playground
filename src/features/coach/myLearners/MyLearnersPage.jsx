@@ -39,8 +39,8 @@ export function MyLearnersPage({ coachUser, route, navigate }) {
 
   const learners = useMemo(() => {
     const records = loadAllRecords(coachUser.uid, data.raw.map((r) => r.user.uid));
-    return data.raw.map((r) => buildLearner(r, records[r.user.uid], { assignments: data.assignments, classes: data.classes, today }));
-  }, [data.raw, data.assignments, data.classes, coachUser.uid, recordsVersion, today]); // eslint-disable-line react-hooks/exhaustive-deps
+    return data.raw.map((r) => buildLearner(r, records[r.user.uid], { assignments: data.assignments, classes: data.classes, courses: data.courses, today }));
+  }, [data.raw, data.assignments, data.classes, data.courses, coachUser.uid, recordsVersion, today]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (route?.page === 'learner' || route?.page === 'report') {
     const learner = learners.find((l) => l.uid === route.uid);
@@ -187,7 +187,7 @@ function Home({ data, learners, navigate }) {
                             ? <span className="ml-clamp">{l.currentProjectTitle}</span>
                             : l.currentProjectKind === 'term' ? <span className="ml-cell-sub">{t('ml.projectNoTitle')}</span>
                             : <NotAvailable />}
-                          {l.project && <div className="ml-cell-sub">{t('ml.stage', { stage: l.project.phase.title })}</div>}
+                          {l.currentStage && <div className="ml-cell-sub">{t('ml.stage', { stage: l.currentStage })}</div>}
                         </td>
                         <td data-label={t('ml.col.academic')}>
                           <NotAvailable />
