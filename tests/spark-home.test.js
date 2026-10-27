@@ -95,7 +95,7 @@ describe('SPARK Home configuration', () => {
 describe('routes', () => {
   it('parses SPARK, the coach dashboard, parent sections and a search query', () => {
     expect(parseRoute(hrefFor.spark())).toEqual({ screen: 'spark' });
-    expect(parseRoute(hrefFor.coach())).toEqual({ screen: 'coach' });
+    expect(parseRoute(hrefFor.coach())).toEqual({ screen: 'coach', page: 'home' });
     expect(parseRoute('#/parent/abc/edmentum').section).toBe('edmentum');
     expect(parseRoute('#/parent/abc/nonsense').section).toBeNull();
     expect(parseRoute(hrefFor.homeSearch('solar car'))).toEqual({ screen: 'homeSearch', q: 'solar car' });

@@ -20,6 +20,7 @@ import { Sidebar, readCollapsed, writeCollapsed } from '../features/shell/Sideba
 import { Header } from '../features/shell/Header.jsx';
 import { StudentDashboard } from '../features/student/StudentDashboard.jsx';
 import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
+import { MyLearnersPage } from '../features/coach/myLearners/MyLearnersPage.jsx';
 import { CoachPblStudio } from '../features/coach/studio/CoachPblStudio.jsx';
 import { CanvaPage } from '../features/canva/CanvaPage.jsx';
 import { EdmentumIntegrationConsole } from '../features/edmentum/EdmentumIntegrationConsole.jsx';
@@ -70,7 +71,9 @@ export function App() {
     // screen renders for 'login'. Only real views are accepted.
     const next = requested === 'coach' || KNOWN_VIEWS.has(requested) ? requested : 'home';
     setView(next);
-    if (next === 'coach') setHash('#/coach/dashboard');
+    // The legacy router calls switchPhase('coach') for every #/coach/... address,
+    // so a coach sub-page (a learner's profile) must keep its address.
+    if (next === 'coach') { if (!/^#\/coach\/./.test(window.location.hash)) setHash('#/coach/dashboard'); }
     // Leaving a hash screen (My Courses, Settings) for a view-state screen.
     else if (signedInRef.current && (parseRoute(window.location.hash) || hashScreenRef.current)) clearHash();
   }, [setHash, clearHash]);
@@ -174,7 +177,8 @@ export function App() {
   // The new Growth Hub screens are light; the legacy activity pages are still
   // dark. The body colour follows, so overscroll and short pages match.
   const lightSurface = status !== 'ready' || CONSOLE_ROLES.includes(role) || role === 'parent'
-    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard', 'spark'].includes(route?.screen);
+    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard', 'spark'].includes(route?.screen)
+    || (route?.screen === 'coach' && route.page !== 'classes');
   useEffect(() => {
     document.body.dataset.surface = lightSurface ? 'light' : 'dark';
   }, [lightSurface]);
@@ -202,6 +206,7 @@ export function App() {
       if (route.mode === 'import') return 'courses:import';
       return 'courses';
     }
+    if (s === 'coach') return route.page === 'classes' ? 'coachClasses' : 'coach';
     if (s) return s;
     if (role === 'teacher' || role === 'coach') return 'coach';
     return view === 'home' ? null : view;
@@ -450,6 +455,18 @@ export function App() {
       ) : route?.screen === 'canva' ? (
         <div className="gh-app">
           <CanvaPage uid={user?.uid} role={role} profile={profile} />
+        </div>
+      ) : (role === 'teacher' || role === 'coach') && route?.screen === 'coach' && route.page !== 'classes' ? (
+        <div className="gh-app">
+          <MyLearnersPage
+            coachUser={{
+              uid: user.uid,
+              email: user.email,
+              displayName: profile?.displayName || user.email?.split('@')[0] || 'Coach'
+            }}
+            route={route}
+            navigate={setHash}
+          />
         </div>
       ) : (role === 'teacher' || role === 'coach') && (route?.screen === 'coach' || !route?.screen) ? (
         <CoachDashboardHost

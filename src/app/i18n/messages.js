@@ -9,6 +9,8 @@
  *
  * `{name}` placeholders are filled by t(key, { name }).
  */
+import { ML_MESSAGES } from '../../features/coach/myLearners/i18n.js';
+
 export const LOCALES = [
   { code: 'en', label: 'English' },
   { code: 'zh', label: '中文' },
@@ -17,6 +19,7 @@ export const LOCALES = [
 
 export const messages = {
   en: {
+    ...ML_MESSAGES.en,
     'app.name': 'WeLearn SPARK',
     'common.loading': 'Loading…',
     'common.save': 'Save',
@@ -73,7 +76,7 @@ export const messages = {
     'nav.goals': 'Goal setting',
     'nav.primaryResources': 'Primary resources',
     'nav.teaching': 'Teaching',
-    'nav.coachDashboard': 'Coach dashboard',
+    'nav.coachDashboard': 'My Learners',
     'nav.canva': 'Canva',
     'nav.pbl': 'PBL Studio',
     'nav.pblFramework': 'PBL framework',
@@ -525,6 +528,7 @@ export const messages = {
   },
 
   zh: {
+    ...ML_MESSAGES.zh,
     'app.name': 'WeLearn SPARK',
     'common.loading': '加载中…',
     'common.save': '保存',
@@ -581,7 +585,7 @@ export const messages = {
     'nav.goals': '目标设定',
     'nav.primaryResources': '小学教学资源',
     'nav.teaching': '教学',
-    'nav.coachDashboard': '教练面板',
+    'nav.coachDashboard': '我的学员',
     'nav.canva': 'Canva',
     'nav.pbl': 'PBL 工作室',
     'nav.pblFramework': 'PBL 框架',
@@ -1033,6 +1037,7 @@ export const messages = {
   },
 
   th: {
+    ...ML_MESSAGES.th,
     'app.name': 'WeLearn SPARK',
     'common.loading': 'กำลังโหลด…',
     'common.save': 'บันทึก',
@@ -1089,7 +1094,7 @@ export const messages = {
     'nav.goals': 'ตั้งเป้าหมาย',
     'nav.primaryResources': 'สื่อการสอนประถม',
     'nav.teaching': 'การสอน',
-    'nav.coachDashboard': 'แดชบอร์ดโค้ช',
+    'nav.coachDashboard': 'ผู้เรียนของฉัน',
     'nav.canva': 'Canva',
     'nav.pbl': 'PBL สตูดิโอ',
     'nav.pblFramework': 'กรอบการเรียนรู้ PBL',
