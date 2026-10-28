@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Search, Users, ArrowRight, CircleAlert, UploadCloud } from 'lucide-react';
+import { Alert } from '../../admin/ui/bits.jsx';
 import { useLocale } from '../../../app/i18n/LocaleProvider.jsx';
 import { hrefFor } from '../../../app/routes.js';
 import { dayKey } from '../../goals/goalPlan.js';
 import { useMyLearners } from './useMyLearners.js';
-import { loadAllRecords, hasDeviceRecords, migrateDeviceRecords } from './coachRecordsStore.js';
+import { loadAllRecords, fetchAllRecords, hasDeviceRecords, migrateDeviceRecords, RECORDS_EVENT } from './coachRecordsStore.js';
 import { buildLearner, filterLearners, statusCounts, FILTERS } from './myLearnersModel.js';
 import { StatusBadge, ReasonText, REASON_TAB, NotAvailable, Empty, DeviceStoreNote, NextCell, useDay } from './ui.jsx';
 import { LearnerProfile } from './LearnerProfile.jsx';
@@ -25,17 +26,28 @@ const ATTENTION_SHOWN = 5;
 export function MyLearnersPage({ coachUser, route, navigate }) {
   const data = useMyLearners();
   const [recordsVersion, setRecordsVersion] = useState(0);
+  const [recordsState, setRecordsState] = useState('loading');
+  const [recordsReload, setRecordsReload] = useState({ n: 0, force: false });
   const today = dayKey();
 
   useEffect(() => {
     const bump = () => setRecordsVersion((v) => v + 1);
-    window.addEventListener('welearn-coach-records', bump);
-    window.addEventListener('storage', bump);
-    return () => {
-      window.removeEventListener('welearn-coach-records', bump);
-      window.removeEventListener('storage', bump);
-    };
+    window.addEventListener(RECORDS_EVENT, bump);
+    return () => window.removeEventListener(RECORDS_EVENT, bump);
   }, []);
+
+  // The coach's own records come from Firestore; statuses wait for them so nobody shows as "On track" by mistake.
+  const uidList = data.raw.map((r) => r.user.uid).join(',');
+  useEffect(() => {
+    if (data.status !== 'ready') return undefined;
+    let active = true;
+    setRecordsState('loading');
+    fetchAllRecords(coachUser.uid, uidList ? uidList.split(',') : [], { force: recordsReload.force }).then((failed) => {
+      if (active) setRecordsState(failed ? 'failed' : 'ready');
+    });
+    return () => { active = false; };
+  }, [coachUser.uid, uidList, data.status, recordsReload]);
+  const reloadRecords = (force) => setRecordsReload((r) => ({ n: r.n + 1, force }));
 
   const learners = useMemo(() => {
     const records = loadAllRecords(coachUser.uid, data.raw.map((r) => r.user.uid));
@@ -52,10 +64,10 @@ export function MyLearnersPage({ coachUser, route, navigate }) {
       : <LearnerProfile coachUser={coachUser} learner={learner} raw={raw} classes={data.classes} assignmentsFailed={data.assignmentsFailed}
                         tab={route.tab} navigate={navigate} today={today} reload={data.reload} />;
   }
-  return <Home data={data} learners={learners} navigate={navigate} coachUser={coachUser} />;
+  return <Home data={data} learners={learners} navigate={navigate} coachUser={coachUser} recordsState={recordsState} reloadRecords={reloadRecords} />;
 }
 
-function Home({ data, learners, navigate, coachUser }) {
+function Home({ data, learners, navigate, coachUser, recordsState, reloadRecords }) {
   const { t, formatDate } = useLocale();
   const day = useDay();
   const [query, setQuery] = useState('');
@@ -70,10 +82,11 @@ function Home({ data, learners, navigate, coachUser }) {
     setMigrating(true);
     const res = await migrateDeviceRecords(coachUser?.uid);
     setMigrating(false);
-    setHasLocal(false);
+    setHasLocal(hasDeviceRecords(coachUser?.uid));
     setMigrateResult(res);
-    data.reload();
+    reloadRecords(false);
   };
+  const refresh = () => { data.reload(); reloadRecords(true); };
 
   const inClass = useMemo(() => (classId === 'all' ? learners : learners.filter((l) => l.classIds.includes(classId))), [learners, classId]);
   const counts = useMemo(() => statusCounts(inClass), [inClass]);
@@ -82,7 +95,7 @@ function Home({ data, learners, navigate, coachUser }) {
   useEffect(() => { setShown(PAGE); }, [query, filter, classId]);
 
   const open = (uid, tab) => navigate(hrefFor.coachLearner(uid, tab));
-  const busy = data.status === 'loading' || data.status === 'refreshing';
+  const busy = data.status === 'loading' || data.status === 'refreshing' || recordsState === 'loading';
 
   return (
     <div className="gh-page ml-page">
@@ -95,33 +108,28 @@ function Home({ data, learners, navigate, coachUser }) {
         </div>
         <div className="ml-head-side">
           {data.loadedAt && <small className="gh-muted">{t('ml.updated', { time: formatDate(new Date(data.loadedAt), { timeStyle: 'short' }) })}</small>}
-          <button type="button" className="gh-btn gh-btn-sm" onClick={data.reload} disabled={busy}>
+          <button type="button" className="gh-btn gh-btn-sm" onClick={refresh} disabled={busy}>
             <RefreshCw size={15} aria-hidden="true" className={data.status === 'refreshing' ? 'ml-spin' : ''} />{t('ml.refresh')}
           </button>
         </div>
       </div>
 
       {hasLocal && (
-        <div className="gh-card ml-migration-banner" style={{ background: 'var(--card-bg)', border: '1px solid var(--primary)', padding: '0.85rem 1.25rem', borderRadius: '8px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <UploadCloud size={20} color="var(--primary)" aria-hidden="true" />
-            <div>
-              <strong>Move records from this device</strong>
-              <p className="gh-sub" style={{ margin: 0, fontSize: '0.85rem' }}>You have coaching records stored on this device. Move them to WeLearn Cloud so they sync across devices and allow co-coach collaboration.</p>
-            </div>
+        <section className="gh-card ml-move" aria-labelledby="ml-move-h">
+          <UploadCloud size={20} aria-hidden="true" />
+          <div>
+            <h2 className="ml-h3" id="ml-move-h">{t('ml.move.title')}</h2>
+            <p className="gh-sub">{t('ml.move.body')}</p>
           </div>
           <button type="button" className="gh-btn gh-btn-primary gh-btn-sm" onClick={handleMigrate} disabled={migrating}>
-            {migrating ? 'Moving to Cloud...' : 'Move to WeLearn Cloud'}
+            {migrating ? t('ml.move.moving') : t('ml.move.button')}
           </button>
-        </div>
+        </section>
       )}
-      {migrateResult && (
-        <div className="gh-card" style={{ background: 'var(--card-bg)', border: '1px solid #22c55e', padding: '0.75rem 1.25rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
-          <p style={{ margin: 0, color: '#22c55e', fontSize: '0.85rem' }}>
-            ✓ Successfully moved {migrateResult.count} records for {migrateResult.learnersCount} learner(s) to WeLearn Cloud. Device storage cleared.
-          </p>
-        </div>
-      )}
+      {migrateResult && (migrateResult.failedLearners
+        ? <Alert type="error">{t('ml.move.partial', { moved: migrateResult.moved, learners: migrateResult.learners, failed: migrateResult.failedLearners })}</Alert>
+        : <Alert type="success">{t('ml.move.done', { moved: migrateResult.moved, learners: migrateResult.learners })}</Alert>)}
+      {recordsState === 'failed' && <Alert type="info">{t('ml.recordsFailed')}</Alert>}
 
       {data.status === 'loading' && <Loading />}
       {data.status === 'no-classes' && (
@@ -134,7 +142,8 @@ function Home({ data, learners, navigate, coachUser }) {
         </div>
       )}
 
-      {(data.status === 'ready' || data.status === 'refreshing') && (
+      {data.status === 'ready' && recordsState === 'loading' && <Loading />}
+      {(data.status === 'refreshing' || (data.status === 'ready' && recordsState !== 'loading')) && (
         <>
           <section className="ml-attention" aria-labelledby="ml-attention-h">
             <div className="ml-section-head">

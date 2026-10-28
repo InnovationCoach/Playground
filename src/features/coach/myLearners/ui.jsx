@@ -1,6 +1,5 @@
-import { AlertOctagon, MessageSquareText, CalendarClock, CheckCircle2, HardDrive, Cloud } from 'lucide-react';
+import { AlertOctagon, MessageSquareText, CalendarClock, CheckCircle2, Cloud } from 'lucide-react';
 import { useLocale } from '../../../app/i18n/LocaleProvider.jsx';
-import { STORE_MODE } from './coachRecordsStore.js';
 
 /** Small pieces shared by the My Learners screens. Status always has an icon and words, never colour alone. */
 const STATUS_ICON = { overdue: AlertOctagon, feedback: MessageSquareText, checkin: CalendarClock, ontrack: CheckCircle2 };
@@ -65,20 +64,12 @@ export function Empty({ icon: Icon, title, body, action }) {
   );
 }
 
-/** Says, once per screen, where the coach's own records are kept. */
+/** Says, once per screen, where the coach's own records are kept and who sees them. */
 export function DeviceStoreNote() {
   const { t } = useLocale();
-  if (STORE_MODE === 'firestore') {
-    return (
-      <p className="ml-device-note">
-        <Cloud size={14} aria-hidden="true" style={{ color: 'var(--primary)' }} />
-        <span>Coaching records are synced securely to WeLearn Cloud.</span>
-      </p>
-    );
-  }
   return (
     <p className="ml-device-note">
-      <HardDrive size={14} aria-hidden="true" />{t('ml.deviceNote')}
+      <Cloud size={14} aria-hidden="true" />{t('ml.deviceNote')}
     </p>
   );
 }

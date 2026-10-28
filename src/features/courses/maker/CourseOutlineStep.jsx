@@ -22,25 +22,7 @@ export function CourseOutlineStep({ course, onChange }) {
   };
 
   const handleAddMilestone = () => {
-    const nextIdx = milestones.length;
-    const phaseInfo = WELEARN_DT_FRAMEWORK.phases[nextIdx % 8];
-    const newM = {
-      id: `ms-${Date.now()}-${nextIdx}`,
-      phaseId: phaseInfo.id,
-      stageNumber: nextIdx + 1,
-      title: `${phaseInfo.label}: New Stage`,
-      week: Math.min(12, nextIdx + 1),
-      durationMin: 90,
-      learningGoal: '',
-      activities: [],
-      makerSpaceTools: [],
-      deliverables: [],
-      evidencePrompt: '',
-      coachCue: '',
-      targetCompetencies: ['sdl-01', 'ctps-01'],
-      isAiGenerated: false,
-      approvedByCoach: true
-    };
+    const newM = newStage(milestones.length, Date.now());
     onChange({ milestones: [...milestones, newM] });
   };
 
@@ -254,7 +236,8 @@ export function CourseOutlineStep({ course, onChange }) {
   );
 }
 
-function defaultMilestones() {
+/** The default outline, one stage per phase. Unapproved until the coach reviews each stage. */
+export function defaultMilestones() {
   return WELEARN_DT_FRAMEWORK.phases.map((p, idx) => ({
     id: `stage-${p.id}`,
     phaseId: p.id,
@@ -272,4 +255,26 @@ function defaultMilestones() {
     isAiGenerated: false,
     approvedByCoach: false
   }));
+}
+
+/** A blank stage from "Add stage". It starts unapproved: the coach has not reviewed it yet. */
+export function newStage(nextIdx, now) {
+  const phaseInfo = WELEARN_DT_FRAMEWORK.phases[nextIdx % 8];
+  return {
+    id: `ms-${now}-${nextIdx}`,
+    phaseId: phaseInfo.id,
+    stageNumber: nextIdx + 1,
+    title: `${phaseInfo.label}: New Stage`,
+    week: Math.min(12, nextIdx + 1),
+    durationMin: 90,
+    learningGoal: '',
+    activities: [],
+    makerSpaceTools: [],
+    deliverables: [],
+    evidencePrompt: '',
+    coachCue: '',
+    targetCompetencies: ['sdl-01', 'ctps-01'],
+    isAiGenerated: false,
+    approvedByCoach: false
+  };
 }
