@@ -63,7 +63,8 @@ This works under the current rules. In the emulator, a coach of another class ge
 | Coach-added evidence | `id, kind, title, body, link (http/https only), phase, project, at, authorUid` | `learners/{L}/coachEvidence/{id}` |
 | Note for parents | `id, text, at, authorUid` | `learners/{L}/parentNotes/{id}` |
 | Private note | `id, text, at` | `coachPrivate/{coachUid}/learners/{L}/notes/{id}` |
-| Parent report | `id, period{from,to}, text{…}, selectedEvidence[], sources{checkIns[], sharedNotes[], assessments[]}, status ∈ {draft, approved}, approvedAt, createdAt, updatedAt, authorUid` | `learners/{L}/reports/{id}` |
+| Parent report | `id, period{from,to}, text{…}, selectedEvidence[], sources{checkIns[], sharedNotes[], assessments[]}, status ∈ {draft, approved}, approvedAt, createdAt, updatedAt, authorUid, basedOn, expireAt` | `learners/{L}/reports/{id}` |
+| Lead coach | `leadCoachId` (one uid, also in `coachIds`) | `classes/{classId}`; set by an admin |
 
 ## Behaviour (who / operation / allowed)
 
@@ -73,7 +74,8 @@ This works under the current rules. In the emulator, a coach of another class ge
 | M2 | Coach **not** of L (other class) | read or write any of L's coaching records | **no** |
 | M3 | Coach of L | create a check-in, milestone, feedback, judgement, coach evidence or parent note for L, with `authorUid == auth.uid` | yes |
 | M4 | Coach of L | update a milestone or a coach-set goal written by another coach of L (e.g. mark it done) | **yes** (decided, Q2) |
-| M4b | Coach of L | update or delete another coach's check-in, judgement, note or report | **no** |
+| M4a | Coach of L | update feedback another coach of L wrote on L's evidence | **yes** (decided, Q6). `authorUid` stays the first author; the write sets `updatedBy == auth.uid`. |
+| M4b | Coach of L | update or delete another coach's check-in, judgement or note | **no** |
 | M5 | The author coach | read or write their own private notes about L | yes |
 | M6 | Anyone else: other coaches of L, the learner, parents, admins and supervisors, by any route including the server | read private notes | **no**. Private notes stay private (decided, Q3). |
 | M7 | Learner L | read coaches' feedback on their evidence, goals coaches set for them, milestones, and coach-added evidence about them | **yes** (decided, Q1) |
@@ -82,7 +84,8 @@ This works under the current rules. In the emulator, a coach of another class ge
 | M8b | Admin or supervisor | read (never write) check-ins, milestones, coach-set goals, feedback, judgements, parent notes and reports | **yes**, read-only (decided, Q5). Never private notes (M6). |
 | M9 | Learner L | write any coaching record | **no** |
 | M10 | Parent | read any coaching record directly | **no**. Parents only ever get an approved report through the server (S3). |
-| M11 | Coach of L | set `status: approved` on a report | yes, and only together with `approvedAt == request.time` |
+| M11 | **Lead coach** of L | create or update a report draft, or set `status: approved` | yes; approval only together with `approvedAt == request.time` (decided, Q6) |
+| M11b | Co-coach of L (a coach of L who is not a lead coach of any of L's classes) | create, update, approve or delete a report | **no** (decided, Q6). Co-coaches can read reports (M1); their check-ins, parent notes, feedback, judgements and evidence feed the lead coach's draft. |
 | M12 | Anyone | change an approved report's `text`, `period` or `selectedEvidence` | **no**. A change creates a new draft (the client already does this), so what a parent saw is never rewritten. |
 | M13 | Judgement with `level` ≠ `insufficient` and empty `evidenceKeys` | create | **no** (no judgement without evidence) |
 | M14 | Coach-added evidence with a non-http(s) `link` | create | **no** |
@@ -116,7 +119,13 @@ When the backend lands, offer each coach a one-time "Move my records from this d
     - learners need a "Goals from your coach" view on `#/goals` (frontend, after the store exists);
     - feedback on non-phase evidence must move from the device to `learners/{L}/feedback` (M7).
   - Check-ins, judgements, parent notes and reports stay coach-only (M8).
-- **Q2, co-coaches:** yes, co-coaches of the class may edit each other's milestones and coach-set goals (M4). Check-ins, judgements, notes and reports stay with their author (M4b).
+- **Q2, co-coaches:** yes, co-coaches of the class may edit each other's milestones and coach-set goals (M4). Check-ins, judgements and notes stay with their author (M4b).
+- **Q6, coach and co-coach duties (Mani, 2026-10-28):** coaches and co-coaches have the same duties, except parent reports.
+  - Both can record check-ins, milestones, goals, feedback, judgements, coach evidence and parent notes, and they can edit each other's feedback (M4a).
+  - Only the lead coach prepares and approves a learner's parent report (M11, M11b). Co-coaches' observations (check-ins and notes shared with parents, feedback, judgements) are offered in the lead coach's draft.
+  - The lead coach is `classes/{classId}.leadCoachId`, set by an admin. A learner in several classes may have several lead coaches; any of them may report.
+  - A class with no lead coach set: nobody can create a report, and the screen says "No lead coach is set for this class: ask an admin". Proposed; Mani to confirm.
+  - Frontend after the rules land: hide "Prepare parent report" for co-coaches and show reports to them read-only; keep the first author on feedback a co-coach edits.
 - **Q3, private notes:** they stay private: the author only, with no admin, supervisor or server read path (M6).
 - **Q5, admin and supervisor oversight (2026-10-26):** admins and supervisors may read, but never write, coaches' check-ins, judgements, parent notes and reports (and the learner-visible records). Private notes stay author-only (M8b, M6).
 - **Q4, retention: 30 days, confirmed by Mani on 2026-10-26.**
