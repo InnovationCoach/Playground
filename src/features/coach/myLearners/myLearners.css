@@ -226,3 +226,10 @@
 .ml-phase-state-revision_requested { color: var(--gh-red); }
 .ml-phase-state-in_progress { color: var(--gh-text-2); }
 .ml-link { color: var(--gh-purple-text); text-decoration: underline; font-weight: 600; }
+
+/* Records an older build saved on this device, offered for moving to WeLearn. */
+.ml-move { display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; border: 1px solid var(--gh-purple); margin-bottom: 1.25rem; }
+.ml-move > svg { flex: none; color: var(--gh-purple); }
+.ml-move > div { flex: 1 1 18rem; }
+.ml-move .ml-h3 { margin: 0 0 0.2rem; }
+.ml-move .gh-sub { margin: 0; }

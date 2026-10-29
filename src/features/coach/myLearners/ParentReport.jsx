@@ -21,7 +21,7 @@ export function ParentReport({ coachUser, learner, navigate, today }) {
   const { t } = useLocale();
   const day = useDay();
   const when = useWhen();
-  const { records, update, saveError } = useCoachRecords(coachUser.uid, learner.uid);
+  const { records, update, saveError, loadState } = useCoachRecords(coachUser.uid, learner.uid);
   const [period, setPeriod] = useState(() => defaultPeriod(today));
   const [reportId, setReportId] = useState(null);
   const [text, setText] = useState(null);
@@ -51,19 +51,20 @@ export function ParentReport({ coachUser, learner, navigate, today }) {
   const approved = saved?.status === 'approved' && !dirty;
   const chosen = draft.evidenceOptions.filter((e) => selected.includes(e.key));
 
-  const persist = () => {
-    const res = update((r) => saveReport(r, { id: reportId, period, text, selectedEvidence: selected, sources: draft.sources }));
-    if (res.ok) { setReportId(res.id); setMessage('saved'); }
+  // Editing an approved report saves a new draft (a new id), so what a parent saw is kept as it was.
+  const persist = async () => {
+    const res = await update((r) => saveReport(r, { id: reportId, period, text, selectedEvidence: selected, sources: draft.sources }));
+    if (res.ok) { setReportId(res.id); setMessage('saved'); } else setMessage(null);
     return res;
   };
-  const approve = () => {
+  const approve = async () => {
     if (!checked) { setMessage('confirmFirst'); return; }
-    const res = dirty || !reportId ? persist() : { ok: true, id: reportId };
+    const res = dirty || !reportId ? await persist() : { ok: true, id: reportId };
     if (!res.ok) return;
     const id = res.id || reportId;
-    update((r) => approveReport(r, id));
+    const done = await update((r) => approveReport(r, id));
     setReportId(id);
-    setMessage('approved');
+    setMessage(done.ok ? 'approved' : null);
   };
   const openSaved = (r) => {
     setReportId(r.id);
@@ -98,6 +99,7 @@ export function ParentReport({ coachUser, learner, navigate, today }) {
           </span>
         </div>
         {saveError && <Alert type="error">{t('ml.saveFailed')}</Alert>}
+        {loadState === 'failed' && <Alert type="info">{t('ml.recordsFailed')}</Alert>}
 
         <section className="gh-card ml-period" aria-labelledby="rp-period">
           <h2 className="ml-h2" id="rp-period">{t('ml.report.period')}</h2>
@@ -204,6 +206,7 @@ export function ParentReport({ coachUser, learner, navigate, today }) {
               <button type="button" className="gh-btn gh-btn-primary" onClick={approve} aria-disabled={!checked}>{t('ml.report.approve')}</button>
               <button type="button" className="gh-btn" onClick={persist} disabled={!dirty && Boolean(reportId)}>{t('ml.report.saveDraft')}</button>
             </div>
+            <p className="ml-source"><Clock size={13} aria-hidden="true" /> {t(saved?.status === 'approved' ? 'ml.report.editApproved' : 'ml.report.draftExpiry')}</p>
           </>
         )}
         {message && <p className={message === 'confirmFirst' ? 'gh-field-error' : 'ml-saved'} role="status">{t(`ml.report.msg.${message}`)}</p>}

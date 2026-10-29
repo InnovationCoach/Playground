@@ -29,7 +29,7 @@ const plusDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); retu
  */
 export function LearnerProfile({ coachUser, learner, classes, assignmentsFailed, tab, navigate, today, reload }) {
   const { t } = useLocale();
-  const { records, update, saveError } = useCoachRecords(coachUser.uid, learner.uid);
+  const { records, update, saveError, loadState } = useCoachRecords(coachUser.uid, learner.uid);
   const active = PROFILE_TABS.includes(tab) ? tab : 'overview';
   const tabRefs = useRef({});
   const go = (next) => navigate(hrefFor.coachLearner(learner.uid, next === 'overview' ? null : next));
@@ -68,6 +68,7 @@ export function LearnerProfile({ coachUser, learner, classes, assignmentsFailed,
       </section>
       {learner.readFailed && <Alert type="info">{t('ml.readFailedLong')}</Alert>}
       {saveError && <Alert type="error">{t('ml.saveFailed')}</Alert>}
+      {loadState === 'failed' && <Alert type="info">{t('ml.recordsFailed')}</Alert>}
 
       <div className="gh-tabs ml-tabs" role="tablist" aria-label={t('ml.profile.sections')}>
         {PROFILE_TABS.map((id) => {
@@ -214,16 +215,16 @@ function CourseBlock({ course, compact, go }) {
   );
 }
 
-/** Goals the coach sets for the learner. Learners see them once WeLearn stores them (not on this device). */
+/** Goals the coach sets for the learner, shared with the other coaches of the class. */
 function CoachGoals({ records, update, today }) {
   const { t } = useLocale();
   const day = useDay();
   const [text, setText] = useState('');
   const [dueOn, setDueOn] = useState('');
   const [error, setError] = useState(null);
-  const add = (e) => {
+  const add = async (e) => {
     e.preventDefault();
-    const res = update((r) => addGoal(r, { text, dueOn }));
+    const res = await update((r) => addGoal(r, { text, dueOn }));
     if (res.error) setError(res.error); else { setText(''); setDueOn(''); setError(null); }
   };
   return (
@@ -271,9 +272,9 @@ function Projects({ learner, records, update, classes, assignmentsFailed, today 
   const feedback = learner.evidence.filter((e) => e.feedback).slice(0, 3);
   const learnerClasses = classes.filter((c) => learner.classIds.includes(c.id));
 
-  const add = (e) => {
+  const add = async (e) => {
     e.preventDefault();
-    const res = update((r) => addMilestone(r, { title, dueOn }));
+    const res = await update((r) => addMilestone(r, { title, dueOn }));
     if (res.error) setError(res.error); else { setTitle(''); setError(null); }
   };
 
@@ -469,7 +470,7 @@ function EvidenceItem({ item, learner, update, waiting, coachUid, reload }) {
       reload?.();
       return;
     }
-    const res = update((r) => setFeedback(r, item.key, text));
+    const res = await update((r) => setFeedback(r, item.key, text));
     if (res.error) setError(res.error); else { setMode(null); setError(null); }
   };
   return (
@@ -564,9 +565,9 @@ function AssessForm({ item, learner, update, onDone }) {
   const [level, setLevel] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState(null);
-  const save = (e) => {
+  const save = async (e) => {
     e.preventDefault();
-    const res = update((r) => addAssessment(r, { competencyId, level, evidenceKeys: [item.key], note }));
+    const res = await update((r) => addAssessment(r, { competencyId, level, evidenceKeys: [item.key], note }));
     if (res.error) setError(res.error); else onDone();
   };
   const cid = `as-${item.key}`;
@@ -598,9 +599,9 @@ function AddEvidence({ learner, update, onDone }) {
   const [form, setForm] = useState({ kind: 'note', title: '', link: '', body: '', phase: learner.project?.phase.id || '' });
   const [error, setError] = useState(null);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const save = (e) => {
+  const save = async (e) => {
     e.preventDefault();
-    const res = update((r) => addCoachEvidence(r, form));
+    const res = await update((r) => addCoachEvidence(r, form));
     if (res.error) setError(res.error); else onDone();
   };
   return (
@@ -654,9 +655,9 @@ function Notes({ learner, records, update }) {
   const [saved, setSaved] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
-  const save = (e) => {
+  const save = async (e) => {
     e.preventDefault();
-    const res = update((r) => addCheckIn(r, form));
+    const res = await update((r) => addCheckIn(r, form));
     if (res.error) { setError(res.error); setSaved(false); } else { setForm(blank); setError(null); setSaved(true); }
   };
   const history = records.checkIns;
@@ -727,9 +728,9 @@ function NoteColumn({ visibility, icon: Icon, records, update }) {
   const [error, setError] = useState(null);
   const notes = records.notes.filter((n) => n.visibility === visibility);
   const id = `note-${visibility}`;
-  const add = (e) => {
+  const add = async (e) => {
     e.preventDefault();
-    const res = update((r) => addNote(r, { text, visibility }));
+    const res = await update((r) => addNote(r, { text, visibility }));
     if (res.error) setError(res.error); else { setText(''); setError(null); }
   };
   return (
