@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Users, GraduationCap, HeartHandshake, Settings, FlaskConical, ArrowLeft, Printer, CreditCard, PackageCheck, House, Rocket } from 'lucide-react';
+import { Users, GraduationCap, HeartHandshake, Settings, FlaskConical, ArrowLeft, Printer, CreditCard, PackageCheck, House, Rocket, Boxes } from 'lucide-react';
 import { Avatar } from '../shell/Avatar.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { consolePermissions } from '../../app/roles.js';
@@ -11,6 +11,9 @@ import { AccountForm } from './accounts/AccountForm.jsx';
 import { clearReferenceCache } from './accounts/useReferenceData.js';
 import { StudentBillingOverview } from './billing/StudentBillingOverview.jsx';
 import { MaterialRequestsList } from './materials/MaterialRequestsList.jsx';
+import { InventoryList } from './inventory/InventoryList.jsx';
+import { AssetDetail } from './inventory/AssetDetail.jsx';
+import { AssetForm } from './inventory/AssetForm.jsx';
 import { SettingsPage } from '../settings/SettingsPage.jsx';
 import './admin.css';
 
@@ -46,6 +49,46 @@ export function AdminConsole({ route, role, user, profile, navigate, embedded = 
     body = <StudentBillingOverview perms={perms} />;
   } else if (route.page === 'materials') {
     body = <MaterialRequestsList perms={perms} user={user} />;
+  } else if (route.page === 'inventory') {
+    if (route.subpage === 'new' && perms.editInventory) {
+      body = (
+        <div className="gh-narrow" style={{ maxWidth: 820 }}>
+          <a
+            className="gh-crumb"
+            href={hrefFor.inventory()}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(hrefFor.inventory());
+            }}
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+            {t('inventory.title')}
+          </a>
+          <AssetForm
+            onCancel={() => navigate(hrefFor.inventory())}
+            onDone={(newId) => navigate(hrefFor.inventory('detail', newId))}
+          />
+        </div>
+      );
+    } else if (route.subpage === 'detail' && route.assetId) {
+      body = (
+        <AssetDetail
+          key={route.assetId}
+          assetId={route.assetId}
+          perms={perms}
+          onBack={() => navigate(hrefFor.inventory())}
+          onRefresh={() => {}}
+        />
+      );
+    } else {
+      body = (
+        <InventoryList
+          perms={perms}
+          onOpen={(id) => navigate(hrefFor.inventory('detail', id))}
+          onCreate={() => navigate(hrefFor.inventory('new'))}
+        />
+      );
+    }
   } else if (route.page === 'detail') {
     body = (
       <AccountDetail
@@ -107,6 +150,10 @@ export function AdminConsole({ route, role, user, profile, navigate, embedded = 
         <a href={hrefFor.materials()} className="gh-nav-link"
            aria-current={route.screen === 'admin' && route.page === 'materials' ? 'page' : undefined}>
           <PackageCheck size={18} strokeWidth={2} aria-hidden="true" />{t('nav.materials')}
+        </a>
+        <a href={hrefFor.inventory()} className="gh-nav-link"
+           aria-current={route.screen === 'admin' && route.page === 'inventory' ? 'page' : undefined}>
+          <Boxes size={18} strokeWidth={2} aria-hidden="true" />{t('nav.inventory')}
         </a>
         <div className="gh-side-label">{t('nav.teaching')}</div>
         <a href={hrefFor.resources()} className="gh-nav-link">

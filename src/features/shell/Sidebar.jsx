@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import {
   House, Search, LayoutDashboard, BookOpen, Rocket, Target, Sparkles, Users, Printer, HeartHandshake,
   GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2, Palette,
-  PlusCircle, UploadCloud, School
+  PlusCircle, UploadCloud, School, Boxes
 } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';
@@ -54,7 +54,8 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
       ] },
       { label: 'nav.operations', items: [
         { key: 'admin:billing', icon: CreditCard, label: 'nav.financials', href: hrefFor.billing() },
-        { key: 'admin:materials', icon: PackageCheck, label: 'nav.materials', href: hrefFor.materials() }
+        { key: 'admin:materials', icon: PackageCheck, label: 'nav.materials', href: hrefFor.materials() },
+        { key: 'admin:inventory', icon: Boxes, label: 'nav.inventory', href: hrefFor.inventory() }
       ] },
       { label: 'nav.teaching', items: [
         { key: 'pbl', icon: Rocket, label: 'nav.pbl', href: hrefFor.pbl() },

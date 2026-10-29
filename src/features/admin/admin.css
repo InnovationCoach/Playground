@@ -265,6 +265,10 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
 .gh-badge-suspended { background: var(--gh-red-50); color: var(--gh-red); }
 .gh-badge-role { background: var(--gh-purple-50); color: var(--gh-purple-text); }
 .gh-badge-role::before, .gh-badge-plain::before { display: none; }
+.gh-badge-available { background: var(--gh-green-50); color: var(--gh-green-text); }
+.gh-badge-in_use { background: var(--gh-purple-50); color: var(--gh-purple-text); }
+.gh-badge-needs_repair { background: var(--gh-amber-50); color: var(--gh-amber-text); }
+.gh-badge-retired { background: var(--gh-subtle); color: var(--gh-text-3); }
 
 /* ---------- Detail ---------- */
 .gh-profile { display: flex; flex-wrap: wrap; align-items: center; gap: 1.1rem; }
@@ -427,6 +431,10 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
 [data-theme="dark"] .gh-badge-pending { background: #3a2a1a; color: #dba546; }
 [data-theme="dark"] .gh-badge-suspended { background: #3a1f1f; color: #ff9999; }
 [data-theme="dark"] .gh-badge-role { background: #2d1a47; color: #d9b3ff; }
+[data-theme="dark"] .gh-badge-available { background: #1a2b00; color: #a3d000; }
+[data-theme="dark"] .gh-badge-in_use { background: #2d1a47; color: #d9b3ff; }
+[data-theme="dark"] .gh-badge-needs_repair { background: #3a2a1a; color: #dba546; }
+[data-theme="dark"] .gh-badge-retired { background: #252d3a; color: #8a92a6; }
 
 [data-theme="dark"] .gh-pager { background: #1a1e27; color: #b8bfd0; border-top-color: #3a4452; }
 [data-theme="dark"] .gh-empty-icon { background: #252d3a; color: #8a92a6; }
@@ -475,5 +483,40 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
 .gh-auth-spark { display: grid; gap: 0.35rem; margin-top: 0.4rem; }
 .gh-auth-spark .sk-wordmark { font-size: 1.15rem; color: #fff; }
 .gh-auth-spark .sk-wordmark-spark { color: #ceaaee; }
-.gh-auth-spark span.gh-auth-tag { font-size: 0.85rem; font-weight: 600; color: #d6efa6; letter-spacing: 0.02em; }
 .gh-side[hidden] { display: none !important; }
+
+/* Responsive Equipment Inventory under 720px */
+@media (max-width: 720px) {
+  .gh-inventory-table thead { display: none; }
+  .gh-inventory-table, .gh-inventory-table tbody, .gh-inventory-table tr, .gh-inventory-table td {
+    display: block; width: 100%; box-sizing: border-box;
+  }
+  .gh-inventory-row {
+    padding: 12px;
+    border-bottom: 1px solid var(--gh-border);
+    display: grid !important;
+    grid-template-columns: 48px 1fr auto;
+    gap: 12px;
+    align-items: center;
+  }
+  .gh-inventory-row td {
+    padding: 0 !important;
+    border: none !important;
+  }
+  .gh-inventory-row td:nth-child(1) { grid-column: 1; }
+  .gh-inventory-row td:nth-child(2) { grid-column: 2; }
+  .gh-inventory-row td:nth-child(3),
+  .gh-inventory-row td:nth-child(4),
+  .gh-inventory-row td:nth-child(7) { display: none; }
+  .gh-inventory-row td:nth-child(5) {
+    grid-column: 2;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    text-align: left !important;
+  }
+  .gh-inventory-row td:nth-child(6) {
+    grid-column: 2;
+    margin-top: 4px;
+  }
+  .gh-inventory-row td:nth-child(8) { grid-column: 3; }
+}
