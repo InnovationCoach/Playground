@@ -21,13 +21,13 @@ import { PHASES, TERM, EVIDENCE_KINDS } from '../pbl/content/pblModel.js';
 import { hydrateProject, phaseProgress, competencyCoverage, readiness } from '../pbl/engine/pblProject.js';
 import { COMPETENCIES, COMPETENCY_DOMAINS } from '../pbl/content/competencies.js';
 import { hydratePlan } from '../goals/goalPlan.js';
-import { goalSummary, TRACKED_ACTIVITIES } from '../dashboard/dashboardModel.js';
+import { goalSummary, TRACKED_ACTIVITIES, badgeStatus } from '../dashboard/dashboardModel.js';
 
 /** The STEAM activity records, by TRACKED_ACTIVITIES id. */
 export const ACTIVITY_DOCS = { solar: 'solar-car', plants: 'plant-lab', hexgrid: 'hex-grid' };
 
 /** What the dashboard tells parents is and isn't shared, shown on the page. */
-export const SHARED = ['PBL project phases, tasks and evidence titles', 'Goals, goal steps and the daily habit', 'Competencies shown in evidence', 'STEAM activities started', 'Edmentum course progress and scores'];
+export const SHARED = ['PBL project phases, tasks and evidence titles', 'Goals, goal steps and the daily habit', 'Competencies shown in evidence', 'STEAM activities started', 'Edmentum course progress and scores', 'Badges earned', 'Active time spent on platform'];
 export const NOT_SHARED = ['Mood check-ins', 'Notes and reflections', 'What they wrote in evidence and AI logs', 'Strengths and supports from Goal setting'];
 
 const DAY_MS = 86400000;
@@ -182,6 +182,50 @@ export function conversationStarters(name, p) {
   return out.slice(0, 3);
 }
 
+function badgesSection({ started, goals, project, streak = 0 }) {
+  const context = {
+    started,
+    goals,
+    project,
+    streak
+  };
+  const list = badgeStatus(context);
+  const earned = list.filter((b) => b.earned);
+  return {
+    earnedCount: earned.length,
+    totalCount: list.length,
+    percent: pct(earned.length, list.length),
+    items: earned.map((b) => ({ id: b.id, label: b.label, hint: b.hint }))
+  };
+}
+
+function durationSection(dailyStats = []) {
+  let totalMinutes = 0;
+  let activeDays = 0;
+  if (Array.isArray(dailyStats)) {
+    for (const d of dailyStats) {
+      if (d && Number.isFinite(d.timeSpentMinutes)) totalMinutes += d.timeSpentMinutes;
+      if (d && (d.timeSpentMinutes > 0 || d.sessionsCount > 0)) activeDays += 1;
+    }
+  } else if (dailyStats && typeof dailyStats === 'object') {
+    for (const key of Object.keys(dailyStats)) {
+      const d = dailyStats[key];
+      if (d && Number.isFinite(d.timeSpentMinutes)) totalMinutes += d.timeSpentMinutes;
+      if (d && (d.timeSpentMinutes > 0 || d.sessionsCount > 0)) activeDays += 1;
+    }
+  }
+  totalMinutes = Math.round(totalMinutes);
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  return {
+    totalMinutes,
+    hours,
+    mins,
+    formatted: hours > 0 ? `${hours}h ${mins}m` : `${mins}m`,
+    activeDays
+  };
+}
+
 /**
  * @param {object} input
  * @param {object} input.child          the /api/parent/children item for this child
@@ -190,8 +234,10 @@ export function conversationStarters(name, p) {
  * @param {object} [input.activityDocs] { 'solar-car': {...}, 'plant-lab': {...}, 'hex-grid': {...} }
  * @param {object} [input.edmentum]     { status, syncedAt, courses: [{ id, title, progressPercent, averageScore, lastActivityAt, recent: [{ title, scoreGiven, scoreMaximum, submittedAt }] }] }
  * @param {string[]} [input.confirmedCompetencies] competency ids a coach has confirmed
+ * @param {Array|object} [input.dailyStats] users/{uid}/dailyStats
+ * @param {number} [input.streak]
  */
-export function buildChildProgress({ child, goalPlan, pblProject, activityDocs, edmentum, confirmedCompetencies, now = new Date() }) {
+export function buildChildProgress({ child, goalPlan, pblProject, activityDocs, edmentum, confirmedCompetencies, dailyStats, streak, now = new Date() }) {
   const plan = hydratePlan(goalPlan);
   const project = hydrateProject(pblProject, TERM.id);
   const pbl = pblSection(project);
@@ -200,6 +246,14 @@ export function buildChildProgress({ child, goalPlan, pblProject, activityDocs, 
   const activities = activitiesSection(activityDocs);
   const edm = edmentumSection(edmentum);
   const recent = recentActivity(pbl, activities, edm, now);
+  const started = activities.items.filter((a) => a.started).map((a) => a.id);
+  const badges = badgesSection({
+    started,
+    goals: plan,
+    project,
+    streak: Number.isFinite(streak) ? streak : (plan.days ? Object.keys(plan.days).length : 0)
+  });
+  const duration = durationSection(dailyStats);
   const dates = [pbl.updatedAt, goals?.updatedAt, ...activities.items.map((a) => a.updatedAt), ...edm.courses.map((c) => c.lastActivityAt)].filter(Number.isFinite);
   const progress = {
     child,
@@ -210,6 +264,8 @@ export function buildChildProgress({ child, goalPlan, pblProject, activityDocs, 
     competencies,
     activities,
     edmentum: edm,
+    badges,
+    duration,
     recent
   };
   progress.starters = conversationStarters(child?.givenNames, progress);

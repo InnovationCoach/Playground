@@ -42,7 +42,7 @@ function evidence(now, items) {
 }
 
 export function childRecords(profile, now = Date.now()) {
-  if (profile === 'new') return { goalPlan: null, pblProject: null, activityDocs: {}, edmentum: { status: 'not_connected' } };
+  if (profile === 'new') return { goalPlan: null, pblProject: null, activityDocs: {}, edmentum: { status: 'not_connected' }, dailyStats: [] };
 
   if (profile === 'starting') {
     return {
@@ -61,7 +61,8 @@ export function childRecords(profile, now = Date.now()) {
         updatedAt: now - 2 * DAY
       },
       activityDocs: { 'plant-lab': { records: [{ id: 'r1' }], updatedAt: now - 2 * DAY } },
-      edmentum: { status: 'not_connected' }
+      edmentum: { status: 'not_connected' },
+      dailyStats: [{ date: '2026-10-22', timeSpentMinutes: 30, sessionsCount: 1 }]
     };
   }
 
@@ -117,6 +118,13 @@ export function childRecords(profile, now = Date.now()) {
           { title: 'Persuasive paragraph', scoreGiven: 14, scoreMaximum: 20, submittedAt: now - 9 * DAY }
         ] }
       ]
-    }
+    },
+    dailyStats: [
+      { date: '2026-10-22', timeSpentMinutes: 55, sessionsCount: 2 },
+      { date: '2026-10-21', timeSpentMinutes: 70, sessionsCount: 2 },
+      { date: '2026-10-20', timeSpentMinutes: 45, sessionsCount: 1 },
+      { date: '2026-10-19', timeSpentMinutes: 60, sessionsCount: 1 },
+      { date: '2026-10-18', timeSpentMinutes: 40, sessionsCount: 1 }
+    ]
   };
 }
