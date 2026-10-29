@@ -193,6 +193,10 @@ service cloud.firestore {
       allow delete: if teachesClass(classId);
     }
 
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.get('role', 'student') == 'admin';
+    }
+
     function isAdminOrSupervisor() {
       return isAuthenticated() && request.auth.token.get('role', 'student') in ['admin', 'supervisor'];
     }
@@ -1060,6 +1064,114 @@ service cloud.firestore {
         && request.resource.data.actorId == request.auth.uid
         && request.resource.data.get('source', 'client') == 'client';
       allow update, delete: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Equipment Asset Inventory (Section 3 of ASSET-INVENTORY-PLAN.md)
+    // ---------------------------------------------------------------------
+    function validAssetPhoto(photo, assetId) {
+      return photo == null || (
+        photo is map
+        && photo.keys().hasOnly(['path', 'url', 'contentType', 'width', 'height', 'bytes'])
+        && 'path' in photo && photo.path is string && photo.path.matches('^assets/' + assetId + '/.*')
+        && (!('url' in photo) || photo.url == null || (photo.url is string && photo.url.size() <= 2048))
+        && (!('contentType' in photo) || photo.contentType == null || (photo.contentType is string && photo.contentType.matches('^image/(jpeg|png|webp)$')))
+        && (!('width' in photo) || photo.width == null || (photo.width is int && photo.width >= 0))
+        && (!('height' in photo) || photo.height == null || (photo.height is int && photo.height >= 0))
+        && (!('bytes' in photo) || photo.bytes == null || (photo.bytes is int && photo.bytes >= 0 && photo.bytes <= 5 * 1024 * 1024))
+      );
+    }
+
+    function validCurrentLoan(loan) {
+      return loan == null || (
+        loan is map
+        && loan.keys().hasOnly(['loanId', 'borrowerType', 'borrowerId', 'borrowerName', 'dueDate'])
+        && 'loanId' in loan && loan.loanId is string && loan.loanId.size() > 0 && loan.loanId.size() <= 100
+        && 'borrowerType' in loan && loan.borrowerType in ['coach', 'class']
+        && 'borrowerId' in loan && loan.borrowerId is string && loan.borrowerId.size() > 0 && loan.borrowerId.size() <= 100
+        && 'borrowerName' in loan && loan.borrowerName is string && loan.borrowerName.size() > 0 && loan.borrowerName.size() <= 120
+        && (!('dueDate' in loan) || loan.dueDate == null || loan.dueDate is string || loan.dueDate is timestamp)
+      );
+    }
+
+    function validAssetData(data, assetId) {
+      let qtyAvail = data.get('quantityAvailable', data.quantity);
+      return data.keys().hasOnly([
+          'name', 'category', 'quantity', 'quantityAvailable', 'assetTag', 'serial',
+          'location', 'siteId', 'condition', 'status', 'purchaseDate', 'purchaseValue',
+          'currency', 'notes', 'photo', 'currentLoan', 'createdBy', 'updatedBy',
+          'createdAt', 'updatedAt'
+        ])
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.category in ['electronics', 'robotics', 'lab', 'maker_tools', 'computers', 'av', 'sports', 'art', 'furniture', 'books', 'other']
+        && data.quantity is int && data.quantity >= 1
+        && qtyAvail is int && qtyAvail >= 0 && qtyAvail <= data.quantity
+        && (!('assetTag' in data) || data.assetTag == null || (data.assetTag is string && data.assetTag.size() <= 40))
+        && (!('serial' in data) || data.serial == null || (data.serial is string && data.serial.size() <= 80))
+        && (!('location' in data) || data.location == null || (data.location is string && data.location.size() <= 80))
+        && (!('siteId' in data) || data.siteId == null || (data.siteId is string && data.siteId.size() <= 50))
+        && (!('condition' in data) || data.condition == null || data.condition in ['new', 'good', 'fair', 'poor'])
+        && data.status in ['available', 'in_use', 'needs_repair', 'retired']
+        && (!('purchaseDate' in data) || data.purchaseDate == null || (data.purchaseDate is string && data.purchaseDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+        && (!('purchaseValue' in data) || data.purchaseValue == null || ((data.purchaseValue is int || data.purchaseValue is float || data.purchaseValue is number) && data.purchaseValue >= 0))
+        && (!('currency' in data) || data.currency == null || (data.currency is string && data.currency.size() <= 10))
+        && (!('notes' in data) || data.notes == null || (data.notes is string && data.notes.size() <= 500))
+        && (!('photo' in data) || validAssetPhoto(data.photo, assetId))
+        && (!('currentLoan' in data) || validCurrentLoan(data.currentLoan));
+    }
+
+    match /assets/{assetId} {
+      allow read: if isTeacher() || isAdminOrSupervisor();
+      allow delete: if isAdmin();
+
+      allow create: if isAdmin()
+        && validAssetData(request.resource.data, assetId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isAdmin()
+        && validAssetData(request.resource.data, assetId)
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+
+      match /loans/{loanId} {
+        allow read: if isTeacher() || isAdminOrSupervisor();
+        allow delete: if false;
+
+        allow create: if isAdmin()
+          && request.resource.data.keys().hasOnly([
+            'borrowerType', 'borrowerId', 'borrowerName', 'quantity',
+            'outAt', 'outBy', 'dueDate', 'note', 'inAt', 'inBy', 'returnCondition'
+          ])
+          && request.resource.data.borrowerType in ['coach', 'class']
+          && request.resource.data.borrowerId is string
+          && request.resource.data.borrowerId.size() > 0 && request.resource.data.borrowerId.size() <= 100
+          && request.resource.data.borrowerName is string
+          && request.resource.data.borrowerName.size() > 0 && request.resource.data.borrowerName.size() <= 120
+          && request.resource.data.quantity is int && request.resource.data.quantity >= 1
+          && request.resource.data.outAt == request.time
+          && request.resource.data.outBy == request.auth.uid
+          && (!('dueDate' in request.resource.data) || request.resource.data.dueDate == null || request.resource.data.dueDate is string || request.resource.data.dueDate is timestamp)
+          && (!('note' in request.resource.data) || request.resource.data.note == null || (request.resource.data.note is string && request.resource.data.note.size() <= 500))
+          && request.resource.data.get('inAt', null) == null
+          && request.resource.data.get('inBy', null) == null
+          && request.resource.data.get('returnCondition', null) == null
+          && getAfter(/databases/$(database)/documents/assets/$(assetId)).data.quantityAvailable == get(/databases/$(database)/documents/assets/$(assetId)).data.quantityAvailable - request.resource.data.quantity
+          && getAfter(/databases/$(database)/documents/assets/$(assetId)).data.quantityAvailable >= 0;
+
+        allow update: if isAdmin()
+          && resource.data.get('inAt', null) == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inAt', 'inBy', 'returnCondition', 'note'])
+          && request.resource.data.inAt == request.time
+          && request.resource.data.inBy == request.auth.uid
+          && request.resource.data.returnCondition in ['new', 'good', 'fair', 'poor']
+          && (!('note' in request.resource.data) || request.resource.data.note == null || (request.resource.data.note is string && request.resource.data.note.size() <= 500))
+          && getAfter(/databases/$(database)/documents/assets/$(assetId)).data.quantityAvailable == get(/databases/$(database)/documents/assets/$(assetId)).data.quantityAvailable + resource.data.quantity;
+      }
     }
   }
 }

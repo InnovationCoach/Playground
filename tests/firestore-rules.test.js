@@ -1211,3 +1211,291 @@ describe('WeLearn SPARK: privilege boundaries and audit trail', () => {
   });
 });
 
+describe('Equipment Asset Inventory & Loans (Section 3 of ASSET-INVENTORY-PLAN.md)', () => {
+  const supervisorUser = () => testEnv.authenticatedContext('supervisor1', { role: 'supervisor' });
+  const adminCtx = () => testEnv.authenticatedContext('admin1', { role: 'admin' });
+
+  const makeValidAsset = (assetId, overrides = {}) => ({
+    name: 'Arduino Uno R3',
+    category: 'electronics',
+    quantity: 10,
+    quantityAvailable: 10,
+    assetTag: 'TAG-1001',
+    serial: 'SN-ABC-123',
+    location: 'Maker Lab Shelf A',
+    condition: 'good',
+    status: 'available',
+    purchaseDate: '2026-01-15',
+    purchaseValue: 25.5,
+    currency: 'USD',
+    notes: 'Used for introductory robotics',
+    photo: {
+      path: `assets/${assetId}/main.jpg`,
+      url: 'https://storage.googleapis.com/test/photo.jpg',
+      contentType: 'image/jpeg',
+      bytes: 102400
+    },
+    currentLoan: null,
+    createdBy: 'admin1',
+    updatedBy: 'admin1',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    ...overrides
+  });
+
+  it('admin create, update, read, and delete on assets', async () => {
+    const db = adminCtx().firestore();
+    const assetId = 'asset-admin-1';
+    const assetRef = doc(db, 'assets', assetId);
+
+    // Create
+    await assertSucceeds(setDoc(assetRef, makeValidAsset(assetId)));
+
+    // Read
+    const snap = await getDoc(assetRef);
+    expect(snap.exists()).toBe(true);
+    expect(snap.data().name).toBe('Arduino Uno R3');
+
+    // Update
+    await assertSucceeds(updateDoc(assetRef, {
+      name: 'Arduino Uno R3 Updated',
+      updatedBy: 'admin1',
+      updatedAt: serverTimestamp()
+    }));
+
+    // Delete
+    await assertSucceeds(deleteDoc(assetRef));
+  });
+
+  it('supervisor can read assets but write is denied', async () => {
+    // Seed asset using securityRulesDisabled
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'assets', 'asset-sup-1'), {
+        name: 'Microscope',
+        category: 'lab',
+        quantity: 2,
+        quantityAvailable: 2,
+        status: 'available',
+        createdBy: 'admin1',
+        updatedBy: 'admin1'
+      });
+    });
+
+    const db = supervisorUser().firestore();
+    const assetRef = doc(db, 'assets', 'asset-sup-1');
+
+    // Read succeeds
+    await assertSucceeds(getDoc(assetRef));
+
+    // Create denied
+    await assertFails(setDoc(doc(db, 'assets', 'asset-sup-new'), makeValidAsset('asset-sup-new', { createdBy: 'supervisor1', updatedBy: 'supervisor1' })));
+
+    // Update denied
+    await assertFails(updateDoc(assetRef, { name: 'Hacked', updatedBy: 'supervisor1', updatedAt: serverTimestamp() }));
+
+    // Delete denied
+    await assertFails(deleteDoc(assetRef));
+  });
+
+  it('coach can read assets but write is denied', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'assets', 'asset-coach-1'), {
+        name: 'Soldering Iron',
+        category: 'maker_tools',
+        quantity: 5,
+        quantityAvailable: 5,
+        status: 'available',
+        createdBy: 'admin1',
+        updatedBy: 'admin1'
+      });
+    });
+
+    const db = coachA().firestore();
+    const assetRef = doc(db, 'assets', 'asset-coach-1');
+
+    // Read succeeds
+    await assertSucceeds(getDoc(assetRef));
+
+    // Write denied
+    await assertFails(setDoc(doc(db, 'assets', 'asset-coach-new'), makeValidAsset('asset-coach-new', { createdBy: 'coach_a', updatedBy: 'coach_a' })));
+    await assertFails(updateDoc(assetRef, { name: 'Coach Renamed', updatedBy: 'coach_a', updatedAt: serverTimestamp() }));
+    await assertFails(deleteDoc(assetRef));
+  });
+
+  it('student and signed-out user are denied read and write on assets', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'assets', 'asset-locked-1'), {
+        name: '3D Printer',
+        category: 'maker_tools',
+        quantity: 1,
+        quantityAvailable: 1,
+        status: 'available',
+        createdBy: 'admin1',
+        updatedBy: 'admin1'
+      });
+    });
+
+    const studentDb = studentA().firestore();
+    const anonDb = anon().firestore();
+    const assetRef = doc(studentDb, 'assets', 'asset-locked-1');
+    const anonRef = doc(anonDb, 'assets', 'asset-locked-1');
+
+    // Student denied
+    await assertFails(getDoc(assetRef));
+    await assertFails(setDoc(doc(studentDb, 'assets', 'asset-stu-new'), makeValidAsset('asset-stu-new', { createdBy: 'student_a', updatedBy: 'student_a' })));
+    await assertFails(updateDoc(assetRef, { status: 'needs_repair' }));
+    await assertFails(deleteDoc(assetRef));
+
+    // Anon denied
+    await assertFails(getDoc(anonRef));
+    await assertFails(setDoc(doc(anonDb, 'assets', 'asset-anon-new'), makeValidAsset('asset-anon-new')));
+  });
+
+  it('denies invalid categories, invalid status, extra fields, and non-positive quantity', async () => {
+    const db = adminCtx().firestore();
+
+    // Invalid category
+    await assertFails(setDoc(doc(db, 'assets', 'bad-cat'), makeValidAsset('bad-cat', { category: 'superpowers' })));
+
+    // Invalid status
+    await assertFails(setDoc(doc(db, 'assets', 'bad-status'), makeValidAsset('bad-status', { status: 'destroyed' })));
+
+    // Extra unknown field
+    await assertFails(setDoc(doc(db, 'assets', 'bad-field'), makeValidAsset('bad-field', { hackerPayload: 'malicious' })));
+
+    // Non-positive quantity
+    await assertFails(setDoc(doc(db, 'assets', 'bad-qty-0'), makeValidAsset('bad-qty-0', { quantity: 0, quantityAvailable: 0 })));
+    await assertFails(setDoc(doc(db, 'assets', 'bad-qty-neg'), makeValidAsset('bad-qty-neg', { quantity: -5, quantityAvailable: -5 })));
+  });
+
+  it('denies quantityAvailable > quantity and negative quantityAvailable', async () => {
+    const db = adminCtx().firestore();
+
+    // quantityAvailable > quantity
+    await assertFails(setDoc(doc(db, 'assets', 'bad-avail-over'), makeValidAsset('bad-avail-over', { quantity: 5, quantityAvailable: 6 })));
+
+    // negative quantityAvailable
+    await assertFails(setDoc(doc(db, 'assets', 'bad-avail-neg'), makeValidAsset('bad-avail-neg', { quantity: 5, quantityAvailable: -1 })));
+  });
+
+  it('denies photo.path pointing to another asset', async () => {
+    const db = adminCtx().firestore();
+    const assetId = 'asset-photo-check';
+
+    // Path points to a different asset id
+    await assertFails(setDoc(doc(db, 'assets', assetId), makeValidAsset(assetId, {
+      photo: {
+        path: 'assets/other-asset-999/main.jpg',
+        contentType: 'image/jpeg'
+      }
+    })));
+
+    // Valid photo path matching assetId succeeds
+    await assertSucceeds(setDoc(doc(db, 'assets', assetId), makeValidAsset(assetId, {
+      photo: {
+        path: `assets/${assetId}/main.jpg`,
+        contentType: 'image/jpeg'
+      }
+    })));
+  });
+
+  it('denies loan create without the matching asset update', async () => {
+    const db = adminCtx().firestore();
+    const assetId = 'asset-loan-sync';
+    const assetRef = doc(db, 'assets', assetId);
+
+    // Initial asset with quantity 5, available 5
+    await assertSucceeds(setDoc(assetRef, makeValidAsset(assetId, { quantity: 5, quantityAvailable: 5 })));
+
+    const loanId = 'loan-001';
+    const loanRef = doc(db, 'assets', assetId, 'loans', loanId);
+    const loanData = {
+      borrowerType: 'coach',
+      borrowerId: 'coach_a',
+      borrowerName: 'Coach Alice',
+      quantity: 2,
+      outAt: serverTimestamp(),
+      outBy: 'admin1',
+      note: 'Borrowing for robotics club'
+    };
+
+    // Attempting to create loan WITHOUT updating asset quantityAvailable fails
+    await assertFails(setDoc(loanRef, loanData));
+
+    // Creating loan WITH matching asset quantityAvailable decrement (5 - 2 = 3) succeeds in a batch
+    const batch = writeBatch(db);
+    batch.set(loanRef, loanData);
+    batch.update(assetRef, {
+      quantityAvailable: 3,
+      currentLoan: {
+        loanId,
+        borrowerType: 'coach',
+        borrowerId: 'coach_a',
+        borrowerName: 'Coach Alice'
+      },
+      updatedBy: 'admin1',
+      updatedAt: serverTimestamp()
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('denies loan edit after close, and denies loan delete', async () => {
+    const db = adminCtx().firestore();
+    const assetId = 'asset-close-check';
+    const assetRef = doc(db, 'assets', assetId);
+
+    // Create asset
+    await assertSucceeds(setDoc(assetRef, makeValidAsset(assetId, { quantity: 4, quantityAvailable: 4 })));
+
+    // Issue loan
+    const loanId = 'loan-to-close';
+    const loanRef = doc(db, 'assets', assetId, 'loans', loanId);
+    const batchOut = writeBatch(db);
+    batchOut.set(loanRef, {
+      borrowerType: 'class',
+      borrowerId: CLASS_A,
+      borrowerName: 'Class A',
+      quantity: 1,
+      outAt: serverTimestamp(),
+      outBy: 'admin1'
+    });
+    batchOut.update(assetRef, {
+      quantityAvailable: 3,
+      currentLoan: {
+        loanId,
+        borrowerType: 'class',
+        borrowerId: CLASS_A,
+        borrowerName: 'Class A'
+      },
+      updatedBy: 'admin1',
+      updatedAt: serverTimestamp()
+    });
+    await assertSucceeds(batchOut.commit());
+
+    // Check-in / close loan (returns quantity 3 + 1 = 4)
+    const batchIn = writeBatch(db);
+    batchIn.update(loanRef, {
+      inAt: serverTimestamp(),
+      inBy: 'admin1',
+      returnCondition: 'good',
+      note: 'Returned in clean working order'
+    });
+    batchIn.update(assetRef, {
+      quantityAvailable: 4,
+      currentLoan: null,
+      updatedBy: 'admin1',
+      updatedAt: serverTimestamp()
+    });
+    await assertSucceeds(batchIn.commit());
+
+    // Deny further edits to closed loan
+    await assertFails(updateDoc(loanRef, {
+      note: 'Trying to tamper after return'
+    }));
+
+    // Deny deleting loan (loan history is append-only)
+    await assertFails(deleteDoc(loanRef));
+  });
+});
+
+

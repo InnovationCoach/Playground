@@ -63,7 +63,7 @@ service firebase.storage {
 
     match /messages/{convId}/{msgId}/{filename} {
       allow read: if isConversationMember(convId) || isAuditor();
-      allow create: if isConversationMember(convId) && isMessageFileType() && isWithinSizeLimit();
+      allow create: if isConversationMember(convId) && resource == null && isMessageFileType() && isWithinSizeLimit();
       allow update, delete: if false;
     }
 
@@ -99,9 +99,25 @@ service firebase.storage {
 
     match /evidence/{uid}/{programId}/{phaseId}/{filename} {
       allow read: if isOwner(uid) || isCoachOf(uid);
-      allow create: if isOwner(uid) && isEvidenceFileType() && request.resource.size <= 25 * 1024 * 1024;
+      allow create: if isOwner(uid) && resource == null && isEvidenceFileType() && request.resource.size <= 25 * 1024 * 1024;
       allow update: if false;
       allow delete: if isOwner(uid);
+    }
+
+    // Equipment Inventory Photos (Section 3.3 of ASSET-INVENTORY-PLAN.md)
+    function isAssetAdmin() {
+      return isAuthenticated() && request.auth.token.get('role', 'student') == 'admin';
+    }
+
+    match /assets/{assetId}/{filename} {
+      allow read: if isAuthenticated()
+        && request.auth.token.get('role', 'student') in ['admin', 'supervisor', 'coach', 'teacher'];
+      allow create: if isAssetAdmin()
+        && resource == null
+        && request.resource.contentType.matches('image/(jpeg|png|webp)')
+        && request.resource.size <= 5 * 1024 * 1024;
+      allow update: if false;
+      allow delete: if isAssetAdmin();
     }
   }
 }
