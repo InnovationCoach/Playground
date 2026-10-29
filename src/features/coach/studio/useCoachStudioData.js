@@ -112,9 +112,10 @@ export function useClassLearners(classId, { includeTest = false, fallbackClassId
           return;
         }
 
-        const rawTraits = Array.isArray(data.diagnosisTraits) ? data.diagnosisTraits : (data.diagnosisTraits ? [data.diagnosisTraits] : ['Gifted Inquiry', 'Kinesthetic Prototyper']);
-        const rawHurdles = Array.isArray(data.executiveFunctionHurdles) ? data.executiveFunctionHurdles : (data.executiveFunctionHurdles ? [data.executiveFunctionHurdles] : ['Task initiation on unstructured prompts']);
-        const rawPassions = Array.isArray(data.consumingPassions) ? data.consumingPassions.join(', ') : (data.consumingPassions || 'Hands-on Making, Robotics');
+        // Only what the learner's record holds: no default traits, passions or accommodations.
+        const rawTraits = Array.isArray(data.diagnosisTraits) ? data.diagnosisTraits : (data.diagnosisTraits ? [data.diagnosisTraits] : []);
+        const rawHurdles = Array.isArray(data.executiveFunctionHurdles) ? data.executiveFunctionHurdles : (data.executiveFunctionHurdles ? [data.executiveFunctionHurdles] : []);
+        const rawPassions = Array.isArray(data.consumingPassions) ? data.consumingPassions.join(', ') : (data.consumingPassions || '');
 
         list.push({
           id: docSnap.id,
@@ -130,15 +131,12 @@ export function useClassLearners(classId, { includeTest = false, fallbackClassId
           cohortId: data.cohortId || data.cohort || 'cohort-w2e',
           ageBand: data.ageBand || '11-16',
           isTest: Boolean(data.isTest),
-          // Synthetic / seed traits for 2e scaffolding compatibility
           diagnosisTraits: rawTraits,
           traitBadges: Array.isArray(data.traitBadges) && data.traitBadges.length > 0 ? data.traitBadges : rawTraits,
           consumingPassions: rawPassions,
           executiveFunctionHurdles: rawHurdles,
           hurdleBadges: Array.isArray(data.hurdleBadges) && data.hurdleBadges.length > 0 ? data.hurdleBadges : rawHurdles,
-          appliedAccommodations: Array.isArray(data.appliedAccommodations) && data.appliedAccommodations.length > 0
-            ? data.appliedAccommodations
-            : ['Micro-deadlines with visible 15-minute countdown timers', 'Multi-modal deliverables (GitHub & 60s demo videos instead of essays)']
+          appliedAccommodations: Array.isArray(data.appliedAccommodations) ? data.appliedAccommodations : []
         });
       });
 
