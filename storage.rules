@@ -54,7 +54,8 @@ service firebase.storage {
 
     function isConversationMember(convId) {
       return isAuthenticated()
-        && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(convId)).data.participantIds;
+        && firestore.exists(/databases/(default)/documents/conversations/$(convId))
+        && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(convId)).data.get('participantIds', []);
     }
 
     function isAuditor() {
@@ -86,6 +87,7 @@ service firebase.storage {
 
     function isCoachOf(userId) {
       return isTeacher()
+        && firestore.exists(/databases/(default)/documents/users/$(userId))
         && firestore.get(/databases/(default)/documents/users/$(userId)).data.get('classIds', []).hasAny(request.auth.token.get('classIds', []));
     }
 
