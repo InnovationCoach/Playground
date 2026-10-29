@@ -620,7 +620,7 @@ export class CoachDashboard {
                   <tr style="border-bottom: 1px solid #334155;">
                     <td style="padding: 0.75rem 1rem; font-weight: 700; color: white;">${c.displayName || c.email?.split('@')[0] || 'Coach'}</td>
                     <td style="padding: 0.75rem 1rem; color: #cbd5e1;">${c.email}</td>
-                    <td style="padding: 0.75rem 1rem; color: #38bdf8;">${c.groupName || 'Climate Champions 7A'}</td>
+                    <td style="padding: 0.75rem 1rem; color: #38bdf8;">${c.groupName || '—'}</td>
                     <td style="padding: 0.75rem 1rem;"><span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">Coach / Teacher</span></td>
                     <td style="padding: 0.75rem 1rem;"><span style="color: #34d399; font-weight: 700;">Active ✓</span></td>
                   </tr>

@@ -1,180 +1,96 @@
-import { useState } from 'react';
-import {
-  Users, CheckCircle2, Clock, AlertTriangle, ArrowRight, Sparkles,
-  Award, Shield, ExternalLink, Activity, BookOpen, Wrench, Eye
-} from 'lucide-react';
-import { STUDENT_2E_PROFILES } from '../studio/learnerProfiles.js';
-import { getEvaluations } from '../evaluation/evaluationsStore.js';
-import { hrefFor } from '../../../app/routes.js';
+import { CheckCircle2, Sparkles, Users, ArrowRight } from 'lucide-react';
 
-const WELEARN_8_STAGES = [
-  'Curiosity', 'Research', 'Ideation', 'Prototype',
-  'Testing', 'Iteration', 'Polish', 'Showcase'
-];
+/** The eight stages of the PBL cycle, in order. Learners show the stage they are in. */
+const STAGES = ['Curiosity', 'Empathise', 'Define', 'Ideate', 'Prototype', 'Test', 'Reflect', 'Showcase'];
 
-export function LearnerSupervisionView({ learners: providedLearners, onSelectLearnerForStudio, onGoToEvaluation }) {
-  const [selectedCohort, setSelectedCohort] = useState('all');
-
-  const learners = (providedLearners && providedLearners.length > 0)
-    ? providedLearners
-    : STUDENT_2E_PROFILES;
-  const activeCount = learners.length;
-  const allEvals = getEvaluations();
-  const pendingEvals = allEvals.filter(e => e.status === 'pending').length;
-  const onTrackPercent = learners.length > 0
-    ? Math.round((learners.filter(l => l.status !== 'needs_support' && l.status !== 'behind').length / learners.length) * 100)
-    : 100;
-
+/**
+ * Learners from the coach's own classes. Nothing is invented: a learner with no
+ * stage yet says so, and an empty list shows an empty state, not sample people.
+ */
+export function LearnerSupervisionView({ learners = [], pendingEvals = 0, onSelectLearnerForStudio, onGoToEvaluation }) {
   return (
     <div className="cp-supervision-view">
-      {/* Executive Overview Row */}
-      <section className="cp-metrics-bar" aria-label="Cohort Progress Overview">
+      <section className="cp-metrics-bar" aria-label="Overview">
         <div className="cp-metric-card">
-          <div className="cp-metric-icon icon-blue">
-            <Users size={20} />
-          </div>
+          <div className="cp-metric-icon icon-blue"><Users size={20} aria-hidden="true" /></div>
           <div className="cp-metric-info">
-            <span className="cp-metric-val">{activeCount}</span>
-            <span className="cp-metric-lbl">Active 2e Learners</span>
+            <span className="cp-metric-label">Learners</span>
+            <span className="cp-metric-val">{learners.length}</span>
           </div>
         </div>
 
         <div className="cp-metric-card">
-          <div className="cp-metric-icon icon-amber">
-            <Clock size={20} />
-          </div>
           <div className="cp-metric-info">
+            <span className="cp-metric-label">Awaiting review</span>
             <span className="cp-metric-val">{pendingEvals}</span>
-            <span className="cp-metric-lbl">Submissions Awaiting Review</span>
           </div>
           {pendingEvals > 0 && (
-            <button className="cp-metric-btn" onClick={() => onGoToEvaluation?.()}>
-              Grade Now <ArrowRight size={13} />
+            <button type="button" className="cp-metric-btn" onClick={() => onGoToEvaluation?.()}>
+              Review now <ArrowRight size={14} aria-hidden="true" />
             </button>
           )}
         </div>
-
-        <div className="cp-metric-card">
-          <div className="cp-metric-icon icon-green">
-            <CheckCircle2 size={20} />
-          </div>
-          <div className="cp-metric-info">
-            <span className="cp-metric-val">{onTrackPercent}%</span>
-            <span className="cp-metric-lbl">PBL Milestone On-Track</span>
-          </div>
-        </div>
-
-        <div className="cp-metric-card">
-          <div className="cp-metric-icon icon-purple">
-            <Sparkles size={20} />
-          </div>
-          <div className="cp-metric-info">
-            <span className="cp-metric-val">100%</span>
-            <span className="cp-metric-lbl">2e Grounded Accommodations</span>
-          </div>
-        </div>
       </section>
 
-      {/* Roster & Supervision Cards */}
-      <div className="cp-supervision-main">
-        <div className="cp-section-header">
-          <div>
-            <h2 className="cp-section-title">Learner Progress & 8-Stage PBL Cycle</h2>
-            <p className="cp-section-desc">
-              Supervise real-time milestone execution, executive function accommodations, and MakerSpace tool readiness.
-            </p>
-          </div>
-        </div>
-
+      {learners.length === 0 ? (
+        <section className="cp-card" aria-label="No learners yet">
+          <p className="cp-empty-title">No learners in your classes yet.</p>
+          <p className="cp-muted">When learners join with your class code, they appear here.</p>
+        </section>
+      ) : (
         <div className="cp-learner-grid">
-          {learners.map((learner, idx) => {
-            const learnerId = learner.id || learner.uid;
-            // Representative stage positions
-            const currentStageIndex = idx === 0 ? 3 : idx === 1 ? 2 : idx === 2 ? 4 : 1;
-            const currentStage = WELEARN_8_STAGES[currentStageIndex];
-            const pct = Math.round(((currentStageIndex + 1) / 8) * 100);
-
-            const diagnosisSummary = Array.isArray(learner.diagnosisTraits)
-              ? learner.diagnosisTraits.join(', ')
-              : String(learner.diagnosisTraits || '').split('(')[0];
-
-            const hurdleBadge = (learner.hurdleBadges && learner.hurdleBadges[0])
-              || (Array.isArray(learner.executiveFunctionHurdles) ? learner.executiveFunctionHurdles[0] : String(learner.executiveFunctionHurdles || 'Task initiation'));
-
-            const passions = Array.isArray(learner.consumingPassions)
-              ? learner.consumingPassions.join(', ')
-              : (learner.consumingPassions || 'Robotics');
-
-            return (
-              <div key={learnerId} className="cp-learner-card">
-                <div className="cp-learner-head">
-                  <div className="cp-avatar-badge">{learner.avatar || '👤'}</div>
-                  <div className="cp-learner-name-block">
-                    <h3 className="cp-learner-name">{learner.name || learner.displayName}</h3>
-                    <span className="cp-learner-grade">{[learner.grade || learner.yearLevel, diagnosisSummary].filter(Boolean).join(' • ')}</span>
-                  </div>
-                  <span className={`cp-status-pill ${idx < 2 ? 'status-pending' : 'status-active'}`}>
-                    {idx < 2 ? 'Submission Pending' : 'Prototyping'}
-                  </span>
+          {learners.map((learner) => (
+            <article key={learner.id} className="cp-learner-card">
+              <header className="cp-learner-head">
+                <div className="cp-avatar-badge" aria-hidden="true">{initials(learner.name)}</div>
+                <div className="cp-learner-name-block">
+                  <h3 className="cp-learner-name">{learner.name}</h3>
+                  {learner.yearLevel && <span className="cp-learner-grade">{learner.yearLevel}</span>}
                 </div>
+              </header>
 
-                {/* Consuming Passion & Hurdle Highlights */}
-                <div className="cp-learner-tags">
-                  <div className="cp-tag-row">
-                    <span className="cp-tag-label">Consuming Passion:</span>
-                    <span className="cp-tag-value">{passions}</span>
-                  </div>
-                  <div className="cp-tag-row">
-                    <span className="cp-tag-label">EF Accommodation:</span>
-                    <span className="cp-tag-hurdle">{hurdleBadge} (Applied)</span>
-                  </div>
-                </div>
+              {learner.consumingPassions && (
+                <p className="cp-learner-line"><span className="cp-tag-label">Passion</span> {learner.consumingPassions}</p>
+              )}
+              {learner.appliedAccommodations?.length > 0 && (
+                <p className="cp-learner-line"><span className="cp-tag-label">Accommodations</span> {learner.appliedAccommodations.join('; ')}</p>
+              )}
 
-                {/* 8-Stage PBL Progress Visualizer */}
-                <div className="cp-progress-section">
-                  <div className="cp-progress-header">
-                    <span className="cp-progress-title">
-                      Stage {currentStageIndex + 1}/8: <strong>{currentStage}</strong>
-                    </span>
-                    <span className="cp-progress-pct">{pct}% Complete</span>
-                  </div>
+              <StageLine stageIndex={learner.stageIndex} />
 
-                  <div className="cp-stage-track">
-                    {WELEARN_8_STAGES.map((stg, i) => {
-                      const isDone = i < currentStageIndex;
-                      const isCurrent = i === currentStageIndex;
-                      return (
-                        <div
-                          key={stg}
-                          className={`cp-stage-bar ${isDone ? 'done' : ''} ${isCurrent ? 'current' : ''}`}
-                          title={`Stage ${i + 1}: ${stg}`}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Action Footer */}
-                <div className="cp-card-footer">
-                  <button
-                    className="cp-btn-secondary"
-                    onClick={() => onSelectLearnerForStudio?.(learnerId)}
-                  >
-                    <Sparkles size={14} /> Open in Studio
-                  </button>
-
-                  <button
-                    className="cp-btn-primary"
-                    onClick={() => onGoToEvaluation?.(learnerId)}
-                  >
-                    <CheckCircle2 size={14} /> Evaluate Work
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+              <footer className="cp-card-footer">
+                <button type="button" className="cp-btn-secondary" onClick={() => onSelectLearnerForStudio?.(learner.id)}>
+                  <Sparkles size={14} aria-hidden="true" /> Open in course studio
+                </button>
+                <button type="button" className="cp-btn-primary" onClick={() => onGoToEvaluation?.(learner.id)}>
+                  <CheckCircle2 size={14} aria-hidden="true" /> Review work
+                </button>
+              </footer>
+            </article>
+          ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+function StageLine({ stageIndex }) {
+  if (!Number.isInteger(stageIndex) || stageIndex < 0 || stageIndex > 7) {
+    return <p className="cp-muted">Not started yet.</p>;
+  }
+  return (
+    <div className="cp-progress-section">
+      <p className="cp-progress-title">Stage {stageIndex + 1} of 8: <strong>{STAGES[stageIndex]}</strong></p>
+      <div className="cp-stage-track" aria-hidden="true">
+        {STAGES.map((name, i) => (
+          <span key={name} className={`cp-stage-bar${i < stageIndex ? ' done' : ''}${i === stageIndex ? ' current' : ''}`} />
+        ))}
       </div>
     </div>
   );
+}
+
+function initials(name = '') {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] || '') + (parts[parts.length - 1]?.[0] || '')).toUpperCase() || '?';
 }

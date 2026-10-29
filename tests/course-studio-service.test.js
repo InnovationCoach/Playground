@@ -112,9 +112,10 @@ describe('course studio panel (render check)', () => {
     globalThis.React = React;
     const { CourseStudioPanel } = await import('../src/features/coach/studio/CourseStudioPanel.jsx');
     const html = renderToString(createElement(CourseStudioPanel));
-    expect(html).toContain('Course material studio');
+    expect(html).toContain('Course material');
     expect(html).toContain('Mock drafts');
-    expect(html).toContain('Milestones (8 stages)');
-    expect(html).toContain('Generate draft');
+    expect(html).toContain('Sources');
+    expect(html).toContain('Create');
+    expect(html).toContain('Review');
   });
 });

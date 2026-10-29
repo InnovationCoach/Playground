@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BookOpen, Sparkles, Trash2, Plus, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Check } from 'lucide-react';
+import { BookOpen, Sparkles, Trash2, Plus, ChevronLeft, ChevronRight, ArrowRight, AlertTriangle, RefreshCw, Check } from 'lucide-react';
 import {
   LIMITS, STAGES, MILESTONE_LIMITS, listSources, createSource, archiveSource, generate, listDrafts, discardDraft, updateMilestones, CourseStudioError
 } from '../../../services/courseStudioService.js';
@@ -37,6 +37,7 @@ export function CourseStudioPanel() {
   const [newTitle, setNewTitle] = useState('');
   const [newText, setNewText] = useState('');
   const [adding, setAdding] = useState(false);
+  const [step, setStep] = useState('sources');
 
   const refresh = useCallback(async () => {
     const [s, d] = await Promise.all([listSources(), listDrafts()]);
@@ -81,6 +82,7 @@ export function CourseStudioPanel() {
     try {
       const result = await generate({ type, cohort, sourceIds: picked, instructions });
       setActiveId(result.draftId);
+      setStep('review');
       await refresh();
       setStatus({ kind: 'success', message: 'Draft ready. Review it before anything is shared with learners.' });
     } catch (err) {
@@ -101,20 +103,38 @@ export function CourseStudioPanel() {
 
   const busy = status.kind === 'working';
 
+  const steps = [
+    { id: 'sources', label: 'Sources', count: sources.length },
+    { id: 'create', label: 'Create', count: null },
+    { id: 'review', label: 'Review', count: drafts.length }
+  ];
+
   return (
     <section className="cs-panel cp-card" aria-labelledby="cs-title">
       <div className="cp-card-header">
-        <h2 className="cp-card-title" id="cs-title"><Sparkles size={16} aria-hidden="true" /> Course material studio</h2>
+        <h2 className="cp-card-title" id="cs-title"><Sparkles size={16} aria-hidden="true" /> Course material</h2>
         <span className="cp-badge-pill">Mock drafts</span>
       </div>
-      <p className="cs-lede">
-        Add your own source text, then draft milestones, slides, quizzes or a narration script. Drafts stay private until you publish.
-      </p>
+      <p className="cs-lede">Add your sources, create a draft, then review it. Nothing reaches learners until you publish.</p>
 
-      <div className="cs-grid">
-        <div className="cs-col">
-          <h3 className="cs-h3"><BookOpen size={15} aria-hidden="true" /> Sources ({sources.length})</h3>
-          {sources.length === 0 && <p className="cs-muted">No sources yet. Paste some text below to start.</p>}
+      <nav className="cs-steps" aria-label="Course material steps">
+        {steps.map((s, i) => (
+          <button
+            key={s.id}
+            type="button"
+            className={`cs-step${step === s.id ? ' is-active' : ''}`}
+            aria-current={step === s.id ? 'step' : undefined}
+            onClick={() => setStep(s.id)}
+          >
+            <span className="cs-step-num" aria-hidden="true">{i + 1}</span>
+            {s.label}
+            {s.count !== null && <span className="cs-step-count">{s.count}</span>}
+          </button>
+        ))}
+      </nav>
+
+      {step === 'sources' && (
+        <div className="cs-step-body">
           <ul className="cs-list">
             {sources.map((s) => (
               <li key={s.id} className="cs-source">
@@ -128,6 +148,7 @@ export function CourseStudioPanel() {
               </li>
             ))}
           </ul>
+          {sources.length === 0 && <p className="cs-muted">No sources yet. Add some text below.</p>}
 
           <form className="cs-form" onSubmit={onAddSource}>
             <label className="cs-field">
@@ -142,10 +163,17 @@ export function CourseStudioPanel() {
               <Plus size={14} aria-hidden="true" /> {adding ? 'Saving…' : 'Add source'}
             </button>
           </form>
+          <div className="cs-row cs-next">
+            <button type="button" className="cs-btn cs-btn-primary" onClick={() => setStep('create')} disabled={picked.length === 0}>
+              Next: create <ArrowRight size={14} aria-hidden="true" />
+            </button>
+            <span className="cs-muted">{picked.length} selected</span>
+          </div>
         </div>
+      )}
 
-        <div className="cs-col">
-          <h3 className="cs-h3"><Sparkles size={15} aria-hidden="true" /> Make a draft</h3>
+      {step === 'create' && (
+        <div className="cs-step-body">
           <div className="cs-row">
             <label className="cs-field">
               <span>Type</span>
@@ -164,11 +192,12 @@ export function CourseStudioPanel() {
             <span>Instructions (optional, {LIMITS.instructionChars} characters max)</span>
             <textarea rows={2} maxLength={LIMITS.instructionChars} value={instructions} onChange={(e) => setInstructions(e.target.value)} />
           </label>
-          <p className="cs-muted">Using {picked.length} source{picked.length === 1 ? '' : 's'}.</p>
-          <button type="button" className="cs-btn cs-btn-primary" onClick={onGenerate} disabled={busy || picked.length === 0}>
-            <Sparkles size={14} aria-hidden="true" /> {busy ? 'Drafting…' : 'Generate draft'}
-          </button>
-
+          <div className="cs-row">
+            <button type="button" className="cs-btn cs-btn-primary" onClick={onGenerate} disabled={busy || picked.length === 0}>
+              <Sparkles size={14} aria-hidden="true" /> {busy ? 'Drafting…' : 'Generate draft'}
+            </button>
+            <button type="button" className="cs-link" onClick={() => setStep('sources')}>Back to sources</button>
+          </div>
           <div role="status" aria-live="polite" className={`cs-status cs-status-${status.kind}`}>
             {status.kind === 'error' && <AlertTriangle size={14} aria-hidden="true" />}
             {status.kind === 'success' && <Check size={14} aria-hidden="true" />}
@@ -178,29 +207,32 @@ export function CourseStudioPanel() {
             )}
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="cs-drafts">
-        <h3 className="cs-h3">Drafts ({drafts.length})</h3>
-        {drafts.length === 0 && <p className="cs-muted">Nothing drafted yet.</p>}
-        <div className="cs-draft-tabs" role="tablist" aria-label="Drafts">
-          {drafts.map((d) => (
-            <button
-              key={d.id}
-              type="button"
-              role="tab"
-              aria-selected={activeDraft?.id === d.id}
-              className={`cs-draft-tab${activeDraft?.id === d.id ? ' is-active' : ''}`}
-              onClick={() => setActiveId(d.id)}
-            >
-              {TYPE_LABELS[d.type].split(' (')[0]}
-            </button>
-          ))}
+      {step === 'review' && (
+        <div className="cs-step-body">
+          {drafts.length === 0 && <p className="cs-muted">No drafts yet. Create one from the Create step.</p>}
+          {drafts.length > 0 && (
+            <div className="cs-draft-tabs" role="tablist" aria-label="Drafts">
+              {drafts.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeDraft?.id === d.id}
+                  className={`cs-draft-tab${activeDraft?.id === d.id ? ' is-active' : ''}`}
+                  onClick={() => setActiveId(d.id)}
+                >
+                  {TYPE_LABELS[d.type].split(' (')[0]}
+                </button>
+              ))}
+            </div>
+          )}
+          {activeDraft && (
+            <DraftView draft={activeDraft} onDiscard={() => onDiscard(activeDraft.id)} onSaveMilestones={onSaveMilestones} />
+          )}
         </div>
-        {activeDraft && (
-          <DraftView draft={activeDraft} onDiscard={() => onDiscard(activeDraft.id)} onSaveMilestones={onSaveMilestones} />
-        )}
-      </div>
+      )}
     </section>
   );
 }
