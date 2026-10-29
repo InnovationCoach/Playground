@@ -39,6 +39,9 @@ export function consolePermissions(role) {
     viewAccounts: isAdmin || role === 'supervisor',
     editAccounts: isAdmin,
     viewHistory: isAdmin || role === 'supervisor',
-    issueParentInvite: isAdmin
+    issueParentInvite: isAdmin,
+    viewInventory: isAdmin || role === 'supervisor',
+    editInventory: isAdmin,
+    loanInventory: isAdmin
   };
 }
