@@ -58,8 +58,15 @@ service firebase.storage {
         && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(convId)).data.get('participantIds', []);
     }
 
+    function isPlatformAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.get('role', 'student') in ['admin', 'supervisor']
+        || request.auth.token.get('email', '').lower() in ['mani@welearn.org', 'yur.na@welearn.org', 'admin.test@school.edu']
+      );
+    }
+
     function isAuditor() {
-      return isAuthenticated() && request.auth.token.get('role', 'student') in ['admin', 'supervisor'];
+      return isPlatformAdmin();
     }
 
     match /messages/{convId}/{msgId}/{filename} {
@@ -71,7 +78,7 @@ service firebase.storage {
     // Legacy / Activity uploads
     match /solarCar/{uid}/{filename} {
       allow read: if isAuthenticated();
-      allow write: if isOwner(uid) && request.resource.size <= 10 * 1024 * 1024;
+      allow write: if (isOwner(uid) || isPlatformAdmin()) && request.resource.size <= 10 * 1024 * 1024;
     }
 
     // Canva Exports (Private exports of learner designs)
@@ -100,20 +107,24 @@ service firebase.storage {
     }
 
     match /evidence/{uid}/{programId}/{phaseId}/{filename} {
-      allow read: if isOwner(uid) || isCoachOf(uid);
-      allow create: if isOwner(uid) && resource == null && isEvidenceFileType() && request.resource.size <= 25 * 1024 * 1024;
+      allow read: if isOwner(uid) || isCoachOf(uid) || isPlatformAdmin();
+      allow create: if (isOwner(uid) || isPlatformAdmin()) && resource == null && isEvidenceFileType() && request.resource.size <= 25 * 1024 * 1024;
       allow update: if false;
-      allow delete: if isOwner(uid);
+      allow delete: if isOwner(uid) || isPlatformAdmin();
     }
 
     // Equipment Inventory Photos (Section 3.3 of ASSET-INVENTORY-PLAN.md)
     function isAssetAdmin() {
-      return isAuthenticated() && request.auth.token.get('role', 'student') == 'admin';
+      return isAuthenticated() && (
+        request.auth.token.get('role', 'student') == 'admin'
+        || request.auth.token.get('email', '').lower() in ['mani@welearn.org', 'yur.na@welearn.org', 'admin.test@school.edu']
+      );
     }
 
     match /assets/{assetId}/{filename} {
       allow read: if isAuthenticated()
-        && request.auth.token.get('role', 'student') in ['admin', 'supervisor', 'coach', 'teacher'];
+        && (request.auth.token.get('role', 'student') in ['admin', 'supervisor', 'coach', 'teacher']
+            || isPlatformAdmin());
       allow create: if isAssetAdmin()
         && resource == null
         && request.resource.contentType.matches('image/(jpeg|png|webp)')
