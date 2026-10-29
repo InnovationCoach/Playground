@@ -37,7 +37,8 @@ export function StudentProfileCard({ learnerUid, viewer, childName }) {
 
   return (
     <section className="sp-card gh-card" aria-labelledby="sp-title">
-      <header className="sp-head">
+      {/* A <div>, not <header>: index.html styles every bare `header` with a dark navy background and purple border. */}
+      <div className="sp-head">
         <div>
           <h2 id="sp-title" className="sp-title"><GraduationCap size={18} aria-hidden="true" /> {childName ? `${childName}’s school profile` : 'School profile'}</h2>
           <p className="sp-muted">{p.cohort}{p.age !== null ? ` · Age ${p.age}` : ''} · School ID {p.schoolStudentId}</p>
@@ -50,7 +51,7 @@ export function StudentProfileCard({ learnerUid, viewer, childName }) {
             </a>
           )}
         </div>
-      </header>
+      </div>
 
       {progress ? (
         <div className="sp-progress">
