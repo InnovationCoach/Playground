@@ -114,7 +114,7 @@ function StudentDashboard({ uid, profile, classIds = [], onJoined, onOpenActivit
       renderReadiness={() => <WorkspaceTools prefs={prefs} slide="progress" renderWidget={renderWidget} />} />;
     if (id === 'creative') return <PersonalSpace prefs={prefs} update={update} renderWidget={renderWidget} />;
     return <>
-      <SparkUniverse prefs={prefs} plan={plan} onPersonalise={() => setPanelOpen(true)} />
+      <SparkUniverse prefs={prefs} plan={plan} uid={uid} active={activeSlide === 'universe'} onPersonalise={() => setPanelOpen(true)} />
       <div className="sd-section-line"><h3>Personal milestones & inspiration</h3><button type="button" className="sd-text-button" onClick={() => setActiveSlide('creative')}>Arrange optional tools <ArrowRight size={16} /></button></div>
       <p className="sd-caption">These existing milestones reflect self-reported actions. They are not verified mastery, XP or unlock evidence.</p>
       <WorkspaceTools prefs={prefs} slide="universe" renderWidget={renderWidget} />
