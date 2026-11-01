@@ -39,24 +39,29 @@ describe('My Universe explorer model', () => {
   });
 
   it('keeps discovery separate from permission: selecting never unlocks, gated planets never land', () => {
-    const ignis = planetById('ignis');
-    let nav = walk({ type: 'open', id: 'lyra-spiral' }, { type: 'open', id: 'lyra-prime' }, { type: 'select', id: 'ignis' }, { type: 'open', id: 'ignis' });
-    expect(current(nav)).toEqual({ level: 'planet', id: 'ignis' });
+    const boreas = planetById('boreas');
+    const nav = walk({ type: 'open', id: 'lyra-spiral' }, { type: 'open', id: 'lyra-prime' }, { type: 'select', id: 'boreas' }, { type: 'open', id: 'boreas' });
+    expect(current(nav)).toEqual({ level: 'planet', id: 'boreas' });
     for (const opts of [preview, live]) {
-      expect(canLand(ignis, opts)).toBe(false);
+      expect(canLand(boreas, opts)).toBe(false);
       expect(reduce(nav, { type: 'open', opts })).toBe(nav);
     }
-    nav = walk({ type: 'open', id: 'lyra-spiral' }, { type: 'open', id: 'lyra-prime' }, { type: 'open', id: 'boreas' });
-    expect(reduce(nav, { type: 'open', opts: preview })).toBe(nav); // no landing site charted
+  });
+
+  it('lands on each charted surface: Thalassa (ocean) and Ignis (basalt)', () => {
+    for (const [planet, env] of [['thalassa', 'thalassa-station'], ['ignis', 'ignis-fissure-field']]) {
+      const at = walk({ type: 'open', id: 'lyra-spiral' }, { type: 'open', id: 'lyra-prime' }, { type: 'open', id: planet });
+      expect(current(reduce(at, { type: 'open', opts: preview }))).toEqual({ level: 'environment', id: env });
+    }
   });
 
   it('labels fixture access as preview, and shows "not connected" outside previews', () => {
-    const ignis = planetById('ignis'), thalassa = planetById('thalassa'), boreas = planetById('boreas');
-    expect(planetAccess(ignis, preview)).toEqual({ status: 'locked', requirementText: ignis.requirementText, preview: true });
-    expect(planetAccess(ignis, live)).toEqual({ status: 'not-connected', preview: false });
+    const boreas = planetById('boreas'), thalassa = planetById('thalassa'), ignis = planetById('ignis');
+    expect(planetAccess(boreas, preview)).toEqual({ status: 'locked', requirementText: boreas.requirementText, preview: true });
+    expect(planetAccess(boreas, live)).toEqual({ status: 'not-connected', preview: false });
     expect(planetAccess(thalassa, live).status).toBe('available');
-    expect(planetAccess(boreas, preview).status).toBe('charted');
-    expect(ignis.requirementText).toMatch(/^Sample requirement/);
+    expect(planetAccess(ignis, preview).status).toBe('available');
+    expect(boreas.requirementText).toMatch(/^Sample requirement/);
   });
 
   it('chooses camera moves: approach inward, retreat outward, keep the learner camera on simple selection', () => {
@@ -74,7 +79,7 @@ describe('My Universe explorer model', () => {
     expect(pathTo('environment', 'thalassa-station', cosmos).map((p) => p.level)).toEqual(['universe', 'galaxy', 'system', 'planet', 'environment']);
     expect(pathTo('planet', 'missing', cosmos)).toBeNull();
     const nav = reduce(initialNav(), { type: 'jump', path: pathTo('system', 'lyra-prime', cosmos) });
-    expect(describeView(nav, preview, cosmos)).toMatch(/Thalassa \(Available\).*Ignis \(Locked\).*Not to scale/);
+    expect(describeView(nav, preview, cosmos)).toMatch(/Thalassa \(Available\).*Ignis \(Available\).*Boreas \(Locked\).*Not to scale/);
     expect(describeView(initialNav(), preview, cosmos)).toMatch(/2 galaxies charted/);
     expect(childrenOf({ level: 'galaxy', id: 'aurora-elliptical' }, cosmos)).toEqual([]);
     expect(validPrefix(pathTo('environment', 'thalassa-station', cosmos), cosmos)).toHaveLength(5);

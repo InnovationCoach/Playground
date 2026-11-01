@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
-import { fbm, glowTexture } from './proceduralTextures.js';
+import { fbm } from './proceduralTextures.js';
+import { Sky, Beacon } from './environmentKit.jsx';
 
 /**
  * Thalassa Research Station: the spike's one enterable environment, loaded as
@@ -63,20 +63,6 @@ function Ocean({ motion, low }) {
   return <mesh ref={ref} geometry={geo}><meshStandardMaterial color="#1c6d93" transparent opacity={0.78} roughness={0.18} metalness={0.15} /></mesh>;
 }
 
-const SKY_VERT = 'varying vec3 vW; void main(){ vW = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }';
-const SKY_FRAG = 'varying vec3 vW; uniform vec3 top; uniform vec3 horizon; uniform vec3 sea; void main(){ float h = vW.y; vec3 c = h > 0.0 ? mix(horizon, top, pow(h, 0.55)) : mix(horizon, sea, min(1.0, -h * 6.0)); gl_FragColor = vec4(c, 1.0); }';
-
-function Sky() {
-  const mat = useMemo(() => new THREE.ShaderMaterial({ vertexShader: SKY_VERT, fragmentShader: SKY_FRAG, side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: new THREE.Color('#2e6fae') }, horizon: { value: new THREE.Color('#c9e4ef') }, sea: { value: new THREE.Color('#2a6380') } } }), []);
-  const sun = useMemo(() => glowTexture('rgba(255,250,232,1)', 'rgba(255,230,180,0)'), []);
-  useEffect(() => () => { mat.dispose(); sun.dispose(); }, [mat, sun]);
-  return <group>
-    <mesh material={mat}><sphereGeometry args={[480, 32, 16]} /></mesh>
-    <sprite position={[160, 120, -260]} scale={[90, 90, 1]}><spriteMaterial map={sun} transparent depthWrite={false} fog={false} /></sprite>
-  </group>;
-}
-
 /** Seven hexagonal modules on pontoons: the foundation site for a future floating-settlement project. */
 function Platform({ position }) {
   const cells = useMemo(() => [[0, 0], ...Array.from({ length: 6 }, (_, i) => [Math.cos(i * Math.PI / 3 + Math.PI / 6) * 4.1, Math.sin(i * Math.PI / 3 + Math.PI / 6) * 4.1])], []);
@@ -116,35 +102,19 @@ function Vent({ x, z }) {
   </group>;
 }
 
-/** Inspectable places: a slim beacon from the ground with a label; lime when selected. */
-function Beacon({ location, selected, onSelect }) {
-  const [x, , z] = location.position, ground = Math.max(heightAt(x, z), 0), top = Math.max(location.position[1], ground) + 2.2;
-  const pickIt = (e) => { if (e.delta < 6) { e.stopPropagation(); onSelect(location.id); } };
-  const color = selected ? '#96d700' : '#9bd2ff';
-  return <group position={[x, 0, z]}>
-    <mesh position={[0, (ground + top) / 2, 0]}><cylinderGeometry args={[0.05, 0.05, top - ground, 6]} /><meshBasicMaterial color={color} transparent opacity={0.7} /></mesh>
-    <mesh position={[0, top, 0]} onClick={pickIt} onPointerOver={() => { document.body.style.cursor = 'pointer'; }} onPointerOut={() => { document.body.style.cursor = ''; }}>
-      <octahedronGeometry args={[0.55, 0]} /><meshBasicMaterial color={color} />
-    </mesh>
-    <Html position={[0, top + 1.1, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-      <span className={`mx-label${selected ? ' is-on' : ''}`} aria-hidden="true">{location.name}</span>
-    </Html>
-  </group>;
-}
-
 export default function ExplorerEnvironment({ environment, selected, onSelect, motion, low }) {
   const byId = Object.fromEntries(environment.locations.map((l) => [l.id, l]));
   return <group>
     <fog attach="fog" args={['#c9e4ef', 90, 330]} />
     <hemisphereLight args={['#dff1ff', '#2a4a55', 0.9]} />
     <directionalLight position={[80, 90, -60]} intensity={2.2} color="#fff4e0" />
-    <Sky />
+    <Sky top="#2e6fae" horizon="#c9e4ef" below="#2a6380" />
     <Terrain low={low} />
     <Ocean motion={motion} low={low} />
     <Platform position={[byId.platform.position[0], 0, byId.platform.position[2]]} />
     <Mast x={byId['weather-mast'].position[0]} z={byId['weather-mast'].position[2]} />
     <TideGauge x={byId['tide-gauge'].position[0]} z={byId['tide-gauge'].position[2]} />
     <Vent x={byId.vent.position[0]} z={byId.vent.position[2]} />
-    {environment.locations.map((l) => <Beacon key={l.id} location={l} selected={selected === l.id} onSelect={onSelect} />)}
+    {environment.locations.map((l) => <Beacon key={l.id} location={l} selected={selected === l.id} onSelect={onSelect} groundAt={heightAt} />)}
   </group>;
 }

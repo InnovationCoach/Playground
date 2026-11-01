@@ -572,3 +572,28 @@ Mani said **"go"** to the Stage C option in §13.11. Scope: this Mac, front end 
 - **Screenshots:** `../review/stage-c/`.
 
 Nothing is pushed or deployed. Backend steps still need Mani's separate written "go" for each.
+
+### 13.13 Second landable world: Ignis Fissure Field — 1 November 2026 (Claude)
+
+Mani said "go ahead" to the Ignis option in §13.12. Front end and catalog only.
+
+**Catalog `1.1.0`:**
+- Ignis becomes `public`, with the new environment `ignis-fissure-field` (sceneKind `basalt-fissures`) and four locations: sensor station, glowing fissure, basalt columns and gas vent.
+- **Boreas takes over as the gated example**, with a sample requirement. It has no landing site, so nothing that was enterable becomes unreachable.
+- Every new value is labelled as a fictional world value or as illustrative. The fissure glow and the gas plume are explicitly "illustrative, not simulated". The vent is marked as a possible future site for the SO₂ → sulfate investigation; it doesn't run that model.
+
+**Renderer:** `ExplorerBasaltEnvironment.jsx`, a separate lazy chunk. It's procedural:
+- terrain with a raised terrace and a sunken fissure
+- columnar basalt as **one instanced mesh** (hundreds of columns, one draw call)
+- a glowing fissure floor with four warm lights
+- a gas plume of sprites that holds still under reduced motion or Calm
+- a sensor station
+
+The sky and location beacons now come from a shared `environmentKit.jsx` that both surfaces use.
+
+**Checks:**
+- **Tests:** 32 of 32 universe tests pass, including a new test that both surfaces can be landed on. Boreas covers the locked and "Access not connected" cases. All 537 unit tests pass, and the build succeeds.
+- **Apple M5, Retina 2×, High detail:** the Ignis surface ran at **60 fps** over 10 seconds, with 39 draw calls and about 72k triangles. No errors.
+- **Screenshots:** `../review/stage-c/17` to `24`.
+
+**Housekeeping note:** the top-level `/Users/admin/Desktop/HearIsland/node_modules` was found empty during this work. Claude didn't touch it; another process may be reinstalling. The canonical checkout's own `node_modules` is intact.

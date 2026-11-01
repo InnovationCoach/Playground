@@ -1,6 +1,6 @@
 {
-  "catalogVersion": "1.0.0",
-  "generatedAt": "2026-11-01T00:00:00Z",
+  "catalogVersion": "1.1.0",
+  "generatedAt": "2026-11-01T12:00:00Z",
   "note": "Sample cosmos for the My Universe first slice. Every place and value is a fictional world; nothing here is real astronomy.",
   "galaxies": [
     {
@@ -111,7 +111,7 @@
         "glow": "#ff7a2e",
         "atmosphere": "#ffb27a"
       },
-      "summary": "A dark basalt world crossed by glowing fissures.",
+      "summary": "A dark basalt world crossed by glowing fissures. One fissure field is charted for landing.",
       "facts": [
         {
           "text": "Columnar basalt plains cover most of the surface.",
@@ -122,11 +122,15 @@
           "text": "Volcanic vents release sulfur-rich gas.",
           "tag": "fictional-world",
           "annotation": "Authored world setting"
+        },
+        {
+          "text": "Days are hot and hazy; the sky glows copper near the horizon.",
+          "tag": "fictional-world",
+          "annotation": "Authored world setting"
         }
       ],
-      "access": "gated",
-      "requirementText": "Sample requirement: an Atmospheric Chemistry mission reviewed by your coach.",
-      "environmentId": null
+      "access": "public",
+      "environmentId": "ignis-fissure-field"
     },
     {
       "id": "boreas",
@@ -157,8 +161,9 @@
           "annotation": "Authored world setting"
         }
       ],
-      "access": "public",
-      "environmentId": null
+      "access": "gated",
+      "environmentId": null,
+      "requirementText": "Sample requirement: an Ice and Climate mission reviewed by your coach."
     }
   ],
   "environments": [
@@ -244,6 +249,91 @@
         }
       ],
       "sceneKind": "ocean-station"
+    },
+    {
+      "id": "ignis-fissure-field",
+      "planetId": "ignis",
+      "name": "Ignis Fissure Field",
+      "biome": "Basalt plain, lava fissure and columnar terrace",
+      "summary": "A charted stretch of basalt plain where a glowing fissure runs past a terrace of six-sided columns, with a gas vent and an automated sensor station.",
+      "sceneKind": "basalt-fissures",
+      "locations": [
+        {
+          "id": "sensor-station",
+          "name": "Sensor station",
+          "position": [
+            12,
+            1.5,
+            14
+          ],
+          "view": [
+            26,
+            9,
+            30
+          ],
+          "purpose": "An automated station that logs gas, temperature and ground tremors.",
+          "observations": [
+            "Air temperature at the station about 41 °C (fictional world value).",
+            "A future atmospheric chemistry workstation could be based here."
+          ]
+        },
+        {
+          "id": "fissure",
+          "name": "Glowing fissure",
+          "position": [
+            0,
+            0.5,
+            -4
+          ],
+          "view": [
+            10,
+            10,
+            10
+          ],
+          "purpose": "An open crack where molten rock glows below a thin crust.",
+          "observations": [
+            "Crust beside the crack about 1 m thick (fictional world value).",
+            "The glow is illustrative, not a simulation of lava or heat flow."
+          ]
+        },
+        {
+          "id": "columns",
+          "name": "Basalt columns",
+          "position": [
+            -26,
+            9,
+            2
+          ],
+          "view": [
+            -6,
+            14,
+            18
+          ],
+          "purpose": "A terrace of six-sided rock columns that formed as thick lava cooled and cracked.",
+          "observations": [
+            "Columns about 1.5–2 m across (fictional world value)."
+          ]
+        },
+        {
+          "id": "gas-vent",
+          "name": "Gas vent",
+          "position": [
+            18,
+            2,
+            -16
+          ],
+          "view": [
+            30,
+            10,
+            -2
+          ],
+          "purpose": "A vent releasing sulfur-rich gas into the hazy air.",
+          "observations": [
+            "The plume shown is illustrative, not simulated.",
+            "A possible future site for an SO₂ → sulfate chemistry investigation."
+          ]
+        }
+      ]
     }
   ]
 }

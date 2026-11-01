@@ -20,7 +20,10 @@ function autoLowQuality() {
   return touch || (navigator.hardwareConcurrency || 4) < 6;
 }
 // Surface renderers by the catalog's environment sceneKind; each is its own lazy chunk.
-const SCENE_LOADERS = { 'ocean-station': () => import('./ExplorerEnvironment.jsx') };
+const SCENE_LOADERS = {
+  'ocean-station': () => import('./ExplorerEnvironment.jsx'),
+  'basalt-fissures': () => import('./ExplorerBasaltEnvironment.jsx')
+};
 const defaultLoader = ({ fail, sceneKind }) => (fail ? Promise.reject(new Error('Simulated landing failure'))
   : SCENE_LOADERS[sceneKind] ? SCENE_LOADERS[sceneKind]() : Promise.reject(new Error(`No renderer for ${sceneKind}`)));
 

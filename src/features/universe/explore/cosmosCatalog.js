@@ -14,7 +14,10 @@ export const GALAXY_TYPES = ['spiral', 'elliptical'];
 export const ACCESS = ['public', 'gated'];
 export const FACT_TAGS = { 'fictional-world': 'Fictional world', 'real-science': 'Real science' };
 /** Environment renderers the client ships, with the location ids each scene places structures at. */
-export const SCENES = { 'ocean-station': ['platform', 'tide-gauge', 'weather-mast', 'vent'] };
+export const SCENES = {
+  'ocean-station': ['platform', 'tide-gauge', 'weather-mast', 'vent'],
+  'basalt-fissures': ['sensor-station', 'fissure', 'columns', 'gas-vent']
+};
 
 const isId = (v) => typeof v === 'string' && /^[a-z0-9][a-z0-9-]{0,63}$/.test(v);
 const isText = (v, max = 400) => typeof v === 'string' && v.trim().length > 0 && v.length <= max;
