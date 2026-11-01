@@ -19,7 +19,8 @@ const SCENARIOS = [
 function Harness() {
   const [open, setOpen] = useState(true);
   if (open) return <MyUniverseExplorer preview catalogUrl={flags.get('catalog') === 'missing' ? '/cosmos/v1/missing.json' : catalogUrl} calm={on('calm')} failLanding={on('fail')} forceTextView={on('text')}
-    showMetrics={flags.get('metrics') !== '0'} onClose={() => setOpen(false)} />;
+    showMetrics={flags.get('metrics') !== '0'} onClose={() => setOpen(false)}
+    onOpenActivity={(id, opts) => { if (id === 'hexgrid' && opts?.scenario === 'thalassa-station') location.href = './hexgrid-thalassa.html'; }} />;
   return <main className="spike-home">
     <h1>My Universe explorer · Stage B spike</h1>
     <p>Loads the published catalog (public/cosmos/v1/catalog.json). Fictional worlds. No Firebase, no saves, no XP. Use these scenarios on the physical iPad and laptop and note the frame rate and renderer counts shown in the corner.</p>

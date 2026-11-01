@@ -13,15 +13,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { db, doc, getDoc, setDoc } from '../../../firebase.js';
 import { normaliseCity, starterCity } from './hexGridModel.js';
 
-const localKey = (uid) => `hearisland.hexGrid.v1:${uid || 'signed-out'}`;
+export const DEFAULT_PROJECT_ID = 'hex-grid';
+/**
+ * Where a project lives. The default project keeps its original keys; a scenario
+ * project (e.g. My Universe's Thalassa station) gets its own, so the two never mix.
+ */
+export function projectStorage(projectId = DEFAULT_PROJECT_ID, uid) {
+  const who = uid || 'signed-out';
+  const local = projectId === DEFAULT_PROJECT_ID ? `hearisland.hexGrid.v1:${who}` : `hearisland.hexGrid.v1:${projectId}:${who}`;
+  return { local, cloudPath: `${uid}/activityProgress/${projectId}`, activityId: projectId };
+}
 const CLOUD_DEBOUNCE_MS = 2500;
 const LOCAL_DEBOUNCE_MS = 300;
 
-function emptyProject() {
+function emptyProject(seedCity) {
   return {
     role: null,
     portfolioUrl: '',
-    city: starterCity(),
+    city: seedCity || starterCity(),
     baseline: null, // { city, lockedAt }
     draft: { metric: '', expect: 'increase', predicted: '', because: '', idea: '' },
     guideSeen: false,
@@ -30,8 +39,8 @@ function emptyProject() {
   };
 }
 
-function hydrate(stored) {
-  const base = emptyProject();
+function hydrate(stored, seedCity) {
+  const base = emptyProject(seedCity);
   if (!stored || typeof stored !== 'object') return base;
   return {
     ...base,
@@ -48,40 +57,42 @@ function clean(value) {
   return JSON.parse(JSON.stringify(value, (_, v) => (typeof v === 'number' && !Number.isFinite(v) ? null : v)));
 }
 
-function readLocal(uid) {
+function readLocal(key, seedCity) {
   try {
-    const raw = localStorage.getItem(localKey(uid));
-    return raw ? hydrate(JSON.parse(raw)) : null;
+    const raw = localStorage.getItem(key);
+    return raw ? hydrate(JSON.parse(raw), seedCity) : null;
   } catch {
     return null;
   }
 }
 
-function writeLocal(uid, project) {
-  try { localStorage.setItem(localKey(uid), JSON.stringify(clean(project))); } catch { /* quota / private mode */ }
+function writeLocal(key, project) {
+  try { localStorage.setItem(key, JSON.stringify(clean(project))); } catch { /* quota / private mode */ }
 }
 
-export function useHexGridProject(uid) {
-  const [project, setProject] = useState(() => readLocal(uid) || emptyProject());
+/** `projectId` and `seedCity` are only set by scenarios; the default project behaves exactly as before. */
+export function useHexGridProject(uid, { projectId = DEFAULT_PROJECT_ID, seedCity = null } = {}) {
+  const store = projectStorage(projectId, uid);
+  const [project, setProject] = useState(() => readLocal(store.local, seedCity) || emptyProject(seedCity));
   const [syncState, setSyncState] = useState('idle');
   const localTimer = useRef(null);
   const cloudTimer = useRef(null);
   const loadedFor = useRef(null);
 
   useEffect(() => {
-    if (!uid || loadedFor.current === uid) return;
-    loadedFor.current = uid;
+    if (!uid || loadedFor.current === store.cloudPath) return;
+    loadedFor.current = store.cloudPath;
     let cancelled = false;
     (async () => {
       try {
-        const snap = await getDoc(doc(db, 'users', `${uid}/activityProgress/hex-grid`));
+        const snap = await getDoc(doc(db, 'users', store.cloudPath));
         const exists = typeof snap.exists === 'function' ? snap.exists() : snap.exists;
         if (cancelled || !exists) return;
-        const remote = hydrate(snap.data());
-        const local = readLocal(uid);
+        const remote = hydrate(snap.data(), seedCity);
+        const local = readLocal(store.local, seedCity);
         if (!local || (remote.updatedAt || 0) > (local.updatedAt || 0)) {
           setProject(remote);
-          writeLocal(uid, remote);
+          writeLocal(store.local, remote);
         }
       } catch (err) {
         console.warn('[HexGrid] Could not load project:', err?.message);
@@ -89,19 +100,20 @@ export function useHexGridProject(uid) {
       }
     })();
     return () => { cancelled = true; };
-  }, [uid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, store.cloudPath]);
 
   useEffect(() => {
     if (!project.updatedAt) return undefined;
     clearTimeout(localTimer.current);
-    localTimer.current = setTimeout(() => writeLocal(uid, project), LOCAL_DEBOUNCE_MS);
+    localTimer.current = setTimeout(() => writeLocal(store.local, project), LOCAL_DEBOUNCE_MS);
     if (!uid) return () => clearTimeout(localTimer.current);
 
     clearTimeout(cloudTimer.current);
     cloudTimer.current = setTimeout(async () => {
       setSyncState('saving');
       try {
-        await setDoc(doc(db, 'users', `${uid}/activityProgress/hex-grid`), clean({ ...project, activityId: 'hex-grid' }));
+        await setDoc(doc(db, 'users', store.cloudPath), clean({ ...project, activityId: store.activityId }));
         setSyncState('saved');
       } catch (err) {
         console.warn('[HexGrid] Cloud save failed, keeping local copy:', err?.message);
@@ -113,7 +125,8 @@ export function useHexGridProject(uid) {
       clearTimeout(localTimer.current);
       clearTimeout(cloudTimer.current);
     };
-  }, [project, uid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project, uid, store.cloudPath]);
 
   const update = useCallback((fn) => {
     setProject((p) => ({ ...fn(p), updatedAt: Date.now() }));

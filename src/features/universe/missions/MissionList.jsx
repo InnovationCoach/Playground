@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react';
-import { missionsForPlanet } from './spacecraftJourney.js';
+import { missionsForPlanet } from './registry.js';
 
 /** Missions linked to a planet. Drafts appear only in labelled previews until an educator has reviewed them. */
 export function MissionList({ planetId, opts, onOpen }) {

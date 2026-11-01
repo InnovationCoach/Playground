@@ -171,5 +171,3 @@ export const SPACECRAFT_JOURNEY = {
   ]
 };
 
-export const MISSIONS = [SPACECRAFT_JOURNEY];
-export const missionsForPlanet = (planetId, { preview }) => MISSIONS.filter((m) => m.planetIds.includes(planetId) && (m.status !== 'draft' || preview));

@@ -14,11 +14,11 @@ const STARS = (() => {
 /** Personal themes and self-marked milestones on a still star plate, plus clearly inactive future bays. */
 // The earlier SVG island prototype stays in src/features/universe/ (preview: tests/universe-preview/index.html)
 // but is not offered to learners: the approved vision replaced the island with the deep-space explorer.
-export function SparkUniverse({ prefs, plan, onPersonalise, active = true }) {
+export function SparkUniverse({ prefs, plan, onPersonalise, active = true, onOpenActivity }) {
   const [explorerOpen, setExplorerOpen] = useState(false);
   const achieved = splitGoals(plan).completed.slice(0, 6);
   return <>
-    {explorerOpen && <Suspense fallback={<p role="status">Opening My Universe…</p>}><MyUniverseExplorer preview={false} calm={!!prefs.calm} active={active} onClose={() => setExplorerOpen(false)}/></Suspense>}
+    {explorerOpen && <Suspense fallback={<p role="status">Opening My Universe…</p>}><MyUniverseExplorer preview={false} calm={!!prefs.calm} active={active} onClose={() => setExplorerOpen(false)} onOpenActivity={onOpenActivity ? (id, options) => { setExplorerOpen(false); onOpenActivity(id, options); } : undefined}/></Suspense>}
     <section className="ig-plate" style={{ marginBottom: 20 }} aria-label="My Universe exploration preview"><h4>Explore My Universe</h4><p className="sd-caption">A first look at deep-space exploration: two galaxies, one star system and an ocean world you can land on. Sample data only; nothing is saved and nothing unlocks.</p><button type="button" className="sd-primary" onClick={() => setExplorerOpen(true)}>Enter My Universe <ArrowRight size={17}/></button></section>
     <section className="ig-universe" aria-labelledby="ig-universe-title">
       <svg className="ig-starfield" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
