@@ -644,3 +644,17 @@ Find a Quest (merged in PR #5) is hosting-only, with honest "not connected" stat
 | Rollback | `npx firebase hosting:clone dnd-master-73449:pre-universe-20261101 dnd-master-73449:live --project dnd-master-73449` |
 
 **Follow-up:** `main` doesn't yet contain My Universe. Merge PR #4 so that `main` matches production.
+
+### 13.18 Go 4 decided: a coach-approved mission unlocks a planet — 1 November 2026
+
+- **Decision (Mani):** a locked planet opens only when the server holds a coach-approved submission of a linked mission. The browser, self-checks and simulation outputs never unlock anything.
+- **Specification:** `docs/universe-handoffs/GEMINI GO-4.md`:
+  - server-only `missionSubmissions`
+  - learner submit and coach review endpoints
+  - drafts rejected in production
+  - a server-side mission registry
+  - an `unlock: { type: 'mission-approved', missionId }` link from planets
+  - emulator tests
+- **Build:** Gemini (emulator only), then Claude's front end (submit button, live access status, coach review list).
+- **Status:** no deploys; Go 5 still needs Mani's "go".
+- **PR housekeeping:** PR #4 was merged at `b87843a`, before the pre-launch fixes. PR #6 brings `main` up to the live release (`44b3abc`, `b2d6c0a`, `f3dd3fb`). Claude could not merge it (the merge was blocked by a safety check), so it is waiting for Mani.
