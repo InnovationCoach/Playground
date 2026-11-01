@@ -1,9 +1,9 @@
 /**
- * Server Authoritative Mission Registry
- * Conforms to GEMINI GO-4.md §4.
+ * Server Authoritative Mission Registry & Planet Unlock Map
+ * Conforms to GEMINI GO-4.md §4 and Review Fixes 1–3.
  *
- * The server must never trust mission metadata sent by the client.
- * Tracks valid missions, supported versions, routes, and educator review status.
+ * The server must never trust mission or unlock metadata sent by the client.
+ * All unlock decisions fail closed: unlisted planets are locked.
  */
 
 export const MISSIONS = {
@@ -25,10 +25,28 @@ export const MISSIONS = {
 };
 
 /**
+ * Server-side Planet Unlock Map (Matching Catalog 1.1.0)
+ * Unlisted or unknown planets always fail closed ({ type: 'locked' }).
+ */
+export const PLANET_UNLOCKS = {
+  'thalassa': { type: 'public' },
+  'ignis': { type: 'public' },
+  'boreas': { type: 'mission-approved', missionId: 'spacecraft-journey' }
+};
+
+/**
  * Retrieve mission metadata by ID.
  */
 export function getMission(missionId) {
   return MISSIONS[missionId] || null;
+}
+
+/**
+ * Retrieve planet unlock specification.
+ * Fails closed: unlisted planets return { type: 'locked', reason: 'unknown-destination' }.
+ */
+export function getPlanetUnlock(planetId) {
+  return PLANET_UNLOCKS[planetId] || { type: 'locked', reason: 'unknown-destination' };
 }
 
 /**
@@ -51,4 +69,12 @@ export function isMissionReviewed(missionId, version) {
   const versionObj = mission.versions?.[version];
   if (!versionObj) return false;
   return versionObj.status === 'reviewed';
+}
+
+/**
+ * Determine if running in local emulator environment.
+ * ALLOW_DRAFT_MISSIONS is only honoured when this returns true.
+ */
+export function isEmulatorEnvironment() {
+  return process.env.FUNCTIONS_EMULATOR === 'true' || Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 }

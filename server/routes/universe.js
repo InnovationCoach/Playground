@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { requireClaims } from '../middleware/auth.js';
 import { sendError } from '../lib/errors.js';
-import { getMission, isValidMissionRoute, isMissionReviewed } from '../lib/universe/missions.js';
+import { getMission, isValidMissionRoute, isMissionReviewed, getPlanetUnlock, isEmulatorEnvironment } from '../lib/universe/missions.js';
 
 const router = Router();
 
@@ -17,6 +17,12 @@ router.post('/missions/:missionId/submissions', requireClaims, async (req, res) 
 
   if (!learnerUid) {
     return sendError(res, 401, 'UNAUTHENTICATED', 'Sign-in required.');
+  }
+
+  // Only learner and student roles may submit mission reflections
+  const callerRole = req.caller?.role;
+  if (!['student', 'learner'].includes(callerRole)) {
+    return sendError(res, 403, 'FORBIDDEN', 'Only learners and students may submit mission reflections.');
   }
 
   const mission = getMission(missionId);
@@ -34,9 +40,10 @@ router.post('/missions/:missionId/submissions', requireClaims, async (req, res) 
   }
 
   // Draft check: only reviewed missions may accept submissions in production.
-  // Allow drafts if process.env.ALLOW_DRAFT_MISSIONS === 'true' (test/emulator flag).
+  // ALLOW_DRAFT_MISSIONS is strictly honoured ONLY in the emulator environment.
   const isReviewed = isMissionReviewed(missionId, missionVersion);
-  if (!isReviewed && process.env.ALLOW_DRAFT_MISSIONS !== 'true') {
+  const allowDraftInEmulator = isEmulatorEnvironment() && process.env.ALLOW_DRAFT_MISSIONS === 'true';
+  if (!isReviewed && !allowDraftInEmulator) {
     return sendError(res, 409, 'CONFLICT', `Mission "${missionId}" is a draft and cannot be submitted for coach review.`);
   }
 
@@ -55,16 +62,20 @@ router.post('/missions/:missionId/submissions', requireClaims, async (req, res) 
       return sendError(res, 409, 'CONFLICT', 'You already have an open submission for this mission.');
     }
 
-    // Retrieve learner classIds from user document or claims
+    // Retrieve learner classIds and orgId from user document or claims
     const userDoc = await db.collection('users').doc(learnerUid).get();
     const classIds = userDoc.exists && Array.isArray(userDoc.data()?.classIds)
       ? userDoc.data().classIds
       : (req.caller?.classIds || []);
+    const orgId = userDoc.exists && userDoc.data()?.orgId
+      ? userDoc.data().orgId
+      : (req.caller?.orgId || 'org-welearn');
 
     const docRef = db.collection('missionSubmissions').doc();
     const submissionData = {
       id: docRef.id,
       learnerUid,
+      orgId,
       classIds,
       missionId,
       missionVersion,
@@ -125,6 +136,7 @@ router.get('/missions/submissions/mine', requireClaims, async (req, res) => {
 /**
  * POST /api/universe/access
  * Authoritative destination access check.
+ * Fails closed: unlisted or unknown planets are returned as 'locked' with evaluatedRule: 'unknown-destination'.
  */
 router.post('/access', requireClaims, async (req, res) => {
   const learnerUid = req.caller?.uid;
@@ -152,27 +164,26 @@ router.post('/access', requireClaims, async (req, res) => {
     for (const planetId of planetIds) {
       if (typeof planetId !== 'string' || planetId.length > 64) continue;
 
-      if (planetId === 'thalassa' || planetId === 'ignis') {
-        // Public planets per catalog 1.1.0
+      const unlock = getPlanetUnlock(planetId);
+      if (unlock.type === 'public') {
         destinations[planetId] = {
           status: 'available',
           evaluatedRule: null,
           isVerified: true
         };
-      } else if (planetId === 'boreas') {
-        // Gated planet unlocked by approved 'spacecraft-journey' mission
-        const isApproved = approvedMissionIds.has('spacecraft-journey');
+      } else if (unlock.type === 'mission-approved') {
+        const isApproved = approvedMissionIds.has(unlock.missionId);
         destinations[planetId] = {
           status: isApproved ? 'available' : 'locked',
-          evaluatedRule: 'mission:spacecraft-journey',
+          evaluatedRule: `mission:${unlock.missionId}`,
           isVerified: isApproved
         };
       } else {
-        // Default unconfigured planets
+        // Unknown or locked destinations fail closed
         destinations[planetId] = {
-          status: 'available',
-          evaluatedRule: null,
-          isVerified: true
+          status: 'locked',
+          evaluatedRule: unlock.reason || 'unknown-destination',
+          isVerified: false
         };
       }
     }

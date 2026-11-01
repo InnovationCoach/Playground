@@ -92,6 +92,44 @@ describe('API: Universe Missions & Coach-Approved Unlocks (Go 4)', () => {
       expect(res.body.error.message).toContain('draft and cannot be submitted');
     });
 
+    it('rejects submissions from non-student/learner roles with 403', async () => {
+      process.env.ALLOW_DRAFT_MISSIONS = 'true';
+      const res = await env.request('POST', '/api/universe/missions/spacecraft-journey/submissions', {
+        token: coachTokenA,
+        body: {
+          routeId: 'guided',
+          missionVersion: '0.1.0-draft',
+          reflection: 'Coaches cannot submit reflections as learners.'
+        }
+      });
+      expect(res.status).toBe(403);
+      expect(res.body.error.message).toContain('Only learners and students may submit');
+    });
+
+    it('ignores ALLOW_DRAFT_MISSIONS when not running in an emulator environment', async () => {
+      const savedHost = process.env.FIRESTORE_EMULATOR_HOST;
+      const savedFunctions = process.env.FUNCTIONS_EMULATOR;
+      process.env.ALLOW_DRAFT_MISSIONS = 'true';
+      delete process.env.FIRESTORE_EMULATOR_HOST;
+      process.env.FUNCTIONS_EMULATOR = 'false';
+
+      try {
+        const res = await env.request('POST', '/api/universe/missions/spacecraft-journey/submissions', {
+          token: learnerTokenA,
+          body: {
+            routeId: 'guided',
+            missionVersion: '0.1.0-draft',
+            reflection: 'Valid reflection with more than twenty characters.'
+          }
+        });
+        expect(res.status).toBe(409);
+        expect(res.body.error.message).toContain('draft and cannot be submitted');
+      } finally {
+        process.env.FIRESTORE_EMULATOR_HOST = savedHost;
+        process.env.FUNCTIONS_EMULATOR = savedFunctions;
+      }
+    });
+
     it('rejects an invalid route or version', async () => {
       process.env.ALLOW_DRAFT_MISSIONS = 'true';
       const res = await env.request('POST', '/api/universe/missions/spacecraft-journey/submissions', {
@@ -332,6 +370,68 @@ describe('API: Universe Missions & Coach-Approved Unlocks (Go 4)', () => {
       expect(reviewRes.body.rewards).toBeUndefined();
       expect(reviewRes.body.tokens).toBeUndefined();
       expect(reviewRes.body.badges).toBeUndefined();
+    });
+
+    it('fails closed: unknown planetIds return locked with reason unknown-destination', async () => {
+      const accessRes = await env.request('POST', '/api/universe/access', {
+        token: learnerTokenA,
+        body: { planetIds: ['thalassa', 'vulcan-unlisted', 'planet-x'] }
+      });
+
+      expect(accessRes.status).toBe(200);
+      expect(accessRes.body.destinations.thalassa.status).toBe('available');
+      expect(accessRes.body.destinations['vulcan-unlisted']).toEqual({
+        status: 'locked',
+        evaluatedRule: 'unknown-destination',
+        isVerified: false
+      });
+      expect(accessRes.body.destinations['planet-x']).toEqual({
+        status: 'locked',
+        evaluatedRule: 'unknown-destination',
+        isVerified: false
+      });
+    });
+
+    it('coach list query isolates by class and never returns submissions from other classes', async () => {
+      // Learner A (Class A) submits
+      const resA = await env.request('POST', '/api/universe/missions/spacecraft-journey/submissions', {
+        token: learnerTokenA,
+        body: {
+          routeId: 'guided',
+          missionVersion: '0.1.0-draft',
+          reflection: 'Learner A reflection for class orbit A.'
+        }
+      });
+      expect(resA.status).toBe(201);
+
+      // Learner B (Class B) submits
+      const resB = await env.request('POST', '/api/universe/missions/spacecraft-journey/submissions', {
+        token: learnerTokenB,
+        body: {
+          routeId: 'guided',
+          missionVersion: '0.1.0-draft',
+          reflection: 'Learner B reflection for class orbit B.'
+        }
+      });
+      expect(resB.status).toBe(201);
+
+      // Coach A (Class A) lists submissions
+      const listA = await env.request('GET', '/api/coach/universe/submissions?status=submitted', {
+        token: coachTokenA
+      });
+      expect(listA.status).toBe(200);
+      expect(listA.body.submissions).toHaveLength(1);
+      expect(listA.body.submissions[0].learnerUid).toBe('learner_a');
+      expect(listA.body.submissions[0].classIds).toContain(CLASS_A);
+
+      // Coach B (Class B) lists submissions
+      const listB = await env.request('GET', '/api/coach/universe/submissions?status=submitted', {
+        token: coachTokenB
+      });
+      expect(listB.status).toBe(200);
+      expect(listB.body.submissions).toHaveLength(1);
+      expect(listB.body.submissions[0].learnerUid).toBe('learner_b');
+      expect(listB.body.submissions[0].classIds).toContain(CLASS_B);
     });
   });
 });

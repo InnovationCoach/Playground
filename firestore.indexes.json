@@ -64,6 +64,39 @@
         { "fieldPath": "classIds", "arrayConfig": "CONTAINS" },
         { "fieldPath": "role", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "missionSubmissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "classIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "missionSubmissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "orgId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "missionSubmissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "learnerUid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "missionSubmissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "learnerUid", "order": "ASCENDING" },
+        { "fieldPath": "missionId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
