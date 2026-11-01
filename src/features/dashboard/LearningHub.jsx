@@ -141,7 +141,7 @@ function TermProjectPlate({ project, renderReadiness }) {
   </section>;
 }
 
-export function ProgressLearningSlide({ data, project, plan, goalsLoaded, renderReadiness }) {
+export function ProgressLearningSlide({ data, project, plan, goalsLoaded, goalSync, renderReadiness }) {
   const steps = goalSteps(splitGoals(plan).active);
   return <>
     <p className="sd-intro">Recorded completion, one instrument per record. Nothing here measures speed, ability or rank.</p>
@@ -182,5 +182,9 @@ export function ProgressLearningSlide({ data, project, plan, goalsLoaded, render
       </div>
     </div>
     {project.updatedAt ? <TermProjectPlate project={project} renderReadiness={renderReadiness} /> : null}
+    <section className="ig-goals-section" aria-labelledby="ig-goals-title">
+      <h3 id="ig-goals-title" className="ig-lane-title">My goals · personal check-ins</h3>
+      <GoalsSlide plan={plan} loaded={goalsLoaded} syncState={goalSync} />
+    </section>
   </>;
 }

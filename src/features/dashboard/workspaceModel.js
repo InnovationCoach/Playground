@@ -4,7 +4,7 @@ export const THEMES = [{ id: 'dark', label: 'Dark' }, { id: 'light', label: 'Lig
 export const TOOL_IDS = ['focus', 'notes', 'checkin', 'picked', 'badges', 'readiness', 'skill'];
 // 'brand' is WeLearn's Inter text with Plus Jakarta Sans headings (see DISPLAY_FONTS); it is the default.
 export const FONTS = { brand: "'Inter', system-ui, sans-serif", system: 'system-ui, sans-serif', rounded: 'ui-rounded, system-ui, sans-serif', serif: 'Georgia, serif' };
-export const BACKGROUNDS = { plain: 'var(--gh-bg)', mist: 'linear-gradient(120deg, var(--ps-mist-a, #e8f0f5), var(--ps-mist-b, #f4edf7))', meadow: 'linear-gradient(120deg, var(--ps-meadow-a, #edf3e3), var(--ps-meadow-b, #f7f4e9))' };
+export const BACKGROUNDS = { plain: 'var(--sp-canvas, var(--gh-bg))', mist: 'linear-gradient(120deg, var(--ps-mist-a, #e8f0f5), var(--ps-mist-b, #f4edf7))', meadow: 'linear-gradient(120deg, var(--ps-meadow-a, #edf3e3), var(--ps-meadow-b, #f7f4e9))' };
 const page = (p, i) => ({
   id: `page-${i + 1}`, name: typeof p?.name === 'string' && p.name.trim() ? p.name.trim().slice(0, 32) : `My space ${i + 1}`,
   layout: p?.layout === 'slider' ? 'slider' : 'grid',

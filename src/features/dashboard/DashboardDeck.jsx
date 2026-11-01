@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, ListChecks, Target, ChartNoAxesCombined, PenTool, Orbit, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, ListChecks, Compass, ChartNoAxesCombined, PenTool, Orbit, Sparkles } from 'lucide-react';
 import { SLIDES } from './slideModel.js';
 import './dashboardDeck.css';
-const SLIDE_ICONS = { daily: ListChecks, goals: Target, progress: ChartNoAxesCombined, creative: PenTool, universe: Orbit };
+const SLIDE_ICONS = { daily: ListChecks, find: Compass, progress: ChartNoAxesCombined, creative: PenTool, universe: Orbit };
 
 /** Native touch/trackpad scrolling; every panel stays mounted to preserve drafts/audio. */
 export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, renderSlide, active, onActive, stats = {} }) {

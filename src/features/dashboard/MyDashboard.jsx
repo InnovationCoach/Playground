@@ -18,7 +18,8 @@ import { SparkUniverse } from './SparkUniverse.jsx';
 import { DIAL_FINISHES } from './instrumentModel.js';
 import { SLIDES, moveSlide } from './slideModel.js';
 import { DashboardDeck } from './DashboardDeck.jsx';
-import { DailyLearningSlide, GoalsSlide, ProgressLearningSlide, useLearningCourses } from './LearningHub.jsx';
+import { DailyLearningSlide, ProgressLearningSlide, useLearningCourses } from './LearningHub.jsx';
+import { FindQuestSlide } from './FindQuestSlide.jsx';
 import { ACCENTS, COVERS, MAX_INTERESTS, MAX_TAGLINE, loadSignals, academicProgress, badgeStatus, goalSummary, skillOfTheWeek, dayKey, streakDays } from './dashboardModel.js';
 import { useDashboardPrefs, useCloudProject, saveMood, deviceStorage, logVisit } from './dashboardStore.js';
 import { CheckinWidget, PickedWidget, BadgesWidget, ReadinessWidget, SkillWidget } from './DashboardWidgets.jsx';
@@ -108,8 +109,8 @@ function StudentDashboard({ uid, profile, classIds = [], onJoined, onOpenActivit
       <DailyLearningSlide data={data} model={model} plan={plan} project={project} firstName={profile?.displayName?.split(' ')[0]} goalsLoaded={goalsLoaded} goalSync={goalSync}
         onToggle={(item) => updatePlan((state) => toggleToday(state, item, signals.today))} onOpenActivity={onOpenActivity} />
     </>;
-    if (id === 'goals') return <GoalsSlide plan={plan} loaded={goalsLoaded} syncState={goalSync} />;
-    if (id === 'progress') return <ProgressLearningSlide data={data} project={project} plan={plan} goalsLoaded={goalsLoaded}
+    if (id === 'find') return <FindQuestSlide uid={uid} data={data} plan={plan} onOpenActivity={onOpenActivity} />;
+    if (id === 'progress') return <ProgressLearningSlide data={data} project={project} plan={plan} goalsLoaded={goalsLoaded} goalSync={goalSync}
       renderReadiness={() => <WorkspaceTools prefs={prefs} slide="progress" renderWidget={renderWidget} />} />;
     if (id === 'creative') return <PersonalSpace prefs={prefs} update={update} renderWidget={renderWidget} />;
     return <>

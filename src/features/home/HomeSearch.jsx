@@ -3,7 +3,7 @@ import { Search, SearchX, X, BookOpen, Sparkles } from 'lucide-react';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';
 import { parseActivityLabel } from '../shell/activityIcons.jsx';
-import { PROGRAMS } from '../pbl/programs/catalog.js';
+import { PROGRAMS, programById } from '../pbl/programs/catalog.js';
 import { LIBRARY_PROGRAMS } from '../pbl/programs/libraryProgramsData.js';
 import { hrefFor } from '../../app/routes.js';
 import { HOME_HERO_URL } from '../../app/brand.js';
@@ -14,6 +14,12 @@ import { getCustomPrograms, saveCustomProgram } from '../coach/programs/customPr
 import { db, collection, query as firestoreQuery, where, getDocs } from '../../firebase.js';
 import { normaliseContractProgram } from '../../services/pblService.js';
 import { subscribeToPblTransfers } from '../coach/studio/pblTransferService.js';
+import { useGoalPlan } from '../goals/useGoalPlan.js';
+import { splitGoals } from '../dashboard/slideModel.js';
+import { loadDashboardCourses } from '../dashboard/dashboardCourses.js';
+import { filterResults, tabCounts, typeCounts, courseCompetencies, availability, suggestions, normaliseCompetencyContext, NOT_CONNECTED } from './discoveryModel.js';
+import { LearningFocus, Suggestions, ResultsToolbar, CourseDetails } from './Discovery.jsx';
+import './discovery.css';
 import '../admin/admin.css';
 import '../pbl/programs/programs.css';
 import '../courses/courses.css';
@@ -36,7 +42,12 @@ const QUICK_TOPICS = [
   'Telemetry'
 ];
 
-export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = '' }) {
+const prefKey = (uid) => `hearisland.searchDiscovery.v1:${uid || 'signed-out'}`;
+function readPrefs(uid) {
+  try { return JSON.parse(sessionStorage.getItem(prefKey(uid)) || '{}') || {}; } catch { return {}; }
+}
+
+export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = '', classIds = [], activeProgramId = null, competencyContext = NOT_CONNECTED }) {
   const { t } = useLocale();
   // SPARK Home's search box opens this page at #/search/<query>.
   const [q, setQ] = useState(initialQuery);
@@ -126,6 +137,56 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
   const results = useMemo(() => (query ? searchCatalog(catalog, query) : []), [catalog, query]);
   const publishedProgramsOnly = useMemo(() => catalog.filter((c) => c.source === 'program'), [catalog]);
   const { keys, added, toggle } = useAddedCourses(uid, catalog);
+
+  /* ---------- Discovery: real learner records only ---------- */
+  const { plan, loaded: goalsLoaded } = useGoalPlan(uid);
+  const activeGoals = useMemo(() => splitGoals(plan).active, [plan]);
+  const [prefs, setPrefs] = useState(() => readPrefs(uid));
+  const savePrefs = (patch) => setPrefs((p) => {
+    const next = { ...p, ...patch };
+    try { sessionStorage.setItem(prefKey(uid), JSON.stringify(next)); } catch { /* private mode */ }
+    return next;
+  });
+  useEffect(() => { setPrefs(readPrefs(uid)); }, [uid]);
+  const tab = ['all', 'welearn', 'external'].includes(prefs.tab) ? prefs.tab : 'all';
+  const type = ['any', 'program', 'activity'].includes(prefs.type) ? prefs.type : 'any';
+  const focusId = prefs.focusId === null ? null : (activeGoals.some((g) => g.id === prefs.focusId) ? prefs.focusId : activeGoals[0]?.id ?? null);
+  const focusGoal = activeGoals.find((g) => g.id === focusId) || null;
+
+  // Enrolled/assigned courses for this learner (same read as My Dashboard). A
+  // learner or class change discards any late answer for the previous one.
+  const classKey = classIds.join('|');
+  const [courses, setCourses] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    setCourses([]);
+    if (!uid) return undefined;
+    loadDashboardCourses(uid, classKey ? classKey.split('|') : [], activeProgramId)
+      .then((r) => { if (!cancelled) setCourses(r.courses || []); })
+      .catch(() => { if (!cancelled) setCourses([]); });
+    return () => { cancelled = true; };
+  }, [uid, classKey, activeProgramId]);
+
+  // Course outcomes from the course outline that maps them explicitly.
+  const outlineCache = useMemo(() => new Map(), []);
+  const outlineFor = (item) => {
+    if (item.source !== 'program') return [];
+    if (!outlineCache.has(item.id)) outlineCache.set(item.id, courseCompetencies(PROGRAMS.find((p) => p.id === item.id) || programById(item.id)));
+    return outlineCache.get(item.id);
+  };
+  const competency = useMemo(() => normaliseCompetencyContext(competencyContext), [competencyContext]);
+  const suggested = useMemo(() => suggestions({ items: catalog, results, query, focusGoal, courses }), [catalog, results, query, focusGoal, courses]);
+  const shownResults = useMemo(() => filterResults(results, { tab, type }), [results, tab, type]);
+  const [detail, setDetail] = useState(null);
+
+  // Keep the query in the address so Back from a course returns to the same search.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const target = query ? `#/search/${encodeURIComponent(query)}` : '#/search';
+      if (window.location.hash !== target && /^#\/search(\/|$)/.test(window.location.hash)) history.replaceState(null, '', target);
+    }, 350);
+    return () => clearTimeout(id);
+  }, [query]);
   const firstName = String(displayName || '').split(' ')[0];
   const inputRef = useRef(null);
 
@@ -157,6 +218,9 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
           )}
         </form>
 
+        <LearningFocus goals={activeGoals} loaded={goalsLoaded} focusId={focusId} competency={competency}
+                       onFocus={(id) => savePrefs({ focusId: id })} />
+
         {!query && (
           <>
             <div className="hs-suggestions" role="group" aria-label="Suggested search topics">
@@ -183,13 +247,17 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
       </section>
 
       {query ? (
-        <section className="gh-page hs-results" aria-live="polite" aria-labelledby="hs-count">
-          <p id="hs-count" className="hs-count">{t(results.length === 1 ? 'home.resultCountOne' : 'home.resultCount', { n: results.length, q: query })}</p>
-          {results.length ? (
+        <>
+        {suggested.length > 0 && <Suggestions list={suggested} query={query} outlineFor={outlineFor} onDetails={setDetail} onOpenActivity={onOpenActivity} />}
+        <section className="gh-page hs-results" aria-labelledby="hs-count">
+          <h2 id="hs-count" className="hs-sr">{t(results.length === 1 ? 'home.resultCountOne' : 'home.resultCount', { n: results.length, q: query })}</h2>
+          <ResultsToolbar tab={tab} type={type} counts={tabCounts(results)} types={typeCounts(results, tab)} shown={shownResults.length} query={query}
+                          onTab={(id) => savePrefs({ tab: id })} onType={(id) => savePrefs({ type: id })} />
+          {shownResults.length ? (
             <ul className="gh-course-grid">
-              {results.map((c) => (
+              {shownResults.map((c) => (
                 <CatalogCard key={c.key} item={c} variant="button" onOpenActivity={onOpenActivity}
-                             addedKeys={keys} onToggleAdd={toggle} />
+                             addedKeys={keys} onToggleAdd={toggle} worksToward={outlineFor(c)} onDetails={setDetail} />
               ))}
             </ul>
           ) : (
@@ -204,8 +272,11 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
             </a>
           )}
         </section>
+        </>
       ) : (
-        publishedProgramsOnly.length > 0 && (
+        <>
+        <Suggestions list={suggested} query="" outlineFor={outlineFor} onDetails={setDetail} onOpenActivity={onOpenActivity} />
+        {publishedProgramsOnly.length > 0 && (
           <section className="gh-page hs-featured" aria-labelledby="hs-featured-title">
             <div className="hs-featured-header">
               <h2 id="hs-featured-title" className="hs-featured-title">
@@ -218,11 +289,16 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
             <ul className="gh-course-grid">
               {publishedProgramsOnly.slice(0, 6).map((c) => (
                 <CatalogCard key={c.key} item={c} variant="button" onOpenActivity={onOpenActivity}
-                             addedKeys={keys} onToggleAdd={toggle} />
+                             addedKeys={keys} onToggleAdd={toggle} worksToward={outlineFor(c)} onDetails={setDetail} />
               ))}
             </ul>
           </section>
-        )
+        )}
+        </>
+      )}
+      {detail && (
+        <CourseDetails item={detail} outline={outlineFor(detail)} availability={availability(detail, courses)}
+                       isAdded={keys.includes(detail.key)} onToggleAdd={toggle} onOpenActivity={onOpenActivity} onClose={() => setDetail(null)} />
       )}
     </div>
   );

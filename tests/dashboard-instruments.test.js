@@ -94,7 +94,7 @@ describe('dock status and term-project guidance', () => {
   it('shows only verified counts and never a combined percentage', () => {
     const stats = dockStats({ data: { courses: [course({ done: 1, total: 9 })] }, today: [{ id: 'a' }, { id: 'b' }], ticked: new Set(['a']), plan, goalsLoaded: true, focus: '12:04' });
     expect(stats).toEqual({
-      daily: { text: '1/2', label: '1 of 2 done today' }, goals: { text: '1', label: '1 current goal' },
+      daily: { text: '1/2', label: '1 of 2 done today' },
       progress: { text: '1/9', label: '1 of 9 sessions marked complete' }, creative: { text: '12:04', label: 'focus timer 12:04 left' }
     });
     expect(JSON.stringify(stats)).not.toContain('%');

@@ -1,0 +1,93 @@
+/* Course discovery on the search page. Built only from the page's existing
+   tokens and patterns (admin.css --gh-*, courses.css mc-chip / mc-src). */
+
+.ds-muted { color: var(--gh-text-3); }
+.ds-label { display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gh-text-3); }
+.ds-link { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--gh-purple-text); font-weight: 600; font-size: 0.86rem;
+  background: none; border: 0; padding: 0.2rem 0; cursor: pointer; text-decoration: none; font-family: inherit; }
+.ds-link:hover { text-decoration: underline; }
+.ds-sample { display: inline-block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  background: var(--gh-amber-50, #fff6e0); color: var(--gh-amber-text, #8a5700); padding: 0.12rem 0.5rem; border-radius: 999px; margin-bottom: 0.4rem; }
+.ds-note { display: flex; gap: 0.45rem; align-items: flex-start; margin: 0.5rem 0 0; font-size: 0.82rem; color: var(--gh-text-2); }
+.ds-note svg { flex-shrink: 0; margin-top: 0.15rem; color: var(--gh-text-3); }
+
+/* 1. Learning focus: one compact row under the search box */
+.ds-focus { width: min(640px, 100%); text-align: left; background: var(--gh-surface); border: 1px solid var(--gh-border);
+  border-radius: 14px; padding: 0.6rem 0.75rem; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05); }
+.ds-focus-row { display: flex; align-items: center; gap: 0.65rem; }
+.ds-focus-icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--gh-purple-50); color: var(--gh-purple-text); }
+.ds-focus-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.88rem; }
+.ds-focus-main a { color: var(--gh-purple-text); font-weight: 600; }
+.ds-focus-goals { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.ds-chip { min-height: 30px; font-size: 0.8rem; padding: 0.2rem 0.7rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-toggle { display: inline-flex; align-items: center; gap: 0.35rem; flex-shrink: 0; min-height: 36px; padding: 0.3rem 0.65rem;
+  border: 1px solid var(--gh-border); border-radius: 10px; background: var(--gh-surface); color: var(--gh-text-2);
+  font: 600 0.8rem var(--gh-font); cursor: pointer; }
+.ds-toggle:hover { border-color: var(--gh-purple-100); color: var(--gh-purple-text); }
+.ds-rot { transform: rotate(180deg); }
+.ds-focus-more { border-top: 1px solid var(--gh-border); margin-top: 0.6rem; padding-top: 0.6rem; font-size: 0.86rem; }
+.ds-focus-more p { margin: 0 0 0.35rem; }
+.ds-comp-list { list-style: none; margin: 0 0 0.4rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.ds-comp-list li { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem; border-radius: 999px;
+  background: var(--gh-green-50); color: var(--gh-green-text); font-size: 0.8rem; font-weight: 600; }
+
+/* 2. Suggested for you */
+.ds-suggest { max-width: 1200px; margin: 1.25rem auto 0; width: 100%; text-align: left; }
+.ds-suggest .hs-featured-title { margin-bottom: 0.85rem; }
+.ds-empty { margin: 0; font-size: 0.9rem; }
+.ds-suggest-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.ds-suggest-card { display: flex; flex-direction: column; gap: 0.45rem; padding: 1rem 1.1rem; background: var(--gh-surface);
+  border: 1px solid var(--gh-border); border-left: 4px solid var(--gh-purple); border-radius: 14px; box-shadow: var(--gh-shadow-sm, 0 1px 2px rgba(16, 24, 40, 0.05)); }
+.ds-suggest-title { font-family: var(--gh-font-display, var(--gh-font)); color: var(--gh-heading); font-size: 1.02rem; line-height: 1.3; }
+.ds-reasons { margin: 0; padding-left: 1.05rem; color: var(--gh-text-2); font-size: 0.86rem; line-height: 1.45; }
+.ds-reasons li::marker { color: var(--gh-purple); }
+.ds-suggest-actions { display: flex; gap: 0.5rem; margin-top: auto; padding-top: 0.35rem; flex-wrap: wrap; }
+.ds-suggest-actions .gh-btn { min-height: 38px; }
+
+/* Works toward: course outcomes on cards */
+.ds-works { display: block; font-size: 0.8rem; color: var(--gh-text-2); line-height: 1.45; }
+.ds-works-label { font-weight: 700; color: var(--gh-purple-text); }
+
+/* 3. Results toolbar */
+.ds-toolbar { display: flex; flex-direction: column; gap: 0.55rem; margin-bottom: 1rem; }
+.ds-tabs { margin-top: 0; }
+.ds-tabs .mc-chip svg { flex-shrink: 0; }
+.ds-types { margin-top: 0; }
+.ds-chip-sm { min-height: 30px; font-size: 0.8rem; padding: 0.2rem 0.7rem; }
+.ds-toolbar .hs-count { margin: 0; }
+
+/* Card details button (between card and Add/Start) */
+.ds-details-btn { align-self: flex-start; min-height: 36px; padding: 0.3rem 0.2rem; border: 0; background: none; cursor: pointer;
+  color: var(--gh-purple-text); font: 600 0.86rem var(--gh-font); text-decoration: underline; text-underline-offset: 3px; }
+.ds-details-btn:focus-visible, .ds-toggle:focus-visible, .ds-link:focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 2px; border-radius: 6px; }
+
+/* 6. Course details dialog: the platform's white card, purple tag, navy heading */
+.ds-dialog { margin: auto; inset: 0; width: min(680px, calc(100% - 24px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--gh-border);
+  border-radius: 18px; background: var(--gh-surface); color: var(--gh-text); box-shadow: var(--gh-shadow-lg, 0 12px 32px rgba(16, 24, 40, 0.14)); }
+.ds-dialog::backdrop { background: rgba(15, 44, 76, 0.45); }
+.ds-dialog-body { padding: 1.4rem 1.5rem 1.5rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.ds-dialog-head { display: flex; align-items: center; justify-content: space-between; }
+.ds-dialog .ds-close { position: static; transform: none; flex-shrink: 0; }
+.ds-detail-title { font-family: var(--gh-font-display, var(--gh-font)); color: var(--gh-heading); font-size: 1.4rem; line-height: 1.25; margin: 0; }
+.ds-detail-desc { margin: 0; color: var(--gh-text-2); line-height: 1.55; }
+.ds-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem 1rem; margin: 0.4rem 0 0;
+  padding: 0.8rem 1rem; border-radius: 12px; background: var(--gh-subtle); }
+.ds-facts dt { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gh-text-3); }
+.ds-facts dd { margin: 0.15rem 0 0; font-size: 0.88rem; color: var(--gh-text); }
+.ds-detail-section h3 { font-size: 0.95rem; color: var(--gh-heading); margin: 0.6rem 0 0.3rem; }
+.ds-detail-section > p { margin: 0 0 0.4rem; font-size: 0.82rem; }
+.ds-stages { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.2rem; font-size: 0.88rem; color: var(--gh-text-2); }
+.ds-comp-detail { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; }
+.ds-comp-detail li { font-size: 0.88rem; color: var(--gh-heading); padding-bottom: 0.5rem; border-bottom: 1px solid var(--gh-border); }
+.ds-comp-detail .ds-muted { font-size: 0.76rem; }
+.ds-statement { display: block; color: var(--gh-text-2); font-size: 0.82rem; line-height: 1.5; margin-top: 0.15rem; }
+.ds-detail-actions { margin-top: 0.6rem; }
+
+@media (max-width: 600px) {
+  .ds-focus-row { flex-wrap: wrap; }
+  .ds-toggle { width: 100%; justify-content: center; }
+  .ds-dialog-body { padding: 1.1rem; }
+  .ds-suggest-list { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .ds-rot { transform: none; } }
