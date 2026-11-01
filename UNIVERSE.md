@@ -521,3 +521,25 @@ None of these rules are applied anywhere. They remain proposals.
   - Spiral close-ups use more, finer stars and proportionally wider arms.
   - Uncharted markers sit in the outer halo on the open side of the view, clear of the core and the side panel.
 - Checked on the M5 GPU: universe, Aurora and Lyra views.
+
+### 13.11 Gemini round 2 accepted — 1 November 2026 (Claude)
+
+All 8 items in `GEMINI CORRECTIONS 2.md` were checked against `GEMINI BACKEND.md`:
+1. The non-existent size check is removed. It's replaced by per-field bounds: IDs up to 64 characters, lists up to 100 entries.
+2. `activeDestination` uses `.get(field, null)`, and test 3 covers a save at galaxy level.
+3. The test project ID is `demo-hearisland-rules`.
+4. The claim that `revision` always increases is dropped. It's kept as an integer of 0 or more, so `arrayUnion` merges still work.
+5. Preferences are now `detail: 'standard' | 'high'`.
+6. The catalog is the only source of requirement text. The access response returns `status`, `evaluatedRule` and `isVerified`.
+7. §12 is updated: packages installed, Stage B done.
+8. Size budgets are reworded, and the cold-start figure is labelled unverified.
+
+**`GEMINI BACKEND.md` is accepted as the backend proposal baseline.**
+
+Non-blocking note for implementation: the rule reads `schemaVersion`, `revision`, `lastUpdated`, `activeDestination`, `charted.{galaxies, systems, planets}` and `preferences` directly. A write missing any of them is therefore denied. This fails safe, but the save code must always send the complete envelope. Consider `keys().hasAll([...])` so the requirement is explicit.
+
+**Documentation alignment is complete:** `UNIVERSE.md`, `CLAUDE DESIGN.md` and `GEMINI BACKEND.md` are consistent.
+
+**Next decisions for Mani:**
+- **Stage C:** replace the fixture with a catalog JSON in the same shape. This is client-only and can be done on this Mac.
+- **Backend:** separate written "go" steps for each item in Gemini's §11.1 checklist (server target, billing/IAM, `/api` rewrite, the access route, staging), and for adding the `universe-v1` rules.

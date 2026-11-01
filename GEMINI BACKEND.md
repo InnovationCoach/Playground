@@ -1,17 +1,18 @@
 # GEMINI BACKEND — My Universe (Deep-Space Exploration)
 
-**Author:** Gemini (Antigravity) · **Date:** 1 November 2026 (Updated with Review Corrections) · **Role:** Backend Architecture, Existing Service Audit & Bounded Contracts  
+**Author:** Gemini (Antigravity) · **Date:** 1 November 2026 (Updated with Review Corrections Rounds 1 & 2) · **Role:** Backend Architecture, Existing Service Audit & Bounded Contracts  
 **Authorized Scope:** Documentation only (approved by Mani on 1 November 2026). No source code modification, rules deployment, dependency installation, branch creation, database mutation, data seeding, or live operations.  
 **Inputs Audited (Read-Only):**
 - `UNIVERSE.md` (GPT-6 authoritative alignment & brief)
 - `CLAUDE DESIGN.md` (Claude / Opus 5.5 visual architecture & storyboard)
 - `docs/universe-handoffs/GEMINI REQUEST.md` (GPT-6 specification & requirements)
-- `docs/universe-handoffs/GEMINI CORRECTIONS.md` (Claude / Opus 5.5 review corrections)
+- `docs/universe-handoffs/GEMINI CORRECTIONS.md` (Claude / Opus 5.5 review corrections round 1)
 - `docs/universe-handoffs/GEMINI NEXT.md` (Stage C alignment specification)
+- `docs/universe-handoffs/GEMINI CORRECTIONS 2.md` (Claude / Opus 5.5 review corrections round 2)
 - `docs/universe-handoffs/STEM-REUSE-AUDIT.md` (read-only module inventory)
 - `src/features/universe/explore/cosmosFixture.js` (Stage B 3D explorer catalog fixture)
 - `src/features/universe/explore/explorerModel.js` (Stage B pure navigation and access model)
-- Active codebase on base `c855527`: `firestore.rules`, `storage.rules`, `firebase.json`, `server/app.js`, `server/auth.js`, `server/routes/*`, `src/features/activities/*`.
+- Active codebase on base `c855527` / `codex/my-universe-prototype`: `firestore.rules`, `storage.rules`, `firebase.json`, `server/app.js`, `server/auth.js`, `server/routes/*`, `src/features/activities/*`.
 
 ---
 
@@ -25,9 +26,9 @@
    - The two-phase transactional Teen Quest ledger is a **proposed future pattern** (from an older local line, not present in this checkout), not existing infrastructure or a release-line benchmark.
    - **No backend services, Firestore collections, or storage buckets currently exist for My Universe**. Both existing prototypes (SVG 2.5D and R3F 3D) rely entirely on client-controlled browser `localStorage`.
 3. **Core Architectural Proposal:**
-   - **Cosmos Catalog:** Immutable, content-addressed, versioned static JSON manifests distributed via Firebase Hosting CDN (`/cosmos/v1/...`), matching the exact record fields read by the 3D explorer fixture (`cosmosFixture.js`). Authoring and review drafts are managed in an internal administrative staging collection (`adminUniverseDrafts`).
-   - **Learner State:** Non-authoritative exploration progress (viewed locations, camera preferences) stored under `users/{uid}/activityProgress/universe-v1`. The 100-entry caps, 64 KB document cap, and fixed key set are **proposed new rules (Gemini-owned)** with emulator tests; existing rules enforce only owner write access without schema or payload size checks.
-   - **Authoritative Gating:** Optional destinations evaluated by an Express service (`/api/universe/access`) that checks coach-verified competencies. When disconnected, timed out, or unverified, the client defaults to `"not-connected"` (grey dashed chip). Connecting this endpoint requires Mani's explicit approval of the server hosting target and Hosting rewrite.
+   - **Cosmos Catalog:** Immutable, content-addressed, versioned static JSON manifests distributed via Firebase Hosting CDN (`/cosmos/v1/...`), matching the exact record fields read by the 3D explorer fixture (`cosmosFixture.js`). Authoring and review drafts are managed in an internal administrative staging collection (`adminUniverseDrafts`). The catalog is the single source of truth for all authored `requirementText`.
+   - **Learner State:** Non-authoritative exploration progress stored under `users/{uid}/activityProgress/universe-v1`. The 100-entry array limits, per-field 64-character ID limits, and fixed key set are **proposed new rules (Gemini-owned)** with emulator tests (§11.2). Because Firestore security rules cannot measure aggregate document byte size or iterate over array elements, bloat is prevented via per-field limits, while array element typing and overall payload size (< 64 KB) are guarded by client-side save validation.
+   - **Authoritative Gating:** Optional destinations evaluated by an Express service (`/api/universe/access`) that checks coach-verified competencies. The response returns only status and rule verification state, deferring requirement text to the catalog. When disconnected, timed out, or unverified, the client defaults to `"not-connected"` (grey dashed chip). Connecting this endpoint requires Mani's explicit approval of the server hosting target and Hosting rewrite.
    - **Progress & Rewards:** XP, badges, and permanent item unlocks remain **strictly disabled** until an authoritative server ledger, verification pipeline, and automated test suite are formally approved.
 4. **Prototypes Preserved:** The browser saves of the SVG prototype (`spark-universe-prototype:v1:<uid>`) and the 3D prototype (`spark.universe.preview.v1`) remain completely untouched and isolated. They will not be read, migrated, or granted production entitlements.
 5. **Future Directions Bounded:** Planetary STEM workstations (such as the ocean-world floating city), weekly mission lifecycles, connected-universe snapshots, and AI drafting are evaluated as long-term architectural proposals. They are not required or authorized for initial implementation.
@@ -108,7 +109,7 @@ The Stage B 3D explorer spike reads exact record structures defined in `cosmosFi
 |---|---|---|---|
 | **Galaxy** | `id, name, type, position, tilt, colors, summary, systems[], uncharted` | Identical: `id, name, type, position, tilt, colors, summary, systems, uncharted` | **Aligned.** Preserves `colors: { core, arm, dust }` (hex strings), `tilt` (float), `position` (`[x,y,z]`), `systems` (array of system IDs), and `uncharted` (integer count). |
 | **System** | `id, galaxyId, name, starClass, starColor, summary, planets[]` | Identical: `id, galaxyId, name, starClass, starColor, summary, planets` | **Aligned.** Preserves `galaxyId`, `starClass`, `starColor`, and `planets` (array of planet IDs). |
-| **Planet** | `id, systemId, name, kind, orbit, angle, radius, rings?, colors, summary, facts[], access, requirementText?, environmentId` | Identical core fields; `facts` supported as structured array with string coercion | **Extended for Fact Tagging.** In the fixture, `facts` is `string[]`. The catalog supports objects `{ text: string, tag: "fictional-world" \| "real-science", source?: string }`. A 2-line client normalizer ensures backwards compatibility (`factText = typeof f === 'string' ? f : f.text`). `access` is `'public' \| 'gated'`. |
+| **Planet** | `id, systemId, name, kind, orbit, angle, radius, rings?, colors, summary, facts[], access, requirementText?, environmentId` | Identical core fields; `facts` supported as structured array with string coercion | **Extended for Fact Tagging.** In the fixture, `facts` is `string[]`. The catalog supports objects `{ text: string, tag: "fictional-world" \| "real-science", source?: string }`. A 2-line client normalizer ensures backwards compatibility (`factText = typeof f === 'string' ? f : f.text`). `access` is `'public' \| 'gated'`. `requirementText` is authored directly here in the catalog. |
 | **Environment** | `id, planetId, name, biome, summary, locations[]` | Identical: `id, planetId, name, biome, summary, locations` | **Aligned.** Direct 1:1 match with fixture structure. |
 | **Location** | `id, name, position, view, purpose, observations[]` | Identical: `id, name, position, view, purpose, observations` | **Aligned.** Direct 1:1 match with fixture structure. |
 
@@ -332,7 +333,7 @@ The Stage B 3D explorer spike reads exact record structures defined in `cosmosFi
 ---
 
 ### 2.2 Learner Exploration State (Non-Authoritative)
-Learner exploration data (what destinations have been inspected, client camera preferences, and local bookmarks) is non-authoritative convenience data. It must never unlock destinations or grant rewards on its own.
+Learner exploration data (what destinations have been inspected, client visual detail setting, and bookmarks) is non-authoritative convenience data. It must never unlock destinations or grant rewards on its own.
 
 *Firestore Document Path:*
 ```text
@@ -348,7 +349,7 @@ match /activityProgress/{docId} {
 }
 ```
 > [!IMPORTANT]
-> The existing production rule allows any owner write without checking document keys, data types, or payload sizes. The 100-entry array limits, 64 KB document size cap, and strict key validation described below are **proposed new rules (Gemini-owned)** that require formal review and emulator testing before deployment (see §11.2). They are **not** existing platform protections.
+> The existing production rule allows any owner write without checking document keys, data types, or payload sizes. The 100-entry array limits, per-field 64-character ID limits, and strict key validation described below are **proposed new rules (Gemini-owned)** that require formal review and emulator testing before deployment (see §11.2). They are **not** existing platform protections.
 
 #### Proposed Envelope Schema
 ```json
@@ -369,11 +370,13 @@ match /activityProgress/{docId} {
     "planets": ["thalassa", "ignis"]
   },
   "preferences": {
-    "calmDrift": false,
-    "preferredScale": "standard"
+    "detail": "standard"
   }
 }
 ```
+*Note on Destination Levels:* Unvisited or higher-level states omit sub-level keys (e.g. at galaxy level, only `galaxyId` is present; `systemId`, `planetId`, etc. are omitted). Security rules must read these with `.get()` defaults to prevent read failures on partial paths.
+
+*Note on Preferences:* Stores only 3D exploration visual detail (`'standard' | 'high'`). Calm mode is managed globally by dashboard preferences and is not duplicated here.
 
 ---
 
@@ -398,25 +401,29 @@ Content-Type: application/json
   "destinations": {
     "thalassa": {
       "status": "available",
-      "reason": null
+      "evaluatedRule": null,
+      "isVerified": true
     },
     "ignis": {
       "status": "locked",
-      "requirementText": "Requires verified competency in Atmospheric Sulfur Cycles.",
       "evaluatedRule": "comp-env-sci-so2",
       "isVerified": false
     },
     "boreas": {
       "status": "available",
-      "reason": null
+      "evaluatedRule": null,
+      "isVerified": true
     }
   }
 }
 ```
 
+*Single Source of Truth for Requirement Text:*
+The catalog (`/cosmos/v1/catalog.json`) owns `requirementText`. The access service returns only destination `status` (`available` | `locked`), `evaluatedRule`, and `isVerified`. When a destination is `locked`, the client displays the authored `requirementText` from the catalog.
+
 *Proposed Latency Budget & Service Down Fallback:*
 - **Latency Budget (Proposed):** Target < 250ms (evaluates custom claims in token and cached student progress). This is an architectural budget target, not a measured benchmark.
-- **Service Down / Network Failure Fallback:** If the endpoint returns 5xx, times out (> 3000ms), or network connectivity fails, the client MUST treat all gated destinations as `"not-connected"` (rendered as Claude's grey dashed chip: **Access not connected**). Public destinations remain `"available"`. The UI remains fully interactive and never crashes or blocks.
+- **Service Down / Network Failure Fallback:** If the endpoint returns 5xx, times out (> 3000ms), or network connectivity fails, the client MUST gracefully map all requirement-gated destinations to Claude's **`not-connected`** status (grey dashed chip). Public destinations remain `"available"`. The UI remains fully interactive and never crashes or blocks.
 
 ---
 
@@ -434,7 +441,7 @@ In shared school environments (e.g. Chromebooks or shared iPads), multiple stude
 - **Auth Token Expiration:** Tokens expire after 60 minutes. The access evaluation endpoint will reject expired tokens with `401 UNAUTHENTICATED`, prompting the shell to refresh credentials.
 
 ### 3.3 Concurrency, Conflict Resolution & Retry Idempotency
-- **Optimistic Concurrency:** The learner envelope includes a monotonically increasing integer: `revision`.
+- **Optimistic State Tracking:** The learner envelope includes an integer `revision` (tracked by client code to observe state sequence changes). Security rules validate `revision is int && revision >= 0` rather than enforcing strict monotonicity on write, which preserves non-destructive atomic `FieldValue.arrayUnion()` operations without requiring read-modify-write transactional locking.
 - **Client Writes:** When writing to `activityProgress/universe-v1`, client writes merge non-destructively:
   - Charted destination lists use `FieldValue.arrayUnion()`.
   - Timestamp updates use `FieldValue.serverTimestamp()`.
@@ -445,8 +452,8 @@ In shared school environments (e.g. Chromebooks or shared iPads), multiple stude
   The server verifies this key against an append-only event log before applying state changes.
 
 ### 3.4 Rate Limiting & Storage Quotas
-- **Payload Cap (Proposed New Rule):** Total document size for `activityProgress/universe-v1` must not exceed **64 KB**. If an envelope exceeds this size during validation, it is rejected by security rules to prevent document bloat.
-- **Array Caps (Proposed New Rule):** Arrays under `charted` are capped at **100 entries each**.
+- **Field Bounds & Document Quotas (Proposed New Rule):** Because Firestore security rules cannot measure total document byte size (there is no `request.resource.size()` in Firestore rules), bloat is prevented through strict per-field constraints: every ID string is bounded to `<= 64` characters (`size() <= 64`), and every charted array is bounded to `<= 100` entries. Client-side validation enforces an overall target budget under 64 KB before dispatching writes.
+- **Array Caps (Proposed New Rule):** Arrays under `charted` are capped at **100 entries each**. Note that Firestore rules cannot inspect individual array elements; type and length validation of array entries is performed by client-side save logic and future server pruning.
 - **API Rate Limiting (Proposed):** The `/api/universe/*` Express endpoints will implement token-bucket rate limiting via `checkRateLimit` (e.g., maximum 30 requests per minute per UID).
 
 ---
@@ -571,7 +578,7 @@ Manifests will live as **versioned static JSON files distributed via Firebase Ho
 **Response:**
 **Yes.** Charted/discovered markers are non-authoritative client convenience data.
 - **Location:** `users/{uid}/activityProgress/universe-v1`.
-- **Proposed New Rules & Limits:** Arrays for `charted.galaxies`, `charted.systems`, `charted.planets`, and `charted.environments` are capped at **100 entries each**. The total document payload is hard-capped at **64 KB**. Client writes cannot write arbitrary keys outside the defined schema.
+- **Proposed New Rules & Limits:** Arrays for `charted.galaxies`, `charted.systems`, `charted.planets`, and `charted.environments` are capped at **100 entries each**. Individual string IDs in `activeDestination` are capped at **64 characters**. Client-side validation bounds total document size under 64 KB. Client writes cannot write arbitrary keys outside the defined schema.
 - **Important Note:** These caps and schema constraints are **proposed new rules** (§11.2) to be verified in emulator tests, not existing Firestore protections.
 
 ### Question 4: Legacy Prototype Saves
@@ -631,7 +638,7 @@ Currently, the Express server in `server/app.js` is not wired to public hosting 
 | Target | Architecture | Pros | Cons | Recommendation |
 |---|---|---|---|---|
 | **Option A: Cloud Run (Containerized Express)** | Containerizes existing `server/app.js` using Dockerfile. Firebase Hosting rewrites `/api/**` to Cloud Run service. | Matches existing full Express app; unified process; easy local Docker parity; supports websockets or persistent connections if ever needed. | Requires GCP Artifact Registry and Cloud Run service provisioning. | **Recommended for long-term production.** Clean separation of API compute and static CDN. |
-| **Option B: Cloud Functions (2nd Gen `onRequest`)** | Exports Express app wrapped in `onRequest` from `functions/index.js`. Firebase Hosting rewrites `/api/**` to the function. | Native Firebase CLI deployment (`firebase deploy --only functions`); minimal GCP console setup. | Cold starts on 2nd Gen can hit 1.5–3s without min-instances; requires refactoring `functions/index.js` to mount the Express app. | **Viable alternative.** Simpler deployment workflow if Cloud Run IAM setup is restricted. |
+| **Option B: Cloud Functions (2nd Gen `onRequest`)** | Exports Express app wrapped in `onRequest` from `functions/index.js`. Firebase Hosting rewrites `/api/**` to the function. | Native Firebase CLI deployment (`firebase deploy --only functions`); minimal GCP console setup. | Cold starts on 2nd Gen functions without min-instances can add initial request latency (unverified in this project); requires refactoring `functions/index.js` to mount the Express app. | **Viable alternative.** Simpler deployment workflow if Cloud Run IAM setup is restricted. |
 
 #### Required `firebase.json` Hosting Rewrite Proposal
 To route `/api/**` traffic from the frontend domain to the server, `firebase.json` must be updated:
@@ -724,23 +731,26 @@ function isValidUniverseProgress() {
   // 1. Strict key restriction (no unauthorized injection of rewards/XP)
   return data.keys().hasOnly(['schemaVersion', 'revision', 'lastUpdated', 'activeDestination', 'charted', 'preferences'])
     
-    // 2. Schema version and monotonic revision
+    // 2. Schema version and revision counter
     && data.schemaVersion is int
     && data.schemaVersion == 1
     && data.revision is int
     && data.revision >= 0
     && data.lastUpdated is timestamp
     
-    // 3. Active destination shape
+    // 3. Active destination shape (using .get() to prevent errors when keys are omitted at higher levels)
     && data.activeDestination is map
     && data.activeDestination.keys().hasOnly(['galaxyId', 'systemId', 'planetId', 'environmentId', 'locationId'])
-    && (data.activeDestination.galaxyId == null || data.activeDestination.galaxyId is string)
-    && (data.activeDestination.systemId == null || data.activeDestination.systemId is string)
-    && (data.activeDestination.planetId == null || data.activeDestination.planetId is string)
-    && (data.activeDestination.environmentId == null || data.activeDestination.environmentId is string)
-    && (data.activeDestination.locationId == null || data.activeDestination.locationId is string)
+    && (data.activeDestination.get('galaxyId', null) == null || (data.activeDestination.galaxyId is string && data.activeDestination.galaxyId.size() <= 64))
+    && (data.activeDestination.get('systemId', null) == null || (data.activeDestination.systemId is string && data.activeDestination.systemId.size() <= 64))
+    && (data.activeDestination.get('planetId', null) == null || (data.activeDestination.planetId is string && data.activeDestination.planetId.size() <= 64))
+    && (data.activeDestination.get('environmentId', null) == null || (data.activeDestination.environmentId is string && data.activeDestination.environmentId.size() <= 64))
+    && (data.activeDestination.get('locationId', null) == null || (data.activeDestination.locationId is string && data.activeDestination.locationId.size() <= 64))
     
     // 4. Charted arrays bounded (maximum 100 entries each to prevent document bloat)
+    // Note: Firestore Security Rules cannot iterate over array elements (no map/every operator).
+    // Array element types and individual string lengths are enforced by client validation before save,
+    // with optional server cleanup/pruning.
     && data.charted is map
     && data.charted.keys().hasOnly(['galaxies', 'systems', 'planets', 'environments'])
     && data.charted.galaxies is list
@@ -752,14 +762,10 @@ function isValidUniverseProgress() {
     && (data.charted.get('environments', []) is list)
     && data.charted.get('environments', []).size() <= 100
     
-    // 5. Preferences shape
+    // 5. Preferences shape (aligned to explorer visual detail setting)
     && data.preferences is map
-    && data.preferences.keys().hasOnly(['calmDrift', 'preferredScale'])
-    && data.preferences.calmDrift is bool
-    && data.preferences.preferredScale in ['compact', 'standard', 'expanded']
-    
-    // 6. Hard payload size limit (under 64 KB)
-    && request.resource.size() <= 64 * 1024;
+    && data.preferences.keys().hasOnly(['detail'])
+    && (data.preferences.get('detail', 'standard') in ['standard', 'high']);
 }
 
 // Subcollection rule inside match /users/{userId}
@@ -812,15 +818,14 @@ const validPayload = {
     environments: ['thalassa-station']
   },
   preferences: {
-    calmDrift: false,
-    preferredScale: 'standard'
+    detail: 'standard'
   }
 };
 
 describe('Firestore Security Rules: activityProgress/universe-v1', () => {
   beforeAll(async () => {
     testEnv = await initializeTestEnvironment({
-      projectId: 'dnd-master-73449-test',
+      projectId: 'demo-hearisland-rules',
       firestore: {
         rules: fs.readFileSync('firestore.rules', 'utf8'),
         host: '127.0.0.1',
@@ -849,21 +854,44 @@ describe('Firestore Security Rules: activityProgress/universe-v1', () => {
     await assertSucceeds(docRef.set(validPayload));
   });
 
-  it('3. Unauthenticated user cannot read or write universe-v1 progress', async () => {
+  it('3. Owner can save progress at galaxy level (omitted sub-levels)', async () => {
+    const studentDb = testEnv.authenticatedContext('student_1', { role: 'student' }).firestore();
+    const docRef = studentDb.doc('users/student_1/activityProgress/universe-v1');
+    const galaxyLevelPayload = {
+      schemaVersion: 1,
+      revision: 2,
+      lastUpdated: new Date(),
+      activeDestination: {
+        galaxyId: 'lyra-spiral'
+      },
+      charted: {
+        galaxies: ['lyra-spiral'],
+        systems: [],
+        planets: [],
+        environments: []
+      },
+      preferences: {
+        detail: 'standard'
+      }
+    };
+    await assertSucceeds(docRef.set(galaxyLevelPayload));
+  });
+
+  it('4. Unauthenticated user cannot read or write universe-v1 progress', async () => {
     const anonDb = testEnv.unauthenticatedContext().firestore();
     const docRef = anonDb.doc('users/student_1/activityProgress/universe-v1');
     await assertFails(docRef.get());
     await assertFails(docRef.set(validPayload));
   });
 
-  it('4. Another student cannot read or write student_1 progress', async () => {
+  it('5. Another student cannot read or write student_1 progress', async () => {
     const student2Db = testEnv.authenticatedContext('student_2', { role: 'student' }).firestore();
     const docRef = student2Db.doc('users/student_1/activityProgress/universe-v1');
     await assertFails(docRef.get());
     await assertFails(docRef.set(validPayload));
   });
 
-  it('5. Coach sharing class with student can read student_1 progress', async () => {
+  it('6. Coach sharing class with student can read student_1 progress', async () => {
     // Setup student profile with classIds
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await context.firestore().doc('users/student_1').set({ classIds: ['class_bio_1'] });
@@ -879,7 +907,7 @@ describe('Firestore Security Rules: activityProgress/universe-v1', () => {
     await assertSucceeds(docRef.get());
   });
 
-  it('6. Coach cannot write or overwrite student_1 progress', async () => {
+  it('7. Coach cannot write or overwrite student_1 progress', async () => {
     const coachDb = testEnv.authenticatedContext('coach_1', {
       role: 'coach',
       classIds: ['class_bio_1']
@@ -889,7 +917,7 @@ describe('Firestore Security Rules: activityProgress/universe-v1', () => {
     await assertFails(docRef.set(validPayload));
   });
 
-  it('7. Reject write containing unauthorized keys (e.g. injected XP/rewards)', async () => {
+  it('8. Reject write containing unauthorized keys (e.g. injected XP/rewards)', async () => {
     const studentDb = testEnv.authenticatedContext('student_1', { role: 'student' }).firestore();
     const docRef = studentDb.doc('users/student_1/activityProgress/universe-v1');
     const taintedPayload = {
@@ -900,7 +928,7 @@ describe('Firestore Security Rules: activityProgress/universe-v1', () => {
     await assertFails(docRef.set(taintedPayload));
   });
 
-  it('8. Reject write when charted arrays exceed 100 items', async () => {
+  it('9. Reject write when charted arrays exceed 100 items', async () => {
     const studentDb = testEnv.authenticatedContext('student_1', { role: 'student' }).firestore();
     const docRef = studentDb.doc('users/student_1/activityProgress/universe-v1');
     const bloatedPlanets = Array.from({ length: 101 }, (_, i) => `planet_${i}`);
@@ -911,15 +939,15 @@ describe('Firestore Security Rules: activityProgress/universe-v1', () => {
     await assertFails(docRef.set(bloatedPayload));
   });
 
-  it('9. Reject write exceeding 64 KB payload size limit', async () => {
+  it('10. Reject write when an activeDestination ID exceeds 64 characters', async () => {
     const studentDb = testEnv.authenticatedContext('student_1', { role: 'student' }).firestore();
     const docRef = studentDb.doc('users/student_1/activityProgress/universe-v1');
-    const hugeString = 'x'.repeat(65 * 1024);
-    const oversizedPayload = {
+    const oversizedId = 'x'.repeat(65);
+    const invalidPayload = {
       ...validPayload,
-      activeDestination: { ...validPayload.activeDestination, locationId: hugeString }
+      activeDestination: { ...validPayload.activeDestination, locationId: oversizedId }
     };
-    await assertFails(docRef.set(oversizedPayload));
+    await assertFails(docRef.set(invalidPayload));
   });
 });
 ```
@@ -954,7 +982,7 @@ describe('Firestore Security Rules: activityProgress/universe-v1', () => {
   Browsers will cache models and textures permanently; updates are achieved by publishing a new manifest pointing to a newly hashed filename.
 
 #### Proposed Asset Size Budgets (Architectural Targets, Not Measured)
-The following limits are proposed budgets to ensure 60 fps performance across classroom devices (Chromebooks, iPads, laptops):
+The following limits are proposed asset size budgets to keep download payloads bounded and manageable across classroom networks and mobile devices:
 
 | Asset Category | Target Format | Proposed Size Budget |
 |---|---|---|
@@ -985,19 +1013,18 @@ If an asset is absent or fails to load, the 3D engine gracefully falls back to t
 1. **Slide Gesture vs. 3D Camera Controls:**
    - *Conflict:* My Dashboard uses horizontal swipe gestures and arrow keys to navigate between slides. An embedded 3D canvas intercepting touch/drag events creates severe input conflicts.
    - *Resolution:* Adopt Claude’s proposal (`CLAUDE DESIGN.md` §5.1): My Universe opens as a **dedicated full-viewport exploration overlay** outside the slide deck, leaving the dashboard slide as an entry portal.
-2. **Missing Dependencies in Canonical Checkout:**
-   - *Conflict:* Neither `three`, `@react-three/fiber`, nor `@react-three/drei` are installed in the canonical checkout (`codex/my-universe-prototype`).
-   - *Resolution:* Dependency installation must be requested as an explicit, isolated step once GPT-6 completes the coordinated review and Mani approves.
+2. **3D Dependencies in Canonical Checkout:**
+   - *Status:* `three`, `@react-three/fiber`, and `@react-three/drei` were installed for the Stage B 3D spike (`codex/my-universe-prototype`, `UNIVERSE.md` §13.6). The 3D engine is active and building cleanly on this branch.
 
 ### 12.2 Bounded Proposed Implementation Sequence (Awaiting Approval)
 ```
-Stage 1: Catalog & Schema (Static Hosting Manifests matching cosmosFixture.js)
+Stage B (Completed): 3D Explorer Spike & Device Performance Verification (60 fps on M5, UNIVERSE.md §13.9)
    │
-Stage 2: Device Spike & R3F Integration (Canonical Dependency Approval)
+Stage C (Current / Proposed): Real Catalog Contract & Asset Pipeline Integration
    │
-Stage 3: First Aligned Exploration Slice (2 Galaxies, 1 System, 3 Planets, 1 Ocean Environment)
+Stage D (Proposed): Server Deployment & Authoritative Access Service (Mani's Written Go)
    │
-Stage 4: Server Deployment & Authoritative Access Service (Mani's Written Go)
+Stage E (Future): Verified Progress Ledger & Workstation Integration
 ```
 
 ---
@@ -1008,7 +1035,7 @@ Stage 4: Server Deployment & Authoritative Access Service (Mani's Written Go)
 |---|---|
 | **Handoff Document** | `/Users/admin/Desktop/HearIsland/output/my-universe/source/GEMINI BACKEND.md` |
 | **Date** | 1 November 2026 |
-| **Review Updates Applied** | **15 Review Corrections Applied (§13.1):**<br>1. Removed `/api` rewrite claim; documented deployment target as unverified.<br>2. Corrected mounted routes to match `server/app.js` exactly (removed non-existent `quest.js`, `school-workspace.js`, `personalization.js`).<br>3. Relabeled Teen Quest two-phase commit as a proposed future pattern from an older branch.<br>4. Corrected unmentioned collections (`learnerQuest`, etc.) to default-deny.<br>5. Corrected storage rules description (removed `/users/{uid}/...` and `/schools/...`).<br>6. Marked 100-entry caps and 64KB cap as proposed new rules with emulator tests.<br>7. Corrected coach read check to use `isCoachOf(userId)`.<br>8. Retagged Thalassa 112 kPa and Ignis SO2 facts as `fictional-world`.<br>9. Fixed Hex-Grid identifiers to `MODEL_VERSION = 'HexGrid-v1.0'` and `K.seawaterDensity.v = 1025 kg/m³`; clarified `thalassa-storm` is described narrative content.<br>10. Removed `seedrandom` dependency claim; framed as seeded deterministic function.<br>11. Labeled API host as proposed/undecided (Cloud Run vs Cloud Functions).<br>12. Labeled latency/size metrics as proposed budgets, not measured; used content hashes.<br>13. Replaced strict compliance claims with privacy design goals requiring legal review.<br>14. Standardized staging store name to `adminUniverseDrafts`.<br>15. Labeled `697f785` match note as "per earlier session verification; not re-checked".<br><br>**Stage C Specification Deliverables Added (§13.2):**<br>- 2. Catalog contract matched 1:1 to `cosmosFixture.js` and `explorerModel.js` with fact-tagging and session version-pinning plan.<br>- 3. Server deployment path proposed (Cloud Run vs Cloud Functions, Hosting rewrites, emulator setup, and Mani's 5-step "go" checklist).<br>- 4. Exact proposed security rules for `users/{uid}/activityProgress/universe-v1` written with complete emulator test suite.<br>- 5. 3D asset hosting, caching headers, content-hash naming, and proposed size budgets detailed. |
+| **Review Updates Applied** | **15 Review Corrections Applied (Round 1):**<br>1. Removed `/api` rewrite claim; documented deployment target as unverified.<br>2. Corrected mounted routes to match `server/app.js` exactly (removed non-existent `quest.js`, `school-workspace.js`, `personalization.js`).<br>3. Relabeled Teen Quest two-phase commit as a proposed future pattern from an older branch.<br>4. Corrected unmentioned collections (`learnerQuest`, etc.) to default-deny.<br>5. Corrected storage rules description (matches `/community`, `/messages`, `/solarCar`, `/canva-exports`).<br>6. Marked 100-entry caps and 64KB cap as proposed new rules with emulator tests.<br>7. Corrected coach read check to use `isCoachOf(userId)`.<br>8. Retagged Thalassa 112 kPa and Ignis SO2 facts as `fictional-world`.<br>9. Fixed Hex-Grid identifiers to `MODEL_VERSION = 'HexGrid-v1.0'` and `K.seawaterDensity.v = 1025 kg/m³`; clarified `thalassa-storm` is described narrative content.<br>10. Removed `seedrandom` dependency claim; framed as seeded deterministic function.<br>11. Labeled API host as proposed/undecided (Cloud Run vs Cloud Functions).<br>12. Labeled latency/size metrics as proposed budgets, not measured; used content hashes.<br>13. Replaced strict compliance claims with privacy design goals requiring legal review.<br>14. Standardized staging store name to `adminUniverseDrafts`.<br>15. Labeled `697f785` match note as "per earlier session verification; not re-checked".<br><br>**8 Review Corrections Applied (Round 2 — `GEMINI CORRECTIONS 2.md`):**<br>1. Removed non-existent `request.resource.size() <= 64 * 1024` check; replaced with per-field ID bounds (`size() <= 64`) and array bounds (`size() <= 100`); documented that array element types are enforced by client validation.<br>2. Fixed `activeDestination` reading using `.get(field, null)` so saves at galaxy level (omitted planet/environment fields) are not denied.<br>3. Changed test project ID to `demo-hearisland-rules` (matching repo conventions to guarantee tests only run against the local emulator).<br>4. Replaced strict monotonic revision claim with application-level counter validation (`revision >= 0`), preserving non-destructive `arrayUnion` merges.<br>5. Replaced `calmDrift` and `preferredScale` with `detail: 'standard' | 'high'`, matching the explorer and decoupling from dashboard calm preferences.<br>6. Made the catalog the single source of truth for `requirementText`; stripped redundant text from `/api/universe/access` response.<br>7. Updated 3D package status to installed for Stage B, and marked Stage B complete in the implementation sequence.<br>8. Reworded size budget rationale to bounding download payloads rather than guaranteeing 60 fps; labeled Cloud Functions cold-start figure as unverified. |
 | **Documentation-Only Scope** | **Confirmed.** Zero source code modifications, zero rules changes, zero dependency installs, zero database mutations, zero deployments. |
 | **Prototypes & Saves** | **Preserved.** Both SVG and 3D prototypes and their local saves remain untouched. |
 | **Next Step** | Handoff to **Mani** and **GPT-6 / Claude** to review the proposals. No implementation or deployment occurs until Mani's explicit written approval. |
