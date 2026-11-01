@@ -157,7 +157,8 @@ describe('sidebar menu', () => {
   for (const role of ['student', 'teacher', 'parent', 'supervisor', 'admin']) {
     it(`${role}: every link opens a screen the role can open, with labels in all languages`, () => {
       const items = menuFor(role, { onOpenCourses() {}, onOpenGoals() {}, onNavigate() {} }).flatMap((g) => g.items);
-      expect(items[0].key).toBe('spark');
+      expect(items[0].key).toBe(role === 'student' ? 'dashboard' : 'spark');
+      if (role === 'student') expect(items.findIndex((item) => item.key === 'spark')).toBeGreaterThan(1);
       const keys = items.map((i) => i.key);
       expect(new Set(keys).size).toBe(keys.length);
       for (const i of items) {

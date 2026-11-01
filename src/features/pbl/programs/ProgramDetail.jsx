@@ -8,7 +8,8 @@ import {
 import { programById, COACH_PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges, isSourcedConfirmation } from './catalog.js';
 import { getProgram, addToMyCourse } from '../../../services/pblService.js';
 import {
-  programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, LIMITS
+  programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, LIMITS,
+  needsRecheck, confirmRecheck
 } from './progress.js';
 import { subscribeToPblTransfers } from '../../coach/studio/pblTransferService.js';
 import { toolkitFor } from './tools/index.js';
@@ -171,6 +172,10 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
       </section>
 
       {syncState && <SyncNote state={syncState} />}
+      {apply && needsRecheck(progress) && <div className="pb-sync pb-sync-warn pb-recheck" role="status">
+        <TriangleAlert size={16} aria-hidden="true" /> This course’s session numbers were corrected after you saved progress, so some ticks may now sit on the wrong session. Please re-check which sessions you’ve completed, then confirm.
+        <button type="button" className="gh-btn gh-btn-secondary" onClick={() => apply((p) => confirmRecheck(p))}>I’ve re-checked my sessions</button>
+      </div>}
 
       <nav className="gh-tabs pb-tabs" aria-label="Program sections">
         {sections.map(({ id, label, icon: Icon }) => (

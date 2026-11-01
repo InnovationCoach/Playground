@@ -289,16 +289,16 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
               return (
                 <li key={p.id}>
                   <a className="mc-progress" href={hrefFor.program(p.id)}>
-                    <span className="mc-tone-icon mc-progress-icon" data-tone={p.identity.tone}><ProgramIcon name={p.identity.icon} size={20} /></span>
+                    <span className="mc-tone-icon mc-progress-icon" data-tone={p.identity?.tone}><ProgramIcon name={p.identity?.icon} size={20} /></span>
                     <span className="mc-progress-body">
                       <span className="mc-progress-top">
                         <strong>{p.title}</strong>
-                        <span className="mc-progress-pct">{pct}%</span>
+                        {!s?.needsRecheck && <span className="mc-progress-pct">{pct}%</span>}
                       </span>
                       <span className="mc-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}
                             aria-label={p.title}><i style={{ width: `${pct}%` }} /></span>
                       <span className="mc-progress-meta">
-                        {t('courses.sessionsDone', { done: s?.done || 0, total: p.sessions.length })}
+                        {s?.needsRecheck ? t('courses.recheckSessions') : t('courses.sessionsDone', { done: s?.done || 0, total: s?.total ?? p.sessions?.length ?? 0 })}
                         {byProgram[p.id] && <> · {t('courses.classProgram', { className: byProgram[p.id].join(', ') })}</>}
                         {s?.next && <> · {t('courses.nextSession', { title: s.next.title })}</>}
                       </span>

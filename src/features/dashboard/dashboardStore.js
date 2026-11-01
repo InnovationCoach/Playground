@@ -71,11 +71,16 @@ export function useDashboardPrefs(uid) {
       try {
         const snap = await getDoc(doc(db, 'users', CLOUD_PREFS_PATH(uid)));
         const exists = typeof snap.exists === 'function' ? snap.exists() : snap.exists;
-        if (cancelled || !exists) return;
+        if (cancelled || !exists || edited.current) return;
         const remote = hydratePrefs(snap.data());
-        setPrefs((local) => (remote.updatedAt > local.updatedAt ? remote : local));
+        setPrefs((local) => {
+          if (remote.updatedAt <= local.updatedAt) return local;
+          writeJson(STORAGE_KEYS.prefs(uid), remote);
+          return remote;
+        });
         setSyncState('saved');
       } catch (err) {
+        if (cancelled) return;
         console.warn('[Dashboard] Could not load preferences:', err?.message);
         setSyncState('local-only');
       }

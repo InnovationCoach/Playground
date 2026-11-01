@@ -19,6 +19,7 @@ import {
 import { competencyById } from '../content/competencies.js';
 import { getCustomProgramById } from '../../coach/programs/customProgramsStore.js';
 import { LIBRARY_PROGRAMS } from './libraryProgramsData.js';
+import { numberCourseSessions } from './sessionNumbering.js';
 
 export const TERM_WEEKS = SCHOOL_SCHEDULE_CONFIG.weeksPerTerm;
 export const AGE_TRACKS = LEARNER_AGE_CONFIG.tracks;
@@ -95,7 +96,7 @@ export function normaliseProgram(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const unknown = new Set();
   const rawPhases = Array.isArray(raw.phases) ? raw.phases : [];
-  const phases = rawPhases.map((ph) => ({
+  const checkedPhases = rawPhases.map((ph) => ({
     ...ph,
     competencies: cleanIds(ph.competencies, unknown),
     stretchCompetencies: cleanIds(ph.stretchCompetencies, unknown),
@@ -105,13 +106,16 @@ export function normaliseProgram(raw) {
       evidenceToCollect: { ...(s.evidenceToCollect || {}), targetCompetencies: cleanIds(s.evidenceToCollect?.targetCompetencies, unknown) }
     }))
   }));
-  const sessions = phases.flatMap((ph) => ph.sessions).sort((a, b) => (a.sessionNumber || 0) - (b.sessionNumber || 0));
+  // Course Maker and stored courses may omit or repeat session numbers; number them course-wide like pblService does.
+  const { phases, renumbered } = numberCourseSessions(checkedPhases, raw.renumbered);
+  const sessions = phases.flatMap((ph) => ph.sessions).sort((a, b) => a.sessionNumber - b.sessionNumber);
   const listing = (PROGRAM_LIST || []).find((l) => l.id === raw.id);
 
   const program = {
     ...raw,
     phases,
     sessions,
+    renumbered,
     identity: { ...(IDENTITY[raw.id] || { icon: 'Compass', tone: 'purple', short: raw.title || 'Program' }), cover: SCHOOL_COVERS[raw.id] || null },
     listedAs: listing?.theme || null,
     sharesPhasesWith: null,

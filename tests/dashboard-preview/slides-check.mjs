@@ -1,0 +1,156 @@
+import puppeteer from 'puppeteer-core';
+import assert from 'node:assert/strict';
+const base = process.env.SPARK_PREVIEW_URL || 'http://127.0.0.1:5183';
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const page = await browser.newPage(), errors = [], external = [];
+page.on('pageerror', (error) => errors.push(error.stack));
+await page.setRequestInterception(true);
+page.on('request', (request) => {
+  if (!request.url().startsWith(base) && !request.url().startsWith('data:')) { external.push(request.url()); request.abort(); }
+  else request.continue();
+});
+const go = async (id) => {
+  await page.click(`[aria-controls="dashboard-slide-${id}"]`);
+  await page.waitForFunction((id) => document.querySelector(`[aria-controls="dashboard-slide-${id}"]`)?.getAttribute('aria-current') === 'step' && !document.querySelector(`[data-slide="${id}"]`)?.hasAttribute('inert'), {}, id);
+  await page.waitForFunction((id) => {
+    const track = document.querySelector('.sd-track'), panel = document.querySelector(`[data-slide="${id}"]`);
+    return document.querySelector('.sd-grid-mode') || Math.abs(panel.getBoundingClientRect().left - track.getBoundingClientRect().left) < 3;
+  }, {}, id);
+};
+const click = async (selector, text) => {
+  const found = await page.evaluate((selector, text) => { const el = [...document.querySelectorAll(selector)].find((e) => e.textContent.trim() === text); el?.click(); return !!el; }, selector, text);
+  assert(found, `Missing control: ${text}`);
+};
+const active = () => page.$eval('.sd-indicator[aria-current=step]', (el) => el.getAttribute('aria-controls').replace('dashboard-slide-', ''));
+const choose = async (label, value) => {
+  const found = await page.evaluate((label, value) => { const el = [...document.querySelectorAll('label')].find((e) => e.textContent.startsWith(label))?.querySelector('select'); if (!el) return false; el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); return true; }, label, value);
+  assert(found, `Missing select: ${label}`);
+};
+const noOverflow = async () => assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No document horizontal overflow');
+try {
+  await page.setViewport({ width: 1440, height: 1000 });
+  await page.goto(`${base}/?learner=preview-student`, { waitUntil: 'networkidle0' });
+  await page.evaluate(() => localStorage.clear()); await page.reload({ waitUntil: 'networkidle0' });
+  assert.equal(await active(), 'daily');
+  assert.equal(await page.$$eval('.sd-slide', (els) => els.length), 5);
+  assert.equal(await page.$$eval('.sd-slide[inert]', (els) => els.length), 4);
+  assert.equal(await page.$eval('.gh-sidebar-link', (el) => el.getAttribute('href')), '#/dashboard');
+  const columns = await page.evaluate(() => ['lh-academic-title', 'lh-pbl-title'].map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { x: r.x, y: r.y }; }));
+  assert(columns[0].x < columns[1].x && Math.abs(columns[0].y - columns[1].y) < 5);
+  assert.equal(await page.$eval('.lh-project a', (el) => el.getAttribute('href')), '#/pbl/programs/ecocool-smart-garden-2026/plan');
+  assert.equal(await page.$$eval('.fs-widget', (els) => els.length), 1, 'One focus player');
+  assert.equal(await page.$$eval('#md-note-title', (els) => els.length), 1, 'One notes editor');
+  await page.screenshot({ path: '/private/tmp/spark-slides-daily.png' });
+  assert.equal(await page.evaluate(() => window.__sparkCourseReads), 1, 'Course records are loaded once for both slides');
+  const before = await page.evaluate(() => JSON.stringify(localStorage));
+  await click('#dashboard-slide-daily button', 'Show example courses');
+  await page.click('.lh-example button');
+  assert((await page.$eval('#dashboard-slide-daily', (el) => el.textContent)).includes('Sample activity only. This does not change your learning record.'));
+  assert.equal(await page.evaluate(() => JSON.stringify(localStorage)), before);
+  await click('#dashboard-slide-daily button', 'Hide example courses');
+  await click('.sd-plan-tabs button', 'Ahead');
+  assert((await page.$eval('.sd-personal-tasks', (el) => el.innerText)).includes('Ask my coach for feedback'));
+  await click('.sd-plan-tabs button', 'Completed');
+  assert((await page.$eval('.sd-personal-tasks', (el) => el.innerText)).includes('Write my first reflection'));
+  await click('.sd-plan-tabs button', 'Today');
+  await page.click('.md-today-item');
+  await page.waitForFunction(() => document.querySelector('.md-today-item').getAttribute('aria-pressed') === 'true');
+  await page.focus('.sd-track'); await page.keyboard.press('ArrowRight');
+  await page.waitForFunction(() => document.querySelector('[data-slide=goals]')?.getAttribute('aria-hidden') !== 'true');
+  await go('goals');
+  assert.equal(await page.$eval('.sd-goal', (el) => el.getAttribute('href')), '#/goals');
+  await click('#dashboard-slide-goals button', 'Achieved goals 1');
+  assert((await page.$eval('#dashboard-slide-goals', (el) => el.innerText)).includes('Keep a record of my first investigation'));
+  await go('daily');
+  const wheelBox = await page.$eval('.sd-track', (el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + 80, width: r.width }; });
+  await page.mouse.move(wheelBox.x, wheelBox.y);
+  await page.mouse.wheel({ deltaX: wheelBox.width, deltaY: 0 });
+  await page.waitForFunction(() => document.querySelector('.sd-indicator[aria-current=step]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
+  await go('progress');
+  assert.deepEqual(await page.$eval('.sd-record .sd-gauge', (el) => [el.getAttribute('aria-valuenow'), el.getAttribute('aria-valuemax'), el.getAttribute('aria-valuetext')]), ['6', '24', '6 of 24 sessions marked complete by you']);
+  assert((await page.$eval('#dashboard-slide-progress', (el) => el.innerText)).includes('Not connected'));
+  assert.equal(await page.$eval('.sd-record .ig-needle', (el) => el.style.transform), 'rotate(-60deg)', 'Needle sits at 6/24 of the 240° sweep');
+  assert.equal(await page.$$eval('.ig-academic .ig-needle', (els) => els.length), 0, 'Unconnected academic dial has no needle');
+  await page.screenshot({ path: '/private/tmp/spark-slides-progress.png' });
+  await go('creative');
+  await page.type('#md-note-title', 'My unfinished idea');
+  await page.focus('#md-note-title'); await page.keyboard.press('ArrowLeft'); assert.equal(await active(), 'creative');
+  await page.click('.fs-sound-btn');
+  if ((await page.$eval('.fs-bottom', (el) => el.innerText)).includes('Play sounds')) await click('.fs-bottom button', 'Play sounds');
+  await click('.fs-controls button', 'Start focus');
+  await go('universe');
+  assert((await page.$eval('#dashboard-slide-universe', (el) => el.textContent)).includes('No XP, rewards, unlocks or companion features are active'));
+  assert.equal(await page.$$eval('.ig-bay', (els) => els.filter((el) => el.textContent.includes('Not active')).length), 2);
+  await go('creative');
+  assert.equal(await page.$eval('#md-note-title', (el) => el.value), 'My unfinished idea');
+  assert((await page.$eval('.fs-controls', (el) => el.innerText)).includes('Pause'));
+  assert((await page.$eval('.fs-bottom', (el) => el.innerText)).includes('Stop sounds'));
+  await click('.fs-bottom button', 'Stop sounds'); await click('.fs-controls button', 'End');
+  await click('.ps-space button', 'Arrange creative space');
+  await click('.sd-arrangement button', 'Add space');
+  await click('.sd-workspace-tabs button', 'My space');
+  await page.click('[aria-label="Resize My notes"]');
+  await page.click('[aria-label="Move My notes earlier"]');
+  await page.screenshot({ path: '/private/tmp/spark-slides-creative.png' });
+  await page.click('.sd-top-actions button:last-child');
+  assert(await page.$eval('.sd-personalise', (el) => el.open));
+  await choose('Font', 'serif'); await choose('Theme', 'light'); await choose('Background', 'mist');
+  await page.click('[aria-label="Move My Creative Space earlier"]');
+  await page.click('[aria-label="Move My Creative Space earlier"]');
+  await page.click('dialog input[type=checkbox]');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('.sd-personalise'));
+  assert.equal(await page.evaluate(() => document.activeElement?.textContent.trim()), 'Personalise', 'Dialog restores keyboard focus');
+  assert(await page.$('.md-calm'));
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('hearisland.dashboard.prefs.v1:preview-student'))?.slideOrder[1] === 'creative');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('hearisland.dashboard.prefs.v1:preview-student')));
+  assert.equal(saved.pages[0].sizes.notes, 'wide'); assert.equal(saved.pages.length, 2);
+  await page.reload({ waitUntil: 'networkidle0' });
+  assert.equal(await active(), 'daily', 'Every new dashboard session opens the daily plan');
+  assert.equal(await page.$eval('.md-root', (el) => el.dataset.theme), 'light');
+  assert.equal(await page.$eval('.sd-indicators button:nth-child(2)', (el) => el.getAttribute('aria-controls')), 'dashboard-slide-creative');
+  await page.click('[aria-label="Switch to grid view"]');
+  assert.equal(await page.$$eval('.sd-slide[inert]', (els) => els.length), 0);
+  await page.click('[aria-label="Switch to slide view"]');
+  await go('creative');
+  for (const [width, height] of [[1024,768], [820,1180], [1366,1024], [390,844], [320,700]]) {
+    await page.setViewport({ width, height }); await noOverflow();
+    assert(await page.$eval('.sd-track', (el) => el.clientHeight > 100));
+    if (width === 820) { await page.waitForFunction(() => document.querySelector('.gh-sidebar').getBoundingClientRect().right <= 0); }
+    if (width === 820) await page.screenshot({ path: '/private/tmp/spark-slides-ipad.png' });
+  }
+  await page.setViewport({ width: 1024, height: 768, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+  await page.goto(`${base}/?learner=touch-student`, { waitUntil: 'networkidle0' });
+  const client = await page.createCDPSession();
+  const r = await page.$eval('.sd-track', (el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
+  const y = r.y + 75, startX = r.x + r.width * .85, endX = r.x + r.width * .12;
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: startX, y }] });
+  for (let n = 1; n <= 10; n++) { await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: startX + (endX - startX) * n / 10, y }] }); await new Promise((resolve) => setTimeout(resolve, 20)); }
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.waitForFunction(() => document.querySelector('.sd-indicator[aria-current=step]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  await go('universe');
+  assert.equal(await page.$eval('.sd-track', (el) => getComputedStyle(el).scrollBehavior), 'auto');
+  for (const [state, expected] of [['empty', 'No current project could be found'], ['error', 'Your courses could not be loaded'], ['loading', 'Loading your projects']]) {
+    await page.goto(`${base}/?state=${state}`, { waitUntil: 'networkidle0' });
+    assert((await page.$eval('#dashboard-slide-daily', (el) => el.innerText)).includes(expected));
+  }
+  await page.goto(`${base}/?state=stale`, { waitUntil: 'networkidle0' });
+  await go('progress');
+  assert.equal(await page.$$eval('.sd-record .sd-gauge', (els) => els.length), 0, 'Unverified account progress has no gauge');
+  assert((await page.$eval('.sd-record', (el) => el.innerText)).includes('Account progress is unavailable'));
+  await page.goto(`${base}/?learner=another-student`, { waitUntil: 'networkidle0' });
+  assert.equal(await page.$eval('.md-root', (el) => el.dataset.theme), 'dark', 'Another learner keeps the dark default, not this learner\'s light choice');
+  await page.setViewport({ width: 1440, height: 1000, isMobile: false, hasTouch: false });
+  await page.goto(`${base}/?learner=preview-student`, { waitUntil: 'networkidle0' });
+  await page.evaluate(() => localStorage.removeItem('hearisland.dashboard.prefs.v1:preview-student'));
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.screenshot({ path: '/private/tmp/spark-slides-daily.png' });
+  await go('creative');
+  await page.screenshot({ path: '/private/tmp/spark-slides-creative.png' });
+  await page.setViewport({ width: 820, height: 1180 });
+  await page.waitForFunction(() => document.querySelector('.gh-sidebar').getBoundingClientRect().right <= 0);
+  await page.screenshot({ path: '/private/tmp/spark-slides-ipad.png' });
+  assert.deepEqual(errors, []); assert.deepEqual(external, []);
+  console.log('PASS: five-slide default, native swipe, keyboard, shared tools/drafts/audio, grid, goals, real-record states, saved preferences/migration, account isolation, iPad/laptop/mobile, reduced motion; no browser errors or external requests.');
+} finally { await browser.close(); }

@@ -1015,3 +1015,17 @@ export const LIBRARY_PROGRAMS = [
 for (const prog of LIBRARY_PROGRAMS) {
   prog.searchTokens = generateSearchTokens(prog.title, prog.theme, prog.tags, prog.drivingQuestion);
 }
+
+// Learner progress is stored by session number, so every session needs a
+// number unique across its course (1..N in course order). These courses
+// shipped without numbers and were read with per-stage numbers until
+// 31 Oct 2026; `renumbered` lets progress saved before then be flagged for
+// the learner to re-check (see progress.js).
+for (const prog of LIBRARY_PROGRAMS) {
+  let n = 0;
+  for (const phase of prog.phases || []) {
+    phase.sessions = (phase.sessions || []).map((session) => ({ ...session, sessionNumber: ++n }));
+  }
+  prog.sessions = (prog.phases || []).flatMap((phase) => phase.sessions);
+  prog.renumbered = true;
+}

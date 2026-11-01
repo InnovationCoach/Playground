@@ -7,12 +7,15 @@
  */
 import { useEffect, useState } from 'react';
 import { db, doc, getDoc } from '../../firebase.js';
-import { hydrateProgress, progressDocId, programProgress } from '../pbl/programs/progress.js';
+import { hydrateProgress, progressDocId, programProgress, needsRecheck } from '../pbl/programs/progress.js';
 import { readLocalProgress } from '../pbl/programs/useProgramProgress.js';
 
 const summarise = (programs, pick) => Object.fromEntries(programs.map((p) => {
   const progress = pick(p);
-  return [p.id, progress ? { startedAt: progress.startedAt, updatedAt: progress.updatedAt, ...programProgress(progress, p) } : null];
+  if (!progress) return [p.id, null];
+  // Saved under the old per-stage numbers: don't count it until the learner re-checks.
+  if (needsRecheck(progress)) return [p.id, { startedAt: progress.startedAt, updatedAt: progress.updatedAt, needsRecheck: true, done: 0, total: p.sessions?.length || 0, pct: 0, next: null }];
+  return [p.id, { startedAt: progress.startedAt, updatedAt: progress.updatedAt, ...programProgress(progress, p) }];
 }));
 
 export function useProgramSummaries(uid, programs, enabled = true) {

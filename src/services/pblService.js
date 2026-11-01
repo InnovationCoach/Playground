@@ -10,6 +10,8 @@ import {
   arrayUnion, serverTimestamp, usingEmulators
 } from '../firebase.js';
 import { WELEARN_DT_FRAMEWORK, LIBRARY_PROGRAMS, generateSearchTokens } from '../features/pbl/programs/libraryProgramsData.js';
+import { numberCourseSessions } from '../features/pbl/programs/sessionNumbering.js';
+export { needsCourseNumbering } from '../features/pbl/programs/sessionNumbering.js';
 
 // ============================================================================
 // Zod Schemas enforcing the Data Contract
@@ -89,7 +91,7 @@ export function normaliseContractProgram(raw) {
         }))
       : []);
 
-  const phases = rawPhases.map((ph, idx) => {
+  const normalisedPhases = rawPhases.map((ph, idx) => {
     const phaseId = ph.phaseId || ph.id || `phase-${idx + 1}`;
     const pWeeks = Array.isArray(ph.weeks) && ph.weeks.length >= 2 ? ph.weeks : [idx + 1, idx + 1];
     return {
@@ -101,7 +103,7 @@ export function normaliseContractProgram(raw) {
       strap: ph.strap || '',
       weeks: pWeeks,
       sessions: Array.isArray(ph.sessions) ? ph.sessions.map((s, sIdx) => ({
-        sessionNumber: s.sessionNumber || sIdx + 1,
+        sessionNumber: s.sessionNumber || null,
         title: s.title || `Session ${sIdx + 1}`,
         minutes: Number(s.minutes || s.durationMin || 90),
         durationMin: Number(s.durationMin || s.minutes || 90),
@@ -130,7 +132,12 @@ export function normaliseContractProgram(raw) {
     ? raw.searchTokens
     : generateSearchTokens(title, theme, tags, drivingQuestion);
 
-  const sessions = Array.isArray(raw.sessions) && raw.sessions.length > 0
+  // Progress is stored by session number, so numbers must be unique across the
+  // whole course. Courses that omit them (all bundled library courses) or repeat
+  // them get 1..N in course order; `renumbered` lets progress saved under the
+  // old per-stage numbers be flagged for the learner to re-check.
+  const { phases, misnumbered, renumbered } = numberCourseSessions(normalisedPhases, raw.renumbered);
+  const sessions = Array.isArray(raw.sessions) && raw.sessions.length > 0 && !misnumbered
     ? raw.sessions
     : phases.flatMap((ph) => ph.sessions);
 
@@ -149,6 +156,7 @@ export function normaliseContractProgram(raw) {
     frameworkVersion: raw.frameworkVersion || 1,
     phases,
     sessions,
+    renumbered,
     ageBand: raw.ageBand || raw.targetAgeRange || '11-16',
     targetAgeRange: raw.targetAgeRange || raw.ageBand || '11-16',
     durationWeeks: raw.durationWeeks || 12,

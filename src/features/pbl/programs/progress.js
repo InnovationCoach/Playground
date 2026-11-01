@@ -19,8 +19,21 @@ const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
 
 export const progressDocId = (programId) => `pbl-program-${programId}`;
 
+/**
+ * `sessionKeys: 'course'` marks progress saved under course-wide session
+ * numbers. Progress saved earlier for a course that had to be renumbered is
+ * 'legacy': its numbers may point at the wrong sessions, so the learner is
+ * asked to re-check rather than the app guessing.
+ */
 export function newProgress(programId) {
-  return { version: 1, programId, startedAt: null, sessions: {}, tools: {}, updatedAt: null };
+  return { version: 1, programId, sessionKeys: 'course', startedAt: null, sessions: {}, tools: {}, updatedAt: null };
+}
+
+export const needsRecheck = (progress) => progress?.sessionKeys === 'legacy';
+
+/** The learner has reviewed their sessions under the corrected numbering. */
+export function confirmRecheck(progress, now = Date.now()) {
+  return needsRecheck(progress) ? { ...progress, sessionKeys: 'course', updatedAt: now } : progress;
 }
 
 /** Whatever came back from storage, return well-formed progress for this program. */
@@ -50,8 +63,10 @@ export function hydrateProgress(stored, program) {
       if (/^[a-z0-9-]{1,40}$/.test(k) && v && typeof v === 'object' && JSON.stringify(v).length <= LIMITS.toolBytes) tools[k] = v;
     }
   }
+  const legacy = stored.sessionKeys !== 'course' && program.renumbered === true && Object.keys(sessions).length > 0;
   return {
     ...base,
+    sessionKeys: legacy ? 'legacy' : 'course',
     startedAt: Number.isFinite(stored.startedAt) ? stored.startedAt : null,
     sessions,
     tools,

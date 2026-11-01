@@ -77,9 +77,8 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
   }
   return [
     { items: [
-      home,
-      { key: 'homeSearch', icon: Search, label: 'nav.searchPrograms', href: hrefFor.homeSearch() },
-      { key: 'dashboard', icon: LayoutDashboard, label: 'nav.myDashboard', href: hrefFor.dashboard() }
+      { key: 'dashboard', icon: LayoutDashboard, label: 'nav.myDashboard', href: hrefFor.dashboard() },
+      { key: 'homeSearch', icon: Search, label: 'nav.searchPrograms', href: hrefFor.homeSearch() }
     ] },
     { label: 'nav.learning', items: [
       { key: 'courses', icon: BookOpen, label: 'nav.myCourses', onClick: onOpenCourses },
@@ -88,7 +87,7 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
       { key: 'goals', icon: Target, label: 'nav.goals', onClick: onOpenGoals },
       { key: 'futureSkills', icon: Sparkles, label: 'nav.futureSkills', href: hrefFor.futureSkills() }
     ] },
-    { label: 'nav.together', items: [{ key: 'community', icon: Users, label: 'nav.community', href: hrefFor.community() }] },
+    { label: 'nav.together', items: [home, { key: 'community', icon: Users, label: 'nav.community', href: hrefFor.community() }] },
     { label: 'nav.account', items: [settings] }
   ];
 }
