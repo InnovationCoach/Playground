@@ -629,3 +629,18 @@ Mani asked to go live. A pre-flight check found two problems with shipping the b
    - **Fix:** removed from the dashboard only. The prototype code, its tests and its preview page are unchanged, and it's no longer in the production build.
 
 Find a Quest (merged in PR #5) is hosting-only, with honest "not connected" states, so it's safe to release. The production build uses the built-in public Firebase web configuration, and sample data can't be enabled in production. Tests: 39 of 39 universe and 537 of 537 unit tests pass. The build succeeds.
+
+### 13.17 Release: My Universe live — 1 November 2026 (Claude, on Mani's "let's go live")
+
+| Item | Value |
+|---|---|
+| Source | `codex/my-universe-prototype` at `44b3abc` (= `main` + My Universe + the pre-launch fixes in §13.16) |
+| What went live | My Universe explorer (both worlds, catalog 1.1.0, text view; non-preview mode, so drafts are hidden and Boreas reads "Access not connected"), on top of the existing dashboard and Find a Quest |
+| What did NOT change | No server, Cloud Functions, Firestore/Storage rules, indexes or data. Backend Go 2–5 are still unapproved. |
+| Before the release | Live bundle `index-B4Yd8WjY.js` (dashboard + Find a Quest, released 18:04 local). Saved to channel **`pre-universe-20261101`**: https://dnd-master-73449--pre-universe-20261101-iu343mbr.web.app |
+| Tested preview | Channel `universe-release` (expires 8 Nov 2026): https://dnd-master-73449--universe-release-rhfgit4f.web.app |
+| Release method | `hosting:channel:deploy universe-release`, verified, then `hosting:clone universe-release → live`. Hosting only; never a bare `firebase deploy`. |
+| Live after | `index-CemmqLyW.js`, `/cosmos/v1/catalog.json` = 1.1.0, explorer and both surface chunks return 200. The only 404 is `/favicon.ico`, which was already missing before. |
+| Rollback | `npx firebase hosting:clone dnd-master-73449:pre-universe-20261101 dnd-master-73449:live --project dnd-master-73449` |
+
+**Follow-up:** `main` doesn't yet contain My Universe. Merge PR #4 so that `main` matches production.
