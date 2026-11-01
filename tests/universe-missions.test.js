@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { SPACECRAFT_JOURNEY as M, WORLD, missionsForPlanet } from '../src/features/universe/missions/spacecraftJourney.js';
+import { SPACECRAFT_JOURNEY as M, WORLD } from '../src/features/universe/missions/spacecraftJourney.js';
+import { missionsForPlanet } from '../src/features/universe/missions/registry.js';
 import { parseNumber, checkNumber, checkChoice, displayAnswer } from '../src/features/universe/missions/missionModel.js';
 
 const step = (route, id) => M.routes.find((r) => r.id === route).steps.find((s) => s.id === id);
@@ -7,7 +8,7 @@ const step = (route, id) => M.routes.find((r) => r.id === route).steps.find((s) 
 describe('Spacecraft journey mission (draft)', () => {
   it('stays a draft that only labelled previews can show', () => {
     expect(M.status).toBe('draft');
-    expect(missionsForPlanet('thalassa', { preview: true }).map((m) => m.id)).toEqual(['spacecraft-journey']);
+    expect(missionsForPlanet('thalassa', { preview: true }).map((m) => m.id)).toEqual(['spacecraft-journey', 'thalassa-wind-survey']);
     expect(missionsForPlanet('thalassa', { preview: false })).toEqual([]);
     expect(missionsForPlanet('boreas', { preview: true })).toEqual([]);
   });
@@ -52,5 +53,19 @@ describe('Spacecraft journey mission (draft)', () => {
     expect(checkNumber(days, 'soon')).toBe('invalid');
     expect(checkChoice(step('guided', 'compare'), 'sail')).toBe('incorrect');
     expect(displayAnswer(step('advanced', 'chem-propellant'))).toBe('19,070 kg');
+  });
+});
+
+describe('Thalassa wind survey (draft)', () => {
+  it('answer key matches independent calculation and points to the station', async () => {
+    const { THALASSA_WIND_SURVEY: W } = await import('../src/features/universe/missions/thalassaWindSurvey.js');
+    const st = (id) => W.routes[0].steps.find((s) => s.id === id);
+    expect(st('hours').answer).toBe(20 + 50 + 60 + 30 + 8);
+    expect(st('full-power').answer).toBeCloseTo(0 + 50 * 0.1 + 60 * 0.35 + 30 * 0.75 + 8, 6); // 56.5
+    expect(st('capacity-factor').answer).toBe(0.34);
+    expect(st('why-not-average').answer).toBe('cube');
+    expect(W.status).toBe('draft');
+    expect(W.locationId).toBe('weather-mast');
+    expect(missionsForPlanet('thalassa', { preview: false })).toEqual([]);
   });
 });

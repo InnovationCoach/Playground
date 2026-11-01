@@ -46,6 +46,7 @@ export function App() {
   const { status, user, profile, role, classIds, error, signOut, refreshProfile } = useAuth();
   const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
+  const [activityScenario, setActivityScenario] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(readCollapsed);
   // Primary learners get Junior Explorers only: no secondary activities, no AI
@@ -64,11 +65,13 @@ export function App() {
   const hashScreenRef = useRef(null);
   hashScreenRef.current = hashScreen;
 
-  const navigate = useCallback((requested) => {
+  const navigate = useCallback((requested, options) => {
     // Legacy code calls switchPhase('login') when signed out. Accepting it as
     // a view left a learner who signed back in on a blank page, because no
     // screen renders for 'login'. Only real views are accepted.
     const next = requested === 'coach' || KNOWN_VIEWS.has(requested) ? requested : 'home';
+    // A scenario (e.g. My Universe's Thalassa station) applies only to the activity it was opened with.
+    setActivityScenario(typeof options?.scenario === 'string' ? options.scenario : null);
     setView(next);
     if (next === 'coach') setHash('#/coach/dashboard');
     // Leaving a hash screen (My Courses, Settings) for a view-state screen.
@@ -446,7 +449,8 @@ export function App() {
           {view === 'solar' && <SolarCarChallenge uid={user.uid} />}
           {view === 'so2' && <So2SulfateSimulation uid={user.uid} />}
           {view === 'plants' && <PlantMicroscopeLab uid={user.uid} />}
-          {view === 'hexgrid' && <ProjectHexGrid uid={user.uid} />}
+          {view === 'hexgrid' && <ProjectHexGrid uid={user.uid} scenario={activityScenario}
+            onExit={activityScenario ? () => { setActivityScenario(null); setHash(hrefFor.dashboard()); } : undefined} />}
           {view === 'junior' && <JuniorExplorers uid={user.uid} displayName={profile?.displayName} />}
         </>
       )}

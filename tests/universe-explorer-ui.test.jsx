@@ -85,4 +85,19 @@ describe('My Universe explorer without WebGL', () => {
     expect(buttonNamed('Open mission')).toBeUndefined();
     expect(text()).toMatch(/No reviewed missions yet/);
   });
+
+  it('offers Thalassa workstations in previews and opens the station in Hex-Grid', async () => {
+    const onOpenActivity = vi.fn();
+    await act(async () => root.render(<MyUniverseExplorer preview loadCatalog={loadCatalog} onOpenActivity={onOpenActivity} onClose={() => {}} />));
+    expect(text()).toMatch(/Platform design lab/);
+    expect(text()).toMatch(/Is the wind worth it\?/);
+    await act(async () => buttonNamed('Open simulation').click());
+    expect(onOpenActivity).toHaveBeenCalledWith('hexgrid', { scenario: 'thalassa-station' });
+  });
+
+  it('keeps draft workstations hidden outside previews', async () => {
+    await act(async () => root.render(<MyUniverseExplorer preview={false} loadCatalog={loadCatalog} onOpenActivity={() => {}} onClose={() => {}} />));
+    expect(text()).not.toMatch(/Platform design lab|Is the wind worth it/);
+    expect(buttonNamed('Open simulation')).toBeUndefined();
+  });
 });
