@@ -27,4 +27,8 @@ export const getDocs = async () => ({ forEach() {}, docs: [], empty: true, size:
 export const onSnapshot = () => () => {};
 export const addDoc = async () => ({ id: 'preview' });
 export const writeBatch = () => ({ set() {}, update() {}, delete() {}, commit: async () => {} });
-export const storage = {};
+// Offline uploads: images stay in the page as blob: URLs.
+export const storage = { ref: (path) => { let url = ''; return {
+  put: (file) => ({ on: (_e, progress, _fail, done) => { url = URL.createObjectURL(file); progress?.({ bytesTransferred: file.size, totalBytes: file.size }); setTimeout(done, 50); } }),
+  getDownloadURL: async () => url, delete: async () => {}
+}; } };

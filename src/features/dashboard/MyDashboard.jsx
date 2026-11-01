@@ -20,6 +20,7 @@ import { SLIDES, moveSlide } from './slideModel.js';
 import { DashboardDeck } from './DashboardDeck.jsx';
 import { QuestsSlide, useLearningCourses } from './LearningHub.jsx';
 import { FindQuestSlide } from './FindQuestSlide.jsx';
+import { PortfolioSlide } from '../portfolio/PortfolioSlide.jsx';
 import { ACCENTS, COVERS, MAX_INTERESTS, MAX_TAGLINE, loadSignals, academicProgress, badgeStatus, goalSummary, skillOfTheWeek, dayKey, streakDays } from './dashboardModel.js';
 import { useDashboardPrefs, useCloudProject, saveMood, deviceStorage, logVisit } from './dashboardStore.js';
 import { CheckinWidget, PickedWidget, BadgesWidget, ReadinessWidget, SkillWidget } from './DashboardWidgets.jsx';
@@ -112,6 +113,7 @@ function StudentDashboard({ uid, profile, classIds = [], onJoined, onOpenActivit
         onOpenActivity={onOpenActivity} onFindQuest={() => setActiveSlide('find')}
         renderReadiness={() => <WorkspaceTools prefs={prefs} slide="daily" renderWidget={renderWidget} />} />
     </>;
+    if (id === 'portfolio') return <PortfolioSlide uid={uid} data={data} firstName={profile?.displayName?.split(' ')[0]} />;
     if (id === 'find') return <FindQuestSlide uid={uid} data={data} plan={plan} onOpenActivity={onOpenActivity} />;
     if (id === 'creative') return <PersonalSpace prefs={prefs} update={update} renderWidget={renderWidget} />;
     return <>

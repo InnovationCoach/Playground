@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest';
 import { hydratePrefs } from '../src/features/dashboard/dashboardModel.js';
 import { hydrateSlides, SLIDE_IDS, moveSlide, splitGoals, TOOL_SLIDES } from '../src/features/dashboard/slideModel.js';
 
-describe('four-slide dashboard preferences', () => {
-  it('defaults to the four essential slides and preserves legacy personal spaces', () => {
+describe('dashboard slide preferences', () => {
+  it('defaults to the essential slides and preserves legacy personal spaces', () => {
     const stored = { pages: [{ name: 'Quiet desk', layout: 'slider', order: ['notes', 'focus'], hidden: ['badges'], sizes: { notes: 'wide' } }], font: 'serif', calm: true };
     const prefs = hydratePrefs(stored);
     expect(prefs.slideOrder).toEqual(SLIDE_IDS);
@@ -15,15 +15,15 @@ describe('four-slide dashboard preferences', () => {
   });
   it('never lets damaged preferences hide essential learning slides', () => {
     const prefs = hydrateSlides({ slideOrder: ['universe', 'universe', 'unknown'], slideTitles: { daily: ' ', find: 'A'.repeat(100) }, dashboardLayout: 'broken' });
-    expect(prefs.slideOrder).toHaveLength(4); expect(new Set(prefs.slideOrder)).toEqual(new Set(SLIDE_IDS));
+    expect(prefs.slideOrder).toHaveLength(5); expect(new Set(prefs.slideOrder)).toEqual(new Set(SLIDE_IDS));
     expect(prefs.slideOrder[0]).toBe('universe');
     expect(prefs.slideTitles.daily).toBe('My Quests'); expect(prefs.slideTitles.find).toHaveLength(40);
     expect(prefs.dashboardLayout).toBe('slides');
   });
   it('merges the old Goals and Progress slides into My Quests, adds Find a Quest, and renames the old default title', () => {
-    expect(SLIDE_IDS).toEqual(['daily', 'find', 'creative', 'universe']);
+    expect(SLIDE_IDS).toEqual(['daily', 'portfolio', 'find', 'creative', 'universe']);
     const saved = hydrateSlides({ slideOrder: ['daily', 'goals', 'creative', 'progress', 'universe'], slideTitles: { daily: 'My Daily Learning Plan', goals: 'My Goals', progress: 'Stats', creative: 'Studio' } });
-    expect(saved.slideOrder).toEqual(['daily', 'find', 'creative', 'universe']);
+    expect(saved.slideOrder).toEqual(['daily', 'portfolio', 'find', 'creative', 'universe']);
     expect(saved.slideTitles).not.toHaveProperty('progress');
     expect(saved.slideTitles.daily).toBe('My Quests');
     expect(saved.slideTitles.creative).toBe('Studio');
@@ -35,7 +35,7 @@ describe('four-slide dashboard preferences', () => {
     prefs = moveSlide(prefs, 'creative', -1);
     prefs.slideTitles.creative = 'My thinking room';
     const result = hydratePrefs(JSON.parse(JSON.stringify(prefs)));
-    expect(result.slideOrder.indexOf('creative')).toBe(1);
+    expect(result.slideOrder.indexOf('creative')).toBe(2);
     expect(result.slideTitles.creative).toBe('My thinking room');
     expect(result.pages[0].name).toBe('Ideas'); expect(result.dashboardLayout).toBe('grid');
     expect(moveSlide(result, result.slideOrder[0], -1)).toBe(result);

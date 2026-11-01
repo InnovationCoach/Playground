@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, Swords, Compass, PenTool, Orbit, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, Swords, BookImage, Compass, PenTool, Orbit, Sparkles } from 'lucide-react';
 import { SLIDES } from './slideModel.js';
 import './dashboardDeck.css';
-const SLIDE_ICONS = { daily: Swords, find: Compass, creative: PenTool, universe: Orbit };
+const SLIDE_ICONS = { daily: Swords, portfolio: BookImage, find: Compass, creative: PenTool, universe: Orbit };
 
 /** Native touch/trackpad scrolling; every panel stays mounted to preserve drafts/audio. */
 export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, renderSlide, active, onActive, stats = {} }) {

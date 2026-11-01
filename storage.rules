@@ -67,6 +67,23 @@ service firebase.storage {
       allow update, delete: if false;
     }
 
+    // Program portfolios: a learner's evidence images for one PBL program.
+    // Owner adds and removes images (JPG/PNG/WebP/GIF, 10 MB max, never
+    // overwritten); the owner and staff can view them. The Firestore entry
+    // that points at each image is coach-readable under activityProgress.
+    function isStaffRole() {
+      return isAuthenticated() && request.auth.token.get('role', 'student') in ['teacher', 'coach', 'admin', 'supervisor'];
+    }
+
+    match /portfolio/{uid}/{programId}/{filename} {
+      allow read: if isOwner(uid) || isStaffRole();
+      allow create: if isOwner(uid)
+                    && request.resource.contentType.matches('image/(jpeg|png|webp|gif)')
+                    && request.resource.size <= 10 * 1024 * 1024;
+      allow update: if false;
+      allow delete: if isOwner(uid);
+    }
+
     // Legacy / Activity uploads
     match /solarCar/{uid}/{filename} {
       allow read: if isAuthenticated();

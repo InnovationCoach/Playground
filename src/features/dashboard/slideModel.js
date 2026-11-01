@@ -1,6 +1,7 @@
 /** Presentation preferences only. Learning records remain in their existing stores. */
 export const SLIDES = [
   { id: 'daily', title: 'My Quests', short: 'My Quests', eyebrow: 'GOALS. TASKS. QUESTS.' },
+  { id: 'portfolio', title: 'My Portfolio', short: 'Portfolio', eyebrow: 'SHOW WHAT YOU CAN DO.' },
   { id: 'find', title: 'Find a Quest', short: 'Find a Quest', eyebrow: 'WHAT DO YOU WANT TO LEARN?' },
   { id: 'creative', title: 'My Creative Space', short: 'Creative space', eyebrow: 'A PLACE FOR UNFINISHED IDEAS.' },
   { id: 'universe', title: 'My Spark Universe', short: 'Universe', eyebrow: 'MAKE THIS FEEL LIKE YOU.' }
