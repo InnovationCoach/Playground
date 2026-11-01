@@ -1,0 +1,131 @@
+/**
+ * Course discovery on the search page (#/search): source and type filters,
+ * course competency outlines, and rule-based suggestions with plain reasons.
+ *
+ * Pure functions over the catalogue entries from courses/catalog.js and the
+ * learner records the page already loads (goal plan, enrolled/assigned
+ * courses). Unit-tested in tests/search-discovery.test.js.
+ *
+ * Honesty rules:
+ * - Course competencies are course OUTCOMES ("works toward"), never learner
+ *   achievement. Confirmed learner competencies come only from a connected
+ *   competency service (see competencyContext); until then the UI says so.
+ * - Suggestions are rules over real records (search, enrolment, assignment,
+ *   current goal). No scores, no "you need", no AI.
+ */
+import { competencyById, domainById } from '../pbl/content/competencies.js';
+
+export const SOURCE_TABS = ['all', 'welearn', 'external'];
+export const TYPE_FILTERS = ['any', 'program', 'activity'];
+const TAB_SOURCES = { welearn: ['activity', 'program'], external: ['partner'] };
+
+const inTab = (item, tab) => !TAB_SOURCES[tab] || TAB_SOURCES[tab].includes(item.source);
+
+/** Results for one source tab, and within WeLearn optionally one type. */
+export function filterResults(items, { tab = 'all', type = 'any' } = {}) {
+  return items.filter((item) => inTab(item, tab) && (type === 'any' || tab === 'external' || item.source === type));
+}
+
+export function tabCounts(items) {
+  return Object.fromEntries(SOURCE_TABS.map((tab) => [tab, items.filter((item) => inTab(item, tab)).length]));
+}
+
+/** Counts for the type chips, inside the current tab. */
+export function typeCounts(items, tab = 'all') {
+  const pool = items.filter((item) => inTab(item, tab));
+  return { any: pool.length, program: pool.filter((i) => i.source === 'program').length, activity: pool.filter((i) => i.source === 'activity').length };
+}
+
+/**
+ * The competencies a course outline explicitly maps, strongest first (stage
+ * targets weigh more than single sessions). Unknown framework ids are dropped,
+ * and the original framework statement is kept. Course outcomes only.
+ */
+export function courseCompetencies(program) {
+  if (!program) return [];
+  const weight = new Map();
+  const add = (id, w) => { if (competencyById(id)) weight.set(id, (weight.get(id) || 0) + w); };
+  for (const phase of program.phases || []) {
+    (phase.competencies || []).forEach((id) => add(id, 2));
+    (phase.stretchCompetencies || []).forEach((id) => add(id, 1));
+    for (const session of phase.sessions || []) (session.evidenceToCollect?.targetCompetencies || []).forEach((id) => add(id, 1));
+  }
+  return [...weight].sort((a, b) => b[1] - a[1]).map(([id]) => {
+    const c = competencyById(id);
+    return { id, code: c.code, title: c.title, statement: c.statement, domain: domainById(c.domain)?.title || '' };
+  });
+}
+
+/** Where a course stands for this learner, from real enrolment/assignment records only. */
+export function availability(item, courses = []) {
+  if (item.source === 'partner') return 'external';
+  if (item.source !== 'program') return 'open';
+  const course = courses.find((c) => c.program?.id === item.id);
+  if (!course) return 'open';
+  return course.enrolment ? 'enrolled' : 'assigned';
+}
+
+const STOP = new Set(['about', 'after', 'again', 'also', 'and', 'because', 'before', 'being', 'build', 'could', 'from', 'have', 'into', 'learn', 'learning', 'like', 'make', 'more', 'need', 'project', 'should', 'some', 'that', 'their', 'them', 'then', 'there', 'these', 'thing', 'this', 'through', 'want', 'what', 'when', 'which', 'will', 'with', 'would', 'your']);
+const norm = (s) => (s || '').toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ');
+
+/** The meaningful words of a goal, so "Turn my garden idea into a prototype" looks for garden and prototype. */
+export function goalWords(text) {
+  return [...new Set(norm(text).split(/\s+/).filter((w) => w.length >= 4 && !STOP.has(w)))];
+}
+
+const haystack = (item) => norm(`${item.kicker} ${item.title} ${item.description} ${item.keywords} ${item.extra || ''}`);
+
+/** Catalogue entries that share a meaningful word with a goal, most shared words first. */
+export function relatedToGoal(items, goalText) {
+  const words = goalWords(goalText);
+  if (!words.length) return [];
+  return items.map((item, order) => {
+    const hay = haystack(item);
+    const hits = words.filter((w) => hay.includes(w));
+    return { item, word: hits[0], hits: hits.length, order };
+  }).filter((x) => x.hits > 0).sort((a, b) => b.hits - a.hits || a.order - b.order);
+}
+
+/**
+ * Up to three suggestions, each with the reasons it was picked:
+ *   continue/assigned/enrolled (a real course record), goal (shares words
+ *   with the chosen goal), search (matches what was typed).
+ * While searching, suggestions come only from the search results, so nothing
+ * unrelated sits above what the learner asked for. With no search and no
+ * records, there are no suggestions: the UI offers to choose a focus instead.
+ */
+export function suggestions({ items = [], results = [], query = '', focusGoal = null, courses = [], limit = 3 }) {
+  const q = query.trim();
+  const pool = q ? results : items;
+  const byKey = new Map(pool.map((item) => [item.key, item]));
+  const searchReason = q ? [{ type: 'search', q }] : [];
+  const out = [], seen = new Set();
+  const push = (item, reasons) => {
+    if (!item || seen.has(item.key) || out.length >= limit) return;
+    seen.add(item.key);
+    out.push({ item, reasons });
+  };
+  for (const course of courses) {
+    const item = byKey.get(`program:${course.program?.id}`);
+    if (!item) continue;
+    const next = !course.progressUnavailable && !course.needsRecheck ? course.summary?.next : null;
+    push(item, [...searchReason, next ? { type: 'continue', next: next.title } : { type: course.enrolment ? 'enrolled' : 'assigned' }]);
+  }
+  if (focusGoal?.explore) {
+    for (const { item, word } of relatedToGoal(pool, focusGoal.explore)) push(item, [...searchReason, { type: 'goal', goal: focusGoal.explore, word }]);
+  }
+  if (q) for (const item of results) push(item, searchReason);
+  return out;
+}
+
+/**
+ * Confirmed learner competencies come from a server contract that is not live
+ * yet (docs: HANDOFF-SEARCH-DISCOVERY-BACKEND). The page renders whatever this
+ * returns; the real app passes NOT_CONNECTED until that service exists.
+ */
+export const NOT_CONNECTED = Object.freeze({ status: 'not-connected', confirmed: [] });
+export function normaliseCompetencyContext(ctx) {
+  if (!ctx || ctx.status !== 'ready' || !Array.isArray(ctx.confirmed)) return NOT_CONNECTED;
+  const confirmed = ctx.confirmed.filter((c) => c && competencyById(c.competencyId)).map((c) => ({ ...c, title: competencyById(c.competencyId).title }));
+  return { status: 'ready', confirmed, sample: ctx.sample === true };
+}

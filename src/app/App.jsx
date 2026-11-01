@@ -402,7 +402,8 @@ export function App() {
                      onOpenActivity={navigate} displayName={profile?.displayName} />
         </div>
       ) : (!isPrimary && route?.screen === 'homeSearch') ? (
-        <HomeSearch uid={user?.uid} displayName={profile?.displayName} onOpenActivity={navigate} initialQuery={route.q} />
+        <HomeSearch uid={user?.uid} displayName={profile?.displayName} onOpenActivity={navigate} initialQuery={route.q}
+                    classIds={profile?.classIds || []} activeProgramId={profile?.activeProgramId} />
       ) : role === 'student' && !isPrimary && route?.screen === 'goals' ? (
         <div className="gh-app">
           <GoalsPage uid={user?.uid} displayName={profile?.displayName} />

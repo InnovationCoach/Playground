@@ -1,6 +1,5 @@
 import { hrefFor } from '../../app/routes.js';
 import { gaugeReading } from './instrumentModel.js';
-import { splitGoals } from './slideModel.js';
 
 const textOf = (value) => typeof value === 'string' ? value.trim()
   : value && typeof value === 'object' ? textOf(value.prompt || value.text || value.title) : '';
@@ -38,8 +37,6 @@ export function dockStats({ data, today, ticked, plan, goalsLoaded, focus = null
     const n = today.filter((item) => ticked.has(item.id)).length;
     stats.daily = { text: `${n}/${today.length}`, label: `${n} of ${today.length} done today` };
   }
-  const active = goalsLoaded ? splitGoals(plan).active.length : 0;
-  if (active) stats.goals = { text: String(active), label: `${active} current ${active === 1 ? 'goal' : 'goals'}` };
   const course = data.courses.find((item) => !item.progressUnavailable && !item.needsRecheck && item.summary && gaugeReading(item.summary.done, item.summary.total));
   if (course) stats.progress = { text: `${course.summary.done}/${course.summary.total}`, label: `${course.summary.done} of ${course.summary.total} sessions marked complete` };
   if (focus) stats.creative = { text: focus, label: `focus timer ${focus} left` };

@@ -67,10 +67,13 @@ export function buildCatalog({ activities = [], programs = [], parseLabel = (l) 
 
   const fromPrograms = programs.map((p) => ({
     key: `program:${p.id}`, source: 'program', id: p.id,
-    kicker: 'PBL program', title: p.title, icon: p.identity?.icon, tone: p.identity?.tone,
+    kicker: p.theme || '', title: p.title, icon: p.identity?.icon, tone: p.identity?.tone,
     description: p.subtitle || p.drivingQuestion || '',
     keywords: [p.theme, p.drivingQuestion, p.identity?.short, ...(p.tags || []), ...(p.searchTokens || [])].filter(Boolean).join(' '),
-    facts: [p.durationWeeks ? `${p.durationWeeks} weeks` : null, p.sessions?.length ? `${p.sessions.length} sessions` : null].filter(Boolean)
+    facts: [p.durationWeeks ? `${p.durationWeeks} weeks` : null, p.sessions?.length ? `${p.sessions.length} sessions` : null].filter(Boolean),
+    stages: (p.phases || []).map((ph) => ph.title).filter(Boolean),
+    // Searched with keyword weight: stage and session titles a learner might type.
+    extra: [...(p.phases || []).map((ph) => ph.title), ...(p.sessions || []).map((se) => se.title)].filter(Boolean).join(' ')
   }));
 
   const fromPartners = includePartners ? PARTNER_COURSES.map((c) => ({
@@ -97,7 +100,7 @@ export function searchCatalog(items, query, source = 'all') {
   const scored = [];
   pool.forEach((item, order) => {
     const title = norm(`${item.kicker} ${item.title}`);
-    const hay = `${title} ${norm(item.description)} ${norm(item.keywords)} ${norm(item.facts.join(' '))}`;
+    const hay = `${title} ${norm(item.description)} ${norm(item.keywords)} ${norm(item.facts.join(' '))} ${norm(item.extra)}`;
     let score = 0;
     for (const w of words) {
       if (title.includes(w)) score += 2;

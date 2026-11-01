@@ -167,3 +167,99 @@
 
 /* Readout spacing in Plus Jakarta Sans: "6 of 24", never "6of24". */
 .sd-root .ig-readout strong span { margin:0 .22em;letter-spacing:0; }
+
+/* =====================================================================
+ * SPARK Daylight Studio: the designed light theme.
+ * Everything below reads theme tokens; the dark block re-sets them so
+ * SPARK Night looks exactly as before.
+ * ===================================================================== */
+.gh-app.md-root.sd-root {
+  --sp-canvas:
+    radial-gradient(900px 460px at 0% 0%, rgba(150,215,0,.13), transparent 62%),
+    radial-gradient(900px 520px at 100% 0%, rgba(130,80,160,.12), transparent 62%),
+    radial-gradient(700px 420px at 60% 100%, rgba(155,210,255,.16), transparent 65%),
+    #f6f7fb;
+  --sp-card-border: rgba(15,44,76,.08);
+  --sp-card-shadow: 0 1px 2px rgba(15,44,76,.06), 0 14px 32px -18px rgba(15,44,76,.22);
+  --sp-card-shadow-hi: 0 2px 4px rgba(15,44,76,.06), 0 22px 44px -20px rgba(130,80,160,.30);
+  --sp-tint-lime:#f1f9dc; --sp-tint-sky:#edf6ff; --sp-tint-magenta:#fdeff6; --sp-tint-lilac:#f5eefb;
+  --sp-start-bg: linear-gradient(105deg,#eaf7c8 0%,#f7fbe9 38%,#ffffff 70%);
+  --sp-dial-glow: rgba(150,215,0,.16);
+  --sp-h2-ink: linear-gradient(95deg,#0f2c4c 35%,#6e3f8b 100%);
+  --sp-uni-bg:
+    radial-gradient(55% 85% at 88% 8%, rgba(130,80,160,.22), transparent 70%),
+    radial-gradient(45% 70% at 8% 100%, rgba(150,215,0,.22), transparent 70%),
+    linear-gradient(160deg,#e9f3ff 0%,#f4efff 55%,#fdf1f7 100%);
+  --sp-uni-ink:#0f2c4c; --sp-uni-muted:#4b5670; --sp-uni-eyebrow:#6e3f8b; --sp-uni-line:rgba(15,44,76,.12);
+  --sp-star:#8250a0; --sp-star-opacity:.55; --sp-chip-border:rgba(130,80,160,.35); --sp-chip-bg:rgba(255,255,255,.6);
+}
+[data-theme="dark"] .gh-app.md-root.sd-root:not([data-theme="light"]),
+.gh-app.md-root.sd-root[data-theme="dark"] {
+  --sp-canvas: #07162a;
+  --sp-card-border: var(--gh-border);
+  --sp-card-shadow: 0 0 0 transparent;
+  --sp-card-shadow-hi: 0 18px 40px -28px rgba(130,80,160,.22);
+  --sp-tint-lime: var(--gh-surface); --sp-tint-sky: var(--gh-surface); --sp-tint-magenta: var(--gh-surface); --sp-tint-lilac: var(--gh-surface);
+  --sp-start-bg: linear-gradient(100deg,rgba(130,80,160,.22),transparent 55%),#0b1f3a;
+  --sp-dial-glow: rgba(130,80,160,.22);
+  --sp-h2-ink: linear-gradient(#f5f8fc,#f5f8fc);
+  --sp-uni-bg:
+    radial-gradient(60% 90% at 85% 10%,rgba(130,80,160,.45),transparent 70%),
+    radial-gradient(40% 60% at 70% 100%,rgba(174,38,108,.25),transparent 70%),#021a35;
+  --sp-uni-ink:#ffffff; --sp-uni-muted:#c9cce0; --sp-uni-eyebrow:#c9e88a; --sp-uni-line:rgba(255,255,255,.18);
+  --sp-star:#ffffff; --sp-star-opacity:.5; --sp-chip-border:rgba(155,210,255,.45); --sp-chip-bg:transparent;
+}
+
+/* Brand ink on slide titles (solid in SPARK Night). */
+.sd-root .sd-slide-content>h2 { background:var(--sp-h2-ink);-webkit-background-clip:text;background-clip:text;color:transparent; }
+@media (forced-colors:active) { .sd-root .sd-slide-content>h2 { color:CanvasText;background:none; } }
+
+/* Paper cards: depth instead of hard borders. */
+.sd-root .ig-plate,.sd-root .sd-record.ig-dial-plate,.sd-root .sd-workspace-tools .sd-tool,
+.sd-root .sd-personal-tasks,.sd-root .sd-academic>.ig-plate-quiet,.sd-root .sd-indicators,
+.sd-root .sd-plan-tabs,.sd-root .sd-plan-tabs.lh-tabs,.sd-root .sd-button { border-color:var(--sp-card-border);box-shadow:var(--sp-card-shadow); }
+.sd-root .sd-project { border-color:var(--sp-card-border);box-shadow:inset 6px 0 0 var(--brand-lime),var(--sp-card-shadow-hi); }
+.sd-root .sd-goal { border-color:var(--sp-card-border);box-shadow:inset 4px 0 0 var(--sp-magenta-fill),var(--sp-card-shadow); }
+.sd-root .sd-creative-links a { border-color:var(--sp-card-border);box-shadow:inset 6px 0 0 var(--sp-purple-fill),var(--sp-card-shadow); }
+.sd-root .sd-creative-links a:nth-child(2) { box-shadow:inset 6px 0 0 var(--sp-magenta-fill),var(--sp-card-shadow); }
+.sd-root .sd-goal:hover,.sd-root .sd-creative-links a:hover { box-shadow:inset 4px 0 0 var(--sp-magenta-fill),var(--sp-card-shadow-hi); }
+
+/* Meaning as gentle tints (flat in SPARK Night). */
+.sd-root .sd-start-here { background:var(--sp-start-bg);border-color:var(--sp-card-border);box-shadow:var(--sp-card-shadow-hi); }
+.sd-root .sd-start-icon { background:var(--gh-surface); }
+.sd-root .sd-academic>.ig-plate-quiet,.sd-root .ig-academic { background:var(--sp-tint-sky); }
+.sd-root .sd-goal .ig-goal-readout { background:var(--sp-tint-magenta);border-radius:14px;padding:12px 10px;border-right:0; }
+.sd-root .ig-goal-plate { background:linear-gradient(180deg,var(--sp-tint-magenta),var(--gh-surface) 70%); }
+.sd-root .ig-term { background:linear-gradient(180deg,var(--sp-tint-lilac),var(--gh-surface) 60%); }
+.sd-root .sd-workspace-tools .sd-tool { background:linear-gradient(180deg,var(--sp-tint-lilac) 0 58px,var(--gh-surface) 58px); }
+.sd-root .sd-record.ig-dial-plate { background:radial-gradient(120% 90% at 18% 0%,var(--sp-dial-glow),transparent 60%),var(--ig-face); }
+
+/* Universe: a dawn sky by day, the brand night after dark. */
+.ig-universe { background:var(--sp-uni-bg);color:var(--sp-uni-ink);border:1px solid var(--sp-card-border);box-shadow:var(--sp-card-shadow-hi); }
+.sd-root .ig-universe h3 { color:var(--sp-uni-ink); }
+.ig-universe .sd-eyebrow,.sd-root .ig-universe h4 { color:var(--sp-uni-eyebrow); }
+.ig-universe .sd-caption,.ig-note { color:var(--sp-uni-muted); }
+.ig-universe-lists { border-top-color:var(--sp-uni-line); }
+.ig-starfield circle { fill:var(--sp-star);opacity:var(--sp-star-opacity); }
+.ig-starfield circle:nth-child(5n) { fill:var(--brand-lime); }
+.ig-themes li { border-color:var(--sp-chip-border);background:var(--sp-chip-bg);color:var(--sp-uni-ink); }
+.sd-root.md-calm .ig-universe { background:var(--sp-tint-lilac); }
+[data-theme="dark"] .sd-root.md-calm:not([data-theme="light"]) .ig-universe,.sd-root.md-calm[data-theme="dark"] .ig-universe { background:#021a35; }
+
+/* Calm: no canvas glows or lifted shadows. */
+.gh-app.md-root.sd-root.md-calm { --sp-canvas:var(--gh-bg);--sp-card-shadow-hi:var(--sp-card-shadow); }
+.sd-root .sd-start-here { border-left:6px solid var(--brand-lime); }
+
+/* Find a Quest slide: the search page's box and chips, at home in the deck. */
+.sd-root .fq-box { width:min(720px,100%);margin:6px 0 14px; }
+.sd-root .fq-box input { padding-right:8.5rem;background:var(--gh-surface);color:var(--gh-text);border-color:var(--sp-card-border,var(--gh-border)); }
+.sd-root .fq-go { position:absolute;right:6px;top:50%;transform:translateY(-50%);min-height:44px;padding:0 18px; }
+.sd-root .fq-go:disabled { opacity:.55;cursor:not-allowed;box-shadow:none; }
+.sd-root .fq-topics { justify-content:flex-start;max-width:none;margin:0 0 8px; }
+.sd-root .fq-topics .hs-chip { background:var(--gh-surface);color:var(--gh-text-2);border-color:var(--sp-card-border,var(--gh-border)); }
+.sd-root .ds-suggest { margin-top:18px; }
+.sd-root .ds-suggest-card { background:var(--gh-surface);border-color:var(--sp-card-border,var(--gh-border));box-shadow:var(--sp-card-shadow,none); }
+.sd-root .fq-all { margin-top:14px; }
+.sd-root .ig-goals-section { margin-top:28px; }
+@media(max-width:600px) { .sd-root .fq-box input { padding-right:3.2rem; } .sd-root .fq-go span,.sd-root .fq-go { font-size:0; padding:0 12px; } .sd-root .fq-go svg { width:18px;height:18px; } }
+.sd-root .ds-suggest.gh-page { padding-left:0;padding-right:0;max-width:none;margin-left:0;margin-right:0; }

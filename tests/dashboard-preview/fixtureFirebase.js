@@ -18,3 +18,13 @@ export const serverTimestamp = () => Date.now();
 export const runTransaction = async (_db, fn) => fn({ get: getDoc, set: setDoc, update: updateDoc, delete: deleteDoc });
 export const getAuthClaims = async () => ({ role: location.search.includes('admin=1') ? 'admin' : 'student' });
 export const increment = (n) => n;
+// Read calls used by the Find a Quest slide (catalogue and "Added" courses). Offline: always empty.
+export const query = (ref) => ref;
+export const where = () => null;
+export const limit = () => null;
+export const orderBy = () => null;
+export const getDocs = async () => ({ forEach() {}, docs: [], empty: true, size: 0 });
+export const onSnapshot = () => () => {};
+export const addDoc = async () => ({ id: 'preview' });
+export const writeBatch = () => ({ set() {}, update() {}, delete() {}, commit: async () => {} });
+export const storage = {};

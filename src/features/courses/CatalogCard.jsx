@@ -3,6 +3,7 @@ import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { ActivityIcon } from '../shell/activityIcons.jsx';
 import { ProgramIcon } from '../pbl/programs/ProgramIcon.jsx';
 import { hrefFor } from '../../app/routes.js';
+import { WorksToward } from '../home/Discovery.jsx';
 
 /**
  * One catalogue entry (catalog.js). The card itself opens the course; the add
@@ -12,7 +13,7 @@ import { hrefFor } from '../../app/routes.js';
  * variant "icon" (My Courses): a bookmark in the corner.
  * variant "button" (Home search): a labelled "Add to My Courses" button below.
  */
-export function CatalogCard({ item, onOpenActivity, addedKeys, onToggleAdd, variant = 'icon' }) {
+export function CatalogCard({ item, onOpenActivity, addedKeys, onToggleAdd, variant = 'icon', worksToward = null, onDetails = null }) {
   const { t } = useLocale();
   const isAdded = addedKeys.includes(item.key);
   const label = t(isAdded ? 'courses.unsave' : 'courses.save');
@@ -26,6 +27,7 @@ export function CatalogCard({ item, onOpenActivity, addedKeys, onToggleAdd, vari
       <span className="gh-course-title">{item.title}</span>
       <span className="gh-course-desc">{item.description}</span>
       {item.facts.length > 0 && <span className="mc-facts">{item.facts.map((f) => <span key={f}>{f}</span>)}</span>}
+      {worksToward && <WorksToward list={worksToward} />}
       <span className="gh-course-cta">
         {item.source === 'partner'
           ? <>{t('courses.opensOn', { host: item.host })}<ExternalLink size={14} aria-hidden="true" /></>
@@ -43,6 +45,11 @@ export function CatalogCard({ item, onOpenActivity, addedKeys, onToggleAdd, vari
         <a className="gh-course" href={item.url} target="_blank" rel="noopener noreferrer">
           {body}<span style={srOnly}>{t('courses.newTab')}</span>
         </a>
+      )}
+      {onDetails && (
+        <button type="button" className="ds-details-btn" onClick={() => onDetails(item)} aria-label={`${t('discover.details')}: ${item.title}`}>
+          {t('discover.details')}
+        </button>
       )}
       {variant === 'button' ? (
         <div className="mc-card-actions">

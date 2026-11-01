@@ -14,11 +14,20 @@ describe('five-slide dashboard preferences', () => {
     expect(prefs.font).toBe('serif'); expect(prefs.calm).toBe(true);
   });
   it('never lets damaged preferences hide essential learning slides', () => {
-    const prefs = hydrateSlides({ slideOrder: ['universe', 'universe', 'unknown'], slideTitles: { daily: ' ', goals: 'A'.repeat(100) }, dashboardLayout: 'broken' });
+    const prefs = hydrateSlides({ slideOrder: ['universe', 'universe', 'unknown'], slideTitles: { daily: ' ', find: 'A'.repeat(100) }, dashboardLayout: 'broken' });
     expect(prefs.slideOrder).toHaveLength(5); expect(new Set(prefs.slideOrder)).toEqual(new Set(SLIDE_IDS));
     expect(prefs.slideOrder[0]).toBe('universe');
-    expect(prefs.slideTitles.daily).toBe('My Daily Learning Plan'); expect(prefs.slideTitles.goals).toHaveLength(40);
+    expect(prefs.slideTitles.daily).toBe('My Quests'); expect(prefs.slideTitles.find).toHaveLength(40);
     expect(prefs.dashboardLayout).toBe('slides');
+  });
+  it('retires the old Goals slide, adds Find a Quest after My Quests, and renames the old default title', () => {
+    expect(SLIDE_IDS).toEqual(['daily', 'find', 'progress', 'creative', 'universe']);
+    const saved = hydrateSlides({ slideOrder: ['daily', 'goals', 'creative', 'progress', 'universe'], slideTitles: { daily: 'My Daily Learning Plan', goals: 'My Goals', creative: 'Studio' } });
+    expect(saved.slideOrder).toEqual(['daily', 'find', 'creative', 'progress', 'universe']);
+    expect(saved.slideTitles.daily).toBe('My Quests');
+    expect(saved.slideTitles.creative).toBe('Studio');
+    expect(saved.slideTitles).not.toHaveProperty('goals');
+    expect(hydrateSlides({ slideTitles: { daily: 'Today for me' } }).slideTitles.daily).toBe('Today for me');
   });
   it('round-trips saved layout, slide order and titles without losing existing pages', () => {
     let prefs = hydratePrefs({ pages: [{ name: 'Ideas' }], dashboardLayout: 'grid' });
