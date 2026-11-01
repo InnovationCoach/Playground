@@ -612,3 +612,9 @@ The sky and location beacons now come from a shared `environmentKit.jsx` that bo
 - **Checks:** 39 of 39 universe tests pass, including 5 new mission tests and 2 new mission UI tests. Screenshots: `../review/stage-c/25` to `29`.
 
 **Backend Go 1: decided by Mani as Cloud Functions 2nd gen** (`onRequest` wrapping the Express app). Recorded in `docs/universe-handoffs/GEMINI BACKEND GO-1.md`, which asks Gemini for documentation only: record the decision, write the exact Go 3 changes for approval, and list what Mani must confirm for Go 2. Go 2 to Go 5 and any rules change remain unapproved.
+
+### 13.15 PR status and Go-1 review — 1 November 2026 (Claude)
+
+- **PR #3 was the dashboard release** (`release/dashboard-on-live`, `697f785`), not Find a Quest. Claude had mislabelled it earlier. It was merged into `main` (`4d8eb69`), so `main` now matches the dashboard release line.
+- **Find a Quest (`c855527`) never had its own PR.** PR #4 now targets `main` and contains **Find a Quest plus the 9 My Universe commits** (10 commits, 73 files). Merging #4 would also merge Find a Quest. That's Mani's decision. Merging deploys nothing.
+- **Gemini's Go-1 write-up** in `GEMINI BACKEND.md` §11.1 is accepted. The Go 3 proposal has a packaging gap: the functions source folder can't import `../server`, there's no `functions/package.json`, and `firebase-functions` isn't installed. This must be solved before Go 3 is approved; details are in `GEMINI BACKEND GO-1.md`.

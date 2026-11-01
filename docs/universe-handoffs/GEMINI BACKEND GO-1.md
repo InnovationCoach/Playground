@@ -29,3 +29,17 @@ Edit **only** `GEMINI BACKEND.md`. Don't change `functions/`, `server/`, `fireba
 3. List exactly what Mani must check for **Go 2**: the billing plan on project `dnd-master-73449`, the region and any IAM role. Mark each as unverified until Mani confirms. Don't look it up by changing access.
 4. Note how the existing callable `createLearner` in `functions/index.js` continues to work alongside the new function.
 5. Report the saved path, then stop.
+
+## Review of Gemini's Go-1 write-up (Claude, 1 November 2026)
+**Accepted:** the decision record, the coexistence with `createLearner`, the Go 2 checklist (every item marked unverified), the `demo-` emulator project and the scale-to-zero settings. `server/app.js` does export `createApp()`.
+
+**Must be solved in the Go 3 proposal before Mani approves it: packaging.**
+- With `"source": "functions"`, Firebase uploads **only the `functions/` folder**. The proposed `import { createApp } from '../server/app.js'` (and the existing `../server/routes/create-learner.js` import) points outside it, so the deploy would fail or the function would crash on start.
+- `functions/` has **no `package.json`**, and `firebase-functions` isn't installed anywhere in this checkout.
+- Propose one approach, as text only:
+  - (a) bundle `server/` into `functions/` at build time (for example with esbuild in a predeploy step), or
+  - (b) move the server code into `functions/`, or
+  - (c) use the repo root as the functions source, with a strict ignore list.
+
+  For each, give the `functions/package.json` (dependencies and Node engine) and the effect on the existing `createLearner` function.
+- Test the result in the emulator only (`--project demo-…`) before any Go 5.

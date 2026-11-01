@@ -630,32 +630,70 @@ Manifests will live as **versioned static JSON files distributed via Firebase Ho
 
 ## 11. Implementation Proposals: Server, Rules & Asset Hosting
 
-### 11.1 Server Deployment Path Proposal
+### 11.1 Server Deployment Path: Cloud Functions 2nd Gen (Decided: Go 1)
 
-Currently, the Express server in `server/app.js` is not wired to public hosting traffic (no `/api` rewrite exists in `firebase.json`). For the client to reach `/api/universe/access`, a deployment path must be selected and configured.
+**Decision (1 November 2026):** Mani selected **Cloud Functions 2nd Gen `onRequest`** (Option B) wrapping the existing Express app (`server/app.js`). Cloud Run is not selected.
 
-#### Deployment Target Comparison
+#### Coexistence with Existing Callable Function
+`functions/index.js` currently exports the `createLearner` callable (`onCall`). In Cloud Functions 2nd Gen, multiple triggers comfortably coexist in the same module entrypoint:
+- `createLearner`: Dedicated `onCall` function for coach/admin registration.
+- `api`: New `onRequest` HTTP function handling all `/api/**` traffic via the Express router.
 
-| Target | Architecture | Pros | Cons | Recommendation |
-|---|---|---|---|---|
-| **Option A: Cloud Run (Containerized Express)** | Containerizes existing `server/app.js` using Dockerfile. Firebase Hosting rewrites `/api/**` to Cloud Run service. | Matches existing full Express app; unified process; easy local Docker parity; supports websockets or persistent connections if ever needed. | Requires GCP Artifact Registry and Cloud Run service provisioning. | **Recommended for long-term production.** Clean separation of API compute and static CDN. |
-| **Option B: Cloud Functions (2nd Gen `onRequest`)** | Exports Express app wrapped in `onRequest` from `functions/index.js`. Firebase Hosting rewrites `/api/**` to the function. | Native Firebase CLI deployment (`firebase deploy --only functions`); minimal GCP console setup. | Cold starts on 2nd Gen functions without min-instances can add initial request latency (unverified in this project); requires refactoring `functions/index.js` to mount the Express app. | **Viable alternative.** Simpler deployment workflow if Cloud Run IAM setup is restricted. |
+#### Concrete Proposal for Go 3 (Awaiting Mani's Approval)
+The exact code and configuration changes proposed for Go 3 are documented below. *Zero files have been modified yet; these await Mani's written approval.*
 
-#### Required `firebase.json` Hosting Rewrite Proposal
-To route `/api/**` traffic from the frontend domain to the server, `firebase.json` must be updated:
+##### 1. Proposed `functions/index.js` Export
+```javascript
+import { onRequest } from 'firebase-functions/v2/https';
+import { createApp } from '../server/app.js';
 
+// Lazy-initialized singleton to optimize cold-start memory
+let appInstance;
+function getApp() {
+  if (!appInstance) {
+    appInstance = createApp();
+  }
+  return appInstance;
+}
+
+/**
+ * Proposed Express API Host (Cloud Functions 2nd Gen)
+ * Wrapped with lazy initialization and internal CORS delegation.
+ */
+export const api = onRequest(
+  {
+    region: 'us-central1',          // Proposed region
+    memory: '512MiB',              // Proposed budget
+    timeoutSeconds: 60,            // Proposed timeout
+    minInstances: 0,               // Scales to zero to prevent idle billing
+    cors: false                    // Handled internally by server/app.js cors middleware
+  },
+  (req, res) => getApp()(req, res)
+);
+```
+
+##### 2. Proposed `firebase.json` Configuration
 ```json
 {
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
+    }
+  ],
   "hosting": {
     "public": "dist",
     "cleanUrls": true,
     "rewrites": [
       {
         "source": "/api/**",
-        "run": {
-          "serviceId": "welearn-api",
-          "region": "us-central1"
-        }
+        "function": "api"
       }
     ],
     "headers": [
@@ -678,41 +716,37 @@ To route `/api/**` traffic from the frontend domain to the server, `firebase.jso
         ]
       }
     ]
+  },
+  "emulators": {
+    "firestore": { "port": 8088 },
+    "auth": { "port": 9099 },
+    "storage": { "port": 9199 },
+    "functions": { "port": 5001 },
+    "hosting": { "port": 5000 },
+    "ui": { "enabled": false }
   }
 }
 ```
-*(If Option B is chosen, `"run"` is replaced by `"function": "api"`).*
 
-#### Local Emulator Mirroring
-To mirror this routing in local development without touching production:
-1. **Option 1 (Vite Proxy - Recommended for Development):** In `vite.config.js`, configure a dev proxy:
-   ```javascript
-   server: {
-     proxy: {
-       '/api': {
-         target: 'http://localhost:3001',
-         changeOrigin: true
-       }
-     }
-   }
-   ```
-2. **Option 2 (Firebase Hosting Emulator):** Add the hosting emulator to `firebase.json`:
-   ```json
-   "emulators": {
-     "hosting": {
-       "port": 5000
-     }
-   }
-   ```
-   The Hosting emulator honors rewrites to local Cloud Functions or proxied targets.
+##### 3. Local Emulator Execution (`demo-` Isolated)
+To test the full suite locally without touching live GCP/Firebase services or incurring billing:
+```bash
+firebase emulators:start --only firestore,auth,functions,hosting --project demo-hearisland-rules
+```
+*Safety Guarantee:* Specifying `--project demo-hearisland-rules` prevents any emulator process from contacting production GCP infrastructure or leaking live credentials.
 
-#### Mani's Written "Go" Checklist (Prerequisites for Server Go-Live)
-The following steps require Mani's explicit written approval before any code or infrastructure changes are made:
-- [ ] **Go 1:** Approval of server deployment target (Cloud Run vs Cloud Functions 2nd gen).
-- [ ] **Go 2:** Approval of GCP project billing, region selection (`us-central1`), and IAM roles for container deployment.
-- [ ] **Go 3:** Approval to add `/api/**` rewrites to `firebase.json` and configure local Vite/emulator proxy.
-- [ ] **Go 4:** Approval to mount `/api/universe/access` route in `server/app.js` with rate limiting and auth middleware.
-- [ ] **Go 5:** Approval to deploy to staging environment for end-to-end latency and fallback verification.
+#### Mani's Pre-Deployment Verification Checklist for Go 2
+Before Go 2 can be approved, Mani must verify the following items in the Google Cloud / Firebase console (marked as unverified until confirmed):
+- [ ] **Billing Plan (Unverified):** Project `dnd-master-73449` must have Blaze (Pay as you go) active. Cloud Functions 2nd Gen utilizes Google Cloud Build and Artifact Registry, which require Blaze.
+- [ ] **Target Region (Unverified):** Confirmation that `us-central1` is the desired region (must match the region configured in `functions/index.js` and `firebase.json`).
+- [ ] **Service Account & IAM Roles (Unverified):** The default Cloud Functions service account (`dnd-master-73449@appspot.gserviceaccount.com` or App Engine default service account) must possess the `Cloud Datastore User` (or `Firebase Admin`) role to read/write Firestore.
+
+#### Updated Server Go Checklist
+- [x] **Go 1 (Decided 1 Nov 2026):** Cloud Functions 2nd Gen `onRequest` selected by Mani.
+- [ ] **Go 2 (Pending Mani's Check):** Blaze billing verification, region confirmation (`us-central1`), IAM roles.
+- [ ] **Go 3 (Pending Mani's Approval):** Proposed `functions/index.js` export, `firebase.json` rewrite, and emulator setup.
+- [ ] **Go 4 (Pending Mani's Approval):** Mounting `/api/universe/access` route in `server/app.js`.
+- [ ] **Go 5 (Pending Mani's Approval):** Staging deployment and live smoke test.
 
 ---
 
@@ -1036,7 +1070,7 @@ Stage E (Future): Verified Progress Ledger & Workstation Integration
 |---|---|
 | **Handoff Document** | `/Users/admin/Desktop/HearIsland/output/my-universe/source/GEMINI BACKEND.md` |
 | **Date** | 1 November 2026 |
-| **Review Updates Applied** | **15 Review Corrections Applied (Round 1):**<br>1. Removed `/api` rewrite claim; documented deployment target as unverified.<br>2. Corrected mounted routes to match `server/app.js` exactly (removed non-existent `quest.js`, `school-workspace.js`, `personalization.js`).<br>3. Relabeled Teen Quest two-phase commit as a proposed future pattern from an older branch.<br>4. Corrected unmentioned collections (`learnerQuest`, etc.) to default-deny.<br>5. Corrected storage rules description (matches `/community`, `/messages`, `/solarCar`, `/canva-exports`).<br>6. Marked 100-entry caps and 64KB cap as proposed new rules with emulator tests.<br>7. Corrected coach read check to use `isCoachOf(userId)`.<br>8. Retagged Thalassa 112 kPa and Ignis SO2 facts as `fictional-world`.<br>9. Fixed Hex-Grid identifiers to `MODEL_VERSION = 'HexGrid-v1.0'` and `K.seawaterDensity.v = 1025 kg/m³`; clarified `thalassa-storm` is described narrative content.<br>10. Removed `seedrandom` dependency claim; framed as seeded deterministic function.<br>11. Labeled API host as proposed/undecided (Cloud Run vs Cloud Functions).<br>12. Labeled latency/size metrics as proposed budgets, not measured; used content hashes.<br>13. Replaced strict compliance claims with privacy design goals requiring legal review.<br>14. Standardized staging store name to `adminUniverseDrafts`.<br>15. Labeled `697f785` match note as "per earlier session verification; not re-checked".<br><br>**8 Review Corrections Applied (Round 2 — `GEMINI CORRECTIONS 2.md`):**<br>1. Removed non-existent `request.resource.size() <= 64 * 1024` check; replaced with per-field ID bounds (`size() <= 64`) and array bounds (`size() <= 100`); documented that array element types are enforced by client validation.<br>2. Fixed `activeDestination` reading using `.get(field, null)` so saves at galaxy level (omitted planet/environment fields) are not denied.<br>3. Changed test project ID to `demo-hearisland-rules` (matching repo conventions to guarantee tests only run against the local emulator).<br>4. Replaced strict monotonic revision claim with application-level counter validation (`revision >= 0`), preserving non-destructive `arrayUnion` merges.<br>5. Replaced `calmDrift` and `preferredScale` with `detail: 'standard' | 'high'`, matching the explorer and decoupling from dashboard calm preferences.<br>6. Made the catalog the single source of truth for `requirementText`; stripped redundant text from `/api/universe/access` response.<br>7. Updated 3D package status to installed for Stage B, and marked Stage B complete in the implementation sequence.<br>8. Reworded size budget rationale to bounding download payloads rather than guaranteeing 60 fps; labeled Cloud Functions cold-start figure as unverified.<br><br>**Stage C Catalog Sync (`fa553a4`):**<br>- Added `sceneKind` field to Environment records matching the committed catalog validator (`cosmosCatalog.js`). |
+| **Review Updates Applied** | **15 Review Corrections Applied (Round 1):**<br>1. Removed `/api` rewrite claim; documented deployment target as unverified.<br>2. Corrected mounted routes to match `server/app.js` exactly (removed non-existent `quest.js`, `school-workspace.js`, `personalization.js`).<br>3. Relabeled Teen Quest two-phase commit as a proposed future pattern from an older branch.<br>4. Corrected unmentioned collections (`learnerQuest`, etc.) to default-deny.<br>5. Corrected storage rules description (matches `/community`, `/messages`, `/solarCar`, `/canva-exports`).<br>6. Marked 100-entry caps and 64KB cap as proposed new rules with emulator tests.<br>7. Corrected coach read check to use `isCoachOf(userId)`.<br>8. Retagged Thalassa 112 kPa and Ignis SO2 facts as `fictional-world`.<br>9. Fixed Hex-Grid identifiers to `MODEL_VERSION = 'HexGrid-v1.0'` and `K.seawaterDensity.v = 1025 kg/m³`; clarified `thalassa-storm` is described narrative content.<br>10. Removed `seedrandom` dependency claim; framed as seeded deterministic function.<br>11. Labeled API host as proposed/undecided (Cloud Run vs Cloud Functions).<br>12. Labeled latency/size metrics as proposed budgets, not measured; used content hashes.<br>13. Replaced strict compliance claims with privacy design goals requiring legal review.<br>14. Standardized staging store name to `adminUniverseDrafts`.<br>15. Labeled `697f785` match note as "per earlier session verification; not re-checked".<br><br>**8 Review Corrections Applied (Round 2 — `GEMINI CORRECTIONS 2.md`):**<br>1. Removed non-existent `request.resource.size() <= 64 * 1024` check; replaced with per-field ID bounds (`size() <= 64`) and array bounds (`size() <= 100`); documented that array element types are enforced by client validation.<br>2. Fixed `activeDestination` reading using `.get(field, null)` so saves at galaxy level (omitted planet/environment fields) are not denied.<br>3. Changed test project ID to `demo-hearisland-rules` (matching repo conventions to guarantee tests only run against the local emulator).<br>4. Replaced strict monotonic revision claim with application-level counter validation (`revision >= 0`), preserving non-destructive `arrayUnion` merges.<br>5. Replaced `calmDrift` and `preferredScale` with `detail: 'standard' | 'high'`, matching the explorer and decoupling from dashboard calm preferences.<br>6. Made the catalog the single source of truth for `requirementText`; stripped redundant text from `/api/universe/access` response.<br>7. Updated 3D package status to installed for Stage B, and marked Stage B complete in the implementation sequence.<br>8. Reworded size budget rationale to bounding download payloads rather than guaranteeing 60 fps; labeled Cloud Functions cold-start figure as unverified.<br><br>**Stage C Catalog Sync (`fa553a4`):**<br>- Added `sceneKind` field to Environment records matching the committed catalog validator (`cosmosCatalog.js`).<br><br>**Backend Step 1 Decision (`GEMINI BACKEND GO-1.md`):**<br>- Recorded Go 1 as decided: Cloud Functions 2nd Gen `onRequest` (wrapping `server/app.js`, coexisting with `createLearner`).<br>- Documented concrete Go 3 proposals (`functions/index.js` export, `firebase.json` rewrites, and `demo-` isolated emulator command).<br>- Documented Go 2 pre-deployment checklist (Blaze billing, region confirmation, and IAM roles) as unverified awaiting Mani's check. |
 | **Documentation-Only Scope** | **Confirmed.** Zero source code modifications, zero rules changes, zero dependency installs, zero database mutations, zero deployments. |
 | **Prototypes & Saves** | **Preserved.** Both SVG and 3D prototypes and their local saves remain untouched. |
 | **Next Step** | Handoff to **Mani** and **GPT-6 / Claude** to review the proposals. No implementation or deployment occurs until Mani's explicit written approval. |
