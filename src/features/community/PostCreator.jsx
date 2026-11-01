@@ -67,7 +67,7 @@ export function PostCreator({ onPostCreated }) {
   return (
     <form onSubmit={handleSubmit} className="gh-card" style={{ marginBottom: '2rem' }}>
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-        <div className="gh-avatar" style={{ width: 40, height: 40, fontSize: '0.8rem', background: 'var(--gh-purple-50)', color: 'var(--gh-purple)' }}>
+        <div className="gh-avatar" style={{ width: 40, height: 40, fontSize: '0.8rem', background: 'var(--gh-purple-50)', color: 'var(--gh-purple-text)' }}>
           {profile?.displayName?.charAt(0) || '?'}
         </div>
         <textarea

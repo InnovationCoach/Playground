@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { PROGRAMS, programById, resolveCompetencyId, programCompetencies, sessionsInWeek, PLATFORM_NOTES, shortAges, normaliseProgram, speechToTextOffers, isSourcedConfirmation } from '../src/features/pbl/programs/catalog.js';
 import {
-  newProgress, hydrateProgress, startProgram, toggleSession, chooseOption, setReflection, programProgress, progressDocId, LIMITS
+  newProgress, hydrateProgress, startProgram, toggleSession, chooseOption, setReflection, programProgress, progressDocId, LIMITS,
+  toggleStep, setConfidence, setTool
 } from '../src/features/pbl/programs/progress.js';
 import { competencyById } from '../src/features/pbl/content/competencies.js';
 import { parseRoute, hrefFor } from '../src/app/routes.js';
@@ -122,9 +123,31 @@ describe('learner progress in a program', () => {
       sessions: { [s1.sessionNumber]: { done: true, choice: 'bogus', reflection: 42 }, 999: { done: true } },
       updatedAt: 'yesterday'
     }, program);
-    expect(h.sessions).toEqual({ [s1.sessionNumber]: { done: true, choice: null, reflection: '' } });
+    expect(h.sessions).toEqual({ [s1.sessionNumber]: { done: true, choice: null, reflection: '', steps: [], confidence: null } });
     expect(h.startedAt).toBe(5);
     expect(h.updatedAt).toBeNull();
+  });
+
+  it('ticks real steps only, and keeps a confidence of 1 to 5', () => {
+    let p = toggleStep(newProgress(program.id), s1, 0);
+    p = toggleStep(p, s1, 99);
+    expect(p.sessions[s1.sessionNumber].steps).toEqual([0]);
+    p = setConfidence(p, s1.sessionNumber, 4);
+    expect(p.sessions[s1.sessionNumber].confidence).toBe(4);
+    p = setConfidence(toggleStep(p, s1, 0), s1.sessionNumber, 4);
+    expect(p.sessions[s1.sessionNumber]).toBeUndefined();
+    const h = hydrateProgress({ programId: program.id, sessions: { [s1.sessionNumber]: { steps: [0, 0, -1, 99, 'x'], confidence: 9 } } }, program);
+    expect(h.sessions[s1.sessionNumber]).toMatchObject({ steps: [0], confidence: null });
+  });
+
+  it('keeps tool state per tool, and drops oversized or badly named tools', () => {
+    const p = setTool(newProgress(program.id), 'friction-log', { entries: [] }, 7);
+    expect(p.tools['friction-log']).toEqual({ entries: [] });
+    expect(p.startedAt).toBe(7);
+    expect(setTool(p, 'Bad Id', {})).toBe(p);
+    expect(setTool(p, 'big', { x: 'y'.repeat(LIMITS.toolBytes) })).toBe(p);
+    const h = hydrateProgress({ programId: program.id, tools: { 'ok-1': { a: 1 }, 'no way': { a: 1 }, big: { x: 'y'.repeat(LIMITS.toolBytes) } } }, program);
+    expect(Object.keys(h.tools)).toEqual(['ok-1']);
   });
 
   it('points at the next unfinished session', () => {

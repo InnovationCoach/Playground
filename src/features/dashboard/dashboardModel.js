@@ -12,6 +12,7 @@ import { PHASES, TERM, INTERESTS } from '../pbl/content/pblModel.js';
 import { readiness, hydrateProject } from '../pbl/engine/pblProject.js';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';
 import { hydratePlan, hasPlan, todayItems, checkedToday, habitWeek } from '../goals/goalPlan.js';
+import { hydrateWorkspace } from './workspaceModel.js';
 import { SKILLS } from '../futureSkills/content.js';
 
 export const DAY_MS = 86400000;
@@ -23,6 +24,7 @@ const part = (done, total) => ({ done, total, percent: pct(done, total) });
 export const WIDGETS = [
   { id: 'progress', title: 'Your progress', hint: 'Academic study and your PBL work', wide: true },
   { id: 'today', title: 'Today', hint: 'Your daily checklist from Goal setting' },
+  { id: 'focus', title: 'Focus sounds', hint: 'Calm sounds and a focus timer for study time' },
   { id: 'nextStep', title: 'Your next step', hint: 'The one thing that moves you forward' },
   { id: 'goals', title: 'My goals', hint: 'Big goals, their steps and your daily habit' },
   { id: 'journey', title: 'Project journey', hint: 'Where you are in the term project', wide: true },
@@ -68,6 +70,7 @@ export function hydratePrefs(stored) {
   const s = stored && typeof stored === 'object' ? stored : {};
   const known = Array.isArray(s.order) ? s.order.filter((id) => WIDGET_IDS.includes(id)) : [];
   return {
+    ...hydrateWorkspace(s),
     // Widgets added after a learner last saved keep their default place at the end.
     order: [...new Set([...known, ...WIDGET_IDS])],
     hidden: Array.isArray(s.hidden) ? [...new Set(s.hidden.filter((id) => WIDGET_IDS.includes(id)))] : [],
@@ -270,6 +273,7 @@ export function projectProgress(project, goals, started = []) {
 
 export const XP = { activity: 40, goal: 15, achieved: 30, habit: 5, task: 5, evidence: 10, check: 10 };
 
+/** Legacy local display calculator; unverified and never eligible for rewards. Not used by My Dashboard. */
 export function xpSummary({ started, goals, project, readyDone }) {
   const tasksDone = PHASES.reduce((n, p) => n + (project.tasksDone[p.id] || []).length, 0);
   const xp = started.length * XP.activity

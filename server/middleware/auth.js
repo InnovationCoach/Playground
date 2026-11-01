@@ -14,7 +14,7 @@ export async function requireClaims(req, res, next) {
   }
 
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = header.startsWith('Bearer ') ? header.slice(7) : (req.query?.token || null);
 
   if (!token) {
     return sendError(res, 401, 'UNAUTHENTICATED', 'Sign-in required.');
@@ -27,6 +27,8 @@ export async function requireClaims(req, res, next) {
     // Fetch user profile document for mirror check & full details if needed
     const userDocSnap = await getFirestore().collection('users').doc(decoded.uid).get();
     const userData = userDocSnap.exists ? userDocSnap.data() : {};
+
+    req.callerUserData = userData;
 
     // Immediate refusal for suspended accounts
     if (userData.status === 'suspended' || decoded.disabled) {

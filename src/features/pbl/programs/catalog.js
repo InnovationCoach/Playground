@@ -17,10 +17,21 @@ import {
   COPILOT_DEPLOYMENT_CONFIG
 } from '../../../../prototypes/DonPBL/programRegistry.ts';
 import { competencyById } from '../content/competencies.js';
+import { getCustomProgramById } from '../../coach/programs/customProgramsStore.js';
+import { LIBRARY_PROGRAMS } from './libraryProgramsData.js';
+import { numberCourseSessions } from './sessionNumbering.js';
 
 export const TERM_WEEKS = SCHOOL_SCHEDULE_CONFIG.weeksPerTerm;
 export const AGE_TRACKS = LEARNER_AGE_CONFIG.tracks;
 export const SCHEDULE = SCHOOL_SCHEDULE_CONFIG;
+
+/**
+ * School-wide cover posters, one Cloudinary image link per program id. Design
+ * the poster in Canva, download it as PNG, upload it to the school's Cloudinary
+ * and paste the image link here. A program without one gets a poster drawn
+ * from its colours and icon; a coach can also set a cover for their own class.
+ */
+export const SCHOOL_COVERS = {};
 
 /** Look and feel per program. Content stays in the prototype; this is presentation only. */
 const IDENTITY = {
@@ -82,25 +93,30 @@ function cleanIds(ids, unknown) {
 
 /** Normalise and check one raw program. Exported for tests. */
 export function normaliseProgram(raw) {
+  if (!raw || typeof raw !== 'object') return null;
   const unknown = new Set();
-  const phases = raw.phases.map((ph) => ({
+  const rawPhases = Array.isArray(raw.phases) ? raw.phases : [];
+  const checkedPhases = rawPhases.map((ph) => ({
     ...ph,
     competencies: cleanIds(ph.competencies, unknown),
     stretchCompetencies: cleanIds(ph.stretchCompetencies, unknown),
-    sessions: (ph.sessions || []).map((s) => ({
+    sessions: (Array.isArray(ph.sessions) ? ph.sessions : []).map((s) => ({
       ...s,
-      phaseId: ph.id,
-      evidenceToCollect: { ...s.evidenceToCollect, targetCompetencies: cleanIds(s.evidenceToCollect?.targetCompetencies, unknown) }
+      phaseId: ph.id || ph.phaseId,
+      evidenceToCollect: { ...(s.evidenceToCollect || {}), targetCompetencies: cleanIds(s.evidenceToCollect?.targetCompetencies, unknown) }
     }))
   }));
+  // Course Maker and stored courses may omit or repeat session numbers; number them course-wide like pblService does.
+  const { phases, renumbered } = numberCourseSessions(checkedPhases, raw.renumbered);
   const sessions = phases.flatMap((ph) => ph.sessions).sort((a, b) => a.sessionNumber - b.sessionNumber);
-  const listing = PROGRAM_LIST.find((l) => l.id === raw.id);
+  const listing = (PROGRAM_LIST || []).find((l) => l.id === raw.id);
 
   const program = {
     ...raw,
     phases,
     sessions,
-    identity: IDENTITY[raw.id] || { icon: 'Compass', tone: 'purple', short: raw.title },
+    renumbered,
+    identity: { ...(IDENTITY[raw.id] || { icon: 'Compass', tone: 'purple', short: raw.title || 'Program' }), cover: SCHOOL_COVERS[raw.id] || null },
     listedAs: listing?.theme || null,
     sharesPhasesWith: null,
     issues: []
@@ -116,23 +132,27 @@ export function normaliseProgram(raw) {
 function checkProgram(raw, program, unknownCompetencies) {
   const issues = [];
   const add = (level, text) => issues.push({ level, text });
+  if (!raw || !program) return issues;
 
-  if (raw.durationWeeks !== TERM_WEEKS) {
+  if (raw.durationWeeks && raw.durationWeeks !== TERM_WEEKS) {
     add('warn', `Runs ${raw.durationWeeks} weeks, but a school term is ${TERM_WEEKS} weeks.`);
   }
-  if (program.listedAs && !program.listedAs.includes(`${raw.durationWeeks} Wks`)) {
+  if (program.listedAs && !program.listedAs.includes(`${raw.durationWeeks || TERM_WEEKS} Wks`)) {
     add('warn', `The program list describes it as "${program.listedAs}", which disagrees with its ${raw.durationWeeks}-week plan.`);
   }
-  if (program.sessions.length !== raw.totalSessions) {
+  if (raw.totalSessions && program.sessions.length !== raw.totalSessions) {
     add('warn', `Says ${raw.totalSessions} sessions, but only ${program.sessions.length} are written.`);
   }
-  const lastWeek = Math.max(...raw.phases.map((p) => p.weeks[1]));
-  if (lastWeek > raw.durationWeeks) add('warn', `Phases run to week ${lastWeek}, past the ${raw.durationWeeks}-week plan.`);
-  for (let i = 1; i < raw.phases.length; i += 1) {
-    const prev = raw.phases[i - 1];
-    const cur = raw.phases[i];
-    if (cur.weeks[0] <= prev.weeks[1]) {
-      add('warn', `${prev.title} (weeks ${prev.weeks.join('–')}) and ${cur.title} (weeks ${cur.weeks.join('–')}) overlap.`);
+  const rawPhases = Array.isArray(raw.phases) ? raw.phases : [];
+  if (rawPhases.length > 0) {
+    const lastWeek = Math.max(...rawPhases.map((p) => (Array.isArray(p.weeks) ? p.weeks[1] : 0)));
+    if (raw.durationWeeks && lastWeek > raw.durationWeeks) add('warn', `Phases run to week ${lastWeek}, past the ${raw.durationWeeks}-week plan.`);
+    for (let i = 1; i < rawPhases.length; i += 1) {
+      const prev = rawPhases[i - 1];
+      const cur = rawPhases[i];
+      if (Array.isArray(cur.weeks) && Array.isArray(prev.weeks) && cur.weeks[0] <= prev.weeks[1]) {
+        add('warn', `${prev.title} (weeks ${prev.weeks.join('–')}) and ${cur.title} (weeks ${cur.weeks.join('–')}) overlap.`);
+      }
     }
   }
   if (unknownCompetencies.size) {
@@ -169,6 +189,7 @@ for (const p of PROGRAMS) {
 export const PLATFORM_NOTES = [
   COPILOT_DEPLOYMENT_CONFIG.status !== 'deployed' && {
     level: 'warn',
+    internal: true,
     text: `The AI co-pilot (${COPILOT_DEPLOYMENT_CONFIG.endpoint}) is not deployed, so learners get the built-in fallback.`
   },
   (() => {
@@ -183,22 +204,35 @@ export const PLATFORM_NOTES = [
   }
 ].filter(Boolean);
 
-export const programById = (id) => PROGRAMS.find((p) => p.id === id) || null;
+/** Notes a coach should see. Internal deployment notes are logged for the team, not shown in the UI. */
+export const COACH_PLATFORM_NOTES = PLATFORM_NOTES.filter((n) => !n.internal);
+PLATFORM_NOTES.filter((n) => n.internal).forEach((n) => console.info('[pbl] internal note:', n.text));
+
+export const programById = (id) => {
+  if (!id) return null;
+  const custom = getCustomProgramById(id);
+  if (custom) return normaliseProgram(custom) || custom;
+  const found = PROGRAMS.find((p) => p.id === id || p.slug === id);
+  if (found) return found;
+  const lib = LIBRARY_PROGRAMS.find((p) => p.id === id || p.slug === id);
+  if (lib) return normaliseProgram(lib) || lib;
+  return null;
+};
 
 /** Every phase-level and session-level competency in a program, in framework order. */
 export function programCompetencies(program) {
   const ids = new Set();
-  for (const ph of program.phases) {
-    ph.competencies.forEach((id) => ids.add(id));
-    ph.stretchCompetencies.forEach((id) => ids.add(id));
-    ph.sessions.forEach((s) => s.evidenceToCollect.targetCompetencies.forEach((id) => ids.add(id)));
+  for (const ph of program?.phases || []) {
+    (ph.competencies || []).forEach((id) => ids.add(id));
+    (ph.stretchCompetencies || []).forEach((id) => ids.add(id));
+    (ph.sessions || []).forEach((s) => (s?.evidenceToCollect?.targetCompetencies || []).forEach((id) => ids.add(id)));
   }
   return [...ids];
 }
 
 /** Sessions that fall in one week of the program. */
 export function sessionsInWeek(program, week) {
-  return program.sessions.filter((s) => s.week === week);
+  return (program?.sessions || []).filter((s) => s.week === week);
 }
 
 /** "Ages 9–17 (Primary through Upper Secondary: ...)" -> "Ages 9–17". */

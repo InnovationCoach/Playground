@@ -170,20 +170,14 @@ Existing fields stay as they are. Add `orgId`, `schoolId`, `cohortId`, `name`, `
 | `cohortId` | Students and classes: id of a `cohorts` document (see below). Current cohorts: W2E (twice-exceptional learners, secondary), WPR (international students, primary). |
 | `programmeIds[]` | Extra programmes the student is **dual-enrolled** in, on top of their cohort. Today only the Thai Diploma, which any student in any cohort can take. |
 | `ageBand` | Students only: `primary` \| `13-15` \| `16-18`. Extends the existing field; `server/safety.js` needs a matching `primary` band. |
-| `consent` | WPR / under-13 students only: `{status: 'required'\|'verified'\|'withdrawn', verifiedAt?, parentUid?, method?}` |
 | `yearLevel?` | Students only |
 | `dateOfBirth?` | Optional. Returned only by the single-user endpoint, and only to `admin`. Never in list responses. |
 | `createdAt`, `createdBy{uid,name}`, `updatedAt`, `updatedBy{uid,name}`, `activatedAt?`, `suspendedAt?`, `suspendedBy?` | |
 
 **Age scope now includes primary (under-13) learners** in the WPR cohort. That
-changes three things, and none of them is optional:
-- **Consent gate.** A student under 13 is created with `status: 'pending'` and
-  `consent.status: 'required'`, and **cannot sign in or be activated** until a
-  linked parent has given verified consent. Build the data model and the gate
-  in Phase A; the parent-facing consent flow is Phase E. Which law applies
-  (COPPA, GDPR, UK Age Appropriate Design Code) is still being confirmed by the
-  school, so make the consent method a recorded field rather than hard-coding
-  one scheme.
+changes two things, and none of them is optional. (The consent gate was removed on
+2026-10-26: WeLearn keeps physical consent and staff enrol learners. Do not build a
+consent field, a consent status or a consent gate.)
 - **AI.** For `ageBand: 'primary'` the AI endpoints are **off by default**
   (return `403 AI_DISABLED_FOR_AGE`) unless an admin enables them for that
   class. When enabled, they use the strictest safety settings and a
@@ -265,7 +259,7 @@ user is refused immediately.
 ```
 Codes: `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404,
 `VALIDATION` 400 (with `field`), `CONFLICT` 409 (e.g. email in use),
-`CONSENT_REQUIRED` 403, `AI_DISABLED_FOR_AGE` 403, `EMAIL_NOT_CONFIGURED` 501, `RATE_LIMITED` 429,
+`AI_DISABLED_FOR_AGE` 403, `EMAIL_NOT_CONFIGURED` 501, `RATE_LIMITED` 429,
 `INTERNAL` 500.
 
 **Lists** use cursor pagination: `?pageSize=30&pageToken=…` (max 100), and
@@ -369,7 +363,6 @@ response. Email templates must support `en`, `zh` and `th`.
   - a parent reads an unlinked child;
   - a client creates `source: 'server'` audit entries.
   - another student, or a parent, reads a W2E learner's `supportProfile`;
-  - an under-13 student with `consent.status != 'verified'` reads or writes anything.
 
 ### Migration: `scripts/migrate-to-orgs.js`
 It must be idempotent, support `--dry-run`, and be modelled on

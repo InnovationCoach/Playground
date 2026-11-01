@@ -40,12 +40,15 @@ export function CoachDashboardHost({ coachUser }) {
 
     return () => {
       disposed = true;
+      if (instanceRef.current?.destroy) {
+        instanceRef.current.destroy();
+      }
       instanceRef.current = null;
       // The class renders by assigning innerHTML, so clearing the node is the
       // whole teardown. Listeners live on the replaced children.
       if (containerRef.current) containerRef.current.innerHTML = '';
     };
-  }, [coachUser]);
+  }, [coachUser?.uid]);
 
   return (
     <>

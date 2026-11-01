@@ -9,10 +9,13 @@ const ThemeContext = createContext(null);
  */
 export function ThemeProvider({ children, userThemePreference }) {
   const [theme, setTheme] = useState(userThemePreference || 'system');
+  const [systemDark, setSystemDark] = useState(
+    () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false,
+  );
 
   // Determine effective theme (resolving 'system' against prefers-color-scheme)
   const effectiveTheme = theme === 'system'
-    ? (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    ? (systemDark ? 'dark' : 'light')
     : theme;
 
   // Apply theme to DOM on mount and when theme changes
@@ -24,21 +27,16 @@ export function ThemeProvider({ children, userThemePreference }) {
     document.body.setAttribute('data-surface', effectiveTheme === 'dark' ? 'dark' : 'light');
   }, [effectiveTheme]);
 
-  // Listen for system preference changes when in 'system' mode
+  // Track OS colour-scheme changes so 'system' mode re-renders when the OS flips
   useEffect(() => {
-    if (theme !== 'system') return;
-
     const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
     if (!mediaQuery) return;
 
-    const handleChange = () => {
-      // Force re-render by toggling a dummy state (theme is already 'system')
-      setTheme('system');
-    };
+    const handleChange = (event) => setSystemDark(event.matches);
 
     mediaQuery.addEventListener?.('change', handleChange);
     return () => mediaQuery.removeEventListener?.('change', handleChange);
-  }, [theme]);
+  }, []);
 
   const setUserTheme = (newTheme) => {
     if (['light', 'dark', 'system'].includes(newTheme)) {

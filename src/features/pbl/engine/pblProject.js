@@ -9,6 +9,7 @@
  */
 import { PHASES, EVIDENCE_KINDS, IMPACT, CODE_LANGUAGES } from '../content/pblModel.js';
 import { competencyById } from '../content/competencies.js';
+import { embedFor } from './mediaEmbed.js';
 
 export const LIMITS = { evidence: 150, title: 120, body: 3000, code: 6000, link: 500, field: 600, sparks: 1500 };
 
@@ -107,6 +108,9 @@ export function addEvidence(project, draft, now = Date.now()) {
   if (project.evidence.length >= LIMITS.evidence) return { error: `Your portfolio is full (${LIMITS.evidence} entries). Ask your coach to archive older ones.` };
   if (!String(draft?.title || '').trim()) return { error: 'Give this evidence a short title.' };
   if (draft.link && !safeLink(draft.link)) return { error: 'Links must start with http:// or https://' };
+  if (draft.kind === 'design' && !embedFor(draft.link)?.src) {
+    return { error: embedFor(draft.link)?.hint || 'Paste your Canva design’s share link (Share → Anyone with the link → Can view).' };
+  }
   if (draft.kind === 'ai' && !String(draft.ai?.asked || '').trim()) return { error: 'For an AI log, write what you asked the AI.' };
   if (draft.kind === 'ai' && !String(draft.ai?.kept || '').trim()) return { error: 'For an AI log, say what you kept, changed or rejected - that is the evidence.' };
   const item = cleanEvidence({ ...draft, id: `ev-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`, createdAt: now });

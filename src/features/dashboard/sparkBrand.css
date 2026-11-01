@@ -1,0 +1,169 @@
+/*
+ * SPARK brand layer for My Dashboard. Loaded last; changes appearance only.
+ *
+ * WeLearn brand (admin.css): purple #8250a0, lime #96d700, navy #003c69,
+ * magenta #ae266c, sky #9bd2ff; Plus Jakarta Sans (display) + Inter (text).
+ *
+ * Colour carries one meaning everywhere, always alongside a text label:
+ *   lime    = recorded project progress and the primary action
+ *   magenta = personal goals (self-reported)
+ *   sky     = academic records / information
+ *   purple  = you: navigation, creative space, personal choices
+ * The four-point sparkle from the SPARK logo marks "next" and the dial pivot.
+ */
+
+/* ---------- Tokens: Daylight (light) ---------- */
+.gh-app.md-root.sd-root {
+  --brand-purple:#8250a0; --brand-lime:#96d700; --brand-navy:#003c69; --brand-magenta:#ae266c; --brand-sky:#9bd2ff;
+  --gh-bg:#f5f6fa; --gh-surface:#ffffff; --gh-subtle:#f0f1f6; --gh-border:#e4e6ee; --gh-border-strong:#cfd3df;
+  --gh-text:#14213a; --gh-text-2:#4b5670; --gh-text-3:#5d6680; --gh-heading:#0f2c4c;
+  --sp-lime-fill:#96d700; --sp-lime-ink:#1c2b00; --sp-lime-text:#4a6a00; --sp-lime-line:#5f9a00;
+  --sp-purple-fill:#8250a0; --sp-purple-text:#6e3f8b; --sp-purple-soft:#f5eefa;
+  --sp-magenta-fill:#ae266c; --sp-magenta-text:#9a1f5e; --sp-magenta-soft:#fbeaf2;
+  --sp-sky-line:#1d6fb0; --sp-sky-text:#1d5a8f; --sp-sky-soft:#e8f4ff;
+  --sp-glow:rgba(130,80,160,.10);
+  --sd-lime:var(--sp-lime-fill); --sd-lime-ink:var(--sp-lime-ink);
+  --md-accent-text:color-mix(in srgb,var(--md-accent) 78%,black);
+  /* Dials follow the theme: Daylight */
+  --ig-face:#ffffff; --ig-ink:#0f2c4c; --ig-muted:#4b5670; --ig-track:#e4e6ee; --ig-value:var(--sp-lime-line); --ig-tick:#9aa3b5; --ig-needle:#0f2c4c;
+  --ig-spark:#8250a0;
+}
+
+/* ---------- Tokens: SPARK Night (dark, the default) ---------- */
+[data-theme="dark"] .gh-app.md-root.sd-root:not([data-theme="light"]),
+.gh-app.md-root.sd-root[data-theme="dark"] {
+  --gh-bg:#07162a; --gh-surface:#0d2340; --gh-subtle:#14304f; --gh-border:#1f3d61; --gh-border-strong:#2c5079;
+  --gh-text:#e6edf7; --gh-text-2:#b3c2d9; --gh-text-3:#93a5c2; --gh-heading:#f5f8fc;
+  --sp-lime-text:#b4ec3a; --sp-lime-line:#96d700;
+  --sp-purple-fill:#8250a0; --sp-purple-text:#d3b0f2; --sp-purple-soft:#241a45;
+  --sp-magenta-fill:#e0589c; --sp-magenta-text:#f39bc6; --sp-magenta-soft:#33173a;
+  --sp-sky-line:#9bd2ff; --sp-sky-text:#9bd2ff; --sp-sky-soft:#0f2b4a;
+  --sp-glow:rgba(130,80,160,.22);
+  /* Fix: the dashboard's own dark theme must lighten accent text too. */
+  --md-accent-text:color-mix(in srgb,var(--md-accent) 40%,white);
+  --ig-face:#0b1f3a; --ig-ink:#f5f8fc; --ig-muted:#b3c2d9; --ig-track:#1f3d61; --ig-value:#96d700; --ig-tick:#5d7698; --ig-needle:#f5f8fc;
+  --ig-spark:#96d700;
+}
+
+/* Optional dial finishes (saved ids unchanged; labels are SPARK Night / Daylight / Lime). */
+.gh-app.md-root.sd-root[data-dial="midnight"] {
+  --ig-face:#0b1f3a; --ig-ink:#f5f8fc; --ig-muted:#b3c2d9; --ig-track:#1f3d61; --ig-value:#96d700; --ig-tick:#5d7698; --ig-needle:#f5f8fc; --ig-spark:#96d700;
+}
+.gh-app.md-root.sd-root[data-dial="ivory"] {
+  --ig-face:#ffffff; --ig-ink:#0f2c4c; --ig-muted:#4b5670; --ig-track:#e4e6ee; --ig-value:#5f9a00; --ig-tick:#9aa3b5; --ig-needle:#0f2c4c; --ig-spark:#8250a0;
+}
+.gh-app.md-root.sd-root[data-dial="mint"] {
+  --ig-face:#f2fadf; --ig-ink:#1c2b00; --ig-muted:#3d5200; --ig-track:#d5ec9f; --ig-value:#4a7a00; --ig-tick:#86a252; --ig-needle:#1c2b00; --ig-spark:#4a7a00;
+}
+
+/* ---------- Canvas and type ---------- */
+.gh-app.md-root.sd-root { background-color:var(--gh-bg); }
+.sd-root .sd-shell { position:relative; }
+.sd-root .sd-shell::before { /* brand stripe: lime spark into purple */
+  content:'';position:absolute;left:0;right:0;top:0;height:3px;border-radius:3px;
+  background:linear-gradient(90deg,var(--brand-lime) 0 22%,var(--brand-purple) 22% 78%,var(--brand-magenta) 78%);opacity:.9;
+}
+.sd-root .sd-slide-content>h2,
+.sd-root h3,.sd-root h4,
+.sd-root .ig-readout strong,.sd-root .ig-goal-readout strong,
+.sd-root .sd-start-here h3 { font-family:var(--gh-font-display); }
+.sd-root .sd-slide-content>h2 { font-weight:800;letter-spacing:-.045em; }
+.sd-root .sd-slide-content>.sd-eyebrow { display:inline-flex;align-items:center;gap:9px;color:var(--sp-lime-text); }
+.sd-root .sd-slide-content>.sd-eyebrow::before { content:'';width:9px;height:9px;background:var(--brand-lime);transform:rotate(45deg);border-radius:2px; }
+.gh-app.md-root.sd-root:not([data-theme="dark"]) .sd-slide-content>.sd-eyebrow { color:var(--sp-purple-text); }
+.ig-greeting { color:var(--sp-lime-text); }
+.sd-root .ig-readout strong,.sd-root .ig-goal-readout strong { font-variant-numeric:tabular-nums;font-weight:800;letter-spacing:-.03em; }
+
+/* Brand mark in the top bar */
+.sd-root .sd-brand { color:var(--gh-heading); }
+.sd-root .sd-brand>svg { color:var(--brand-lime); }
+.sd-root .sd-brand b { color:var(--sp-purple-text); }
+[data-theme="dark"] .sd-root:not([data-theme="light"]) .sd-brand b,.sd-root[data-theme="dark"] .sd-brand b { color:var(--brand-lime); }
+.sd-root .studio-avatar { background:var(--sp-purple-fill);color:#fff; }
+
+/* ---------- Actions ---------- */
+.sd-root .sd-primary,
+.sd-root .sd-start-here .sd-primary,
+.sd-root .sd-project .sd-primary,
+.sd-root .ig-universe .sd-primary { background:var(--sp-lime-fill);color:var(--sp-lime-ink);font-weight:800;box-shadow:0 6px 18px -8px rgba(150,215,0,.55); }
+.sd-root .sd-primary:hover { filter:brightness(1.05); }
+.sd-root .sd-link,.sd-root .sd-text-button { color:var(--md-accent-text); }
+.sd-root .sd-button { background:var(--gh-surface);border-color:var(--gh-border);color:var(--gh-heading); }
+
+/* Today / Ahead / Completed and goal filters: brand purple selection */
+.sd-root .sd-plan-tabs,.sd-root .sd-plan-tabs.lh-tabs { background:var(--gh-surface);border-color:var(--gh-border); }
+.sd-root .sd-plan-tabs button[aria-pressed=true],.sd-root .sd-plan-tabs.lh-tabs button[aria-pressed=true] { background:var(--sp-purple-fill);color:#fff; }
+
+/* ---------- Start here: the next spark ---------- */
+.sd-root .sd-start-here { background:linear-gradient(100deg,var(--sp-glow),transparent 55%),var(--ig-face);border-color:var(--gh-border);border-left:6px solid var(--brand-lime); }
+.sd-root .sd-start-icon { border-color:var(--gh-border);color:var(--ig-spark); }
+.ig-spark-mark path { fill:currentColor; }
+.sd-root .sd-start-here .sd-eyebrow { color:var(--sp-lime-text); }
+.gh-app.md-root.sd-root:not([data-theme="dark"]) .sd-start-here .sd-eyebrow { color:var(--sp-purple-text); }
+
+/* ---------- Lanes ---------- */
+.sd-root .sd-learning-lane:first-child>h3::before { background:var(--sp-sky-line);opacity:1; }
+.sd-root .sd-learning-lane:nth-child(2)>h3::before { background:var(--brand-lime);opacity:1; }
+.sd-root .sd-academic>.ig-plate-quiet { border-color:color-mix(in srgb,var(--sp-sky-line) 45%,var(--gh-border)); }
+.ig-status-pill { color:var(--sp-sky-text);border-color:var(--sp-sky-line); }
+.sd-root .sd-project { box-shadow:inset 6px 0 0 var(--brand-lime),0 18px 40px -28px var(--sp-glow); }
+.sd-root .sd-course-journey li[data-state=current] { background:var(--sp-purple-fill);color:#fff; }
+.sd-root .sd-course-journey li[data-state=done] { border-color:var(--sp-lime-line);color:var(--sp-lime-text); }
+
+/* ---------- Instruments ---------- */
+.sd-root .sd-record.ig-dial-plate { background:radial-gradient(120% 90% at 18% 0%,var(--sp-glow),transparent 60%),var(--ig-face);border-color:var(--ig-track); }
+.ig-value { stroke-linecap:round; }
+.ig-pivot { fill:var(--ig-needle); }
+.ig-pivot-spark { fill:var(--ig-spark); }
+.ig-milestone[data-complete] circle { fill:var(--ig-value);stroke:var(--ig-value); }
+.ig-milestone[data-complete] text { fill:#0b1f3a; }
+.ig-milestones li[data-complete] .ig-mark { background:var(--ig-value);border-color:var(--ig-value);color:#0b1f3a; }
+.ig-unavailable pattern line { stroke:var(--sp-sky-line); }
+.ig-academic .ig-gauge { --ig-tick:var(--sp-sky-line); }
+.ig-academic .ig-status { color:var(--sp-sky-text); }
+
+/* Personal goals: magenta into purple, labelled "personal check-ins" */
+.ig-steps { --ig-step-on:var(--sp-magenta-fill); }
+.ig-steps>span[data-on],.ig-steps>.ig-steps-fill { background:linear-gradient(90deg,var(--sp-magenta-fill),var(--sp-purple-fill));border-color:transparent; }
+[data-theme="dark"] .sd-root:not([data-theme="light"]) .ig-steps>span[data-on],
+[data-theme="dark"] .sd-root:not([data-theme="light"]) .ig-steps>.ig-steps-fill,
+.sd-root[data-theme="dark"] .ig-steps>span[data-on],
+.sd-root[data-theme="dark"] .ig-steps>.ig-steps-fill { background:linear-gradient(90deg,#e0589c,#b98ad6); }
+.sd-root .sd-goal { border-color:var(--gh-border);box-shadow:inset 4px 0 0 var(--sp-magenta-fill); }
+.sd-root .sd-goal .sd-eyebrow,.ig-goal-plate .ig-lane-title { color:var(--sp-magenta-text)!important; }
+.sd-root .sd-goal .ig-goal-readout strong { color:var(--sp-magenta-text); }
+.sd-root .sd-goal:hover { border-color:var(--sp-magenta-fill); }
+/* Term project: purple (it's the learner's own Design Thinking work) */
+.ig-term .ig-steps>span[data-on] { background:var(--sp-purple-fill); }
+[data-theme="dark"] .sd-root:not([data-theme="light"]) .ig-term .ig-steps>span[data-on],.sd-root[data-theme="dark"] .ig-term .ig-steps>span[data-on] { background:#b98ad6; }
+
+/* ---------- Creative space: purple studio ---------- */
+.sd-root .sd-creative-links a,.sd-root .sd-creative-links a:nth-child(2) { background:var(--gh-surface);box-shadow:inset 6px 0 0 var(--sp-purple-fill); }
+.sd-root .sd-creative-links a:nth-child(2) { box-shadow:inset 6px 0 0 var(--sp-magenta-fill); }
+.sd-root .sd-workspace-tools .sd-tool { background:var(--gh-surface); }
+.sd-root .sd-workspace-tools .sd-tool>h3 { color:var(--sp-purple-text); }
+.sd-root .sd-tool[data-tool="notes"] { background:var(--gh-surface); }
+.sd-root .sd-tool[data-tool="notes"]>h3::before { background:var(--sp-purple-fill);border-color:var(--sp-purple-fill); }
+
+/* ---------- Universe: brand navy night ---------- */
+.ig-universe { background:radial-gradient(60% 90% at 85% 10%,rgba(130,80,160,.45),transparent 70%),radial-gradient(40% 60% at 70% 100%,rgba(174,38,108,.25),transparent 70%),#021a35; }
+.ig-universe .sd-eyebrow,.sd-root .ig-universe h4 { color:#c9e88a; }
+.ig-themes li { border-color:rgba(155,210,255,.45); }
+.ig-themes li svg { color:var(--brand-lime); }
+.ig-bay { border-color:color-mix(in srgb,var(--sp-sky-line) 40%,var(--gh-border)); }
+.ig-bay svg { color:var(--sp-sky-text); }
+
+/* ---------- Dock: purple selection, lime counts ---------- */
+.sd-root .sd-indicators { background:var(--gh-surface);border-color:var(--gh-border); }
+.sd-root .sd-indicator { color:var(--gh-text-2); }
+.sd-root .sd-indicator[aria-current=step] { background:var(--sp-purple-fill);color:#fff; }
+.sd-indicator-stat { color:var(--sp-lime-text);border-color:currentColor; }
+.sd-root .sd-indicator[aria-current=step] .sd-indicator-stat { color:#fff; }
+
+/* ---------- Calm and reduced motion: no glows ---------- */
+.sd-root.md-calm .sd-start-here,.sd-root.md-calm .sd-record.ig-dial-plate { background:var(--ig-face); }
+.sd-root.md-calm .sd-primary { box-shadow:none; }
+.sd-root.md-calm .ig-universe { background:#021a35; }
+
+/* Readout spacing in Plus Jakarta Sans: "6 of 24", never "6of24". */
+.sd-root .ig-readout strong span { margin:0 .22em;letter-spacing:0; }

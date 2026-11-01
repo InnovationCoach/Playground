@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Printer } from 'lucide-react';
+import { Printer, LayoutGrid, List } from 'lucide-react';
 import { PHASES, EVIDENCE_KINDS, TERM } from './content/pblModel.js';
 import { readiness } from './engine/pblProject.js';
 import { EvidenceList } from './Evidence.jsx';
+import { Showcase } from './Showcase.jsx';
 
-/** Everything the learner has collected this term, filterable and printable. */
-export function Portfolio({ project, apply }) {
+/** Everything the learner has collected this term: a filterable list to manage, or a showcase to present. */
+export function Portfolio({ project, apply, displayName }) {
+  const [view, setView] = useState('list');
   const [phase, setPhase] = useState('');
   const [kind, setKind] = useState('');
   const r = readiness(project);
@@ -18,8 +20,15 @@ export function Portfolio({ project, apply }) {
           <p className="pb-sub">{project.evidence.length} entries · end-of-term readiness {r.done}/{r.total}</p>
           {project.problem.hmw && <p className="pb-hmw">{project.problem.hmw}</p>}
         </div>
-        <button type="button" className="gh-btn" onClick={() => window.print()}><Printer size={16} aria-hidden="true" />Print</button>
+        <div className="pb-portfolio-actions">
+          <div className="pb-view-toggle" role="group" aria-label="Portfolio view">
+            <button type="button" className="gh-btn gh-btn-sm" aria-pressed={view === 'list'} onClick={() => setView('list')}><List size={15} aria-hidden="true" />List</button>
+            <button type="button" className="gh-btn gh-btn-sm" aria-pressed={view === 'showcase'} onClick={() => setView('showcase')}><LayoutGrid size={15} aria-hidden="true" />Showcase</button>
+          </div>
+          <button type="button" className="gh-btn gh-btn-sm" onClick={() => window.print()}><Printer size={16} aria-hidden="true" />Print</button>
+        </div>
       </div>
+      {view === 'showcase' ? <Showcase project={project} displayName={displayName} /> : (<>
       <div className="pb-filters">
         <label className="gh-label" htmlFor="pf-phase">Phase
           <select id="pf-phase" className="gh-select" value={phase} onChange={(e) => setPhase(e.target.value)}>
@@ -37,6 +46,7 @@ export function Portfolio({ project, apply }) {
       <p className="pb-print-only">{TERM.label} · {TERM.theme}</p>
       <EvidenceList project={project} apply={apply} phaseId={phase || undefined} kind={kind || undefined}
                     empty={project.evidence.length ? 'Nothing matches these filters.' : 'No evidence yet. Add it from each phase in My project.'} />
+      </>)}
     </div>
   );
 }

@@ -197,7 +197,6 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     const email = body.email.trim().toLowerCase();
     if (db.users.some((u) => u.email === email)) return fail(409, 'CONFLICT', 'That email is already in use.', 'email');
     const createdAt = now();
-    const primary = body.role === 'student' && body.ageBand === 'primary';
     const user = {
       uid: newId('mock-user'), publicId: makePublicId(rand, takenIds), role: body.role,
       status: 'pending',
@@ -208,7 +207,7 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
       auth: { lastSignInAt: null, createdAt, disabled: false }
     };
     if (body.role === 'student') {
-      Object.assign(user, { cohortId: body.cohortId, ageBand: body.ageBand, yearLevel: body.yearLevel || null, dateOfBirth: body.dateOfBirth || null, consent: primary ? { status: 'required' } : null });
+      Object.assign(user, { cohortId: body.cohortId, ageBand: body.ageBand, yearLevel: body.yearLevel || null, dateOfBirth: body.dateOfBirth || null, consent: null });
     }
     db.users.push(user);
     audit(caller, user, 'ACCOUNT_CREATED', `Account created as ${user.role}`);
@@ -488,6 +487,22 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     audit(caller, student, 'PARENT_UNLINKED', `Parent ${parent?.displayName || link.parentUid} unlinked`);
     if (parent) audit(caller, parent, 'PARENT_UNLINKED', `Unlinked from ${student.displayName}`);
     return ok({ linkId: link.linkId, status: 'revoked' });
+  });
+
+  route('GET', '/api/canva/connection', ['admin', 'supervisor', 'teacher', 'student'], () => {
+    return ok({ connected: false });
+  });
+
+  route('GET', '/api/canva/oauth/start', ['admin', 'supervisor', 'teacher', 'student'], () => {
+    const clientId = 'OC-AaFyafCLmW1w';
+    const redirectUri = encodeURIComponent('http://127.0.0.1:3001/api/canva/oauth/callback');
+    const scope = encodeURIComponent('design:content design:meta asset folder profile');
+    const url = `https://www.canva.com/api/oauth/authorize?code_challenge=mock_challenge&code_challenge_method=s256&scope=${scope}&response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=mock_state`;
+    return ok({ url, state: 'mock-canva-state' });
+  });
+
+  route('POST', '/api/canva/disconnect', ['admin', 'supervisor', 'teacher', 'student'], () => {
+    return ok({ success: true, disconnected: true });
   });
 
   async function handle({ method, path, query = {}, body = null, caller }) {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Search, ArrowRight, Sparkles, LibraryBig, FolderOpen, Link2, SearchX, Ticket, Rocket,
   Bookmark, Globe, Compass, TrendingUp, Route
@@ -11,16 +11,28 @@ import { ActivityIcon, parseActivityLabel } from '../shell/activityIcons.jsx';
 import { TERM } from '../pbl/content/pblModel.js';
 import { hrefFor } from '../../app/routes.js';
 import { PROGRAMS } from '../pbl/programs/catalog.js';
+import { LIBRARY_PROGRAMS } from '../pbl/programs/libraryProgramsData.js';
 import { ProgramIcon } from '../pbl/programs/ProgramIcon.jsx';
 import { useClassPrograms } from '../pbl/programs/useClassPrograms.js';
 import { buildCatalog, searchCatalog, countBySource, SOURCES } from './catalog.js';
 import { useAddedCourses } from './useAddedCourses.js';
-import { CatalogCard } from './CatalogCard.jsx';
 import { useProgramSummaries } from './useProgramSummaries.js';
-import { srOnly } from './CatalogCard.jsx';
+import { getCustomPrograms, saveCustomProgram } from '../coach/programs/customProgramsStore.js';
+import { subscribeToPblTransfers } from '../coach/studio/pblTransferService.js';
+import { getProgram } from '../../services/pblService.js';
+import { db, collection, query, where, getDocs } from '../../firebase.js';
+import { loadClasses } from '../coach/classCodes.js';
+import {
+  CONNECTED_EDMENTUM_COURSES,
+  getEdmentumConfig,
+  getEdmentumLearnerScores,
+  launchEdmentumCourse
+} from '../edmentum/edmentumService.js';
+import { CatalogCard, srOnly } from './CatalogCard.jsx';
 import '../admin/admin.css';
 import '../pbl/pbl.css';
 import '../pbl/programs/programs.css';
+import '../edmentum/edmentum.css';
 import './courses.css';
 
 /**
@@ -62,20 +74,137 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
     return base.filter((c) => `${c.kicker} ${c.title} ${c.description} ${c.keywords}`.toLowerCase().includes(needle));
   }, [q, isPrimary]);
 
+  const [customPrograms, setCustomPrograms] = useState(() => Object.values(getCustomPrograms()));
+  const [remotePrograms, setRemotePrograms] = useState([]);
+  const [edScores, setEdScores] = useState(() => getEdmentumLearnerScores(uid));
+  const edConfig = useMemo(() => getEdmentumConfig(), []);
+
+  useEffect(() => {
+    const onScoreUpdated = () => setEdScores(getEdmentumLearnerScores(uid));
+    window.addEventListener('hearisland-edmentum-score-updated', onScoreUpdated);
+    return () => window.removeEventListener('hearisland-edmentum-score-updated', onScoreUpdated);
+  }, [uid]);
+
+  useEffect(() => {
+    const onCustomChanged = () => {
+      setCustomPrograms(Object.values(getCustomPrograms()));
+    };
+    window.addEventListener('pbl-custom-programs-changed', onCustomChanged);
+    return () => window.removeEventListener('pbl-custom-programs-changed', onCustomChanged);
+  }, []);
+
+  // Real-time transfer listener: when coach transfers or publishes, reflect immediately
+  useEffect(() => {
+    const unsub = subscribeToPblTransfers(async (event) => {
+      if (!event) return;
+      if (event.program) {
+        saveCustomProgram(event.program);
+        setRemotePrograms((prev) => {
+          const map = new Map(prev.map((p) => [p.id, p]));
+          map.set(event.program.id, event.program);
+          return Array.from(map.values());
+        });
+      } else if (event.programId) {
+        try {
+          const res = await getProgram(event.programId);
+          if (res.status === 'found' && res.program) {
+            saveCustomProgram(res.program);
+            setRemotePrograms((prev) => {
+              const map = new Map(prev.map((p) => [p.id, p]));
+              map.set(res.program.id, res.program);
+              return Array.from(map.values());
+            });
+          }
+        } catch (err) {
+          console.warn('[MyCourses] Real-time transfer fetch notice:', err?.message);
+        }
+      }
+    });
+    return unsub;
+  }, []);
+
+  // Fetch remote programs associated with learner (enrolments, class assignments, and centre published)
+  useEffect(() => {
+    if (!uid) return undefined;
+    let cancelled = false;
+
+    async function loadRemotePrograms() {
+      try {
+        const idsToFetch = new Set();
+
+        // 1. Enrolments for this learner
+        const enrolSnap = await getDocs(query(collection(db, 'enrolments'), where('learnerId', '==', uid)));
+        enrolSnap.forEach((d) => {
+          const pId = d.data()?.programId;
+          if (pId) idsToFetch.add(pId);
+        });
+
+        // 2. Class assignments for learner's classes
+        if (Array.isArray(classIds) && classIds.length > 0) {
+          const loadedClasses = await loadClasses(classIds);
+          loadedClasses.forEach((c) => {
+            if (c.programId) idsToFetch.add(c.programId);
+          });
+        }
+
+        // 3. Centre published programs
+        try {
+          const publishedSnap = await getDocs(query(collection(db, 'pbl_programs'), where('status', '==', 'published')));
+          publishedSnap.forEach((d) => idsToFetch.add(d.id));
+        } catch {
+          // Non-fatal
+        }
+
+        if (cancelled || idsToFetch.size === 0) return;
+
+        const loaded = [];
+        for (const pId of idsToFetch) {
+          const res = await getProgram(pId);
+          if (res.status === 'found' && res.program) {
+            saveCustomProgram(res.program);
+            loaded.push(res.program);
+          }
+        }
+
+        if (!cancelled && loaded.length > 0) {
+          setRemotePrograms((prev) => {
+            const map = new Map(prev.map((p) => [p.id, p]));
+            for (const p of loaded) map.set(p.id, p);
+            return Array.from(map.values());
+          });
+        }
+      } catch (err) {
+        console.warn('[MyCourses] Remote programs load notice:', err?.message);
+      }
+    }
+
+    loadRemotePrograms();
+    return () => { cancelled = true; };
+  }, [uid, (classIds || []).join('|')]);
+
+  const allPrograms = useMemo(() => {
+    const map = new Map();
+    for (const p of PROGRAMS) map.set(p.id, p);
+    for (const p of LIBRARY_PROGRAMS) map.set(p.id, p);
+    for (const p of customPrograms) map.set(p.id, p);
+    for (const p of remotePrograms) map.set(p.id, p);
+    return Array.from(map.values());
+  }, [customPrograms, remotePrograms]);
+
   // Secondary only: the combined catalogue, program progress and My Path.
   const catalog = useMemo(() => (isPrimary ? [] : buildCatalog({
-    activities: ACTIVITY_NAV, programs: PROGRAMS, parseLabel: parseActivityLabel, includePartners: true
-  })), [isPrimary]);
+    activities: ACTIVITY_NAV, programs: allPrograms, parseLabel: parseActivityLabel, includePartners: true
+  })), [isPrimary, allPrograms]);
   const searching = !isPrimary && (q.trim() !== '' || source !== 'all');
   const results = useMemo(() => searchCatalog(catalog, q, source), [catalog, q, source]);
   const counts = useMemo(() => countBySource(catalog, q), [catalog, q]);
 
   const { byProgram } = useClassPrograms(isPrimary ? [] : classIds);
-  const summaries = useProgramSummaries(uid, PROGRAMS, !isPrimary);
-  const continuing = PROGRAMS.filter((p) => byProgram[p.id] || summaries[p.id]?.startedAt);
+  const summaries = useProgramSummaries(uid, allPrograms, !isPrimary);
+  const continuing = allPrograms.filter((p) => byProgram[p.id] || summaries[p.id]?.startedAt);
   const stats = {
-    started: PROGRAMS.filter((p) => summaries[p.id]?.startedAt).length,
-    sessions: PROGRAMS.reduce((n, p) => n + (summaries[p.id]?.done || 0), 0)
+    started: allPrograms.filter((p) => summaries[p.id]?.startedAt).length,
+    sessions: allPrograms.reduce((n, p) => n + (summaries[p.id]?.done || 0), 0)
   };
 
   const { keys: path, added: saved, toggle: onToggleSave } = useAddedCourses(uid, isPrimary ? NO_COURSES : catalog);
@@ -160,16 +289,16 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
               return (
                 <li key={p.id}>
                   <a className="mc-progress" href={hrefFor.program(p.id)}>
-                    <span className="mc-tone-icon mc-progress-icon" data-tone={p.identity.tone}><ProgramIcon name={p.identity.icon} size={20} /></span>
+                    <span className="mc-tone-icon mc-progress-icon" data-tone={p.identity?.tone}><ProgramIcon name={p.identity?.icon} size={20} /></span>
                     <span className="mc-progress-body">
                       <span className="mc-progress-top">
                         <strong>{p.title}</strong>
-                        <span className="mc-progress-pct">{pct}%</span>
+                        {!s?.needsRecheck && <span className="mc-progress-pct">{pct}%</span>}
                       </span>
                       <span className="mc-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}
                             aria-label={p.title}><i style={{ width: `${pct}%` }} /></span>
                       <span className="mc-progress-meta">
-                        {t('courses.sessionsDone', { done: s?.done || 0, total: p.sessions.length })}
+                        {s?.needsRecheck ? t('courses.recheckSessions') : t('courses.sessionsDone', { done: s?.done || 0, total: s?.total ?? p.sessions?.length ?? 0 })}
                         {byProgram[p.id] && <> · {t('courses.classProgram', { className: byProgram[p.id].join(', ') })}</>}
                         {s?.next && <> · {t('courses.nextSession', { title: s.next.title })}</>}
                       </span>
@@ -249,11 +378,62 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
       )}
 
       <section className="gh-section" aria-labelledby="mc-edmentum">
-        <SectionHead id="mc-edmentum" icon={LibraryBig} bg="#eef6ff" fg="#1d5a8f" title={t('courses.provider.edmentum')} />
-        <div className="gh-placeholder">
-          <span className="gh-empty-icon"><Link2 size={20} aria-hidden="true" /></span>
-          {t('courses.edmentumPending')}
-        </div>
+        <SectionHead id="mc-edmentum" icon={LibraryBig} bg="#eef6ff" fg="#1d5a8f" title={t('courses.provider.edmentum')} count={edConfig.connected && !isPrimary ? CONNECTED_EDMENTUM_COURSES.length : undefined} />
+        {edConfig.connected && !isPrimary ? (
+          <ul className="mc-edmentum-list">
+            {CONNECTED_EDMENTUM_COURSES.map((course) => {
+              const scoreRec = edScores[course.id];
+              const progress = scoreRec?.progressPercent ?? 0;
+              const avgScore = scoreRec?.averageScore ?? null;
+              return (
+                <li key={course.id} className="mc-edmentum-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="mc-ed-badge">
+                      <Link2 size={12} /> {course.code}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#8b949e' }}>{course.gradeRange}</span>
+                  </div>
+
+                  <div>
+                    <h3 className="mc-ed-title">{course.title}</h3>
+                    <p className="mc-ed-desc">{course.description}</p>
+                  </div>
+
+                  <div className="mc-ed-stats-row">
+                    <div className="mc-ed-stat-col">
+                      <span className="mc-ed-stat-val">{progress}%</span>
+                      <span className="mc-ed-stat-lbl">Coursework Progress</span>
+                    </div>
+                    {avgScore !== null && (
+                      <div className="mc-ed-stat-col" style={{ alignItems: 'flex-end' }}>
+                        <span className="mc-ed-stat-val" style={{ color: avgScore >= 80 ? '#3fb950' : '#d29922' }}>
+                          {avgScore}%
+                        </span>
+                        <span className="mc-ed-stat-lbl">AGS Average Score</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="mc-ed-launch-btn"
+                    onClick={async () => {
+                      const res = await launchEdmentumCourse(course.id, { uid, displayName });
+                      if (res?.launchUrl) window.open(res.launchUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    <Rocket size={15} /> 1-Click Launch into Edmentum
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="gh-placeholder">
+            <span className="gh-empty-icon"><Link2 size={20} aria-hidden="true" /></span>
+            {t('courses.edmentumPending')}
+          </div>
+        )}
       </section>
 
       <section className="gh-section" aria-labelledby="mc-materials">

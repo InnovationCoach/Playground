@@ -24,7 +24,7 @@ const NAV = [
  * Admin console for `admin` and `supervisor` claims. Layout, role-aware
  * navigation and the account screens.
  */
-export function AdminConsole({ route, role, user, profile, navigate }) {
+export function AdminConsole({ route, role, user, profile, navigate, embedded = false }) {
   const { t } = useLocale();
   const perms = consolePermissions(role);
   const [flash, setFlash] = useState(null);
@@ -87,8 +87,9 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
   }
 
   return (
-    <div className="gh-shell">
-      <nav className="gh-side" aria-label={t('nav.console')}>
+    <div className={`gh-shell${embedded ? ' gh-shell-embedded' : ''}`}>
+      {/* With the app sidebar (embedded) this menu is hidden: the sidebar carries the same links. */}
+      <nav className="gh-side" aria-label={t('nav.console')} hidden={embedded}>
         <a href={hrefFor.spark()} className="gh-nav-link"><House size={18} strokeWidth={2} aria-hidden="true" />{t('nav.home')}</a>
         <a href={hrefFor.pbl()} className="gh-nav-link"><Rocket size={18} strokeWidth={2} aria-hidden="true" />{t('nav.pbl')}</a>
         <div className="gh-side-label">{t('nav.people')}</div>

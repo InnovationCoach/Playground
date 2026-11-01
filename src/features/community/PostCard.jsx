@@ -68,7 +68,7 @@ export function PostCard({ post }) {
   return (
     <div className="gh-card">
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-        <div className="gh-avatar" style={{ width: 40, height: 40, fontSize: '0.8rem', background: 'var(--gh-purple-50)', color: 'var(--gh-purple)' }}>
+        <div className="gh-avatar" style={{ width: 40, height: 40, fontSize: '0.8rem', background: 'var(--gh-purple-50)', color: 'var(--gh-purple-text)' }}>
           {authorName.charAt(0).toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>

@@ -17,6 +17,7 @@ const server = app.listen(PORT, () => {
     console.log(`🚀 HearIsland Server running on http://localhost:${PORT}`);
     console.log(`🤖 Using Gemini API Model: ${MODEL_NAME}`);
     console.log(`📝 Gemini API Key: ${GEMINI_API_KEY ? 'Configured ✓' : 'Missing ✗'}`);
+    console.log(`🌐 CORS Allowed Origin: ${process.env.FRONTEND_URL || 'http://localhost:5173 (dev default; set in production)'}`);
     console.log(`🛡️  Safety settings: BLOCK_LOW_AND_ABOVE on all categories`);
     console.log(`🔐 Token verification: ${adminReady ? 'Enabled ✓' : 'DISABLED - requests are unverified ✗'}`);
     console.log(`   Emulator mode: ${process.env.FIREBASE_AUTH_EMULATOR_HOST ? `auth via ${process.env.FIREBASE_AUTH_EMULATOR_HOST} ✓` : 'off (verifying against real Firebase)'}`);

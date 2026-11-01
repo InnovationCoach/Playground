@@ -15,6 +15,7 @@ import { AuthProvider } from './app/AuthProvider.jsx';
 import { App } from './app/App.jsx';
 import { LocaleProvider } from './app/i18n/LocaleProvider.jsx';
 import { ThemeProvider } from './app/theme/ThemeProvider.jsx';
+import { FocusMiniHost } from './features/focus/FocusWidget.jsx';
 
 function Root() {
   const [userTheme, setUserTheme] = useState('system');
@@ -24,6 +25,7 @@ function Root() {
       <AuthProvider onThemeLoaded={setUserTheme}>
         <ThemeProvider userThemePreference={userTheme}>
           <App />
+          <FocusMiniHost />
         </ThemeProvider>
       </AuthProvider>
     </LocaleProvider>

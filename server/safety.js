@@ -21,36 +21,42 @@ export const SAFETY_SETTINGS = [
 ].map((category) => ({ category, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE }));
 
 /**
- * Two bands covering secondary only.
- *
- * Scope was narrowed to ages 13-18 on 2026-09-18. Under-13 was dropped
- * deliberately: COPPA applies below 13 and brings verifiable parental consent,
- * which roughly doubles the compliance surface. 13 is also the minimum age for
- * a self-registered account under most platform terms.
- *
- * Note this is not "no consent needed" - UK/EU learners under 18 still fall
- * under the Age Appropriate Design Code and GDPR-K, and FERPA applies to school
- * records at every age. What it removes is COPPA specifically.
+ * Three cohorts covering the full 6–18 WeLearn learner body:
+ *   - primary: ages 6–11
+ *   - lower-secondary: ages 12–14
+ *   - higher-secondary: ages 15–18
  *
  * `ages` is inclusive.
  */
-export const AGE_BANDS = {
-  '13-15': {
-    ages: [13, 15],
+export const COHORTS = {
+  primary: {
+    ages: [6, 11],
+    label: 'primary',
+    guidance: [
+      'The reader is 6 to 11 years old.',
+      'Simple, clear language with short words and short sentences.',
+      'No complex technical jargon without an immediate, child-friendly explanation.',
+      'Ground abstract ideas in concrete, everyday examples (animals, sports, toys, food).',
+      'Encourage hands-on exploration and curiosity.',
+      'Reply with at most 3 to 4 sentences.'
+    ]
+  },
+  'lower-secondary': {
+    ages: [12, 14],
     label: 'lower secondary',
     guidance: [
-      'The reader is 13 to 15 years old.',
+      'The reader is 12 to 14 years old.',
       'Plain language. Introduce one technical term at a time and define it on first use.',
       'Formulas and quantitative reasoning are fine; skip full derivations.',
       'Ground abstract ideas in a concrete example before generalising.',
       'Reply with at most 5 sentences.'
     ]
   },
-  '16-18': {
-    ages: [16, 18],
-    label: 'upper secondary',
+  'higher-secondary': {
+    ages: [15, 18],
+    label: 'higher secondary',
     guidance: [
-      'The reader is 16 to 18 years old.',
+      'The reader is 15 to 18 years old.',
       'Proper scientific and engineering vocabulary is expected.',
       'Derivations, trade-off analysis and quantitative argument are welcome.',
       'You may reference real standards, datasets and published work.',
@@ -59,25 +65,38 @@ export const AGE_BANDS = {
   }
 };
 
-export const DEFAULT_AGE_BAND = '13-15';
+export const DEFAULT_COHORT = 'lower-secondary';
 
-export function resolveAgeBand(input) {
-  if (input && AGE_BANDS[input]) return input;
+// Backwards compatibility aliases
+export const AGE_BANDS = COHORTS;
+export const DEFAULT_AGE_BAND = DEFAULT_COHORT;
 
-  const age = Number(input);
-  if (Number.isFinite(age)) {
-    for (const [key, band] of Object.entries(AGE_BANDS)) {
-      if (age >= band.ages[0] && age <= band.ages[1]) return key;
+export function resolveCohort(input) {
+  if (input && COHORTS[input]) return input;
+
+  // Legacy string mappings
+  if (input === '13-15' || input === '11-13' || input === '14-16') return 'lower-secondary';
+  if (input === '16-18' || input === '17-18') return 'higher-secondary';
+  if (input === 'primary') return 'primary';
+
+  if (input !== null && input !== undefined && input !== '') {
+    const age = Number(input);
+    if (Number.isFinite(age)) {
+      for (const [key, cohort] of Object.entries(COHORTS)) {
+        if (age >= cohort.ages[0] && age <= cohort.ages[1]) return key;
+      }
+      // Above the range, address them as the oldest cohort
+      if (age > 18) return 'higher-secondary';
+      // Below 6, address as primary
+      if (age >= 0 && age < 6) return 'primary';
     }
-    // Above the range, address them as the oldest band rather than defaulting
-    // down to a reading level that would read as patronising.
-    if (age > 18) return '16-18';
   }
 
-  // Includes the retired '6-9' and '10-13' values still stored on accounts
-  // created before the scope change. They resolve to the youngest supported
-  // band; scripts/migrate-age-bands.js rewrites them permanently.
-  return DEFAULT_AGE_BAND;
+  return DEFAULT_COHORT;
+}
+
+export function resolveAgeBand(input) {
+  return resolveCohort(input);
 }
 
 /**
@@ -94,13 +113,13 @@ const TUTOR_RULES = [
   'Be encouraging and never sarcastic, never critical of the student personally.'
 ];
 
-export function buildSystemInstruction(ageBandKey, extra = '') {
-  const band = AGE_BANDS[resolveAgeBand(ageBandKey)];
+export function buildSystemInstruction(cohortKey, extra = '') {
+  const cohort = COHORTS[resolveCohort(cohortKey)];
   return [
     ...TUTOR_RULES,
     '',
     'Audience:',
-    ...band.guidance.map((g) => `- ${g}`),
+    ...cohort.guidance.map((g) => `- ${g}`),
     extra ? `\nActivity context:\n${extra}` : ''
   ].join('\n').trim();
 }
@@ -181,10 +200,10 @@ export const PERSONAS = {
  * stubborn or sceptical, but it may not be cruel, discuss anything outside the
  * activity, or ask a child for personal details.
  */
-export function buildPersonaInstruction(personaId, ageBandKey) {
+export function buildPersonaInstruction(personaId, cohortKey) {
   const persona = PERSONAS[personaId];
   if (!persona) return null;
-  const band = AGE_BANDS[resolveAgeBand(ageBandKey)];
+  const cohort = COHORTS[resolveCohort(cohortKey)];
   return [
     persona.brief,
     '',
@@ -195,7 +214,7 @@ export function buildPersonaInstruction(personaId, ageBandKey) {
     '- If the student mentions self-harm, abuse, or feeling unsafe, drop the character entirely and reply only: "That sounds really important. Please talk to your teacher or another adult you trust right now."',
     '',
     'Audience:',
-    ...band.guidance.map((g) => `- ${g}`),
+    ...cohort.guidance.map((g) => `- ${g}`),
     '',
     persona.outputContract
   ].join('\n');

@@ -1,0 +1,74 @@
+/* Focus sounds (fs-*): dashboard widget and the floating mini player. */
+.fs-widget { display: flex; flex-direction: column; gap: 0.85rem; }
+.fs-top { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.fs-timer { position: relative; width: 124px; height: 124px; flex-shrink: 0; display: grid; place-items: center; }
+.fs-timer svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.fs-timer circle { fill: none; stroke-width: 7; }
+.fs-track { stroke: var(--gh-subtle, #eef0f5); }
+.fs-fill { stroke: var(--gh-purple, #8250a0); stroke-linecap: round; transition: stroke-dasharray 0.5s linear; }
+.fs-timer[data-phase="break"] .fs-fill { stroke: var(--gh-green, #96d700); }
+.fs-time { position: relative; display: grid; text-align: center; font: 800 1.45rem/1 var(--gh-font-display, sans-serif); color: var(--gh-heading, #0f2c4c);
+  font-variant-numeric: tabular-nums; }
+.fs-time small { font: 600 0.68rem/1.4 var(--gh-font, sans-serif); text-transform: uppercase; letter-spacing: 0.06em; color: var(--gh-text-3, #5d6680); }
+
+.fs-orb { --lvl: 0; position: absolute; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 35% 35%, rgba(155, 210, 255, 0.55), rgba(130, 80, 160, 0.28) 55%, transparent 70%);
+  transform: scale(calc(0.85 + var(--lvl) * 0.5)); opacity: calc(0.35 + var(--lvl) * 0.9); transition: opacity 0.4s; }
+.fs-orb-lg { width: 92px; height: 92px; }
+.fs-orb-sm { position: relative; width: 26px; height: 26px; flex-shrink: 0; background: radial-gradient(circle at 35% 35%, #9bd2ff, #8250a0 70%); }
+.fs-orb:not(.is-on) { opacity: 0.25; }
+.fs-orb-sm.is-on { animation: fs-breathe 4s ease-in-out infinite; }
+@keyframes fs-breathe { 50% { box-shadow: 0 0 0 6px rgba(130, 80, 160, 0.18); } }
+
+.fs-controls { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 0.55rem; }
+.fs-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.fs-go { align-self: flex-start; }
+.fs-seg { display: inline-flex; align-self: flex-start; padding: 3px; border-radius: 11px; background: var(--gh-subtle, #eef0f5); }
+.fs-seg button { border: 0; background: none; padding: 0.35rem 0.7rem; border-radius: 8px; cursor: pointer; font: 600 0.82rem var(--gh-font, sans-serif);
+  color: var(--gh-text-2, #4b5670); font-variant-numeric: tabular-nums; }
+.fs-seg button[aria-pressed="true"] { background: var(--gh-surface, #fff); color: var(--gh-heading, #0f2c4c); box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12); }
+.fs-on { display: flex; gap: 0.4rem; align-items: flex-start; margin: 0; font-size: 0.86rem; color: var(--gh-text-2, #4b5670); }
+.fs-on svg { flex-shrink: 0; margin-top: 3px; color: var(--gh-purple-text, #6e3f8b); }
+.fs-on strong { color: var(--gh-heading, #0f2c4c); }
+.fs-blocks { display: inline-flex; align-items: center; gap: 4px; }
+.fs-blocks i { width: 10px; height: 10px; border-radius: 50%; background: var(--gh-subtle, #eef0f5); }
+.fs-blocks i.on { background: var(--gh-green, #96d700); }
+.fs-blocks small { margin-left: 0.3rem; font-size: 0.78rem; color: var(--gh-text-3, #5d6680); }
+
+.fs-presets { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.fs-chip { padding: 0.32rem 0.75rem; border-radius: 999px; cursor: pointer; font: 600 0.8rem var(--gh-font, sans-serif);
+  border: 1px dashed var(--gh-border-strong, #cfd3df); background: var(--gh-surface, #fff); color: var(--gh-text-2, #4b5670); }
+.fs-chip:hover { border-style: solid; border-color: var(--gh-purple, #8250a0); color: var(--gh-purple-text, #6e3f8b); }
+
+.fs-mixer { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 0.45rem; }
+.fs-sound { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.5rem; border-radius: 12px; border: 2px solid var(--gh-border, #e4e6ee);
+  background: var(--gh-surface, #fff); transition: border-color 0.15s, background 0.15s; }
+.fs-sound.is-on { border-color: var(--gh-purple, #8250a0); background: var(--gh-purple-50, #f5eefa); }
+.fs-sound-btn { display: flex; align-items: center; gap: 0.4rem; border: 0; background: none; padding: 0; cursor: pointer; text-align: left;
+  font: 600 0.85rem var(--gh-font, sans-serif); color: var(--gh-text, #14213a); }
+.fs-sound.is-on .fs-sound-btn { color: var(--gh-purple-text, #6e3f8b); }
+.fs-emoji { font-size: 1.3rem; line-height: 1; }
+.fs-sound input, .fs-volume input { width: 100%; accent-color: var(--gh-purple, #8250a0); }
+.fs-sound input:disabled { opacity: 0.35; }
+.fs-bottom { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+.fs-volume { display: flex; align-items: center; gap: 0.4rem; flex: 1 1 140px; color: var(--gh-text-3, #5d6680); }
+.fs-note { margin: 0; font-size: 0.76rem; color: var(--gh-text-3, #5d6680); }
+
+.fs-mini { position: fixed; z-index: 1400; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 0.55rem; padding: 0.4rem 0.45rem 0.4rem 0.6rem; border-radius: 999px;
+  background: #0b2447; color: #fff; box-shadow: 0 12px 30px rgba(11, 20, 40, 0.3); font-family: var(--gh-font, system-ui, sans-serif);
+  animation: fs-in 0.25s ease-out; }
+@keyframes fs-in { from { transform: translate(-50%, 12px); opacity: 0; } }
+.fs-mini-text { display: grid; color: #fff; text-decoration: none; line-height: 1.2; min-width: 4.5rem; }
+.fs-mini-text strong { font-size: 0.82rem; }
+.fs-mini-text small { font-size: 0.75rem; color: #d6dcec; font-variant-numeric: tabular-nums; }
+.fs-mini-btn { width: 32px; height: 32px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
+  background: rgba(255, 255, 255, 0.14); color: #fff; }
+.fs-mini-btn:hover { background: rgba(255, 255, 255, 0.24); }
+.fs-mini-btn:focus-visible, .fs-mini-text:focus-visible { outline: 2px solid #b9f03c; outline-offset: 2px; }
+.fs-seg button:focus-visible, .fs-chip:focus-visible, .fs-sound-btn:focus-visible { outline: 2px solid var(--gh-purple, #8250a0); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-orb-sm.is-on, .fs-mini { animation: none; }
+  .fs-fill, .fs-sound, .fs-orb { transition: none; }
+}

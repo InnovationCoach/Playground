@@ -1,0 +1,439 @@
+/* Edmentum LTI 1.3 Advantage Console & Courseware UI */
+
+.ed-console-wrap {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  color: var(--gh-text, #f0f6fc);
+}
+
+.ed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ed-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ed-brand-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1d5a8f, #0969da);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ed-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.ed-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: #8b949e;
+}
+
+.ed-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(46, 160, 67, 0.15);
+  border: 1px solid rgba(46, 160, 67, 0.4);
+  color: #7ee787;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ed-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3fb950;
+  animation: edPulse 1.8s infinite;
+}
+
+@keyframes edPulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+.ed-btn-run-diag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  background: #1f6feb;
+  color: #fff;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ed-btn-run-diag:hover {
+  background: #388bfd;
+}
+
+/* Parameters Grid */
+.ed-section-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ed-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ed-sec-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ed-params-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 1rem;
+}
+
+.ed-param-box {
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ed-param-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8b949e;
+}
+
+.ed-param-val-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ed-param-val {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  color: #79c0ff;
+  background: #161b22;
+  padding: 0.35rem 0.6rem;
+  border-radius: 5px;
+  border: 1px solid #30363d;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 5px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ed-btn-copy:hover {
+  background: #30363d;
+  color: #fff;
+}
+
+/* Diagnostic results */
+.ed-diag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ed-diag-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  font-size: 0.8rem;
+}
+
+.ed-diag-item.pass {
+  border-left: 3px solid #3fb950;
+}
+
+.ed-diag-item.fail {
+  border-left: 3px solid #f85149;
+}
+
+.ed-diag-name {
+  font-weight: 700;
+  color: #fff;
+  min-width: 180px;
+}
+
+.ed-diag-detail {
+  color: #8b949e;
+  flex: 1;
+}
+
+/* Connected Courses Cards */
+.ed-course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.ed-course-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.ed-course-card:hover {
+  border-color: #58a6ff;
+  transform: translateY(-2px);
+}
+
+.ed-course-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ed-course-code {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #58a6ff;
+  background: rgba(56, 139, 253, 0.15);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.ed-course-grade {
+  font-size: 0.72rem;
+  color: #8b949e;
+}
+
+.ed-course-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ed-course-desc {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #8b949e;
+  line-height: 1.4;
+}
+
+.ed-standards-row {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.ed-std-pill {
+  font-size: 0.68rem;
+  background: #21262d;
+  color: #c9d1d9;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.ed-course-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.ed-btn-launch {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem;
+  border-radius: 6px;
+  background: #238636;
+  border: none;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.ed-btn-launch:hover {
+  background: #2ea043;
+}
+
+.ed-btn-simulate-passback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #d2a8ff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ed-btn-simulate-passback:hover {
+  background: #30363d;
+}
+
+/* Student My Courses Edmentum Card */
+.mc-edmentum-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mc-edmentum-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  position: relative;
+  transition: border-color 0.15s ease;
+}
+
+.mc-edmentum-card:hover {
+  border-color: #58a6ff;
+}
+
+.mc-ed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #79c0ff;
+  background: rgba(56, 139, 253, 0.15);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.mc-ed-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mc-ed-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #8b949e;
+  line-height: 1.45;
+}
+
+.mc-ed-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0d1117;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.mc-ed-stat-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.mc-ed-stat-val {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.mc-ed-stat-lbl {
+  font-size: 0.7rem;
+  color: #8b949e;
+}
+
+.mc-ed-launch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  background: linear-gradient(135deg, #1f6feb, #238636);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.mc-ed-launch-btn:hover {
+  opacity: 0.95;
+}

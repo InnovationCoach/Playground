@@ -46,7 +46,14 @@
     {
       "name": "activity6-standalone",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--config", "vite.activity6.config.js", "--port", "5176", "--strictPort"],
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "vite.activity6.config.js",
+        "--port",
+        "5176",
+        "--strictPort"
+      ],
       "port": 5176
     },
     {
@@ -59,6 +66,18 @@
         "--strictPort"
       ],
       "port": 5175
+    },
+    {
+      "name": "hearisland-web-clean",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "/private/tmp/claude-501/-Users-admin-Desktop-HearIsland/dce794dd-57d7-4e87-af50-e7a93103951a/scratchpad/hearisland-clean",
+        "--port",
+        "5177",
+        "--strictPort"
+      ],
+      "port": 5177
     }
   ]
 }

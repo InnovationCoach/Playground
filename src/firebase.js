@@ -16,17 +16,17 @@ const firebaseConfig = {
 // contest anyway. Duplicating the config here produced a real bug - the module's
 // projectId override was silently discarded, sign-in succeeded against the
 // emulator while every document read landed in an empty project namespace.
-const USE_EMULATORS = window.__hearIslandUseEmulators === true;
+const USE_EMULATORS = typeof window !== 'undefined' && window.__hearIslandUseEmulators === true;
 
 // Fallback only: index.html has normally initialised the app already. This keeps
 // the module usable in isolation, e.g. from a test harness.
-if (!firebase.apps || !firebase.apps.length) {
+if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)) {
   firebase.initializeApp(firebaseConfig);
 }
 
-const auth = firebase.auth();
-const db = firebase.firestore();
-const storage = firebase.storage();
+const auth = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth() : null;
+const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
+const storage = (typeof firebase !== 'undefined' && firebase.storage) ? firebase.storage() : null;
 
 export const usingEmulators = USE_EMULATORS;
 
@@ -60,6 +60,16 @@ export function onAuthStateChanged(authInstance, callback) {
 export function doc(dbInstance, ...paths) {
   const targetDb = (dbInstance && dbInstance.collection) ? dbInstance : db;
   const pathParts = (dbInstance && dbInstance.collection) ? paths : [dbInstance, ...paths];
+  if (!targetDb || typeof targetDb.collection !== 'function') {
+    return {
+      id: pathParts[pathParts.length - 1] || 'mock-doc',
+      path: pathParts.join('/'),
+      get: async () => ({ exists: false, data: () => null }),
+      set: async () => {},
+      update: async () => {},
+      delete: async () => {}
+    };
+  }
   if (pathParts.length === 1) {
     return targetDb.doc(pathParts[0]);
   }
@@ -69,16 +79,23 @@ export function doc(dbInstance, ...paths) {
 }
 
 export function setDoc(docRef, data, options) {
-  return docRef.set(data, options);
+  return docRef ? docRef.set(data, options) : Promise.resolve();
 }
 
 export function getDoc(docRef) {
-  return docRef.get();
+  return docRef ? docRef.get() : Promise.resolve({ exists: false, data: () => null });
 }
 
 export function collection(dbInstance, ...paths) {
   const targetDb = (dbInstance && dbInstance.collection) ? dbInstance : db;
   const pathParts = (dbInstance && dbInstance.collection) ? paths : [dbInstance, ...paths];
+  if (!targetDb || typeof targetDb.collection !== 'function') {
+    return {
+      id: pathParts[pathParts.length - 1] || 'mock-col',
+      path: pathParts.join('/'),
+      doc: (id) => doc(null, ...pathParts, id)
+    };
+  }
   return targetDb.collection(pathParts.join('/'));
 }
 
@@ -100,7 +117,16 @@ export function deleteDoc(docRef) {
 
 /** Atomic multi-document write. Compat: batch.set(ref, data), then batch.commit(). */
 export function writeBatch(dbInstance) {
-  return ((dbInstance && dbInstance.batch) ? dbInstance : db).batch();
+  const target = (dbInstance && dbInstance.batch) ? dbInstance : db;
+  if (!target || typeof target.batch !== 'function') {
+    return {
+      set: () => {},
+      update: () => {},
+      delete: () => {},
+      commit: async () => {}
+    };
+  }
+  return target.batch();
 }
 
 /** Read-then-write atomically. Compat: fn receives tx with get/set/update/delete. */
@@ -109,19 +135,31 @@ export function runTransaction(dbInstance, fn) {
 }
 
 export function serverTimestamp() {
-  return firebase.firestore.FieldValue.serverTimestamp();
+  if (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.serverTimestamp) {
+    return firebase.firestore.FieldValue.serverTimestamp();
+  }
+  return new Date();
 }
 
 export function increment(n = 1) {
-  return firebase.firestore.FieldValue.increment(n);
+  if (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.increment) {
+    return firebase.firestore.FieldValue.increment(n);
+  }
+  return n;
 }
 
 export function arrayUnion(...elements) {
-  return firebase.firestore.FieldValue.arrayUnion(...elements);
+  if (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.arrayUnion) {
+    return firebase.firestore.FieldValue.arrayUnion(...elements);
+  }
+  return elements;
 }
 
 export function arrayRemove(...elements) {
-  return firebase.firestore.FieldValue.arrayRemove(...elements);
+  if (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.arrayRemove) {
+    return firebase.firestore.FieldValue.arrayRemove(...elements);
+  }
+  return elements;
 }
 
 export function onSnapshot(queryOrRef, callback, errorCallback) {
@@ -173,34 +211,72 @@ export async function getAuthClaims(forceRefresh = false) {
 
 export { auth, db, storage };
 
-export async function registerStudentAccount(email, password, displayName, groupName) {
+export async function registerStudentAccount(email, password, displayName, classId) {
+  // 1. Try secure backend endpoint first
+  try {
+    const token = await auth.currentUser?.getIdToken();
+    if (token) {
+      const response = await fetch('/api/coach/learners', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ email, password, displayName, classId })
+      });
+      if (response.ok) {
+        return await response.json();
+      }
+      const errJson = await response.json().catch(() => ({}));
+      if (errJson?.message) throw new Error(errJson.message);
+    }
+  } catch (backendErr) {
+    // If running strictly in production, do not fall back
+    if (import.meta.env?.PROD) {
+      throw backendErr;
+    }
+    console.warn('[Register] Backend endpoint unavailable, running emulator fallback:', backendErr.message);
+  }
+
+  // 2. Emulator fallback (dev only)
   const appName = "StudentReg_" + Date.now();
   const secondaryApp = firebase.initializeApp(firebaseConfig, appName);
   try {
-    const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+    const finalPassword = password || ('Learner' + Math.random().toString(36).slice(2, 8) + '!1');
+    const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, finalPassword);
     const studentUser = userCredential.user;
 
     if (displayName) {
       await studentUser.updateProfile({ displayName });
     }
 
-    const studentData = {
+    const assignedClassId = classId || 'class_climate_champions_7a';
+    const learnerData = {
       uid: studentUser.uid,
       email: email,
       displayName: displayName || email.split('@')[0],
-      role: 'student',
-      groupName: groupName || 'Climate Champions 7A',
-      createdAt: Date.now()
+      role: 'learner',
+      classIds: [assignedClassId],
+      createdAt: Date.now(),
+      status: 'active'
     };
 
     const secondaryDb = secondaryApp.firestore();
-    await secondaryDb.collection('users').doc(studentUser.uid).set(studentData);
-    await secondaryDb.collection('students').doc(studentUser.uid).set(studentData);
+    await secondaryDb.collection('users').doc(studentUser.uid).set(learnerData);
+    
+    // Add to classes/{classId}.learnerIds
+    try {
+      const classRef = secondaryDb.collection('classes').doc(assignedClassId);
+      await classRef.update({
+        learnerIds: firebase.firestore.FieldValue.arrayUnion(studentUser.uid),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch {}
 
     await secondaryApp.auth().signOut();
     await secondaryApp.delete();
 
-    return studentData;
+    return { ...learnerData, temporaryPassword: finalPassword };
   } catch (err) {
     try { await secondaryApp.delete(); } catch(e) {}
     throw err;

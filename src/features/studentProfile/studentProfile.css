@@ -1,0 +1,54 @@
+/* School profile (parent card, coach editor) and the notification bell.
+   Colours come from the gh-app design tokens, so both themes follow the app. */
+
+.sp-card { display: grid; gap: 1rem; margin-bottom: 1.25rem; padding: 1.25rem; color: var(--gh-text); }
+.sp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.sp-title { display: flex; align-items: center; gap: 0.45rem; margin: 0; font-size: 1.1rem; color: var(--gh-heading); }
+.sp-muted { margin: 0; color: var(--gh-text-2); font-size: 0.86rem; }
+.sp-h3 { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.4rem; font-size: 0.95rem; color: var(--gh-heading); }
+.sp-mentor { display: grid; gap: 0.4rem; justify-items: end; }
+.sp-teams { text-decoration: none; }
+
+.sp-progress { display: grid; gap: 0.35rem; }
+.sp-progress-top { display: flex; justify-content: space-between; align-items: baseline; }
+.sp-bar { height: 10px; border-radius: 999px; background: var(--gh-subtle); overflow: hidden; }
+.sp-bar > span { display: block; height: 100%; background: var(--gh-purple); border-radius: 999px; }
+.sp-note { margin: 0; color: var(--gh-text); font-size: 0.92rem; }
+
+.sp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+.sp-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.sp-table th, .sp-table td { text-align: left; padding: 0.4rem 0.3rem; border-bottom: 1px solid var(--gh-border); }
+.sp-gpa { margin: 0.6rem 0 0; }
+.sp-badges { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.sp-summary { display: grid; gap: 0.3rem; border-top: 1px solid var(--gh-border); padding-top: 0.8rem; }
+.sp-summary p { margin: 0; }
+
+.sp-fieldset { border: 1px solid var(--gh-border); border-radius: 10px; padding: 0.8rem; display: grid; gap: 0.6rem; }
+.sp-fieldset legend { padding: 0 0.3rem; font-weight: 600; color: var(--gh-heading); }
+.sp-row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: end; }
+.sp-grade-row { align-items: end; }
+.sp-grow { flex: 1 1 200px; }
+.sp-field { display: grid; gap: 0.25rem; font-size: 0.8rem; font-weight: 600; color: var(--gh-text-2); min-width: 120px; }
+.sp-field input, .sp-field textarea, .sp-fieldset textarea {
+  width: 100%; background: var(--gh-surface); color: var(--gh-text); border: 1px solid var(--gh-border-strong); border-radius: 8px; padding: 0.45rem 0.55rem; font: inherit; font-weight: 400;
+}
+.sp-actions { display: flex; justify-content: flex-end; }
+.sp-status { display: flex; align-items: center; gap: 0.4rem; min-height: 1.3rem; font-size: 0.9rem; color: var(--gh-text-2); }
+.sp-status-success { color: var(--gh-green-text); }
+.sp-status-error { color: var(--gh-red); }
+.sp-link { background: none; border: 0; padding: 0; color: var(--gh-purple-text); font-weight: 600; cursor: pointer; }
+
+.sp-bell { position: relative; display: inline-block; }
+.sp-bell-btn { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--gh-border); background: var(--gh-surface); color: var(--gh-text); cursor: pointer; }
+.sp-bell-btn:focus-visible, .sp-field input:focus-visible, .sp-bell-item:focus-visible, .sp-link:focus-visible { outline: 3px solid var(--gh-sky); outline-offset: 2px; }
+.sp-bell-count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: var(--gh-magenta); color: #fff; font-size: 0.7rem; font-weight: 700; display: grid; place-items: center; }
+.sp-bell-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(320px, 90vw); z-index: 60; background: var(--gh-surface); border: 1px solid var(--gh-border); border-radius: 12px; box-shadow: var(--gh-shadow-lg); padding: 0.75rem; display: grid; gap: 0.5rem; }
+.sp-bell-head { display: flex; justify-content: space-between; align-items: center; }
+.sp-bell-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; max-height: 320px; overflow-y: auto; }
+.sp-bell-item { width: 100%; text-align: left; display: grid; gap: 0.15rem; padding: 0.5rem; border-radius: 8px; border: 0; background: transparent; color: var(--gh-text); cursor: pointer; }
+.sp-bell-item:hover { background: var(--gh-subtle); }
+.sp-bell-item.is-unread > span:first-child { font-weight: 700; }
+
+@media (max-width: 600px) {
+  .sp-mentor { justify-items: start; }
+}

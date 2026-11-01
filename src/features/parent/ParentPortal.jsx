@@ -85,7 +85,6 @@ function ChildCard({ child, onOpen }) {
         {row(GraduationCap, t('parent.yearLevel'), child.yearLevel)}
         {row(Layers, t('form.cohort'), child.cohortCode)}
       </div>
-      {child.consentStatus === 'required' && <div style={{ marginTop: '1rem' }}><Alert type="info">{t('parent.consentRequired')}</Alert></div>}
       <button type="button" className="gh-btn gh-btn-primary" onClick={onOpen} style={{ marginTop: '1rem', width: '100%' }}>
         <ChartLine size={17} aria-hidden="true" />
         {t('parent.d.viewProgress', { name: child.givenNames || child.displayName })}

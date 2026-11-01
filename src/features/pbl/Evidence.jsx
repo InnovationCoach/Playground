@@ -4,6 +4,8 @@ import { EVIDENCE_KINDS, phaseById } from './content/pblModel.js';
 import { COMPETENCY_DOMAINS, COMPETENCIES, competencyById } from './content/competencies.js';
 import { addEvidence, removeEvidence, LIMITS } from './engine/pblProject.js';
 import { Alert } from '../admin/ui/bits.jsx';
+import { MediaEmbed } from './MediaEmbed.jsx';
+import { embedFor } from './engine/mediaEmbed.js';
 
 const kindLabel = (id) => EVIDENCE_KINDS.find((k) => k.id === id)?.label || id;
 
@@ -77,9 +79,14 @@ export function EvidenceForm({ project, phase, initial = {}, apply, onDone }) {
       )}
 
       <div className="pb-field">
-        <label className="gh-label" htmlFor="ev-link">Link <span className="gh-opt">(optional - photo, video, slides, MakeCode project)</span></label>
-        <input id="ev-link" className="gh-input" type="url" inputMode="url" placeholder="https://" maxLength={LIMITS.link}
+        <label className="gh-label" htmlFor="ev-link">
+          Link <span className="gh-opt">{d.kind === 'design' ? '(your Canva design’s share link)' : '(optional - photo, video, slides, MakeCode project)'}</span>
+        </label>
+        <input id="ev-link" className="gh-input" type="url" inputMode="url" maxLength={LIMITS.link} aria-describedby="ev-link-help"
+               placeholder={d.kind === 'design' ? 'https://www.canva.com/design/…/view' : 'https://'}
                value={d.link} onChange={(e) => set({ link: e.target.value })} />
+        <p id="ev-link-help" className="pb-help">Canva designs, Cloudinary images and videos, and YouTube videos show inside your portfolio. Other links open in a new tab.</p>
+        <MediaEmbed url={d.link} title={d.title} preview />
       </div>
 
       <fieldset className="pb-fieldset">
@@ -144,7 +151,8 @@ export function EvidenceList({ project, apply, phaseId, kind, empty }) {
           ) : e.body && (
             e.kind === 'code' ? <pre className="pb-code-block"><code>{e.body}</code></pre> : <p className="pb-pre">{e.body}</p>
           )}
-          {e.link && (
+          {e.link && embedFor(e.link)?.src && <MediaEmbed url={e.link} title={e.title} />}
+          {e.link && !embedFor(e.link)?.src && (
             <a className="pb-ev-link" href={e.link} target="_blank" rel="noopener noreferrer">
               <ExternalLink size={14} aria-hidden="true" />{e.link.replace(/^https?:\/\//, '').slice(0, 60)}
             </a>

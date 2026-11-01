@@ -1,0 +1,94 @@
+/* Student hub: current learning first, optional tools below. */
+.lh-root { background: var(--gh-bg); }
+.lh-root .md-page { max-width: 1320px; }
+.lh-root .md-hero { padding: 28px 32px; border-radius: 24px; box-shadow: none; }
+.lh-root .md-hero::after { width: 310px; height: 310px; border: 1px solid #ffffff22; box-shadow: 0 0 0 38px #ffffff06,0 0 0 76px #ffffff04; background: transparent; right: 7%; bottom: -190px; }
+.lh-root .md-avatar { width: 64px; height: 64px; font-size: 1.4rem; border-width: 2px; background: #d9f29a; color: #173e3c; box-shadow: none; }
+.lh-root .md-hero-body { margin-top: 18px; }
+.lh-root .md-hero h1 { font-size: clamp(26px,3vw,36px); letter-spacing: -.035em; }
+.lh-root .md-tagline { color: #e3eee6; }
+.lh-root .md-chip { font-size: 12px; }
+.lh-root .md-xp { max-width: 290px; }
+.lh-root .md-xp .md-meter { height: 4px; }
+.lh-shortcuts { display: flex; flex-wrap: wrap; gap: 10px; margin: 19px 0 25px; }
+.lh-shortcuts a { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; color: var(--gh-heading); background: var(--gh-surface); border: 1px solid var(--gh-border); border-radius: 999px; padding: 10px 16px; font-size: 13px; font-weight: 650; }
+.lh-shortcuts a>svg:last-child { color: var(--gh-text-3); margin-left: 8px; }
+.lh-panel { border: 1px solid var(--gh-border); background: var(--gh-surface); border-radius: 20px; padding: 24px; min-width: 0; }
+.lh-root h2,.lh-root h3 { color: var(--gh-heading); }
+.lh-root h2 { font-size: 20px; letter-spacing: -.025em; margin: 3px 0; }
+.lh-root h3 { font-size: 19px; letter-spacing: -.02em; line-height: 1.35; margin: 7px 0 10px; }
+.lh-root p { line-height: 1.6; }
+.lh-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 750; letter-spacing: .11em; color: var(--gh-text-2); }
+.lh-section-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.lh-text-link { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12px; font-weight: 700; color: var(--md-accent-text); background: none; border: 0; padding: 3px 0; text-decoration: none; cursor: pointer; }
+.lh-text-link:hover { text-decoration: underline; }
+.lh-plan { padding: 23px 26px; margin-top: 26px; }
+.lh-plan-layout { display: grid; grid-template-columns: .85fr 1.15fr; gap: 30px; margin-top: 20px; }
+.lh-next { padding: 22px; border-radius: 14px; background: color-mix(in srgb,var(--gh-green) 9%,var(--gh-surface)); }
+.lh-next p { color: var(--gh-text-2); font-size: 13px; margin: 10px 0 18px; }
+.lh-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 11px; background: var(--gh-subtle); margin-bottom: 16px; width: fit-content; }
+.lh-tabs button { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 0; border-radius: 8px; padding: 8px 13px; font: inherit; font-size: 12px; font-weight: 650; color: var(--gh-text-2); cursor: pointer; }
+.lh-tabs button[aria-pressed=true] { color: var(--gh-heading); background: var(--gh-surface); box-shadow: 0 1px 4px #0000000c; }
+.lh-tabs span { font-size: 10px; color: var(--gh-text-2); }
+.lh-plan-list .md-today-item { padding: 9px 10px; }
+.lh-goal-history ul { list-style: none; padding: 0; margin: 0; }
+.lh-goal-history li { padding: 10px 0; border-bottom: 1px solid var(--gh-border); font-size: 13px; }
+.lh-goal-history li span { display: block; color: var(--gh-text-2); margin-top: 4px; }
+.lh-columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); align-items: start; gap: 26px; margin-top: 20px; }
+.lh-column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.lh-column-heading { display: flex; align-items: center; gap: 12px; min-height: 50px; margin-bottom: 3px; }
+.lh-column-heading>.lh-text-link { margin-left: auto; white-space: nowrap; }
+.lh-heading-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: #e6eddf; color: #365441; flex-shrink: 0; }
+.lh-purple { background: #eee7f5; color: #73518e; }
+.lh-academic-empty { padding: 28px; }
+.lh-orbit { display: flex; align-items: center; justify-content: center; width: 90px; height: 90px; border-radius: 26px; background: color-mix(in srgb,var(--gh-green) 12%,var(--gh-surface)); color: var(--gh-heading); margin-bottom: 23px; position: relative; }
+.lh-orbit span { position: absolute; top: 6px; right: 10px; color: #7b9357; font-size: 23px; }
+.lh-academic-empty h3 { max-width: 230px; font-size: 25px; }
+.lh-academic-empty p,.lh-project p,.lh-project-empty p { font-size: 13px; color: var(--gh-text-2); margin: 9px 0 20px; }
+.lh-example-control { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--gh-text-2); padding: 0 3px; }
+.lh-examples { display: grid; gap: 14px; }
+.lh-notice { border-radius: 10px; background: var(--gh-subtle); border: 1px solid var(--gh-border); padding: 10px 13px; font-size: 12px; line-height: 1.6; color: var(--gh-text-2); margin: 0; }
+.lh-example { overflow: hidden; border: 1px solid var(--gh-border); border-radius: 19px; background: var(--gh-surface); }
+.lh-example-art { height: 112px; background: #d9e8da; color: #416f55; position: relative; overflow: hidden; display: flex; align-items: center; padding-left: 28px; }
+.lh-peach .lh-example-art { background: #f0dfcc; color: #8c674b; }
+.lh-example-art>span { font-size: 64px; line-height: 1; font-family: Georgia,serif; }
+.lh-example-art i { position: absolute; width: 140px; height: 140px; border: 1px solid currentColor; opacity: .25; border-radius: 50%; right: 40px; top: 20px; }
+.lh-example-art i:last-child { right: -20px; top: -40px; }
+.lh-example-body { padding: 20px 23px; }
+.lh-example-body p { font-size: 13px; color: var(--gh-text-2); }
+.lh-sample-lesson { padding-top: 16px; margin-top: 14px; border-top: 1px solid var(--gh-border); }
+.lh-sample-lesson small { color: var(--gh-text-2); font-size: 11px; }
+.lh-discover,.lh-secondary a { display: flex; align-items: center; gap: 13px; padding: 21px; border: 1px solid var(--gh-border); border-radius: 17px; color: var(--gh-heading); text-decoration: none; background: var(--gh-surface); }
+.lh-discover>svg:last-child,.lh-secondary a>svg:last-child { margin-left: auto; flex-shrink: 0; }
+.lh-discover strong,.lh-secondary strong { display: block; font-size: 13px; }
+.lh-discover small,.lh-secondary small { display: block; color: var(--gh-text-2); font-size: 11px; margin-top: 5px; line-height: 1.5; }
+.lh-project { border-top: 3px solid #a8b78d; }
+.lh-project h3 { font-size: 23px; }
+.lh-project .lh-notice { margin-bottom: 12px; }
+.lh-project .lh-session { background: var(--gh-subtle); border-radius: 11px; padding: 12px; font-size: 13px; }
+.lh-session span { display: block; font-size: 9px; font-weight: 750; letter-spacing: .1em; margin-bottom: 5px; }
+.lh-root a.md-btn { text-decoration: none; }
+.lh-phase-track { display: flex; list-style: none; padding: 12px 0; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+.lh-phase-track li { display: flex; align-items: center; gap: 4px; color: var(--gh-text-2); font-size: 10px; padding: 5px 7px; border-radius: 7px; background: var(--gh-subtle); }
+.lh-phase-track li[aria-current=step] { background: #e9def1; color: #553965; font-weight: 750; }
+.lh-phase-track li span { font-weight: 750; }
+.lh-activities { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-top: 15px; }
+.lh-activities button { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; text-align: left; padding: 14px; background: var(--gh-subtle); color: var(--gh-heading); border: 1px solid var(--gh-border); border-radius: 13px; font: inherit; cursor: pointer; }
+.lh-activities button>span { font-size: 26px; line-height: 1; color: #778b4e; }
+.lh-activities strong { font-size: 12px; line-height: 1.4; }
+.lh-activities small { color: var(--gh-text-2); font-size: 10px; line-height: 1.5; }
+.lh-activities svg { margin-top: auto; }
+.lh-loading { display: grid; gap: 14px; color: var(--gh-text-2); font-size: 13px; }
+.lh-skeleton { display: block; height: 13px; width: 75%; background: var(--gh-subtle); border-radius: 5px; }
+.lh-skeleton:nth-child(2) { width: 45%; }
+.lh-secondary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; margin: 28px 0 20px; }
+.lh-toolbox { border-top: 1px solid var(--gh-border); margin-top: 27px; padding-top: 23px; }
+.lh-toolbox>h2 { font-size: 17px; margin-bottom: 6px; }
+.lh-tools-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 18px; }
+.lh-tools-grid details { background: var(--gh-surface); border: 1px solid var(--gh-border); border-radius: 14px; padding: 16px 19px; min-width: 0; }
+.lh-tools-grid summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--gh-heading); }
+.lh-tool-body { margin-top: 18px; }
+.lh-root a:focus-visible,.lh-root button:focus-visible,.lh-root summary:focus-visible { outline: 3px solid var(--gh-sky); outline-offset: 4px; }
+.lh-root button:hover:not(:disabled),.lh-root a:hover { filter: brightness(.98); }
+@media(max-width:1000px) { .lh-columns { gap: 18px; } .lh-panel { padding: 20px; } .lh-plan-layout { gap: 18px; } .lh-activities { grid-template-columns: 1fr; } .lh-activities button { display: grid; grid-template-columns: 28px 1fr 18px; align-items: center; gap: 4px 10px; } .lh-activities button>span { grid-row: span 2; } .lh-activities button>svg { grid-column: 3; grid-row: 1 / 3; } .lh-activities button>small { grid-column: 2; } }
+@media(max-width:720px) { .lh-root .md-page { padding: 16px 14px 30px; } .lh-root .md-hero { padding: 22px; border-radius: 19px; } .lh-root .md-avatar { display: none; } .lh-root .md-hero-text { min-width: 0; } .lh-plan-layout,.lh-columns,.lh-secondary,.lh-tools-grid { grid-template-columns: 1fr; } .lh-columns { gap: 28px; } .lh-shortcuts { gap: 7px; margin-bottom: 20px; } .lh-shortcuts a { padding: 9px 11px; font-size: 11px; } .lh-shortcuts a>svg:last-child { display: none; } .lh-section-top { align-items: flex-start; flex-wrap: wrap; } .lh-plan { padding: 20px; } .lh-tabs button { padding: 8px 10px; } .lh-academic-empty h3 { max-width: none; font-size: 23px; } .lh-root .md-hero h1 { font-size: 29px; } .lh-column-heading h2 { font-size: 19px; } .lh-secondary { gap: 12px; } }

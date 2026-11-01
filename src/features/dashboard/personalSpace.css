@@ -1,0 +1,32 @@
+.ps-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:12px 0; }
+.ps-controls label { display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:13px; max-width:100%; }
+.ps-controls input:not([type=checkbox]),.ps-controls select { max-width:100%; padding:6px; border:1px solid var(--gh-border); background:var(--gh-surface); color:var(--gh-heading); border-radius:6px; font:inherit; }
+.ps-settings { margin:16px 0; padding:14px; background:var(--gh-surface); border:1px solid var(--gh-border); border-radius:12px; }
+.ps-tool { min-width:0; border:1px solid var(--gh-border); border-radius:14px; background:var(--gh-surface); padding:12px; }
+.ps-tool[hidden] { display:none; }
+.ps-actions .md-btn { padding:6px 8px; font-size:12px; }
+.ps-grid .ps-wide { grid-column:1 / -1; }
+.lh-tools-grid.ps-slider { display:flex; overflow-x:auto; scroll-snap-type:x proximity; padding-bottom:16px; }
+.ps-slider .ps-tool { flex:0 0 min(85%, 420px); scroll-snap-align:start; }
+.ps-slider .ps-wide { flex-basis:min(95%, 700px); }
+.md-calm *, .md-calm *::before, .md-calm *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+.md-calm .lh-example-art,.md-calm .lh-orbit { display:none; }
+@media(prefers-reduced-motion:reduce) { .ps-space * { animation:none !important; transition:none !important; } }
+
+/* Explicit student themes override the inherited shell palette on this root. */
+.gh-app.md-root[data-theme="dark"] {
+ --gh-bg:#0f1419; --gh-surface:#1a1e27; --gh-subtle:#252d3a; --gh-border:#3a4452; --gh-border-strong:#4a5566;
+ --gh-text:#e5e9f0; --gh-text-2:#b8bfd0; --gh-text-3:#9ea6b8; --gh-heading:#f0f4fa;
+ --gh-purple-text:#d3b0f2; --gh-purple-50:#2d1a47; --gh-purple-100:#3d2857;
+ --gh-green-50:#1a2b00; --gh-green-text:#a3d000; --gh-amber-50:#3a2a1a; --gh-amber-text:#dba546; --gh-red-50:#3a1f1f;
+ --md-accent-text:color-mix(in srgb, var(--md-accent) 40%, white);
+ --ps-mist-a:#182431; --ps-mist-b:#282034; --ps-meadow-a:#1d2b22; --ps-meadow-b:#29291e;
+}
+.gh-app.md-root[data-theme="light"] {
+ --gh-bg:#f5f6fa; --gh-surface:#fff; --gh-subtle:#f0f1f6; --gh-border:#e4e6ee; --gh-border-strong:#cfd3df;
+ --gh-text:#14213a; --gh-text-2:#4b5670; --gh-text-3:#5d6680; --gh-heading:#0f2c4c;
+ --gh-purple-text:#6e3f8b; --gh-purple-50:#f5eefa; --gh-purple-100:#ebdcf5;
+ --gh-green-50:#f2fadf; --gh-green-text:#4a6a00; --gh-amber-50:#fff6e0; --gh-amber-text:#8a5700; --gh-red-50:#fcecec;
+ --md-accent-text:var(--md-accent);
+}
+.md-calm .fs-orb { visibility:hidden; }
