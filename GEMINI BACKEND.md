@@ -676,14 +676,18 @@ To be created in `functions/package.json`:
     "node": "20"
   },
   "scripts": {
-    "build": "esbuild index.js --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --external:firebase-admin --external:firebase-functions --external:@google/generative-ai --external:cors --external:express"
+    "build": "esbuild index.js --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --packages=external"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "firebase-admin": "^14.3.0",
     "firebase-functions": "^6.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
   }
 }
 ```
@@ -829,13 +833,21 @@ Mani verified the following items in the Google Cloud / Firebase console on 1 No
 #### Updated Server Go Checklist
 - [x] **Go 1 (Decided 1 Nov 2026):** Cloud Functions 2nd Gen `onRequest` selected by Mani.
 - [x] **Go 2 (Confirmed 1 Nov 2026 by Mani):** Blaze billing verification, region confirmation (`us-central1`), IAM roles.
-- [x] **Go 3 (Approved 1 Nov 2026 by Mani):** Proposed packaging resolution (Option A esbuild bundling), `functions/package.json`, `firebase.json` rewrite, and emulator setup. Emulator-only testing authorized.
+- [x] **Go 3 (Approved 1 Nov 2026 by Mani):** Proposed packaging resolution (Option A esbuild bundling), `functions/package.json` (including `dotenv`), `firebase.json` rewrite, and emulator setup. Emulator-only testing authorized and verified.
 - [ ] **Go 4 (Pending Mani's Approval):** Mounting `/api/universe/access` route in `server/app.js`.
   - *Open Architectural Question:* Which trusted record of verified evidence does the access route read, and who writes it? (e.g. Does it read coach-reviewed competency submissions from `learnerPortfolios` / `competencyEvidence`, automated simulator milestones, or signed custom claims, and which authoritative server function or educator role writes and signs that record to prevent client privilege escalation?)
 - [ ] **Go 5 (Pending Mani's Approval):** Staging deployment and live smoke test.
+  - *Hosting Release Rewrite Safety Rule:* The `/api/**` rewrite in `firebase.json` (`{"source": "/api/**", "function": "api"}`) must **NOT** be included in any live hosting release (`firebase deploy --only hosting`) until the `api` Cloud Function exists in production (Go 5). If a live hosting deployment includes a rewrite targeting an undeployed function, Firebase Hosting will fail deployment or return HTTP 500 / 404 for all `/api/**` traffic.
   - *Cloud Functions Deployment Isolation Constraint:* Deploying Cloud Functions via Firebase CLI always targets the active GCP/Firebase project (`dnd-master-73449`). Firebase Hosting preview channels (`firebase hosting:channel:deploy`) only isolate static web assets, **not** Cloud Functions. Therefore, Go 5 requires either:
     1. A separate staging Firebase project (e.g. `dnd-staging`) for isolated cloud testing; or
     2. Mani's explicit written acceptance that the deployed Cloud Function will run directly in the production project (`dnd-master-73449`).
+  - *Secret Management in Cloud Functions (No `.env` in Cloud):* In Google Cloud Functions, local `.env` files are not uploaded or read in production. All secrets must reach Cloud Functions via Google Cloud Secret Manager using `defineSecret` from `firebase-functions/params` (or configured via `firebase functions:secrets:set`). The following server secrets must be provisioned and authorized before deploying the `api` function in Go 5 (documentation list only; secrets are not created during Go 3):
+    1. `GEMINI_API_KEY`: Required by `server/app.js` for generative AI co-pilot and feedback services (`@google/generative-ai`).
+    2. `PARENT_INVITE_SECRET`: Required by `server/routes/parents.js` for signing parent invitation tokens.
+    3. `CANVA_CLIENT_SECRET`: Required by `server/canva/client.js` for Canva OAuth authentication (if Canva integration is active).
+    4. `CANVA_TOKEN_KEY`: Required by `server/canva/crypto.js` for encrypting user Canva tokens.
+    5. `CLOUDINARY_API_SECRET`: Required by `server/canva/storage.js` if Cloudinary asset storage is active.
+
 
 
 
