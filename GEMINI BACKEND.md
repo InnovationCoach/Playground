@@ -41,7 +41,7 @@
 - **Canonical Handoff Worktree:** `/Users/admin/Desktop/HearIsland/output/my-universe/source`
 - **Branch:** `codex/my-universe-prototype`
 - **Base Commit:** `c85552768424dbefea6c1b2d2cf18942a368494e` (`feat(search,dashboard): Find a Quest discovery, My Quests and SPARK Daylight`)
-- **Parent Commit:** `697f785e83a7ecb9489dea6a2c8996b04d4cfc8b` (matches current live release bundle `assets/index-VQ2jxVeQ.js`, per earlier session verification; not re-checked).
+- **Live Production Release:** Commit `44b3abc` (My Universe release; rollback channel `pre-universe-20261101`), superseding earlier release baselines `b425760` / `697f785`.
 - *Disclaimer:* Source inspection of configuration files reflects repository declarations; it does not constitute runtime verification of live GCP/Firebase IAM, live index builds, or live Cloud Function instances.
 
 ### 1.2 What Actually Exists in Backend Source
@@ -395,7 +395,7 @@ Content-Type: application/json
 }
 ```
 
-*Proposed Response Contract:*
+*Proposed Response Contract (Catalog 1.1.0: Ignis public, Boreas gated):*
 ```json
 {
   "evaluatedAt": "2026-11-01T14:30:05Z",
@@ -406,14 +406,14 @@ Content-Type: application/json
       "isVerified": true
     },
     "ignis": {
-      "status": "locked",
-      "evaluatedRule": "comp-env-sci-so2",
-      "isVerified": false
-    },
-    "boreas": {
       "status": "available",
       "evaluatedRule": null,
       "isVerified": true
+    },
+    "boreas": {
+      "status": "locked",
+      "evaluatedRule": "comp-env-ice-climate",
+      "isVerified": false
     }
   }
 }
@@ -421,6 +421,9 @@ Content-Type: application/json
 
 *Single Source of Truth for Requirement Text:*
 The catalog (`/cosmos/v1/catalog.json`) owns `requirementText`. The access service returns only destination `status` (`available` | `locked`), `evaluatedRule`, and `isVerified`. When a destination is `locked`, the client displays the authored `requirementText` from the catalog.
+
+*Open Question for Go 4 (Evidence Storage & Authorship):*
+Which trusted record of verified evidence does the `/api/universe/access` route read, and who writes it? (e.g. Does it read coach-reviewed competency submissions from `learnerPortfolios` / `competencyEvidence`, automated simulator milestones, or signed custom claims, and which authoritative server function or educator role writes and signs that record to prevent client privilege escalation?)
 
 *Proposed Latency Budget & Service Down Fallback:*
 - **Latency Budget (Proposed):** Target < 250ms (evaluates custom claims in token and cached student progress). This is an architectural budget target, not a measured benchmark.
@@ -828,7 +831,12 @@ Mani verified the following items in the Google Cloud / Firebase console on 1 No
 - [x] **Go 2 (Confirmed 1 Nov 2026 by Mani):** Blaze billing verification, region confirmation (`us-central1`), IAM roles.
 - [x] **Go 3 (Approved 1 Nov 2026 by Mani):** Proposed packaging resolution (Option A esbuild bundling), `functions/package.json`, `firebase.json` rewrite, and emulator setup. Emulator-only testing authorized.
 - [ ] **Go 4 (Pending Mani's Approval):** Mounting `/api/universe/access` route in `server/app.js`.
+  - *Open Architectural Question:* Which trusted record of verified evidence does the access route read, and who writes it? (e.g. Does it read coach-reviewed competency submissions from `learnerPortfolios` / `competencyEvidence`, automated simulator milestones, or signed custom claims, and which authoritative server function or educator role writes and signs that record to prevent client privilege escalation?)
 - [ ] **Go 5 (Pending Mani's Approval):** Staging deployment and live smoke test.
+  - *Cloud Functions Deployment Isolation Constraint:* Deploying Cloud Functions via Firebase CLI always targets the active GCP/Firebase project (`dnd-master-73449`). Firebase Hosting preview channels (`firebase hosting:channel:deploy`) only isolate static web assets, **not** Cloud Functions. Therefore, Go 5 requires either:
+    1. A separate staging Firebase project (e.g. `dnd-staging`) for isolated cloud testing; or
+    2. Mani's explicit written acceptance that the deployed Cloud Function will run directly in the production project (`dnd-master-73449`).
+
 
 
 ---
