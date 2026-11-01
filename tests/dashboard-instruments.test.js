@@ -1,7 +1,7 @@
 import React, { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
-import { ProgressLearningSlide } from '../src/features/dashboard/LearningHub.jsx';
+import { CourseQuests } from '../src/features/dashboard/LearningHub.jsx';
 import { GAUGE, gaugeReading, phaseMilestones, phaseStages, goalSteps, hydrateDialFinish, arcPath } from '../src/features/dashboard/instrumentModel.js';
 import { hydrateWorkspace } from '../src/features/dashboard/workspaceModel.js';
 
@@ -60,10 +60,10 @@ describe('dashboard instruments', () => {
 const two = [{ id: 'a', title: 'Alpha' }, { id: 'b', title: 'Beta' }];
 const slide = (summary, programPhases = two) => {
   globalThis.React = React;
-  return renderToString(createElement(ProgressLearningSlide, { data: { state: 'ready', warnings: [], courses: [{ program: { id: 'p', title: 'P', phases: programPhases }, summary, progressUnavailable: false }] },
-    project: {}, plan: { goals: [] }, goalsLoaded: true, renderReadiness: () => null })).replace(/<!-- -->/g, '');
+  return renderToString(createElement(CourseQuests, { data: { state: 'ready', warnings: [], courses: [{ program: { id: 'p', title: 'P', phases: programPhases }, summary, progressUnavailable: false }] },
+    project: {}, renderReadiness: () => null, onOpenActivity: () => {} })).replace(/<!-- -->/g, '');
 };
-describe('progress slide record states', () => {
+describe('course quest record states', () => {
   it('shows a complete record as full, with learner-marked wording', () => {
     const html = slide({ done: 4, total: 4, byPhase: { a: { done: 2, total: 2, complete: true }, b: { done: 2, total: 2, complete: true } } });
     expect(html).toContain('aria-valuetext="4 of 4 sessions marked complete by you"');
@@ -94,9 +94,9 @@ describe('dock status and term-project guidance', () => {
   it('shows only verified counts and never a combined percentage', () => {
     const stats = dockStats({ data: { courses: [course({ done: 1, total: 9 })] }, today: [{ id: 'a' }, { id: 'b' }], ticked: new Set(['a']), plan, goalsLoaded: true, focus: '12:04' });
     expect(stats).toEqual({
-      daily: { text: '1/2', label: '1 of 2 done today' },
-      progress: { text: '1/9', label: '1 of 9 sessions marked complete' }, creative: { text: '12:04', label: 'focus timer 12:04 left' }
+      daily: { text: '0/1', label: '0 of 1 tasks checked across your goals' }, creative: { text: '12:04', label: 'focus timer 12:04 left' }
     });
+    expect(dockStats({ data: { courses: [] }, today: [{ id: 'a' }, { id: 'b' }], ticked: new Set(['a']), plan: { goals: [] }, goalsLoaded: true }).daily).toEqual({ text: '1/2', label: '1 of 2 done today' });
     expect(JSON.stringify(stats)).not.toContain('%');
   });
   it('omits progress that is unavailable, needs a re-check or has no sessions', () => {

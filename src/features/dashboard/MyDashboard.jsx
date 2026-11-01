@@ -5,7 +5,7 @@ import { readiness } from '../pbl/engine/pblProject.js';
 import { hrefFor } from '../../app/routes.js';
 import { JoinClassPanel } from '../enrolment/JoinClassPanel.jsx';
 import { useGoalPlan } from '../goals/useGoalPlan.js';
-import { todayItems, checkedToday, toggleToday } from '../goals/goalPlan.js';
+import { todayItems, checkedToday, toggleToday, toggleStep, setStepQuest } from '../goals/goalPlan.js';
 import { NotesWidget } from './NotesWidget.jsx';
 import { FocusWidget } from '../focus/FocusWidget.jsx';
 import { useFocus } from '../focus/focusStore.js';
@@ -18,7 +18,7 @@ import { SparkUniverse } from './SparkUniverse.jsx';
 import { DIAL_FINISHES } from './instrumentModel.js';
 import { SLIDES, moveSlide } from './slideModel.js';
 import { DashboardDeck } from './DashboardDeck.jsx';
-import { DailyLearningSlide, ProgressLearningSlide, useLearningCourses } from './LearningHub.jsx';
+import { QuestsSlide, useLearningCourses } from './LearningHub.jsx';
 import { FindQuestSlide } from './FindQuestSlide.jsx';
 import { ACCENTS, COVERS, MAX_INTERESTS, MAX_TAGLINE, loadSignals, academicProgress, badgeStatus, goalSummary, skillOfTheWeek, dayKey, streakDays } from './dashboardModel.js';
 import { useDashboardPrefs, useCloudProject, saveMood, deviceStorage, logVisit } from './dashboardStore.js';
@@ -106,12 +106,13 @@ function StudentDashboard({ uid, profile, classIds = [], onJoined, onOpenActivit
   function renderSlide(id) {
     if (id === 'daily') return <>
       {uid && classIds.length === 0 && <JoinClassPanel uid={uid} classIds={classIds} onJoined={onJoined} />}
-      <DailyLearningSlide data={data} model={model} plan={plan} project={project} firstName={profile?.displayName?.split(' ')[0]} goalsLoaded={goalsLoaded} goalSync={goalSync}
-        onToggle={(item) => updatePlan((state) => toggleToday(state, item, signals.today))} onOpenActivity={onOpenActivity} />
+      <QuestsSlide data={data} model={model} plan={plan} project={project} firstName={profile?.displayName?.split(' ')[0]} goalsLoaded={goalsLoaded} goalSync={goalSync}
+        onToggleTask={(item) => updatePlan((state) => item.kind === 'task' ? toggleStep(state, item.goalId, item.stepId) : toggleToday(state, item, signals.today))}
+        onSetQuest={(goalId, stepId, quest) => updatePlan((state) => setStepQuest(state, goalId, stepId, quest))}
+        onOpenActivity={onOpenActivity} onFindQuest={() => setActiveSlide('find')}
+        renderReadiness={() => <WorkspaceTools prefs={prefs} slide="daily" renderWidget={renderWidget} />} />
     </>;
     if (id === 'find') return <FindQuestSlide uid={uid} data={data} plan={plan} onOpenActivity={onOpenActivity} />;
-    if (id === 'progress') return <ProgressLearningSlide data={data} project={project} plan={plan} goalsLoaded={goalsLoaded} goalSync={goalSync}
-      renderReadiness={() => <WorkspaceTools prefs={prefs} slide="progress" renderWidget={renderWidget} />} />;
     if (id === 'creative') return <PersonalSpace prefs={prefs} update={update} renderWidget={renderWidget} />;
     return <>
       <SparkUniverse prefs={prefs} plan={plan} onPersonalise={() => setPanelOpen(true)} />
@@ -141,10 +142,10 @@ function CustomisePanel({ prefs, update, syncState, onClose }) {
     onCancel={(event) => { event.preventDefault(); onClose(); }}
     onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <div className="sd-dialog-content"><div className="sd-section-line"><h2 id="sd-settings-title">Make it your space</h2><button type="button" className="sd-button" aria-label="Close personalisation" onClick={onClose}><X size={20} /></button></div>
-      <p className="sd-caption">Changes save to your existing dashboard preferences. All five learning slides stay available.</p>
+      <p className="sd-caption">Changes save to your existing dashboard preferences. Every dashboard slide stays available.</p>
       <fieldset><legend>Slides</legend><ol className="sd-slide-arrangement">{prefs.slideOrder.map((id, index) => <li key={id}>
         <label><span>{SLIDES.find((slide) => slide.id === id).title}</span><input aria-label={`Rename ${SLIDES.find((slide) => slide.id === id).title}`} maxLength={40} value={prefs.slideTitles[id]} onChange={(event) => update((state) => ({ ...state, slideTitles: { ...state.slideTitles, [id]: event.target.value } }))} /></label>
-        <div><button type="button" className="sd-button" disabled={index === 0} aria-label={`Move ${SLIDES.find((s) => s.id === id).title} earlier`} onClick={() => update((state) => moveSlide(state, id, -1))}><ArrowUp size={16} /></button><button type="button" className="sd-button" disabled={index === 4} aria-label={`Move ${SLIDES.find((s) => s.id === id).title} later`} onClick={() => update((state) => moveSlide(state, id, 1))}><ArrowDown size={16} /></button></div>
+        <div><button type="button" className="sd-button" disabled={index === 0} aria-label={`Move ${SLIDES.find((s) => s.id === id).title} earlier`} onClick={() => update((state) => moveSlide(state, id, -1))}><ArrowUp size={16} /></button><button type="button" className="sd-button" disabled={index === prefs.slideOrder.length - 1} aria-label={`Move ${SLIDES.find((s) => s.id === id).title} later`} onClick={() => update((state) => moveSlide(state, id, 1))}><ArrowDown size={16} /></button></div>
       </li>)}</ol></fieldset>
       <fieldset><legend>Appearance</legend><div className="sd-style-controls">
         <label>Font<select value={prefs.font} onChange={(event) => update((state) => ({ ...state, font: event.target.value }))}>{Object.keys(FONTS).map((font) => <option value={font} key={font}>{FONT_LABELS[font] || font}</option>)}</select></label>

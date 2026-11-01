@@ -3,7 +3,7 @@ export const db = {};
 export const usingEmulators = true;
 export const auth = { currentUser: { uid: 'preview-student' } };
 const plan = hydratePlan({ version: 1, updatedAt: Date.now(), goals: [
-  { id: 'g1', explore: 'Turn my garden idea into a working prototype', steps: [{ id: 's1', text: 'Sketch two ideas for a water sensor', done: false }, { id: 's2', text: 'Ask my coach for feedback', done: false }], supports: [], createdAt: 1 },
+  { id: 'g1', explore: 'Turn my garden idea into a working prototype', steps: [{ id: 's1', text: 'Sketch two ideas for a water sensor', done: true, quest: { kind: 'own', title: 'Sketch sensors with my sister' } }, { id: 's2', text: 'Build and test the circuit', done: false, quest: { kind: 'project', title: 'My PBL Studio term project' } }, { id: 's3b', text: 'Ask my coach for feedback', done: false }], supports: [], createdAt: 1 },
   { id: 'g2', explore: 'Keep a record of my first investigation', done: true, steps: [{ id: 's3', text: 'Write my first reflection', done: true }], supports: [], createdAt: 1 }
 ] });
 const data = new Map([['users/preview-student', { goalPlan: plan }]]);

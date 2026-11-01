@@ -1,5 +1,4 @@
 import { hrefFor } from '../../app/routes.js';
-import { gaugeReading } from './instrumentModel.js';
 
 const textOf = (value) => typeof value === 'string' ? value.trim()
   : value && typeof value === 'object' ? textOf(value.prompt || value.text || value.title) : '';
@@ -9,7 +8,11 @@ export const nextGoalStep = (goal) => goal.done ? null : goal.steps.find((step) 
 export function startHere({ data, today, checked, goalsLoaded, hasGoals, termProject = null }) {
   if (!goalsLoaded) return { loading: true, title: 'Finding your next step…', body: 'Loading your saved learning plan.' };
   const task = today.find((item) => item.kind === 'step' && !checked.has(item.id));
-  if (task) return { title: task.text, body: `A step towards ${task.goal}`, href: hrefFor.goals(), action: 'Open my goal', source: 'Your learning plan' };
+  if (task) {
+    const quest = task.quest?.kind === 'course' ? hrefFor.program(task.quest.ref, 'plan') : task.quest?.kind === 'project' ? hrefFor.pbl('project') : null;
+    return { title: task.text, body: task.quest ? `Quest: ${task.quest.title} · a task towards ${task.goal}` : `A task towards ${task.goal}`,
+      href: quest || hrefFor.goals(), action: quest ? 'Start my quest' : 'Open my goal', source: 'Your next task' };
+  }
   const recheck = data.courses.find((item) => item.needsRecheck);
   if (recheck) return { title: 'Re-check your completed sessions', body: `${recheck.program.title}’s session numbers were corrected. Confirm which sessions you’ve finished.`, href: hrefFor.program(recheck.program.id, 'plan'), action: 'Open project', source: 'Your current project' };
   const course = data.courses.find((item) => !item.progressUnavailable && item.summary?.next);
@@ -33,12 +36,14 @@ export function startHere({ data, today, checked, goalsLoaded, hasGoals, termPro
  */
 export function dockStats({ data, today, ticked, plan, goalsLoaded, focus = null, playing = false }) {
   const stats = {};
-  if (goalsLoaded && today.length) {
+  const steps = goalsLoaded ? plan.goals.filter((goal) => !goal.done).flatMap((goal) => goal.steps) : [];
+  if (steps.length) {
+    const n = steps.filter((step) => step.done).length;
+    stats.daily = { text: `${n}/${steps.length}`, label: `${n} of ${steps.length} tasks checked across your goals` };
+  } else if (goalsLoaded && today.length) {
     const n = today.filter((item) => ticked.has(item.id)).length;
     stats.daily = { text: `${n}/${today.length}`, label: `${n} of ${today.length} done today` };
   }
-  const course = data.courses.find((item) => !item.progressUnavailable && !item.needsRecheck && item.summary && gaugeReading(item.summary.done, item.summary.total));
-  if (course) stats.progress = { text: `${course.summary.done}/${course.summary.total}`, label: `${course.summary.done} of ${course.summary.total} sessions marked complete` };
   if (focus) stats.creative = { text: focus, label: `focus timer ${focus} left` };
   else if (playing) stats.creative = { text: '♪', label: 'focus sounds playing' };
   return stats;

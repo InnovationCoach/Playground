@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, ListChecks, Compass, ChartNoAxesCombined, PenTool, Orbit, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, Swords, Compass, PenTool, Orbit, Sparkles } from 'lucide-react';
 import { SLIDES } from './slideModel.js';
 import './dashboardDeck.css';
-const SLIDE_ICONS = { daily: ListChecks, find: Compass, progress: ChartNoAxesCombined, creative: PenTool, universe: Orbit };
+const SLIDE_ICONS = { daily: Swords, find: Compass, creative: PenTool, universe: Orbit };
 
 /** Native touch/trackpad scrolling; every panel stays mounted to preserve drafts/audio. */
 export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, renderSlide, active, onActive, stats = {} }) {
@@ -103,7 +103,7 @@ export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, r
         const template = SLIDES.find((s) => s.id === id);
         return <section key={id} id={`dashboard-slide-${id}`} data-slide={id}
           className={`sd-slide sd-page-${id}`} role="group" aria-roledescription={grid ? undefined : 'slide'}
-          aria-label={`${prefs.slideOrder.indexOf(id) + 1} of 5: ${titleFor(id)}`}
+          aria-label={`${prefs.slideOrder.indexOf(id) + 1} of ${prefs.slideOrder.length}: ${titleFor(id)}`}
           aria-hidden={!grid && active !== id ? true : undefined} inert={!grid && active !== id ? '' : undefined}>
           <div className="sd-slide-content"><div className="sd-eyebrow">{template.eyebrow}</div>
             <h2>{titleFor(id)}</h2>{renderSlide(id)}</div>
@@ -115,7 +115,7 @@ export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, r
         const Icon = SLIDE_ICONS[id], template = SLIDES.find((slide) => slide.id === id);
         return <button type="button" key={id} className="sd-indicator" onClick={() => go(id)} aria-label={stats[id] ? `${titleFor(id)}, ${stats[id].label}` : titleFor(id)} aria-current={active === id ? 'step' : undefined} aria-controls={`dashboard-slide-${id}`}><Icon size={17} strokeWidth={1.7} aria-hidden="true" /><span>{titleFor(id) === template.title ? template.short : titleFor(id)}</span>{stats[id] && <span className="sd-indicator-stat" aria-hidden="true">{stats[id].text}</span>}<span className="sd-indicator-index" aria-hidden="true">{index + 1}</span></button>;
       })}</nav>
-      <div className="sd-arrows"><button type="button" className="sd-button" disabled={activeIndex === 0} aria-label="Previous slide" onClick={() => go(prefs.slideOrder[activeIndex - 1])}><ChevronLeft size={19} /></button><span aria-live="polite" aria-atomic="true" className="sd-page-number">{activeIndex + 1} / 5</span><button type="button" className="sd-button" disabled={activeIndex === 4} aria-label="Next slide" onClick={() => go(prefs.slideOrder[activeIndex + 1])}><ChevronRight size={19} /></button></div>
+      <div className="sd-arrows"><button type="button" className="sd-button" disabled={activeIndex === 0} aria-label="Previous slide" onClick={() => go(prefs.slideOrder[activeIndex - 1])}><ChevronLeft size={19} /></button><span aria-live="polite" aria-atomic="true" className="sd-page-number">{activeIndex + 1} / {prefs.slideOrder.length}</span><button type="button" className="sd-button" disabled={activeIndex === prefs.slideOrder.length - 1} aria-label="Next slide" onClick={() => go(prefs.slideOrder[activeIndex + 1])}><ChevronRight size={19} /></button></div>
     </div>
     <div className="sd-save" role="status">{syncState === 'saving' ? 'Saving appearance…' : syncState === 'saved' ? 'Appearance saved to your account' : syncState === 'local-only' ? 'Appearance saved on this device · account sync unavailable' : 'Your space, at your pace'}</div>
   </section>;

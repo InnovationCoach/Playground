@@ -116,6 +116,22 @@ const str = (v, max) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().s
 const pick = (v, allowed) => [...new Set(Array.isArray(v) ? v.filter((x) => allowed.has(x)) : [])];
 const isDay = (k) => /^\d{4}-\d{2}-\d{2}$/.test(k);
 
+/**
+ * Goal -> tasks -> quests. A big goal is the long vision (finish a level,
+ * learn a new skill); its steps are the task checklist; each task can carry
+ * one quest - the concrete learning that gets it done: a course or project the
+ * learner is in, a STEM activity, their PBL term project, or a challenge they
+ * describe themselves. Only a reference and a title are kept, never progress:
+ * progress stays with the course or activity record it belongs to.
+ */
+export const QUEST_KINDS = ['course', 'activity', 'project', 'own'];
+export function cleanQuest(q) {
+  if (!q || typeof q !== 'object' || !QUEST_KINDS.includes(q.kind)) return null;
+  const title = str(q.title, LIMITS.text), ref = q.kind === 'own' || q.kind === 'project' ? '' : str(q.ref, 80);
+  if (!title || ((q.kind === 'course' || q.kind === 'activity') && !ref)) return null;
+  return { kind: q.kind, ref, title };
+}
+
 /** Local calendar day, so "today" turns over at the learner's midnight. */
 export function dayKey(date = new Date()) {
   const d = new Date(date);
@@ -137,7 +153,7 @@ function cleanGoal(g) {
   const explore = str(g.explore, LIMITS.text);
   if (!explore) return null;
   const steps = (Array.isArray(g.steps) ? g.steps : []).map((s) => (s && typeof s === 'object' ? {
-    id: str(s.id, 40) || newId('s'), text: str(s.text, LIMITS.text), done: s.done === true
+    id: str(s.id, 40) || newId('s'), text: str(s.text, LIMITS.text), done: s.done === true, quest: cleanQuest(s.quest)
   } : null)).filter((s) => s && s.text).slice(0, LIMITS.steps);
   return {
     id: str(g.id, 40) || newId('g'),
@@ -227,7 +243,7 @@ export function todayItems(plan, day = dayKey()) {
   for (const g of plan.goals) {
     if (g.done) continue;
     const next = g.steps.find((s) => ticked.has(`step:${g.id}:${s.id}`)) || g.steps.find((s) => !s.done);
-    if (next) items.push({ id: `step:${g.id}:${next.id}`, kind: 'step', text: next.text, goal: g.explore, goalId: g.id, stepId: next.id });
+    if (next) items.push({ id: `step:${g.id}:${next.id}`, kind: 'step', text: next.text, goal: g.explore, goalId: g.id, stepId: next.id, quest: next.quest || null });
   }
   if (plan.recharge.length) {
     items.push({ id: 'recharge', kind: 'recharge', text: `Recharge break: ${labelOf(RECHARGE, plan.recharge[0]).toLowerCase()}` });
@@ -256,6 +272,21 @@ export function toggleToday(plan, item, day = dayKey(), now = Date.now()) {
     }));
   }
   return touch(plan, { days: trimmed, goals }, now);
+}
+
+/** Tick or untick one task of a goal outside today's checklist. */
+export function toggleStep(plan, goalId, stepId, now = Date.now()) {
+  return touch(plan, { goals: plan.goals.map((g) => (g.id !== goalId ? g : {
+    ...g, steps: g.steps.map((s) => (s.id === stepId ? { ...s, done: !s.done } : s))
+  })) }, now);
+}
+
+/** Attach (or with null, remove) the quest for one task of one goal. */
+export function setStepQuest(plan, goalId, stepId, quest, now = Date.now()) {
+  const clean = cleanQuest(quest);
+  return touch(plan, { goals: plan.goals.map((g) => (g.id !== goalId ? g : {
+    ...g, steps: g.steps.map((s) => (s.id === stepId ? { ...s, quest: clean } : s))
+  })) }, now);
 }
 
 /** The last 7 days (oldest first) and whether the focus habit was done on each. */
