@@ -492,3 +492,32 @@ Also fixed: the spike's readout now shows the real rate while dragging, and "idl
 3. a server deployment and `/api` rewrite proposal
 4. the `universe-v1` rule text and tests
 5. a 3D asset hosting plan
+
+### 13.10 Gemini update reviewed; galaxy visuals fixed — 1 November 2026 (Claude)
+
+**Gemini's update to `GEMINI BACKEND.md` was checked against source.**
+
+Accepted:
+- **The 15 first-round corrections:** all applied correctly. One of them is more accurate than Claude's request: `storage.rules` also covers `/messages`, `/solarCar` and `/canva-exports`. Claude's correction #5 had said "only `/community`", which was wrong.
+- **The catalog contract:** matches `cosmosFixture.js` field for field.
+- **In direction:** fact objects with a string normaliser, session version pinning, the Cloud Run vs Cloud Functions comparison and the five-step "go" checklist, and the asset hosting plan.
+
+**Second round of fixes requested** (`docs/universe-handoffs/GEMINI CORRECTIONS 2.md`):
+1. The proposed rule uses `request.resource.size()`, which doesn't exist in Firestore rules. The 64 KB cap does nothing, and test 9 would fail.
+2. `activeDestination` fields are read directly, so a save made at galaxy level would be denied.
+3. The test suite's project ID is derived from the live project name. The convention is `demo-hearisland-rules`.
+4. `revision` isn't enforced as increasing.
+5. The stored preferences don't match the explorer's settings.
+6. The requirement text should come from the catalog only.
+7. §12 is out of date: the packages are installed and the spike is built.
+8. Remove or label unsupported numbers: "budgets ensure 60 fps", and the cold-start figure.
+
+None of these rules are applied anywhere. They remain proposals.
+
+**Galaxy views** (reported by Mani from a screenshot of the Aurora Elliptical view):
+- The "Not charted" labels sat on the galaxy, and the galaxy rendered as a white blob of oversized dots.
+- **Fixes:**
+  - Elliptical galaxies now have a centrally concentrated golden distribution with smaller, fainter stars.
+  - Spiral close-ups use more, finer stars and proportionally wider arms.
+  - Uncharted markers sit in the outer halo on the open side of the view, clear of the core and the side panel.
+- Checked on the M5 GPU: universe, Aurora and Lyra views.

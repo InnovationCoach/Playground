@@ -50,9 +50,10 @@ export function Nebulae({ low }) {
 
 /** Particle disc: two-armed spiral or a soft elliptical cloud. One draw call plus a core glow. */
 function GalaxyDisc({ galaxy, radius = 6, low }) {
+  const k = radius / 6; // close-up views are larger: more, finer stars and proportionally wider arms
   const tex = useOwnedTextures(() => ({ dot: glowTexture(), core: glowTexture('rgba(255,244,220,1)', 'rgba(255,200,150,0)') }), []);
   const { positions, colors, count } = useMemo(() => {
-    const n = (low ? 2200 : 4200) * (galaxy.type === 'spiral' ? 1 : 0.8) | 0, rnd = seeded(galaxy.id.length * 131);
+    const n = (low ? 2200 : 4200) * (galaxy.type === 'spiral' ? 1 : 0.8) * (k > 1.5 ? 1.8 : 1) | 0, rnd = seeded(galaxy.id.length * 131);
     const pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
     const core = new THREE.Color(galaxy.colors.core), arm = new THREE.Color(galaxy.colors.arm), dust = new THREE.Color(galaxy.colors.dust);
     const gauss = () => (rnd() + rnd() + rnd() - 1.5) / 1.5;
@@ -60,11 +61,13 @@ function GalaxyDisc({ galaxy, radius = 6, low }) {
       let x, y, z, t;
       if (galaxy.type === 'spiral') {
         t = rnd() ** 0.7; const r = t * radius, a = (i % 2) * Math.PI + t * 5.2 + gauss() * 0.35;
-        x = Math.cos(a) * r + gauss() * 0.35; z = Math.sin(a) * r + gauss() * 0.35; y = gauss() * 0.35 * (1 - t);
+        x = Math.cos(a) * r + gauss() * 0.35 * k; z = Math.sin(a) * r + gauss() * 0.35 * k; y = gauss() * 0.35 * k * (1 - t);
       } else {
-        t = Math.abs(gauss()); x = gauss() * radius * 0.75; z = gauss() * radius * 0.5; y = gauss() * radius * 0.35;
+        // Light falls off steeply from the core: many stars near the centre, a thin golden halo outside.
+        const u = rnd() ** 2.2, th = rnd() * Math.PI * 2, ph = Math.acos(2 * rnd() - 1), r = u * radius * 0.85;
+        t = u; x = r * Math.sin(ph) * Math.cos(th) * 1.25; z = r * Math.sin(ph) * Math.sin(th) * 0.85; y = r * Math.cos(ph) * 0.6;
       }
-      const c = core.clone().lerp(rnd() < 0.08 ? dust : arm, Math.min(1, t * 1.4));
+      const c = core.clone().lerp(rnd() < 0.08 ? dust : arm, Math.min(1, galaxy.type === 'spiral' ? t * 1.4 : 0.6 + t * 1.4));
       pos.set([x, y, z], i * 3); col.set([c.r, c.g, c.b], i * 3);
     }
     return { positions: pos, colors: col, count: n };
@@ -75,9 +78,10 @@ function GalaxyDisc({ galaxy, radius = 6, low }) {
         <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
         <bufferAttribute attach="attributes-color" count={count} array={colors} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial map={tex.dot} vertexColors size={radius * 0.05} sizeAttenuation transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+      <pointsMaterial map={tex.dot} vertexColors size={radius * (galaxy.type === 'spiral' ? (k > 1.5 ? 0.026 : 0.05) : 0.03)} sizeAttenuation transparent
+        opacity={galaxy.type === 'spiral' ? (k > 1.5 ? 0.8 : 1) : 0.55} depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
-    <sprite scale={[radius * 1.1, radius * 1.1, 1]}><spriteMaterial map={tex.core} transparent depthWrite={false} blending={THREE.AdditiveBlending} /></sprite>
+    <sprite scale={[radius * 1.1, radius * 1.1, 1]}><spriteMaterial map={tex.core} color={galaxy.type === 'spiral' ? '#ffffff' : galaxy.colors.arm} opacity={galaxy.type === 'spiral' ? 1 : 0.7} transparent depthWrite={false} blending={THREE.AdditiveBlending} /></sprite>
   </group>;
 }
 
@@ -113,8 +117,12 @@ function UniverseLevel({ selected, onSelect, low }) {
 function GalaxyLevel({ galaxyId, selected, onSelect, low }) {
   const galaxy = galaxyById(galaxyId);
   const markers = useMemo(() => {
-    const rnd = seeded(galaxyId.length * 7);
-    return Array.from({ length: galaxy.uncharted }, () => [(rnd() - 0.5) * 22, (rnd() - 0.5) * 2, (rnd() - 0.5) * 14]);
+    const rnd = seeded(galaxyId.length * 7), n = galaxy.uncharted;
+    return Array.from({ length: n }, (_, i) => {
+      // Spread across the outer halo on the open (left) side of the view, clear of the bright core and the panel.
+      const a = THREE.MathUtils.degToRad(115 + (n > 1 ? (i * 130) / (n - 1) : 65)) + (rnd() - 0.5) * 0.15, d = 10 + rnd() * 2.5;
+      return [Math.cos(a) * d * 1.15, (rnd() - 0.5) * 1.5, Math.sin(a) * d * 0.8];
+    });
   }, [galaxyId, galaxy.uncharted]);
   const sys = childrenOf({ level: 'galaxy', id: galaxyId });
   return <group>
