@@ -597,3 +597,18 @@ The sky and location beacons now come from a shared `environmentKit.jsx` that bo
 - **Screenshots:** `../review/stage-c/17` to `24`.
 
 **Housekeeping note:** the top-level `/Users/admin/Desktop/HearIsland/node_modules` was found empty during this work. Claude didn't touch it; another process may be reinstalling. The canonical checkout's own `node_modules` is intact.
+
+### 13.14 First mission (draft) and backend Go 1 — 1 November 2026 (Claude)
+
+**Mission: "Plan a journey to Ignis"** (the spacecraft example from the V1.0 vision). It's a **draft awaiting educator review**.
+- **Content:** `src/features/universe/missions/spacecraftJourney.js`. One driving question with two routes the learner chooses between; age is never used to choose.
+  - **Guided:** compare three engines, then time = distance ÷ speed (seconds → days), then the crew's food, then a reflection.
+  - **Advanced:** propellant for chemical vs. ion engines with the rocket equation, the supply cost of the slower trip, solar-panel area near Ignis with the inverse-square law, then a reflection.
+- **Labels:** world values are fictional and tagged. The two formulas are tagged real science with a source, marked "educator review pending". Five model limitations are shown to learners.
+- **Answer key:** answers are computed from the givens in code, and an independent test recomputes them. The chemical trip length is consistent across both routes (42 days).
+- **Self-checks:** `missionModel.js` reads typed numbers ("19,070", "41.7 days") and responds Correct / Close (within 10%) / Not yet / not a number. It also offers hints and a worked solution. **Nothing is marked, saved, rewarded or unlocked.** A test checks that `localStorage` is untouched.
+- **Where it appears:** "Missions here" on Thalassa and Ignis, in the 3D panel and the text view. The mission opens as an HTML dialog with a backdrop; Esc or the backdrop closes it. **Drafts appear only when `preview` is on**; outside previews the panel says "No reviewed missions yet".
+- **Educator pack:** `docs/universe-missions/SPACECRAFT-JOURNEY-REVIEW.md`. It contains the content and answer key (generated from the source), the limitations, *candidate* standards marked unconfirmed, draft evidence criteria, reviewer questions and a sign-off table. The status may move to `reviewed` only after that sign-off.
+- **Checks:** 39 of 39 universe tests pass, including 5 new mission tests and 2 new mission UI tests. Screenshots: `../review/stage-c/25` to `29`.
+
+**Backend Go 1: decided by Mani as Cloud Functions 2nd gen** (`onRequest` wrapping the Express app). Recorded in `docs/universe-handoffs/GEMINI BACKEND GO-1.md`, which asks Gemini for documentation only: record the decision, write the exact Go 3 changes for approval, and list what Mani must confirm for Go 2. Go 2 to Go 5 and any rules change remain unapproved.

@@ -61,4 +61,27 @@ describe('My Universe explorer without WebGL', () => {
     await act(async () => buttonNamed('Try again').click());
     expect(text()).toContain('Lyra Spiral');
   });
+
+  it('opens the draft mission from the text view, works a step and closes without saving anything', async () => {
+    await act(async () => root.render(<MyUniverseExplorer preview loadCatalog={loadCatalog} onClose={() => {}} />));
+    const before = JSON.stringify(localStorage);
+    await act(async () => buttonNamed('Open mission').click());
+    expect(text()).toMatch(/Draft mission · awaiting educator review/);
+    const guided = [...document.querySelectorAll('.mx-route')].find((b) => b.textContent.startsWith('Guided route'));
+    await act(async () => guided.click());
+    await act(async () => buttonNamed('Next step').click());
+    const input = document.querySelector('.mx-answer input');
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '3,600,000'); input.dispatchEvent(new Event('input', { bubbles: true })); });
+    await act(async () => input.form.requestSubmit());
+    expect(text()).toMatch(/That matches/);
+    await act(async () => document.querySelector('.mx-mission').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    expect(document.querySelector('.mx-mission')).toBeNull();
+    expect(JSON.stringify(localStorage)).toBe(before);
+  });
+
+  it('hides draft missions outside previews', async () => {
+    await act(async () => root.render(<MyUniverseExplorer preview={false} loadCatalog={loadCatalog} onClose={() => {}} />));
+    expect(buttonNamed('Open mission')).toBeUndefined();
+    expect(text()).toMatch(/No reviewed missions yet/);
+  });
 });

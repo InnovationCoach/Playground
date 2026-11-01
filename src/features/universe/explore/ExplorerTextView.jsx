@@ -1,6 +1,7 @@
 import { Box, Lock, Star, DoorOpen } from 'lucide-react';
 import { planetAccess, canLand, STATUS_LABEL } from './explorerModel.js';
 import { FACT_TAGS } from './cosmosCatalog.js';
+import { MissionList } from '../missions/MissionList.jsx';
 
 export function StatusChip({ access }) {
   const Icon = access.status === 'locked' ? Lock : access.status === 'available' ? DoorOpen : Star;
@@ -22,7 +23,7 @@ export function FactList({ facts }) {
  * as plain headings and lists. Used when WebGL 2 is missing or lost, or when a
  * learner simply prefers it. It never shows the old island as "3D".
  */
-export function ExplorerTextView({ cosmos, opts, canUse3d, notice, onShow3d, header }) {
+export function ExplorerTextView({ cosmos, opts, canUse3d, notice, onShow3d, header, onOpenMission }) {
   const show = (level, id, label) => canUse3d && <button type="button" className="mx-show3d" onClick={() => onShow3d(level, id)}><Box size={14} aria-hidden="true" />Show {label} in 3D</button>;
   return <div className="mx-text">
     {notice && <p className="mx-notice" role="status">{notice}</p>}
@@ -42,6 +43,7 @@ export function ExplorerTextView({ cosmos, opts, canUse3d, notice, onShow3d, hea
             <FactList facts={p.facts} />
             {access.status === 'locked' && <p className="mx-req"><Lock size={14} aria-hidden="true" />{access.requirementText}</p>}
             {access.status === 'not-connected' && <p className="mx-muted">Access will come from your learning record once that service is connected.</p>}
+            {onOpenMission && <MissionList planetId={pid} opts={opts} onOpen={onOpenMission} />}
             {show('planet', pid, p.name)}
             {env && canLand(p, opts) && <div className="mx-text-env">
               <h5>Surface: {env.name}</h5><p>{env.biome}. {env.summary}</p>

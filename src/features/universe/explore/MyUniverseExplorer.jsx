@@ -9,6 +9,9 @@ import {
   pathTo, transitionBetween, framedSelection, LEVEL_LABEL
 } from './explorerModel.js';
 import { ExplorerTextView, StatusChip, FactList } from './ExplorerTextView.jsx';
+import { MissionSheet } from '../missions/MissionSheet.jsx';
+import { MISSIONS } from '../missions/spacecraftJourney.js';
+import { MissionList } from '../missions/MissionList.jsx';
 import './explorer.css';
 
 export function hasWebGL2() {
@@ -88,6 +91,8 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = fal
   const [traveling, setTraveling] = useState(false);
   const [env, setEnv] = useState({ status: 'idle', Comp: null, kind: null });
   const [newer, setNewer] = useState(null);
+  const [missionId, setMissionId] = useState(null);
+  const mission = MISSIONS.find((m) => m.id === missionId) || null;
   const [metrics, setMetrics] = useState(null);
   const [, tick] = useState(0);
   useEffect(() => { if (!showMetrics) return undefined; const id = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, [showMetrics]);
@@ -183,6 +188,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = fal
 
   function onKeyDown(e) {
     e.stopPropagation(); // the dashboard deck must not change slides underneath
+    if (mission) return; // the mission sheet handles its own keys
     if (e.target.closest?.('input, textarea, select')) return;
     const k = e.key;
     if (k === 'Escape') { if (nav.path.length > 1 || nav.selected) { e.preventDefault(); go({ type: 'back' }); } return; }
@@ -233,17 +239,18 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = fal
     <div className="mx-stage">
       {scene}
       {in3d && <div className={`mx-fade${traveling ? '' : ' is-done'}`} key={`${nav.path.length}-${here.id || ''}`} aria-hidden="true" />}
-      {!in3d && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} canUse3d={webgl && !contextLost}
+      {!in3d && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} onOpenMission={setMissionId} canUse3d={webgl && !contextLost}
         notice={contextLost ? 'The 3D view stopped on this device, so here is the text view. Your place is kept.' : !webgl ? '3D isn’t available on this device, so here is the text view. It has the same destinations and details.' : null}
         onShow3d={(level, id) => { const path = pathTo(level, id, cosmos); if (path) { go({ type: 'jump', path }); setView('3d'); } }} />}
       {in3d && <aside className="mx-panel" aria-labelledby="mx-panel-title">
         <span className="mx-eyebrow">{LEVEL_LABEL[here.level]}</span>
         <h2 id="mx-panel-title" ref={heading} tabIndex={-1}>{here.level === 'universe' ? 'My Universe' : itemFor(here, cosmos)?.name}</h2>
         {here.level === 'universe' && newerNotice}
-        <Panel cosmos={cosmos} nav={nav} opts={opts} go={go} select={select} env={env} onRetry={load} onTextView={() => setView('text')} />
+        <Panel cosmos={cosmos} nav={nav} opts={opts} onOpenMission={setMissionId} go={go} select={select} env={env} onRetry={load} onTextView={() => setView('text')} />
         <p className="mx-hint">Drag to look around · pinch or scroll to zoom · arrow keys rotate · Esc goes back · L for text view</p>
       </aside>}
       {!in3d && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
+      {mission && <MissionSheet mission={mission} onClose={() => setMissionId(null)} />}
       {showMetrics && in3d && <div className="mx-metrics" aria-hidden="true">
         {metrics ? <>{metrics.at && performance.now() - metrics.at < 1600 ? `${metrics.fps} fps` : 'idle · renders on demand'} · {metrics.calls} draw calls · {metrics.triangles.toLocaleString()} tris · {metrics.geometries} geometries · {metrics.textures} textures · {low ? 'standard' : 'high'} detail</> : 'measuring…'}
       </div>}
@@ -268,7 +275,7 @@ function Destinations({ cosmos, nav, opts, select }) {
   </ul></div>;
 }
 
-function Panel({ cosmos, nav, opts, go, select, env, onRetry, onTextView }) {
+function Panel({ cosmos, nav, opts, go, select, env, onRetry, onTextView, onOpenMission }) {
   const here = current(nav);
   const item = itemFor(here, cosmos);
   const kids = childrenOf(here, cosmos);
@@ -304,7 +311,7 @@ function Panel({ cosmos, nav, opts, go, select, env, onRetry, onTextView }) {
       {access.status === 'locked' && <p className="mx-req"><Lock size={14} aria-hidden="true" />{access.requirementText}</p>}
       {access.status === 'not-connected' && <p className="mx-muted">Access to this planet will come from your learning record once that service is connected.</p>}
       {!item.environmentId && access.status !== 'locked' && <p className="mx-muted">No landing site is charted yet.</p>}
-      <h3>Missions here</h3><p className="mx-muted">No missions yet. Reviewed missions will appear here later.</p>
+      <MissionList planetId={item.id} opts={opts} onOpen={onOpenMission} />
       {land && env.status === 'failed' && <div className="mx-fail" role="alert"><p>Landing failed. The surface didn’t load.</p>
         <button type="button" className="mx-primary" onClick={onRetry}>Try again</button>
         <button type="button" onClick={onTextView}>Explore in text view</button></div>}
