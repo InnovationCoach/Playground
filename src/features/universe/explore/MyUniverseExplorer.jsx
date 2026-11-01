@@ -30,6 +30,12 @@ const SCENE_LOADERS = {
 const defaultLoader = ({ fail, sceneKind }) => (fail ? Promise.reject(new Error('Simulated landing failure'))
   : SCENE_LOADERS[sceneKind] ? SCENE_LOADERS[sceneKind]() : Promise.reject(new Error(`No renderer for ${sceneKind}`)));
 
+/** Always visible: previews say they are samples; the live app still says the worlds are fictional and nothing is kept. */
+function Banner({ preview }) {
+  return <p className="mx-banner">{preview ? 'Sample universe · fictional worlds · nothing is saved · no XP, rewards or unlocks'
+    : 'Fictional worlds for exploring · nothing is saved · no XP, rewards or unlocks'}</p>;
+}
+
 function Chrome({ onClose, preview, children }) {
   const ui = <div className="mx-root" role="region" aria-label="My Universe explorer" onKeyDown={(e) => e.stopPropagation()}>
     <header className="mx-top">
@@ -37,7 +43,7 @@ function Chrome({ onClose, preview, children }) {
       <div className="mx-crumbs"><span className="mx-crumb-solo">My Universe</span></div>
       <div className="mx-actions"><button type="button" className="mx-leave" onClick={onClose}><LogOut size={16} aria-hidden="true" />Leave universe</button></div>
     </header>
-    {preview && <p className="mx-banner">Sample universe · fictional worlds · nothing is saved · no XP, rewards or unlocks</p>}
+    <Banner preview={preview} />
     <div className="mx-stage"><div className="mx-status">{children}</div></div>
   </div>;
   return typeof document === 'undefined' ? ui : createPortal(ui, document.body);
@@ -235,7 +241,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = fal
         <button type="button" className="mx-leave" onClick={leave}><LogOut size={16} aria-hidden="true" />Leave universe</button>
       </div>
     </header>
-    {preview && <p className="mx-banner">Sample universe · fictional worlds · nothing is saved · no XP, rewards or unlocks</p>}
+    <Banner preview={preview} />
     <div className="mx-stage">
       {scene}
       {in3d && <div className={`mx-fade${traveling ? '' : ' is-done'}`} key={`${nav.path.length}-${here.id || ''}`} aria-hidden="true" />}

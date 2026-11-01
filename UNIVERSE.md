@@ -618,3 +618,14 @@ The sky and location beacons now come from a shared `environmentKit.jsx` that bo
 - **PR #3 was the dashboard release** (`release/dashboard-on-live`, `697f785`), not Find a Quest. Claude had mislabelled it earlier. It was merged into `main` (`4d8eb69`), so `main` now matches the dashboard release line.
 - **Find a Quest (`c855527`) never had its own PR.** PR #4 now targets `main` and contains **Find a Quest plus the 9 My Universe commits** (10 commits, 73 files). Merging #4 would also merge Find a Quest. That's Mani's decision. Merging deploys nothing.
 - **Gemini's Go-1 write-up** in `GEMINI BACKEND.md` §11.1 is accepted. The Go 3 proposal has a packaging gap: the functions source folder can't import `../server`, there's no `functions/package.json`, and `firebase-functions` isn't installed. This must be solved before Go 3 is approved; details are in `GEMINI BACKEND GO-1.md`.
+
+### 13.16 Pre-launch fixes for the live dashboard — 1 November 2026 (Claude)
+
+Mani asked to go live. A pre-flight check found two problems with shipping the branch as it was:
+1. **The dashboard opened the explorer in preview mode.** In production that would have shown real students the **unreviewed draft mission** and "Locked · Preview" chips.
+   - **Fix:** `SparkUniverse` now opens it with `preview={false}`. Drafts are hidden ("No reviewed missions yet"), and Boreas reads "Access not connected".
+   - A banner still states "Fictional worlds for exploring · nothing is saved · no XP, rewards or unlocks". Previews keep their "Sample universe" banner.
+2. **The superseded SVG island prototype card would have gone live** next to the explorer.
+   - **Fix:** removed from the dashboard only. The prototype code, its tests and its preview page are unchanged, and it's no longer in the production build.
+
+Find a Quest (merged in PR #5) is hosting-only, with honest "not connected" states, so it's safe to release. The production build uses the built-in public Firebase web configuration, and sample data can't be enabled in production. Tests: 39 of 39 universe and 537 of 537 unit tests pass. The build succeeds.
