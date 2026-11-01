@@ -306,13 +306,15 @@ export function CameraRig({ shot: baseShot, travel, motion, onTravel, api }) {
 /** Frame-rate and renderer counters for the device spike (preview only). */
 export function SpikeMetrics({ onSample }) {
   const { gl } = useThree();
-  const acc = useRef({ frames: 0, t: performance.now(), fps: 0 });
+  const acc = useRef({ frames: 0, t: performance.now(), last: 0, fps: 0, at: 0 });
   // Counts are reported on every rendered frame (so an on-demand render is never stale); fps once a second.
+  // A pause between frames restarts the window, so dragging after idling reports its own rate.
   useFrame(() => {
-    const a = acc.current; a.frames += 1;
-    const now = performance.now();
-    if (now - a.t >= 1000) { a.fps = Math.round((a.frames * 1000) / (now - a.t)); a.frames = 0; a.t = now; }
-    onSample({ fps: a.fps, calls: gl.info.render.calls, triangles: gl.info.render.triangles, geometries: gl.info.memory.geometries, textures: gl.info.memory.textures });
+    const a = acc.current, now = performance.now();
+    if (now - a.last > 250) { a.frames = 0; a.t = now; }
+    a.last = now; a.frames += 1;
+    if (now - a.t >= 1000) { a.fps = Math.round((a.frames * 1000) / (now - a.t)); a.at = now; a.frames = 0; a.t = now; }
+    onSample({ fps: a.fps, at: a.at, calls: gl.info.render.calls, triangles: gl.info.render.triangles, geometries: gl.info.memory.geometries, textures: gl.info.memory.textures });
   });
   return null;
 }

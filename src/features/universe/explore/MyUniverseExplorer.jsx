@@ -41,6 +41,8 @@ export function MyUniverseExplorer({ preview = true, calm = false, active = true
   const [traveling, setTraveling] = useState(false);
   const [env, setEnv] = useState({ status: 'idle', Comp: null });
   const [metrics, setMetrics] = useState(null);
+  const [, tick] = useState(0);
+  useEffect(() => { if (!showMetrics) return undefined; const id = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, [showMetrics]);
   const api = useRef(null), live = useRef(null), heading = useRef(null), root = useRef(null), mounted = useRef(true);
 
   const here = current(nav);
@@ -177,7 +179,7 @@ export function MyUniverseExplorer({ preview = true, calm = false, active = true
       </aside>}
       {!in3d && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
       {showMetrics && in3d && <div className="mx-metrics" aria-hidden="true">
-        {metrics ? <>{running ? `${metrics.fps} fps` : 'idle · renders on demand'} · {metrics.calls} draw calls · {metrics.triangles.toLocaleString()} tris · {metrics.geometries} geometries · {metrics.textures} textures · {low ? 'standard' : 'high'} detail</> : 'measuring…'}
+        {metrics ? <>{metrics.at && performance.now() - metrics.at < 1600 ? `${metrics.fps} fps` : 'idle · renders on demand'} · {metrics.calls} draw calls · {metrics.triangles.toLocaleString()} tris · {metrics.geometries} geometries · {metrics.textures} textures · {low ? 'standard' : 'high'} detail</> : 'measuring…'}
       </div>}
     </div>
     <p className="mx-sr" aria-live="polite" ref={live} />

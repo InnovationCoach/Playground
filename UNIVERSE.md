@@ -466,3 +466,29 @@ Tests: 24 of 24 universe tests and 537 of 537 unit tests pass. The build succeed
 4. Gemini's 15 corrections. The request is in `docs/universe-handoffs/GEMINI CORRECTIONS.md` and hasn't been delivered yet.
 
 Stage C still needs Mani's approval after the device results. Nothing has been committed, pushed, merged or deployed.
+
+### 13.9 Performance on this Mac — 1 November 2026 (Claude)
+
+Mani asked to focus on this Mac first and adjust for other devices later. Measured on an **Apple M5 MacBook (Mac17,3), Chrome with Metal GPU rendering, 1280×832 at Retina 2×**. These are real GPU measurements, counted as frames actually drawn over each interval.
+
+| View | High detail | Standard detail |
+|---|---|---|
+| Universe, camera drag | 60 fps | 60 fps |
+| Travel into the galaxy / into the system | 60 / 58 fps | 60 / 59 fps |
+| Galaxy, system and planet, camera drag | 60 fps | 60 fps |
+| Landing transition | 59 fps | 60 fps |
+| Ocean surface, six 10-second samples over 1 minute | 60 fps each | 60 fps each |
+| Standing still | 0 frames (renders nothing) | 0 frames |
+
+The surface is about 85.6k triangles at High and 35.1k at Standard, with 45 draw calls. No errors and no slowdown over the minute. **This Mac meets the proposed 30 fps budget with plenty to spare.**
+
+Also fixed: the spike's readout now shows the real rate while dragging, and "idle" when nothing is drawn.
+
+**Other devices.** iPads, other laptops and Chromebooks are deferred by Mani's decision. The interface will be adjusted for them later. These results say nothing about older or weaker devices.
+
+**Next for Gemini.** `docs/universe-handoffs/GEMINI NEXT.md` asks for five documentation-only items:
+1. the 15 corrections
+2. matching the catalog contract to the explorer fixture
+3. a server deployment and `/api` rewrite proposal
+4. the `universe-v1` rule text and tests
+5. a 3D asset hosting plan
