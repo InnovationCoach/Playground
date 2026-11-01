@@ -1,0 +1,339 @@
+{
+  "catalogVersion": "1.1.0",
+  "generatedAt": "2026-11-01T12:00:00Z",
+  "note": "Sample cosmos for the My Universe first slice. Every place and value is a fictional world; nothing here is real astronomy.",
+  "galaxies": [
+    {
+      "id": "lyra-spiral",
+      "name": "Lyra Spiral",
+      "type": "spiral",
+      "position": [
+        -15,
+        0,
+        0
+      ],
+      "tilt": 0.45,
+      "colors": {
+        "core": "#fff1d6",
+        "arm": "#b98ee0",
+        "dust": "#e0589c"
+      },
+      "summary": "A barred spiral with bright violet arms and one charted star system.",
+      "systems": [
+        "lyra-prime"
+      ],
+      "uncharted": 2
+    },
+    {
+      "id": "aurora-elliptical",
+      "name": "Aurora Elliptical",
+      "type": "elliptical",
+      "position": [
+        16,
+        4,
+        -10
+      ],
+      "tilt": 0.2,
+      "colors": {
+        "core": "#fff6dc",
+        "arm": "#e8c37a",
+        "dust": "#ffd9a0"
+      },
+      "summary": "An old, golden elliptical galaxy. No systems charted here yet.",
+      "systems": [],
+      "uncharted": 3
+    }
+  ],
+  "systems": [
+    {
+      "id": "lyra-prime",
+      "galaxyId": "lyra-spiral",
+      "name": "Lyra Prime",
+      "starClass": "Yellow dwarf (G-type)",
+      "starColor": "#ffe9a8",
+      "summary": "A single yellow star with three charted planets.",
+      "planets": [
+        "thalassa",
+        "ignis",
+        "boreas"
+      ]
+    }
+  ],
+  "planets": [
+    {
+      "id": "thalassa",
+      "systemId": "lyra-prime",
+      "name": "Thalassa",
+      "kind": "ocean",
+      "orbit": 7,
+      "angle": 0.6,
+      "radius": 1.1,
+      "colors": {
+        "base": "#1d5f8a",
+        "deep": "#0b2f52",
+        "light": "#7cc7e8",
+        "cloud": "#eaf6ff",
+        "atmosphere": "#9bd2ff"
+      },
+      "summary": "A warm ocean world with volcanic headlands and long, steady swells.",
+      "facts": [
+        {
+          "text": "Almost the whole surface is ocean; a few volcanic headlands break the water.",
+          "tag": "fictional-world",
+          "annotation": "Authored world setting"
+        },
+        {
+          "text": "Swells are long and regular, driven by steady trade winds.",
+          "tag": "fictional-world",
+          "annotation": "Authored world setting"
+        },
+        {
+          "text": "A research platform floats off the largest headland.",
+          "tag": "fictional-world",
+          "annotation": "Authored world setting"
+        }
+      ],
+      "access": "public",
+      "environmentId": "thalassa-station"
+    },
+    {
+      "id": "ignis",
+      "systemId": "lyra-prime",
+      "name": "Ignis",
+      "kind": "basalt",
+      "orbit": 11,
+      "angle": 2.4,
+      "radius": 0.85,
+      "colors": {
+        "base": "#4d4440",
+        "deep": "#231d1c",
+        "light": "#85766c",
+        "glow": "#ff7a2e",
+        "atmosphere": "#ffb27a"
+      },
+      "summary": "A dark basalt world crossed by glowing fissures. One fissure field is charted for landing.",
+      "facts": [
+        {
+          "text": "Columnar basalt plains cover most of the surface.",
+          "tag": "fictional-world",
+          "annotation": "Authored world setting"
+        },
+        {
+          "text": "Volcanic vents release sulfur-rich gas.",
+          "tag": "fictional-world",
+          "annotation": "Authored world setting"
+        },
+        {
+          "text": "Days are hot and hazy; the sky glows copper near the horizon.",
+          "tag": "fictional-world",
+          "annotation": "Authored world setting"
+        }
+      ],
+      "access": "public",
+      "environmentId": "ignis-fissure-field"
+    },
+    {
+      "id": "boreas",
+      "systemId": "lyra-prime",
+      "name": "Boreas",
+      "kind": "ice",
+      "orbit": 15.5,
+      "angle": 4.3,
+      "radius": 1.3,
+      "rings": true,
+      "colors": {
+        "base": "#cfe3ef",
+        "deep": "#8fb3c9",
+        "light": "#ffffff",
+        "ring": "#d9cbb0",
+        "atmosphere": "#dff1ff"
+      },
+      "summary": "A ringed ice giant. No landing site is charted yet.",
+      "facts": [
+        {
+          "text": "Its rings are mostly ice and dust.",
+          "tag": "fictional-world",
+          "annotation": "Authored world setting"
+        },
+        {
+          "text": "Upper clouds are bitterly cold.",
+          "tag": "fictional-world",
+          "annotation": "Authored world setting"
+        }
+      ],
+      "access": "gated",
+      "environmentId": null,
+      "requirementText": "Sample requirement: an Ice and Climate mission reviewed by your coach."
+    }
+  ],
+  "environments": [
+    {
+      "id": "thalassa-station",
+      "planetId": "thalassa",
+      "name": "Thalassa Research Station",
+      "biome": "Coastal ocean and volcanic headland",
+      "summary": "A bounded stretch of open ocean beside a basalt headland, with a floating research platform.",
+      "locations": [
+        {
+          "id": "platform",
+          "name": "Research platform",
+          "position": [
+            6,
+            1.6,
+            4
+          ],
+          "view": [
+            16,
+            9,
+            18
+          ],
+          "purpose": "Future home of a floating-settlement design project.",
+          "observations": [
+            "Platform deck about 40 m across (fictional world value).",
+            "Six hexagonal modules on pontoons."
+          ]
+        },
+        {
+          "id": "tide-gauge",
+          "name": "Tide gauge",
+          "position": [
+            -6,
+            0.5,
+            10
+          ],
+          "view": [
+            -14,
+            6,
+            24
+          ],
+          "purpose": "Records water level over time.",
+          "observations": [
+            "Tidal range about 1.8 m (fictional world value)."
+          ]
+        },
+        {
+          "id": "weather-mast",
+          "name": "Weather mast",
+          "position": [
+            -14,
+            8.5,
+            -6
+          ],
+          "view": [
+            -4,
+            14,
+            10
+          ],
+          "purpose": "Measures wind, temperature and pressure on the headland.",
+          "observations": [
+            "Steady easterly wind, about 6 m/s (fictional world value)."
+          ]
+        },
+        {
+          "id": "vent",
+          "name": "Vent overlook",
+          "position": [
+            2,
+            -1,
+            -14
+          ],
+          "view": [
+            14,
+            8,
+            -4
+          ],
+          "purpose": "A shallow hydrothermal vent visible through clear water.",
+          "observations": [
+            "Warm water shimmers above the vent (illustrative, not simulated)."
+          ]
+        }
+      ],
+      "sceneKind": "ocean-station"
+    },
+    {
+      "id": "ignis-fissure-field",
+      "planetId": "ignis",
+      "name": "Ignis Fissure Field",
+      "biome": "Basalt plain, lava fissure and columnar terrace",
+      "summary": "A charted stretch of basalt plain where a glowing fissure runs past a terrace of six-sided columns, with a gas vent and an automated sensor station.",
+      "sceneKind": "basalt-fissures",
+      "locations": [
+        {
+          "id": "sensor-station",
+          "name": "Sensor station",
+          "position": [
+            12,
+            1.5,
+            14
+          ],
+          "view": [
+            26,
+            9,
+            30
+          ],
+          "purpose": "An automated station that logs gas, temperature and ground tremors.",
+          "observations": [
+            "Air temperature at the station about 41 °C (fictional world value).",
+            "A future atmospheric chemistry workstation could be based here."
+          ]
+        },
+        {
+          "id": "fissure",
+          "name": "Glowing fissure",
+          "position": [
+            0,
+            0.5,
+            -4
+          ],
+          "view": [
+            10,
+            10,
+            10
+          ],
+          "purpose": "An open crack where molten rock glows below a thin crust.",
+          "observations": [
+            "Crust beside the crack about 1 m thick (fictional world value).",
+            "The glow is illustrative, not a simulation of lava or heat flow."
+          ]
+        },
+        {
+          "id": "columns",
+          "name": "Basalt columns",
+          "position": [
+            -26,
+            9,
+            2
+          ],
+          "view": [
+            -6,
+            14,
+            18
+          ],
+          "purpose": "A terrace of six-sided rock columns that formed as thick lava cooled and cracked.",
+          "observations": [
+            "Columns about 1.5–2 m across (fictional world value)."
+          ]
+        },
+        {
+          "id": "gas-vent",
+          "name": "Gas vent",
+          "position": [
+            18,
+            2,
+            -16
+          ],
+          "view": [
+            30,
+            10,
+            -2
+          ],
+          "purpose": "A vent releasing sulfur-rich gas into the hazy air.",
+          "observations": [
+            "The plume shown is illustrative, not simulated.",
+            "A possible future site for an SO₂ → sulfate chemistry investigation."
+          ]
+        }
+      ]
+    }
+  ]
+}
