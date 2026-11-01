@@ -29,6 +29,9 @@ import ltiRouter from './routes/lti.js';
 import oneRosterRouter from './routes/oneroster.js';
 import createLearnerRouter from './routes/create-learner.js';
 import canvaRouter from './routes/canva.js';
+import universeRouter from './routes/universe.js';
+import coachUniverseRouter from './routes/coach-universe.js';
+
 
 const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const THINKING_OFF = { thinkingBudget: 0 };
@@ -109,6 +112,9 @@ export function createApp() {
   app.use('/api/oneroster/v1p1', oneRosterRouter);
   app.use('/api/coach/learners', requireAuth, createLearnerRouter);
   app.use('/api/canva', canvaRouter);
+  app.use('/api/universe', universeRouter);
+  app.use('/api/coach/universe', coachUniverseRouter);
+
 
   // ============= EXISTING AI ENDPOINTS =============
   async function callGemini(prompt, maxOutputTokens = 256, opts = {}) {

@@ -412,7 +412,7 @@ Content-Type: application/json
     },
     "boreas": {
       "status": "locked",
-      "evaluatedRule": "comp-env-ice-climate",
+      "evaluatedRule": "mission:spacecraft-journey",
       "isVerified": false
     }
   }
@@ -422,8 +422,21 @@ Content-Type: application/json
 *Single Source of Truth for Requirement Text:*
 The catalog (`/cosmos/v1/catalog.json`) owns `requirementText`. The access service returns only destination `status` (`available` | `locked`), `evaluatedRule`, and `isVerified`. When a destination is `locked`, the client displays the authored `requirementText` from the catalog.
 
-*Open Question for Go 4 (Evidence Storage & Authorship):*
-Which trusted record of verified evidence does the `/api/universe/access` route read, and who writes it? (e.g. Does it read coach-reviewed competency submissions from `learnerPortfolios` / `competencyEvidence`, automated simulator milestones, or signed custom claims, and which authoritative server function or educator role writes and signs that record to prevent client privilege escalation?)
+*Go 4 Decision & Contract (Agreed 1 Nov 2026 — `GEMINI GO-4.md`):*
+- **Decision:** A gated planet unlocks only when the server holds a verified record of a coach-approved mission. Clicks, self-checks, local saves, and client requests cannot unlock any planet.
+- **Evidence Collection (`missionSubmissions/{submissionId}`):**
+  - Written strictly by server Admin SDK (`write: if false` in `firestore.rules`).
+  - Read access granted to the submitting learner (`learnerUid == auth.uid`), assigned coaches sharing the learner's class (`classIds` overlapping coach's `classIds` token claim), and admins.
+  - Fields: `learnerUid`, `classIds`, `missionId`, `missionVersion`, `routeId`, `reflection` (20–2,000 chars), `status` (`'submitted' | 'approved' | 'returned'`), `coachUid`, `coachNote` (<= 1,000 chars), `createdAt`, `reviewedAt`.
+  - Self-check scores are excluded (practice only, not evidence). No XP, currency, or badges are awarded.
+  - Constraint: Exactly one open (`submitted`) submission per learner per mission.
+- **Server Endpoints:**
+  - `POST /api/universe/missions/:missionId/submissions`: Submits reflection for review. Rejects draft missions (status !== `'reviewed'`) with HTTP 409 (unless `ALLOW_DRAFT_MISSIONS=true` in emulator tests).
+  - `GET /api/universe/missions/submissions/mine`: Learner retrieves their own submission history.
+  - `GET /api/coach/universe/submissions`: Coach retrieves pending submissions for their assigned classes.
+  - `POST /api/coach/universe/submissions/:id/review`: Coach approves or returns submission with feedback note (idempotent, audit-logged).
+  - `POST /api/universe/access`: Evaluates learner's approved mission submissions to determine planet unlock status.
+- **Mission Registry:** Authoritative server registry (`server/lib/universe/missions.js`) tracking mission ID, versions, routes, and educator review status (`draft` vs `reviewed`).
 
 *Proposed Latency Budget & Service Down Fallback:*
 - **Latency Budget (Proposed):** Target < 250ms (evaluates custom claims in token and cached student progress). This is an architectural budget target, not a measured benchmark.
@@ -834,8 +847,7 @@ Mani verified the following items in the Google Cloud / Firebase console on 1 No
 - [x] **Go 1 (Decided 1 Nov 2026):** Cloud Functions 2nd Gen `onRequest` selected by Mani.
 - [x] **Go 2 (Confirmed 1 Nov 2026 by Mani):** Blaze billing verification, region confirmation (`us-central1`), IAM roles.
 - [x] **Go 3 (Approved 1 Nov 2026 by Mani):** Proposed packaging resolution (Option A esbuild bundling), `functions/package.json` (including `dotenv`), `firebase.json` rewrite, and emulator setup. Emulator-only testing authorized and verified.
-- [ ] **Go 4 (Pending Mani's Approval):** Mounting `/api/universe/access` route in `server/app.js`.
-  - *Open Architectural Question:* Which trusted record of verified evidence does the access route read, and who writes it? (e.g. Does it read coach-reviewed competency submissions from `learnerPortfolios` / `competencyEvidence`, automated simulator milestones, or signed custom claims, and which authoritative server function or educator role writes and signs that record to prevent client privilege escalation?)
+- [x] **Go 4 (Approved 1 Nov 2026 by Mani; Implemented Emulator-Only):** Coach-approved mission unlock contract (`missionSubmissions` with default-deny client writes, mission registry, submission & coach review endpoints, `/api/universe/access` evaluation).
 - [ ] **Go 5 (Pending Mani's Approval):** Staging deployment and live smoke test.
   - *Hosting Release Rewrite Safety Rule:* The `/api/**` rewrite in `firebase.json` (`{"source": "/api/**", "function": "api"}`) must **NOT** be included in any live hosting release (`firebase deploy --only hosting`) until the `api` Cloud Function exists in production (Go 5). If a live hosting deployment includes a rewrite targeting an undeployed function, Firebase Hosting will fail deployment or return HTTP 500 / 404 for all `/api/**` traffic.
   - *Cloud Functions Deployment Isolation Constraint:* Deploying Cloud Functions via Firebase CLI always targets the active GCP/Firebase project (`dnd-master-73449`). Firebase Hosting preview channels (`firebase hosting:channel:deploy`) only isolate static web assets, **not** Cloud Functions. Therefore, Go 5 requires either:
