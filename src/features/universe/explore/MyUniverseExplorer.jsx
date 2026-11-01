@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { ArrowLeft, ChevronRight, List, Box, RotateCcw, LogOut, Lock, Sparkles, RefreshCw } from 'lucide-react';
 import { SpaceLevel, Starfield, Nebulae, CameraRig, SpikeMetrics, shotFor } from './ExplorerScene.jsx';
 import { CATALOG_URL, loadCosmos } from './cosmosCatalog.js';
+import { checkDestinationAccess } from '../universeApi.js';
 import {
   initialNav, reduce, current, childrenOf, itemFor, breadcrumbs, describeView, planetAccess, canLand,
   pathTo, transitionBetween, framedSelection, LEVEL_LABEL
@@ -85,7 +86,8 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
  * never fight slide swipes or arrow keys.
  */
 function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader }) {
-  const opts = useMemo(() => ({ preview }), [preview]);
+  const [serverAccess, setServerAccess] = useState(null);
+  const opts = useMemo(() => ({ preview, serverAccess }), [preview, serverAccess]);
   const webgl = useMemo(() => !forceTextView && hasWebGL2(), [forceTextView]);
   const [state, setState] = useState(() => ({ nav: initialNav(), travel: { from: 'approach', duration: 1.8 } }));
   const { nav, travel } = state;
@@ -133,6 +135,17 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = fal
     if (live.current) live.current.textContent = describeView(nav, opts, cosmos);
     if (root.current && !root.current.contains(document.activeElement)) heading.current?.focus();
   }, [nav, opts, cosmos]);
+
+  // Live destination access: queries /api/universe/access for charted planets
+  const planetIds = useMemo(() => (cosmos.planets || []).map((p) => p.id), [cosmos]);
+  useEffect(() => {
+    let alive = true;
+    if (!planetIds.length) return;
+    checkDestinationAccess(planetIds).then((res) => {
+      if (alive && res.destinations) setServerAccess(res.destinations);
+    });
+    return () => { alive = false; };
+  }, [planetIds, missionId]);
 
   // Session pinning: the visit keeps the catalog it opened with. Coming back to the overview checks quietly
   // for a newer published version and offers it; it is never swapped in mid-journey.

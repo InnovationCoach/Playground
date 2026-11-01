@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import CoachDashboard from '../../components/Coach/CoachDashboard.js';
 import { ClassProgramsPanel } from './ClassProgramsPanel.jsx';
+import { CoachUniverseSubmissions } from './universe/CoachUniverseSubmissions.jsx';
 
 /**
  * Hosts the existing CoachDashboard class inside React.
@@ -53,6 +54,7 @@ export function CoachDashboardHost({ coachUser }) {
   return (
     <>
       <ClassProgramsPanel coachUser={coachUser} />
+      <CoachUniverseSubmissions coachUser={coachUser} />
       <div id="coach-dashboard-card" ref={containerRef} />
     </>
   );
