@@ -543,3 +543,32 @@ Non-blocking note for implementation: the rule reads `schemaVersion`, `revision`
 **Next decisions for Mani:**
 - **Stage C:** replace the fixture with a catalog JSON in the same shape. This is client-only and can be done on this Mac.
 - **Backend:** separate written "go" steps for each item in Gemini's §11.1 checklist (server target, billing/IAM, `/api` rewrite, the access route, staging), and for adding the `universe-v1` rules.
+
+### 13.12 Stage C: explorer runs on the published catalog — 1 November 2026 (Claude)
+
+Mani said **"go"** to the Stage C option in §13.11. Scope: this Mac, front end only. No server, rules, Firebase or deploy changes.
+
+**What changed:**
+- **One content source.** `public/cosmos/v1/catalog.json` (version `1.0.0`) replaces the built-in fixture, and `cosmosFixture.js` was removed. The app, the preview page and the tests all read this one file. It follows the contract accepted in `GEMINI BACKEND.md` §2.1. Facts are `{ text, tag, annotation }` objects, and every one is tagged `fictional-world`. Vite copies the file into `dist/cosmos/v1/`.
+- **Validated loading.** `src/features/universe/explore/cosmosCatalog.js` loads the catalog and checks it completely before use:
+  - IDs are well formed and unique, and every reference resolves in both directions
+  - galaxy type, planet kind, access and fact tags come from fixed lists
+  - colours must be `#rrggbb` values
+  - positions are 3-number vectors
+  - gated planets need requirement text
+  - **`real-science` facts must name a source**
+  - each environment's `sceneKind` must have a renderer, and the renderer's required locations must exist
+
+  An invalid or unreachable catalog shows "The universe map didn't load" with Try again. Previews also list the problems. A partial universe is never rendered.
+- **Version pinning.** A visit keeps the version it opened with. Returning to the overview fetches the catalog again, bypassing the cache. If a newer version exists, the explorer offers "Load it" and never swaps mid-journey.
+- **Explicit catalog.** The model, scene and text view now receive the catalog as an argument (`childrenOf(entry, cosmos)` and so on) instead of importing fixed data.
+
+**Contract addition for Gemini.** Environments carry `sceneKind` (currently only `ocean-station`), which tells the client which surface renderer to load. Add it to `GEMINI BACKEND.md` §2.1 the next time that document is edited.
+
+**Checks:**
+- **Tests:** 31 of 31 universe tests pass: 24 existing, 6 new catalog tests (validity, broken references, sources for real science, unsafe values, string facts, HTTP and cache behaviour), and 1 new UI test for load failure and Retry. All 537 unit tests pass, and the build succeeds.
+- **Walkthrough on this Mac's M5 GPU:** every level renders at 60 fps from the published file.
+- **Version pinning, browser test:** a version `1.1.0` was published mid-visit. The visit stayed on `1.0.0`, the offer appeared on returning to the overview, and "Load it" showed the renamed galaxy.
+- **Screenshots:** `../review/stage-c/`.
+
+Nothing is pushed or deployed. Backend steps still need Mani's separate written "go" for each.

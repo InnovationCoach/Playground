@@ -7,6 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@react-three/fiber', () => ({ Canvas: () => null, useFrame: () => {}, useThree: () => ({}) }));
 vi.mock('@react-three/drei', () => ({ Html: () => null, OrbitControls: () => null }));
 const { MyUniverseExplorer } = await import('../src/features/universe/explore/MyUniverseExplorer.jsx');
+const { buildCosmos } = await import('../src/features/universe/explore/cosmosCatalog.js');
+const catalog = (await import('../public/cosmos/v1/catalog.json')).default;
+const loadCatalog = vi.fn(async () => buildCosmos(catalog));
 
 let host, root;
 const text = () => document.body.textContent;
@@ -20,9 +23,10 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); de
 describe('My Universe explorer without WebGL', () => {
   it('opens a complete text view with every destination, honest statuses and a labelled preview', async () => {
     const onClose = vi.fn();
-    await act(async () => root.render(<MyUniverseExplorer preview onClose={onClose} />));
+    await act(async () => root.render(<MyUniverseExplorer preview loadCatalog={loadCatalog} onClose={onClose} />));
     expect(text()).toMatch(/3D isn’t available on this device/);
-    expect(text()).toMatch(/Sample universe · fictional fixture data · nothing is saved · no XP, rewards or unlocks/);
+    expect(text()).toMatch(/Sample universe · fictional worlds · nothing is saved · no XP, rewards or unlocks/);
+    expect(text()).toMatch(/Fictional world/);
     for (const name of ['Lyra Spiral', 'Aurora Elliptical', 'Lyra Prime', 'Thalassa', 'Ignis', 'Boreas', 'Thalassa Research Station', 'Research platform', 'Vent overlook']) expect(text()).toContain(name);
     expect(text()).toMatch(/Locked · Preview/);
     expect(text()).toMatch(/Sample requirement/);
@@ -33,7 +37,7 @@ describe('My Universe explorer without WebGL', () => {
   });
 
   it('shows "Access not connected" instead of locks outside previews', async () => {
-    await act(async () => root.render(<MyUniverseExplorer preview={false} onClose={() => {}} />));
+    await act(async () => root.render(<MyUniverseExplorer preview={false} loadCatalog={loadCatalog} onClose={() => {}} />));
     expect(text()).toMatch(/Access not connected/);
     expect(text()).not.toMatch(/Locked/);
     expect(document.body.querySelector('.mx-banner')).toBeNull();
@@ -41,9 +45,20 @@ describe('My Universe explorer without WebGL', () => {
 
   it('keeps key presses away from the dashboard deck underneath', async () => {
     const deckKey = vi.fn();
-    await act(async () => root.render(<div onKeyDown={deckKey}><MyUniverseExplorer onClose={() => {}} /></div>));
+    await act(async () => root.render(<div onKeyDown={deckKey}><MyUniverseExplorer loadCatalog={loadCatalog} onClose={() => {}} /></div>));
     const region = document.body.querySelector('.mx-root');
     await act(async () => region.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })));
     expect(deckKey).not.toHaveBeenCalled();
+  });
+
+  it('shows a clear error with Retry when the catalog cannot load, and recovers', async () => {
+    const bad = { ...catalog, planets: catalog.planets.map((p, i) => (i === 0 ? { ...p, kind: 'nope' } : p)) };
+    const flaky = vi.fn().mockImplementationOnce(async () => buildCosmos(bad)).mockImplementation(async () => buildCosmos(catalog));
+    await act(async () => root.render(<MyUniverseExplorer preview loadCatalog={flaky} onClose={() => {}} />));
+    expect(text()).toMatch(/universe map didn’t load/);
+    expect(text()).toMatch(/kind must be one of/); // preview shows why
+    expect(text()).not.toMatch(/Lyra Spiral/);
+    await act(async () => buttonNamed('Try again').click());
+    expect(text()).toContain('Lyra Spiral');
   });
 });

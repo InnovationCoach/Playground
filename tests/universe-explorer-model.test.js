@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  initialNav, reduce, current, childrenOf, breadcrumbs, describeView, planetAccess, canLand, pathTo, transitionBetween, framedSelection
+  initialNav, reduce as rawReduce, current, childrenOf, breadcrumbs, describeView, planetAccess, canLand, pathTo, transitionBetween, framedSelection, validPrefix
 } from '../src/features/universe/explore/explorerModel.js';
-import { PLANETS, GALAXIES, ENVIRONMENTS, planetById } from '../src/features/universe/explore/cosmosFixture.js';
+import { buildCosmos } from '../src/features/universe/explore/cosmosCatalog.js';
+import catalog from '../public/cosmos/v1/catalog.json';
+
+// The published catalog is the only content source; tests read the same file the app serves.
+const cosmos = buildCosmos(catalog);
+const { planetById } = cosmos, PLANETS = cosmos.planets, GALAXIES = cosmos.galaxies, ENVIRONMENTS = cosmos.environments;
+const reduce = (nav, action) => rawReduce(nav, { cosmos, ...action });
 
 const preview = { preview: true }, live = { preview: false };
 const walk = (...steps) => steps.reduce((nav, a) => reduce(nav, a), initialNav());
@@ -14,7 +20,7 @@ describe('My Universe explorer model', () => {
     expect(nav.path.map((p) => p.level)).toEqual(['universe', 'galaxy', 'system', 'planet']);
     nav = reduce(nav, { type: 'open', opts: preview });
     expect(current(nav)).toEqual({ level: 'environment', id: 'thalassa-station' });
-    expect(breadcrumbs(nav).map((c) => c.label)).toEqual(['My Universe', 'Lyra Spiral', 'Lyra Prime', 'Thalassa', 'Thalassa Research Station']);
+    expect(breadcrumbs(nav, cosmos).map((c) => c.label)).toEqual(['My Universe', 'Lyra Spiral', 'Lyra Prime', 'Thalassa', 'Thalassa Research Station']);
     nav = reduce(nav, { type: 'back' });
     expect(current(nav).level).toBe('planet');
     expect(nav.selected).toBe('thalassa-station');
@@ -65,12 +71,14 @@ describe('My Universe explorer model', () => {
   });
 
   it('builds direct paths for the text view and describes every view in plain language', () => {
-    expect(pathTo('environment', 'thalassa-station').map((p) => p.level)).toEqual(['universe', 'galaxy', 'system', 'planet', 'environment']);
-    expect(pathTo('planet', 'missing')).toBeNull();
-    const nav = reduce(initialNav(), { type: 'jump', path: pathTo('system', 'lyra-prime') });
-    expect(describeView(nav, preview)).toMatch(/Thalassa \(Available\).*Ignis \(Locked\).*Not to scale/);
-    expect(describeView(initialNav(), preview)).toMatch(/2 galaxies charted/);
-    expect(childrenOf({ level: 'galaxy', id: 'aurora-elliptical' })).toEqual([]);
+    expect(pathTo('environment', 'thalassa-station', cosmos).map((p) => p.level)).toEqual(['universe', 'galaxy', 'system', 'planet', 'environment']);
+    expect(pathTo('planet', 'missing', cosmos)).toBeNull();
+    const nav = reduce(initialNav(), { type: 'jump', path: pathTo('system', 'lyra-prime', cosmos) });
+    expect(describeView(nav, preview, cosmos)).toMatch(/Thalassa \(Available\).*Ignis \(Locked\).*Not to scale/);
+    expect(describeView(initialNav(), preview, cosmos)).toMatch(/2 galaxies charted/);
+    expect(childrenOf({ level: 'galaxy', id: 'aurora-elliptical' }, cosmos)).toEqual([]);
+    expect(validPrefix(pathTo('environment', 'thalassa-station', cosmos), cosmos)).toHaveLength(5);
+    expect(validPrefix([{ level: 'universe' }, { level: 'galaxy', id: 'lyra-spiral' }, { level: 'system', id: 'gone' }], cosmos)).toHaveLength(2);
   });
 
   it('keeps the fixture consistent and fictional', () => {

@@ -1,12 +1,12 @@
 /**
- * Navigation and access model for the My Universe exploration spike. Pure and
- * framework-free so the 3D scene, the text view and the tests share one truth.
+ * Navigation and access model for My Universe. Pure and framework-free so the
+ * 3D scene, the text view and the tests share one truth. Every function that
+ * needs places takes the loaded catalog (`cosmos`, from cosmosCatalog.js).
  *
  * The path is a back stack: [{ level: 'universe' }, { level: 'galaxy', id }, …].
  * `selected` is the focused child at the current level (or the location in an
  * environment). Seeing or selecting a destination never grants access.
  */
-import { GALAXIES, galaxyById, systemById, planetById, environmentById } from './cosmosFixture.js';
 
 export const LEVELS = ['universe', 'galaxy', 'system', 'planet', 'environment'];
 export const LEVEL_LABEL = { universe: 'My Universe', galaxy: 'Galaxy', system: 'Star system', planet: 'Planet', environment: 'Surface' };
@@ -15,20 +15,20 @@ export const initialNav = () => ({ path: [{ level: 'universe' }], selected: null
 export const current = (nav) => nav.path[nav.path.length - 1];
 
 /** The destinations one step inward from the current view. */
-export function childrenOf(entry) {
-  if (entry.level === 'universe') return GALAXIES.map((g) => ({ level: 'galaxy', id: g.id, item: g }));
-  if (entry.level === 'galaxy') return (galaxyById(entry.id)?.systems || []).map((id) => ({ level: 'system', id, item: systemById(id) })).filter((c) => c.item);
-  if (entry.level === 'system') return (systemById(entry.id)?.planets || []).map((id) => ({ level: 'planet', id, item: planetById(id) })).filter((c) => c.item);
-  if (entry.level === 'environment') return (environmentById(entry.id)?.locations || []).map((loc) => ({ level: 'location', id: loc.id, item: loc }));
+export function childrenOf(entry, cosmos) {
+  if (entry.level === 'universe') return cosmos.galaxies.map((g) => ({ level: 'galaxy', id: g.id, item: g }));
+  if (entry.level === 'galaxy') return (cosmos.galaxyById(entry.id)?.systems || []).map((id) => ({ level: 'system', id, item: cosmos.systemById(id) })).filter((c) => c.item);
+  if (entry.level === 'system') return (cosmos.systemById(entry.id)?.planets || []).map((id) => ({ level: 'planet', id, item: cosmos.planetById(id) })).filter((c) => c.item);
+  if (entry.level === 'environment') return (cosmos.environmentById(entry.id)?.locations || []).map((loc) => ({ level: 'location', id: loc.id, item: loc }));
   return [];
 }
 
-export function itemFor(entry) {
+export function itemFor(entry, cosmos) {
   if (!entry) return null;
-  if (entry.level === 'galaxy') return galaxyById(entry.id);
-  if (entry.level === 'system') return systemById(entry.id);
-  if (entry.level === 'planet') return planetById(entry.id);
-  if (entry.level === 'environment') return environmentById(entry.id);
+  if (entry.level === 'galaxy') return cosmos.galaxyById(entry.id);
+  if (entry.level === 'system') return cosmos.systemById(entry.id);
+  if (entry.level === 'planet') return cosmos.planetById(entry.id);
+  if (entry.level === 'environment') return cosmos.environmentById(entry.id);
   return null;
 }
 
@@ -48,18 +48,19 @@ export const STATUS_LABEL = { charted: 'Charted', available: 'Available', locked
 
 export const canLand = (planet, opts) => !!planet?.environmentId && planetAccess(planet, opts).status === 'available';
 
+/** `action.cosmos` is the loaded catalog; `action.opts` carries { preview }. */
 export function reduce(nav, action) {
-  const here = current(nav);
+  const here = current(nav), cosmos = action.cosmos;
   switch (action.type) {
     case 'select': return { ...nav, selected: action.id ?? null };
     case 'open': {
       // Go one level inward: universe→galaxy→system→planet, or land on a planet's surface.
       if (here.level === 'planet') {
-        const planet = planetById(here.id);
+        const planet = cosmos.planetById(here.id);
         if (!canLand(planet, action.opts)) return nav;
         return { path: [...nav.path, { level: 'environment', id: planet.environmentId }], selected: null };
       }
-      const child = childrenOf(here).find((c) => c.id === action.id);
+      const child = childrenOf(here, cosmos).find((c) => c.id === action.id);
       if (!child || child.level === 'location') return nav;
       return { path: [...nav.path, { level: child.level, id: child.id }], selected: null };
     }
@@ -80,14 +81,25 @@ export function reduce(nav, action) {
 }
 
 /** Builds the back stack that leads to a destination, so the text view can jump into 3D. */
-export function pathTo(level, id) {
+export function pathTo(level, id, cosmos) {
   const root = { level: 'universe' };
   if (level === 'universe') return [root];
-  if (level === 'galaxy') return galaxyById(id) ? [root, { level, id }] : null;
-  if (level === 'system') { const s = systemById(id); return s ? [...pathTo('galaxy', s.galaxyId), { level, id }] : null; }
-  if (level === 'planet') { const p = planetById(id); return p ? [...pathTo('system', p.systemId), { level, id }] : null; }
-  if (level === 'environment') { const e = environmentById(id); return e ? [...pathTo('planet', e.planetId), { level, id }] : null; }
+  if (level === 'galaxy') return cosmos.galaxyById(id) ? [root, { level, id }] : null;
+  if (level === 'system') { const s = cosmos.systemById(id); return s ? [...pathTo('galaxy', s.galaxyId, cosmos), { level, id }] : null; }
+  if (level === 'planet') { const p = cosmos.planetById(id); return p ? [...pathTo('system', p.systemId, cosmos), { level, id }] : null; }
+  if (level === 'environment') { const e = cosmos.environmentById(id); return e ? [...pathTo('planet', e.planetId, cosmos), { level, id }] : null; }
   return null;
+}
+
+/** Keeps only the part of a path that still exists in a (newer) catalog. */
+export function validPrefix(path, cosmos) {
+  const out = [];
+  for (const entry of path) {
+    if (entry.level !== 'universe' && !itemFor(entry, cosmos)) break;
+    if (out.length && !childrenOf(out[out.length - 1], cosmos).some((c) => c.id === entry.id) && !(entry.level === 'environment' && cosmos.planetById(out[out.length - 1].id)?.environmentId === entry.id)) break;
+    out.push(entry);
+  }
+  return out.length ? out : [{ level: 'universe' }];
 }
 
 /**
@@ -107,15 +119,15 @@ export function transitionBetween(prev, next) {
 /** Selection that changes the camera framing (other levels only highlight). */
 export const framedSelection = (nav) => (['system', 'environment'].includes(current(nav).level) ? nav.selected : null);
 
-export function breadcrumbs(nav) {
-  return nav.path.map((entry, depth) => ({ depth, level: entry.level, label: entry.level === 'universe' ? LEVEL_LABEL.universe : itemFor(entry)?.name || entry.id }));
+export function breadcrumbs(nav, cosmos) {
+  return nav.path.map((entry, depth) => ({ depth, level: entry.level, label: entry.level === 'universe' ? LEVEL_LABEL.universe : itemFor(entry, cosmos)?.name || entry.id }));
 }
 
 /** Plain-language summary for screen readers and the live region. */
-export function describeView(nav, opts) {
+export function describeView(nav, opts, cosmos) {
   const here = current(nav);
-  const kids = childrenOf(here);
-  const item = itemFor(here);
+  const kids = childrenOf(here, cosmos);
+  const item = itemFor(here, cosmos);
   if (here.level === 'universe') return `My Universe overview. ${kids.length} galaxies charted: ${kids.map((k) => k.item.name).join(', ')}.`;
   if (here.level === 'galaxy') return `${item.name}, a ${item.type} galaxy. ${kids.length ? `${kids.length} charted star system${kids.length > 1 ? 's' : ''}: ${kids.map((k) => k.item.name).join(', ')}.` : 'No star systems charted yet.'}`;
   if (here.level === 'system') return `${item.name}, ${item.starClass}. Planets: ${kids.map((k) => `${k.item.name} (${STATUS_LABEL[planetAccess(k.item, opts).status]})`).join(', ')}. Not to scale.`;

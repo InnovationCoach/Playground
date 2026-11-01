@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import { glowTexture, nebulaTexture, planetTextures, ringTexture, seeded, disposeAll } from './proceduralTextures.js';
-import { galaxyById, systemById, planetById } from './cosmosFixture.js';
 import { childrenOf } from './explorerModel.js';
 
 /**
@@ -101,9 +100,9 @@ function HitSphere({ radius, onPick }) {
   </mesh>;
 }
 
-function UniverseLevel({ selected, onSelect, low }) {
+function UniverseLevel({ cosmos, selected, onSelect, low }) {
   const tex = useOwnedTextures(() => ({ far: glowTexture('rgba(190,205,235,1)', 'rgba(190,205,235,0)') }), []);
-  return <group>{childrenOf({ level: 'universe' }).map(({ item: g }) => <group key={g.id} position={g.position}>
+  return <group>{childrenOf({ level: 'universe' }, cosmos).map(({ item: g }) => <group key={g.id} position={g.position}>
     <GalaxyDisc galaxy={g} low={low} />
     <HitSphere radius={6.5} onPick={() => onSelect(g.id)} />
     {selected === g.id && <Halo radius={7.4} />}
@@ -114,8 +113,8 @@ function UniverseLevel({ selected, onSelect, low }) {
   </group>;
 }
 
-function GalaxyLevel({ galaxyId, selected, onSelect, low }) {
-  const galaxy = galaxyById(galaxyId);
+function GalaxyLevel({ cosmos, galaxyId, selected, onSelect, low }) {
+  const galaxy = cosmos.galaxyById(galaxyId);
   const markers = useMemo(() => {
     const rnd = seeded(galaxyId.length * 7), n = galaxy.uncharted;
     return Array.from({ length: n }, (_, i) => {
@@ -124,7 +123,7 @@ function GalaxyLevel({ galaxyId, selected, onSelect, low }) {
       return [Math.cos(a) * d * 1.15, (rnd() - 0.5) * 1.5, Math.sin(a) * d * 0.8];
     });
   }, [galaxyId, galaxy.uncharted]);
-  const sys = childrenOf({ level: 'galaxy', id: galaxyId });
+  const sys = childrenOf({ level: 'galaxy', id: galaxyId }, cosmos);
   return <group>
     <GalaxyDisc galaxy={galaxy} radius={14} low={low} />
     {sys.map(({ item: s }, i) => { const p = [5 + i * 3, 1.2, 3]; return <group key={s.id} position={p}>
@@ -179,9 +178,9 @@ function StarBody({ color, radius = 1.6 }) {
 const planetPosition = (p) => [Math.cos(p.angle) * p.orbit, 0, Math.sin(p.angle) * p.orbit];
 export { planetPosition };
 
-function SystemLevel({ systemId, selected, onSelect, low }) {
-  const system = systemById(systemId);
-  const planets = childrenOf({ level: 'system', id: systemId }).map((c) => c.item);
+function SystemLevel({ cosmos, systemId, selected, onSelect, low }) {
+  const system = cosmos.systemById(systemId);
+  const planets = childrenOf({ level: 'system', id: systemId }, cosmos).map((c) => c.item);
   return <group>
     <StarBody color={system.starColor} />
     <ambientLight intensity={0.05} />
@@ -197,8 +196,8 @@ function SystemLevel({ systemId, selected, onSelect, low }) {
   </group>;
 }
 
-function PlanetLevel({ planetId, low }) {
-  const planet = planetById(planetId);
+function PlanetLevel({ cosmos, planetId, low }) {
+  const planet = cosmos.planetById(planetId);
   return <group>
     <directionalLight position={[-8, 3, 6]} intensity={2.4} color="#fff3d6" />
     <ambientLight intensity={0.04} />
@@ -206,22 +205,22 @@ function PlanetLevel({ planetId, low }) {
   </group>;
 }
 
-export function SpaceLevel({ entry, selected, onSelect, low }) {
-  if (entry.level === 'universe') return <UniverseLevel selected={selected} onSelect={onSelect} low={low} />;
-  if (entry.level === 'galaxy') return <GalaxyLevel galaxyId={entry.id} selected={selected} onSelect={onSelect} low={low} />;
-  if (entry.level === 'system') return <SystemLevel systemId={entry.id} selected={selected} onSelect={onSelect} low={low} />;
-  if (entry.level === 'planet') return <PlanetLevel planetId={entry.id} low={low} />;
+export function SpaceLevel({ cosmos, entry, selected, onSelect, low }) {
+  if (entry.level === 'universe') return <UniverseLevel cosmos={cosmos} selected={selected} onSelect={onSelect} low={low} />;
+  if (entry.level === 'galaxy') return <GalaxyLevel cosmos={cosmos} galaxyId={entry.id} selected={selected} onSelect={onSelect} low={low} />;
+  if (entry.level === 'system') return <SystemLevel cosmos={cosmos} systemId={entry.id} selected={selected} onSelect={onSelect} low={low} />;
+  if (entry.level === 'planet') return <PlanetLevel cosmos={cosmos} planetId={entry.id} low={low} />;
   return null;
 }
 
 /* ---------------------------------------------------------------- camera */
 
 /** Framing for each view: where the camera sits, what it looks at and how far it may zoom. */
-export function shotFor(entry, selected, environment) {
+export function shotFor(entry, selected, environment, cosmos) {
   if (entry.level === 'universe') return { position: [0, 16, 46], target: [0, 0, -3], min: 18, max: 80 };
   if (entry.level === 'galaxy') return { position: [0, 17, 27], target: [0, 0, 0], min: 9, max: 48 };
   if (entry.level === 'system') {
-    const p = selected && planetById(selected);
+    const p = selected && cosmos.planetById(selected);
     return { position: [0, 15, 27], target: p ? planetPosition(p).map((v) => v * 0.35) : [0, 0, 0], min: 8, max: 48 };
   }
   if (entry.level === 'planet') return { position: [0, 1.6, 10.5], target: [0, 0, 0], min: 5, max: 18 };
