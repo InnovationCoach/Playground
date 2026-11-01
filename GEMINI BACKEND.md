@@ -847,6 +847,16 @@ Mani verified the following items in the Google Cloud / Firebase console on 1 No
     3. `CANVA_CLIENT_SECRET`: Required by `server/canva/client.js` for Canva OAuth authentication (if Canva integration is active).
     4. `CANVA_TOKEN_KEY`: Required by `server/canva/crypto.js` for encrypting user Canva tokens.
     5. `CLOUDINARY_API_SECRET`: Required by `server/canva/storage.js` if Cloudinary asset storage is active.
+    6. `CLOUDINARY_API_KEY`: Required by `server/canva/storage.js` (treated as a secret alongside the API secret).
+  - *Plain Environment Settings (Non-Secret Configuration):* Cloud Functions must receive the following runtime environment variables (configured via `params` or deployment environment variables, not secrets):
+    - `FRONTEND_URL`: Production origin for CORS header matching.
+    - `GEMINI_MODEL`: Model selector (defaults to `gemini-3.6-flash`).
+    - `EMAIL_TRANSPORT`: Email mode (e.g. `console` vs live provider).
+    - `STORAGE_BUCKET`: Default Cloud Storage bucket for file uploads.
+    - Canva integration parameters: `CANVA_CLIENT_ID`, `CANVA_REDIRECT_URI`, `CANVA_API_BASE_URL`.
+    - LTI 1.3 / OneRoster / Edmentum parameters: `LTI_ISSUER`, `EDMENTUM_CLIENT_ID`, `EDMENTUM_DEPLOYMENT_ID`, `EDMENTUM_AUTH_URL`, `EDMENTUM_TOKEN_URL`, `LTI_JWKS_URL`, `LTI_OIDC_URL`, `LTI_AGS_URL`.
+  - *No Key Files (`GOOGLE_APPLICATION_CREDENTIALS`):* `GOOGLE_APPLICATION_CREDENTIALS` must **NOT** be set in Cloud Functions runtime. Cloud Functions automatically authenticates via its built-in service account (`dnd-master-73449@appspot.gserviceaccount.com`) using Application Default Credentials (ADC). Key files on disk are prohibited in the cloud.
+
 
 
 
