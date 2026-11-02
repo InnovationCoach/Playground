@@ -7,7 +7,8 @@ import { dirname, resolve } from 'node:path';
 import {
   API_CONTRACT_VERSION, CAPABILITIES, PUBLISHED_RELEASES, resolveTask,
   validateSubmission, validateDraft, validateEvidence, validateReview,
-  canonicalStringify, getBundleHashInputs, parseNumber, checkNumber, displayAnswer, roundDecimal
+  canonicalStringify, getBundleHashInputs, parseNumber, checkNumber, displayAnswer, roundDecimal,
+  getTableTemplate, PRESENTATION_ADAPTER_VERSION
 } from '../index.js';
 import { PILOT_BUNDLE, FIXTURE_RELEASES, REFERENCE_ARTIFACTS } from '../fixtures/index.js';
 
@@ -177,6 +178,19 @@ test('all seven accepted content hashes verify; fixture copy retains accepted by
 test('capability JSON matches compiled exports', () => {
   assert.deepEqual(JSON.parse(readFileSync(new URL('../capabilities.json', import.meta.url))), CAPABILITIES);
 });
+test('table layout never asks for hours of CF or a sum of output fractions', () => {
+  const before = canonicalStringify(PILOT_BUNDLE);
+  const view = getTableTemplate(route, 'weighted-results');
+  assert.equal(view.presentationAdapterVersion, PRESENTATION_ADAPTER_VERSION);
+  assert.deepEqual(view.rows.find(r => r.id === 'total').cells[2], { value: 'Not applicable', editable: false });
+  const cfRow = view.rows.find(r => r.id === 'capacity-factors');
+  assert.equal(cfRow.cells[1].editable, false);
+  assert.equal(cfRow.cells[3].editable, false);
+  assert.equal(cfRow.cells[2].editable, true, 'raw and planning CF still supplied by learner');
+  assert.equal(view.rows[0].cells[3].editable, true, 'weighted band calculations still required');
+  assert.equal(canonicalStringify(PILOT_BUNDLE), before, 'accepted source bytes semantically unchanged');
+  assert.equal(getTableTemplate(journey.routes[0], 'comparison'), journey.routes[0].tableTemplates.comparison);
+});
 test('production entry graph contains no fixtures or external runtime dependencies', () => {
   const visited = new Set();
   function visit(file) {
@@ -190,6 +204,6 @@ test('production entry graph contains no fixtures or external runtime dependenci
     }
   }
   visit(fileURLToPath(new URL('../index.js', import.meta.url)));
-  assert.equal(visited.size, 5);
+  assert.equal(visited.size, 6);
   assert.equal(validateEvidence([], route).ok, false);
 });
