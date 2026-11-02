@@ -423,6 +423,13 @@ export function createCoachUniverseRouter({ getRegistry = () => PUBLISHED_RELEAS
           }
         }
 
+        if (subData.legacyFormat === true || subData.missionVersion === '0.1.0-draft') {
+          const err = new Error('Earlier reflection-only work is read-only in this pilot.');
+          err.statusCode = 409;
+          err.code = 'MISSION_NOT_OPEN';
+          throw err;
+        }
+
         const identity = {
           releaseId: subData.releaseId,
           missionId: subData.missionId,

@@ -919,6 +919,18 @@ describe('API: My Universe Pilot Contract 0.1.1 & G04 Findings B1-B6', () => {
   });
 
   describe('Phase 1 closure: bounded revisions, retired tasks and filtered queue paging', () => {
+    it('keeps legacy records read-only at the API even with a currently known task identity', async () => {
+      const first=await env.request('POST',`/api/universe/missions/${WIND_MISSION}/submissions`,{token:learnerTokenA,headers:{'Idempotency-Key':'closure-legacy-seed-01'},body:windGuidedSubmissionExample});
+      expect(first.status).toBe(201);
+      const ref=env.db.collection('missionSubmissions').doc(first.body.submissionId);
+      await ref.update({legacyFormat:true});
+      const before=(await ref.get()).data();
+      const review=await env.request('POST',`/api/coach/universe/submissions/${first.body.submissionId}/review`,{token:coachTokenA,headers:{'Idempotency-Key':'closure-legacy-review1'},body:{contractVersion:API_CONTRACT_VERSION,decision:'approved',expectedSubmissionRevision:1,note:''}});
+      expect(review.status).toBe(409);
+      expect(review.body.error.code).toBe('MISSION_NOT_OPEN');
+      expect((await ref.get()).data()).toEqual(before);
+    });
+
     it('keeps one atomic supersession link per returned attempt without growing the family lock', async () => {
       const submit = (body, key) => env.request('POST', `/api/universe/missions/${WIND_MISSION}/submissions`, {token:learnerTokenA, headers:{'Idempotency-Key':key}, body});
       const review = (id, key) => env.request('POST', `/api/coach/universe/submissions/${id}/review`, {token:coachTokenA, headers:{'Idempotency-Key':key}, body:{contractVersion:API_CONTRACT_VERSION, decision:'returned', note:'Please compare the low-wind outcome.', expectedSubmissionRevision:1}});
