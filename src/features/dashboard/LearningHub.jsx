@@ -179,6 +179,9 @@ export function ProgressLearningSlide({ data, project, plan, goalsLoaded, goalSy
           </> : <p className="sd-caption">No steps in your current goals yet.</p>}
           <p className="sd-caption">Self-reported check-ins from your current goals. Separate from assessed learning.</p>
           <a className="sd-link" href={hrefFor.goals()}>Open Goal Setting <ArrowRight size={16} /></a></section>
+        <section className="ig-plate ig-competency-plate" aria-labelledby="ig-competency-title"><h3 id="ig-competency-title" className="ig-lane-title">My Competencies</h3>
+          <p className="sd-caption">WeLearn’s future-skills competencies, area by area, with the evidence you have tagged to each. Coach-verified mastery comes later.</p>
+          <a className="sd-link" href={hrefFor.pbl('competencies')}>See my competencies <ArrowRight size={16} /></a></section>
       </div>
     </div>
     {project.updatedAt ? <TermProjectPlate project={project} renderReadiness={renderReadiness} /> : null}

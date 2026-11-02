@@ -167,6 +167,7 @@ describe('sidebar menu', () => {
         for (const locale of ['en', 'zh', 'th']) expect(messages[locale][i.label], `${locale} ${i.label}`).toBeTruthy();
       }
       expect(keys.some((k) => k.includes('messages'))).toBe(false);
+      if (role === 'student') expect(items.find((i) => i.key === 'competencies')?.href).toBe(hrefFor.pbl('competencies'));
     });
   }
 });

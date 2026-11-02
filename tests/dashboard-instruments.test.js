@@ -70,6 +70,11 @@ describe('progress slide record states', () => {
     expect(html).toContain('not coach-verified');
     expect(html).not.toContain('sessions recorded');
   });
+  it('links to My Competencies', () => {
+    const html = slide({ done: 0, total: 0, byPhase: {} }, []);
+    expect(html).toContain('My Competencies');
+    expect(html).toContain('href="#/pbl/competencies"');
+  });
   it('explains a project with no sessions instead of showing an empty dial', () => {
     const html = slide({ done: 0, total: 0, byPhase: {} }, []);
     expect(html).not.toContain('role="progressbar"');

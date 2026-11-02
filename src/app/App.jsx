@@ -198,6 +198,7 @@ export function App() {
     const s = route?.screen;
     if (s === 'admin') return ['list', 'detail', 'create'].includes(route.page) ? `admin:${route.kind || 'students'}` : `admin:${route.page}`;
     if (s === 'worksheet' || s === 'guide') return 'resources';
+    if (s === 'pbl' && route.tab === 'competencies' && role === 'student') return 'competencies';
     if (s) return s;
     if (role === 'teacher' || role === 'coach') return 'coach';
     return view === 'home' ? null : view;
