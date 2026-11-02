@@ -626,7 +626,10 @@ describe('O03 focus flow: one action at a time', () => {
     await goStep(3);
     const design = getMissionLearningDesign(wind.mission.id, 'guided', wind.mission.version, wind.bundle.bundleContentSha256);
     expect(card().querySelector('.px-action').textContent).toBe(design.steps.hours.action); // “Add the hours from all five wind bands.”
-    expect(card().querySelector('.px-response-label').textContent).toBe(design.steps.hours.practiceAction);
+    // R6: one answer label with the unit and rounding; no second paragraph repeating it.
+    expect(card().querySelector('.px-response-label')).toBeNull();
+    expect(card().querySelector('.mx-answer label').textContent).toBe('Your answer (h, as a whole number)');
+    expect(card().textContent).not.toContain(design.steps.hours.practiceAction);
     const ref = [...card().querySelectorAll('details')].find((d) => /Reference: what this means/.test(d.textContent));
     expect(ref.open).toBe(false);
     expect([...card().querySelectorAll('details')].some((d) => /Evidence for this task/.test(d.querySelector('summary').textContent))).toBe(true);
@@ -743,6 +746,18 @@ describe('O03 focus flow: one action at a time', () => {
     expect(live.textContent).toMatch(/^Row 2 of \d+: /);
     expect(live.textContent).not.toMatch(/Synthetic week/); // not the caption or the whole table
     expect(live.querySelector('table, input')).toBeNull();
+  });
+
+  it('R6: in focus mode the Guided sentence starter stays closed until asked for, and the Add starter button still works', async () => {
+    await openRoute(); // Guided help by default
+    const c = card();
+    const starter = [...c.querySelectorAll('details')].find((d) => /See the sentence starter/.test(d.querySelector('summary').textContent));
+    expect(starter).toBeTruthy();
+    expect(starter.open).toBe(false);
+    expect([...c.querySelectorAll('.px-starter-hint')].every((h) => h.closest('details:not([open])'))).toBe(true);
+    await click(button('Add sentence starter'));
+    expect(card().querySelector('.px-part textarea').value).not.toBe('');
+    expect(button('Starter added')).toBeTruthy();
   });
 
   it('falls back to the authored text when the content hash does not match the reviewed design', async () => {

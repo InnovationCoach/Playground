@@ -34,6 +34,7 @@ export function NotebookPart({ route, partId, work, setWork, disabled, guided, f
   const diagram = route.diagramTemplates?.[partId];
   const starter = route.sentenceStarters?.[partId] || table?.textStarter || diagram?.textStarter || null;
   const update = (patch) => setWork((w) => withPart(w, partId, patch));
+  guided = focus && guided ? 'closed' : guided;
   const hId = headingId || `${uid}-h`;
   return <section className={`px-part${focus ? ' is-focus' : ''}`} aria-labelledby={hId}>
     <header className="px-part-head">
@@ -69,7 +70,9 @@ function TextField({ id, label, value, onChange, starter, guided, rows = 5 }) {
     <div className="px-field-foot"><span id={`${id}-c`}><Counter value={value} /></span>
       <StarterButton starter={starter} value={value} onInsert={onChange} />
     </div>
-    {guided && starter && !value && <p className="px-starter-hint">Starter: “{starter}”</p>}
+    {/* R6: in focus mode the Guided starter text stays closed until asked for; the Add button is unchanged. */}
+    {guided === 'closed' && starter && !value && <details className="px-optional"><summary>See the sentence starter</summary><p className="px-starter-hint">“{starter}”</p></details>}
+    {guided === true && starter && !value && <p className="px-starter-hint">Starter: “{starter}”</p>}
   </div>;
 }
 

@@ -448,7 +448,6 @@ function FocusWork({ bundle, mission, route, design, actions, at, go, headingRef
       {a.type === 'part' && !copy.action && <p className="px-action">Add what this step found to your notebook.</p>}
       {lab && /\blab\b/i.test(step.prompt) && <p className="px-note">The lab link is hidden in this pilot. Use the equivalent plan table instead.</p>}
 
-      {a.type === 'practice' && copy.responseLabel && <p className="px-response-label">{copy.responseLabel}</p>}
       {a.type === 'practice' && step.kind === 'number' && <NumberPractice key={step.id} step={step} value={work.answers[step.id]?.rawText ?? ''} onChange={(rawText) => setWork((w) => withAnswer(w, step.id, { rawText }))} />}
       {a.type === 'practice' && step.kind === 'choose' && <ChoicePractice key={step.id} step={step} value={work.answers[step.id]?.selectedId ?? ''} onChange={(selectedId) => setWork((w) => withAnswer(w, step.id, { selectedId }))} />}
 

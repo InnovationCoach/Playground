@@ -77,8 +77,9 @@ export function actionCopy(action, step, design) {
     const p = s?.parts?.[action.partId];
     return { title: s?.title || step.title, action: p?.action || (PRACTICE_KINDS.has(step.kind) ? null : s?.action || step.prompt), reference: p?.reference || null, fromDesign: !!p };
   }
-  // R1: the operation itself is the action text; `practiceAction` is only the short label for the response.
-  if (action.type === 'practice') return { title: s?.title || step.title, action: s?.action || step.prompt, responseLabel: s?.practiceAction || null, reference: s?.reference || null, fromDesign: !!s };
+  // R1/R6: the operation itself is the action text. The input's own label carries the unit and rounding,
+  // so the design's short `practiceAction` is not repeated as a second paragraph.
+  if (action.type === 'practice') return { title: s?.title || step.title, action: s?.action || step.prompt, reference: s?.reference || null, fromDesign: !!s };
   return { title: s?.title || step.title, action: s?.action || step.prompt, reference: s?.reference || null, fromDesign: !!s };
 }
 
