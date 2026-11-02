@@ -318,3 +318,38 @@
     padding: 1rem;
   }
 }
+
+/* Pilot contract 0.1.1 review cards */
+.coach-universe-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.coach-universe-tabs button[aria-pressed='true'] { outline: none; }
+.coach-universe-content { background: #0f172a; border: 1px solid #334155; border-radius: 0 0 16px 16px; padding: 1.25rem 1.5rem; display: grid; gap: 1rem; }
+.coach-universe-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.coach-universe-item { display: grid; gap: 0.6rem; padding: 1rem 1.25rem; border-radius: 12px; background: #1e293b; border: 1px solid #334155; }
+.coach-universe-item.is-returned { border-color: rgba(242, 184, 75, .5); }
+.coach-universe-item.is-approved { border-color: rgba(150, 215, 0, .45); }
+.coach-universe-item-header { display: flex; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.coach-universe-item-meta { display: grid; gap: 0.15rem; }
+.coach-universe-learner { font-weight: 700; color: #f8fafc; }
+.coach-universe-mission { color: #94a3b8; font-size: 0.9rem; }
+.coach-badge.is-submitted { color: #7dd3fc; } .coach-badge.is-returned { color: #fbbf24; } .coach-badge.is-approved { color: #a3e635; }
+.coach-universe-identity, .coach-universe-fine { margin: 0; font-size: 0.82rem; color: #94a3b8; }
+.coach-universe-prev { margin: 0; display: flex; gap: 0.4rem; align-items: center; color: #fde68a; font-size: 0.88rem; }
+.coach-universe-reflection h4, .coach-universe-evidence h4 { margin: 0 0 0.35rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: #7dd3fc; }
+.coach-universe-reflection p { margin: 0; white-space: pre-wrap; }
+.coach-universe-evidence { padding: 0.75rem; border-radius: 10px; background: #0f172a; }
+.coach-universe-evidence .px-table { min-width: 0; width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.coach-universe-evidence .px-table th, .coach-universe-evidence .px-table td { border: 1px solid #334155; padding: 0.25rem 0.4rem; text-align: left; }
+.coach-universe-evidence .px-table caption { text-align: left; font-weight: 600; padding-bottom: 0.3rem; }
+.coach-universe-evidence .px-evidence { display: grid; gap: 0.6rem; }
+.coach-universe-evidence .px-evidence-part h5 { margin: 0 0 0.2rem; font-size: 0.88rem; color: #e2e8f0; }
+.coach-universe-evidence .px-pre { white-space: pre-wrap; margin: 0; }
+.coach-universe-evidence ol { margin: 0.25rem 0 0; padding-left: 1.25rem; }
+.coach-universe-reviewed p { margin: 0.2rem 0; }
+.coach-universe-review-form { display: grid; gap: 0.5rem; padding-top: 0.6rem; border-top: 1px dashed #334155; }
+.coach-universe-decision { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; border: 0; margin: 0; padding: 0; }
+.coach-universe-decision legend { font-weight: 600; margin-bottom: 0.25rem; }
+.coach-universe-decision label { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 40px; cursor: pointer; }
+.coach-universe-note-label { font-weight: 600; font-size: 0.9rem; }
+.coach-universe-note-input { width: 100%; min-height: 72px; padding: 0.6rem 0.75rem; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; font: inherit; }
+.coach-universe-actions { display: flex; gap: 0.5rem; }
+.coach-universe-alert { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }

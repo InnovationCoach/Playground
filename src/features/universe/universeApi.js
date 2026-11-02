@@ -1,9 +1,10 @@
-import { auth } from '../../firebase.js';
+// Legacy reflection-only client (0.1.0 drafts). Pilot work uses pilot/universeClient.js.
+import * as firebase from '../../firebase.js';
 import { API_BASE } from '../../services/apiBase.js';
 
 async function getAuthHeader() {
   try {
-    const user = auth?.currentUser;
+    const user = firebase.auth?.currentUser;
     if (!user) return null;
     const token = await user.getIdToken();
     return {

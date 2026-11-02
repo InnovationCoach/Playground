@@ -32,28 +32,32 @@ export function itemFor(entry, cosmos) {
   return null;
 }
 
+/** Shown for a gated destination whose access policy has not been decided (pilot: Boreas). */
+export const PENDING_POLICY_TEXT = 'This expedition is not open yet.';
+
 /**
  * Display status for a planet. `preview` marks fixture states shown in labelled
- * previews only. Outside previews no trusted access service exists yet, so a
- * gated destination reads "Access not connected" rather than locked/unlocked.
+ * previews only. A gated destination is locked or available only when the mission
+ * service says so, and its requirement wording is the service's (the rule it
+ * actually enforces). The catalog's sample requirement text is never shown, so the
+ * screen cannot promise a mission that does not open it.
  */
 export function planetAccess(planet, { preview = false, serverAccess = null } = {}) {
   if (!planet) return { status: 'not-charted', preview };
   if (planet.access === 'public') return { status: planet.environmentId ? 'available' : 'charted', preview };
 
-  // Authoritative server-evaluated destination access
   if (serverAccess && typeof serverAccess === 'object' && planet.id in serverAccess) {
     const entry = serverAccess[planet.id];
     if (entry?.status === 'available') {
       return { status: planet.environmentId ? 'available' : 'charted', preview, isVerified: !!entry.isVerified };
     }
     if (entry?.status === 'locked') {
-      return { status: 'locked', requirementText: planet.requirementText || '', preview, isVerified: !!entry.isVerified };
+      return { status: 'locked', requirementText: entry.requirementText || PENDING_POLICY_TEXT, preview, isVerified: !!entry.isVerified };
     }
-    return { status: entry?.status || 'not-connected', requirementText: planet.requirementText || '', preview };
+    return { status: 'not-connected', preview };
   }
 
-  if (preview) return { status: 'locked', requirementText: planet.requirementText || '', preview };
+  if (preview) return { status: 'locked', requirementText: PENDING_POLICY_TEXT, preview };
   return { status: 'not-connected', preview };
 }
 
