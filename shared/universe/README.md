@@ -53,8 +53,10 @@ are checked for semantic equality and all seven accepted checksums. The focused
 suite also walks the production entry graph to prevent fixture dependencies.
 Application, emulator, build, device and educator verification are separate.
 
-`getTableTemplate(route, partId)` applies presentation adapter 1.0.0. It makes
+`getTableTemplate(route, partId)` applies presentation adapter 1.0.1. It makes
 the wind table's total-row output fraction and CF-row time cells read-only
 “Not applicable”; learners still supply weighted hours, total time and raw/planning
 CF. It never mutates the accepted hashed bundle or changes task criteria. Use
 this view consistently for editor initialization, rendering and serialization.
+`getSupportDescription(mode)` and `getMissionDecision(mission)` supply learner
+wording so authoring instructions and internal plan IDs do not leak into the UI.
