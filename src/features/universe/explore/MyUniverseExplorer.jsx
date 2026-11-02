@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas } from '@react-three/fiber';
-import { ArrowLeft, ChevronRight, List, Box, RotateCcw, LogOut, Lock, Sparkles, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronDown, ChevronUp, List, Box, RotateCcw, LogOut, Lock, Sparkles, RefreshCw } from 'lucide-react';
 import { SpaceLevel, Starfield, Nebulae, CameraRig, SpikeMetrics, shotFor } from './ExplorerScene.jsx';
 import { CATALOG_URL, loadCosmos } from './cosmosCatalog.js';
 import * as firebase from '../../../firebase.js';
@@ -33,6 +33,24 @@ function autoLowQuality() {
   const touch = navigator.maxTouchPoints > 1;
   return touch || (navigator.hardwareConcurrency || 4) < 6;
 }
+
+/**
+ * Decides whether the details panel should be open after a navigation step.
+ * Opens automatically when moving to another level or selecting a new destination,
+ * stays closed after the learner hides it until the next selection or level change,
+ * and never reopens while the learner is dragging the camera.
+ */
+export function nextPanelOpen(open, prevNav, nextNav, { dragging = false } = {}) {
+  if (dragging || !nextNav || nextNav === prevNav) return open;
+  const prevHere = current(prevNav), nextHere = current(nextNav);
+  const levelChanged = prevNav.path.length !== nextNav.path.length
+    || prevHere.level !== nextHere.level
+    || prevHere.id !== nextHere.id;
+  const selectionChanged = nextNav.selected !== null && nextNav.selected !== prevNav.selected;
+  if (levelChanged || selectionChanged) return true;
+  return open;
+}
+
 // Surface renderers by the catalog's environment sceneKind; each is its own lazy chunk.
 const SCENE_LOADERS = {
   'ocean-station': () => import('./ExplorerEnvironment.jsx'),
@@ -103,8 +121,13 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const [serverAccess, setServerAccess] = useState(null);
   const opts = useMemo(() => ({ preview, serverAccess, pilotRegistry: missionRegistry }), [preview, serverAccess, missionRegistry]);
   const webgl = useMemo(() => !forceTextView && hasWebGL2(), [forceTextView]);
-  const [state, setState] = useState(() => ({ nav: initialNav(), travel: { from: 'approach', duration: 1.8 } }));
-  const { nav, travel } = state;
+  const [state, setState] = useState(() => ({
+    nav: initialNav(),
+    travel: { from: 'approach', duration: 1.8 },
+    panelOpen: true,
+    sheetExpanded: false
+  }));
+  const { nav, travel, panelOpen, sheetExpanded } = state;
   const [view, setView] = useState(webgl ? '3d' : 'text');
   const [contextLost, setContextLost] = useState(false);
   const [reduced, setReduced] = useState(false);
@@ -120,6 +143,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const [, tick] = useState(0);
   useEffect(() => { if (!showMetrics) return undefined; const id = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, [showMetrics]);
   const api = useRef(null), live = useRef(null), heading = useRef(null), root = useRef(null), mounted = useRef(true);
+  const toggleBtn = useRef(null), dragging = useRef(false), wasPanelOpen = useRef(true);
 
   const here = current(nav);
   const motion = !reduced && !calm;
@@ -132,8 +156,26 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     const next = reduce(s.nav, { ...action, opts, cosmos });
     if (next === s.nav) return s;
     const t = transitionBetween(s.nav, next);
-    return { nav: next, travel: t.kind === 'none' ? s.travel : t };
+    const open = nextPanelOpen(s.panelOpen, s.nav, next, { dragging: dragging.current });
+    const resetExpand = open && (!s.panelOpen || s.nav.path.length !== next.path.length || s.nav.selected !== next.selected);
+    return {
+      nav: next,
+      travel: t.kind === 'none' ? s.travel : t,
+      panelOpen: open,
+      sheetExpanded: resetExpand ? false : s.sheetExpanded
+    };
   }), [opts, cosmos]);
+
+  const togglePanel = useCallback(() => {
+    setState((s) => {
+      if (dragging.current) return s;
+      return { ...s, panelOpen: !s.panelOpen, sheetExpanded: false };
+    });
+  }, []);
+
+  const onDragChange = useCallback((isDragging) => {
+    dragging.current = isDragging;
+  }, []);
 
   useEffect(() => {
     mounted.current = true;
@@ -148,8 +190,25 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   // Announce each new view, and keep keyboard focus inside the explorer when the focused button disappears.
   useEffect(() => {
     if (live.current) live.current.textContent = describeView(nav, opts, cosmos);
-    if (root.current && !root.current.contains(document.activeElement)) heading.current?.focus();
-  }, [nav, opts, cosmos]);
+    if (root.current && !root.current.contains(document.activeElement)) {
+      (panelOpen ? heading.current : toggleBtn.current)?.focus();
+    }
+  }, [nav, opts, cosmos, panelOpen]);
+
+  // When the details panel hides, move focus to the toggle button so focus stays inside the explorer.
+  useEffect(() => {
+    if (wasPanelOpen.current && !panelOpen && in3d) {
+      toggleBtn.current?.focus();
+    }
+    wasPanelOpen.current = panelOpen;
+  }, [panelOpen, in3d]);
+
+  // Ensure landing errors and the newer-version offer are always visible in the panel.
+  useEffect(() => {
+    if (env.status === 'failed' || (newer && here.level === 'universe')) {
+      setState((s) => (s.panelOpen ? s : { ...s, panelOpen: true }));
+    }
+  }, [env.status, newer, here.level]);
 
   // Destination access from the mission service. Any failed refresh (or a different signed-in
   // learner) clears the previous answer: an old "available" is never authority for a new entry.
@@ -229,16 +288,20 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     const k = e.key;
     if (k === 'Escape') { if (nav.path.length > 1 || nav.selected) { e.preventDefault(); go({ type: 'back' }); } return; }
     if (k === 'l' || k === 'L') { if (webgl && !contextLost) setView((v) => (v === '3d' ? 'text' : '3d')); return; }
-    if (!in3d || !api.current) return;
-    if (k === 'ArrowLeft') { e.preventDefault(); api.current.orbit(-12); }
-    else if (k === 'ArrowRight') { e.preventDefault(); api.current.orbit(12); }
+    if (!in3d) return;
+    if ((k === 'd' || k === 'D') && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); togglePanel(); return; }
+    if (!api.current) return;
+    if (k === 'ArrowLeft') { e.preventDefault(); api.current.orbit(-12, 0); }
+    else if (k === 'ArrowRight') { e.preventDefault(); api.current.orbit(12, 0); }
+    else if (k === 'ArrowUp') { e.preventDefault(); api.current.orbit(0, -10); }
+    else if (k === 'ArrowDown') { e.preventDefault(); api.current.orbit(0, 10); }
     else if (k === '+' || k === '=') api.current.zoom(0.85);
     else if (k === '-' || k === '_') api.current.zoom(1.18);
     else if (k === 'r' || k === 'R') api.current.reset();
   }
 
   const running = active && !hidden && (traveling || (here.level === 'environment' && motion));
-  const select = (id) => go({ type: 'select', id });
+  const select = (id) => { if (!dragging.current) go({ type: 'select', id }); };
 
   const scene = in3d && <div className="mx-canvas">
     <Canvas dpr={low ? [1, 1.25] : [1, 1.75]} gl={{ antialias: !low, powerPreference: 'high-performance' }}
@@ -247,7 +310,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       <color attach="background" args={['#05101f']} />
       {here.level !== 'environment' && <><Starfield low={low} /><Nebulae low={low} /><SpaceLevel cosmos={cosmos} entry={here} selected={nav.selected} onSelect={select} low={low} /></>}
       {environment && env.status === 'ready' && env.kind === environment.sceneKind && <env.Comp environment={environment} selected={nav.selected} onSelect={select} motion={motion} low={low} />}
-      <CameraRig shot={shot} travel={travel} motion={motion} onTravel={setTraveling} api={api} />
+      <CameraRig shot={shot} travel={travel} motion={motion} onTravel={setTraveling} onDragChange={onDragChange} panelOpen={panelOpen} api={api} />
       {showMetrics && <SpikeMetrics onSample={(m) => setMetrics((prev) => (prev && Object.keys(m).every((k) => prev[k] === m[k]) ? prev : m))} />}
     </Canvas>
   </div>;
@@ -278,13 +341,24 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       {!in3d && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} onOpenMission={setMissionId} onOpenActivity={onOpenActivity} canUse3d={webgl && !contextLost}
         notice={contextLost ? 'The 3D view stopped on this device, so here is the text view. Your place is kept.' : !webgl ? '3D isn’t available on this device, so here is the text view. It has the same destinations and details.' : null}
         onShow3d={(level, id) => { const path = pathTo(level, id, cosmos); if (path) { go({ type: 'jump', path }); setView('3d'); } }} />}
-      {in3d && <aside className="mx-panel" aria-labelledby="mx-panel-title">
-        <span className="mx-eyebrow">{LEVEL_LABEL[here.level]}</span>
-        <h2 id="mx-panel-title" ref={heading} tabIndex={-1}>{here.level === 'universe' ? 'My Universe' : itemFor(here, cosmos)?.name}</h2>
-        {here.level === 'universe' && newerNotice}
-        <Panel cosmos={cosmos} nav={nav} opts={opts} onOpenMission={setMissionId} onOpenActivity={onOpenActivity} go={go} select={select} env={env} onRetry={load} onTextView={() => setView('text')} />
-        <p className="mx-hint">Drag to look around · pinch or scroll to zoom · arrow keys rotate · Esc goes back · L for text view</p>
-      </aside>}
+      {in3d && <div className={`mx-panel-dock${panelOpen ? ' is-open' : ' is-collapsed'}${sheetExpanded ? ' is-expanded' : ''}`}>
+        <div className="mx-panel-controls">
+          {panelOpen && <button type="button" className="mx-sheet-size" aria-expanded={sheetExpanded} aria-controls="mx-panel" onClick={() => setState((s) => ({ ...s, sheetExpanded: !s.sheetExpanded }))}>
+            <span className="mx-sheet-grip" aria-hidden="true" />
+            <span>{sheetExpanded ? 'Compact view' : 'Expand details'}</span>
+          </button>}
+          <button ref={toggleBtn} type="button" className="mx-panel-toggle" aria-expanded={panelOpen} aria-controls="mx-panel" onClick={togglePanel}>
+            {panelOpen ? <><ChevronDown size={15} aria-hidden="true" />Hide details</> : <><ChevronUp size={15} aria-hidden="true" />Show details</>}
+          </button>
+        </div>
+        <aside id="mx-panel" className="mx-panel" aria-labelledby="mx-panel-title" hidden={!panelOpen}>
+          <span className="mx-eyebrow">{LEVEL_LABEL[here.level]}</span>
+          <h2 id="mx-panel-title" ref={heading} tabIndex={-1}>{here.level === 'universe' ? 'My Universe' : itemFor(here, cosmos)?.name}</h2>
+          {here.level === 'universe' && newerNotice}
+          <Panel cosmos={cosmos} nav={nav} opts={opts} onOpenMission={setMissionId} onOpenActivity={onOpenActivity} go={go} select={select} env={env} onRetry={load} onTextView={() => setView('text')} />
+          <p className="mx-hint">Drag to look around · pinch or scroll to zoom · arrow keys rotate · D toggles details · Esc goes back · L for text view</p>
+        </aside>
+      </div>}
       {!in3d && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
       {mission && <MissionSheet mission={mission} onClose={() => setMissionId(null)} />}
       {pilotEntry && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={initialMission?.id === pilotEntry.mission.id ? initialMission : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} onClose={() => setMissionId(null)} />}
