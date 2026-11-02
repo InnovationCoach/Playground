@@ -197,6 +197,45 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.token.get('role', 'student') in ['admin', 'supervisor'];
     }
 
+    function isValidUniversePreferencesMap(prefs) {
+      return prefs is map
+        && prefs.keys().hasOnly(['detail', 'motion', 'textView', 'captions', 'calmMode'])
+        && prefs.get('detail', 'standard') in ['standard', 'high']
+        && prefs.get('motion', true) is bool
+        && prefs.get('textView', false) is bool
+        && prefs.get('captions', true) is bool
+        && prefs.get('calmMode', false) is bool;
+    }
+
+    function isValidUniverseExplorerPrefs(data) {
+      return data is map
+        && data.keys().hasOnly([
+          'activityId',
+          'schemaVersion',
+          'bookmarks',
+          'preferences',
+          'lastVisitedPlanetId',
+          'updatedAt'
+        ])
+        && data.get('activityId', 'universe-v1') == 'universe-v1'
+        && data.get('schemaVersion', 1) is int
+        && data.get('schemaVersion', 1) == 1
+        && data.get('bookmarks', []) is list
+        && data.get('bookmarks', []).size() <= 50
+        && isValidUniversePreferencesMap(data.get('preferences', {}))
+        && (
+          data.get('lastVisitedPlanetId', null) == null ||
+          (data.get('lastVisitedPlanetId', '') is string
+            && data.get('lastVisitedPlanetId', '').size() >= 1
+            && data.get('lastVisitedPlanetId', '').size() <= 64)
+        )
+        && (
+          data.get('updatedAt', request.time) is timestamp ||
+          (data.get('updatedAt', '') is string && data.get('updatedAt', '').size() <= 64) ||
+          data.get('updatedAt', 0) is int
+        );
+    }
+
     // ---------------------------------------------------------------------
     // User profiles
     // ---------------------------------------------------------------------
@@ -207,10 +246,15 @@ service cloud.firestore {
       // unconstrained collection read is rejected in full.
       allow read: if isOwner(userId) || isAdminOrSupervisor() || coachSharesClassWith(resource.data);
 
-      // New accounts are always learners/students. Coach access is granted out-of-band
-      // with the Admin SDK (scripts/grant-coach.js), which bypasses these rules.
+      // New accounts are always learners/students. Coach access and tenant/class
+      // authority are granted out-of-band with the Admin SDK, never self-assigned on create.
       allow create: if isOwner(userId)
-        && request.resource.data.get('role', 'student') in ['student', 'learner'];
+        && request.resource.data.get('role', 'student') in ['student', 'learner']
+        && !request.resource.data.keys().hasAny(['orgId', 'status', 'publicId', 'consent', 'enrolledVia'])
+        && request.resource.data.get('classIds', []) is list
+        && request.resource.data.get('classIds', []).size() == 0
+        && request.resource.data.get('schoolIds', []) is list
+        && request.resource.data.get('schoolIds', []).size() == 0;
 
       // `role` may never be self-assigned or changed - it is the privilege boundary.
       // `classIds` is the tenancy boundary and is equally closed, with one
@@ -232,14 +276,16 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['activeProgramId', 'updatedAt'])
       );
-      allow delete: if isOwner(userId);
+      allow delete: if false;
 
       match /notes/{noteId} {
         allow read, create, update, delete: if isOwner(userId);
       }
 
       match /progress/{docId} {
-        allow read, create, update, delete: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && (docId != 'universe-v1' || isValidUniverseExplorerPrefs(request.resource.data));
       }
 
       match /goals/{goalId} {
@@ -254,7 +300,9 @@ service cloud.firestore {
 
       match /activityProgress/{docId} {
         allow read: if isOwner(userId) || isCoachOf(userId);
-        allow create, update, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && (docId != 'universe-v1' || isValidUniverseExplorerPrefs(request.resource.data));
+        allow delete: if isOwner(userId);
       }
 
       match /activityPreferences/{document=**} {
@@ -940,17 +988,44 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
-    // My Universe Mission Submissions (GEMINI GO-4.md §2)
+    // My Universe Mission Submissions & Service-Only Collections (Contract 0.1.1 §7)
     // Server-written only. Client write access strictly forbidden.
     // ---------------------------------------------------------------------
+    function hasMatchingUniverseOrg(data) {
+      return isAuthenticated()
+        && request.auth.token.get('orgId', '') is string
+        && request.auth.token.get('orgId', '').size() > 0
+        && data.get('orgId', '') is string
+        && request.auth.token.orgId == data.orgId;
+    }
+
     match /missionSubmissions/{submissionId} {
       allow write: if false;
-      allow read: if isAuthenticated() && (
+      allow read: if hasMatchingUniverseOrg(resource.data) && (
         request.auth.uid == resource.data.learnerUid ||
         isAdminOrSupervisor() ||
         (isTeacher() && resource.data.get('classIds', []).hasAny(myClassIds()))
       );
     }
+
+    match /missionDrafts/{draftId} {
+      allow read, write: if false;
+    }
+
+    match /missionSubmissionLocks/{lockId} {
+      allow read, write: if false;
+    }
+
+    match /universeIdempotency/{idempotencyId} {
+      allow read, write: if false;
+    }
+
+    match /universeMemberships/{uid} {
+      allow read, write: if false;
+    }
+
+    match /universeTaskStatus/{taskKey} {
+      allow read, write: if false;
+    }
   }
 }
-
