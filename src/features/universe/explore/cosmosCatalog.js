@@ -12,6 +12,8 @@ export const CATALOG_URL = '/cosmos/v1/catalog.json';
 export const KINDS = ['ocean', 'basalt', 'ice'];
 export const GALAXY_TYPES = ['spiral', 'elliptical'];
 export const ACCESS = ['public', 'gated'];
+/** What a location can host: a mission, or a simulation scenario opened in its own activity. */
+export const WORKSTATION_KINDS = ['mission', 'simulation'];
 export const FACT_TAGS = { 'fictional-world': 'Fictional world', 'real-science': 'Real science' };
 /** Environment renderers the client ships, with the location ids each scene places structures at. */
 export const SCENES = {
@@ -97,6 +99,10 @@ export function validateCatalog(raw) {
       if (!isText(l.name, 60) || !isText(l.purpose)) fail(lw, 'name and purpose required');
       if (!isVec3(l.position) || !isVec3(l.view)) fail(lw, 'position and view must be [x,y,z]');
       if (!Array.isArray(l.observations) || !l.observations.every((o) => isText(o))) fail(lw, 'observations must be a list of text');
+      if (l.workstations !== undefined) {
+        if (!Array.isArray(l.workstations) || l.workstations.length > 6) fail(lw, 'workstations must be a list of at most 6');
+        else l.workstations.forEach((w, i) => { if (!WORKSTATION_KINDS.includes(w?.kind) || !isId(w?.id)) fail(lw, `workstation ${i + 1} needs kind (${WORKSTATION_KINDS.join(' or ')}) and a valid id`); });
+      }
     }
     for (const needed of SCENES[e.sceneKind] || []) if (!locIds.has(needed)) fail(w, `the ${e.sceneKind} scene needs a "${needed}" location`);
   }

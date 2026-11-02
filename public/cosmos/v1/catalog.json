@@ -1,5 +1,5 @@
 {
-  "catalogVersion": "1.1.0",
+  "catalogVersion": "1.2.0",
   "generatedAt": "2026-11-01T12:00:00Z",
   "note": "Sample cosmos for the My Universe first slice. Every place and value is a fictional world; nothing here is real astronomy.",
   "galaxies": [
@@ -191,6 +191,12 @@
           "observations": [
             "Platform deck about 40 m across (fictional world value).",
             "Six hexagonal modules on pontoons."
+          ],
+          "workstations": [
+            {
+              "kind": "simulation",
+              "id": "thalassa-station"
+            }
           ]
         },
         {
@@ -227,6 +233,12 @@
           "purpose": "Measures wind, temperature and pressure on the headland.",
           "observations": [
             "Steady easterly wind, about 6 m/s (fictional world value)."
+          ],
+          "workstations": [
+            {
+              "kind": "mission",
+              "id": "thalassa-wind-survey"
+            }
           ]
         },
         {

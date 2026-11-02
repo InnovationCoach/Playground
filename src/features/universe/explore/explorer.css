@@ -164,3 +164,9 @@
 
 @media (max-width: 820px) { .mx-mission-wrap { padding: 0; } .mx-mission { border-radius: 0; } }
 
+/* Workstations at a surface location */
+.mx-workstations { display: grid; gap: 8px; }
+.mx-workstations h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--mx-sky); }
+.mx-workstation { display: grid; gap: 6px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(150, 215, 0, .4); background: rgba(150, 215, 0, .06); }
+.mx-workstation .mx-eyebrow { display: inline-flex; align-items: center; gap: 5px; }
+.mx-workstation .mx-primary { justify-self: start; min-height: 42px; }

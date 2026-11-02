@@ -11,8 +11,9 @@ import {
 } from './explorerModel.js';
 import { ExplorerTextView, StatusChip, FactList } from './ExplorerTextView.jsx';
 import { MissionSheet } from '../missions/MissionSheet.jsx';
-import { MISSIONS } from '../missions/spacecraftJourney.js';
+import { MISSIONS, visibleMission } from '../missions/registry.js';
 import { MissionList } from '../missions/MissionList.jsx';
+import { Workstations } from '../missions/Workstations.jsx';
 import './explorer.css';
 
 export function hasWebGL2() {
@@ -85,7 +86,7 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
  * Rendered in a full-viewport layer above the dashboard deck so camera gestures
  * never fight slide swipes or arrow keys.
  */
-function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader }) {
+function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader }) {
   const [serverAccess, setServerAccess] = useState(null);
   const opts = useMemo(() => ({ preview, serverAccess }), [preview, serverAccess]);
   const webgl = useMemo(() => !forceTextView && hasWebGL2(), [forceTextView]);
@@ -258,14 +259,14 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = fal
     <div className="mx-stage">
       {scene}
       {in3d && <div className={`mx-fade${traveling ? '' : ' is-done'}`} key={`${nav.path.length}-${here.id || ''}`} aria-hidden="true" />}
-      {!in3d && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} onOpenMission={setMissionId} canUse3d={webgl && !contextLost}
+      {!in3d && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} onOpenMission={setMissionId} onOpenActivity={onOpenActivity} canUse3d={webgl && !contextLost}
         notice={contextLost ? 'The 3D view stopped on this device, so here is the text view. Your place is kept.' : !webgl ? '3D isn’t available on this device, so here is the text view. It has the same destinations and details.' : null}
         onShow3d={(level, id) => { const path = pathTo(level, id, cosmos); if (path) { go({ type: 'jump', path }); setView('3d'); } }} />}
       {in3d && <aside className="mx-panel" aria-labelledby="mx-panel-title">
         <span className="mx-eyebrow">{LEVEL_LABEL[here.level]}</span>
         <h2 id="mx-panel-title" ref={heading} tabIndex={-1}>{here.level === 'universe' ? 'My Universe' : itemFor(here, cosmos)?.name}</h2>
         {here.level === 'universe' && newerNotice}
-        <Panel cosmos={cosmos} nav={nav} opts={opts} onOpenMission={setMissionId} go={go} select={select} env={env} onRetry={load} onTextView={() => setView('text')} />
+        <Panel cosmos={cosmos} nav={nav} opts={opts} onOpenMission={setMissionId} onOpenActivity={onOpenActivity} go={go} select={select} env={env} onRetry={load} onTextView={() => setView('text')} />
         <p className="mx-hint">Drag to look around · pinch or scroll to zoom · arrow keys rotate · Esc goes back · L for text view</p>
       </aside>}
       {!in3d && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
@@ -294,7 +295,7 @@ function Destinations({ cosmos, nav, opts, select }) {
   </ul></div>;
 }
 
-function Panel({ cosmos, nav, opts, go, select, env, onRetry, onTextView, onOpenMission }) {
+function Panel({ cosmos, nav, opts, go, select, env, onRetry, onTextView, onOpenMission, onOpenActivity }) {
   const here = current(nav);
   const item = itemFor(here, cosmos);
   const kids = childrenOf(here, cosmos);
@@ -345,7 +346,7 @@ function Panel({ cosmos, nav, opts, go, select, env, onRetry, onTextView, onOpen
     <Destinations cosmos={cosmos} nav={nav} opts={opts} select={select} />
     {chosen && <div className="mx-detail"><h3>{chosen.name}</h3><p>{chosen.purpose}</p>
       <ul className="mx-facts">{chosen.observations.map((o) => <li key={o}>{o}</li>)}</ul>
-      <p className="mx-muted">Workstations and projects here are coming later.</p></div>}
+      <Workstations location={chosen} opts={opts} onOpenMission={onOpenMission} onOpenActivity={onOpenActivity} /></div>}
   </>;
   return null;
 }
