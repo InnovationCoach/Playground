@@ -164,3 +164,94 @@ npm run build
 ```
 
 The writer turn for `pilot-frontend` is released after this commit. GPT integrates.
+
+## 7. Follow-up: real local-service browser demonstration (commit `93847f6`)
+
+### Entry
+- `tests/universe-preview/service.html` and `service.jsx`, served by the existing preview Vite server at `http://localhost:5195/service.html`. No Vite config changes.
+- **Safety guards:**
+  - Refuses to run unless the host is `localhost` or `127.0.0.1`, before any Firebase module is imported.
+  - Uses a named app with the hard-coded project `demo-universe-phase1` and a dummy key, Auth `initializeAuth` with `inMemoryPersistence`, and `connectAuthEmulator('http://127.0.0.1:9299')`.
+  - Never imports `src/firebase.js`. Its in-app imports go through the existing offline alias to the stub.
+- **What it drives:** the real explorer, `PilotMissionSheet`, `CoachUniverseSubmissions` and `createDefaultUniverseClient({ auth, baseUrl: 'http://127.0.0.1:3018' })`.
+  - The client is memoized once per page; the screens bind it with `withScope`.
+  - The scope (`uid`, `orgId`) is read only from the signed demo token's claims.
+- **Test controls:** a separate panel labelled "EMULATOR DEMO CONTROLS · not part of the learner UI". It covers:
+  - signing in as the learner, coach or other-organization admin
+  - choosing a task (all three routes)
+  - loading a labelled reference example into the server draft through the real adapter (GET the current revision → PUT with `expectedRevision` → GET to confirm)
+  - opening the sheet or the coach queue
+  - listing submissions
+  - a cross-organization check
+  - Fixtures are imported only by this entry.
+- **Production build check:** 0 matches for `demo-universe-phase1`, `Synthetic-Pilot-Only`, `shared/universe/fixtures`, `REFERENCE_ARTIFACTS` and `pilot-fixture-g03`.
+
+### Browser and device
+The Claude desktop in-app browser on this Mac (Chromium-based; user agent `Claude/4.4212.0 Chrome/152.0.7977.167`; viewport 664×695 CSS px at DPR 2). Neither Safari nor the desktop Google Chrome app was used. There was no touch hardware or screen reader.
+
+### What ran against the real local service (API `127.0.0.1:3018`, Auth emulator `127.0.0.1:9299`, actors seeded by GPT)
+
+| Step | Result |
+|---|---|
+| Claims | Learner token: role `student`, org `phase1-demo-school`, classes `["phase1-demo-class"]`. Other admin: role `admin`, org `phase1-demo-other-school`, classes `[]`. |
+| Reference example → server draft, all three tasks | Wind guided, journey advanced, journey guided: each `currentRevisionBefore: 0` → PUT 200 → reload revision 1, with every evidence part present. |
+| **Wind** save → send | The sheet restored the server draft ("Saved to your account"; availability `in-review` from the service, allowed only because this explicit fixture entry sets `allowInReviewMissions`). Sent attempt 1 (`JtRyKOn0QQGbpdrvLHzu`). |
+| Coach return | The queue showed only the learner's attempt. Returned with a note: POST review 200, audit record `ryXVFgHwCVHfJhLuVP52`. |
+| Learner revise (draft kept) | After the send, the reopened sheet showed the service draft still saved (B10). "Revise and resend" autosaved against the kept draft revision; three PUTs, all 200, no `DRAFT_CONFLICT`. |
+| Current-draft reload | Closing and reopening the sheet restored the edited recommendation and the revision link ("Send revised work for review"). |
+| Resend → approve | Attempt 2 `HnviNXbtqLwLL4RfrQ78`, `previousSubmissionId: JtRyKOn0QQGbpdrvLHzu`, `previousCoachNote` carried. The approve response is `status: approved`, `submissionRevision: 2`, `outcome: {"type":"reviewed-only","grantIds":[],"messageKey":"universe.mission.reviewed","nextMissionIds":[]}`, audit `Jj6VlqZccXLFoWSMMUjC`. The learner and coach screens both show "A review records feedback only; it doesn’t open new places." |
+| **Journey (advanced, `journey-mass-power`)** | The same flow: attempt 1 `jGikvhoiq94M1zggo1vG` returned (audit `ncicbwi5gGQMgmikQyDG`), revised and resent as attempt 2 `3PKDfXQpb4mG3BAAVD4j`, approved (audit `26azz1Vs3e5EGdGwTQms`), reviewed-only. Learner history shows attempt 2 reviewed, and attempt 1 with "You already sent a revision of this attempt" and no Revise button. |
+| Other-organization rejection | As `phase1-demo-other`, `coachQueue` returned 0 items for submitted, returned and approved. A review of the learner's `3PKDfXQpb4mG3BAAVD4j` returned `403 FORBIDDEN` "Submission belongs to another organization." (request `c1d93c48-d78e-4cde-8969-6796e77e2b49`). |
+
+**Captures:** `captures/service-demo/01`–`12` (wind 01–07, advanced journey 08–09, other-organization 10, guided journey 11, learner history 12).
+
+### Real backend versus synthetic stand-in
+- **Real local service and Auth emulator:** everything in the table above, including the adapter envelopes, contract header, CORS from `localhost:5195`, idempotency keys, availability, draft GET/PUT, submit, history, coach queue, review and organization denial.
+- **Synthetic stand-in only** (`syntheticUniverseService.js`, unit/UI tests): F6 focus cases, F7 delayed replies and organization re-keying, 401/403 clearing, the F8 raw-window empty page, and the "newer work wins" B10 variant.
+
+### Contract observations for GPT (no failures found)
+- The draft PUT response carries both a flat ack (`draftId`, `revision`, `updatedAt`) and a full `draft`. The adapter accepts it; this is informational only.
+- The coach card shows "Guided help" for the advanced journey because the reference example's `supportMode` is `guided`. This is consistent, but worth an educator glance.
+
+**Not done:** student hardware, Safari, desktop Chrome, touch, screen reader. Mani noted that student hardware testing comes next.
+
+## 8. F7.1: production host audit fix (commit `39e70d2`), separate from the demo
+
+### Changes
+- `src/auth.js`: `subscribeToAuth(callback, { tokens = false } = {})` keeps the `window.__hearIslandAuthReady` stale-session gate and its default `onAuthStateChanged` behaviour for other callers. With `tokens: true` it subscribes with `onIdTokenChanged`.
+- `src/firebase.js`: an `onIdTokenChanged` compat wrapper, mirroring `onAuthStateChanged`. The compat SDK 10.8 loaded by `index.html` provides it.
+- `src/app/AuthProvider.jsx` subscribes with `{ tokens: true }`. Behaviour:
+  - **Generations:** every observer event increments a generation. Each `await` in the load path rechecks it before any state change or side effect (`logoutUser`, `startTimeTracking`, locale, theme, `localStorage`, `window.currentUserRole`). A delayed callback for account A therefore cannot restore A or sign out B, after an account switch or after sign-out.
+  - **Claims source:** claims are read from the event's own user with a non-forced `getIdTokenResult()`, so there is no refresh loop. Previously they came from `getAuthClaims()` on the global `currentUser`.
+  - **Same-user token event:** claims are re-read without a profile reload. `orgId` and `classIds` are updated or removed in place; if the organization claim disappears, `orgId` becomes `null` and the scoped screens close.
+  - **Role change in the token:** the full fail-closed load path runs again (`loading`, `orgId: null`); it is not patched in place. Roles are never broadened beyond `resolveRole(claims, profile)`.
+  - **`refreshProfile`:** applies the answer only if the same account (identity sequence and uid) is still signed in and ready.
+
+### Tests (real `AuthProvider` with a controllable observer; delayed profile and claim reads)
+- `tests/universe-auth-provider.test.jsx`, 8 cases:
+  - the provider requests token events
+  - delayed A after B: neither restores A nor signs out B (no `logoutUser`, no tracking for A)
+  - delayed A after sign-out stays signed out
+  - same-user organization change, organization removal, and an unchanged refresh (no profile reload, no state change)
+  - role change takes the full path
+  - an older slow claims read loses to a newer token
+  - a delayed `refreshProfile` cannot overwrite B
+  - a same-account `refreshProfile` applies
+- `tests/universe-auth-subscribe.test.js`, 2 cases: the real `subscribeToAuth` waits for the stale-session gate, subscribes the requested observer, and never subscribes if cancelled first.
+- Run against the pre-fix provider and `subscribeToAuth`, 9 of 10 fail. Some failures share one cause: the old provider read claims from the global `currentUser`, not the event's user.
+
+### Checks after `39e70d2`
+
+| Suite | Result |
+|---|---|
+| Scratch Universe include (now 13 files) | 112/112 |
+| Committed `tests/universe-preview/vitest.config.js` | 60/60 |
+| Shared contracts | 23/23 |
+| Root vitest, excluding the two emulator rules suites | 42 files pass, 654 passed, 29 skipped. `sim-economy` fails only because it needs `127.0.0.1:8088`, as before. |
+| `npm run build` | Passed (`index-DFoiJvSb.js`) |
+
+**For integration (GPT):** please add `tests/universe-auth-provider.test.jsx` and `tests/universe-auth-subscribe.test.js` to the supported Universe test config. The config is not mine to edit.
+
+**Not verified:** no browser run against the production host with a real token whose `orgId` claim changes mid-session (it would need a claim change on a live or emulated account through the real `index.html`). This is covered by the provider tests only.
+
+The writer turn for `pilot-frontend` is released after the docs commit. GPT integrates. Nothing was pushed or deployed.
