@@ -7,9 +7,9 @@ import { CATALOG_URL, loadCosmos } from './cosmosCatalog.js';
 import * as firebase from '../../../firebase.js';
 import { API_BASE } from '../../../services/apiBase.js';
 import { PUBLISHED_RELEASES } from '../../../../shared/universe/index.js';
-import { createDefaultUniverseClient } from '../pilot/universeClient.js';
+import { createDefaultUniverseClient, scopeKey } from '../pilot/universeClient.js';
 import { findPilotMission } from '../pilot/missionSession.js';
-import { PilotMissionSheet } from '../pilot/PilotMissionSheet.jsx';
+import { PilotMissionSheet, MissionSignInNotice } from '../pilot/PilotMissionSheet.jsx';
 import {
   initialNav, reduce, current, childrenOf, itemFor, breadcrumbs, describeView, planetAccess, canLand,
   pathTo, transitionBetween, framedSelection, LEVEL_LABEL
@@ -116,9 +116,15 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
  * never fight slide swipes or arrow keys.
  */
 function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader,
-  missionRegistry = PUBLISHED_RELEASES, missionClient, viewerKey = '', initialMission = null, allowInReviewMissions = false }) {
-  const client = missionClient || defaultClient();
-  const [serverAccess, setServerAccess] = useState(null);
+  missionRegistry = PUBLISHED_RELEASES, missionClient, viewer = null, initialMission = null, allowInReviewMissions = false }) {
+  // Mission service calls are bound to one learner in one verified organization. Until the host
+  // supplies both, nothing is requested and no mission opens (fail closed).
+  const viewerKey = scopeKey(viewer);
+  const base = missionClient || defaultClient();
+  const client = useMemo(() => (viewerKey ? base.withScope({ uid: viewer.uid, orgId: viewer.orgId }) : null), [base, viewerKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Access answers are tagged with the scope that asked; a different viewer never sees them, even for one render.
+  const [accessReply, setAccessReply] = useState(null);
+  const serverAccess = accessReply && accessReply.key === viewerKey ? accessReply.destinations : null;
   const opts = useMemo(() => ({ preview, serverAccess, pilotRegistry: missionRegistry }), [preview, serverAccess, missionRegistry]);
   const webgl = useMemo(() => !forceTextView && hasWebGL2(), [forceTextView]);
   const [state, setState] = useState(() => ({
@@ -215,10 +221,10 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const planetIds = useMemo(() => (cosmos.planets || []).map((p) => p.id), [cosmos]);
   useEffect(() => {
     let alive = true;
-    setServerAccess(null);
-    if (!planetIds.length) return undefined;
+    setAccessReply(null);
+    if (!planetIds.length || !client) return undefined;
     client.access(planetIds).then((res) => {
-      if (alive) setServerAccess(res.state === 'loaded' && res.data?.destinations ? res.data.destinations : null);
+      if (alive) setAccessReply(res.state === 'loaded' && res.data?.destinations ? { key: viewerKey, destinations: res.data.destinations } : null);
     });
     return () => { alive = false; };
   }, [planetIds, missionId, client, viewerKey]);
@@ -361,7 +367,8 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       </div>}
       {!in3d && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
       {mission && <MissionSheet mission={mission} onClose={() => setMissionId(null)} />}
-      {pilotEntry && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={initialMission?.id === pilotEntry.mission.id ? initialMission : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} onClose={() => setMissionId(null)} />}
+      {pilotEntry && !client && <MissionSignInNotice mission={pilotEntry.mission} onClose={() => setMissionId(null)} />}
+      {pilotEntry && client && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={initialMission?.id === pilotEntry.mission.id ? initialMission : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} onClose={() => setMissionId(null)} />}
       {showMetrics && in3d && <div className="mx-metrics" aria-hidden="true">
         {metrics ? <>{metrics.at && performance.now() - metrics.at < 1600 ? `${metrics.fps} fps` : 'idle · renders on demand'} · {metrics.calls} draw calls · {metrics.triangles.toLocaleString()} tris · {metrics.geometries} geometries · {metrics.textures} textures · {low ? 'standard' : 'high'} detail</> : 'measuring…'}
       </div>}

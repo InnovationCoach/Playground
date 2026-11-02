@@ -106,14 +106,16 @@ export function createSyntheticService({ latency = 0, registry = FIXTURE_RELEASE
             return err(400, 'VALIDATION_ERROR', 'Only your latest returned attempt can be revised.', { field: 'previousSubmissionId' });
         }
         const rec = createSubmission(p, missionId, body);
-        drafts.delete(draftKey(p, missionId, body)); // synthetic assumption: a sent task's draft is cleared
+        // B10: sending keeps the learner's draft and its revision; the next save continues from it.
         return loaded({ ...copy(rec), idempotentReplay: false }, 201);
       })),
       mySubmissions: ({ missionId, limit, cursor } = {}) => call(() => loaded(page(subs.filter((s) => s.learnerUid === p.uid && s.orgId === p.orgId && (!missionId || s.missionId === missionId)).sort(newest), { limit, cursor }))),
       coachQueue: ({ status = 'submitted', limit, cursor } = {}) => call(() => {
         if (p.role !== 'coach') return err(403, 'FORBIDDEN', 'Only coaches can see the review queue.');
-        const mine = subs.filter((s) => s.orgId === p.orgId && s.classIds.some((c) => p.classIds.includes(c)) && s.status === status).sort(newest);
-        return loaded(page(mine, { limit, cursor }));
+        // B12 shape: page a bounded raw window of the organization's records first, then keep the coach's
+        // current roster. A page can be empty or short while nextCursor says more follow.
+        const raw = page(subs.filter((s) => s.orgId === p.orgId && s.status === status).sort(newest), { limit, cursor });
+        return loaded({ ...raw, submissions: raw.submissions.filter((s) => s.classIds.some((c) => p.classIds.includes(c))) });
       }),
       review: (id, body, key) => call(() => once(p, `POST review ${id}`, key, body, () => {
         if (p.role !== 'coach') return err(403, 'FORBIDDEN', 'Only coaches can review.');
@@ -181,5 +183,5 @@ export function createSyntheticService({ latency = 0, registry = FIXTURE_RELEASE
     return new Response(JSON.stringify(payload), { status: r.status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' } });
   }
 
-  return { clientFor, fetchFor, reset, setMode: (m) => { mode = m; }, get mode() { return mode; }, submissions: subs, drafts };
+  return { clientFor, fetchFor, reset, addSubmission: (p, missionId, body, at) => createSubmission(p, missionId, body, at), setMode: (m) => { mode = m; }, get mode() { return mode; }, submissions: subs, drafts };
 }

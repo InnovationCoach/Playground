@@ -20,6 +20,7 @@ function Harness() {
   const person = SYNTHETIC_PEOPLE[who];
   // The real HTTP adapter, talking to the synthetic service through a fetch stand-in.
   const client = useMemo(() => createUniverseClient({ fetchImpl: service.fetchFor(person), getToken: async () => `synthetic-token-${person.uid}` }), [person, run]);
+  const viewer = { uid: person.uid, orgId: person.orgId };
   const viewerKey = `${person.uid}|${person.orgId}`;
   const bar = <details className="pv-bar" aria-label="Synthetic preview controls">
     <summary>SYNTHETIC PREVIEW · {person.displayName} · {mode}</summary><span>Fictional people and data · no Firebase · nothing leaves this page</span>
@@ -32,10 +33,10 @@ function Harness() {
   </details>;
   if (view === 'coach') return <>{bar}<main className="pv-coach">
     {person.role !== 'coach' && <p>Switch to Ms Rivera to see the coach queue.</p>}
-    {person.role === 'coach' && <CoachUniverseSubmissions key={`${viewerKey}|${run}`} coachUser={person} client={client} registry={FIXTURE_RELEASES} />}
+    {person.role === 'coach' && <CoachUniverseSubmissions key={`${viewerKey}|${run}`} coachUser={person} orgId={person.orgId} client={client} registry={FIXTURE_RELEASES} />}
   </main></>;
   if (view === 'explorer' && person.role === 'student') return <>{bar}<MyUniverseExplorer key={run} preview catalogUrl={catalogUrl} forceTextView={flags.get('text') === '1'}
-    missionRegistry={FIXTURE_RELEASES} missionClient={client} viewerKey={viewerKey} onClose={() => setView('home')} allowInReviewMissions
+    missionRegistry={FIXTURE_RELEASES} missionClient={client} viewer={viewer} onClose={() => setView('home')} allowInReviewMissions
     initialMission={flags.get('open') ? { id: flags.get('open'), route: flags.get('route'), view: flags.get('tab'), step: flags.get('step') } : null} /></>;
   return <>{bar}<main className="pv-home"><h1>My Universe pilot · synthetic preview</h1>
     <p>Both pilot missions (G03 revision 2 fixtures) with an in-memory stand-in for the mission service. Use the controls to switch learner, organization and service state.</p>

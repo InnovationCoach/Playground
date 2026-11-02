@@ -11,6 +11,8 @@ const { FIXTURE_RELEASES } = await import('../shared/universe/fixtures/index.js'
 const { createSyntheticService, SYNTHETIC_PEOPLE } = await import('./universe-preview/syntheticUniverseService.js');
 const { createUniverseClient } = await import('../src/features/universe/pilot/universeClient.js');
 const { findPilotMission } = await import('../src/features/universe/pilot/missionSession.js');
+const { getSupportDescription, getMissionDecision } = await import('../shared/universe/index.js');
+const { tabStops } = await import('../src/features/universe/pilot/dialogFocus.js');
 const { PilotMissionSheet } = await import('../src/features/universe/pilot/PilotMissionSheet.jsx');
 const { CoachUniverseSubmissions } = await import('../src/features/coach/universe/CoachUniverseSubmissions.jsx');
 const { MyUniverseExplorer } = await import('../src/features/universe/explore/MyUniverseExplorer.jsx');
@@ -153,7 +155,7 @@ describe('pilot mission sheet', () => {
     // Coach (same organization and class) approves; the screen shows only what the service returns.
     const coachHost = document.createElement('div'); document.body.append(coachHost);
     const coachRoot = createRoot(coachHost);
-    await act(async () => coachRoot.render(<CoachUniverseSubmissions coachUser={SYNTHETIC_PEOPLE.rivera} client={clientOf('rivera')} registry={FIXTURE_RELEASES} />)); await settle();
+    await act(async () => coachRoot.render(<CoachUniverseSubmissions coachUser={SYNTHETIC_PEOPLE.rivera} orgId="org-north" client={clientOf('rivera')} registry={FIXTURE_RELEASES} />)); await settle();
     const card = [...coachHost.querySelectorAll('.coach-universe-item')].find((li) => li.textContent.includes('Amira'));
     expect(card.textContent).toMatch(/attempt 2/);
     expect(card.textContent).toMatch(/Your earlier feedback/);
@@ -241,13 +243,13 @@ describe('availability and saved-draft safety', () => {
 describe('explorer with pilot missions', () => {
   const loadCatalog = async () => buildCosmos(catalog);
   const explorer = (who, client) => <MyUniverseExplorer preview forceTextView loadCatalog={loadCatalog} onClose={() => {}}
-    missionRegistry={FIXTURE_RELEASES} missionClient={client || clientOf(who)} viewerKey={`${SYNTHETIC_PEOPLE[who].uid}|${SYNTHETIC_PEOPLE[who].orgId}`} />;
+    missionRegistry={FIXTURE_RELEASES} missionClient={client || clientOf(who)} viewer={{ uid: SYNTHETIC_PEOPLE[who].uid, orgId: SYNTHETIC_PEOPLE[who].orgId }} />;
 
   it('clears work, status and late responses when the account or organization changes', async () => {
     let release;
     const gate = new Promise((r) => { release = r; });
     const base = clientOf('amira');
-    const slow = { ...base,
+    const slow = { ...base, withScope() { return slow; },
       mySubmissions: async () => { await gate; return { state: 'loaded', data: { contractVersion: '1.0.0', nextCursor: null, submissions: [{ submissionId: 'late-1', status: 'returned', missionId: 'thalassa-wind-survey', reflection: 'AMIRA-PRIVATE-NOTE', evidence: [] }] } }; },
       access: async () => { await gate; return { state: 'loaded', data: { contractVersion: '1.0.0', destinations: { boreas: { status: 'available', isVerified: true } } } }; } };
     await act(async () => root.render(explorer('amira', slow))); await settle();
@@ -273,6 +275,169 @@ describe('explorer with pilot missions', () => {
     await goStep(7);
     expect(text()).toMatch(/The lab link is hidden in this pilot/);
     expect([...document.body.querySelectorAll('.mx-mission button, .mx-mission a')].some((b) => /open simulation|hex-grid/i.test(b.textContent))).toBe(false);
+  });
+});
+
+describe('phase 1 closure: wording, focus, context and retained drafts', () => {
+  const loadCatalog = async () => buildCosmos(catalog);
+  const key = async (key, shiftKey = false) => act(async () => { document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key, shiftKey, bubbles: true, cancelable: true })); });
+  const firstTextarea = () => document.body.querySelector('.px-part textarea');
+  const openMission = async () => click([...document.body.querySelectorAll('button')].filter((b) => b.textContent.trim() === 'Open mission')[0]);
+
+  it('F5: shows the shared learner wording for the decision and each help style, not authoring text', async () => {
+    await act(async () => root.render(sheet('ben'))); await settle();
+    expect(text()).toContain(getMissionDecision(wind.mission));
+    expect(getMissionDecision(wind.mission)).toMatch(/^Recommend Plan A, Plan B, or ask for more evidence/);
+    await click(document.body.querySelector('.mx-route'));
+    expect(text()).toContain(getSupportDescription('guided'));
+    await click([...document.body.querySelectorAll('.px-support input')][1]);
+    expect(text()).toContain(getSupportDescription('independent'));
+    for (const authoring of Object.values(wind.mission.routes[0].supportPresentation || {})) if (!getSupportDescription('guided').includes(authoring)) expect(text()).not.toContain(authoring);
+  });
+
+  it('F6: keeps Tab inside the sheet, skips disabled and hidden controls, closes on Escape and returns focus to its opener', async () => {
+    const opener = document.createElement('button'); opener.textContent = 'Opener'; document.body.append(opener); opener.focus();
+    const onClose = vi.fn();
+    await act(async () => root.render(sheet('ben', { onClose }))); await settle();
+    const dialog = document.body.querySelector('[role="dialog"]');
+    expect(document.activeElement.id).toBe('px-title');
+    await act(async () => opener.focus()); // focus that escapes behind the open sheet comes back to it
+    expect(document.activeElement.id).toBe('px-title');
+    await key('Tab', true); // from the heading backwards: wraps to the last control
+    let stops = tabStops(dialog);
+    expect(document.activeElement).toBe(stops[stops.length - 1]);
+    await key('Tab');
+    expect(document.activeElement).toBe(stops[0]);
+    expect(stops[0].getAttribute('aria-label')).toBe('Close mission');
+    await key('Tab', true);
+    expect(document.activeElement).toBe(stops[stops.length - 1]);
+
+    // Contents change: a route with a disabled Send button and closed drawers.
+    await click(document.body.querySelector('.mx-route'));
+    await click(button('Review and send'));
+    stops = tabStops(dialog);
+    const send = button('Send for review');
+    expect(send.disabled).toBe(true);
+    expect(stops).not.toContain(send);
+    expect(stops.every((el) => !el.disabled && (el.tagName === 'SUMMARY' || !el.closest('details:not([open])')))).toBe(true);
+    stops[stops.length - 1].focus();
+    await key('Tab');
+    expect(document.activeElement).toBe(stops[0]);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    await key('Escape');
+    expect(onClose).toHaveBeenCalledTimes(1);
+    await act(async () => root.render(null));
+    expect(document.activeElement).toBe(opener); // still connected: focus goes back
+
+    await act(async () => root.render(sheet('ben'))); await settle();
+    opener.remove();
+    await act(async () => root.render(null)); // opener gone: nothing to restore, nothing thrown
+    expect(document.activeElement).not.toBe(opener);
+  });
+
+  it('F7: requests nothing and opens no mission until the host supplies the learner and a verified organization', async () => {
+    const fetchImpl = vi.fn(service.fetchFor(SYNTHETIC_PEOPLE.amira));
+    const client = createUniverseClient({ fetchImpl, getToken: async () => 'synthetic' });
+    const render = (viewer) => root.render(<MyUniverseExplorer preview forceTextView loadCatalog={loadCatalog} onClose={() => {}} missionRegistry={FIXTURE_RELEASES} missionClient={client} viewer={viewer} />);
+    await act(async () => render({ uid: SYNTHETIC_PEOPLE.amira.uid, orgId: null })); await settle();
+    expect(fetchImpl).not.toHaveBeenCalled();
+    await openMission();
+    expect(text()).toMatch(/Missions open once you’re signed in with a school account we can confirm/);
+    expect(document.body.querySelector('.mx-route')).toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
+    await act(async () => render({ uid: SYNTHETIC_PEOPLE.amira.uid, orgId: 'org-north' })); await settle();
+    expect(document.body.querySelector('.mx-route')).toBeTruthy();
+    expect(fetchImpl.mock.calls.map(([url]) => new URL(url, 'http://x').pathname)).toEqual(expect.arrayContaining(['/api/universe/access', '/api/universe/missions/submissions/mine']));
+  });
+
+  it('F7 host: the dashboard passes the signed-in learner and the verified organization claim, or no viewer at all', async () => {
+    const seen = [];
+    vi.doMock('../src/features/universe/explore/MyUniverseExplorer.jsx', () => ({ MyUniverseExplorer: (props) => { seen.push(props.viewer); return null; } }));
+    const { SparkUniverse } = await import('../src/features/dashboard/SparkUniverse.jsx');
+    const spark = (orgId) => <SparkUniverse prefs={{ interests: [], calm: true }} plan={{ goals: [] }} uid="learner-1" orgId={orgId} onPersonalise={() => {}} />;
+    for (const orgId of [null, 'org-north']) {
+      await act(async () => root.render(spark(orgId))); await settle();
+      await click(button('Enter My Universe')); await settle();
+      await act(async () => root.render(null));
+    }
+    vi.doUnmock('../src/features/universe/explore/MyUniverseExplorer.jsx');
+    expect(seen.at(0)).toBeNull();
+    expect(seen.at(-1)).toEqual({ uid: 'learner-1', orgId: 'org-north' });
+  });
+
+  it('F7: an organization change for the same learner removes old work at once and ignores the old organization’s late replies', async () => {
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    const north = clientOf('amira');
+    const slow = { ...north, withScope() { return slow; },
+      getDraft: async (id) => { await gate; return { state: 'loaded', status: 200, data: { contractVersion: '1.0.0', identity: id, draft: null } }; },
+      mySubmissions: async () => { await gate; return { state: 'loaded', status: 200, data: { contractVersion: '1.0.0', nextCursor: null, submissions: [{ submissionId: 'late-n', status: 'returned', missionId: 'thalassa-wind-survey', reflection: 'NORTH-ONLY-NOTE', evidence: [] }] } }; } };
+    const southPerson = { ...SYNTHETIC_PEOPLE.amira, orgId: 'org-south' };
+    const south = createUniverseClient({ fetchImpl: service.fetchFor(southPerson), getToken: async () => 'synthetic' });
+    const render = (client, orgId) => root.render(<MyUniverseExplorer preview forceTextView loadCatalog={loadCatalog} onClose={() => {}} missionRegistry={FIXTURE_RELEASES} missionClient={client} viewer={{ uid: SYNTHETIC_PEOPLE.amira.uid, orgId }} />);
+    await act(async () => render(slow, 'org-north')); await settle();
+    await openMission();
+    await click(document.body.querySelector('.mx-route'));
+    await setValue(firstTextarea(), 'NORTH-DRAFT-TEXT');
+    await act(async () => render(south, 'org-south'));
+    expect(text()).not.toContain('NORTH-DRAFT-TEXT'); // gone in the same render, before any reply
+    await settle();
+    await act(async () => release()); await settle();
+    expect(text()).not.toContain('NORTH-ONLY-NOTE');
+    expect(document.body.querySelector('.px-part')).toBeNull();
+  });
+
+  it('B10: sending keeps the draft and its revision, so revising after a reload saves without a false conflict', async () => {
+    await act(async () => root.render(sheet('amira'))); await settle();
+    await click(button('My attempts (1)'));
+    await click(button('Revise and resend'));
+    expect(text()).not.toMatch(/two versions/);
+    await click(button('Save now'));
+    expect(text()).toMatch(/Saved to your account/);
+    await click(button('Review and send'));
+    await click(button('Send revised work for review'));
+    expect(text()).toMatch(/Sent to your coach · attempt 2/);
+    const [draft] = [...service.drafts.values()];
+    expect(draft).toMatchObject({ revision: 1, previousSubmissionId: 'synthetic-sub-1' }); // retained, not deleted
+    const second = service.submissions.find((s) => s.attemptNumber === 2 && s.learnerUid === SYNTHETIC_PEOPLE.amira.uid);
+    Object.assign(second, { status: 'returned', submissionRevision: 2, coachNote: 'Name the capacity factor in each line.', reviewedAt: '2026-11-02T09:00:00Z' });
+
+    await act(async () => root.render(null));
+    await act(async () => root.render(sheet('amira'))); await settle();
+    await click(button('My attempts (2)'));
+    const revisable = [...document.body.querySelectorAll('button')].filter((b) => b.textContent.trim() === 'Revise and resend');
+    expect(revisable).toHaveLength(1); // the superseded first attempt can't be revised again
+    await click(revisable[0]);
+    expect(text()).toMatch(/Revising attempt 2\./);
+    expect(text()).not.toMatch(/two versions/);
+    await click(button('Save now'));
+    expect(text()).toMatch(/Saved to your account/);
+    expect([...service.drafts.values()][0]).toMatchObject({ revision: 2, previousSubmissionId: second.submissionId });
+  });
+
+  it('B10: newer saved work wins over the returned attempt and is never overwritten', async () => {
+    await act(async () => root.render(sheet('amira'))); await settle();
+    await click(button('My attempts (1)'));
+    await click(button('Revise and resend'));
+    await click(button('Review and send'));
+    await click(button('Send revised work for review'));
+    await click(button('Work'));
+    await setValue(firstTextarea(), 'Edited after sending: check the night-time gap first.');
+    await click(button('Save now'));
+    const saved = [...service.drafts.values()][0];
+    const second = service.submissions.find((s) => s.attemptNumber === 2 && s.learnerUid === SYNTHETIC_PEOPLE.amira.uid);
+    expect(saved.updatedAt > second.createdAt).toBe(true);
+    Object.assign(second, { status: 'returned', submissionRevision: 2, coachNote: 'Add one more check.' });
+
+    await act(async () => root.render(null));
+    await act(async () => root.render(sheet('amira'))); await settle();
+    await click(button('My attempts (2)'));
+    await click(button('Revise and resend'));
+    expect(firstTextarea().value).toBe('Edited after sending: check the night-time gap first.');
+    expect(text()).not.toMatch(/two versions/);
+    await click(button('Save now'));
+    expect([...service.drafts.values()][0]).toMatchObject({ revision: saved.revision + 1, previousSubmissionId: second.submissionId });
   });
 });
 
