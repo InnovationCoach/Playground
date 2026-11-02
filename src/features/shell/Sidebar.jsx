@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   House, Search, LayoutDashboard, BookOpen, Rocket, Target, Sparkles, Users, Printer, HeartHandshake,
-  GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2, Palette
+  GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2, Palette, Award
 } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';
@@ -83,6 +83,7 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
     { label: 'nav.learning', items: [
       { key: 'courses', icon: BookOpen, label: 'nav.myCourses', onClick: onOpenCourses },
       { key: 'pbl', icon: Rocket, label: 'nav.pbl', href: hrefFor.pbl() },
+      { key: 'competencies', icon: Award, label: 'nav.myCompetencies', href: hrefFor.pbl('competencies') },
       { key: 'canva', icon: Palette, label: 'nav.canva', href: hrefFor.canva() },
       { key: 'goals', icon: Target, label: 'nav.goals', onClick: onOpenGoals },
       { key: 'futureSkills', icon: Sparkles, label: 'nav.futureSkills', href: hrefFor.futureSkills() }
