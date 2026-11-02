@@ -92,4 +92,28 @@ describe('My Universe explorer model', () => {
     for (const p of PLANETS) if (p.environmentId) expect(ENVIRONMENTS.some((e) => e.id === p.environmentId && e.planetId === p.id)).toBe(true);
     for (const loc of ENVIRONMENTS[0].locations) for (const o of loc.observations) expect(o).toMatch(/fictional world value|illustrative|modules|Six/);
   });
+
+  it('evaluates destination access authoritatively when serverAccess is provided', () => {
+    const boreas = planetById('boreas');
+    // 1. When server returns Boreas locked
+    const lockedAccess = {
+      boreas: { status: 'locked', isVerified: false, evaluatedRule: 'mission:spacecraft-journey' }
+    };
+    expect(planetAccess(boreas, { serverAccess: lockedAccess })).toEqual({
+      status: 'locked',
+      requirementText: boreas.requirementText,
+      preview: false,
+      isVerified: false
+    });
+
+    // 2. When coach approves mission and server returns Boreas available
+    const approvedAccess = {
+      boreas: { status: 'available', isVerified: true, evaluatedRule: 'mission:spacecraft-journey' }
+    };
+    expect(planetAccess(boreas, { serverAccess: approvedAccess })).toEqual({
+      status: 'charted',
+      preview: false,
+      isVerified: true
+    });
+  });
 });

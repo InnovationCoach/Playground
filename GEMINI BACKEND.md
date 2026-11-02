@@ -41,7 +41,7 @@
 - **Canonical Handoff Worktree:** `/Users/admin/Desktop/HearIsland/output/my-universe/source`
 - **Branch:** `codex/my-universe-prototype`
 - **Base Commit:** `c85552768424dbefea6c1b2d2cf18942a368494e` (`feat(search,dashboard): Find a Quest discovery, My Quests and SPARK Daylight`)
-- **Parent Commit:** `697f785e83a7ecb9489dea6a2c8996b04d4cfc8b` (matches current live release bundle `assets/index-VQ2jxVeQ.js`, per earlier session verification; not re-checked).
+- **Live Production Release:** Commit `44b3abc` (My Universe release; rollback channel `pre-universe-20261101`), superseding earlier release baselines `b425760` / `697f785`.
 - *Disclaimer:* Source inspection of configuration files reflects repository declarations; it does not constitute runtime verification of live GCP/Firebase IAM, live index builds, or live Cloud Function instances.
 
 ### 1.2 What Actually Exists in Backend Source
@@ -395,7 +395,7 @@ Content-Type: application/json
 }
 ```
 
-*Proposed Response Contract:*
+*Proposed Response Contract (Catalog 1.1.0: Ignis public, Boreas gated):*
 ```json
 {
   "evaluatedAt": "2026-11-01T14:30:05Z",
@@ -406,14 +406,14 @@ Content-Type: application/json
       "isVerified": true
     },
     "ignis": {
-      "status": "locked",
-      "evaluatedRule": "comp-env-sci-so2",
-      "isVerified": false
-    },
-    "boreas": {
       "status": "available",
       "evaluatedRule": null,
       "isVerified": true
+    },
+    "boreas": {
+      "status": "locked",
+      "evaluatedRule": "mission:spacecraft-journey",
+      "isVerified": false
     }
   }
 }
@@ -421,6 +421,22 @@ Content-Type: application/json
 
 *Single Source of Truth for Requirement Text:*
 The catalog (`/cosmos/v1/catalog.json`) owns `requirementText`. The access service returns only destination `status` (`available` | `locked`), `evaluatedRule`, and `isVerified`. When a destination is `locked`, the client displays the authored `requirementText` from the catalog.
+
+*Go 4 Decision & Contract (Agreed 1 Nov 2026 — `GEMINI GO-4.md`):*
+- **Decision:** A gated planet unlocks only when the server holds a verified record of a coach-approved mission. Clicks, self-checks, local saves, and client requests cannot unlock any planet.
+- **Evidence Collection (`missionSubmissions/{submissionId}`):**
+  - Written strictly by server Admin SDK (`write: if false` in `firestore.rules`).
+  - Read access granted to the submitting learner (`learnerUid == auth.uid`), assigned coaches sharing the learner's class (`classIds` overlapping coach's `classIds` token claim), and admins.
+  - Fields: `learnerUid`, `classIds`, `missionId`, `missionVersion`, `routeId`, `reflection` (20–2,000 chars), `status` (`'submitted' | 'approved' | 'returned'`), `coachUid`, `coachNote` (<= 1,000 chars), `createdAt`, `reviewedAt`.
+  - Self-check scores are excluded (practice only, not evidence). No XP, currency, or badges are awarded.
+  - Constraint: Exactly one open (`submitted`) submission per learner per mission.
+- **Server Endpoints:**
+  - `POST /api/universe/missions/:missionId/submissions`: Submits reflection for review. Rejects draft missions (status !== `'reviewed'`) with HTTP 409 (unless `ALLOW_DRAFT_MISSIONS=true` in emulator tests).
+  - `GET /api/universe/missions/submissions/mine`: Learner retrieves their own submission history.
+  - `GET /api/coach/universe/submissions`: Coach retrieves pending submissions for their assigned classes.
+  - `POST /api/coach/universe/submissions/:id/review`: Coach approves or returns submission with feedback note (idempotent, audit-logged).
+  - `POST /api/universe/access`: Evaluates learner's approved mission submissions to determine planet unlock status.
+- **Mission Registry:** Authoritative server registry (`server/lib/universe/missions.js`) tracking mission ID, versions, routes, and educator review status (`draft` vs `reviewed`).
 
 *Proposed Latency Budget & Service Down Fallback:*
 - **Latency Budget (Proposed):** Target < 250ms (evaluates custom claims in token and cached student progress). This is an architectural budget target, not a measured benchmark.
@@ -673,14 +689,18 @@ To be created in `functions/package.json`:
     "node": "20"
   },
   "scripts": {
-    "build": "esbuild index.js --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --external:firebase-admin --external:firebase-functions --external:@google/generative-ai --external:cors --external:express"
+    "build": "esbuild index.js --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --packages=external"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "firebase-admin": "^14.3.0",
     "firebase-functions": "^6.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
   }
 }
 ```
@@ -818,17 +838,40 @@ firebase emulators:start --only firestore,auth,functions,hosting --project demo-
 *Safety Guarantee:* Specifying `--project demo-hearisland-rules` prevents any emulator process from contacting production GCP infrastructure or leaking live credentials.
 
 #### Mani's Pre-Deployment Verification Checklist for Go 2
-Before Go 2 can be approved, Mani must verify the following items in the Google Cloud / Firebase console (marked as unverified until confirmed):
-- [ ] **Billing Plan (Unverified):** Project `dnd-master-73449` must have Blaze (Pay as you go) active. Cloud Functions 2nd Gen utilizes Google Cloud Build and Artifact Registry, which require Blaze.
-- [ ] **Target Region (Unverified):** Confirmation that `us-central1` is the desired region (must match the region configured in `functions/index.js` and `firebase.json`).
-- [ ] **Service Account & IAM Roles (Unverified):** The default Cloud Functions service account (`dnd-master-73449@appspot.gserviceaccount.com` or App Engine default service account) must possess the `Cloud Datastore User` (or `Firebase Admin`) role to read/write Firestore.
+Mani verified the following items in the Google Cloud / Firebase console on 1 November 2026:
+- [x] **Billing Plan (Confirmed 1 Nov 2026 by Mani):** Project `dnd-master-73449` has Blaze (Pay as you go) active. Cloud Functions 2nd Gen utilizes Google Cloud Build and Artifact Registry, which require Blaze.
+- [x] **Target Region (Confirmed 1 Nov 2026 by Mani):** Confirmation that `us-central1` is the desired region (matches the region configured in `functions/index.js` and `firebase.json`).
+- [x] **Service Account & IAM Roles (Confirmed 1 Nov 2026 by Mani):** The default Cloud Functions service account (`dnd-master-73449@appspot.gserviceaccount.com` or App Engine default service account) possesses the `Cloud Datastore User` (or `Firebase Admin`) role to read/write Firestore.
 
 #### Updated Server Go Checklist
 - [x] **Go 1 (Decided 1 Nov 2026):** Cloud Functions 2nd Gen `onRequest` selected by Mani.
-- [ ] **Go 2 (Pending Mani's Check):** Blaze billing verification, region confirmation (`us-central1`), IAM roles.
-- [ ] **Go 3 (Pending Mani's Approval):** Proposed packaging resolution, `functions/package.json`, `firebase.json` rewrite, and emulator setup.
-- [ ] **Go 4 (Pending Mani's Approval):** Mounting `/api/universe/access` route in `server/app.js`.
+- [x] **Go 2 (Confirmed 1 Nov 2026 by Mani):** Blaze billing verification, region confirmation (`us-central1`), IAM roles.
+- [x] **Go 3 (Approved 1 Nov 2026 by Mani):** Proposed packaging resolution (Option A esbuild bundling), `functions/package.json` (including `dotenv`), `firebase.json` rewrite, and emulator setup. Emulator-only testing authorized and verified.
+- [x] **Go 4 (Approved 1 Nov 2026 by Mani; Implemented Emulator-Only):** Coach-approved mission unlock contract (`missionSubmissions` with default-deny client writes, mission registry, submission & coach review endpoints, `/api/universe/access` evaluation).
 - [ ] **Go 5 (Pending Mani's Approval):** Staging deployment and live smoke test.
+  - *Hosting Release Rewrite Safety Rule:* The `/api/**` rewrite in `firebase.json` (`{"source": "/api/**", "function": "api"}`) must **NOT** be included in any live hosting release (`firebase deploy --only hosting`) until the `api` Cloud Function exists in production (Go 5). If a live hosting deployment includes a rewrite targeting an undeployed function, Firebase Hosting will fail deployment or return HTTP 500 / 404 for all `/api/**` traffic.
+  - *Cloud Functions Deployment Isolation Constraint:* Deploying Cloud Functions via Firebase CLI always targets the active GCP/Firebase project (`dnd-master-73449`). Firebase Hosting preview channels (`firebase hosting:channel:deploy`) only isolate static web assets, **not** Cloud Functions. Therefore, Go 5 requires either:
+    1. A separate staging Firebase project (e.g. `dnd-staging`) for isolated cloud testing; or
+    2. Mani's explicit written acceptance that the deployed Cloud Function will run directly in the production project (`dnd-master-73449`).
+  - *Secret Management in Cloud Functions (No `.env` in Cloud):* In Google Cloud Functions, local `.env` files are not uploaded or read in production. All secrets must reach Cloud Functions via Google Cloud Secret Manager using `defineSecret` from `firebase-functions/params` (or configured via `firebase functions:secrets:set`). The following server secrets must be provisioned and authorized before deploying the `api` function in Go 5 (documentation list only; secrets are not created during Go 3):
+    1. `GEMINI_API_KEY`: Required by `server/app.js` for generative AI co-pilot and feedback services (`@google/generative-ai`).
+    2. `PARENT_INVITE_SECRET`: Required by `server/routes/parents.js` for signing parent invitation tokens.
+    3. `CANVA_CLIENT_SECRET`: Required by `server/canva/client.js` for Canva OAuth authentication (if Canva integration is active).
+    4. `CANVA_TOKEN_KEY`: Required by `server/canva/crypto.js` for encrypting user Canva tokens.
+    5. `CLOUDINARY_API_SECRET`: Required by `server/canva/storage.js` if Cloudinary asset storage is active.
+    6. `CLOUDINARY_API_KEY`: Required by `server/canva/storage.js` (treated as a secret alongside the API secret).
+  - *Plain Environment Settings (Non-Secret Configuration):* Cloud Functions must receive the following runtime environment variables (configured via `params` or deployment environment variables, not secrets):
+    - `FRONTEND_URL`: Production origin for CORS header matching.
+    - `GEMINI_MODEL`: Model selector (defaults to `gemini-3.6-flash`).
+    - `EMAIL_TRANSPORT`: Email mode (e.g. `console` vs live provider).
+    - `STORAGE_BUCKET`: Default Cloud Storage bucket for file uploads.
+    - Canva integration parameters: `CANVA_CLIENT_ID`, `CANVA_REDIRECT_URI`, `CANVA_API_BASE_URL`.
+    - LTI 1.3 / OneRoster / Edmentum parameters: `LTI_ISSUER`, `EDMENTUM_CLIENT_ID`, `EDMENTUM_DEPLOYMENT_ID`, `EDMENTUM_AUTH_URL`, `EDMENTUM_TOKEN_URL`, `LTI_JWKS_URL`, `LTI_OIDC_URL`, `LTI_AGS_URL`.
+  - *No Key Files (`GOOGLE_APPLICATION_CREDENTIALS`):* `GOOGLE_APPLICATION_CREDENTIALS` must **NOT** be set in Cloud Functions runtime. Cloud Functions automatically authenticates via its built-in service account (`dnd-master-73449@appspot.gserviceaccount.com`) using Application Default Credentials (ADC). Key files on disk are prohibited in the cloud.
+
+
+
+
 
 ---
 
@@ -1152,7 +1195,7 @@ Stage E (Future): Verified Progress Ledger & Workstation Integration
 |---|---|
 | **Handoff Document** | `/Users/admin/Desktop/HearIsland/output/my-universe/source/GEMINI BACKEND.md` |
 | **Date** | 1 November 2026 |
-| **Review Updates Applied** | **15 Review Corrections Applied (Round 1):**<br>1. Removed `/api` rewrite claim; documented deployment target as unverified.<br>2. Corrected mounted routes to match `server/app.js` exactly (removed non-existent `quest.js`, `school-workspace.js`, `personalization.js`).<br>3. Relabeled Teen Quest two-phase commit as a proposed future pattern from an older branch.<br>4. Corrected unmentioned collections (`learnerQuest`, etc.) to default-deny.<br>5. Corrected storage rules description (matches `/community`, `/messages`, `/solarCar`, `/canva-exports`).<br>6. Marked 100-entry caps and 64KB cap as proposed new rules with emulator tests.<br>7. Corrected coach read check to use `isCoachOf(userId)`.<br>8. Retagged Thalassa 112 kPa and Ignis SO2 facts as `fictional-world`.<br>9. Fixed Hex-Grid identifiers to `MODEL_VERSION = 'HexGrid-v1.0'` and `K.seawaterDensity.v = 1025 kg/m³`; clarified `thalassa-storm` is described narrative content.<br>10. Removed `seedrandom` dependency claim; framed as seeded deterministic function.<br>11. Labeled API host as proposed/undecided (Cloud Run vs Cloud Functions).<br>12. Labeled latency/size metrics as proposed budgets, not measured; used content hashes.<br>13. Replaced strict compliance claims with privacy design goals requiring legal review.<br>14. Standardized staging store name to `adminUniverseDrafts`.<br>15. Labeled `697f785` match note as "per earlier session verification; not re-checked".<br><br>**8 Review Corrections Applied (Round 2 — `GEMINI CORRECTIONS 2.md`):**<br>1. Removed non-existent `request.resource.size() <= 64 * 1024` check; replaced with per-field ID bounds (`size() <= 64`) and array bounds (`size() <= 100`); documented that array element types are enforced by client validation.<br>2. Fixed `activeDestination` reading using `.get(field, null)` so saves at galaxy level (omitted planet/environment fields) are not denied.<br>3. Changed test project ID to `demo-hearisland-rules` (matching repo conventions to guarantee tests only run against the local emulator).<br>4. Replaced strict monotonic revision claim with application-level counter validation (`revision >= 0`), preserving non-destructive `arrayUnion` merges.<br>5. Replaced `calmDrift` and `preferredScale` with `detail: 'standard' | 'high'`, matching the explorer and decoupling from dashboard calm preferences.<br>6. Made the catalog the single source of truth for `requirementText`; stripped redundant text from `/api/universe/access` response.<br>7. Updated 3D package status to installed for Stage B, and marked Stage B complete in the implementation sequence.<br>8. Reworded size budget rationale to bounding download payloads rather than guaranteeing 60 fps; labeled Cloud Functions cold-start figure as unverified.<br><br>**Stage C Catalog Sync (`fa553a4`):**<br>- Added `sceneKind` field to Environment records matching the committed catalog validator (`cosmosCatalog.js`).<br><br>**Backend Step 1 Decision (`GEMINI BACKEND GO-1.md`):**<br>- Recorded Go 1 as decided: Cloud Functions 2nd Gen `onRequest` (wrapping `server/app.js`, coexisting with `createLearner`).<br>- Documented concrete Go 3 proposals (`functions/index.js` export, `firebase.json` rewrites, and `demo-` isolated emulator command).<br>- Documented Go 2 pre-deployment checklist (Blaze billing, region confirmation, and IAM roles) as unverified awaiting Mani's check.<br><br>**Go 3 Packaging Gap Resolution:**<br>- Documented root cause of `../server` import boundary violation and missing `functions/package.json`.<br>- Evaluated Options A (build-time bundling via esbuild — recommended), B (server relocation), and C (root source).<br>- Detailed exact proposed `functions/package.json` (Node 20, dependencies) and verified clean coexistence with `createLearner`. |
-| **Documentation-Only Scope** | **Confirmed.** Zero source code modifications, zero rules changes, zero dependency installs, zero database mutations, zero deployments. |
+| **Review Updates Applied** | **15 Review Corrections Applied (Round 1):**<br>1. Removed `/api` rewrite claim; documented deployment target as unverified.<br>2. Corrected mounted routes to match `server/app.js` exactly (removed non-existent `quest.js`, `school-workspace.js`, `personalization.js`).<br>3. Relabeled Teen Quest two-phase commit as a proposed future pattern from an older branch.<br>4. Corrected unmentioned collections (`learnerQuest`, etc.) to default-deny.<br>5. Corrected storage rules description (matches `/community`, `/messages`, `/solarCar`, `/canva-exports`).<br>6. Marked 100-entry caps and 64KB cap as proposed new rules with emulator tests.<br>7. Corrected coach read check to use `isCoachOf(userId)`.<br>8. Retagged Thalassa 112 kPa and Ignis SO2 facts as `fictional-world`.<br>9. Fixed Hex-Grid identifiers to `MODEL_VERSION = 'HexGrid-v1.0'` and `K.seawaterDensity.v = 1025 kg/m³`; clarified `thalassa-storm` is described narrative content.<br>10. Removed `seedrandom` dependency claim; framed as seeded deterministic function.<br>11. Labeled API host as proposed/undecided (Cloud Run vs Cloud Functions).<br>12. Labeled latency/size metrics as proposed budgets, not measured; used content hashes.<br>13. Replaced strict compliance claims with privacy design goals requiring legal review.<br>14. Standardized staging store name to `adminUniverseDrafts`.<br>15. Labeled `697f785` match note as "per earlier session verification; not re-checked".<br><br>**8 Review Corrections Applied (Round 2 — `GEMINI CORRECTIONS 2.md`):**<br>1. Removed non-existent `request.resource.size() <= 64 * 1024` check; replaced with per-field ID bounds (`size() <= 64`) and array bounds (`size() <= 100`); documented that array element types are enforced by client validation.<br>2. Fixed `activeDestination` reading using `.get(field, null)` so saves at galaxy level (omitted planet/environment fields) are not denied.<br>3. Changed test project ID to `demo-hearisland-rules` (matching repo conventions to guarantee tests only run against the local emulator).<br>4. Replaced strict monotonic revision claim with application-level counter validation (`revision >= 0`), preserving non-destructive `arrayUnion` merges.<br>5. Replaced `calmDrift` and `preferredScale` with `detail: 'standard' | 'high'`, matching the explorer and decoupling from dashboard calm preferences.<br>6. Made the catalog the single source of truth for `requirementText`; stripped redundant text from `/api/universe/access` response.<br>7. Updated 3D package status to installed for Stage B, and marked Stage B complete in the implementation sequence.<br>8. Reworded size budget rationale to bounding download payloads rather than guaranteeing 60 fps; labeled Cloud Functions cold-start figure as unverified.<br><br>**Stage C Catalog Sync (`fa553a4`):**<br>- Added `sceneKind` field to Environment records matching the committed catalog validator (`cosmosCatalog.js`).<br><br>**Backend Step 1 Decision (`GEMINI BACKEND GO-1.md`):**<br>- Recorded Go 1 as decided: Cloud Functions 2nd Gen `onRequest` (wrapping `server/app.js`, coexisting with `createLearner`).<br>- Documented concrete Go 3 proposals (`functions/index.js` export, `firebase.json` rewrites, and `demo-` isolated emulator command).<br>- Documented Go 2 pre-deployment checklist (Blaze billing, region confirmation, and IAM roles).<br><br>**Go 3 Packaging Gap Resolution:**<br>- Documented root cause of `../server` import boundary violation and missing `functions/package.json`.<br>- Evaluated Options A (build-time bundling via esbuild — recommended), B (server relocation), and C (root source).<br>- Detailed exact proposed `functions/package.json` (Node 20, dependencies) and verified clean coexistence with `createLearner`.<br><br>**Backend Go 2 Confirmation & Go 3 Approval (1 Nov 2026):**<br>- Go 2 confirmed by Mani: Blaze billing on `dnd-master-73449`, `us-central1` region, Cloud Functions service account IAM.<br>- Go 3 approved by Mani: Option A esbuild bundling packaging approved, `firebase.json` rewrites approved, emulator-only testing authorized. |
+| **Documentation-Only Scope** | **Confirmed.** Zero live source code modifications, zero live rules changes, zero live deployments. |
 | **Prototypes & Saves** | **Preserved.** Both SVG and 3D prototypes and their local saves remain untouched. |
-| **Next Step** | Handoff to **Mani** and **GPT-6 / Claude** to review the proposals. No implementation or deployment occurs until Mani's explicit written approval. |
+| **Next Step** | **Go 3 Emulator Setup:** Configure `functions/package.json` and esbuild bundler for local emulator verification (`demo-hearisland-rules`). **Mission Review:** Educator review of `SPACECRAFT-JOURNEY-REVIEW.md`. No live deployment occurs without explicit written approval for Go 4 and Go 5. |

@@ -3,14 +3,18 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { createApp } from '../../server/app.js';
 
-const PROJECT_ID = 'demo-hearisland-local';
-const AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-const FIRESTORE_EMULATOR_HOST = '127.0.0.1:8088';
+const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'demo-hearisland-rules';
+if (!PROJECT_ID.startsWith('demo-')) {
+  throw new Error(`Safety guard: tests must run against a demo project (starts with 'demo-'), but got '${PROJECT_ID}'.`);
+}
+const AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
+const FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || process.env.FIREBASE_FIRESTORE_EMULATOR_ADDRESS || '127.0.0.1:8088';
 
 process.env.FIREBASE_AUTH_EMULATOR_HOST = AUTH_EMULATOR_HOST;
 process.env.FIRESTORE_EMULATOR_HOST = FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT = PROJECT_ID;
 process.env.GOOGLE_CLOUD_PROJECT = PROJECT_ID;
+
 
 export async function setupApiTestEnv() {
   if (!getApps().length) {

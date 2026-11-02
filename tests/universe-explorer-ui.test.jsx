@@ -40,7 +40,8 @@ describe('My Universe explorer without WebGL', () => {
     await act(async () => root.render(<MyUniverseExplorer preview={false} loadCatalog={loadCatalog} onClose={() => {}} />));
     expect(text()).toMatch(/Access not connected/);
     expect(text()).not.toMatch(/Locked/);
-    expect(document.body.querySelector('.mx-banner')).toBeNull();
+    expect(document.body.querySelector('.mx-banner').textContent).toBe('Fictional worlds for exploring · nothing is saved · no XP, rewards or unlocks');
+    expect(text()).not.toMatch(/Preview|Sample requirement/);
   });
 
   it('keeps key presses away from the dashboard deck underneath', async () => {

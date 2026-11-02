@@ -37,9 +37,22 @@ export function itemFor(entry, cosmos) {
  * previews only. Outside previews no trusted access service exists yet, so a
  * gated destination reads "Access not connected" rather than locked/unlocked.
  */
-export function planetAccess(planet, { preview = false } = {}) {
+export function planetAccess(planet, { preview = false, serverAccess = null } = {}) {
   if (!planet) return { status: 'not-charted', preview };
   if (planet.access === 'public') return { status: planet.environmentId ? 'available' : 'charted', preview };
+
+  // Authoritative server-evaluated destination access
+  if (serverAccess && typeof serverAccess === 'object' && planet.id in serverAccess) {
+    const entry = serverAccess[planet.id];
+    if (entry?.status === 'available') {
+      return { status: planet.environmentId ? 'available' : 'charted', preview, isVerified: !!entry.isVerified };
+    }
+    if (entry?.status === 'locked') {
+      return { status: 'locked', requirementText: planet.requirementText || '', preview, isVerified: !!entry.isVerified };
+    }
+    return { status: entry?.status || 'not-connected', requirementText: planet.requirementText || '', preview };
+  }
+
   if (preview) return { status: 'locked', requirementText: planet.requirementText || '', preview };
   return { status: 'not-connected', preview };
 }

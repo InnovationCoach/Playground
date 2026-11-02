@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { ArrowLeft, ChevronRight, List, Box, RotateCcw, LogOut, Lock, Sparkles, RefreshCw } from 'lucide-react';
 import { SpaceLevel, Starfield, Nebulae, CameraRig, SpikeMetrics, shotFor } from './ExplorerScene.jsx';
 import { CATALOG_URL, loadCosmos } from './cosmosCatalog.js';
+import { checkDestinationAccess } from '../universeApi.js';
 import {
   initialNav, reduce, current, childrenOf, itemFor, breadcrumbs, describeView, planetAccess, canLand,
   pathTo, transitionBetween, framedSelection, LEVEL_LABEL
@@ -30,6 +31,12 @@ const SCENE_LOADERS = {
 const defaultLoader = ({ fail, sceneKind }) => (fail ? Promise.reject(new Error('Simulated landing failure'))
   : SCENE_LOADERS[sceneKind] ? SCENE_LOADERS[sceneKind]() : Promise.reject(new Error(`No renderer for ${sceneKind}`)));
 
+/** Always visible: previews say they are samples; the live app still says the worlds are fictional and nothing is kept. */
+function Banner({ preview }) {
+  return <p className="mx-banner">{preview ? 'Sample universe · fictional worlds · nothing is saved · no XP, rewards or unlocks'
+    : 'Fictional worlds for exploring · nothing is saved · no XP, rewards or unlocks'}</p>;
+}
+
 function Chrome({ onClose, preview, children }) {
   const ui = <div className="mx-root" role="region" aria-label="My Universe explorer" onKeyDown={(e) => e.stopPropagation()}>
     <header className="mx-top">
@@ -37,7 +44,7 @@ function Chrome({ onClose, preview, children }) {
       <div className="mx-crumbs"><span className="mx-crumb-solo">My Universe</span></div>
       <div className="mx-actions"><button type="button" className="mx-leave" onClick={onClose}><LogOut size={16} aria-hidden="true" />Leave universe</button></div>
     </header>
-    {preview && <p className="mx-banner">Sample universe · fictional worlds · nothing is saved · no XP, rewards or unlocks</p>}
+    <Banner preview={preview} />
     <div className="mx-stage"><div className="mx-status">{children}</div></div>
   </div>;
   return typeof document === 'undefined' ? ui : createPortal(ui, document.body);
@@ -79,7 +86,8 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
  * never fight slide swipes or arrow keys.
  */
 function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader }) {
-  const opts = useMemo(() => ({ preview }), [preview]);
+  const [serverAccess, setServerAccess] = useState(null);
+  const opts = useMemo(() => ({ preview, serverAccess }), [preview, serverAccess]);
   const webgl = useMemo(() => !forceTextView && hasWebGL2(), [forceTextView]);
   const [state, setState] = useState(() => ({ nav: initialNav(), travel: { from: 'approach', duration: 1.8 } }));
   const { nav, travel } = state;
@@ -127,6 +135,17 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = fal
     if (live.current) live.current.textContent = describeView(nav, opts, cosmos);
     if (root.current && !root.current.contains(document.activeElement)) heading.current?.focus();
   }, [nav, opts, cosmos]);
+
+  // Live destination access: queries /api/universe/access for charted planets
+  const planetIds = useMemo(() => (cosmos.planets || []).map((p) => p.id), [cosmos]);
+  useEffect(() => {
+    let alive = true;
+    if (!planetIds.length) return;
+    checkDestinationAccess(planetIds).then((res) => {
+      if (alive && res.destinations) setServerAccess(res.destinations);
+    });
+    return () => { alive = false; };
+  }, [planetIds, missionId]);
 
   // Session pinning: the visit keeps the catalog it opened with. Coming back to the overview checks quietly
   // for a newer published version and offers it; it is never swapped in mid-journey.
@@ -235,7 +254,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, preview = true, calm = fal
         <button type="button" className="mx-leave" onClick={leave}><LogOut size={16} aria-hidden="true" />Leave universe</button>
       </div>
     </header>
-    {preview && <p className="mx-banner">Sample universe · fictional worlds · nothing is saved · no XP, rewards or unlocks</p>}
+    <Banner preview={preview} />
     <div className="mx-stage">
       {scene}
       {in3d && <div className={`mx-fade${traveling ? '' : ' is-done'}`} key={`${nav.path.length}-${here.id || ''}`} aria-hidden="true" />}

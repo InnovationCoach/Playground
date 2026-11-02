@@ -938,5 +938,19 @@ service cloud.firestore {
         && request.resource.data.get('source', 'client') == 'client';
       allow update, delete: if false;
     }
+
+    // ---------------------------------------------------------------------
+    // My Universe Mission Submissions (GEMINI GO-4.md §2)
+    // Server-written only. Client write access strictly forbidden.
+    // ---------------------------------------------------------------------
+    match /missionSubmissions/{submissionId} {
+      allow write: if false;
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.learnerUid ||
+        isAdminOrSupervisor() ||
+        (isTeacher() && resource.data.get('classIds', []).hasAny(myClassIds()))
+      );
+    }
   }
 }
+

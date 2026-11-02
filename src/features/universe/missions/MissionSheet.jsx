@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Lightbulb, Eye, Check, ChevronRight, ChevronLeft } from 'lucide-react';
+import { X, Lightbulb, Eye, Check, ChevronRight, ChevronLeft, Send } from 'lucide-react';
 import { FactList } from '../explore/ExplorerTextView.jsx';
 import { checkNumber, checkChoice, FEEDBACK, displayAnswer } from './missionModel.js';
+import { getMySubmissions, submitMissionReflection } from '../universeApi.js';
 
 /**
  * A mission as an HTML sheet over the explorer (the same in 3D and text view).
@@ -41,7 +42,7 @@ export function MissionSheet({ mission, onClose }) {
         <ol className="mx-stepper" aria-label="Steps">{route.steps.map((s, i) => <li key={s.id}>
           <button type="button" aria-current={i === index ? 'step' : undefined} onClick={() => setIndex(i)}>{i + 1}<span className="mx-sr"> {s.title}</span></button>
         </li>)}</ol>
-        <Step key={`${route.id}-${route.steps[index].id}`} step={route.steps[index]} />
+        <Step key={`${route.id}-${route.steps[index].id}`} step={route.steps[index]} mission={mission} route={route} />
         <nav className="mx-step-nav" aria-label="Step navigation">
           {index > 0 ? <button type="button" onClick={() => setIndex(index - 1)}><ChevronLeft size={16} aria-hidden="true" />Previous</button> : <button type="button" onClick={() => setRouteId(null)}><ChevronLeft size={16} aria-hidden="true" />Routes</button>}
           {index < route.steps.length - 1 ? <button type="button" className="mx-primary" onClick={() => setIndex(index + 1)}>Next step<ChevronRight size={16} aria-hidden="true" /></button>
@@ -53,7 +54,7 @@ export function MissionSheet({ mission, onClose }) {
   </div>;
 }
 
-function Step({ step }) {
+function Step({ step, mission, route }) {
   const [value, setValue] = useState('');
   const [result, setResult] = useState(null);
   const [hints, setHints] = useState(0);
@@ -74,8 +75,7 @@ function Step({ step }) {
       {step.choices.map((c) => <label key={c.id}><input type="radio" name={step.id} value={c.id} checked={value === c.id} onChange={() => { setValue(c.id); setResult(null); }} />{c.label}</label>)}
       <button type="button" className="mx-primary" disabled={!value} onClick={check}>Check</button>
     </fieldset>}
-    {step.kind === 'reflect' && <div className="mx-answer"><label htmlFor={fieldId}>Your thinking (stays on this screen only)</label>
-      <textarea id={fieldId} rows={4} value={value} onChange={(e) => setValue(e.target.value)} /></div>}
+    {step.kind === 'reflect' && <ReflectionSection step={step} mission={mission} route={route} />}
 
     <p id={`${fieldId}-fb`} className={`mx-feedback${result ? ` is-${result}` : ''}`} role="status">{result ? FEEDBACK[result] : ''}</p>
 
@@ -86,6 +86,120 @@ function Step({ step }) {
     {hints > 0 && <ul className="mx-hints">{step.hints.slice(0, hints).map((h) => <li key={h}>{h}</li>)}</ul>}
     {showSolution && <div className="mx-solution"><p>{step.solution}</p>{step.kind === 'number' && <p><strong>Answer:</strong> about {displayAnswer(step)}</p>}</div>}
   </div>;
+}
+
+function ReflectionSection({ step, mission, route }) {
+  const [value, setValue] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submission, setSubmission] = useState(null);
+  const fieldId = `mx-answer-${step.id}`;
+
+  useEffect(() => {
+    let alive = true;
+    getMySubmissions().then((res) => {
+      if (!alive) return;
+      const found = (res.submissions || []).find((s) => s.missionId === mission.id);
+      if (found) {
+        setSubmission(found);
+        if (found.reflection) setValue(found.reflection);
+      }
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [mission.id]);
+
+  const charCount = value.trim().length;
+  const validLength = charCount >= 20 && charCount <= 2000;
+  const isSubmitted = submission?.status === 'submitted';
+  const isApproved = submission?.status === 'approved';
+  const isReturned = submission?.status === 'returned';
+
+  async function handleSend() {
+    if (!validLength || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await submitMissionReflection({
+        missionId: mission.id,
+        routeId: route?.id || 'guided',
+        missionVersion: mission.version || '0.1.0-draft',
+        reflection: value.trim()
+      });
+      setSubmission({
+        id: res.submissionId,
+        status: 'submitted',
+        missionId: mission.id,
+        routeId: route?.id || 'guided',
+        reflection: value.trim()
+      });
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to submit reflection to coach.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mx-reflect-wrap">
+      <div className="mx-answer">
+        <label htmlFor={fieldId}>Your recommendation and trade-off analysis</label>
+        <textarea
+          id={fieldId}
+          rows={5}
+          value={value}
+          disabled={isSubmitted || isApproved}
+          placeholder="Explain your choice of propulsion, transit duration, and food payload..."
+          onChange={(e) => {
+            setValue(e.target.value);
+            setSubmitError(null);
+          }}
+        />
+        <div className="mx-reflect-meta">
+          <small className={`mx-count${charCount > 0 && !validLength ? ' is-invalid' : ''}`}>
+            {charCount} / 2,000 characters (min 20)
+          </small>
+        </div>
+      </div>
+
+      {submitError && <p className="mx-feedback is-invalid" role="alert">{submitError}</p>}
+
+      {isSubmitted && (
+        <div className="mx-sub-status is-submitted" role="status">
+          <strong>Submitted to coach · awaiting review</strong>
+          <p>Your coach will review your reflection to verify your learning and unlock gated destinations.</p>
+        </div>
+      )}
+
+      {isApproved && (
+        <div className="mx-sub-status is-approved" role="status">
+          <strong>Approved by coach</strong>
+          {submission.coachNote && <p className="mx-coach-note">“{submission.coachNote}”</p>}
+        </div>
+      )}
+
+      {isReturned && (
+        <div className="mx-sub-status is-returned" role="status">
+          <strong>Returned for revision</strong>
+          {submission.coachNote && <p className="mx-coach-note">“{submission.coachNote}”</p>}
+          <p className="mx-muted">Revise your recommendation above and send it back to your coach.</p>
+        </div>
+      )}
+
+      {(!submission || isReturned) && (
+        <div className="mx-reflect-actions">
+          <button
+            type="button"
+            className="mx-primary"
+            disabled={!validLength || submitting}
+            onClick={handleSend}
+          >
+            <Send size={15} aria-hidden="true" />
+            {submitting ? 'Sending to coach…' : isReturned ? 'Resubmit to my coach' : 'Send to my coach'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** Givens carry their own tags: fictional world values, real science (with source), unit facts and method notes. */
