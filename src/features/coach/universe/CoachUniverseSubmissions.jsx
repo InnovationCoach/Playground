@@ -1,224 +1,135 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Compass, Check, RotateCcw, Clock, RefreshCw, MessageSquare } from 'lucide-react';
-import { getCoachSubmissions, reviewSubmission } from '../../universe/universeApi.js';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Compass, Check, RotateCcw, RefreshCw, MessageSquare, AlertTriangle } from 'lucide-react';
+import * as firebase from '../../../firebase.js';
+import { API_BASE } from '../../../services/apiBase.js';
+import { PUBLISHED_RELEASES } from '../../../../shared/universe/index.js';
+import { createDefaultUniverseClient, describeFailure, newIdempotencyKey } from '../../universe/pilot/universeClient.js';
+import { findPilotMission } from '../../universe/pilot/missionSession.js';
+import { EvidenceView } from '../../universe/pilot/NotebookParts.jsx';
+import { formatTime, outcomeText } from '../../universe/pilot/PilotMissionSheet.jsx';
 import './coachUniverse.css';
 
-export function CoachUniverseSubmissions({ coachUser }) {
-  const [statusFilter, setStatusFilter] = useState('submitted');
-  const [submissions, setSubmissions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [notes, setNotes] = useState({});
-  const [submittingId, setSubmittingId] = useState(null);
-  const [actionError, setActionError] = useState(null);
+let productionClient = null;
+const defaultClient = () => (productionClient ||= createDefaultUniverseClient({ auth: firebase.auth, baseUrl: API_BASE }));
+const TABS = [['submitted', 'Waiting for review'], ['returned', 'Returned for revision'], ['approved', 'Reviewed']];
+const AVAIL = { open: 'Mission open', 'in-review': 'Mission in review', withdrawn: 'Mission paused for a correction', retired: 'Mission retired', unknown: 'Mission status unknown' };
 
-  const loadSubmissions = useCallback(async () => {
-    setLoading(true);
-    setActionError(null);
-    try {
-      const res = await getCoachSubmissions({ status: statusFilter });
-      setSubmissions(res.submissions || []);
-    } catch (err) {
-      console.error('[CoachUniverse] Failed to load submissions:', err);
-      setActionError('Could not load universe submissions. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter]);
+/**
+ * Coach queue for My Universe mission work (contract 0.1.1). The list shows exactly
+ * what the service returns for this coach's organization and classes; a failure is
+ * never shown as an empty queue. A review records feedback. It does not grade
+ * mastery or open planets: the server returns the outcome and the screen shows it.
+ */
+export function CoachUniverseSubmissions({ coachUser, client: given, registry = PUBLISHED_RELEASES }) {
+  const client = given || defaultClient();
+  const [tab, setTab] = useState('submitted');
+  const [list, setList] = useState({ state: 'loading', items: [], nextCursor: null });
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
-  useEffect(() => {
-    loadSubmissions();
-  }, [loadSubmissions]);
+  const load = useCallback(async (cursor) => {
+    setList((l) => ({ ...l, state: cursor ? 'more' : 'loading', ...(cursor ? {} : { items: [] }) }));
+    const res = await client.coachQueue({ status: tab, limit: 20, cursor });
+    if (!alive.current) return;
+    if (res.state === 'loaded') setList((l) => ({ state: 'loaded', items: cursor ? [...l.items, ...(res.data.submissions || [])] : res.data.submissions || [], nextCursor: res.data.nextCursor || null }));
+    else setList((l) => ({ ...l, state: 'error', result: res }));
+  }, [client, tab]);
+  useEffect(() => { load(); }, [load]);
 
-  const handleReview = async (id, decision) => {
-    setSubmittingId(id);
-    setActionError(null);
-    const note = notes[id] || '';
-    try {
-      await reviewSubmission({
-        submissionId: id,
-        decision,
-        note: note.trim() || undefined
-      });
-      // Remove from list if viewing pending, or reload
-      setSubmissions((prev) => prev.filter((s) => s.id !== id));
-      setNotes((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-    } catch (err) {
-      console.error('[CoachUniverse] Review failed:', err);
-      setActionError(err.message || 'Failed to record review.');
-    } finally {
-      setSubmittingId(null);
-    }
-  };
+  const replace = (submissionId, next) => setList((l) => ({ ...l, items: l.items.map((s) => (s.submissionId === submissionId ? next : s)) }));
 
-  const handleNoteChange = (id, text) => {
-    setNotes((prev) => ({ ...prev, [id]: text }));
-  };
-
-  const formatTime = (ts) => {
-    if (!ts) return '';
-    try {
-      const d = ts._seconds ? new Date(ts._seconds * 1000) : (ts.toDate ? ts.toDate() : new Date(ts));
-      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '';
-    }
-  };
-
-  return (
-    <section className="coach-universe-card" aria-labelledby="coach-universe-heading">
-      <header className="coach-universe-header">
-        <div className="coach-universe-title">
-          <Compass size={22} className="coach-universe-icon" aria-hidden="true" />
-          <div>
-            <h2 id="coach-universe-heading">My Universe · Mission Reviews</h2>
-            <p className="coach-universe-subtitle">
-              Review learner mission reflections to authoritatively verify learning and unlock gated planets.
-            </p>
-          </div>
+  return <section className="coach-universe-card" aria-labelledby="coach-universe-heading">
+    <header className="coach-universe-header">
+      <div className="coach-universe-title">
+        <Compass size={22} className="coach-universe-icon" aria-hidden="true" />
+        <div>
+          <h2 id="coach-universe-heading">My Universe · Mission Reviews</h2>
+          <p className="coach-universe-subtitle">Read each learner’s mission evidence and give feedback. Approving records your review; it doesn’t grade mastery or open new planets.</p>
         </div>
-        <div className="coach-universe-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={statusFilter === 'submitted'}
-            className={`coach-tab ${statusFilter === 'submitted' ? 'is-active' : ''}`}
-            onClick={() => setStatusFilter('submitted')}
-          >
-            Pending Review
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={statusFilter === 'approved'}
-            className={`coach-tab ${statusFilter === 'approved' ? 'is-active' : ''}`}
-            onClick={() => setStatusFilter('approved')}
-          >
-            Approved
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={statusFilter === 'returned'}
-            className={`coach-tab ${statusFilter === 'returned' ? 'is-active' : ''}`}
-            onClick={() => setStatusFilter('returned')}
-          >
-            Returned
-          </button>
-          <button
-            type="button"
-            className="coach-refresh-btn"
-            onClick={loadSubmissions}
-            title="Refresh submissions"
-            aria-label="Refresh submissions"
-          >
-            <RefreshCw size={15} aria-hidden="true" className={loading ? 'is-spinning' : ''} />
-          </button>
-        </div>
-      </header>
-
-      {actionError && (
-        <div className="coach-universe-alert is-error" role="alert">
-          {actionError}
-        </div>
-      )}
-
-      <div className="coach-universe-body">
-        {loading && <p className="coach-universe-empty">Loading mission submissions…</p>}
-
-        {!loading && submissions.length === 0 && (
-          <p className="coach-universe-empty">
-            {statusFilter === 'submitted'
-              ? 'No mission submissions awaiting review in your classes.'
-              : `No ${statusFilter} mission submissions.`}
-          </p>
-        )}
-
-        {!loading && submissions.length > 0 && (
-          <ul className="coach-submissions-list" aria-label="Mission submissions list">
-            {submissions.map((sub) => {
-              const isProcessing = submittingId === sub.id;
-              const noteValue = notes[sub.id] ?? (sub.coachNote || '');
-              return (
-                <li key={sub.id} className="coach-submission-item">
-                  <div className="coach-sub-meta">
-                    <div className="coach-sub-badges">
-                      <span className="coach-badge is-mission">{sub.missionId}</span>
-                      <span className="coach-badge is-route">{sub.routeId} route</span>
-                      {sub.classIds?.map((cid) => (
-                        <span key={cid} className="coach-badge is-class">
-                          {cid}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="coach-sub-time">
-                      <Clock size={13} aria-hidden="true" />
-                      <span>{formatTime(sub.createdAt)}</span>
-                    </div>
-                  </div>
-
-                  <div className="coach-sub-learner">
-                    <strong>Learner UID:</strong> {sub.learnerUid}
-                  </div>
-
-                  <div className="coach-sub-reflection">
-                    <span className="coach-sub-label">Recommendation & Trade-off Reflection:</span>
-                    <blockquote>“{sub.reflection}”</blockquote>
-                  </div>
-
-                  {statusFilter === 'submitted' ? (
-                    <div className="coach-sub-actions">
-                      <div className="coach-note-input">
-                        <label htmlFor={`coach-note-${sub.id}`}>
-                          <MessageSquare size={14} aria-hidden="true" />
-                          Coach feedback note (optional, up to 1,000 characters):
-                        </label>
-                        <input
-                          id={`coach-note-${sub.id}`}
-                          type="text"
-                          maxLength={1000}
-                          placeholder="e.g., Clear trade-off analysis between food payload and transit duration!"
-                          value={noteValue}
-                          disabled={isProcessing}
-                          onChange={(e) => handleNoteChange(sub.id, e.target.value)}
-                        />
-                      </div>
-                      <div className="coach-btn-group">
-                        <button
-                          type="button"
-                          className="coach-btn is-approve"
-                          disabled={isProcessing}
-                          onClick={() => handleReview(sub.id, 'approved')}
-                        >
-                          <Check size={16} aria-hidden="true" />
-                          {isProcessing ? 'Saving…' : 'Approve & Unlock Planet'}
-                        </button>
-                        <button
-                          type="button"
-                          className="coach-btn is-return"
-                          disabled={isProcessing}
-                          onClick={() => handleReview(sub.id, 'returned')}
-                        >
-                          <RotateCcw size={16} aria-hidden="true" />
-                          {isProcessing ? 'Saving…' : 'Return for Revision'}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="coach-sub-reviewed-note">
-                      <strong>Coach Note:</strong> {sub.coachNote ? `“${sub.coachNote}”` : 'None'} · Reviewed on{' '}
-                      {formatTime(sub.reviewedAt)}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
       </div>
-    </section>
-  );
+      <div className="coach-universe-controls">
+        <div className="coach-universe-tabs" role="group" aria-label="Show submissions">
+          {TABS.map(([id, label]) => <button key={id} type="button" aria-pressed={tab === id} className={`coach-tab ${tab === id ? 'is-active' : ''}`} onClick={() => setTab(id)}>{label}</button>)}
+        </div>
+        <button type="button" className="coach-refresh-btn" onClick={() => load()} disabled={list.state === 'loading'} aria-label="Refresh submissions">
+          <RefreshCw size={15} aria-hidden="true" className={list.state === 'loading' ? 'is-spinning' : ''} />
+        </button>
+      </div>
+    </header>
+    <div className="coach-universe-content">
+      {list.state === 'loading' && <p className="coach-universe-empty" role="status">Loading mission submissions…</p>}
+      {list.state === 'error' && <div className="coach-universe-alert is-error" role="alert"><AlertTriangle size={16} aria-hidden="true" />
+        <span>The submissions couldn’t be loaded, so this isn’t an empty queue. {describeFailure(list.result)}</span>
+        <button type="button" className="coach-btn" onClick={() => load()}>Try again</button></div>}
+      {list.state !== 'loading' && list.state !== 'error' && !list.items.length && <p className="coach-universe-empty">
+        {tab === 'submitted' ? 'No mission work is waiting for your review.' : tab === 'returned' ? 'No submissions are currently returned for revision.' : 'No reviewed submissions yet.'}</p>}
+      {list.items.length > 0 && <ul className="coach-universe-list">
+        {list.items.map((s) => <SubmissionCard key={s.submissionId} s={s} client={client} registry={registry} onReviewed={(next) => replace(s.submissionId, next)} onConflict={() => load()} coachUid={coachUser?.uid} />)}
+      </ul>}
+      {list.nextCursor && list.state !== 'error' && <button type="button" className="coach-btn" disabled={list.state === 'more'} onClick={() => load(list.nextCursor)}>{list.state === 'more' ? 'Loading…' : 'Load more'}</button>}
+    </div>
+  </section>;
+}
+
+function SubmissionCard({ s, client, registry, onReviewed, onConflict, coachUid }) {
+  const [decision, setDecision] = useState('returned');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const idem = useRef({ body: null, key: null });
+  const entry = findPilotMission(registry, s.missionId);
+  const route = entry && entry.mission.version === s.missionVersion ? entry.mission.routes.find((r) => r.id === s.routeId) : null;
+  const noteId = `coach-note-${s.submissionId}`;
+  const ownWork = coachUid && s.learnerUid === coachUid;
+  const noteOk = decision === 'approved' ? Array.from(note).length <= 1000 : note.trim().length >= 1 && Array.from(note).length <= 1000;
+
+  async function review() {
+    const body = { decision, note: note.trim(), expectedSubmissionRevision: s.submissionRevision };
+    const text = JSON.stringify(body);
+    if (idem.current.body !== text) idem.current = { body: text, key: newIdempotencyKey() };
+    setBusy(true); setResult(null);
+    const res = await client.review(s.submissionId, body, idem.current.key);
+    setBusy(false);
+    if (res.state === 'loaded') {
+      const d = res.data;
+      onReviewed({ ...s, status: d.status, submissionRevision: d.submissionRevision ?? s.submissionRevision, coachNote: body.note || null, reviewedAt: d.reviewedAt ?? s.reviewedAt, outcome: d.outcome ?? null, auditEventId: d.auditEventId });
+      return;
+    }
+    setResult(res);
+    if (res.state === 'error' && res.code === 'REVIEW_CONFLICT') onConflict();
+  }
+
+  return <li className={`coach-universe-item is-${s.status}`}>
+    <div className="coach-universe-item-header">
+      <div className="coach-universe-item-meta">
+        <span className="coach-universe-learner">{s.learnerDisplayName || 'Learner'}</span>
+        <span className="coach-universe-mission">{s.missionTitle || s.missionId} · attempt {s.attemptNumber ?? '?'}</span>
+      </div>
+      <div className="coach-universe-item-status">
+        <span className={`coach-badge is-${s.status}`}>{s.status === 'submitted' ? 'Waiting for review' : s.status === 'returned' ? 'Returned' : 'Reviewed'}</span>
+      </div>
+    </div>
+    <p className="coach-universe-identity">Version {s.missionVersion} · {route?.name || s.routeId} ({s.taskId}) · {s.supportMode === 'independent' ? 'Independent' : 'Guided'} help · sent {formatTime(s.createdAt)}
+      {s.availability?.status && <> · {AVAIL[s.availability.status] || s.availability.status}</>}{s.legacyFormat ? ' · earlier reflection-only format' : ''}</p>
+    {s.previousCoachNote && <p className="coach-universe-prev"><MessageSquare size={14} aria-hidden="true" /> Your earlier feedback: “{s.previousCoachNote}”</p>}
+    <div className="coach-universe-reflection"><h4>Reflection</h4><p>{s.reflection}</p></div>
+    {!s.legacyFormat && <div className="coach-universe-evidence"><h4>Notebook evidence</h4><EvidenceView evidence={s.evidence} route={route} /></div>}
+    {s.status !== 'submitted' && <div className="coach-universe-reviewed">
+      {s.coachNote && <p><strong>Feedback:</strong> “{s.coachNote}”</p>}
+      {outcomeText(s) && <p>{outcomeText(s)}</p>}
+      {s.reviewedAt && <p className="coach-universe-fine">Reviewed {formatTime(s.reviewedAt)}{s.auditEventId ? ` · record ${s.auditEventId}` : ''}</p>}
+    </div>}
+    {s.status === 'submitted' && (ownWork ? <p className="coach-universe-fine">You can’t review your own work.</p> : <form className="coach-universe-review-form" onSubmit={(e) => { e.preventDefault(); review(); }}>
+      <fieldset className="coach-universe-decision"><legend>Decision</legend>
+        <label><input type="radio" name={`d-${s.submissionId}`} checked={decision === 'returned'} onChange={() => setDecision('returned')} /><RotateCcw size={14} aria-hidden="true" /> Return for revision</label>
+        <label><input type="radio" name={`d-${s.submissionId}`} checked={decision === 'approved'} onChange={() => setDecision('approved')} /><Check size={14} aria-hidden="true" /> Approve (reviewed)</label>
+      </fieldset>
+      <label htmlFor={noteId} className="coach-universe-note-label">{decision === 'returned' ? 'What should the learner change? (required)' : 'Feedback for the learner (optional)'}</label>
+      <textarea id={noteId} className="coach-universe-note-input" rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
+      <div className="coach-universe-actions">
+        <button type="submit" className={`coach-btn ${decision === 'approved' ? 'is-approve' : 'is-return'}`} disabled={busy || !noteOk}>{busy ? 'Saving…' : decision === 'approved' ? 'Record approval' : 'Return to learner'}</button>
+      </div>
+      {result && <p className="coach-universe-alert is-error" role="alert">{result.state === 'error' && result.code === 'REVIEW_CONFLICT' ? 'Someone else already reviewed this attempt. The list has been refreshed.' : `Not saved. ${describeFailure(result)}`}</p>}
+    </form>)}
+  </li>;
 }

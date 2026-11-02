@@ -1,6 +1,7 @@
 import { ChevronRight, FlaskConical, Compass } from 'lucide-react';
 import { visibleMission } from './registry.js';
 import { scenarioInfo } from '../../activities/hexGrid/scenarioInfo.js';
+import { findPilotMission } from '../pilot/missionSession.js';
 
 /**
  * Workstations at a surface location: a mission (opens the mission dialog) or a
@@ -9,7 +10,10 @@ import { scenarioInfo } from '../../activities/hexGrid/scenarioInfo.js';
  */
 export function Workstations({ location, opts, onOpenMission, onOpenActivity }) {
   const items = (location.workstations || []).map((w) => {
-    if (w.kind === 'mission') { const m = visibleMission(w.id, opts); return m && { key: `m-${m.id}`, kind: 'Mission', title: m.title, summary: m.drivingQuestion, draft: m.status === 'draft', Icon: Compass, open: () => onOpenMission(m.id) }; }
+    if (w.kind === 'mission') {
+      const p = findPilotMission(opts.pilotRegistry, w.id);
+      if (p) return { key: `m-${w.id}`, kind: 'Mission', title: p.mission.title, summary: p.mission.drivingQuestion, draft: p.bundle.status !== 'published', Icon: Compass, open: () => onOpenMission(w.id) };
+      const m = visibleMission(w.id, opts); return m && { key: `m-${m.id}`, kind: 'Mission', title: m.title, summary: m.drivingQuestion, draft: m.status === 'draft', Icon: Compass, open: () => onOpenMission(m.id) }; }
     if (w.kind === 'simulation') {
       const s = scenarioInfo(w.id);
       if (!s || (s.status === 'draft' && !opts.preview)) return null;

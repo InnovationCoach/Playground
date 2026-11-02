@@ -4,7 +4,12 @@ import { Canvas } from '@react-three/fiber';
 import { ArrowLeft, ChevronRight, List, Box, RotateCcw, LogOut, Lock, Sparkles, RefreshCw } from 'lucide-react';
 import { SpaceLevel, Starfield, Nebulae, CameraRig, SpikeMetrics, shotFor } from './ExplorerScene.jsx';
 import { CATALOG_URL, loadCosmos } from './cosmosCatalog.js';
-import { checkDestinationAccess } from '../universeApi.js';
+import * as firebase from '../../../firebase.js';
+import { API_BASE } from '../../../services/apiBase.js';
+import { PUBLISHED_RELEASES } from '../../../../shared/universe/index.js';
+import { createDefaultUniverseClient } from '../pilot/universeClient.js';
+import { findPilotMission } from '../pilot/missionSession.js';
+import { PilotMissionSheet } from '../pilot/PilotMissionSheet.jsx';
 import {
   initialNav, reduce, current, childrenOf, itemFor, breadcrumbs, describeView, planetAccess, canLand,
   pathTo, transitionBetween, framedSelection, LEVEL_LABEL
@@ -15,6 +20,10 @@ import { MISSIONS, visibleMission } from '../missions/registry.js';
 import { MissionList } from '../missions/MissionList.jsx';
 import { Workstations } from '../missions/Workstations.jsx';
 import './explorer.css';
+
+// Production uses only published releases (none yet) and the signed-in user's token.
+let productionClient = null;
+const defaultClient = () => (productionClient ||= createDefaultUniverseClient({ auth: firebase.auth, baseUrl: API_BASE }));
 
 export function hasWebGL2() {
   try { return typeof document !== 'undefined' && !!document.createElement('canvas').getContext('webgl2'); } catch { return false; }
@@ -33,9 +42,11 @@ const defaultLoader = ({ fail, sceneKind }) => (fail ? Promise.reject(new Error(
   : SCENE_LOADERS[sceneKind] ? SCENE_LOADERS[sceneKind]() : Promise.reject(new Error(`No renderer for ${sceneKind}`)));
 
 /** Always visible: previews say they are samples; the live app still says the worlds are fictional and nothing is kept. */
-function Banner({ preview }) {
-  return <p className="mx-banner">{preview ? 'Sample universe · fictional worlds · nothing is saved · no XP, rewards or unlocks'
-    : 'Fictional worlds for exploring · nothing is saved · no XP, rewards or unlocks'}</p>;
+function Banner({ preview, missions = false }) {
+  // With pilot missions, mission work can be saved to the learner's account; exploring itself still saves nothing.
+  const saved = missions ? 'exploring saves nothing · mission work is saved only to your account' : 'nothing is saved';
+  return <p className="mx-banner">{preview ? `Sample universe · fictional worlds · ${saved} · no XP, rewards or unlocks`
+    : `Fictional worlds for exploring · ${saved} · no XP, rewards or unlocks`}</p>;
 }
 
 function Chrome({ onClose, preview, children }) {
@@ -86,9 +97,11 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
  * Rendered in a full-viewport layer above the dashboard deck so camera gestures
  * never fight slide swipes or arrow keys.
  */
-function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader }) {
+function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader,
+  missionRegistry = PUBLISHED_RELEASES, missionClient, viewerKey = '', initialMission = null, allowInReviewMissions = false }) {
+  const client = missionClient || defaultClient();
   const [serverAccess, setServerAccess] = useState(null);
-  const opts = useMemo(() => ({ preview, serverAccess }), [preview, serverAccess]);
+  const opts = useMemo(() => ({ preview, serverAccess, pilotRegistry: missionRegistry }), [preview, serverAccess, missionRegistry]);
   const webgl = useMemo(() => !forceTextView && hasWebGL2(), [forceTextView]);
   const [state, setState] = useState(() => ({ nav: initialNav(), travel: { from: 'approach', duration: 1.8 } }));
   const { nav, travel } = state;
@@ -100,8 +113,9 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const [traveling, setTraveling] = useState(false);
   const [env, setEnv] = useState({ status: 'idle', Comp: null, kind: null });
   const [newer, setNewer] = useState(null);
-  const [missionId, setMissionId] = useState(null);
-  const mission = MISSIONS.find((m) => m.id === missionId) || null;
+  const [missionId, setMissionId] = useState(initialMission?.id ?? null); // deep link (previews and device tests)
+  const pilotEntry = missionId ? findPilotMission(missionRegistry, missionId) : null;
+  const mission = !pilotEntry && MISSIONS.find((m) => m.id === missionId) || null;
   const [metrics, setMetrics] = useState(null);
   const [, tick] = useState(0);
   useEffect(() => { if (!showMetrics) return undefined; const id = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, [showMetrics]);
@@ -137,16 +151,18 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     if (root.current && !root.current.contains(document.activeElement)) heading.current?.focus();
   }, [nav, opts, cosmos]);
 
-  // Live destination access: queries /api/universe/access for charted planets
+  // Destination access from the mission service. Any failed refresh (or a different signed-in
+  // learner) clears the previous answer: an old "available" is never authority for a new entry.
   const planetIds = useMemo(() => (cosmos.planets || []).map((p) => p.id), [cosmos]);
   useEffect(() => {
     let alive = true;
-    if (!planetIds.length) return;
-    checkDestinationAccess(planetIds).then((res) => {
-      if (alive && res.destinations) setServerAccess(res.destinations);
+    setServerAccess(null);
+    if (!planetIds.length) return undefined;
+    client.access(planetIds).then((res) => {
+      if (alive) setServerAccess(res.state === 'loaded' && res.data?.destinations ? res.data.destinations : null);
     });
     return () => { alive = false; };
-  }, [planetIds, missionId]);
+  }, [planetIds, missionId, client, viewerKey]);
 
   // Session pinning: the visit keeps the catalog it opened with. Coming back to the overview checks quietly
   // for a newer published version and offers it; it is never swapped in mid-journey.
@@ -208,7 +224,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
 
   function onKeyDown(e) {
     e.stopPropagation(); // the dashboard deck must not change slides underneath
-    if (mission) return; // the mission sheet handles its own keys
+    if (mission || pilotEntry) return; // the mission sheet handles its own keys
     if (e.target.closest?.('input, textarea, select')) return;
     const k = e.key;
     if (k === 'Escape') { if (nav.path.length > 1 || nav.selected) { e.preventDefault(); go({ type: 'back' }); } return; }
@@ -255,7 +271,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
         <button type="button" className="mx-leave" onClick={leave}><LogOut size={16} aria-hidden="true" />Leave universe</button>
       </div>
     </header>
-    <Banner preview={preview} />
+    <Banner preview={preview} missions={missionRegistry.length > 0} />
     <div className="mx-stage">
       {scene}
       {in3d && <div className={`mx-fade${traveling ? '' : ' is-done'}`} key={`${nav.path.length}-${here.id || ''}`} aria-hidden="true" />}
@@ -271,6 +287,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       </aside>}
       {!in3d && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
       {mission && <MissionSheet mission={mission} onClose={() => setMissionId(null)} />}
+      {pilotEntry && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={initialMission?.id === pilotEntry.mission.id ? initialMission : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} onClose={() => setMissionId(null)} />}
       {showMetrics && in3d && <div className="mx-metrics" aria-hidden="true">
         {metrics ? <>{metrics.at && performance.now() - metrics.at < 1600 ? `${metrics.fps} fps` : 'idle · renders on demand'} · {metrics.calls} draw calls · {metrics.triangles.toLocaleString()} tris · {metrics.geometries} geometries · {metrics.textures} textures · {low ? 'standard' : 'high'} detail</> : 'measuring…'}
       </div>}

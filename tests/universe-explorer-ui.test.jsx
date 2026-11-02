@@ -29,7 +29,8 @@ describe('My Universe explorer without WebGL', () => {
     expect(text()).toMatch(/Fictional world/);
     for (const name of ['Lyra Spiral', 'Aurora Elliptical', 'Lyra Prime', 'Thalassa', 'Ignis', 'Boreas', 'Thalassa Research Station', 'Research platform', 'Vent overlook']) expect(text()).toContain(name);
     expect(text()).toMatch(/Locked · Preview/);
-    expect(text()).toMatch(/Sample requirement/);
+    expect(text()).toMatch(/This expedition is not open yet\./); // neutral pending-policy wording, not the catalog sample
+    expect(text()).not.toMatch(/Sample requirement|Ice and Climate/);
     expect(text()).not.toMatch(/Earn XP|You unlocked/);
     expect(document.body.querySelector('.mx-show3d')).toBeNull(); // no 3D buttons when 3D cannot run
     await act(async () => buttonNamed('Leave universe').click());

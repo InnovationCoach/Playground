@@ -1,124 +1,83 @@
 // @vitest-environment jsdom
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('../src/features/universe/universeApi.js', () => ({
-  getCoachSubmissions: vi.fn(),
-  reviewSubmission: vi.fn()
-}));
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { FIXTURE_RELEASES } from '../shared/universe/fixtures/index.js';
+import { createSyntheticService, SYNTHETIC_PEOPLE } from './universe-preview/syntheticUniverseService.js';
+import { createUniverseClient } from '../src/features/universe/pilot/universeClient.js';
 
 const { CoachUniverseSubmissions } = await import('../src/features/coach/universe/CoachUniverseSubmissions.jsx');
-const { getCoachSubmissions, reviewSubmission } = await import('../src/features/universe/universeApi.js');
 
-let host, root;
-const text = () => document.body.textContent;
-const buttonNamed = (name) => [...document.body.querySelectorAll('button')].find((b) => b.textContent.includes(name));
+let host, root, service;
+const text = () => host.textContent;
+const settle = async (n = 8) => { for (let i = 0; i < n; i++) await act(async () => { await new Promise((r) => setTimeout(r, 0)); }); };
+const click = async (el) => { await act(async () => el.click()); await settle(); };
+const button = (name, scope = host) => [...scope.querySelectorAll('button')].find((b) => b.textContent.trim() === name);
+const coachClient = (who = 'rivera') => createUniverseClient({ fetchImpl: service.fetchFor(SYNTHETIC_PEOPLE[who]), getToken: async () => 'synthetic' });
+const render = async (client = coachClient()) => { await act(async () => root.render(<CoachUniverseSubmissions coachUser={SYNTHETIC_PEOPLE.rivera} client={client} registry={FIXTURE_RELEASES} />)); await settle(); };
+const typeNote = async (el, v) => act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); });
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-  host = document.createElement('div');
-  document.body.append(host);
-  root = createRoot(host);
-  vi.clearAllMocks();
+  service = createSyntheticService();
+  host = document.createElement('div'); document.body.append(host); root = createRoot(host);
 });
-
 afterEach(async () => {
   await act(async () => root.unmount());
   host.remove();
   delete globalThis.IS_REACT_ACT_ENVIRONMENT;
 });
 
-describe('CoachUniverseSubmissions Component', () => {
-  it('renders empty pending message when no submissions are awaiting review', async () => {
-    getCoachSubmissions.mockResolvedValueOnce({ submissions: [] });
-
-    await act(async () => {
-      root.render(<CoachUniverseSubmissions coachUser={{ uid: 'coach_alpha', classIds: ['class_orbit_a'] }} />);
-    });
-
+describe('Coach mission reviews (contract 0.1.1)', () => {
+  it('shows the exact task, help style, reflection and notebook evidence for its own organization only', async () => {
+    await render();
     expect(text()).toContain('My Universe · Mission Reviews');
-    expect(text()).toContain('No mission submissions awaiting review in your classes.');
+    expect(text()).toMatch(/doesn’t grade mastery or open new planets/);
+    const items = host.querySelectorAll('.coach-universe-item');
+    expect(items).toHaveLength(1); // Ben; Chen is in another organization despite the same class ID
+    expect(items[0].textContent).toContain('Ben (synthetic)');
+    expect(items[0].textContent).toMatch(/Plan a journey to Ignis · attempt 1/);
+    expect(items[0].textContent).toMatch(/Version 0\.2\.0-draft · Journey timing \(journey-rates\) · Guided help/);
+    expect(items[0].textContent).toMatch(/Route diagram/); // the diagram alternative, read as a list
+    expect(text()).not.toContain('Chen');
   });
 
-  it('renders pending submissions with reflection and handles approval', async () => {
-    const mockSubs = [
-      {
-        id: 'sub-101',
-        learnerUid: 'learner_a',
-        missionId: 'spacecraft-journey',
-        routeId: 'guided',
-        classIds: ['class_orbit_a'],
-        reflection: 'I recommend the chemical rocket with 42-day transit duration.',
-        status: 'submitted',
-        createdAt: new Date().toISOString()
-      }
-    ];
-    getCoachSubmissions.mockResolvedValueOnce({ submissions: mockSubs });
-    reviewSubmission.mockResolvedValueOnce({ status: 'approved' });
-
-    await act(async () => {
-      root.render(<CoachUniverseSubmissions coachUser={{ uid: 'coach_alpha', classIds: ['class_orbit_a'] }} />);
-    });
-
-    expect(text()).toContain('spacecraft-journey');
-    expect(text()).toContain('guided route');
-    expect(text()).toContain('learner_a');
-    expect(text()).toContain('I recommend the chemical rocket with 42-day transit duration.');
-
-    // Approve the submission
-    const approveBtn = buttonNamed('Approve & Unlock Planet');
-    expect(approveBtn).toBeDefined();
-
-    await act(async () => {
-      approveBtn.click();
-    });
-
-    expect(reviewSubmission).toHaveBeenCalledWith({
-      submissionId: 'sub-101',
-      decision: 'approved',
-      note: undefined
-    });
+  it('never shows a failed load as an empty queue', async () => {
+    service.setMode('unavailable');
+    await render();
+    expect(text()).toMatch(/couldn’t be loaded, so this isn’t an empty queue/);
+    expect(text()).not.toMatch(/No mission work is waiting/);
+    service.setMode('normal');
+    await click(button('Try again'));
+    expect(host.querySelectorAll('.coach-universe-item')).toHaveLength(1);
   });
 
-  it('handles returning a submission for revision with a coach note', async () => {
-    const mockSubs = [
-      {
-        id: 'sub-102',
-        learnerUid: 'learner_b',
-        missionId: 'spacecraft-journey',
-        routeId: 'advanced',
-        classIds: ['class_orbit_b'],
-        reflection: 'Advanced route calculation of mass ratio and propellant burn.',
-        status: 'submitted',
-        createdAt: new Date().toISOString()
-      }
-    ];
-    getCoachSubmissions.mockResolvedValueOnce({ submissions: mockSubs });
-    reviewSubmission.mockResolvedValueOnce({ status: 'returned' });
+  it('shows a real empty queue only after a successful load', async () => {
+    service.submissions.length = 0;
+    await render();
+    expect(text()).toContain('No mission work is waiting for your review.');
+  });
 
-    await act(async () => {
-      root.render(<CoachUniverseSubmissions coachUser={{ uid: 'coach_beta', classIds: ['class_orbit_b'] }} />);
-    });
+  it('requires an actionable note to return work, and shows the service result', async () => {
+    await render();
+    const card = host.querySelector('.coach-universe-item');
+    const send = button('Return to learner', card);
+    expect(send.disabled).toBe(true);
+    await typeNote(card.querySelector('textarea'), 'Label the ion food mass and add one contingency.');
+    expect(button('Return to learner', card).disabled).toBe(false);
+    await click(button('Return to learner', card));
+    expect(card.textContent).toMatch(/Feedback: “Label the ion food mass/);
+    const ben = service.submissions.find((s) => s.learnerUid === SYNTHETIC_PEOPLE.ben.uid);
+    expect(ben).toMatchObject({ status: 'returned', submissionRevision: 2, coachUid: SYNTHETIC_PEOPLE.rivera.uid, outcome: null });
+  });
 
-    const noteInput = host.querySelector('#coach-note-sub-102');
-    expect(noteInput).toBeDefined();
-
-    await act(async () => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(noteInput, 'Please double-check the food mass multiplier.');
-      noteInput.dispatchEvent(new Event('input', { bubbles: true }));
-      noteInput.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-
-    const returnBtn = buttonNamed('Return for Revision');
-    await act(async () => {
-      returnBtn.click();
-    });
-
-    expect(reviewSubmission).toHaveBeenCalledWith({
-      submissionId: 'sub-102',
-      decision: 'returned',
-      note: 'Please double-check the food mass multiplier.'
-    });
+  it('reports a competing review as a conflict and refreshes', async () => {
+    await render();
+    const ben = service.submissions.find((s) => s.learnerUid === SYNTHETIC_PEOPLE.ben.uid);
+    Object.assign(ben, { status: 'approved', submissionRevision: 2 }); // someone else reviewed meanwhile
+    const card = host.querySelector('.coach-universe-item');
+    await click(card.querySelectorAll('.coach-universe-decision input')[1]);
+    await click(button('Record approval', card));
+    expect(text()).toMatch(/already reviewed this attempt|No mission work is waiting/);
   });
 });
