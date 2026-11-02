@@ -58,10 +58,14 @@ export const ENVELOPES = {
   access: (d) => isObj(d.destinations) && Object.values(d.destinations).every((e) => isObj(e) && isStr(e.status))
 };
 
-export function createUniverseClient({ fetchImpl = globalThis.fetch?.bind(globalThis), getToken, baseUrl = '' } = {}) {
+/** One signed-in learner or coach in one verified organization; anything less is no scope. */
+export const scopeKey = (scope) => (scope && isStr(scope.uid) && isStr(scope.orgId) ? `${scope.uid}|${scope.orgId}` : null);
+
+export function createUniverseClient({ fetchImpl = globalThis.fetch?.bind(globalThis), getToken, baseUrl = '' } = {}, scope = null) {
   async function request(op, method, path, { body, idempotencyKey } = {}) {
     let token = null;
-    try { token = getToken ? await getToken() : null; } catch { token = null; }
+    // The token provider receives the scope the screen was opened for, so work is never sent under another account or organization.
+    try { token = getToken ? await getToken(scope) : null; } catch { token = null; }
     if (!token) return { state: 'unauthenticated' };
     const headers = { Authorization: `Bearer ${token}`, [CONTRACT_HEADER]: API_CONTRACT_VERSION };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -117,13 +121,28 @@ export function createUniverseClient({ fetchImpl = globalThis.fetch?.bind(global
       request('coachQueue', 'GET', `/api/coach/universe/submissions${query({ status, limit, cursor })}`),
     review: (submissionId, body, idempotencyKey) =>
       request('review', 'POST', `/api/coach/universe/submissions/${encodeURIComponent(submissionId)}/review`, { body, idempotencyKey }),
-    access: (planetIds) => request('access', 'POST', '/api/universe/access', { body: { planetIds } })
+    access: (planetIds) => request('access', 'POST', '/api/universe/access', { body: { planetIds } }),
+    /** The same adapter bound to one { uid, orgId }. Cheap: callers memoize it per scope; the base client stays shared. */
+    withScope: (next) => createUniverseClient({ fetchImpl, getToken, baseUrl }, next)
   };
 }
 
-/** The production client: signed-in Firebase user's ID token, same-origin or VITE_API_URL. */
+/**
+ * The production client: the signed-in Firebase user's ID token, same-origin or VITE_API_URL.
+ * Fails closed: no token without a scope, and none when the current user or the token's
+ * verified orgId claim differs from the scope (an account or organization changed meanwhile).
+ */
+export function scopedTokenProvider(auth) {
+  return async (scope) => {
+    const user = auth?.currentUser;
+    if (!scopeKey(scope) || !user || user.uid !== scope.uid) return null;
+    const result = await user.getIdTokenResult();
+    if (auth.currentUser !== user || result?.claims?.orgId !== scope.orgId) return null;
+    return result.token || null;
+  };
+}
 export function createDefaultUniverseClient({ auth, baseUrl }) {
-  return createUniverseClient({ baseUrl, getToken: async () => (auth?.currentUser ? auth.currentUser.getIdToken() : null) });
+  return createUniverseClient({ baseUrl, getToken: scopedTokenProvider(auth) });
 }
 
 /** Learner-facing wording for each result state. Never invents a server outcome. */

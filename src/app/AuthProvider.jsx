@@ -48,6 +48,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
     profile: null,
     role: null,
     classIds: [],
+    orgId: null,
     error: null,
     themePreference: 'system'
   });
@@ -62,14 +63,14 @@ export function AuthProvider({ children, onThemeLoaded }) {
       if (!user) {
         stopTimeTracking();
         clearImperativeOverlays();
-        setState({ status: 'signed-out', user: null, profile: null, role: null, classIds: [], error: null });
+        setState({ status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null, error: null });
         return;
       }
 
       // Also on sign-IN: switching accounts in one page load fires this with a
       // new user and never passes through the signed-out branch.
       clearImperativeOverlays();
-      setState((s) => ({ ...s, status: 'loading' }));
+      setState((s) => ({ ...s, status: 'loading', orgId: null }));
 
       const profile = await getUserProfile(user.uid, user.email);
 
@@ -80,7 +81,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
         // here is exactly what used to hand out coach access.
         await logoutUser();
         setState({
-          status: 'signed-out', user: null, profile: null, role: null, classIds: [],
+          status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null,
           error: 'Could not load your profile. Please sign in again.'
         });
         return;
@@ -95,7 +96,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
       if (profile.status === 'suspended') {
         await logoutUser();
         setState({
-          status: 'signed-out', user: null, profile: null, role: null, classIds: [],
+          status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null,
           error: 'This account is suspended. Please contact the school.'
         });
         return;
@@ -135,12 +136,18 @@ export function AuthProvider({ children, onThemeLoaded }) {
         ? claims.classIds
         : (Array.isArray(profile.classIds) ? profile.classIds : []);
 
+      // Organization scope comes only from the signed ID token claim, never the client-writable
+      // profile. Screens that keep organization data (My Universe missions, mission reviews)
+      // stay closed without it; the mission service re-verifies it on every request.
+      const orgId = typeof claims.orgId === 'string' && claims.orgId ? claims.orgId : null;
+
       setState({
         status: 'ready',
         user,
         profile,
         role,
         classIds,
+        orgId,
         themePreference,
         error: null
       });

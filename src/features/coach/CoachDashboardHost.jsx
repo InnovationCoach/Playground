@@ -15,7 +15,7 @@ import { CoachUniverseSubmissions } from './universe/CoachUniverseSubmissions.js
  * "My classes" (programs and join codes) is React and sits above it, outside
  * that subtree.
  */
-export function CoachDashboardHost({ coachUser }) {
+export function CoachDashboardHost({ coachUser, orgId = null }) {
   const containerRef = useRef(null);
   const instanceRef = useRef(null);
 
@@ -54,7 +54,7 @@ export function CoachDashboardHost({ coachUser }) {
   return (
     <>
       <ClassProgramsPanel coachUser={coachUser} />
-      <CoachUniverseSubmissions coachUser={coachUser} />
+      <CoachUniverseSubmissions coachUser={coachUser} orgId={orgId} />
       <div id="coach-dashboard-card" ref={containerRef} />
     </>
   );

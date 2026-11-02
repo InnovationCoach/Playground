@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { FIXTURE_RELEASES } from '../shared/universe/fixtures/index.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FIXTURE_RELEASES, REFERENCE_ARTIFACTS } from '../shared/universe/fixtures/index.js';
 import { createSyntheticService, SYNTHETIC_PEOPLE } from './universe-preview/syntheticUniverseService.js';
 import { createUniverseClient } from '../src/features/universe/pilot/universeClient.js';
 
@@ -14,7 +14,7 @@ const settle = async (n = 8) => { for (let i = 0; i < n; i++) await act(async ()
 const click = async (el) => { await act(async () => el.click()); await settle(); };
 const button = (name, scope = host) => [...scope.querySelectorAll('button')].find((b) => b.textContent.trim() === name);
 const coachClient = (who = 'rivera') => createUniverseClient({ fetchImpl: service.fetchFor(SYNTHETIC_PEOPLE[who]), getToken: async () => 'synthetic' });
-const render = async (client = coachClient()) => { await act(async () => root.render(<CoachUniverseSubmissions coachUser={SYNTHETIC_PEOPLE.rivera} client={client} registry={FIXTURE_RELEASES} />)); await settle(); };
+const render = async (client = coachClient()) => { await act(async () => root.render(<CoachUniverseSubmissions coachUser={SYNTHETIC_PEOPLE.rivera} orgId={SYNTHETIC_PEOPLE.rivera.orgId} client={client} registry={FIXTURE_RELEASES} />)); await settle(); };
 const typeNote = async (el, v) => act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); });
 
 beforeEach(() => {
@@ -79,5 +79,81 @@ describe('Coach mission reviews (contract 0.1.1)', () => {
     await click(card.querySelectorAll('.coach-universe-decision input')[1]);
     await click(button('Record approval', card));
     expect(text()).toMatch(/already reviewed this attempt|No mission work is waiting/);
+  });
+
+  it('stays closed and requests nothing until the coach’s organization is confirmed', async () => {
+    const fetchImpl = vi.fn(service.fetchFor(SYNTHETIC_PEOPLE.rivera));
+    await act(async () => root.render(<CoachUniverseSubmissions coachUser={SYNTHETIC_PEOPLE.rivera} orgId={null} client={createUniverseClient({ fetchImpl, getToken: async () => 's' })} registry={FIXTURE_RELEASES} />)); await settle();
+    expect(text()).toMatch(/Mission reviews open once your school account is confirmed/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('removes the old organization’s queue in the same render and ignores its late reply', async () => {
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    const north = coachClient();
+    const slow = { ...north, withScope() { return slow; }, coachQueue: async (q) => { const r = await north.coachQueue(q); await gate; return r; } };
+    await render(); // org-north, answered: Ben visible
+    expect(text()).toContain('Ben (synthetic)');
+    await act(async () => root.render(<CoachUniverseSubmissions coachUser={SYNTHETIC_PEOPLE.rivera} orgId="org-north" client={slow} registry={FIXTURE_RELEASES} />));
+    await click(host.querySelector('.coach-refresh-btn')); // a north reply is now in flight
+    const southCoach = { ...SYNTHETIC_PEOPLE.rivera, orgId: 'org-south' };
+    const south = createUniverseClient({ fetchImpl: service.fetchFor(southCoach), getToken: async () => 's' });
+    await act(async () => root.render(<CoachUniverseSubmissions coachUser={SYNTHETIC_PEOPLE.rivera} orgId="org-south" client={south} registry={FIXTURE_RELEASES} />));
+    expect(text()).not.toContain('Ben (synthetic)'); // same render: the north queue is gone
+    await settle();
+    await act(async () => release()); await settle();
+    expect(text()).not.toContain('Ben (synthetic)'); // the late north reply never lands in the south queue
+    expect(text()).toContain('Chen (synthetic)'); // org-south's own record, from the south service
+  });
+
+  it('ignores a slow reply from a tab the coach has already left', async () => {
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    const base = coachClient();
+    const client = { ...base, withScope() { return client; }, coachQueue: async (q) => { const r = await base.coachQueue(q); if (q.status === 'submitted') await gate; return r; } };
+    await render(client);
+    expect(text()).toContain('Loading mission submissions');
+    await click(button('Returned for revision'));
+    expect(host.querySelector('.coach-universe-item').textContent).toContain('Amira (synthetic)');
+    await act(async () => release()); await settle();
+    expect(text()).not.toContain('Ben (synthetic)');
+    expect(host.querySelectorAll('.coach-universe-item')).toHaveLength(1);
+  });
+
+  it('clears loaded learner work when the service stops accepting this coach (401 or 403)', async () => {
+    let denied = null;
+    const real = service.fetchFor(SYNTHETIC_PEOPLE.rivera);
+    const fetchImpl = async (url, init) => (denied ? new Response(JSON.stringify({ contractVersion: '1.0.0', error: { code: 'FORBIDDEN', message: 'Not your class any more.' } }), { status: denied }) : real(url, init));
+    await render(createUniverseClient({ fetchImpl, getToken: async () => 's' }));
+    expect(text()).toContain('Ben (synthetic)');
+    denied = 401;
+    await click(host.querySelector('.coach-refresh-btn'));
+    expect(text()).not.toContain('Ben (synthetic)');
+    expect(text()).toMatch(/couldn’t be loaded, so this isn’t an empty queue/);
+    denied = null;
+    await click(button('Try again'));
+    expect(text()).toContain('Ben (synthetic)');
+    denied = 403; // a review refused for scope clears the queue too
+    const card = host.querySelector('.coach-universe-item');
+    await typeNote(card.querySelector('textarea'), 'Please add units.');
+    await click(button('Return to learner', card));
+    expect(text()).not.toContain('Ben (synthetic)');
+    expect(text()).toMatch(/Not your class any more/);
+  });
+
+  it('F8: keeps paging past a bounded window with nobody from the coach’s current classes, without claiming the queue is empty', async () => {
+    const moved = { uid: 'synthetic-learner-moved', displayName: 'Moved learner (synthetic)', orgId: 'org-north', classIds: ['class-7b'], role: 'student' };
+    const request = REFERENCE_ARTIFACTS.find((a) => a.name === 'spacecraft-journey-advanced').request;
+    for (let i = 0; i < 21; i++) service.addSubmission({ ...moved, uid: `${moved.uid}-${i}` }, 'spacecraft-journey', request, `2026-11-02T0${i % 9}:${String(i).padStart(2, '0')}:00Z`);
+    await render();
+    expect(host.querySelectorAll('.coach-universe-item')).toHaveLength(0);
+    expect(text()).not.toContain('No mission work is waiting');
+    expect(text()).toMatch(/The list isn’t finished: load more to keep checking/);
+    await click(button('Load more'));
+    expect(host.querySelectorAll('.coach-universe-item')).toHaveLength(1);
+    expect(text()).toContain('Ben (synthetic)');
+    expect(button('Load more')).toBeUndefined();
+    expect(text()).not.toContain('Moved learner');
   });
 });

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Lightbulb, Eye, ChevronLeft, ChevronRight, Send, RefreshCw, History, ClipboardList, BookOpen, CloudOff, Cloud, AlertTriangle, PenLine } from 'lucide-react';
-import { checkNumber, displayAnswer, canonicalStringify } from '../../../../shared/universe/index.js';
+import { checkNumber, displayAnswer, canonicalStringify, getMissionDecision, getSupportDescription } from '../../../../shared/universe/index.js';
 import {
   identityFor, identityKey, sameIdentity, routeDatasets, emptyWork, withAnswer, partStatus,
   draftBody, submissionBody, checkSubmission, checkDraft, workFromSaved, codePoints
@@ -8,6 +8,7 @@ import {
 import { NotebookPart, EvidenceView, Counter, partTitle } from './NotebookParts.jsx';
 import { newIdempotencyKey, describeFailure } from './universeClient.js';
 import { DatasetView } from './DatasetView.jsx';
+import { useDialogFocus } from './dialogFocus.js';
 import './pilot.css';
 
 const AUTOSAVE_MS = 1200;
@@ -27,11 +28,30 @@ export function restorable(registry, identity, d) {
 }
 const STATUS_TEXT = { submitted: 'Sent · waiting for your coach', returned: 'Returned for revision', approved: 'Reviewed by your coach' };
 
+export function timeMs(ts) {
+  if (!ts) return NaN;
+  return typeof ts === 'string' ? Date.parse(ts) : ts.seconds != null ? ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6) : ts._seconds != null ? ts._seconds * 1000 : NaN;
+}
+
 export function formatTime(ts) {
-  if (!ts) return '';
-  const ms = typeof ts === 'string' ? Date.parse(ts) : ts.seconds != null ? ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6) : ts._seconds != null ? ts._seconds * 1000 : NaN;
+  const ms = timeMs(ts);
   if (!Number.isFinite(ms)) return '';
   return new Date(ms).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+/** Answers that mean this screen may no longer speak for the signed-in learner: drop what it holds privately. */
+export const isScopeFailure = (r) => r?.state === 'unauthenticated' || (r?.state === 'error' && (r.status === 403 || r.code === 'FORBIDDEN'));
+
+/**
+ * Revising a returned attempt continues from whichever is newer: the account draft (kept,
+ * with its revision, when work is sent) or the returned attempt. A draft already linked to
+ * this attempt, or saved after it was sent, holds newer work and is never overwritten.
+ */
+export function draftIsNewer(draft, attempt) {
+  if (!draft) return false;
+  if (draft.previousSubmissionId === attempt.submissionId) return true;
+  const saved = timeMs(draft.updatedAt), sent = timeMs(attempt.createdAt);
+  return Number.isFinite(saved) && Number.isFinite(sent) && saved > sent;
 }
 
 export const availabilityOf = (result) => (result?.state === 'loaded' ? result.data.availability : null);
@@ -97,7 +117,7 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
     const res = await client.mySubmissions({ missionId: mission.id, limit: 20, cursor });
     if (!alive.current) return;
     if (res.state === 'loaded') setHistory((h) => ({ state: 'loaded', items: cursor ? [...h.items, ...(res.data.submissions || [])] : res.data.submissions || [], nextCursor: res.data.nextCursor || null }));
-    else setHistory((h) => ({ ...h, state: 'error', result: res }));
+    else setHistory((h) => (isScopeFailure(res) ? { state: 'error', result: res, items: [], nextCursor: null } : { ...h, state: 'error', result: res }));
   }, [client, mission.id]);
   useEffect(() => { loadHistory(); }, [loadHistory]);
   // Optional deep link ({ route, view, step }) so previews and device checks can open a state directly.
@@ -120,19 +140,36 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
   }, [client]);
 
   // Choosing a route opens that exact task's own draft: work never moves between routes.
-  async function chooseRoute(r, seed) {
+  // `revising` (a returned attempt) waits for the account draft, then continues from the newer of the two.
+  async function chooseRoute(r, { seed, revising } = {}) {
     const id = identityFor(bundle, mission, r), k = identityKey(id);
     setRouteId(r.id); setView('work'); setSend({ state: 'idle' });
     if (seed) { edited.current[k] = true; setWorks((all) => ({ ...all, [k]: seed })); setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), state: 'not-saved' } })); }
-    else setWorks((all) => (all[k] ? all : { ...all, [k]: emptyWork(r, { supportMode: Object.values(all)[0]?.supportMode }) }));
+    else if (!revising) setWorks((all) => (all[k] ? all : { ...all, [k]: emptyWork(r, { supportMode: Object.values(all)[0]?.supportMode }) }));
     checkAvailability(id, k);
-    if (saves[k]?.loaded) return;
+    if (saves[k]?.loaded && !revising) return;
     setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), state: all[k]?.state || 'not-saved', loading: true, loadError: null } }));
     const res = await client.getDraft(id);
     if (!alive.current) return;
-    if (res.state !== 'loaded') { setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), loading: false, state: all[k]?.state || 'not-saved', loadError: res } })); return; }
+    const fromAttempt = revising ? workFromSaved(r, revising, { previousSubmissionId: revising.submissionId }) : null;
+    if (res.state !== 'loaded') {
+      // The attempt stays readable; saving is paused (loadError) so an unseen account draft is never overwritten.
+      if (fromAttempt) setWorks((all) => ({ ...all, [k]: fromAttempt }));
+      setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), loading: false, state: all[k]?.state || 'not-saved', loadError: res } }));
+      return;
+    }
     const d = res.data.draft;
+    if (revising && (!d || restorable(registry, id, d))) {
+      const keep = draftIsNewer(d, revising);
+      const linked = keep && d.previousSubmissionId === revising.submissionId;
+      edited.current[k] = !linked;
+      setWorks((all) => ({ ...all, [k]: keep ? workFromSaved(r, d, { previousSubmissionId: revising.submissionId }) : fromAttempt }));
+      // Saving continues from the account draft's revision, so there is no false conflict and nothing newer is lost.
+      setSaves((all) => ({ ...all, [k]: { state: linked ? 'saved' : 'not-saved', loading: false, loaded: true, revision: d?.revision ?? 0, updatedAt: d?.updatedAt } }));
+      return;
+    }
     if (d && !restorable(registry, id, d)) {
+      if (fromAttempt) setWorks((all) => ({ ...all, [k]: fromAttempt }));
       // A saved draft that doesn't fit this exact task is never restored as blank or relabelled work.
       setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), loading: false, state: all[k]?.state || 'not-saved', loadError: { state: 'error', code: 'MALFORMED_RESPONSE', message: 'Your saved work for this task couldn’t be read, so it wasn’t loaded. Nothing has been overwritten.' } } }));
       return;
@@ -207,17 +244,22 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
 
   function revise(item) {
     const r = mission.routes.find((x) => x.id === item.routeId);
+    const k = identityKey(identityFor(bundle, mission, r)), w = works[k], s = saves[k];
     setReviseFrom(item);
-    chooseRoute(r, workFromSaved(r, item, { previousSubmissionId: item.submissionId }));
+    // Work already on this screen that is newer than the returned attempt (unsaved edits, or saved after it was sent) is kept and linked.
+    if (s?.loaded && !s.loadError && w && (w.previousSubmissionId === item.submissionId || (edited.current[k] && s.state !== 'saved') || draftIsNewer({ updatedAt: s.updatedAt }, item))) {
+      chooseRoute(r, { seed: { ...w, previousSubmissionId: item.submissionId } });
+      return;
+    }
+    chooseRoute(r, { revising: item });
   }
 
-  function onKeyDown(e) {
-    if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); onClose(); }
-  }
+  const sheetRef = useRef(null);
+  const onKeyDown = useDialogFocus(sheetRef, onClose, heading);
 
   const draftLabel = bundle.status !== 'published';
   return <div className="mx-mission-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-    <section className="mx-mission px-sheet" role="dialog" aria-modal="true" aria-labelledby="px-title" onKeyDown={onKeyDown}>
+    <section className="mx-mission px-sheet" role="dialog" aria-modal="true" aria-labelledby="px-title" onKeyDown={onKeyDown} ref={sheetRef}>
       <header className="mx-mission-top">
         <div>
           <span className="mx-eyebrow">Mission{route ? ` · ${route.name}` : ' · Briefing'}</span>
@@ -261,7 +303,7 @@ function Briefing({ bundle, mission, onChoose, history, onHistory }) {
     <p className="mx-question">{mission.drivingQuestion}</p>
     <p><strong>Your role:</strong> {mission.role}</p>
     <p>{mission.scenario}</p>
-    <p><strong>Your decision:</strong> {mission.decision}</p>
+    <p><strong>Your decision:</strong> {getMissionDecision(mission)}</p>
     <details className="px-drawer"><summary><BookOpen size={15} aria-hidden="true" />Evidence for this mission</summary>
       {(mission.evidenceRefs || []).map((id) => bundle.datasets.find((d) => d.id === id)).filter(Boolean).map((d) => <DatasetView key={d.id} dataset={d} />)}
     </details>
@@ -302,7 +344,7 @@ function Support({ route, work, setWork }) {
   return <fieldset className="px-support"><legend>Help style</legend>
     {route.supportModes.map((m) => <label key={m}><input type="radio" name="px-support" checked={work.supportMode === m} onChange={() => setWork((w) => ({ ...w, supportMode: m }))} />
       {m === 'guided' ? 'Guided' : 'Independent'}</label>)}
-    <small className="mx-muted">{route.supportPresentation?.[work.supportMode]} Switching keeps all your work and is never a lower grade.</small>
+    <small className="mx-muted">{getSupportDescription(work.supportMode)} Either help style is an equal way to do this task.</small>
   </fieldset>;
 }
 
@@ -442,13 +484,16 @@ function SendResult({ send }) {
 function HistoryView({ bundle, mission, history, onMore, onRetry, onRevise, openAttempt }) {
   if (history.state === 'loading' || history.state === 'idle') return <p role="status">Loading your attempts…</p>;
   if (history.state === 'error') return <div className="px-alert" role="alert"><AlertTriangle size={16} aria-hidden="true" /><p>Your attempts couldn’t be loaded. {describeFailure(history.result)} <button type="button" className="px-link" onClick={onRetry}><RefreshCw size={14} aria-hidden="true" />Try again</button></p></div>;
-  if (!history.items.length) return <p>No attempts sent for this mission yet.</p>;
+  const more = history.nextCursor && <button type="button" className="px-ghost" disabled={history.state === 'more'} onClick={onMore}>{history.state === 'more' ? 'Loading…' : 'Show older attempts'}</button>;
+  // A page can be empty while more follow; only a final empty page means there are none.
+  if (!history.items.length) return history.nextCursor ? <><p>No attempts on this page yet. Older attempts may follow.</p>{more}</> : <p>No attempts sent for this mission yet.</p>;
   return <>
     <h3>My attempts</h3>
     <ul className="px-history">{history.items.map((s) => {
       const r = mission.routes.find((x) => x.id === s.routeId);
       const exact = !!r && sameIdentity(s, identityFor(bundle, mission, r));
-      const canRevise = s.status === 'returned' && !s.legacyFormat && exact && !openAttempt;
+      const superseded = history.items.some((x) => x.previousSubmissionId === s.submissionId);
+      const canRevise = s.status === 'returned' && !s.legacyFormat && exact && !openAttempt && !superseded;
       return <li key={s.submissionId} className={`px-attempt is-${s.status}`}>
         <header><strong>Attempt {s.attemptNumber ?? '?'}</strong><span className={`px-pill is-${s.status}`}>{STATUS_TEXT[s.status] || s.status}</span></header>
         <p className="px-meta">{s.legacyFormat ? 'Earlier reflection-only format · ' : ''}Version {s.missionVersion} · {r?.name || s.routeId} · {s.supportMode === 'independent' ? 'Independent' : s.supportMode === 'guided' ? 'Guided' : 'help style not recorded'} help · sent {formatTime(s.createdAt)}{s.reviewedAt ? ` · reviewed ${formatTime(s.reviewedAt)}` : ''}</p>
@@ -458,9 +503,25 @@ function HistoryView({ bundle, mission, history, onMore, onRetry, onRevise, open
         {!exact && !s.legacyFormat && <p className="px-fine">This attempt used a different version of the task. It stays read-only.</p>}
         <details><summary>What was sent</summary><p className="px-pre">{s.reflection}</p>{!s.legacyFormat && <EvidenceView evidence={s.evidence} route={r} />}</details>
         {canRevise && <button type="button" className="mx-primary" onClick={() => onRevise(s)}><PenLine size={15} aria-hidden="true" />Revise and resend</button>}
-        {s.status === 'returned' && openAttempt && <p className="px-fine">A newer attempt is waiting for review.</p>}
+        {s.status === 'returned' && (openAttempt || superseded) && <p className="px-fine">{superseded ? 'You already sent a revision of this attempt.' : 'A newer attempt is waiting for review.'}</p>}
       </li>;
     })}</ul>
-    {history.nextCursor && <button type="button" className="px-ghost" disabled={history.state === 'more'} onClick={onMore}>{history.state === 'more' ? 'Loading…' : 'Show older attempts'}</button>}
+    {more}
   </>;
+}
+
+/** Shown instead of a mission when the signed-in learner's organization isn't confirmed: nothing is requested or kept. */
+export function MissionSignInNotice({ mission, onClose }) {
+  const ref = useRef(null), heading = useRef(null);
+  const onKeyDown = useDialogFocus(ref, onClose, heading);
+  useEffect(() => { heading.current?.focus(); }, []);
+  return <div className="mx-mission-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <section className="mx-mission px-sheet" role="dialog" aria-modal="true" aria-labelledby="px-signin-title" onKeyDown={onKeyDown} ref={ref}>
+      <header className="mx-mission-top">
+        <div><span className="mx-eyebrow">Mission</span><h2 id="px-signin-title" ref={heading} tabIndex={-1}>{mission.title}</h2></div>
+        <button type="button" className="mx-icon" onClick={onClose} aria-label="Close mission"><X size={20} aria-hidden="true" /></button>
+      </header>
+      <div className="mx-mission-body"><p role="status">Missions open once you’re signed in with a school account we can confirm. Nothing from this mission has been loaded or saved.</p></div>
+    </section>
+  </div>;
 }
