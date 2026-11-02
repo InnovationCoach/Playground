@@ -156,4 +156,35 @@ describe('Coach mission reviews (contract 0.1.1)', () => {
     expect(button('Load more')).toBeUndefined();
     expect(text()).not.toContain('Moved learner');
   });
+
+  it('keeps a legacy reflection-only submission readable but never offers or sends a review for it', async () => {
+    const ben = service.submissions.find((x) => x.learnerUid === SYNTHETIC_PEOPLE.ben.uid);
+    Object.assign(ben, { legacyFormat: true, evidence: [] });
+    const real = service.fetchFor(SYNTHETIC_PEOPLE.rivera);
+    const fetchImpl = vi.fn(real);
+    await render(createUniverseClient({ fetchImpl, getToken: async () => 's' }));
+    const card = host.querySelector('.coach-universe-item');
+    expect(card.textContent).toContain('Ben (synthetic)');
+    expect(card.textContent).toMatch(/Earlier reflection-only format: kept for reading only\. It can’t be approved or returned in this pilot\./);
+    expect(card.querySelector('.coach-universe-reflection').textContent).toContain(ben.reflection.slice(0, 40));
+    expect(card.querySelector('form, textarea, .coach-universe-decision')).toBeNull();
+    expect(button('Return to learner', card)).toBeUndefined();
+    expect(button('Record approval', card)).toBeUndefined();
+    expect(fetchImpl.mock.calls.some(([url, init]) => /\/review$/.test(new URL(url, 'http://x').pathname) || init?.method === 'POST')).toBe(false);
+    expect(ben).toMatchObject({ status: 'submitted', submissionRevision: 1 });
+  });
+
+  it('still offers review for a current-format submission alongside a legacy one', async () => {
+    service.addSubmission({ ...SYNTHETIC_PEOPLE.amira }, 'spacecraft-journey', REFERENCE_ARTIFACTS.find((a) => a.name === 'spacecraft-journey-guided').request, '2026-11-02T08:00:00Z');
+    Object.assign(service.submissions.find((x) => x.learnerUid === SYNTHETIC_PEOPLE.ben.uid), { legacyFormat: true });
+    await render();
+    const cards = [...host.querySelectorAll('.coach-universe-item')];
+    const amira = cards.find((c) => c.textContent.includes('Amira'));
+    const legacy = cards.find((c) => c.textContent.includes('Ben'));
+    expect(amira.querySelector('form')).toBeTruthy();
+    expect(legacy.querySelector('form')).toBeNull();
+    await typeNote(amira.querySelector('textarea'), 'Add the arrival date to the route plan.');
+    await click(button('Return to learner', amira));
+    expect(amira.textContent).toMatch(/Feedback: “Add the arrival date/);
+  });
 });

@@ -105,6 +105,7 @@ function SubmissionCard({ s, client, registry, onReviewed, onConflict, onLostSco
   const noteOk = decision === 'approved' ? Array.from(note).length <= 1000 : note.trim().length >= 1 && Array.from(note).length <= 1000;
 
   async function review() {
+    if (s.legacyFormat || s.status !== 'submitted') return; // historical records stay read-only under the pilot contract
     const body = { decision, note: note.trim(), expectedSubmissionRevision: s.submissionRevision };
     const text = JSON.stringify(body);
     if (idem.current.body !== text) idem.current = { body: text, key: newIdempotencyKey() };
@@ -142,7 +143,8 @@ function SubmissionCard({ s, client, registry, onReviewed, onConflict, onLostSco
       {outcomeText(s) && <p>{outcomeText(s)}</p>}
       {s.reviewedAt && <p className="coach-universe-fine">Reviewed {formatTime(s.reviewedAt)}{s.auditEventId ? ` · record ${s.auditEventId}` : ''}</p>}
     </div>}
-    {s.status === 'submitted' && (ownWork ? <p className="coach-universe-fine">You can’t review your own work.</p> : <form className="coach-universe-review-form" onSubmit={(e) => { e.preventDefault(); review(); }}>
+    {s.status === 'submitted' && s.legacyFormat && <p className="coach-universe-fine coach-universe-legacy" role="note">Earlier reflection-only format: kept for reading only. It can’t be approved or returned in this pilot.</p>}
+    {s.status === 'submitted' && !s.legacyFormat && (ownWork ? <p className="coach-universe-fine">You can’t review your own work.</p> : <form className="coach-universe-review-form" onSubmit={(e) => { e.preventDefault(); review(); }}>
       <fieldset className="coach-universe-decision"><legend>Decision</legend>
         <label><input type="radio" name={`d-${s.submissionId}`} checked={decision === 'returned'} onChange={() => setDecision('returned')} /><RotateCcw size={14} aria-hidden="true" /> Return for revision</label>
         <label><input type="radio" name={`d-${s.submissionId}`} checked={decision === 'approved'} onChange={() => setDecision('approved')} /><Check size={14} aria-hidden="true" /> Approve (reviewed)</label>
