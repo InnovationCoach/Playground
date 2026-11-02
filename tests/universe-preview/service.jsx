@@ -12,6 +12,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+// Preview-only switches: ?text=1 forces the text view, ?metrics=1 shows the explorer's existing render counters.
+const PARAMS = new URLSearchParams(location.search);
 const root = createRoot(document.getElementById('root'));
 
 const DEMO = Object.freeze({
@@ -142,6 +144,7 @@ async function start() {
     const t = taskEntry(task);
     const bar = <details className="sv-bar" open aria-label="Emulator demo controls">
       <summary>EMULATOR DEMO CONTROLS · not part of the learner UI</summary>
+      {PARAMS.get('metrics') === '1' && <p><strong>Metrics overlay on</strong> (preview switch <code>?metrics=1</code>; not in the learner app).</p>}
       <p>Local Auth emulator <code>{DEMO.authEmulator}</code> · mission service <code>{DEMO.api}</code> · project <code>{DEMO.firebase.projectId}</code>. Synthetic actors and fixture tasks only.</p>
       <h3>1. Actor</h3>
       <div className="sv-row">{Object.entries(DEMO.actors).map(([id, a]) => <button key={id} type="button" disabled={busy} onClick={() => signIn(id)}>{a.label}</button>)}
@@ -154,6 +157,7 @@ async function start() {
       <h3>3. Open the real screens</h3>
       <div className="sv-row">
         <button type="button" disabled={!viewer} onClick={() => { setOpen((n) => n + 1); setView('explorer'); }}>Open mission sheet</button>
+        <button type="button" disabled={!viewer} onClick={() => { setOpen((n) => n + 1); setView('explore'); }}>Open explorer only</button>
         <button type="button" disabled={!viewer} onClick={() => setView('coach')}>Open coach queue</button>
         <button type="button" disabled={!viewer} onClick={rememberLearnerSubmissions}>List my submissions</button>
         <button type="button" disabled={busy || !viewer} onClick={crossOrgCheck}>Cross-organization check</button>
@@ -162,9 +166,9 @@ async function start() {
       {log.length ? log.map((e, i) => <div key={i}><p><strong>{e.at} · {e.title}</strong></p><pre>{JSON.stringify(e.value, null, 2)}</pre></div>) : <p>Nothing yet.</p>}
     </details>;
 
-    if (view === 'explorer' && viewer) return <>{bar}<MyUniverseExplorer key={`${viewer.uid}|${viewer.orgId}|${open}`} preview catalogUrl={catalogUrl} forceTextView={new URLSearchParams(location.search).get('text') === '1'}
-      missionRegistry={FIXTURE_RELEASES} missionClient={client} viewer={viewer} allowInReviewMissions onClose={() => setView('home')}
-      initialMission={{ id: t.entry.mission.id, route: t.route.id }} /></>;
+    if ((view === 'explorer' || view === 'explore') && viewer) return <>{bar}<MyUniverseExplorer key={`${viewer.uid}|${viewer.orgId}|${open}|${view}`} preview catalogUrl={catalogUrl} forceTextView={PARAMS.get('text') === '1'}
+      showMetrics={PARAMS.get('metrics') === '1'} missionRegistry={FIXTURE_RELEASES} missionClient={client} viewer={viewer} allowInReviewMissions onClose={() => setView('home')}
+      initialMission={view === 'explorer' ? { id: t.entry.mission.id, route: t.route.id } : null} /></>;
     if (view === 'coach' && viewer) return <>{bar}<main className="sv-coach">
       <CoachUniverseSubmissions coachUser={{ uid: viewer.uid, displayName: ctx.email }} orgId={viewer.orgId} client={client} registry={FIXTURE_RELEASES} /></main></>;
     return <>{bar}<main className="sv-home"><h1>My Universe · local service demo</h1>

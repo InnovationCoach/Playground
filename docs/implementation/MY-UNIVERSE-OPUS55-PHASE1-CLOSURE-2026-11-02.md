@@ -255,3 +255,53 @@ The Claude desktop in-app browser on this Mac (Chromium-based; user agent `Claud
 **Not verified:** no browser run against the production host with a real token whose `orgId` claim changes mid-session (it would need a claim change on a live or emulated account through the real `index.html`). This is covered by the provider tests only.
 
 The writer turn for `pilot-frontend` is released after the docs commit. GPT integrates. Nothing was pushed or deployed.
+
+## 9. Final bounded UI check: legacy coach work and this Mac
+
+### Legacy submissions are read-only
+- `CoachUniverseSubmissions` no longer renders the decision form for a `legacyFormat: true` record, even while its `status` is `submitted`.
+  - It shows: "Earlier reflection-only format: kept for reading only. It can’t be approved or returned in this pilot."
+  - The reflection and the record's other details stay readable.
+- `review()` also returns early for a legacy or non-submitted record, so no other path can send a review.
+- Current-format records keep the same review behaviour.
+- **Tests** (`tests/coach-universe-submissions.test.jsx`):
+  - A legacy submitted card shows the wording and the reflection. It has no form, textarea, decision, "Return to learner" or "Record approval". No review POST is made, and the record stays `submitted` at revision 1.
+  - With a current-format card on the same screen, the current card can still be returned through the service.
+  - Against the previous card, both tests fail.
+
+### This Mac: short real 3D sample with the existing `showMetrics`
+- **Preview-only switch:** `?metrics=1` in `tests/universe-preview/service.html` passes the explorer's existing `showMetrics`. The control panel also gained "Open explorer only" (the explorer with no mission open).
+- Nothing in `src` passes `showMetrics`; the learner app's default is `false`, and the production build contains no `metrics=1`.
+- **Setup:** Claude desktop in-app browser (Chromium; `Claude/4.4212.0 Chrome/152.0.7977.167`), viewport 664×695 CSS px at DPR 2. WebGL renderer `ANGLE (Apple, ANGLE Metal Renderer: Apple M5)`. Vite dev server with high detail unless noted.
+- **Signed in:** synthetic learner on the local Auth emulator.
+
+| Moment | Overlay (FPS is the explorer's own rolling sample; "idle" means no frame rendered in the last 1.6 s) | Observed timing |
+|---|---|---|
+| Page load (`service.html`) | n/a | `domContentLoaded` 35 ms, 57 resources (dev server, warm cache) |
+| Universe, after "Open explorer only" | idle · renders on demand · 13 draw calls · 540 tris · 8 geometries · 9 textures | 135 ms from click to canvas plus first counters |
+| Select Lyra Spiral | idle · 15 calls · 796 tris · 9 geometries · 9 textures | — |
+| Travel into Lyra Spiral | 62 → 60 fps · 3 calls · 0 tris (point stars) · 9 geometries · 6 textures | Panel heading changed at ~102 ms; travel 1.8 s |
+| Galaxy level after travel | **still 60 fps 3+ s after arriving**, so the galaxy level keeps rendering frames rather than going idle | — |
+| Visit Lyra Prime (system) | 52 → 60 fps · 22 calls · 16,638 tris · 19 geometries · 11 textures | Heading at ~101 ms |
+| Select Thalassa at system level | idle · 24 calls · 16,894 tris · 20 geometries · 11 textures | — |
+| Inspect Thalassa (planet) | 51 → 60 fps · 9 calls · 20,262 tris · 7 geometries · 6 textures | Heading at ~146 ms |
+| Land on Thalassa (surface) | 48 → 60 fps · 43 calls · 85,410 tris · 46 geometries · 0 textures. Continuous by design (animated surface while motion is on). Standard detail: 43 calls · 34,914 tris at 60 fps. | Heading at ~257 ms. The lazy chunks (`ExplorerEnvironment.jsx` 45 ms, `environmentKit.jsx` 2 ms, `thalassaWindSurvey.js` 5 ms) were already warm from earlier visits. |
+
+**Reading the sample**
+- FPS dips to about 48–52 only during camera travel and recovers to 60.
+- The counts are renderer counters (draw calls, triangles, geometries, textures), not memory in bytes.
+- This is one M5 Mac in a Chromium-based in-app browser on a dev server. It is not a phone or tablet figure, and no device performance budget is claimed from it.
+- **Observation for a later explorer turn (not changed here):** the galaxy and planet levels kept rendering at 60 fps after travel ended, while the universe and system-selection states went idle. If the on-demand loop is meant to stop there too, something at those levels keeps requesting frames.
+
+**Captures:** `captures/service-demo/13-metrics-universe-idle.jpg` and `14-metrics-thalassa-surface.jpg`.
+
+### Checks
+
+| Suite | Result |
+|---|---|
+| Scratch Universe include | 13 files, 114/114 |
+| Committed `tests/universe-preview/vitest.config.js` | 62/62 |
+| Shared contracts | 23/23 |
+| `npm run build` | Passed. 0 matches for fixtures, demo config or `metrics=1`. |
+
+**Next:** physical student-device testing is the round Mani requested, and it was not done here. This check is complete, and the `pilot-frontend` writer turn is released. Nothing was pushed or deployed.
