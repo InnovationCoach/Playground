@@ -1,0 +1,22 @@
+{
+  "candidateCodeCommit": "d2b78afb6c31b11c6b6f23d3870f0870e371c87b",
+  "productionGraphInputs": 36,
+  "fixtureInputs": 0,
+  "fixtureLeakCheck": "passed",
+  "catalogUnchanged": true,
+  "acceptedBundleBytesUnchanged": true,
+  "firestoreRulesSha256": "a7937ed926de85fbb916888f5487c6c25e50c90a0bd74bed9bc478179b60dd71",
+  "functionsBundleSha256": "0f1811ddf4e6c975e9c4861fc345ae81f8cf688cc147d9df5fb37914a333d8ca",
+  "runtimeVerified": "v22.23.4 (isolated import outside checkout)",
+  "tests": {
+    "ui": 114,
+    "api": 65,
+    "rules": 131,
+    "unit": 537,
+    "shared": 23,
+    "authoring": 114,
+    "independentCalculations": 30,
+    "routeFlows": 3,
+    "entrySafety": 4
+  }
+}
