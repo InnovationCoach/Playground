@@ -104,7 +104,7 @@ function formatDraftSnapshot(draftId, data) {
  * with the exact same task identity (releaseId, missionId, missionVersion, routeId, taskId, policyVersion)
  * and is not a legacy reflection-only submission (B5).
  */
-function verifyPreviousSubmissionLink(prevSubSnap, caller, identity, { lockData = null, enforceLatestForSubmission = false } = {}) {
+function verifyPreviousSubmissionLink(prevSubSnap, caller, identity) {
   if (!prevSubSnap.exists) {
     const err = new Error('Referenced previous submission was not found.');
     err.statusCode = 404;
@@ -160,34 +160,6 @@ function verifyPreviousSubmissionLink(prevSubSnap, caller, identity, { lockData 
     throw err;
   }
 
-  if (enforceLatestForSubmission && lockData) {
-    const consumed = Array.isArray(lockData.consumedReturnedIds) ? lockData.consumedReturnedIds : [];
-    if (consumed.includes(prevSubSnap.id)) {
-      const err = new Error('previousSubmissionId has already been superseded by a newer attempt.');
-      err.statusCode = 409;
-      err.code = 'MISSION_NOT_OPEN';
-      err.field = 'previousSubmissionId';
-      throw err;
-    }
-
-    const taskKey = getTaskStatusOverrideDocId(identity);
-    const latestForTask = lockData.lastReturnedByTask?.[taskKey];
-    if (latestForTask && latestForTask !== prevSubSnap.id) {
-      const err = new Error('previousSubmissionId does not match your latest returned attempt for this task.');
-      err.statusCode = 409;
-      err.code = 'MISSION_NOT_OPEN';
-      err.field = 'previousSubmissionId';
-      throw err;
-    }
-    if (!lockData.lastReturnedByTask && lockData.lastReturnedSubmissionId && lockData.lastReturnedSubmissionId !== prevSubSnap.id) {
-      const err = new Error('previousSubmissionId does not match your latest returned attempt.');
-      err.statusCode = 409;
-      err.code = 'MISSION_NOT_OPEN';
-      err.field = 'previousSubmissionId';
-      throw err;
-    }
-  }
-
   return prevData;
 }
 
@@ -226,7 +198,7 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
 
       return res.status(200).json({
         contractVersion: API_CONTRACT_VERSION,
-        ...availability,
+        identity: resolved.value.identity,
         availability
       });
     } catch (err) {
@@ -276,6 +248,7 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
       if (!draftSnap.exists) {
         return res.status(200).json({
           contractVersion: API_CONTRACT_VERSION,
+          identity,
           draftId,
           revision: 0,
           updatedAt: null,
@@ -292,6 +265,7 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
       const formatted = formatDraftSnapshot(draftId, draftData);
       return res.status(200).json({
         contractVersion: API_CONTRACT_VERSION,
+        identity,
         draftId,
         revision: formatted.revision,
         updatedAt: formatted.updatedAt,
@@ -596,6 +570,9 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
     const overrideRef = db.collection('universeTaskStatus').doc(overrideId);
     const prevSubRef =
       validatedSub.previousSubmissionId ? db.collection('missionSubmissions').doc(validatedSub.previousSubmissionId) : null;
+    // One immutable link per returned attempt keeps the family lock bounded.
+    // It is read/written with the new submission, without changing old evidence.
+    const revisionLinkRef = prevSubRef ? db.collection('missionRevisionLinks').doc(prevSubRef.id) : null;
 
     try {
       let statusCode = 201;
@@ -606,9 +583,9 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
           transaction.get(overrideRef),
           transaction.get(idemRef),
           transaction.get(lockRef),
-          ...(prevSubRef ? [transaction.get(prevSubRef)] : [])
+          ...(prevSubRef ? [transaction.get(prevSubRef), transaction.get(revisionLinkRef)] : [])
         ];
-        const [overrideSnap, idemSnap, lockSnap, prevSubSnap] = await Promise.all(reads);
+        const [overrideSnap, idemSnap, lockSnap, prevSubSnap, revisionLinkSnap] = await Promise.all(reads);
 
         const nowTs = Timestamp.now();
         const nowIso = nowTs.toDate().toISOString();
@@ -721,10 +698,14 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
         let previousCoachNote = null;
         let prevAttemptNumber = 0;
         if (prevSubRef) {
-          const prevData = verifyPreviousSubmissionLink(prevSubSnap, caller, identity, {
-            lockData,
-            enforceLatestForSubmission: true
-          });
+          const prevData = verifyPreviousSubmissionLink(prevSubSnap, caller, identity);
+          if (revisionLinkSnap.exists) {
+            const err = new Error('previousSubmissionId has already been superseded by a newer attempt.');
+            err.statusCode = 409;
+            err.code = 'MISSION_NOT_OPEN';
+            err.field = 'previousSubmissionId';
+            throw err;
+          }
           previousCoachNote = prevData.coachNote ?? null;
           prevAttemptNumber = Number.isSafeInteger(prevData.attemptNumber) ? prevData.attemptNumber : 1;
         }
@@ -784,12 +765,16 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
           throw err;
         }
 
-        const nextConsumedReturnedIds = prevSubRef
-          ? Array.from(new Set([...(lockData?.consumedReturnedIds || []), validatedSub.previousSubmissionId]))
-          : (lockData?.consumedReturnedIds || []);
-
         // Atomically commit submission, open slot, audit event, and idempotency record
         transaction.set(subRef, submissionRecord);
+        if (revisionLinkRef) transaction.create(revisionLinkRef, {
+          orgId: caller.orgId,
+          learnerUid: caller.uid,
+          missionId: identity.missionId,
+          previousSubmissionId: prevSubRef.id,
+          nextSubmissionId: subRef.id,
+          createdAt: nowTs
+        });
         transaction.set(lockRef, {
           lockId,
           orgId: caller.orgId,
@@ -799,8 +784,6 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
           openSubmissionId: subRef.id,
           lastSubmissionId: subRef.id,
           lastReturnedSubmissionId: lockData?.lastReturnedSubmissionId || null,
-          lastReturnedByTask: lockData?.lastReturnedByTask || {},
-          consumedReturnedIds: nextConsumedReturnedIds,
           attemptCount: attemptNumber,
           updatedAt: nowTs
         });

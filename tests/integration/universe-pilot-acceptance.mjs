@@ -129,6 +129,7 @@ test('all three pilot routes complete the real save/review/revise HTTP flow', as
       assert.ok(queued);
       assert.deepEqual(queued.evidence, example.request.evidence);
       assert.deepEqual(Object.fromEntries(identityKeys.map(k => [k, queued[k]])), identity);
+      const beforeReview = (await env.db.collection('missionSubmissions').doc(first.submissionId).get()).data();
 
       const forbidden = await foreign.review(first.submissionId, { decision: 'approved', expectedSubmissionRevision: 1 }, key('foreign-review'));
       assert.equal(forbidden.state, 'error');
@@ -143,7 +144,7 @@ test('all three pilot routes complete the real save/review/revise HTTP flow', as
       assert.equal(returned.submissionRevision, 2);
       assert.ok(returned.auditEventId);
       const original = (await env.db.collection('missionSubmissions').doc(first.submissionId).get()).data();
-      assert.deepEqual(original.evidence, example.request.evidence);
+      assert.deepEqual(original.evidence, beforeReview.evidence, 'review preserves the stored evidence exactly');
 
       if (missionId === 'spacecraft-journey' && route.id === 'guided') {
         const crossRoute = copy(REFERENCE_ARTIFACTS[2].request);
@@ -171,7 +172,7 @@ test('all three pilot routes complete the real save/review/revise HTTP flow', as
       const finalHistory = loaded(await learner.mySubmissions({ missionId }), 'final history').submissions;
       assert.equal(finalHistory.find(s => s.submissionId === first.submissionId).status, 'returned');
       assert.equal(finalHistory.find(s => s.submissionId === second.submissionId).status, 'approved');
-      assert.deepEqual((await env.db.collection('missionSubmissions').doc(first.submissionId).get()).data().evidence, example.request.evidence);
+      assert.deepEqual((await env.db.collection('missionSubmissions').doc(first.submissionId).get()).data().evidence, beforeReview.evidence);
       const access = loaded(await learner.access(['thalassa', 'ignis', 'boreas']), 'access after review');
       assert.equal(access.destinations.boreas.status, 'locked');
       assert.equal(access.destinations.boreas.evaluatedRule, 'boreas-policy-unresolved');

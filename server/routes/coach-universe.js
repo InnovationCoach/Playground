@@ -179,16 +179,7 @@ export function createCoachUniverseRouter({ getRegistry = () => PUBLISHED_RELEAS
           for (const docSnap of snap.docs) {
             if (!deduped.has(docSnap.id)) {
               const d = docSnap.data();
-              if (d.orgId !== caller.orgId) continue;
-              const subClassIds = Array.isArray(d.classIds) ? d.classIds : [];
-              const activelySharesClass = subClassIds.some(cid => {
-                if (!effectiveCoachClassIds.includes(cid)) return false;
-                const classDoc = caller.classDocsById?.get(cid);
-                return Boolean(classDoc && Array.isArray(classDoc.learnerIds) && classDoc.learnerIds.includes(d.learnerUid));
-              });
-              if (activelySharesClass) {
-                deduped.set(docSnap.id, { id: docSnap.id, data: d });
-              }
+              deduped.set(docSnap.id, { id: docSnap.id, data: d });
             }
           }
         }
@@ -202,7 +193,16 @@ export function createCoachUniverseRouter({ getRegistry = () => PUBLISHED_RELEAS
       }
 
       const hasNext = candidateDocs.length > pageLimit;
-      const pageEntries = hasNext ? candidateDocs.slice(0, pageLimit) : candidateDocs;
+      const scannedEntries = candidateDocs.slice(0, pageLimit);
+      // Advance over the raw bounded window even if every row has left the
+      // current roster. Otherwise older eligible work becomes unreachable.
+      const pageEntries = isAdmin ? scannedEntries : scannedEntries.filter(({ data: d }) =>
+        d.orgId === caller.orgId && Array.isArray(d.classIds) && d.classIds.some(cid => {
+          if (!effectiveCoachClassIds.includes(cid)) return false;
+          const classDoc = caller.classDocsById?.get(cid);
+          return Boolean(classDoc && Array.isArray(classDoc.learnerIds) && classDoc.learnerIds.includes(d.learnerUid));
+        })
+      );
 
       // Load task status overrides for distinct identities in the page
       const overrideMap = new Map();
@@ -250,8 +250,8 @@ export function createCoachUniverseRouter({ getRegistry = () => PUBLISHED_RELEAS
       );
 
       let nextCursor = null;
-      if (hasNext && pageEntries.length > 0) {
-        const lastEntry = pageEntries[pageEntries.length - 1];
+      if (hasNext && scannedEntries.length > 0) {
+        const lastEntry = scannedEntries[scannedEntries.length - 1];
         const lastTs = extractExactTimestamp(lastEntry.data.createdAt);
         nextCursor = encodeUniverseCursor({
           seconds: lastTs.seconds,
@@ -582,11 +582,6 @@ export function createCoachUniverseRouter({ getRegistry = () => PUBLISHED_RELEAS
           lastDecision: decision,
           lastReturnedSubmissionId:
             decision === 'returned' ? id : (lockData?.lastReturnedSubmissionId || null),
-          lastReturnedByTask:
-            decision === 'returned'
-              ? { ...(lockData?.lastReturnedByTask || {}), [overrideId]: id }
-              : (lockData?.lastReturnedByTask || {}),
-          consumedReturnedIds: lockData?.consumedReturnedIds || [],
           attemptCount: lockData?.attemptCount || subData.attemptNumber || 1,
           updatedAt: nowTs
         });

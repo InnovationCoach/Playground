@@ -17,13 +17,7 @@ import {
 
 dotenv.config();
 
-const projectId = getActiveProjectId() || 'demo-hearisland-local';
-process.env.GCLOUD_PROJECT = projectId;
-process.env.GOOGLE_CLOUD_PROJECT = projectId;
-process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8088';
-process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
-process.env.ALLOW_DRAFT_MISSIONS = process.env.ALLOW_DRAFT_MISSIONS || 'true';
-delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+const projectId = getActiveProjectId();
 
 if (
   !isNonProductionProject(projectId) ||
@@ -35,11 +29,15 @@ if (
   process.exit(1);
 }
 
+process.env.GCLOUD_PROJECT = projectId;
+process.env.GOOGLE_CLOUD_PROJECT = projectId;
+process.env.ALLOW_DRAFT_MISSIONS = process.env.ALLOW_DRAFT_MISSIONS || 'true';
+
 const PORT = process.env.PORT || 3001;
 initAdmin();
 const app = createApp({ universeRegistry: FIXTURE_RELEASES });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '127.0.0.1', () => {
   console.log(`🚀 HearIsland Emulator Server running on http://localhost:${PORT} (project: ${projectId})`);
 });
 

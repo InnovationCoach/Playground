@@ -3,7 +3,7 @@
  *
  * Verifies:
  * 1. users/{uid} self-signup cannot forge orgId, non-empty classIds/schoolIds, status, publicId, consent, enrolledVia, or delete/recreate to forge tenancy.
- * 2. missionSubmissions is server-written only; direct reads require matching orgId plus learner ownership, assigned coach class overlap, or same-org admin.
+ * 2. missionSubmissions is server-written only; direct reads are denied; all legacy and current records use the scoped API.
  * 3. Service-only collections (missionDrafts, missionSubmissionLocks, universeIdempotency, universeMemberships, universeTaskStatus) deny all client reads/writes.
  * 4. users/{uid}/activityProgress/universe-v1 and users/{uid}/progress/universe-v1 enforce strict field allowlists, size bounds, and no reward/XP/approvedMissionIds grants on both create and update, without relying on a second match block that could be bypassed by the generic owner rule.
  */
@@ -14,7 +14,14 @@ import {
   assertSucceeds
 } from '@firebase/rules-unit-testing';
 import fs from 'fs';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, getDocs, query, where } from 'firebase/firestore';
+
+const rulesHost = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8088';
+const rulesProject = process.env.GCLOUD_PROJECT || 'demo-hearisland-rules';
+if (!/^(127\.0\.0\.1|localhost):\d+$/.test(rulesHost) || !/^demo-[a-z0-9-]+$/.test(rulesProject)) {
+  throw new Error('Rules tests require a local emulator and a demo project.');
+}
+const [rulesHostname, rulesPort] = rulesHost.split(':');
 
 let testEnv;
 
@@ -43,11 +50,11 @@ const anon = () => testEnv.unauthenticatedContext();
 
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
-    projectId: 'demo-hearisland-rules',
+    projectId: rulesProject,
     firestore: {
       rules: fs.readFileSync('firestore.rules', 'utf8'),
-      host: '127.0.0.1',
-      port: 8088
+      host: rulesHostname,
+      port: Number(rulesPort)
     }
   });
 });
@@ -245,36 +252,23 @@ describe('missionSubmissions & service-only collections security rules', () => {
     });
   });
 
-  describe('read boundary (matching orgId + learner, assigned coach, or admin)', () => {
-    it('allows a learner in the same org to read their own submission', async () => {
-      const db = studentA().firestore();
-      await assertSucceeds(getDoc(doc(db, 'missionSubmissions', 'sub_a')));
+  describe('read boundary (API-only, including legacy work)', () => {
+    it('denies get and list for owners, coaches, same/other-org admins and unauthenticated callers', async () => {
+      for (const ctx of [studentA(), studentAWrongOrgToken(), studentB(), coachA(), coachOtherOrg(), adminOrgA(), adminOrgB(), anon()]) {
+        const db = ctx.firestore();
+        await assertFails(getDoc(doc(db, 'missionSubmissions', 'sub_a')));
+        await assertFails(getDocs(query(collection(db, 'missionSubmissions'), where('orgId', '==', ORG_A))));
+      }
     });
 
-    it('denies a learner reading their own submission if token orgId does not match', async () => {
-      const db = studentAWrongOrgToken().firestore();
-      await assertFails(getDoc(doc(db, 'missionSubmissions', 'sub_a')));
-    });
-
-    it('denies a learner reading another learner submission', async () => {
-      const db = studentB().firestore();
-      await assertFails(getDoc(doc(db, 'missionSubmissions', 'sub_a')));
-    });
-
-    it('allows an assigned coach in the same org to read submissions from their class', async () => {
+    it('a stale teacher JWT cannot bypass revoked current membership through a raw read', async () => {
+      await testEnv.withSecurityRulesDisabled(async ctx => {
+        await setDoc(doc(ctx.firestore(), 'universeMemberships', 'coach_a'), {role:'coach', orgId:ORG_A, classIds:[], revoked:true});
+        await updateDoc(doc(ctx.firestore(), 'missionSubmissions', 'sub_a'), {legacyFormat:true, missionVersion:'0.1.0-draft'});
+      });
       const db = coachA().firestore();
-      await assertSucceeds(getDoc(doc(db, 'missionSubmissions', 'sub_a')));
-    });
-
-    it('denies a coach reading submissions from another class or another org', async () => {
-      await assertFails(getDoc(doc(coachA().firestore(), 'missionSubmissions', 'sub_b')));
-      await assertFails(getDoc(doc(coachOtherOrg().firestore(), 'missionSubmissions', 'sub_a')));
-    });
-
-    it('allows same-org admin to read submissions, but denies cross-org admin and unauthenticated callers', async () => {
-      await assertSucceeds(getDoc(doc(adminOrgA().firestore(), 'missionSubmissions', 'sub_a')));
-      await assertFails(getDoc(doc(adminOrgB().firestore(), 'missionSubmissions', 'sub_a')));
-      await assertFails(getDoc(doc(anon().firestore(), 'missionSubmissions', 'sub_a')));
+      await assertFails(getDoc(doc(db, 'missionSubmissions', 'sub_a')));
+      await assertFails(getDocs(collection(db, 'missionSubmissions')));
     });
   });
 
@@ -284,6 +278,8 @@ describe('missionSubmissions & service-only collections security rules', () => {
         const db = ctx.firestore();
         await assertFails(getDoc(doc(db, 'missionDrafts', 'draft_a')));
         await assertFails(setDoc(doc(db, 'missionDrafts', 'draft_a'), { hacked: true }));
+        await assertFails(getDoc(doc(db, 'missionRevisionLinks', 'sub_a')));
+        await assertFails(setDoc(doc(db, 'missionRevisionLinks', 'sub_a'), {nextSubmissionId:'forged'}));
         await assertFails(getDoc(doc(db, 'missionSubmissionLocks', 'lock_a')));
         await assertFails(setDoc(doc(db, 'missionSubmissionLocks', 'lock_a'), { status: 'released' }));
         await assertFails(getDoc(doc(db, 'universeIdempotency', 'idem_a')));
@@ -369,6 +365,21 @@ describe('G04 Rules Audit Finding 3: activityProgress/universe-v1 & progress/uni
     await assertFails(
       setDoc(doc(studentB().firestore(), 'users', 'student_a', 'activityProgress', 'universe-v1'), baseValid)
     );
+  });
+
+  it('bounds bookmark elements on create and update, including the fiftieth slot', async () => {
+    const db = studentA().firestore();
+    for (const area of ['activityProgress', 'progress']) {
+      const ref = doc(db, 'users', 'student_a', area, 'universe-v1');
+      const valid = Array.from({length:50}, (_, i) => `world-${i}`);
+      await assertSucceeds(setDoc(ref, {bookmarks: valid}));
+      for (const bad of [[{missionDraft:{reflection:'private work'}}], ['x'.repeat(65)], [12], [true], [null], [''], ['a|b'], ['a|'], [...valid.slice(0,49), {nested:true}], [...valid, 'one-too-many']]) {
+        await assertFails(setDoc(ref, {bookmarks:bad}));
+        await assertFails(updateDoc(ref, {bookmarks:bad}));
+      }
+      await assertSucceeds(updateDoc(ref, {bookmarks:[]}));
+      await assertFails(setDoc(doc(studentB().firestore(), 'users', 'student_a', area, 'universe-v1'), {bookmarks:['thalassa']}));
+    }
   });
 
   it('continues to allow non-universe activityProgress documents for the owner', async () => {

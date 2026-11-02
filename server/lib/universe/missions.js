@@ -333,13 +333,12 @@ export function evaluateTaskAvailability(resolvedTask, { overrideData = null, no
   }
 
   if (effectiveStage === 'retired') {
-    const allowFinish = overrideData?.allowInProgressFinish === true;
     return {
       ...identity,
       status: 'retired',
       canStart: false,
-      canResume: allowFinish,
-      canSubmit: allowFinish,
+      canResume: false,
+      canSubmit: false,
       reasonCode: 'MISSION_RETIRED',
       reason: overrideData?.reason || 'This mission version has been retired. Your past records are preserved.',
       availabilityRevision,

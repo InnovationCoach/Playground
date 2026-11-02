@@ -170,6 +170,7 @@ describe('API: My Universe Pilot Contract 0.1.1 & G04 Findings B1-B6', () => {
       'missionSubmissions',
       'missionDrafts',
       'missionSubmissionLocks',
+      'missionRevisionLinks',
       'universeIdempotency',
       'universeMemberships',
       'universeTaskStatus',
@@ -910,6 +911,76 @@ describe('API: My Universe Pilot Contract 0.1.1 & G04 Findings B1-B6', () => {
       });
       expect(unassignedClassQueue.status).toBe(403);
       expect(unassignedClassQueue.body.error.code).toBe('FORBIDDEN');
+    });
+  });
+
+  describe('Phase 1 closure: bounded revisions, retired tasks and filtered queue paging', () => {
+    it('keeps one atomic supersession link per returned attempt without growing the family lock', async () => {
+      const submit = (body, key) => env.request('POST', `/api/universe/missions/${WIND_MISSION}/submissions`, {token:learnerTokenA, headers:{'Idempotency-Key':key}, body});
+      const review = (id, key) => env.request('POST', `/api/coach/universe/submissions/${id}/review`, {token:coachTokenA, headers:{'Idempotency-Key':key}, body:{contractVersion:API_CONTRACT_VERSION, decision:'returned', note:'Please compare the low-wind outcome.', expectedSubmissionRevision:1}});
+      const first = await submit(windGuidedSubmissionExample, 'closure-first-submit-001');
+      expect(first.status).toBe(201);
+      expect((await review(first.body.submissionId, 'closure-first-return-001')).status).toBe(200);
+      const before = (await env.db.collection('missionSubmissions').doc(first.body.submissionId).get()).data();
+      const revised = {...clone(windGuidedSubmissionExample), previousSubmissionId:first.body.submissionId};
+      const pair = await Promise.all([submit(revised,'closure-revise-key-0001'),submit(revised,'closure-revise-key-0002')]);
+      expect(pair.map(r=>r.status).sort()).toEqual([201,409]);
+      const second = pair.find(r=>r.status===201);
+      const link = (await env.db.collection('missionRevisionLinks').doc(first.body.submissionId).get()).data();
+      expect(link.nextSubmissionId).toBe(second.body.submissionId);
+      expect(JSON.stringify(link).length).toBeLessThan(1000);
+      expect((await review(second.body.submissionId,'closure-next-return-001')).status).toBe(200);
+      expect((await submit(revised,'closure-reuse-old-0001')).status).toBe(409);
+      const after = (await env.db.collection('missionSubmissions').doc(first.body.submissionId).get()).data();
+      expect(after).toEqual(before);
+      const locks = await env.db.collection('missionSubmissionLocks').get();
+      expect(locks.size).toBe(1);
+      expect(locks.docs[0].data().attemptCount).toBe(2);
+      expect(locks.docs[0].data()).not.toHaveProperty('consumedReturnedIds');
+      expect(locks.docs[0].data()).not.toHaveProperty('lastReturnedByTask');
+    });
+
+    it('retired pilot tasks pause saving and sending despite an ad-hoc finish override', async () => {
+      const identity = {missionId:SPACECRAFT_MISSION, releaseId:RELEASE_ID, missionVersion:MISSION_VERSION, routeId:'guided', taskId:SPACECRAFT_GUIDED_TASK, policyVersion:POLICY_VERSION};
+      await env.db.collection('universeTaskStatus').doc(getTaskStatusOverrideDocId(identity)).set({status:'retired',allowInProgressFinish:true});
+      const query = {...identity}; delete query.missionId;
+      const availability = await env.request('GET',`/api/universe/missions/${SPACECRAFT_MISSION}/availability`,{token:learnerTokenA, query});
+      expect(availability.body.identity).toEqual(identity);
+      expect(availability.body.availability).toMatchObject({status:'retired',canStart:false,canResume:false,canSubmit:false});
+      const draft = await env.request('PUT',`/api/universe/missions/${SPACECRAFT_MISSION}/draft`,{token:learnerTokenA,headers:{'Idempotency-Key':'closure-retired-draft01'},body:guidedDraftExample});
+      expect(draft.status).toBe(409);
+      expect(draft.body.error.code).toBe('MISSION_RETIRED');
+      const sub = await env.request('POST',`/api/universe/missions/${SPACECRAFT_MISSION}/submissions`,{token:learnerTokenA,headers:{'Idempotency-Key':'closure-retired-submit1'},body:guidedSubmissionExample});
+      expect(sub.status).toBe(409);
+      expect(sub.body.error.code).toBe('MISSION_RETIRED');
+      const saved = await env.request('GET',`/api/universe/missions/${SPACECRAFT_MISSION}/draft`,{token:learnerTokenA,query});
+      expect(saved.status).toBe(200);
+      expect(saved.body.identity).toEqual(identity);
+      expect(saved.body.draft).toBeNull();
+    });
+
+    it('walks empty continuation pages past revoked roster rows to older eligible work', async () => {
+      const submitted = await env.request('POST',`/api/universe/missions/${WIND_MISSION}/submissions`,{token:learnerTokenA,headers:{'Idempotency-Key':'closure-page-template1'},body:windGuidedSubmissionExample});
+      expect(submitted.status).toBe(201);
+      const ref=env.db.collection('missionSubmissions').doc(submitted.body.submissionId);
+      const template=(await ref.get()).data();
+      await ref.delete();
+      for(let i=0;i<5;i++) {
+        const id=`closure-page-${i}`;
+        const createdAt=new Timestamp(2000000000+i,123);
+        await env.db.collection('missionSubmissions').doc(id).set({...template,id,submissionId:id,learnerUid:i>=2?`departed-${i}`:'learner_a',createdAt,createdAtIso:createdAt.toDate().toISOString()});
+      }
+      let cursor=null;const seen=[];let pages=0;
+      do {
+        const page=await env.request('GET','/api/coach/universe/submissions',{token:coachTokenA,query:{status:'submitted',limit:2,cursor}});
+        expect(page.status).toBe(200);
+        if(pages===0) {expect(page.body.submissions).toEqual([]);expect(page.body.nextCursor).toBeTruthy();}
+        seen.push(...page.body.submissions.map(s=>s.submissionId));
+        cursor=page.body.nextCursor;pages++;
+        expect(pages).toBeLessThan(5);
+      } while(cursor);
+      expect(pages).toBe(3);
+      expect(seen).toEqual(['closure-page-1','closure-page-0']);
     });
   });
 });
