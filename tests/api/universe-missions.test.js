@@ -146,6 +146,10 @@ describe('API: My Universe Pilot Contract 0.1.1 & G04 Findings B1-B6', () => {
   }
 
   async function clearCollections(names) {
+    const events = await env.db.collection('auditLogs').doc('universe').collection('events').get();
+    if (!events.empty) {
+      const batch = env.db.batch(); events.docs.forEach(d => batch.delete(d.ref)); await batch.commit();
+    }
     for (const name of names) {
       const snap = await env.db.collection(name).get();
       if (!snap.empty) {
@@ -791,7 +795,7 @@ describe('API: My Universe Pilot Contract 0.1.1 & G04 Findings B1-B6', () => {
       expect(sub1.body.auditEventId).toBeTruthy();
 
       // Verify submission audit log was atomically created
-      const subAuditSnap = await env.db.collection('auditLogs').doc(sub1.body.auditEventId).get();
+      const subAuditSnap = await env.db.collection('auditLogs').doc('universe').collection('events').doc(sub1.body.auditEventId).get();
       expect(subAuditSnap.exists).toBe(true);
       expect(subAuditSnap.data().action).toBe('universe.mission.submitted');
 
@@ -828,7 +832,7 @@ describe('API: My Universe Pilot Contract 0.1.1 & G04 Findings B1-B6', () => {
       expect(reviewRes.body.rewards).toBeUndefined();
 
       // Verify review audit log exists
-      const revAuditSnap = await env.db.collection('auditLogs').doc(reviewRes.body.auditEventId).get();
+      const revAuditSnap = await env.db.collection('auditLogs').doc('universe').collection('events').doc(reviewRes.body.auditEventId).get();
       expect(revAuditSnap.exists).toBe(true);
       expect(revAuditSnap.data().action).toBe('universe.mission.approved');
 

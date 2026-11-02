@@ -1049,6 +1049,12 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Private atomic Universe audit events. The legacy flat audit reader above
+    // does not match this nested path, so it cannot reveal learner feedback.
+    match /auditLogs/universe/events/{eventId} {
+      allow read, write: if false;
+    }
+
     // ---------------------------------------------------------------------
     // My Universe Mission Submissions & Service-Only Collections (Contract 0.1.1 §7)
     // Server-written only. Client write access strictly forbidden.

@@ -141,6 +141,9 @@ beforeEach(async () => {
     await setDoc(doc(db, 'universeTaskStatus', 'task_a'), {
       status: 'open'
     });
+    await setDoc(doc(db, 'auditLogs', 'universe', 'events', 'event_a'), {
+      source:'server', orgId:ORG_A, action:'universe.mission.returned', coachNote:'Private feedback'
+    });
   });
 });
 
@@ -276,6 +279,9 @@ describe('missionSubmissions & service-only collections security rules', () => {
     it('denies client reads and writes on missionDrafts, missionSubmissionLocks, universeIdempotency, universeMemberships, and universeTaskStatus', async () => {
       for (const ctx of [studentA(), coachA(), adminOrgA(), anon()]) {
         const db = ctx.firestore();
+        await assertFails(getDoc(doc(db, 'auditLogs', 'universe', 'events', 'event_a')));
+        await assertFails(getDocs(collection(db, 'auditLogs', 'universe', 'events')));
+        await assertFails(setDoc(doc(db, 'auditLogs', 'universe', 'events', 'event_a'), {source:'client'}));
         await assertFails(getDoc(doc(db, 'missionDrafts', 'draft_a')));
         await assertFails(setDoc(doc(db, 'missionDrafts', 'draft_a'), { hacked: true }));
         await assertFails(getDoc(doc(db, 'missionRevisionLinks', 'sub_a')));
@@ -371,7 +377,7 @@ describe('G04 Rules Audit Finding 3: activityProgress/universe-v1 & progress/uni
     const db = studentA().firestore();
     for (const area of ['activityProgress', 'progress']) {
       const ref = doc(db, 'users', 'student_a', area, 'universe-v1');
-      const valid = Array.from({length:50}, (_, i) => `world-${i}`);
+      const valid = Array.from({length:50}, (_, i) => `v${String(i).padStart(2,'0')}${'x'.repeat(61)}`);
       await assertSucceeds(setDoc(ref, {bookmarks: valid}));
       for (const bad of [[{missionDraft:{reflection:'private work'}}], ['x'.repeat(65)], [12], [true], [null], [''], ['a|b'], ['a|'], [...valid.slice(0,49), {nested:true}], [...valid, 'one-too-many']]) {
         await assertFails(setDoc(ref, {bookmarks:bad}));

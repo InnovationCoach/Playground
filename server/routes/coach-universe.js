@@ -538,7 +538,8 @@ export function createCoachUniverseRouter({ getRegistry = () => PUBLISHED_RELEAS
         const decision = validatedReview.decision;
         const cleanNote = validatedReview.note ? validatedReview.note : null;
         const outcome = decision === 'approved' ? buildReviewedOnlyOutcome() : null;
-        const auditRef = db.collection('auditLogs').doc();
+        // Universe evidence/feedback must not enter the broad legacy audit reader.
+        const auditRef = db.collection('auditLogs').doc('universe').collection('events').doc();
 
         const updatedFields = {
           status: decision,

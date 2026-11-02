@@ -165,7 +165,7 @@ test('all three pilot routes complete the real save/review/revise HTTP flow', as
       assert.equal(approved.submissionRevision, 2);
       assert.equal(approved.outcome.type, 'reviewed-only');
       assert.deepEqual(approved.outcome.grantIds, []);
-      const audit = (await env.db.collection('auditLogs').doc(approved.auditEventId).get()).data();
+      const audit = (await env.db.collection('auditLogs').doc('universe').collection('events').doc(approved.auditEventId).get()).data();
       assert.equal(audit.source, 'server');
       assert.equal(audit.orgId, orgId);
 

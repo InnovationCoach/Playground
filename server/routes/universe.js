@@ -712,7 +712,8 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
 
         const attemptNumber = Math.max((lockData?.attemptCount || 0) + 1, prevAttemptNumber + 1);
         const subRef = db.collection('missionSubmissions').doc();
-        const auditRef = db.collection('auditLogs').doc();
+        // Universe evidence/feedback must not enter the broad legacy audit reader.
+        const auditRef = db.collection('auditLogs').doc('universe').collection('events').doc();
 
         const { mission } = resolved.value;
         const submissionRecord = {
