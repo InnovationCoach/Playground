@@ -13,7 +13,7 @@
     "test": "firebase emulators:exec --only firestore --project demo-hearisland-rules \"vitest run\"",
     "test:api": "firebase emulators:exec --only firestore,auth --project demo-hearisland-api-test \"vitest run tests/api/\"",
     "test:universe": "vitest run --config tests/universe-preview/vitest.config.js",
-    "test:universe:shared": "node --test shared/universe/tests/contracts.test.js",
+    "test:universe:shared": "node --test shared/universe/tests/*.test.js",
     "emulators:universe:phase1": "firebase emulators:start --only firestore,auth --project demo-universe-phase1 --config firebase.phase1.local.json",
     "seed:universe:phase1": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8188 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9299 GCLOUD_PROJECT=demo-universe-phase1 node tests/integration/seed-universe-pilot-demo.mjs",
     "server:universe:phase1": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8188 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9299 GCLOUD_PROJECT=demo-universe-phase1 PORT=3018 node server/emulator-index.js",
