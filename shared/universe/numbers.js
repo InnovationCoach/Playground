@@ -16,7 +16,8 @@ export function parseNumber(rawText, step = {}) {
     text = text.slice(0, -1).trim();
   } else {
     const aliases = UNIT_ALIASES[step.unit] || (step.unit ? [step.unit] : []);
-    const suffix = aliases.find(unit => text.toLowerCase().endsWith(unit.toLowerCase()));
+    const suffix = [...aliases].sort((a, b) => b.length - a.length)
+      .find(unit => text.toLowerCase().endsWith(unit.toLowerCase()));
     if (suffix) text = text.slice(0, -suffix.length).trim();
   }
   // Optional thousands grouping uses one separator consistently.

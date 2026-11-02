@@ -134,6 +134,8 @@ test('number parser respects unit, grouping and finite value boundaries', () => 
   assert.equal(parseNumber('19 070 kg', chemical), 19070);
   assert.equal(parseNumber('19,070 kg', chemical), 19070);
   assert.equal(parseNumber('41.67 days', days), 41.67);
+  assert.equal(parseNumber('3,600,000 seconds', { unit: 's' }), 3600000);
+  assert.equal(parseNumber('3,600,000 second', { unit: 's' }), 3600000);
   assert.equal(parseNumber('34%', cf), .34);
   assert.equal(parseNumber('.34', cf), .34);
   for (const raw of ['19,07 kg', '19,070 bananas', '1e999', 'Infinity', 'NaN', '1/2', '<script>', '1'.repeat(65)]) {
