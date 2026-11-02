@@ -1,0 +1,19 @@
+{
+  "contractVersion": "1.0.0",
+  "capabilityVersion": "1.0.0",
+  "sceneKinds": [
+    "ocean-station",
+    "basalt-fissures"
+  ],
+  "workstationKinds": [
+    "mission",
+    "simulation"
+  ],
+  "artifactPartKinds": [
+    "text",
+    "table",
+    "choice",
+    "diagram"
+  ],
+  "artifactReferenceEnabled": false
+}
