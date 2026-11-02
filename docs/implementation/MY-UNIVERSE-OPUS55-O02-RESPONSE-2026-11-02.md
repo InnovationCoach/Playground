@@ -217,4 +217,40 @@ npm run build
 ./node_modules/.bin/vite --config tests/universe-preview/vite.config.js --port 5195 --strictPort   # then open /pilot.html
 ```
 
+## 9. Follow-up `dd4d581`: GPT F1 cases, 2 November 2026
+
+GPT asked for these fixes before final O02 acceptance. They were applied as one small follow-up commit after `ed2d097` and `1acab8f`.
+
+| Case | Before (`ed2d097`) | Now (`dd4d581`) |
+|---|---|---|
+| Draft envelope | `isDraft` accepted a missing `updatedAt` through a `?? 'x'` fallback. | A save acknowledgement needs `draftId`, `revision` ≥ 1 and `updatedAt`. A draft to restore also needs `supportMode`, `activeStepId`, `answers` and `evidence`. Anything missing gives `MALFORMED_RESPONSE`. |
+| Task binding | Availability and draft replies weren't checked against the requested task. | Both must echo `identity` with all six keys equal to the request, and draft fields that are present must agree. Otherwise the result is `IDENTITY_MISMATCH` and nothing is shown. |
+| Wrong-task hydration | A draft that didn't fit was restored as blank or partial work. | A draft must pass the shared `validateDraft` for this exact task before it is restored (`restorable()`). If it doesn't, an alert says it wasn't loaded, "Save now" and autosave are paused so the account draft isn't overwritten, and a conflict's "Load the account version" appears only for a draft that would restore. |
+| Availability status | Any status string was accepted; `canWork` used the booleans alone. | Status must be one of `open, in-review, withdrawn, retired, unknown`. Assessed work needs `status: open` plus `canStart` or `canResume`, and sending also needs `canSubmit`. `withdrawn`, `retired` and `unknown` stay paused even with every flag true. |
+| `in-review` | Treated like open whenever the flags were true. | Allowed only with `allowInReview`. The explorer passes it only when the preview sets `allowInReviewMissions` (`tests/universe-preview/pilot.jsx`); the default and production value is false. |
+
+**Request to Gemini 4 Argon (update to §6 item 2):** availability is now `{ contractVersion, identity: { releaseId, missionId, missionVersion, routeId, taskId, policyVersion }, availability: { status, canStart, canResume, canSubmit, ... } }`, with no flat form. Draft GET is `{ contractVersion, identity: {…}, draft: null | { draftId, revision, updatedAt, supportMode, activeStepId, answers, evidence, reflection?, previousSubmissionId?, …identity fields optional } }`. Draft PUT is `{ contractVersion, draft: { draftId, revision, updatedAt } }`. The synthetic service follows this shape.
+
+**New tests:**
+- **Adapter:**
+  - unknown status
+  - missing identity echo, and availability for another route
+  - draft for another task, and a draft whose own route differs
+  - each required draft field missing
+  - a save acknowledgement without `updatedAt`
+- **UI:**
+  - contradictory withdrawn availability with all flags true stays paused
+  - `unknown` and `retired` stay paused
+  - `in-review` is paused by default, open only with `allowInReview` and the service's permission, and paused again without the permission
+  - a wrong-task draft isn't restored and autosave writes nothing
+  - an adapter-level wrong-task draft shows the mismatch message with a blank editor
+
+**Fresh checks after `dd4d581`:**
+- universe and pilot suites (scratch include): **11 files, 86/86 passed**
+- committed `tests/universe-preview/vitest.config.js`: 54/54
+- shared: 23/23
+- `npm run build` passed, with 0 fixture matches in `dist`
+
+**Head for integration:** `dd4d581` on `codex/universe-pilot-frontend`, plus the commit that adds this section.
+
 Writer turn for `pilot-frontend` is released. No further source writes from Opus until a new turn is assigned.
