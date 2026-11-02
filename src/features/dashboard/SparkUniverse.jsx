@@ -2,7 +2,6 @@ import { ArrowRight, Gamepad2, Bot, Star } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 import { hrefFor } from '../../app/routes.js';
 import { splitGoals } from './slideModel.js';
-const UniversePrototype = lazy(() => import('../universe/UniversePrototype.jsx').then(m => ({ default: m.UniversePrototype })));
 const MyUniverseExplorer = lazy(() => import('../universe/explore/MyUniverseExplorer.jsx').then(m => ({ default: m.MyUniverseExplorer })));
 
 // Fixed, decorative star positions: still, never animated, never meaningful.
@@ -13,15 +12,14 @@ const STARS = (() => {
 })();
 
 /** Personal themes and self-marked milestones on a still star plate, plus clearly inactive future bays. */
-export function SparkUniverse({ prefs, plan, onPersonalise, uid, active = true }) {
-  const [prototypeOpen, setPrototypeOpen] = useState(false);
+// The earlier SVG island prototype stays in src/features/universe/ (preview: tests/universe-preview/index.html)
+// but is not offered to learners: the approved vision replaced the island with the deep-space explorer.
+export function SparkUniverse({ prefs, plan, onPersonalise, active = true, onOpenActivity }) {
   const [explorerOpen, setExplorerOpen] = useState(false);
   const achieved = splitGoals(plan).completed.slice(0, 6);
-  if (prototypeOpen) return <Suspense fallback={<p role="status">Opening your sample universe…</p>}><UniversePrototype uid={uid || 'sample'} initialCalm={prefs.calm} active={active} onClose={() => setPrototypeOpen(false)}/></Suspense>;
   return <>
-    {explorerOpen && <Suspense fallback={<p role="status">Opening My Universe…</p>}><MyUniverseExplorer preview calm={!!prefs.calm} active={active} onClose={() => setExplorerOpen(false)}/></Suspense>}
+    {explorerOpen && <Suspense fallback={<p role="status">Opening My Universe…</p>}><MyUniverseExplorer preview={false} calm={!!prefs.calm} active={active} onClose={() => setExplorerOpen(false)} onOpenActivity={onOpenActivity ? (id, options) => { setExplorerOpen(false); onOpenActivity(id, options); } : undefined}/></Suspense>}
     <section className="ig-plate" style={{ marginBottom: 20 }} aria-label="My Universe exploration preview"><h4>Explore My Universe</h4><p className="sd-caption">A first look at deep-space exploration: two galaxies, one star system and an ocean world you can land on. Sample data only; nothing is saved and nothing unlocks.</p><button type="button" className="sd-primary" onClick={() => setExplorerOpen(true)}>Enter My Universe <ArrowRight size={17}/></button></section>
-    <section className="ig-plate" style={{ marginBottom: 20 }} aria-label="Universe prototype invitation"><h4>Build a little universe</h4><p className="sd-caption">Try a sample world builder, create a creature and experiment with gravity. Saves only in this browser; no real rewards or AI.</p><button type="button" className="sd-primary" onClick={() => setPrototypeOpen(true)}>Try the playable prototype <ArrowRight size={17}/></button></section>
     <section className="ig-universe" aria-labelledby="ig-universe-title">
       <svg className="ig-starfield" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         {STARS.map((star, i) => <circle key={i} cx={star.x} cy={star.y} r={star.r} />)}

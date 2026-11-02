@@ -215,21 +215,26 @@ export function SpaceLevel({ cosmos, entry, selected, onSelect, low }) {
 
 /* ---------------------------------------------------------------- camera */
 
+export const SPACE_MIN_POLAR = 0.02;
+export const SPACE_MAX_POLAR = Math.PI - 0.02;
+export const SURFACE_MIN_POLAR = 0.04;
+export const SURFACE_MAX_POLAR = 1.53;
+
 /** Framing for each view: where the camera sits, what it looks at and how far it may zoom. */
 export function shotFor(entry, selected, environment, cosmos) {
-  if (entry.level === 'universe') return { position: [0, 16, 46], target: [0, 0, -3], min: 18, max: 80 };
-  if (entry.level === 'galaxy') return { position: [0, 17, 27], target: [0, 0, 0], min: 9, max: 48 };
+  if (entry.level === 'universe') return { position: [0, 16, 46], target: [0, 0, -3], min: 18, max: 80, minPolar: SPACE_MIN_POLAR, maxPolar: SPACE_MAX_POLAR };
+  if (entry.level === 'galaxy') return { position: [0, 17, 27], target: [0, 0, 0], min: 9, max: 48, minPolar: SPACE_MIN_POLAR, maxPolar: SPACE_MAX_POLAR };
   if (entry.level === 'system') {
     const p = selected && cosmos.planetById(selected);
-    return { position: [0, 15, 27], target: p ? planetPosition(p).map((v) => v * 0.35) : [0, 0, 0], min: 8, max: 48 };
+    return { position: [0, 15, 27], target: p ? planetPosition(p).map((v) => v * 0.35) : [0, 0, 0], min: 8, max: 48, minPolar: SPACE_MIN_POLAR, maxPolar: SPACE_MAX_POLAR };
   }
-  if (entry.level === 'planet') return { position: [0, 1.6, 10.5], target: [0, 0, 0], min: 5, max: 18 };
+  if (entry.level === 'planet') return { position: [0, 1.6, 10.5], target: [0, 0, 0], min: 5, max: 18, minPolar: SPACE_MIN_POLAR, maxPolar: SPACE_MAX_POLAR };
   if (entry.level === 'environment') {
     const loc = environment?.locations.find((l) => l.id === selected);
-    if (loc) return { position: loc.view, target: loc.position, min: 4, max: 60, maxPolar: 1.45 };
-    return { position: [30, 17, 36], target: [-4, 0, 0], min: 10, max: 90, maxPolar: 1.42 };
+    if (loc) return { position: loc.view, target: loc.position, min: 4, max: 60, minPolar: SURFACE_MIN_POLAR, maxPolar: SURFACE_MAX_POLAR };
+    return { position: [30, 17, 36], target: [-4, 0, 0], min: 10, max: 90, minPolar: SURFACE_MIN_POLAR, maxPolar: SURFACE_MAX_POLAR };
   }
-  return { position: [0, 10, 30], target: [0, 0, 0], min: 5, max: 80 };
+  return { position: [0, 10, 30], target: [0, 0, 0], min: 5, max: 80, minPolar: SPACE_MIN_POLAR, maxPolar: SPACE_MAX_POLAR };
 }
 
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
@@ -239,7 +244,7 @@ const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
  * input completes it at once. With reduced motion or Calm the cut is instant.
  * `api` exposes keyboard orbit/zoom/reset for the HTML controls.
  */
-export function CameraRig({ shot: baseShot, travel, motion, onTravel, api }) {
+export function CameraRig({ shot: baseShot, travel, motion, onTravel, onDragChange, panelOpen = true, api }) {
   const { camera, invalidate, size } = useThree();
   // Portrait screens see less sideways, so the same framing needs a longer lens distance.
   const portrait = size.width / size.height < 1.2 ? Math.min(2.1, 1.25 / (size.width / size.height)) : 1;
@@ -249,13 +254,19 @@ export function CameraRig({ shot: baseShot, travel, motion, onTravel, api }) {
     return { ...baseShot, position: p.toArray(), max: baseShot.max * portrait };
   }, [baseShot, portrait]);
 
-  // On wide screens the side panel covers the right edge: centre the view in the free area instead.
+  // When the details panel is open, centre the 3D view in the uncovered area of the stage.
   useEffect(() => {
-    const panel = size.width > 820 ? Math.min(392, size.width * 0.4) : 0;
-    if (panel) camera.setViewOffset(size.width + panel, size.height, panel, 0, size.width, size.height);
-    else camera.clearViewOffset();
+    if (!panelOpen) {
+      camera.clearViewOffset();
+    } else if (size.width > 820) {
+      const panel = Math.min(392, size.width * 0.4);
+      camera.setViewOffset(size.width + panel, size.height, panel, 0, size.width, size.height);
+    } else {
+      const sheet = Math.min(200, Math.round(size.height * 0.24));
+      camera.setViewOffset(size.width, size.height + sheet, 0, sheet, size.width, size.height);
+    }
     camera.updateProjectionMatrix(); invalidate();
-  }, [camera, size.width, size.height, invalidate]);
+  }, [camera, size.width, size.height, panelOpen, invalidate]);
   const controls = useRef();
   const tween = useRef(null);
   const toVec = (a) => new THREE.Vector3(...a);
@@ -292,9 +303,18 @@ export function CameraRig({ shot: baseShot, travel, motion, onTravel, api }) {
 
   useEffect(() => {
     api.current = {
-      orbit(deg) {
+      orbit(azimDeg = 0, polarDeg = 0) {
         const c = controls.current; if (!c) return;
-        const off = camera.position.clone().sub(c.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(deg));
+        const off = camera.position.clone().sub(c.target);
+        if (polarDeg) {
+          const sph = new THREE.Spherical().setFromVector3(off);
+          sph.theta += THREE.MathUtils.degToRad(azimDeg);
+          sph.phi = THREE.MathUtils.clamp(sph.phi + THREE.MathUtils.degToRad(polarDeg), c.minPolarAngle, c.maxPolarAngle);
+          sph.makeSafe();
+          off.setFromSpherical(sph);
+        } else {
+          off.applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(azimDeg));
+        }
         camera.position.copy(c.target).add(off); c.update(); invalidate();
       },
       zoom(factor) {
@@ -307,7 +327,9 @@ export function CameraRig({ shot: baseShot, travel, motion, onTravel, api }) {
   });
 
   return <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping={false}
-    minDistance={shot.min} maxDistance={shot.max} minPolarAngle={0.15} maxPolarAngle={shot.maxPolar ?? 2.6} />;
+    minDistance={shot.min} maxDistance={shot.max}
+    minPolarAngle={shot.minPolar ?? SPACE_MIN_POLAR} maxPolarAngle={shot.maxPolar ?? SPACE_MAX_POLAR}
+    onStart={() => onDragChange?.(true)} onEnd={() => onDragChange?.(false)} />;
 }
 
 /** Frame-rate and renderer counters for the device spike (preview only). */

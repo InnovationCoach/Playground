@@ -12,9 +12,30 @@
   "storage": {
     "rules": "storage.rules"
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ],
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
+    }
+  ],
   "hosting": {
     "public": "dist",
     "cleanUrls": true,
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": "api"
+      }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -41,6 +62,12 @@
     },
     "storage": {
       "port": 9199
+    },
+    "functions": {
+      "port": 5001
+    },
+    "hosting": {
+      "port": 5000
     },
     "ui": {
       "enabled": false

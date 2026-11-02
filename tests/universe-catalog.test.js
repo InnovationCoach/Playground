@@ -8,7 +8,7 @@ describe('My Universe published catalog', () => {
   it('the shipped catalog is valid, versioned and entirely fictional', () => {
     expect(validateCatalog(catalog)).toEqual([]);
     const cosmos = buildCosmos(catalog);
-    expect(cosmos.version).toBe('1.1.0');
+    expect(cosmos.version).toBe('1.2.0');
     expect(cosmos.galaxies.map((g) => g.id)).toEqual(['lyra-spiral', 'aurora-elliptical']);
     expect(cosmos.planets.flatMap((p) => p.facts).every((f) => f.tag === 'fictional-world')).toBe(true);
     expect(cosmos.environmentById('thalassa-station').sceneKind).toBe('ocean-station');
@@ -56,6 +56,13 @@ describe('My Universe published catalog', () => {
     expect(validateCatalog(null)).toEqual(['catalog: not an object']);
   });
 
+  it('checks workstations: known kinds and valid ids only', () => {
+    const loc = (c) => c.environments[0].locations.find((l) => l.id === 'platform');
+    expect(loc(catalog).workstations).toEqual([{ kind: 'simulation', id: 'thalassa-station' }]);
+    const bad = clone(); loc(bad).workstations = [{ kind: 'teleporter', id: 'x' }];
+    expect(validateCatalog(bad).some((p) => /workstation 1 needs kind/.test(p))).toBe(true);
+  });
+
   it('accepts older string facts and normalises them as fictional', () => {
     expect(normalizeFact('A plain line.')).toEqual({ text: 'A plain line.', tag: 'fictional-world' });
   });
@@ -63,7 +70,7 @@ describe('My Universe published catalog', () => {
   it('loads over HTTP, bypasses the cache when checking for a newer version, and surfaces failures', async () => {
     const fetchImpl = vi.fn(async () => ({ ok: true, json: async () => clone() }));
     const cosmos = await loadCosmos('/cosmos/v1/catalog.json', { fetchImpl, fresh: true });
-    expect(cosmos.version).toBe('1.1.0');
+    expect(cosmos.version).toBe('1.2.0');
     expect(fetchImpl).toHaveBeenCalledWith('/cosmos/v1/catalog.json', expect.objectContaining({ cache: 'no-cache' }));
     await expect(loadCosmos('/x', { fetchImpl: async () => ({ ok: false, status: 404 }) })).rejects.toThrow(/404/);
   });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  initialNav, reduce as rawReduce, current, childrenOf, breadcrumbs, describeView, planetAccess, canLand, pathTo, transitionBetween, framedSelection, validPrefix
+  initialNav, reduce as rawReduce, current, childrenOf, breadcrumbs, describeView, planetAccess, canLand, pathTo, transitionBetween, framedSelection, validPrefix,
+  PENDING_POLICY_TEXT
 } from '../src/features/universe/explore/explorerModel.js';
 import { buildCosmos } from '../src/features/universe/explore/cosmosCatalog.js';
 import catalog from '../public/cosmos/v1/catalog.json';
@@ -57,7 +58,8 @@ describe('My Universe explorer model', () => {
 
   it('labels fixture access as preview, and shows "not connected" outside previews', () => {
     const boreas = planetById('boreas'), thalassa = planetById('thalassa'), ignis = planetById('ignis');
-    expect(planetAccess(boreas, preview)).toEqual({ status: 'locked', requirementText: boreas.requirementText, preview: true });
+    // The catalog's sample requirement is never shown: the Boreas policy is undecided (neutral pending wording).
+    expect(planetAccess(boreas, preview)).toEqual({ status: 'locked', requirementText: PENDING_POLICY_TEXT, preview: true });
     expect(planetAccess(boreas, live)).toEqual({ status: 'not-connected', preview: false });
     expect(planetAccess(thalassa, live).status).toBe('available');
     expect(planetAccess(ignis, preview).status).toBe('available');
@@ -91,5 +93,36 @@ describe('My Universe explorer model', () => {
     expect(new Set(ids).size).toBe(ids.length);
     for (const p of PLANETS) if (p.environmentId) expect(ENVIRONMENTS.some((e) => e.id === p.environmentId && e.planetId === p.id)).toBe(true);
     for (const loc of ENVIRONMENTS[0].locations) for (const o of loc.observations) expect(o).toMatch(/fictional world value|illustrative|modules|Six/);
+  });
+
+  it('evaluates destination access authoritatively when serverAccess is provided', () => {
+    const boreas = planetById('boreas');
+    // 1. When server returns Boreas locked
+    const lockedAccess = {
+      boreas: { status: 'locked', isVerified: false, evaluatedRule: 'mission:spacecraft-journey' }
+    };
+    expect(planetAccess(boreas, { serverAccess: lockedAccess })).toEqual({
+      status: 'locked',
+      requirementText: PENDING_POLICY_TEXT,
+      preview: false,
+      isVerified: false
+    });
+
+    // 2. When coach approves mission and server returns Boreas available
+    const approvedAccess = {
+      boreas: { status: 'available', isVerified: true, evaluatedRule: 'mission:spacecraft-journey' }
+    };
+    expect(planetAccess(boreas, { serverAccess: approvedAccess })).toEqual({
+      status: 'charted',
+      preview: false,
+      isVerified: true
+    });
+  });
+
+  it('shows the requirement text the service enforces, never the catalog sample', () => {
+    const boreas = planetById('boreas');
+    const serverAccess = { boreas: { status: 'locked', isVerified: false, evaluatedRule: 'boreas-policy-unresolved', requirementKey: 'universe.boreas.policyPending', requirementText: 'Server wording for the enforced rule.' } };
+    expect(planetAccess(boreas, { serverAccess }).requirementText).toBe('Server wording for the enforced rule.');
+    expect(planetAccess(boreas, { serverAccess: { boreas: { status: 'unknown' } } })).toEqual({ status: 'not-connected', preview: false });
   });
 });

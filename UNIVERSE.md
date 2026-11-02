@@ -618,3 +618,70 @@ The sky and location beacons now come from a shared `environmentKit.jsx` that bo
 - **PR #3 was the dashboard release** (`release/dashboard-on-live`, `697f785`), not Find a Quest. Claude had mislabelled it earlier. It was merged into `main` (`4d8eb69`), so `main` now matches the dashboard release line.
 - **Find a Quest (`c855527`) never had its own PR.** PR #4 now targets `main` and contains **Find a Quest plus the 9 My Universe commits** (10 commits, 73 files). Merging #4 would also merge Find a Quest. That's Mani's decision. Merging deploys nothing.
 - **Gemini's Go-1 write-up** in `GEMINI BACKEND.md` §11.1 is accepted. The Go 3 proposal has a packaging gap: the functions source folder can't import `../server`, there's no `functions/package.json`, and `firebase-functions` isn't installed. This must be solved before Go 3 is approved; details are in `GEMINI BACKEND GO-1.md`.
+
+### 13.16 Pre-launch fixes for the live dashboard — 1 November 2026 (Claude)
+
+Mani asked to go live. A pre-flight check found two problems with shipping the branch as it was:
+1. **The dashboard opened the explorer in preview mode.** In production that would have shown real students the **unreviewed draft mission** and "Locked · Preview" chips.
+   - **Fix:** `SparkUniverse` now opens it with `preview={false}`. Drafts are hidden ("No reviewed missions yet"), and Boreas reads "Access not connected".
+   - A banner still states "Fictional worlds for exploring · nothing is saved · no XP, rewards or unlocks". Previews keep their "Sample universe" banner.
+2. **The superseded SVG island prototype card would have gone live** next to the explorer.
+   - **Fix:** removed from the dashboard only. The prototype code, its tests and its preview page are unchanged, and it's no longer in the production build.
+
+Find a Quest (merged in PR #5) is hosting-only, with honest "not connected" states, so it's safe to release. The production build uses the built-in public Firebase web configuration, and sample data can't be enabled in production. Tests: 39 of 39 universe and 537 of 537 unit tests pass. The build succeeds.
+
+### 13.17 Release: My Universe live — 1 November 2026 (Claude, on Mani's "let's go live")
+
+| Item | Value |
+|---|---|
+| Source | `codex/my-universe-prototype` at `44b3abc` (= `main` + My Universe + the pre-launch fixes in §13.16) |
+| What went live | My Universe explorer (both worlds, catalog 1.1.0, text view; non-preview mode, so drafts are hidden and Boreas reads "Access not connected"), on top of the existing dashboard and Find a Quest |
+| What did NOT change | No server, Cloud Functions, Firestore/Storage rules, indexes or data. Backend Go 2–5 are still unapproved. |
+| Before the release | Live bundle `index-B4Yd8WjY.js` (dashboard + Find a Quest, released 18:04 local). Saved to channel **`pre-universe-20261101`**: https://dnd-master-73449--pre-universe-20261101-iu343mbr.web.app |
+| Tested preview | Channel `universe-release` (expires 8 Nov 2026): https://dnd-master-73449--universe-release-rhfgit4f.web.app |
+| Release method | `hosting:channel:deploy universe-release`, verified, then `hosting:clone universe-release → live`. Hosting only; never a bare `firebase deploy`. |
+| Live after | `index-CemmqLyW.js`, `/cosmos/v1/catalog.json` = 1.1.0, explorer and both surface chunks return 200. The only 404 is `/favicon.ico`, which was already missing before. |
+| Rollback | `npx firebase hosting:clone dnd-master-73449:pre-universe-20261101 dnd-master-73449:live --project dnd-master-73449` |
+
+**Follow-up:** `main` doesn't yet contain My Universe. Merge PR #4 so that `main` matches production.
+
+### 13.18 Go 4 decided: a coach-approved mission unlocks a planet — 1 November 2026
+
+- **Decision (Mani):** a locked planet opens only when the server holds a coach-approved submission of a linked mission. The browser, self-checks and simulation outputs never unlock anything.
+- **Specification:** `docs/universe-handoffs/GEMINI GO-4.md`:
+  - server-only `missionSubmissions`
+  - learner submit and coach review endpoints
+  - drafts rejected in production
+  - a server-side mission registry
+  - an `unlock: { type: 'mission-approved', missionId }` link from planets
+  - emulator tests
+- **Build:** Gemini (emulator only), then Claude's front end (submit button, live access status, coach review list).
+- **Status:** no deploys; Go 5 still needs Mani's "go".
+- **PR housekeeping:** PR #4 was merged at `b87843a`, before the pre-launch fixes. PR #6 brings `main` up to the live release (`44b3abc`, `b2d6c0a`, `f3dd3fb`). Claude could not merge it (the merge was blocked by a safety check), so it is waiting for Mani.
+
+### 13.19 First STEAM integration: Thalassa Research Station workstations — 1 November 2026 (Claude)
+
+Mani asked to start integrating the existing STEAM simulations into the planets, beginning with Thalassa. Built on branch `feature/thalassa-workstations` (a separate worktree, so Gemini's backend branch is untouched). **Drafts awaiting educator review**, hidden from students.
+
+**Workstations:** catalog 1.2.0 adds an optional `workstations` list to locations (`mission` or `simulation`, validated).
+- **Weather mast → mission "Is the wind worth it?"** A fictional 168-hour wind record turns into a turbine capacity factor (168 h → 56.5 full-power h → 0.34). It also explains why averaging wind speed fails, since power grows roughly with the cube of speed.
+- **Research platform → simulation "Platform design lab".** It opens **Project Hex-Grid, Thalassa edition**:
+  - separate project and save slot (`hex-grid-thalassa`), so a learner's Bangkok city is never touched
+  - 200 people, 1,800 mm rain, wind left for the learner to measure
+  - six graded challenges checked live against the model: floating, water and wastewater, day power, food, night power, the whole station
+  - the Bangkok brief is replaced by a pointer to the Thalassa brief; roles are unchanged
+- **Feasibility, tested:** every goal at once is reachable only with the survey's capacity factor and 1 MW turbines (12 designs found). Without wind data, the best design reaches 19% on its weakest goal. A test keeps this true.
+
+**Honesty:**
+- Hex-Grid's limits are shown: a daily average with no tides, waves, storms or seasons, and Earth (Thailand) data for people's needs.
+- The tide gauge, swell and vent remain scenery. They aren't connected to this simulation.
+
+**App changes:**
+- `navigate(view, { scenario })` carries the scenario to Hex-Grid. Every existing call is unchanged.
+- The dashboard passes `onOpenActivity` to the explorer, and workstations are shown only for reviewed content or in previews.
+
+**Review pack:** `docs/universe-missions/THALASSA-STATION-REVIEW.md`, generated from the source.
+
+**Tests:** 47 of 47 universe tests (8 new) and 537 of 537 unit tests pass, and the build succeeds. The preview page `tests/universe-preview/hexgrid-thalassa.html` uses an offline Firebase stub, so preview pages can't reach any Firebase project.
+
+**Screenshots:** `../review/stage-c/30` to `33`.

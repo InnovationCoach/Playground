@@ -4,9 +4,10 @@
  * Conforms to docs/data-contract.md.
  */
 
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { createLearnerAccount } from '../server/routes/create-learner.js';
+import { createApp } from '../server/app.js';
 
 if (!getApps().length) {
   initializeApp();
@@ -53,3 +54,26 @@ export const createLearner = onCall(async (request) => {
     throw new HttpsError(statusMap[err.code] || 'internal', err.message || 'Failed to create learner.');
   }
 });
+
+/**
+ * HTTP Cloud Function: api (Express Gateway)
+ * Wraps server/app.js Express app for /api rewrites.
+ */
+let appInstance;
+function getApp() {
+  if (!appInstance) {
+    appInstance = createApp();
+  }
+  return appInstance;
+}
+
+export const api = onRequest(
+  {
+    region: 'us-central1',
+    memory: '512MiB',
+    timeoutSeconds: 60,
+    minInstances: 0,
+    cors: false
+  },
+  (req, res) => getApp()(req, res)
+);

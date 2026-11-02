@@ -23,6 +23,8 @@ import { SOURCES, BANGKOK_FACTS } from './hexGridSources.js';
 import { HexMap, OVERLAYS } from './HexMap.jsx';
 import { useHexGridProject } from './useHexGridProject.js';
 import { HowToPlay } from './HowToPlay.jsx';
+import { ScenarioPanel } from './ScenarioPanel.jsx';
+import { scenarioById, scenarioCity } from './scenarios.js';
 import './hexGrid.css';
 
 const TABS = [
@@ -151,10 +153,13 @@ function MixControl({ mix, onChange }) {
 
 // --- tabs ---------------------------------------------------------------------
 
-function Mission({ project, update, go }) {
+function Mission({ project, update, go, scenario }) {
   return (
     <>
-      <section className="hx-card hx-brief">
+      {scenario ? <section className="hx-card hx-brief">
+        <h3>The brief</h3>
+        <p>Your brief for {scenario.title} is at the top of this page. The roles below work the same way: each of you owns one platform system, and together they make the station.</p>
+      </section> : <section className="hx-card hx-brief">
         <h3>The brief</h3>
         <p>
           Bangkok is drowning and there is only one way out: up, above the waves. Each of you owns one
@@ -168,7 +173,7 @@ function Mission({ project, update, go }) {
         <p className="hx-cite">
           Source: <a href={SOURCES.nation2026.url} target="_blank" rel="noreferrer">{SOURCES.nation2026.label}</a>. Figures as the article reports them.
         </p>
-      </section>
+      </section>}
 
       <h3 className="hx-h">Choose your role</h3>
       <div className="hx-roles">
@@ -565,8 +570,11 @@ function Sources() {
 
 // ---------------------------------------------------------------------------
 
-export function ProjectHexGrid({ uid }) {
-  const { project, update, syncState } = useHexGridProject(uid);
+/** `scenario` (an id from scenarios.js) opens a separate project with its own brief, e.g. from a My Universe workstation. */
+export function ProjectHexGrid({ uid, scenario: scenarioId = null, onExit }) {
+  const scenario = scenarioById(scenarioId);
+  const seedCity = useMemo(() => (scenario ? scenarioCity(scenario) : null), [scenario]);
+  const { project, update, syncState } = useHexGridProject(uid, scenario ? { projectId: scenario.projectId, seedCity } : undefined);
   const [tab, setTab] = useState(project.role ? 'build' : 'mission');
   const sim = useMemo(() => simulate(project.city), [project.city]);
   const go = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -576,13 +584,15 @@ export function ProjectHexGrid({ uid }) {
       <div className="hx-hero">
         <div>
           <h2>⬡ Project Hex-Grid</h2>
-          <p>A floating city for a drowning Bangkok. Test your ideas against real data.</p>
+          <p>{scenario ? 'Thalassa edition: a floating research station on an ocean world.' : 'A floating city for a drowning Bangkok. Test your ideas against real data.'}</p>
         </div>
         <div className="hx-hero-side">
           {project.role ? <span className="hx-you">{ROLES[project.role].icon} {ROLES[project.role].title}</span> : null}
           <span className={`hx-sync ${syncState}`}>{{ idle: '', saving: 'Saving…', saved: '✓ Saved', 'local-only': 'Saved on this device' }[syncState]}</span>
         </div>
       </div>
+
+      {scenario && <ScenarioPanel scenario={scenario} sim={sim} onExit={onExit} />}
 
       <nav className="hx-tabs" role="tablist">
         {TABS.map((t) => (
@@ -592,7 +602,7 @@ export function ProjectHexGrid({ uid }) {
         ))}
       </nav>
 
-      {tab === 'mission' && <Mission project={project} update={update} go={go} />}
+      {tab === 'mission' && <Mission project={project} update={update} go={go} scenario={scenario} />}
       {tab === 'guide' && <HowToPlay project={project} update={update} go={go} />}
       {tab === 'build' && <Build project={project} update={update} sim={sim} go={go} />}
       {tab === 'test' && <Test project={project} update={update} go={go} />}

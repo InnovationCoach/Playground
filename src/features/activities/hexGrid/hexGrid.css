@@ -199,3 +199,26 @@
 .hx-idea-change { font-weight: 700; color: var(--text-light); }
 .hx-idea-watch { font-size: 0.85rem; color: var(--text-muted); }
 .hx-idea .hx-btn { align-self: flex-start; margin-top: auto; }
+
+/* My Universe scenario brief (e.g. Thalassa Research Station) */
+.hx-scenario { border: 1px solid var(--hx); border-radius: 14px; margin-bottom: 1rem; overflow: hidden; background: rgba(13, 35, 64, 0.6); }
+.hx-scenario-draft { margin: 0; padding: 0.4rem 1rem; font-size: 0.8rem; color: #1b1406; background: #f2b84b; }
+.hx-scenario-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; padding: 1rem 1.25rem 0.5rem; }
+.hx-scenario-head h3 { margin: 0.1rem 0; color: var(--text-light); }
+.hx-scenario-head p { margin: 0; color: var(--text-muted); }
+.hx-scenario-eyebrow { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--hx); }
+.hx-scenario-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.hx-scenario-actions button { min-height: 40px; padding: 0.4rem 0.9rem; border-radius: 9px; border: 1px solid var(--hx); background: var(--hx-dim); color: var(--text-light); cursor: pointer; font: inherit; }
+.hx-scenario-count { font-weight: 700; color: var(--text-light); }
+.hx-scenario-body { padding: 0 1.25rem 1rem; display: grid; gap: 0.6rem; color: var(--text-light); }
+.hx-scenario-body p { margin: 0; }
+.hx-scenario-world { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.25rem; }
+.hx-scenario-tag { font-size: 0.7rem; padding: 0.05rem 0.4rem; border-radius: 6px; background: rgba(242, 184, 75, 0.16); color: #f2b84b; }
+.hx-scenario-note { font-size: 0.85rem; color: var(--text-muted); }
+.hx-scenario-challenges { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.hx-scenario-challenges li { display: flex; gap: 0.6rem; padding: 0.6rem 0.75rem; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.3); }
+.hx-scenario-challenges li.is-met { border-color: #96d700; background: rgba(150, 215, 0, 0.08); }
+.hx-scenario-tick { font-weight: 700; color: #96d700; min-width: 1rem; }
+.hx-scenario-challenges small { color: var(--text-muted); }
+.hx-scenario-measure { font-size: 0.85rem; color: var(--text-muted); }
+.hx-scenario details summary { cursor: pointer; color: var(--hx); }

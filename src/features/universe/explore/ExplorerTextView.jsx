@@ -2,6 +2,7 @@ import { Box, Lock, Star, DoorOpen } from 'lucide-react';
 import { planetAccess, canLand, STATUS_LABEL } from './explorerModel.js';
 import { FACT_TAGS } from './cosmosCatalog.js';
 import { MissionList } from '../missions/MissionList.jsx';
+import { Workstations } from '../missions/Workstations.jsx';
 
 export function StatusChip({ access }) {
   const Icon = access.status === 'locked' ? Lock : access.status === 'available' ? DoorOpen : Star;
@@ -23,7 +24,7 @@ export function FactList({ facts }) {
  * as plain headings and lists. Used when WebGL 2 is missing or lost, or when a
  * learner simply prefers it. It never shows the old island as "3D".
  */
-export function ExplorerTextView({ cosmos, opts, canUse3d, notice, onShow3d, header, onOpenMission }) {
+export function ExplorerTextView({ cosmos, opts, canUse3d, notice, onShow3d, header, onOpenMission, onOpenActivity }) {
   const show = (level, id, label) => canUse3d && <button type="button" className="mx-show3d" onClick={() => onShow3d(level, id)}><Box size={14} aria-hidden="true" />Show {label} in 3D</button>;
   return <div className="mx-text">
     {notice && <p className="mx-notice" role="status">{notice}</p>}
@@ -48,7 +49,8 @@ export function ExplorerTextView({ cosmos, opts, canUse3d, notice, onShow3d, hea
             {env && canLand(p, opts) && <div className="mx-text-env">
               <h5>Surface: {env.name}</h5><p>{env.biome}. {env.summary}</p>
               <ul>{env.locations.map((l) => <li key={l.id}><strong>{l.name}.</strong> {l.purpose}
-                <ul className="mx-facts">{l.observations.map((o) => <li key={o}>{o}</li>)}</ul></li>)}</ul>
+                <ul className="mx-facts">{l.observations.map((o) => <li key={o}>{o}</li>)}</ul>
+                {onOpenMission && l.workstations?.length > 0 && <Workstations location={l} opts={opts} onOpenMission={onOpenMission} onOpenActivity={onOpenActivity} />}</li>)}</ul>
               {show('environment', env.id, 'the surface')}
             </div>}
           </details>; })}
