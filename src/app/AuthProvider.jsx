@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { subscribeToAuth, getUserProfile, logoutUser } from '../auth.js';
-import { getAuthClaims } from '../firebase.js';
 import { startTimeTracking, stopTimeTracking } from '../utils/timeTracker.js';
 import { purgeUnscopedUserData, purgeUserDataFor } from '../utils/deviceData.js';
 import { resolveRole } from './roles.js';
@@ -53,33 +52,41 @@ export function AuthProvider({ children, onThemeLoaded }) {
     themePreference: 'system'
   });
 
+  // Every observer event starts a new generation; an async step continues only while its
+  // generation is current, so a slow callback for one account can never touch the next.
+  const generation = useRef(0);
+  // Identity (uid) changes only on sign-in, sign-out or switching account; profile refreshes check it.
+  const identity = useRef({ uid: null, ready: false, profile: null, seq: 0 });
+  const latest = useRef(state);
+  latest.current = state;
+
   useEffect(() => {
-    let cancelled = false;
+    let unmounted = false;
     purgeUnscopedUserData();
+    const live = (gen) => !unmounted && gen === generation.current;
+    const claimsOf = async (user) => {
+      try { return (await user.getIdTokenResult())?.claims || {}; } catch { return {}; } // non-forced: no refresh loop
+    };
+    const scopeOf = (claims, profile) => ({
+      role: resolveRole(claims, profile),
+      classIds: (Array.isArray(claims.classIds) && claims.classIds.length > 0) ? claims.classIds : (Array.isArray(profile?.classIds) ? profile.classIds : []),
+      orgId: typeof claims.orgId === 'string' && claims.orgId ? claims.orgId : null
+    });
 
-    const unsubscribe = subscribeToAuth(async (user) => {
-      if (cancelled) return;
-
-      if (!user) {
-        stopTimeTracking();
-        clearImperativeOverlays();
-        setState({ status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null, error: null });
-        return;
-      }
-
+    async function signedIn(user, gen) {
       // Also on sign-IN: switching accounts in one page load fires this with a
       // new user and never passes through the signed-out branch.
       clearImperativeOverlays();
       setState((s) => ({ ...s, status: 'loading', orgId: null }));
 
       const profile = await getUserProfile(user.uid, user.email);
-
-      if (cancelled) return;
+      if (!live(gen)) return;
 
       if (!profile) {
         // getUserProfile returns null only when the read failed. Guessing a role
         // here is exactly what used to hand out coach access.
         await logoutUser();
+        if (!live(gen)) return;
         setState({
           status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null,
           error: 'Could not load your profile. Please sign in again.'
@@ -87,14 +94,15 @@ export function AuthProvider({ children, onThemeLoaded }) {
         return;
       }
 
-      const claims = await getAuthClaims();
-      if (cancelled) return;
+      const claims = await claimsOf(user);
+      if (!live(gen)) return;
 
       // A suspended account is refused by the API immediately, but an ID token
       // already issued stays valid in Firestore rules for up to an hour. Signing
       // out here closes that window in this browser.
       if (profile.status === 'suspended') {
         await logoutUser();
+        if (!live(gen)) return;
         setState({
           status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null,
           error: 'This account is suspended. Please contact the school.'
@@ -104,7 +112,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
 
       const claimRole = claims.role;
       const profileRole = profile.role;
-      const role = resolveRole(claims, profile);
+      const { role, classIds, orgId } = scopeOf(claims, profile);
 
       if (role === 'teacher' && profileRole && claimRole && profileRole !== claimRole) {
         console.warn(
@@ -132,15 +140,10 @@ export function AuthProvider({ children, onThemeLoaded }) {
       // The legacy inline script still branches on this for coach preview mode.
       window.currentUserRole = role;
 
-      const classIds = (Array.isArray(claims.classIds) && claims.classIds.length > 0)
-        ? claims.classIds
-        : (Array.isArray(profile.classIds) ? profile.classIds : []);
-
       // Organization scope comes only from the signed ID token claim, never the client-writable
       // profile. Screens that keep organization data (My Universe missions, mission reviews)
       // stay closed without it; the mission service re-verifies it on every request.
-      const orgId = typeof claims.orgId === 'string' && claims.orgId ? claims.orgId : null;
-
+      identity.current = { ...identity.current, ready: true, profile };
       setState({
         status: 'ready',
         user,
@@ -151,10 +154,43 @@ export function AuthProvider({ children, onThemeLoaded }) {
         themePreference,
         error: null
       });
-    });
+    }
+
+    // Same account, new ID token (refresh, or claims changed server-side): re-read its claims
+    // without reloading the profile. An organization change or removal applies at once; a role
+    // change takes the full fail-closed load path again rather than being patched in place.
+    async function tokenChanged(user, gen) {
+      const claims = await claimsOf(user);
+      if (!live(gen)) return;
+      const next = scopeOf(claims, identity.current.profile);
+      const now = latest.current;
+      if (now.status !== 'ready' || now.user?.uid !== user.uid) return;
+      if (next.role !== now.role) { identity.current = { ...identity.current, ready: false }; await signedIn(user, gen); return; }
+      const sameClasses = next.classIds.length === now.classIds.length && next.classIds.every((c, i) => c === now.classIds[i]);
+      if (next.orgId === now.orgId && sameClasses) return;
+      setState((s) => (s.status === 'ready' && s.user?.uid === user.uid ? { ...s, orgId: next.orgId, classIds: next.classIds } : s));
+    }
+
+    const unsubscribe = subscribeToAuth((user) => {
+      if (unmounted) return;
+      const gen = ++generation.current;
+
+      if (!user) {
+        identity.current = { uid: null, ready: false, profile: null, seq: identity.current.seq + 1 };
+        stopTimeTracking();
+        clearImperativeOverlays();
+        setState({ status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null, error: null });
+        return;
+      }
+
+      if (user.uid === identity.current.uid && identity.current.ready) { tokenChanged(user, gen); return; }
+      if (user.uid !== identity.current.uid) identity.current = { uid: user.uid, ready: false, profile: null, seq: identity.current.seq + 1 };
+      signedIn(user, gen);
+    }, { tokens: true });
 
     return () => {
-      cancelled = true;
+      unmounted = true;
+      generation.current += 1;
       unsubscribe?.();
     };
   }, []);
@@ -166,12 +202,18 @@ export function AuthProvider({ children, onThemeLoaded }) {
    * loads the profile on an auth state change - so without this the learner
    * would be told they had joined while the dashboard carried on insisting they
    * were in no class until they signed out and back in.
+   *
+   * The answer is applied only if the same account is still signed in: a slow read
+   * for one account must never land on the next one's screen.
    */
   const refreshProfile = async () => {
     const current = state.user;
     if (!current) return;
+    const seq = identity.current.seq;
     const profile = await getUserProfile(current.uid, current.email);
-    if (profile) setState((s) => ({ ...s, profile }));
+    if (!profile || seq !== identity.current.seq || identity.current.uid !== current.uid) return;
+    identity.current = { ...identity.current, profile };
+    setState((s) => (s.status === 'ready' && s.user?.uid === current.uid ? { ...s, profile } : s));
   };
 
   const signOut = async () => {
