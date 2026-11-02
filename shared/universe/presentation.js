@@ -1,4 +1,18 @@
-export const PRESENTATION_ADAPTER_VERSION = '1.0.0';
+export const PRESENTATION_ADAPTER_VERSION = '1.0.1';
+
+const SUPPORT_DESCRIPTIONS = Object.freeze({
+  guided: 'Work step by step with examples, table starters and hints. Reveal a solution when you need it. Switching help keeps your work.',
+  independent: 'Choose your approach from the full evidence. Examples, starters, hints and solutions are always available. Switching help keeps your work.'
+});
+
+export const getSupportDescription = mode => SUPPORT_DESCRIPTIONS[mode] || '';
+
+export function getMissionDecision(mission) {
+  if (mission.id === 'thalassa-wind-survey') {
+    return 'Recommend Plan A, Plan B, or ask for more evidence. Explain your criteria and revise your recommendation after the lower-wind test.';
+  }
+  return mission.decision;
+}
 
 /**
  * Layout clarification for the accepted draft, without mutating its hashed data.
