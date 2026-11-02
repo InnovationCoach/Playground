@@ -35,7 +35,7 @@ function Harness() {
     {person.role === 'coach' && <CoachUniverseSubmissions key={`${viewerKey}|${run}`} coachUser={person} client={client} registry={FIXTURE_RELEASES} />}
   </main></>;
   if (view === 'explorer' && person.role === 'student') return <>{bar}<MyUniverseExplorer key={run} preview catalogUrl={catalogUrl} forceTextView={flags.get('text') === '1'}
-    missionRegistry={FIXTURE_RELEASES} missionClient={client} viewerKey={viewerKey} onClose={() => setView('home')}
+    missionRegistry={FIXTURE_RELEASES} missionClient={client} viewerKey={viewerKey} onClose={() => setView('home')} allowInReviewMissions
     initialMission={flags.get('open') ? { id: flags.get('open'), route: flags.get('route'), view: flags.get('tab'), step: flags.get('step') } : null} /></>;
   return <>{bar}<main className="pv-home"><h1>My Universe pilot · synthetic preview</h1>
     <p>Both pilot missions (G03 revision 2 fixtures) with an in-memory stand-in for the mission service. Use the controls to switch learner, organization and service state.</p>

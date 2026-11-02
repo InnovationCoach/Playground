@@ -176,6 +176,68 @@ describe('pilot mission sheet', () => {
   });
 });
 
+describe('availability and saved-draft safety', () => {
+  const ok = (data) => ({ state: 'loaded', status: 200, data: { contractVersion: '1.0.0', ...data } });
+  const withAvailability = (availability) => ({ ...clientOf('ben'), availability: async (id) => ok({ identity: id, availability: { reason: null, ...availability } }) });
+  const openRoute = async (client, props = {}) => {
+    await act(async () => root.render(<PilotMissionSheet entry={wind} registry={FIXTURE_RELEASES} client={client} preview onClose={() => {}} {...props} />)); await settle();
+    await click(document.body.querySelector('.mx-route'));
+  };
+  const paused = async () => {
+    expect(document.body.querySelector('.px-fieldset').disabled).toBe(true);
+    await click(button('Review and send'));
+    expect(button('Send for review').disabled).toBe(true);
+  };
+
+  it('keeps a contradictory withdrawn answer paused even when every permission flag is true', async () => {
+    await openRoute(withAvailability({ status: 'withdrawn', canStart: true, canResume: true, canSubmit: true, reason: 'Paused for a correction.' }));
+    expect(text()).toMatch(/Paused for a correction/);
+    await paused();
+  });
+
+  it('keeps unknown and retired statuses paused whatever the flags say', async () => {
+    await openRoute(withAvailability({ status: 'unknown', canStart: true, canResume: true, canSubmit: true }));
+    await paused();
+    await act(async () => root.render(null));
+    await openRoute(withAvailability({ status: 'retired', canStart: true, canResume: true, canSubmit: true }));
+    await paused();
+  });
+
+  it('allows in-review only inside an explicitly trusted fixture preview, and only with service permission', async () => {
+    const inReview = withAvailability({ status: 'in-review', canStart: true, canResume: true, canSubmit: true });
+    await openRoute(inReview);
+    await paused(); // default (production) behaviour
+    await act(async () => root.render(null));
+    await openRoute(inReview, { allowInReview: true });
+    expect(document.body.querySelector('.px-fieldset').disabled).toBe(false);
+    await act(async () => root.render(null));
+    await openRoute(withAvailability({ status: 'in-review', canStart: false, canResume: false, canSubmit: false }), { allowInReview: true });
+    await paused();
+  });
+
+  it('never restores a saved draft that does not fit this exact task, and pauses saving instead of overwriting it', async () => {
+    const wrongTaskDraft = { draftId: 'd9', revision: 4, updatedAt: '2026-11-02T04:00:00Z', supportMode: 'guided', activeStepId: 'route-plan',
+      answers: [], evidence: [{ partId: 'route-plan', kind: 'text', text: 'Journey work from another task' }], reflection: '' };
+    const client = { ...clientOf('ben'), getDraft: async (id) => ok({ identity: id, draft: wrongTaskDraft }) };
+    await openRoute(client);
+    expect(text()).toMatch(/Your saved work for this task couldn’t be read, so it wasn’t loaded/);
+    expect(text()).not.toContain('Journey work from another task');
+    expect(button('Save now')).toBeUndefined();
+    await setValue(document.body.querySelector('.px-part textarea'), 'New note');
+    await act(async () => { await new Promise((r) => setTimeout(r, 1400)); });
+    expect(service.drafts.size).toBe(0); // autosave did not write over the unreadable account draft
+  });
+
+  it('rejects a draft answered for a different task at the adapter, before the editor sees it', async () => {
+    const fetchImpl = async () => new Response(JSON.stringify({ contractVersion: '1.0.0', identity: { releaseId: 'x', missionId: 'thalassa-wind-survey', missionVersion: '0.2.0-draft', routeId: 'guided', taskId: 'wind-capacity-factor', policyVersion: 'p' },
+      draft: { draftId: 'd', revision: 1, updatedAt: '2026-11-02T04:00:00Z', supportMode: 'guided', activeStepId: 'hours', answers: [], evidence: [], reflection: '' } }), { status: 200 });
+    const base = createUniverseClient({ fetchImpl, getToken: async () => 't' });
+    await openRoute({ ...clientOf('ben'), getDraft: base.getDraft });
+    expect(text()).toMatch(/answered for a different task/);
+    expect(document.body.querySelector('.px-part textarea').value).toBe('');
+  });
+});
+
 describe('explorer with pilot missions', () => {
   const loadCatalog = async () => buildCosmos(catalog);
   const explorer = (who, client) => <MyUniverseExplorer preview forceTextView loadCatalog={loadCatalog} onClose={() => {}}

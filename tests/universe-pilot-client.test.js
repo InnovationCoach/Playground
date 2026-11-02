@@ -62,13 +62,36 @@ describe('mission service adapter (contract 0.1.1, API 1.0.0)', () => {
 
   it('checks each endpoint envelope (availability, draft, submit, review, access)', async () => {
     const c = (body) => make(() => json(200, { contractVersion: '1.0.0', ...body })).client;
-    expect((await c({ availability: { status: 'open' } }).availability(identity)).code).toBe('MALFORMED_RESPONSE');
-    expect((await c({ availability: { status: 'open', canStart: true, canResume: true, canSubmit: false } }).availability(identity)).state).toBe('loaded');
-    expect((await c({}).getDraft(identity)).code).toBe('MALFORMED_RESPONSE');
-    expect((await c({ draft: null }).getDraft(identity)).state).toBe('loaded');
+    const avail = { status: 'open', canStart: true, canResume: true, canSubmit: false };
+    expect((await c({ identity, availability: { status: 'open' } }).availability(identity)).code).toBe('MALFORMED_RESPONSE');
+    expect((await c({ identity, availability: avail }).availability(identity)).state).toBe('loaded');
+    expect((await c({ identity }).getDraft(identity)).code).toBe('MALFORMED_RESPONSE');
+    expect((await c({ identity, draft: null }).getDraft(identity)).state).toBe('loaded');
     expect((await c({ submissionId: 's1', status: 'submitted' }).submit('m', {}, 'k')).code).toBe('MALFORMED_RESPONSE');
     expect((await c({ submissionId: 's1', status: 'submitted', submissionRevision: 1 }).submit('m', {}, 'k')).state).toBe('loaded');
     expect((await c({ submissionId: 's1', status: 'pending', submissionRevision: 2 }).review('s1', {}, 'k')).code).toBe('MALFORMED_RESPONSE');
     expect((await c({ destinations: { boreas: {} } }).access(['boreas'])).code).toBe('MALFORMED_RESPONSE');
+  });
+
+  it('rejects availability that is not one of the contract statuses or not bound to the requested task', async () => {
+    const c = (body) => make(() => json(200, { contractVersion: '1.0.0', ...body })).client;
+    const flags = { canStart: true, canResume: true, canSubmit: true };
+    expect((await c({ identity, availability: { status: 'paused', ...flags } }).availability(identity)).code).toBe('MALFORMED_RESPONSE');
+    expect((await c({ availability: { status: 'open', ...flags } }).availability(identity)).code).toBe('MALFORMED_RESPONSE'); // no identity echo
+    expect((await c({ identity: { ...identity, routeId: 'advanced' }, availability: { status: 'open', ...flags } }).availability(identity)).code).toBe('IDENTITY_MISMATCH');
+  });
+
+  it('rejects a wrong-task or incomplete draft instead of restoring blank or mislabelled work', async () => {
+    const c = (body) => make(() => json(200, { contractVersion: '1.0.0', ...body })).client;
+    const full = { draftId: 'd1', revision: 3, updatedAt: '2026-11-02T04:00:00Z', supportMode: 'guided', activeStepId: 'hours', answers: [], evidence: [], reflection: '' };
+    expect((await c({ identity, draft: full }).getDraft(identity)).state).toBe('loaded');
+    expect((await c({ identity: { ...identity, taskId: 'journey-rates' }, draft: full }).getDraft(identity)).code).toBe('IDENTITY_MISMATCH');
+    expect((await c({ identity, draft: { ...full, routeId: 'advanced' } }).getDraft(identity)).code).toBe('IDENTITY_MISMATCH');
+    for (const missing of ['updatedAt', 'draftId', 'answers', 'evidence', 'supportMode', 'activeStepId']) {
+      const { [missing]: _, ...partial } = full;
+      expect((await c({ identity, draft: partial }).getDraft(identity)).code).toBe('MALFORMED_RESPONSE');
+    }
+    expect((await c({ draft: { draftId: 'd1', revision: 1 } }).saveDraft('m', {}, 'k')).code).toBe('MALFORMED_RESPONSE'); // no updatedAt
+    expect((await c({ draft: { draftId: 'd1', revision: 1, updatedAt: '2026-11-02T04:00:00Z' } }).saveDraft('m', {}, 'k')).state).toBe('loaded');
   });
 });

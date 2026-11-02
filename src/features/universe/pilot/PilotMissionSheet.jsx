@@ -3,7 +3,7 @@ import { X, Lightbulb, Eye, ChevronLeft, ChevronRight, Send, RefreshCw, History,
 import { checkNumber, displayAnswer, canonicalStringify } from '../../../../shared/universe/index.js';
 import {
   identityFor, identityKey, sameIdentity, routeDatasets, emptyWork, withAnswer, partStatus,
-  draftBody, submissionBody, checkSubmission, workFromSaved, codePoints
+  draftBody, submissionBody, checkSubmission, checkDraft, workFromSaved, codePoints
 } from './missionSession.js';
 import { NotebookPart, EvidenceView, Counter, partTitle } from './NotebookParts.jsx';
 import { newIdempotencyKey, describeFailure } from './universeClient.js';
@@ -17,6 +17,14 @@ const AVAIL_TEXT = {
   retired: 'This mission is no longer offered. Your earlier attempts stay in your history.',
   unknown: 'We couldn’t confirm that this mission is open right now.'
 };
+const DRAFT_FIELDS = ['supportMode', 'activeStepId', 'answers', 'evidence', 'reflection', 'previousSubmissionId'];
+/** Only a saved draft that validates for this exact task (same shared rules as the server) is restored. */
+export function restorable(registry, identity, d) {
+  if (!d) return false;
+  const body = { ...Object.fromEntries(['releaseId', 'missionVersion', 'routeId', 'taskId', 'policyVersion'].map((k) => [k, identity[k]])), expectedRevision: d.revision };
+  for (const k of DRAFT_FIELDS) if (d[k] !== undefined) body[k] = d[k];
+  return checkDraft(registry, identity, body).ok;
+}
 const STATUS_TEXT = { submitted: 'Sent · waiting for your coach', returned: 'Returned for revision', approved: 'Reviewed by your coach' };
 
 export function formatTime(ts) {
@@ -26,9 +34,15 @@ export function formatTime(ts) {
   return new Date(ms).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-export const availabilityOf = (result) => (result?.state === 'loaded' ? (result.data.availability ?? result.data) : null);
-// Assessed actions follow the service's explicit permissions; `status` only chooses the wording.
-const canWork = (a) => !!a && (a.canStart === true || a.canResume === true);
+export const availabilityOf = (result) => (result?.state === 'loaded' ? result.data.availability : null);
+/**
+ * Assessed work needs both the right status and the service's explicit permission:
+ * withdrawn, retired and unknown stay paused whatever the booleans say. `in-review`
+ * counts only inside an explicitly trusted fixture preview (never in production).
+ */
+const statusAllows = (a, allowInReview) => a.status === 'open' || (allowInReview && a.status === 'in-review');
+export const canWork = (a, allowInReview = false) => !!a && statusAllows(a, allowInReview) && (a.canStart === true || a.canResume === true);
+export const canSend = (a, allowInReview = false) => canWork(a, allowInReview) && a.canSubmit === true;
 
 export function outcomeText(item) {
   if (item.status !== 'approved') return null;
@@ -43,7 +57,7 @@ export function outcomeText(item) {
  * sheet, signing out or switching account/organization discards it (the parent
  * re-keys this component), and late responses from a closed sheet are ignored.
  */
-export function PilotMissionSheet({ entry, registry, client, preview = false, onClose, initial = null }) {
+export function PilotMissionSheet({ entry, registry, client, preview = false, onClose, initial = null, allowInReview = false }) {
   const { bundle, mission } = entry;
   const [routeId, setRouteId] = useState(null);
   const [view, setView] = useState('work');
@@ -66,7 +80,8 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
   const work = key ? works[key] : null;
   const save = key ? saves[key] || { state: 'not-saved' } : null;
   const availability = key ? availabilityOf(avail[key]) : null;
-  const open = canWork(availability);
+  const open = canWork(availability, allowInReview);
+  const sendable = canSend(availability, allowInReview);
   const setWork = useCallback((fn) => {
     if (!key) return;
     edited.current[key] = true;
@@ -112,11 +127,16 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
     else setWorks((all) => (all[k] ? all : { ...all, [k]: emptyWork(r, { supportMode: Object.values(all)[0]?.supportMode }) }));
     checkAvailability(id, k);
     if (saves[k]?.loaded) return;
-    setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), state: all[k]?.state || 'not-saved', loading: true } }));
+    setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), state: all[k]?.state || 'not-saved', loading: true, loadError: null } }));
     const res = await client.getDraft(id);
     if (!alive.current) return;
     if (res.state !== 'loaded') { setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), loading: false, state: all[k]?.state || 'not-saved', loadError: res } })); return; }
     const d = res.data.draft;
+    if (d && !restorable(registry, id, d)) {
+      // A saved draft that doesn't fit this exact task is never restored as blank or relabelled work.
+      setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), loading: false, state: all[k]?.state || 'not-saved', loadError: { state: 'error', code: 'MALFORMED_RESPONSE', message: 'Your saved work for this task couldn’t be read, so it wasn’t loaded. Nothing has been overwritten.' } } }));
+      return;
+    }
     if (!d) { setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), loading: false, loaded: true, revision: 0 } })); return; }
     if (edited.current[k]) {
       // Local edits started before the saved draft arrived: never overwrite either silently.
@@ -128,7 +148,7 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
   }
 
   const doSave = useCallback(async ({ expectedRevision } = {}) => {
-    if (!route || !work || !open) return;
+    if (!route || !work || !open || save.loadError) return;
     const rev = expectedRevision ?? save.revision ?? 0;
     const body = draftBody(route, identity, work, rev);
     const text = canonicalStringify(body);
@@ -152,7 +172,7 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
 
   // Autosave after a pause, only while the service says the mission is open and nothing conflicts.
   useEffect(() => {
-    if (!key || !open || save?.state !== 'not-saved' || !edited.current[key] || save?.loading) return undefined;
+    if (!key || !open || save?.state !== 'not-saved' || !edited.current[key] || save?.loading || save?.loadError) return undefined;
     const t = setTimeout(() => doSave(), AUTOSAVE_MS);
     return () => clearTimeout(t);
   }, [key, open, save?.state, save?.loading, work, doSave]);
@@ -217,14 +237,16 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
         {!route && <Briefing bundle={bundle} mission={mission} onChoose={(r) => chooseRoute(r)} history={history} onHistory={() => { setRouteId(mission.routes[0].id); chooseRoute(mission.routes[0]); setView('history'); }} />}
         {route && <>
           <StatusBar availResult={avail[key]} availability={availability} save={save} onSave={() => doSave()} onRetryAvail={() => checkAvailability(identity, key)} open={open} />
+          {save.loadError && <div className="px-alert" role="alert"><AlertTriangle size={16} aria-hidden="true" />
+            <p>{save.loadError.message ? save.loadError.message : `Your saved work couldn’t be loaded. ${describeFailure(save.loadError)}`} Saving is paused so nothing is overwritten. <button type="button" className="px-link" onClick={() => chooseRoute(route)}>Try loading again</button></p></div>}
           {save.state === 'conflict' && <div className="px-alert" role="alert"><AlertTriangle size={16} aria-hidden="true" />
             <div><p>Your account has a different saved version of this task{save.currentDraft ? ` (saved ${formatTime(save.currentDraft.updatedAt)})` : ''}. Nothing has been overwritten.</p>
-              <div className="px-row">{save.currentDraft && <button type="button" className="px-ghost" onClick={() => resolveConflict(true)}>Load the account version</button>}
+              <div className="px-row">{save.currentDraft && restorable(registry, identity, save.currentDraft) && <button type="button" className="px-ghost" onClick={() => resolveConflict(true)}>Load the account version</button>}
                 <button type="button" className="px-ghost" disabled={!open} onClick={() => resolveConflict(false)}>Keep this screen’s work and save it</button></div></div></div>}
           {reviseFrom && view !== 'history' && <div className="px-note" role="status"><strong>Revising attempt {reviseFrom.attemptNumber ?? ''}.</strong> {reviseFrom.coachNote ? `Your coach asked: “${reviseFrom.coachNote}”` : ''} Sending creates a new attempt linked to the returned one; the returned attempt stays as it was.</div>}
           <Support route={route} work={work} setWork={setWork} />
           {view === 'work' && work && <WorkView bundle={bundle} mission={mission} route={route} work={work} setWork={setWork} open={open} onReview={() => setView('review')} />}
-          {view === 'review' && work && <ReviewView route={route} identity={identity} registry={registry} work={work} setWork={setWork} open={open} availability={availability}
+          {view === 'review' && work && <ReviewView route={route} identity={identity} registry={registry} work={work} setWork={setWork} open={open} sendable={sendable} availability={availability}
             openAttempt={openAttempt} historyState={history.state} send={send} onSend={sendForReview} onJump={(stepId) => { setWork((w) => ({ ...w, activeStepId: stepId })); setView('work'); }} />}
           {view === 'history' && <HistoryView bundle={bundle} mission={mission} history={history} onMore={() => loadHistory(history.nextCursor)} onRetry={() => loadHistory()} onRevise={revise} openAttempt={openAttempt} />}
         </>}
@@ -270,7 +292,7 @@ function StatusBar({ availResult, availability, save, onSave, onRetryAvail, open
     <p>{availLine}</p>
     <p className={`px-save is-${save.state}`} role="status">{save.state === 'saved' ? <Cloud size={14} aria-hidden="true" /> : <CloudOff size={14} aria-hidden="true" />}{save.loading ? 'Loading your saved work…' : saveText}
       {save.state === 'error' && <> — {describeFailure(save.failure)}</>}
-      {(save.state === 'not-saved' || save.state === 'error') && open && <button type="button" className="px-link" onClick={onSave}>Save now</button>}</p>
+      {(save.state === 'not-saved' || save.state === 'error') && open && !save.loadError && <button type="button" className="px-link" onClick={onSave}>Save now</button>}</p>
     {save.state === 'not-saved' && <p className="px-fine">Work on this screen is kept only until you close it, unless it is saved to your account.</p>}
   </div>;
 }
@@ -369,13 +391,13 @@ function Help({ step }) {
   </>;
 }
 
-function ReviewView({ route, identity, registry, work, setWork, open, availability, openAttempt, historyState, send, onSend, onJump }) {
+function ReviewView({ route, identity, registry, work, setWork, open, sendable, availability, openAttempt, historyState, send, onSend, onJump }) {
   const statuses = route.requiredParts.map((r) => ({ rule: r, ...partStatus(route, r.partId, work.parts[r.partId]) }));
   const local = checkSubmission(registry, identity, submissionBody(route, identity, work));
   const reflectionOk = codePoints(work.reflection.trim()) >= 20 && codePoints(work.reflection) <= 2000;
   const blockers = [];
   if (!open) blockers.push(availability ? (availability.reason || AVAIL_TEXT[availability.status] || AVAIL_TEXT.unknown) : 'The mission service hasn’t confirmed this mission is open.');
-  if (availability && open && availability.canSubmit !== true) blockers.push(availability.reason || 'Sending isn’t open for this mission right now.');
+  if (availability && open && !sendable) blockers.push(availability.reason || 'Sending isn’t open for this mission right now.');
   if (historyState !== 'loaded') blockers.push(historyState === 'error' ? 'Your earlier attempts couldn’t be checked, so sending waits until they can.' : 'Checking your earlier attempts…');
   if (openAttempt) blockers.push(`Attempt ${openAttempt.attemptNumber ?? ''} is already waiting for your coach. You can send again after it is reviewed.`);
   if (statuses.some((s) => !s.complete)) blockers.push('Finish every notebook part below.');

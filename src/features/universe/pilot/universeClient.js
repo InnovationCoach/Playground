@@ -35,15 +35,22 @@ function query(params) {
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isStr = (v) => typeof v === 'string' && v.length > 0;
 const isRev = (v) => Number.isSafeInteger(v) && v >= 0;
-const isAvailability = (a) => isObj(a) && isStr(a.status) && ['canStart', 'canResume', 'canSubmit'].every((k) => typeof a[k] === 'boolean');
-const isDraft = (d) => isObj(d) && isRev(d.revision) && isStr(d.updatedAt ?? 'x');
+export const AVAILABILITY_STATUSES = ['open', 'in-review', 'withdrawn', 'retired', 'unknown'];
+const isAvailability = (a) => isObj(a) && AVAILABILITY_STATUSES.includes(a.status) && ['canStart', 'canResume', 'canSubmit'].every((k) => typeof a[k] === 'boolean');
+const isSaveAck = (d) => isObj(d) && isStr(d.draftId) && isRev(d.revision) && d.revision >= 1 && isStr(d.updatedAt);
+/** A draft that can be restored: every field the editor needs, nothing defaulted. */
+const isFullDraft = (d) => isSaveAck(d) && isStr(d.supportMode) && isStr(d.activeStepId) && Array.isArray(d.answers) && Array.isArray(d.evidence) &&
+  (d.reflection === undefined || typeof d.reflection === 'string');
+export const TASK_KEYS = ['releaseId', 'missionId', 'missionVersion', 'routeId', 'taskId', 'policyVersion'];
+/** The service must say which exact task it answered for; any difference is a different task. */
+const sameTask = (echo, identity) => isObj(echo) && TASK_KEYS.every((k) => echo[k] === identity[k]);
 const isList = (d) => Array.isArray(d.submissions) && d.submissions.every((s) => isObj(s) && isStr(s.submissionId) && isStr(s.status)) && (d.nextCursor == null || isStr(d.nextCursor));
 
 /** What each endpoint's successful body must contain. A body that doesn't match is an error, never an empty result. */
 export const ENVELOPES = {
-  availability: (d) => isAvailability(d.availability ?? d),
-  getDraft: (d) => 'draft' in d && (d.draft === null || isDraft(d.draft)),
-  saveDraft: (d) => isDraft(d.draft ?? d),
+  availability: (d) => isObj(d.identity) && isAvailability(d.availability),
+  getDraft: (d) => isObj(d.identity) && 'draft' in d && (d.draft === null || isFullDraft(d.draft)),
+  saveDraft: (d) => isSaveAck(d.draft),
   submit: (d) => isStr(d.submissionId) && isStr(d.status) && isRev(d.submissionRevision),
   mySubmissions: isList,
   coachQueue: isList,
@@ -89,9 +96,19 @@ export function createUniverseClient({ fetchImpl = globalThis.fetch?.bind(global
   const missionPath = (missionId) => `/api/universe/missions/${encodeURIComponent(missionId)}`;
   const identityQuery = (identity) => query(Object.fromEntries(IDENTITY_QUERY.map((k) => [k, identity[k]])));
 
+  // Availability and drafts are answers about one exact task: a reply for any other task is rejected, never shown.
+  const forTask = async (identity, pending) => {
+    const res = await pending;
+    if (res.state !== 'loaded') return res;
+    const draft = res.data.draft;
+    const draftOk = !draft || TASK_KEYS.every((k) => draft[k] === undefined || draft[k] === identity[k]);
+    if (sameTask(res.data.identity, identity) && draftOk) return res;
+    return { state: 'error', status: res.status, code: 'IDENTITY_MISMATCH', message: 'The mission service answered for a different task, so nothing from it is shown.', retryable: false, details: null, field: 'identity', requestId: null };
+  };
+
   return {
-    availability: (identity) => request('availability', 'GET', `${missionPath(identity.missionId)}/availability${identityQuery(identity)}`),
-    getDraft: (identity) => request('getDraft', 'GET', `${missionPath(identity.missionId)}/draft${identityQuery(identity)}`),
+    availability: (identity) => forTask(identity, request('availability', 'GET', `${missionPath(identity.missionId)}/availability${identityQuery(identity)}`)),
+    getDraft: (identity) => forTask(identity, request('getDraft', 'GET', `${missionPath(identity.missionId)}/draft${identityQuery(identity)}`)),
     saveDraft: (missionId, body, idempotencyKey) => request('saveDraft', 'PUT', `${missionPath(missionId)}/draft`, { body, idempotencyKey }),
     submit: (missionId, body, idempotencyKey) => request('submit', 'POST', `${missionPath(missionId)}/submissions`, { body, idempotencyKey }),
     mySubmissions: ({ missionId, missionVersion, routeId, limit = 20, cursor } = {}) =>

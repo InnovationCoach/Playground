@@ -36,6 +36,7 @@ export function createSyntheticService({ latency = 0, registry = FIXTURE_RELEASE
     if (mode === 'unavailable') return err(503, 'SERVICE_UNAVAILABLE', 'The mission service is busy. Please try again shortly.');
     return null;
   }
+  const echo = (identity) => Object.fromEntries(['releaseId', 'missionId', 'missionVersion', 'routeId', 'taskId', 'policyVersion'].map((k) => [k, identity[k]]));
   const draftKey = (p, missionId, b) => canonicalStringify([p.orgId, p.uid, missionId, ...IDS.map((k) => b[k])]);
   function once(p, op, key, body, run) {
     if (!key) return err(400, 'IDEMPOTENCY_KEY_REQUIRED', 'An idempotency key is required.');
@@ -72,13 +73,13 @@ export function createSyntheticService({ latency = 0, registry = FIXTURE_RELEASE
     return {
       availability: (identity) => call(() => {
         const t = resolveTask(registry, identity);
-        return t.ok ? loaded({ availability: availabilityFor() }) : err(404, t.error.code, t.error.message);
+        return t.ok ? loaded({ identity: echo(identity), availability: availabilityFor() }) : err(404, t.error.code, t.error.message);
       }),
       getDraft: (identity) => call(() => {
         const t = resolveTask(registry, identity);
         if (!t.ok) return err(404, t.error.code, t.error.message);
         const d = drafts.get(draftKey(p, identity.missionId, identity));
-        return loaded({ draft: d ? copy(d) : null });
+        return loaded({ identity: echo(identity), draft: d ? copy(d) : null });
       }),
       saveDraft: (missionId, body, key) => call(() => once(p, `PUT draft ${missionId}`, key, body, () => {
         const v = validateDraft({ contractVersion: V, ...body }, { registry, missionId });

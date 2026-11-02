@@ -98,7 +98,7 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
  * never fight slide swipes or arrow keys.
  */
 function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader,
-  missionRegistry = PUBLISHED_RELEASES, missionClient, viewerKey = '', initialMission = null }) {
+  missionRegistry = PUBLISHED_RELEASES, missionClient, viewerKey = '', initialMission = null, allowInReviewMissions = false }) {
   const client = missionClient || defaultClient();
   const [serverAccess, setServerAccess] = useState(null);
   const opts = useMemo(() => ({ preview, serverAccess, pilotRegistry: missionRegistry }), [preview, serverAccess, missionRegistry]);
@@ -287,7 +287,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       </aside>}
       {!in3d && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
       {mission && <MissionSheet mission={mission} onClose={() => setMissionId(null)} />}
-      {pilotEntry && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={initialMission?.id === pilotEntry.mission.id ? initialMission : null} registry={missionRegistry} client={client} preview={preview} onClose={() => setMissionId(null)} />}
+      {pilotEntry && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={initialMission?.id === pilotEntry.mission.id ? initialMission : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} onClose={() => setMissionId(null)} />}
       {showMetrics && in3d && <div className="mx-metrics" aria-hidden="true">
         {metrics ? <>{metrics.at && performance.now() - metrics.at < 1600 ? `${metrics.fps} fps` : 'idle · renders on demand'} · {metrics.calls} draw calls · {metrics.triangles.toLocaleString()} tris · {metrics.geometries} geometries · {metrics.textures} textures · {low ? 'standard' : 'high'} detail</> : 'measuring…'}
       </div>}
