@@ -29,15 +29,18 @@ import ltiRouter from './routes/lti.js';
 import oneRosterRouter from './routes/oneroster.js';
 import createLearnerRouter from './routes/create-learner.js';
 import canvaRouter from './routes/canva.js';
-import universeRouter from './routes/universe.js';
-import coachUniverseRouter from './routes/coach-universe.js';
+import { createUniverseRouter } from './routes/universe.js';
+import { createCoachUniverseRouter } from './routes/coach-universe.js';
+import { createUniverseRegistry } from './lib/universe/missions.js';
+import { sendUniverseError } from './lib/universe/http.js';
 
 
 const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const THINKING_OFF = { thinkingBudget: 0 };
 
-export function createApp() {
+export function createApp(options = {}) {
   const app = express();
+  const universeRegistry = createUniverseRegistry(options.universeRegistry);
 
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || 'dev-dummy-key');
@@ -76,9 +79,16 @@ export function createApp() {
       console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
       return callback(new Error(`Origin ${origin} not allowed by CORS policy`), false);
     },
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Universe-Contract-Version', 'X-Request-Id'],
+    exposedHeaders: ['X-Universe-Contract-Version', 'X-Request-Id', 'Retry-After']
   }));
-  app.use(express.json({ limit: '8mb' }));
+  app.use(express.json({
+    limit: '8mb',
+    verify: (req, _res, buf) => {
+      req.rawBodyBytes = buf.byteLength;
+    }
+  }));
 
   // Memory-safe rate limiter with automatic pruning
   const rateLimiter = createRateLimiter({ maxEntries: 1000 });
@@ -112,8 +122,8 @@ export function createApp() {
   app.use('/api/oneroster/v1p1', oneRosterRouter);
   app.use('/api/coach/learners', requireAuth, createLearnerRouter);
   app.use('/api/canva', canvaRouter);
-  app.use('/api/universe', universeRouter);
-  app.use('/api/coach/universe', coachUniverseRouter);
+  app.use('/api/universe', createUniverseRouter({ getRegistry: () => universeRegistry }));
+  app.use('/api/coach/universe', createCoachUniverseRouter({ getRegistry: () => universeRegistry }));
 
 
   // ============= EXISTING AI ENDPOINTS =============
@@ -467,11 +477,24 @@ export function createApp() {
 
   // Catch-all 404 handler for unknown /api routes matching contract error shape
   app.use('/api', (req, res) => {
+    if (req.originalUrl?.startsWith('/api/universe') || req.originalUrl?.startsWith('/api/coach/universe')) {
+      return sendUniverseError(req, res, 404, 'NOT_FOUND', `No route ${req.method} ${req.originalUrl}`);
+    }
     return sendError(res, 404, 'NOT_FOUND', `No route ${req.method} ${req.originalUrl}`);
   });
 
-  // Standard 500 error handler
+  // Standard error handler
   app.use((err, req, res, next) => {
+    if (req.originalUrl?.startsWith('/api/universe') || req.originalUrl?.startsWith('/api/coach/universe')) {
+      if (err?.type === 'entity.too.large' || err?.status === 413) {
+        return sendUniverseError(req, res, 413, 'PAYLOAD_TOO_LARGE', 'Request body exceeds the 64 KiB limit.');
+      }
+      if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        return sendUniverseError(req, res, 400, 'VALIDATION_ERROR', 'Malformed JSON request body.');
+      }
+      console.error('Universe server error:', err);
+      return sendUniverseError(req, res, 503, 'SERVICE_UNAVAILABLE', 'Service temporarily unavailable.');
+    }
     console.error('Server error:', err);
     return sendError(res, 500, 'INTERNAL', 'Internal server error');
   });
