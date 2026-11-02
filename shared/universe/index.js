@@ -3,3 +3,4 @@ export { API_CONTRACT_VERSION, CAPABILITIES, PUBLISHED_RELEASES, MAX_REQUEST_BYT
 export { canonicalStringify, getBundleHashInputs } from './canonical.js';
 export { parseNumber, roundDecimal, checkNumber, displayAnswer } from './numbers.js';
 export { resolveTask, validateEvidence, validateSubmission, validateDraft, validateReview } from './validation.js';
+export { getTableTemplate, PRESENTATION_ADAPTER_VERSION } from './presentation.js';
