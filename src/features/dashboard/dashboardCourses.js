@@ -4,12 +4,47 @@ import { loadClasses } from '../coach/classCodes.js';
 import { readLocalProgress } from '../pbl/programs/useProgramProgress.js';
 import { hydrateProgress, progressDocId, programProgress, needsRecheck } from '../pbl/programs/progress.js';
 
+export function readLocalAddedPrograms(uid) {
+  const ids = [];
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const storageKey = `learningPath_${uid || 'signed-out'}`;
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            if (typeof item === 'string') {
+              const cleaned = item.startsWith('program:') ? item.replace(/^program:/, '') : item;
+              if (cleaned && !cleaned.startsWith('activity:')) ids.push(cleaned);
+            }
+          }
+        }
+      }
+      const enrolledRaw = localStorage.getItem(`hearisland.enrolled_programs.v1:${uid || 'signed-out'}`);
+      if (enrolledRaw) {
+        const parsedEnrolled = JSON.parse(enrolledRaw);
+        if (Array.isArray(parsedEnrolled)) {
+          parsedEnrolled.forEach((p) => p && ids.push(p));
+        }
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
+  return ids;
+}
+
 /** Read only the signed-in learner's enrolments and assigned classes. Never enrol or seed. */
 export async function loadDashboardCourses(uid, classIds, activeProgramId, services = {}) {
   const api = { getDocs, getDoc, getProgram, loadClasses, readLocalProgress, ...services };
   const warnings = [];
   const ids = new Set(activeProgramId ? [activeProgramId] : []);
   const enrolments = new Map();
+
+  // Read student-added courses from local learning path so all chosen programs appear
+  readLocalAddedPrograms(uid).forEach((id) => ids.add(id));
+
   const results = await Promise.allSettled([
     api.getDocs(query(collection(db, 'enrolments'), where('learnerId', '==', uid))),
     api.loadClasses(classIds)

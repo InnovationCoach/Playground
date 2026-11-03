@@ -162,7 +162,10 @@ export function TodayWidget({ items, checked, onToggle, onOpenGoals }) {
             <li key={it.id}>
               <button type="button" className="md-today-item" aria-pressed={on} onClick={() => onToggle(it)}>
                 {on ? <CircleCheck size={18} aria-hidden="true" /> : <Circle size={18} aria-hidden="true" />}
-                <span>{it.text}</span>
+                <span className="md-today-text-wrap" style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', gap: 2 }}>
+                  {it.goal && <span className="md-today-goal-badge" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--sp-magenta-text, #ae266c)' }}>{it.goal}</span>}
+                  <span>{it.text}</span>
+                </span>
               </button>
             </li>
           );

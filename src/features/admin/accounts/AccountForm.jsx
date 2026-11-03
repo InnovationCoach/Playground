@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
+import { KeyRound, Eye, EyeOff, Copy } from 'lucide-react';
 import { useLocale } from '../../../app/i18n/LocaleProvider.jsx';
 import { createUser, updateUser } from '../../../services/api/endpoints.js';
 import { describeApiError } from '../../../services/api/apiClient.js';
 import { Field, Alert } from '../ui/bits.jsx';
+import { Modal } from '../ui/Modal.jsx';
 import { ACCOUNT_KINDS } from './accountKinds.js';
 import { useReferenceData, localName } from './useReferenceData.js';
 
@@ -31,6 +33,7 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
     givenNames: user?.givenNames || '',
     surname: user?.surname || '',
     email: user?.email || '',
+    password: '',
     phone: user?.phone || '',
     gender: user?.gender || '',
     schoolId: user?.schoolIds?.[0] || '',
@@ -41,6 +44,9 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
     programmeIds: user?.programmeIds || [],
     dateOfBirth: user?.dateOfBirth || ''
   }));
+  const [showPassword, setShowPassword] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -67,11 +73,21 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
     setErrors((er) => ({ ...er, [key]: undefined }));
   };
 
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    let p = '';
+    for (let i = 0; i < 8; i += 1) p += chars.charAt(Math.floor(Math.random() * chars.length));
+    const pass = `${p}!1`;
+    setForm((f) => ({ ...f, password: pass }));
+    setErrors((er) => ({ ...er, password: undefined }));
+  };
+
   function validate() {
     const er = {};
     if (!form.givenNames.trim()) er.givenNames = t('common.required');
     if (!form.surname.trim()) er.surname = t('common.required');
     if (!editing && !EMAIL.test(form.email.trim())) er.email = t('form.invalidEmail');
+    if (!editing && form.password.trim() && form.password.trim().length < 6) er.password = 'Password must be at least 6 characters.';
     if (form.phone.trim() && !E164.test(form.phone.trim())) er.phone = t('form.invalidPhone');
     if (!editing && !form.schoolId) er.schoolId = t('common.required');
     if (isStudent && !form.cohortId) er.cohortId = t('common.required');
@@ -97,6 +113,7 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
       } : {})
     };
     try {
+      const rawPassword = form.password.trim();
       const result = editing
         ? await updateUser(user.uid, profile)
         : await createUser({
@@ -105,9 +122,20 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
           email: form.email.trim().toLowerCase(),
           schoolIds: [form.schoolId],
           classIds: form.classId ? [form.classId] : [],
-          sendActivation: true
+          password: rawPassword || undefined,
+          sendActivation: !rawPassword
         });
-      onDone(result);
+      if (!editing && rawPassword) {
+        setCreatedCredentials({
+          user: result,
+          password: rawPassword,
+          email: form.email.trim().toLowerCase(),
+          displayName: `${form.givenNames.trim()} ${form.surname.trim()}`,
+          role: form.role
+        });
+      } else {
+        onDone(result);
+      }
     } catch (err) {
       if (err.code === 'VALIDATION' || err.code === 'CONFLICT') {
         const field = SERVER_FIELD[err.field] || err.field;
@@ -180,6 +208,44 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
           {!editing && (
             <Field id="f-email" label={t('form.email')} error={errors.email} span>{input('email', { type: 'email', autoComplete: 'off', placeholder: 'name@school.edu' })}</Field>
           )}
+          {!editing && (
+            <Field id="f-password" label={t('form.password')} hint={t('form.passwordHint')} error={errors.password} optional span>
+              {(a) => (
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      id="f-password"
+                      className="gh-input"
+                      type={showPassword ? 'text' : 'password'}
+                      value={form.password}
+                      onChange={set('password')}
+                      placeholder="Min 6 characters, or click generate"
+                      autoComplete="new-password"
+                      {...a}
+                    />
+                    <button
+                      type="button"
+                      className="gh-btn gh-btn-sm gh-btn-ghost"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ position: 'absolute', right: '0.35rem', top: '50%', transform: 'translateY(-50%)', padding: '0.2rem 0.4rem', height: 'auto' }}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className="gh-btn gh-btn-sm gh-btn-outline"
+                    onClick={generatePassword}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <KeyRound size={14} aria-hidden="true" style={{ marginRight: '0.3rem' }} />
+                    {t('form.generatePassword')}
+                  </button>
+                </div>
+              )}
+            </Field>
+          )}
           <Field id="f-phone" label={t('form.phone')} hint={t('form.phoneHint')} error={errors.phone} optional>{input('phone', { type: 'tel', inputMode: 'tel', placeholder: '+66812345678' })}</Field>
           <Field id="f-gender" label={t('form.gender')} optional>
             {(a) => (
@@ -250,6 +316,38 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
           {busy ? t('common.saving') : editing ? t('common.save') : t('form.create')}
         </button>
       </div>
+
+      {createdCredentials && (
+        <Modal title={t('form.createdCredentials.title')} onClose={() => onDone(createdCredentials.user)}>
+          <p className="gh-modal-desc">{t('form.createdCredentials.body')}</p>
+          <div style={{ background: 'var(--gh-bg-subtle, #f8fafc)', border: '1px solid var(--gh-border, #e2e8f0)', borderRadius: '8px', padding: '1rem', margin: '1rem 0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', rowGap: '0.6rem', fontSize: '0.92rem' }}>
+              <strong>{t('form.role')}:</strong> <span>{t(`role.${createdCredentials.role}`)}</span>
+              <strong>{t('form.givenNames')}:</strong> <span>{createdCredentials.displayName}</span>
+              <strong>{t('form.email')}:</strong> <span className="gh-mono">{createdCredentials.email}</span>
+              <strong>{t('form.password')}:</strong> <span className="gh-mono" style={{ fontWeight: 600, color: 'var(--gh-primary, #2563eb)' }}>{createdCredentials.password}</span>
+            </div>
+          </div>
+          <div className="gh-modal-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="gh-btn gh-btn-outline"
+              onClick={() => {
+                const text = `WeLearn SPARK Login:\nRole: ${t(`role.${createdCredentials.role}`)}\nName: ${createdCredentials.displayName}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nLogin URL: ${window.location.origin}/#/login`;
+                navigator.clipboard?.writeText(text);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2500);
+              }}
+            >
+              <Copy size={15} style={{ marginRight: '0.35rem' }} />
+              {copied ? t('form.copied') : t('form.copyCredentials')}
+            </button>
+            <button type="button" className="gh-btn gh-btn-primary" onClick={() => onDone(createdCredentials.user)}>
+              {t('common.done')}
+            </button>
+          </div>
+        </Modal>
+      )}
     </form>
   );
 }

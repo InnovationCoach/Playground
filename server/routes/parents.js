@@ -273,4 +273,80 @@ router.delete('/admin/parent-links/:linkId', requireClaims, async (req, res) => 
   return res.json({ linkId: req.params.linkId, status: 'revoked' });
 });
 
+// POST /api/admin/parent-links (admin or supervisor)
+router.post('/admin/parent-links', requireClaims, async (req, res) => {
+  if (req.caller.role !== 'admin' && req.caller.role !== 'supervisor') {
+    return sendError(res, 403, 'FORBIDDEN', 'You do not have permission to do that.');
+  }
+
+  const { parentUid, studentUid } = req.body || {};
+  if (!parentUid || !studentUid) {
+    return sendError(res, 400, 'VALIDATION', 'Both parentUid and studentUid are required.');
+  }
+
+  const db = getFirestore();
+  const parentSnap = await db.collection('users').doc(parentUid).get();
+  const studentSnap = await db.collection('users').doc(studentUid).get();
+
+  if (!parentSnap.exists) return sendError(res, 404, 'NOT_FOUND', 'Parent not found.', 'parentUid');
+  if (!studentSnap.exists) return sendError(res, 404, 'NOT_FOUND', 'Student not found.', 'studentUid');
+
+  const parent = parentSnap.data();
+  const student = studentSnap.data();
+
+  if (parent.role !== 'parent') return sendError(res, 400, 'VALIDATION', 'User is not a parent.', 'parentUid');
+  if (student.role !== 'student') return sendError(res, 400, 'VALIDATION', 'User is not a student.', 'studentUid');
+
+  const callerOrg = req.caller.orgId || 'org-welearn';
+  if ((parent.orgId || 'org-welearn') !== callerOrg || (student.orgId || 'org-welearn') !== callerOrg) {
+    return sendError(res, 403, 'FORBIDDEN', 'You do not have permission to do that.');
+  }
+  if (req.caller.role === 'supervisor' && !(student.schoolIds || []).some((id) => (req.caller.schoolIds || []).includes(id))) {
+    return sendError(res, 403, 'FORBIDDEN', 'You do not have permission to do that.');
+  }
+
+  const existing = await db.collection('parentLinks')
+    .where('parentUid', '==', parentUid)
+    .where('studentUid', '==', studentUid)
+    .where('status', '==', 'active')
+    .limit(1)
+    .get();
+
+  if (!existing.empty) {
+    return sendError(res, 409, 'CONFLICT', 'This child is already linked to this parent.');
+  }
+
+  const linkId = `link-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const nowStr = new Date().toISOString();
+  const orgId = callerOrg;
+
+  const linkDoc = {
+    linkId,
+    orgId,
+    parentUid,
+    studentUid,
+    status: 'active',
+    createdAt: nowStr,
+    createdVia: 'admin-console'
+  };
+
+  await db.collection('parentLinks').doc(linkId).set(linkDoc);
+
+  await writeAuditLog(db, {
+    caller: req.caller,
+    subjectUid: student.uid,
+    action: 'PARENT_LINKED',
+    summary: `Parent ${parent.displayName || parentUid} linked by admin`
+  });
+
+  await writeAuditLog(db, {
+    caller: req.caller,
+    subjectUid: parent.uid,
+    action: 'PARENT_LINKED',
+    summary: `Linked to ${student.displayName || studentUid} by admin`
+  });
+
+  return res.status(201).json(linkDoc);
+});
+
 export default router;

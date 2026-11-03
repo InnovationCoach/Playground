@@ -36,10 +36,15 @@ export function parseRoute(hash) {
   const [head, a, b, c] = parts;
   if (head === 'admin') {
     if (KINDS.includes(a)) return { screen: 'admin', page: 'list', kind: a };
-    if (['staff-attendance', 'student-attendance', 'leave', 'inventory'].includes(a)) return { screen: 'admin', page: a };
+    if (['staff-attendance', 'student-attendance', 'leave'].includes(a)) return { screen: 'admin', page: a };
     if (a === 'billing') return { screen: 'admin', page: 'billing' };
     if (a === 'materials') return { screen: 'admin', page: 'materials' };
     if (a === 'learning') return { screen: 'admin', page: 'learning' };
+    if (a === 'inventory') {
+      if (b === 'new') return { screen: 'admin', page: 'inventory', subpage: 'new' };
+      if (b) return { screen: 'admin', page: 'inventory', subpage: 'detail', assetId: b };
+      return { screen: 'admin', page: 'inventory', subpage: 'list' };
+    }
     if (a === 'users' && b) return { screen: 'admin', page: 'detail', uid: b };
     if (a === 'new' && KINDS.includes(b)) return { screen: 'admin', page: 'create', kind: b };
     return { screen: 'admin', page: 'pilot' };
@@ -75,6 +80,14 @@ export const hrefFor = {
   list: (kind) => `#/admin/${kind}`,
   billing: () => '#/admin/billing',
   materials: () => '#/admin/materials',
+  inventory: (subpage, id) => {
+    if (subpage === 'new') return '#/admin/inventory/new';
+    if (subpage === 'detail' && id) return `#/admin/inventory/${encodeURIComponent(id)}`;
+    return '#/admin/inventory';
+  },
+  staffAttendance: () => '#/admin/staff-attendance',
+  studentAttendance: () => '#/admin/student-attendance',
+  leave: () => '#/admin/leave',
   detail: (uid) => `#/admin/users/${encodeURIComponent(uid)}`,
   create: (kind) => `#/admin/new/${kind}`,
   settings: () => '#/settings',

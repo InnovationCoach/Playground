@@ -151,6 +151,52 @@ describe('mock backend follows the §7 contract', () => {
     expect(res.status).toBe(409);
   });
 
+
+
+  it('allows admin to link child to parent directly', async () => {
+    const api = fresh();
+    const kid = api.db.users.find((u) => u.role === 'student');
+    const parentUser = api.db.users.find((u) => u.role === 'parent');
+    // Remove any existing link between them if present
+    api.db.parentLinks = api.db.parentLinks.filter((l) => !(l.parentUid === parentUser.uid && l.studentUid === kid.uid));
+    const res = await call(api, admin, 'POST', '/api/admin/parent-links', { body: { parentUid: parentUser.uid, studentUid: kid.uid } });
+    expect(res.status).toBe(201);
+    expect(res.body.parentUid).toBe(parentUser.uid);
+    expect(res.body.studentUid).toBe(kid.uid);
+    // Conflict on duplicate
+    const dup = await call(api, admin, 'POST', '/api/admin/parent-links', { body: { parentUid: parentUser.uid, studentUid: kid.uid } });
+    expect(dup.status).toBe(409);
+  });
+
+  it('allows admin to set login password on an account', async () => {
+    const api = fresh();
+    const teacherUser = api.db.users.find((u) => u.role === 'teacher');
+    const res = await call(api, admin, 'POST', `/api/admin/users/${teacherUser.uid}/set-password`, { body: { password: 'NewSecurePass123!' } });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('active');
+    expect(res.body.auth.hasPassword).toBe(true);
+  });
+
+  it('creates accounts with direct login password when password is provided', async () => {
+    const api = fresh();
+    const res = await call(api, admin, 'POST', '/api/admin/users', {
+      body: {
+        role: 'student',
+        email: 'instant.login@welearn.test',
+        givenNames: 'Instant',
+        surname: 'Login',
+        schoolIds: ['sch-bkk'],
+        cohortId: 'cohort-lower-secondary',
+        ageBand: '13-15',
+        password: 'Password2026!'
+      }
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.status).toBe('active');
+    expect(res.body.auth.hasPassword).toBe(true);
+    expect(res.body.activation.directPassword).toBe(true);
+  });
+
   it('parent invite: code shown once, redeemable once, same error for wrong and used codes', async () => {
     const api = fresh();
     const kid = api.db.users.find((u) => u.role === 'student');
