@@ -9,6 +9,13 @@ import { createUniverseClient } from '../../src/features/universe/pilot/universe
 import catalogUrl from '../../public/cosmos/v1/catalog.json?url';
 
 const flags = new URLSearchParams(location.search);
+// Learner expedition cards (O04): each opens the planet first; the mission waits for the learner.
+const EXPEDITIONS = [
+  { id: 'wind', planetId: 'thalassa', missionId: 'thalassa-wind-survey', routeId: 'guided', title: 'Wind energy estimate', where: 'Thalassa', description: 'Help Thalassa choose a power plan.', grades: '6–8', challenge: 2 },
+  { id: 'journey-guided', planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided', title: 'Journey timing', where: 'Thalassa departure station', description: 'Compare travel time and supplies for Ignis.', grades: '6–8', challenge: 2 },
+  { id: 'journey-advanced', planetId: 'ignis', missionId: 'spacecraft-journey', routeId: 'advanced', title: 'Mass and power tradeoffs', where: 'Ignis', description: 'Balance the expedition’s mass, time and power.', grades: '9–11', challenge: 4 }
+];
+const expeditionFor = (id) => { const x = EXPEDITIONS.find((e) => e.id === id); return x ? { planetId: x.planetId, missionId: x.missionId, routeId: x.routeId } : null; };
 const service = createSyntheticService({ latency: Number(flags.get('latency') ?? 350) });
 if (flags.get('mode')) service.setMode(flags.get('mode'));
 
@@ -17,6 +24,7 @@ function Harness() {
   const [view, setView] = useState(flags.get('view') || (who === 'rivera' ? 'coach' : 'explorer'));
   const [mode, setMode] = useState(service.mode);
   const [run, setRun] = useState(0);
+  const [arrival, setArrival] = useState(() => expeditionFor(flags.get('arrive')));
   const person = SYNTHETIC_PEOPLE[who];
   // The real HTTP adapter, talking to the synthetic service through a fetch stand-in.
   const client = useMemo(() => createUniverseClient({ fetchImpl: service.fetchFor(person), getToken: async () => `synthetic-token-${person.uid}` }), [person, run]);
@@ -37,10 +45,16 @@ function Harness() {
   </main></>;
   if (view === 'explorer' && person.role === 'student') return <>{bar}<MyUniverseExplorer key={run} preview catalogUrl={catalogUrl} forceTextView={flags.get('text') === '1'}
     missionRegistry={FIXTURE_RELEASES} missionClient={client} viewer={viewer} onClose={() => setView('home')} allowInReviewMissions
+    initialArrival={arrival}
     initialMission={flags.get('open') ? { id: flags.get('open'), route: flags.get('route'), view: flags.get('tab'), step: flags.get('step') } : null} /></>;
   return <>{bar}<main className="pv-home"><h1>My Universe pilot · synthetic preview</h1>
     <p>Both pilot missions (G03 revision 2 fixtures) with an in-memory stand-in for the mission service. Use the controls to switch learner, organization and service state.</p>
-    {person.role === 'student' && <button type="button" onClick={() => setView('explorer')}>Enter My Universe as {person.displayName}</button>}
+    {person.role === 'student' && <>
+      <h2>Choose an expedition</h2>
+      <div className="pv-cards">{EXPEDITIONS.map((x) => <button type="button" className="pv-card" key={x.id} onClick={() => { setArrival(expeditionFor(x.id)); setView('explorer'); }}>
+        <strong>{x.title}</strong><span>{x.description}</span><small>{x.where} · Suggested grades {x.grades} · Challenge {x.challenge} of 5</small></button>)}</div>
+      <button type="button" onClick={() => { setArrival(null); setView('explorer'); }}>Enter My Universe as {person.displayName}</button>
+    </>}
   </main></>;
 }
 createRoot(document.getElementById('root')).render(<Harness />);

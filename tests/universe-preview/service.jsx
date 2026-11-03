@@ -28,9 +28,9 @@ const DEMO = Object.freeze({
   }
 });
 const TASKS = [
-  { id: 'wind', missionId: 'thalassa-wind-survey', routeId: 'guided', label: 'Thalassa wind · guided (wind-capacity-factor)', title: 'Wind energy estimate', description: 'Help Thalassa choose a power plan.', grades: '6–8', challenge: 2 },
-  { id: 'journey-guided', missionId: 'spacecraft-journey', routeId: 'guided', label: 'Spacecraft journey · guided (journey-rates)', title: 'Journey timing', description: 'Compare travel time and supplies for Ignis.', grades: '6–8', challenge: 2 },
-  { id: 'journey-advanced', missionId: 'spacecraft-journey', routeId: 'advanced', label: 'Spacecraft journey · advanced (journey-mass-power)', title: 'Mass and power tradeoffs', description: 'Balance the expedition’s mass, time and power.', grades: '9–11', challenge: 4 }
+  { id: 'wind', planetId: 'thalassa', missionId: 'thalassa-wind-survey', routeId: 'guided', label: 'Thalassa wind · guided (wind-capacity-factor)', title: 'Wind energy estimate', description: 'Help Thalassa choose a power plan.', grades: '6–8', challenge: 2 },
+  { id: 'journey-guided', planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided', label: 'Spacecraft journey · guided (journey-rates)', title: 'Journey timing', description: 'Compare travel time and supplies for Ignis.', grades: '6–8', challenge: 2 },
+  { id: 'journey-advanced', planetId: 'ignis', missionId: 'spacecraft-journey', routeId: 'advanced', label: 'Spacecraft journey · advanced (journey-mass-power)', title: 'Mass and power tradeoffs', description: 'Balance the expedition’s mass, time and power.', grades: '9–11', challenge: 4 }
 ];
 
 if (!LOCAL) {
@@ -101,14 +101,14 @@ async function start() {
       finally { setBusy(false); }
     }
 
-    // Explicit learner entry: reuse the demo learner's own draft; never load a reference answer.
+    // Explicit learner entry: lands on the task's planet; the mission later reuses the learner's own draft, never a reference answer.
     async function startMission(id) {
       setStartError(null);
       setTaskId(id);
       const signedIn = viewer && ctx.role === 'student' ? true : await signIn('learner');
       if (!signedIn) { setStartError('The local preview could not open. Please try again.'); return; }
       setOpen((n) => n + 1);
-      setView('explorer');
+      setView('arrive'); // the planet first; the learner chooses when the mission opens (O04)
     }
 
     async function loadExample() {
@@ -178,9 +178,10 @@ async function start() {
       {log.length ? log.map((e, i) => <div key={i}><p><strong>{e.at} · {e.title}</strong></p><pre>{JSON.stringify(e.value, null, 2)}</pre></div>) : <p>Nothing yet.</p>}
     </details>;
 
-    if ((view === 'explorer' || view === 'explore') && viewer) return <MyUniverseExplorer key={`${viewer.uid}|${viewer.orgId}|${open}|${view}`} preview catalogUrl={catalogUrl} forceTextView={PARAMS.get('text') === '1'}
+    if ((view === 'explorer' || view === 'explore' || view === 'arrive') && viewer) return <MyUniverseExplorer key={`${viewer.uid}|${viewer.orgId}|${open}|${view}`} preview catalogUrl={catalogUrl} forceTextView={PARAMS.get('text') === '1'}
       showMetrics={PARAMS.get('metrics') === '1'} missionRegistry={FIXTURE_RELEASES} missionClient={client} viewer={viewer} allowInReviewMissions onClose={() => setView('home')}
-      initialMission={view === 'explorer' ? { id: t.entry.mission.id, route: t.route.id } : null} />;
+      initialMission={view === 'explorer' ? { id: t.entry.mission.id, route: t.route.id } : null}
+      initialArrival={view === 'arrive' ? { planetId: task.planetId, missionId: task.missionId, routeId: task.routeId } : null} />;
     if (view === 'coach' && viewer) return <main className="sv-coach">
       <button type="button" className="sv-back" onClick={() => setView('home')}>Back to missions</button>
       <CoachUniverseSubmissions coachUser={{ uid: viewer.uid, displayName: ctx.email }} orgId={viewer.orgId} client={client} registry={FIXTURE_RELEASES} /></main>;
