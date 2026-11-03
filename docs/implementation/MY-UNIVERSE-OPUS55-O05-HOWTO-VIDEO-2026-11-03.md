@@ -60,11 +60,20 @@ Local commit only. Nothing pushed, deployed or uploaded. No server, rules, auth,
   - Phone layout checked.
 - **Captures:** `captures/o05/` (offer, playing with captions, phone).
 
-## To finish
+## Uploaded clip (follow-up)
 
-1. **Mani uploads** `how-it-works.mp4` to Cloudinary (public video) and sends the delivery link.
-2. **Opus sets** `src` in `arrivalVideos.js` and checks it at 5197 with `&video=<link>`.
-3. **Educator review:** GPT/educator review of the narration (`script.json`). The voice is synthetic; a human recording can replace the MP4 later with no code change if the timings are kept (or the cues are updated).
+- **Link:** Mani uploaded the file: `https://res.cloudinary.com/dkplz6vbx/video/upload/v1793678509/tv2VtAzF6diYWhaPDP4s6Q_xytypx.mp4`.
+  - Same bytes as the render (6,524,314).
+  - Served as `video/mp4;codecs=avc1`, with byte ranges (206) and `Access-Control-Allow-Origin: *`.
+  - The derived poster (`so_15,w_1280`, `.jpg`) returns 200.
+- **Registry:** `src` is set in `arrivalVideos.js`, so the wind expedition now offers the clip by default.
+- **Tests:** arrival tests that aren't about the clip pass an empty clip registry. A new test checks that the shipped registry offers the Cloudinary clip for wind and none for Mass and power. Suite 150/150.
+- **5197, no preview switch:** the Cloudinary poster loaded; a real click played the hosted file (73.0 s, no media error); a seek to 45 s worked with the matching caption showing. Capture `04-cloudinary-clip-playing-seeked.jpg`.
+- **Local copy removed:** the uncommitted copy in `tests/universe-preview/media/` is gone; `&video=local` only works if it's restored.
+
+## Still open
+
+1. **Educator review:** GPT/educator review of the narration (`script.json`). The voice is synthetic; a human recording can replace the MP4 later with no code change if the timings are kept (or the cues are updated).
 4. **Not done:**
    - clips for Journey timing (Thalassa) and Mass and power (Ignis);
    - Safari, physical devices and screen readers.

@@ -33,8 +33,9 @@ const heading = () => card()?.querySelector('h3')?.textContent;
 const viewer = (who) => ({ uid: SYNTHETIC_PEOPLE[who].uid, orgId: SYNTHETIC_PEOPLE[who].orgId });
 const clients = {};
 const clientOf = (who) => (clients[who] ||= createUniverseClient({ fetchImpl: service.fetchFor(SYNTHETIC_PEOPLE[who]), getToken: async () => `synthetic-${who}` }));
+// Arrival tests run without how-to clips unless a test passes them (the shipped registry is checked separately).
 const explorer = ({ who = 'amira', ...props } = {}) => <MyUniverseExplorer preview forceTextView loadCatalog={loadCatalog} onClose={() => {}}
-  missionRegistry={FIXTURE_RELEASES} missionClient={clientOf(who)} viewer={viewer(who)} allowInReviewMissions {...props} />;
+  missionRegistry={FIXTURE_RELEASES} missionClient={clientOf(who)} viewer={viewer(who)} allowInReviewMissions arrivalVideos={{}} {...props} />;
 const show = async (props) => { await act(async () => root.render(explorer(props))); await settle(); };
 const setVisibility = async (state) => {
   Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });
@@ -323,6 +324,18 @@ describe('how-this-mission-works clip on arrival (O05)', () => {
     expect(named('Watch how this mission works (1:13)')).toBeTruthy(); // available again
   });
 
+  it('the shipped registry offers the uploaded Cloudinary clip for the wind expedition', async () => {
+    const { ARRIVAL_VIDEOS } = await import('../src/features/universe/explore/arrivalVideos.js');
+    await show({ initialArrival: WIND, arrivalVideos: ARRIVAL_VIDEOS });
+    expect(named('Watch the video · 1:13')).toBeTruthy();
+    await click('Watch the video · 1:13');
+    expect(document.body.querySelector('video').getAttribute('src')).toMatch(/^https:\/\/res\.cloudinary\.com\/dkplz6vbx\/video\/upload\/v\d+\/[\w-]+\.mp4$/);
+    await act(async () => root.unmount()); root = createRoot(host);
+    await show({ initialArrival: MASS_POWER, arrivalVideos: ARRIVAL_VIDEOS }); // no clip for this route yet
+    expect(named('Skip video')).toBeUndefined();
+    expect(named('Ready now')).toBeTruthy();
+  });
+
   it('can be skipped with no effect on setup or the mission', async () => {
     await show({ initialArrival: WIND, arrivalVideos: withClip(CLIP) });
     await click('Skip video');
@@ -334,7 +347,7 @@ describe('how-this-mission-works clip on arrival (O05)', () => {
   });
 
   it('shows no player without an uploaded Cloudinary link, for other hosts, or when several missions are offered', async () => {
-    await show({ initialArrival: WIND }); // the shipped registry has no link yet
+    await show({ initialArrival: WIND, arrivalVideos: withClip(null) }); // not uploaded yet
     expect(named('Skip video')).toBeUndefined();
     await act(async () => root.unmount()); root = createRoot(host);
     await show({ initialArrival: WIND, arrivalVideos: withClip('https://example.com/video/upload/x.mp4') });

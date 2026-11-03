@@ -23,7 +23,7 @@ export const ARRIVAL_VIDEOS = Object.freeze({
     title: 'How this mission works',
     duration: '1:13',
     summary: 'Reading the wind table, the main steps, and sending your work.',
-    src: null, // set to the uploaded https://res.cloudinary.com/<cloud>/video/upload/… link
+    src: 'https://res.cloudinary.com/dkplz6vbx/video/upload/v1793678509/tv2VtAzF6diYWhaPDP4s6Q_xytypx.mp4', // uploaded 3 Nov 2026
     cues: Object.freeze([
     [0.6, 1.8, "Welcome to Thalassa."],
     [1.8, 2.88, "Your mission asks:"],
