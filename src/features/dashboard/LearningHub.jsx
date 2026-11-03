@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, FlaskConical, Rocket, Flag, Unplug } from 'lucide-react';
+import { ArrowRight, FlaskConical, Rocket, Flag, Unplug, Mountain, ListChecks, Swords, Plus, Check, X, Compass } from 'lucide-react';
 import { PHASES } from '../pbl/content/pblModel.js';
 import { phaseProgress } from '../pbl/engine/pblProject.js';
 import { hrefFor } from '../../app/routes.js';
-import { TodayWidget } from './DashboardWidgets.jsx';
-import { startHere, nextGoalStep, programJourney } from './learningGuidance.js';
+import { startHere, programJourney } from './learningGuidance.js';
 import { splitGoals } from './slideModel.js';
 import { loadDashboardCourses } from './dashboardCourses.js';
 import { SessionGauge, UnavailableDial, StepMeter, Spark } from './Instruments.jsx';
-import { phaseMilestones, phaseStages, goalSteps, gaugeReading } from './instrumentModel.js';
+import { phaseMilestones, phaseStages, gaugeReading } from './instrumentModel.js';
+import { QUEST_LABELS, questOptions, questValue, questTarget, questStatus, questTally } from './questModel.js';
 import './learningHub.css';
+import './quests.css';
 
-/** One account-scoped read shared by the plan and progress slides. */
+/** One account-scoped read shared by My Quests and Find a Quest. */
 export function useLearningCourses(uid, classIds, activeProgramId) {
   const [data, setData] = useState({ state: 'loading', courses: [], warnings: [] });
   const [attempt, retry] = useState(0);
@@ -54,40 +55,104 @@ function AcademicLearning() {
   </div>;
 }
 
-export function DailyLearningSlide({ data, model, plan, project, firstName, onToggle, goalsLoaded, goalSync, onOpenActivity }) {
-  const [period, setPeriod] = useState('today');
-  const completedTasks = plan.goals.flatMap((goal) => goal.steps.filter((s) => s.done).map((step) => ({ ...step, goal: goal.explore })));
+
+/**
+ * My Quests (formerly the Daily plan, My Goals and Progress slides):
+ *   Goal  - the long vision (finish a level, learn a new skill);
+ *   Tasks - the checklist that breaks the goal down;
+ *   Quest - the learning each task is done through.
+ * Course and project quests keep their own recorded progress below.
+ */
+export function QuestsSlide({ data, model, plan, project, firstName, goalsLoaded, goalSync, onToggleTask, onSetQuest, onOpenActivity, onFindQuest, renderReadiness }) {
+  const { active, completed } = splitGoals(plan);
+  const [view, setView] = useState('active');
   const guidance = startHere({ data, today: model.today, checked: model.ticked, goalsLoaded, hasGoals: plan.goals.length > 0, termProject: project });
-  const upcomingTasks = plan.goals.filter((g) => !g.done).flatMap((goal) => goal.steps.filter((s) => !s.done).map((step) => ({ ...step, goal: goal.explore })));
+  const tally = questTally(active.filter((goal) => !goal.done));
+  const options = questOptions({ courses: data.courses, activities: model.academic.items });
+  const extras = model.today.filter((item) => item.kind !== 'step');
+  const goals = view === 'active' ? active : completed;
   return <>
-    <p className="sd-intro">{firstName ? <><strong className="ig-greeting">Hi, {firstName}.</strong> </> : null}One useful next step. Then another. Start with what matters to you.</p>
+    <p className="sd-intro">{firstName ? <><strong className="ig-greeting">Hi, {firstName}.</strong> </> : null}Dream big, then break it down: a goal, the tasks that get you there, and a quest for every task.</p>
     <section className="sd-start-here" aria-label="Start here" aria-live="polite"><span className="sd-start-icon" aria-hidden="true"><Spark size={24} /><b>NEXT</b></span><div><span className="sd-eyebrow">Start here{guidance.source ? ` · ${guidance.source}` : ''}</span><h3>{guidance.title}</h3><p>{guidance.body}</p></div>{guidance.href && <a className="sd-primary" href={guidance.href}>{guidance.action}<ArrowRight size={16} /></a>}</section>
-    <div className="sd-plan-tabs lh-tabs" role="group" aria-label="Learning plan timeframe">{[['today', 'Today'], ['ahead', 'Ahead'], ['completed', 'Completed']].map(([id, label]) => <button type="button" key={id} aria-pressed={period === id} onClick={() => setPeriod(id)}>{label}</button>)}</div>
-    <div className="sd-learning-columns lh-columns">
-      <section className="sd-learning-lane"><h3 id="lh-academic-title">Academic learning</h3><AcademicLearning /></section>
-      <section className="sd-learning-lane"><h3 id="lh-pbl-title">STEM & PBL</h3><CourseStatus data={data} />
-        {data.courses.map(({ program, summary, progressUnavailable, enrolment, needsRecheck }) => <article className="sd-project lh-project" key={program.id}>
-          <div className="ig-project-head"><span className="sd-eyebrow">{period === 'completed' ? 'Recorded course work' : 'Current project'}</span></div><div className="ig-project-main"><div className="ig-project-text"><h4>{program.title}</h4>
-          {period === 'completed' ? <p>{needsRecheck ? RECHECK : progressUnavailable ? 'Account progress is unavailable.' : summary ? `${summary.done} of ${summary.total} sessions marked complete.` : 'No completed sessions recorded yet.'}</p> : <>
-            <p>{program.drivingQuestion || (summary?.pct === 100 ? 'Your recorded sessions are complete. Open your project to review your work.' : 'Open your project to find your next investigation.')}</p>
-            <span className="sd-caption">{period === 'ahead' ? 'Next unfinished session · no scheduled due date' : 'Next session · no scheduled due date'}</span>
-          </>}</div>
-          {!needsRecheck && summary && !progressUnavailable && gaugeReading(summary.done, summary.total) && <div className="ig-mini"><SessionGauge label={`${program.title}: project sessions`} done={summary.done} total={summary.total} /></div>}</div>
-          {period !== 'completed' && <ProjectJourney course={{ program, summary, progressUnavailable, enrolment, needsRecheck }} />}
-          <a className="sd-primary" href={hrefFor.program(program.id, 'plan')}>{period === 'completed' ? 'Review project' : summary ? 'Continue project' : 'Open project'} <ArrowRight size={16} /></a>
-        </article>)}
-        {period !== 'completed' && <details className="sd-explore"><summary><FlaskConical size={16} /> Explore a STEM activity</summary><div className="sd-activity-links">{model.academic.items.map((item) => <button type="button" key={item.id} onClick={() => onOpenActivity(item.id)}>{item.label}<ArrowRight size={15} /></button>)}</div><p className="sd-caption">Exploration is optional; opening an activity is not counted as course mastery.</p></details>}
-      </section>
-    </div>
-    <section className="sd-personal-tasks" aria-labelledby="lh-plan-title"><div className="sd-section-line"><h3 id="lh-plan-title">My personal tasks</h3><a className="sd-link" href={hrefFor.goals()}>Manage in Goal Setting <ArrowRight size={15} /></a></div>
-      {!goalsLoaded ? <p role="status">Loading your plan…</p> : period === 'today' ? <TodayWidget items={model.today} checked={model.ticked} onToggle={onToggle} onOpenGoals={() => { window.location.hash = hrefFor.goals(); }} /> : <>
-        <p className="sd-caption">{period === 'ahead' ? 'Remaining tasks from your goals. No dates are assumed.' : 'Completed goal steps, kept with your plan.'}</p>
-        {(period === 'completed' ? completedTasks : upcomingTasks).length ? <ul className="sd-task-list">{(period === 'completed' ? completedTasks : upcomingTasks).map((task) => <li key={task.id}><span aria-hidden="true">{period === 'completed' ? '✓' : '○'}</span><div><strong>{task.text}</strong><small>{task.goal}</small></div><a href={hrefFor.goals()} aria-label={`View task: ${task.text}`}>↗</a></li>)}</ul> : <p className="sd-caption">{period === 'completed' ? 'Completed tasks will appear here.' : 'No remaining tasks. Plan your next step in Goal Setting.'}</p>}
-      </>}
-      {goalSync === 'local-only' && <p className="sd-notice" role="status">Your plan is saved on this device. Account sync is unavailable.</p>}
-      {goalSync === 'saving' && <p className="sd-caption" role="status">Saving your plan…</p>}
+    <ol className="qs-ladder" aria-label="How My Quests works">
+      <li><Mountain size={18} aria-hidden="true" /><div><strong>Goal</strong><span>Your long vision · finish a level, learn a new skill</span></div></li>
+      <li><ListChecks size={18} aria-hidden="true" /><div><strong>Tasks</strong><span>The checklist that gets you there</span></div></li>
+      <li><Swords size={18} aria-hidden="true" /><div><strong>Quest</strong><span>The learning you do for each task</span></div></li>
+    </ol>
+
+    <section className="qs-goals" aria-labelledby="qs-goals-title">
+      <div className="sd-section-line"><h3 id="qs-goals-title" className="ig-lane-title">My goals</h3><a className="sd-link" href={hrefFor.goals()}>Add or edit goals & tasks <ArrowRight size={15} /></a></div>
+      <div className="sd-plan-tabs lh-tabs" role="group" aria-label="Goal status">{[['active', 'Current goals', active.length], ['completed', 'Achieved', completed.length]].map(([id, label, n]) => <button type="button" key={id} aria-pressed={view === id} onClick={() => setView(id)}>{label} <span>{n}</span></button>)}</div>
+      {view === 'active' && goalsLoaded && tally.total > 0 && <p className="sd-caption qs-tally">{tally.done} of {tally.total} tasks checked · {tally.withQuest} of {tally.total} tasks have a quest</p>}
+      {!goalsLoaded ? <p role="status">Loading your goals…</p> : goals.length ? <div className="qs-goal-list">{goals.map((goal) =>
+        <GoalQuestCard key={goal.id} goal={goal} achieved={view === 'completed'} today={model.today} options={options} courses={data.courses}
+          onToggleTask={onToggleTask} onSetQuest={onSetQuest} onOpenActivity={onOpenActivity} onFindQuest={onFindQuest} />)}</div>
+        : <div className="sd-empty"><Mountain size={25} aria-hidden="true" /><h4>{view === 'active' ? 'What’s your long vision?' : 'Leave room for your first achievement.'}</h4><p>{view === 'active' ? 'A goal is something bigger, like finishing a level or learning a new skill. Set one in Goal Setting and break it into a few tasks.' : 'Achieved goals stay here. They are never cleared to make room.'}</p>{view === 'active' && <a className="sd-primary" href={hrefFor.goals()}>Set my first goal <ArrowRight size={16} /></a>}</div>}
+      {extras.length > 0 && <div className="qs-daily"><span className="sd-eyebrow">Every day</span><ul className="qs-tasks">{extras.map((item) => {
+        const on = model.ticked.has(item.id);
+        return <li key={item.id}><button type="button" className="qs-check" aria-pressed={on} onClick={() => onToggleTask(item)}>{on ? <Check size={15} aria-hidden="true" /> : null}<span className="qs-sr">{on ? 'Untick' : 'Tick'} {item.text}</span></button><span className="qs-task-text">{item.text}<small>{item.kind === 'habit' ? 'Your daily habit' : 'A break that recharges you'}</small></span></li>;
+      })}</ul></div>}
+      {goalSync === 'local-only' && <p className="sd-notice" role="status">Your goals are saved on this device. Account sync is unavailable.</p>}
+      {goalSync === 'saving' && <p className="sd-caption" role="status">Saving your goals…</p>}
+      <p className="sd-caption">Tasks are personal check-ins, separate from assessed course progress.</p>
     </section>
+
+    <CourseQuests data={data} project={project} renderReadiness={renderReadiness} onOpenActivity={onOpenActivity} activities={model.academic.items} />
   </>;
+}
+
+function GoalQuestCard({ goal, achieved, today, options, courses, onToggleTask, onSetQuest, onOpenActivity, onFindQuest }) {
+  const done = goal.steps.filter((step) => step.done).length;
+  const [editing, setEditing] = useState(null);
+  return <article className="qs-goal" aria-labelledby={`qs-goal-${goal.id}`}>
+    <header className="qs-goal-head">
+      <div className="ig-goal-readout" aria-hidden="true"><strong>{goal.steps.length ? done : '–'}</strong><small>{goal.steps.length ? `of ${goal.steps.length} tasks` : 'no tasks yet'}</small></div>
+      <div><span className="sd-eyebrow"><Mountain size={12} aria-hidden="true" /> {achieved ? 'Achieved goal' : 'Goal · long vision'}</span><h4 id={`qs-goal-${goal.id}`}>{goal.explore}</h4><StepMeter states={goal.steps.map((step) => step.done)} label={`${done} of ${goal.steps.length} tasks checked`} /></div>
+    </header>
+    {goal.steps.length ? <ul className="qs-tasks" aria-label={`Tasks for ${goal.explore}`}>{goal.steps.map((step) => {
+      const item = today.find((entry) => entry.stepId === step.id && entry.goalId === goal.id) || { id: `task:${goal.id}:${step.id}`, kind: 'task', goalId: goal.id, stepId: step.id };
+      return <li key={step.id} data-done={step.done || undefined}>
+        <button type="button" className="qs-check" aria-pressed={step.done} disabled={achieved} onClick={() => onToggleTask(item)}>{step.done ? <Check size={15} aria-hidden="true" /> : null}<span className="qs-sr">{step.done ? 'Untick' : 'Tick'} task: {step.text}</span></button>
+        <span className="qs-task-text">{step.text}</span>
+        {editing === step.id ? <QuestPicker step={step} options={options} onCancel={() => setEditing(null)} onFindQuest={onFindQuest}
+          onSave={(quest) => { onSetQuest(goal.id, step.id, quest); setEditing(null); }} />
+          : <QuestChip quest={step.quest} courses={courses} locked={achieved} onOpenActivity={onOpenActivity} onEdit={() => setEditing(step.id)} taskText={step.text} />}
+      </li>;
+    })}</ul> : <p className="sd-caption">Break this goal into a few tasks in <a href={hrefFor.goals()}>Goal Setting</a>, then give each task a quest.</p>}
+  </article>;
+}
+
+function QuestChip({ quest, courses, locked, onOpenActivity, onEdit, taskText }) {
+  if (!quest) return locked ? null : <button type="button" className="qs-add-quest" onClick={onEdit} aria-label={`Choose a quest for: ${taskText}`}><Plus size={14} aria-hidden="true" /> Choose a quest</button>;
+  const target = questTarget(quest), status = questStatus(quest, courses);
+  const body = <><Swords size={14} aria-hidden="true" /><span><small>{QUEST_LABELS[quest.kind]}{status ? ` · ${status}` : ''}</small>{quest.title}</span>{target && <ArrowRight size={14} aria-hidden="true" />}</>;
+  return <span className="qs-quest">
+    {target?.href ? <a className="qs-quest-go" href={target.href} aria-label={`Open quest: ${quest.title}`}>{body}</a>
+      : target?.activity ? <button type="button" className="qs-quest-go" onClick={() => onOpenActivity?.(target.activity)} aria-label={`Open quest: ${quest.title}`}>{body}</button>
+      : <span className="qs-quest-go">{body}</span>}
+    {!locked && <button type="button" className="sd-text-button qs-change" onClick={onEdit} aria-label={`Change quest for: ${taskText}`}>Change</button>}
+  </span>;
+}
+
+function QuestPicker({ step, options, onSave, onCancel, onFindQuest }) {
+  const [value, setValue] = useState(step.quest?.kind === 'own' ? 'own:' : questValue(step.quest) || '');
+  const [own, setOwn] = useState(step.quest?.kind === 'own' ? step.quest.title : '');
+  const chosen = options.flatMap((group) => group.items).find((item) => item.value === value)?.quest;
+  const quest = value === 'own:' ? (own.trim() ? { kind: 'own', ref: '', title: own } : null) : chosen || null;
+  return <form className="qs-picker" onSubmit={(event) => { event.preventDefault(); if (quest) onSave(quest); }}>
+    <label>Quest for this task<select value={value} onChange={(event) => setValue(event.target.value)} autoFocus>
+      <option value="" disabled>Choose a quest…</option>
+      {options.map((group) => <optgroup key={group.group} label={group.group}>{group.items.map((item) => <option key={item.value} value={item.value}>{item.quest.title}</option>)}</optgroup>)}
+      <optgroup label="Something else"><option value="own:">My own challenge…</option></optgroup>
+    </select></label>
+    {value === 'own:' && <label>Describe your challenge<input maxLength={160} value={own} onChange={(event) => setOwn(event.target.value)} placeholder="e.g. Build a weather station with my sister" /></label>}
+    <div className="qs-picker-actions">
+      <button type="submit" className="sd-primary" disabled={!quest}>Save quest</button>
+      {step.quest && <button type="button" className="sd-text-button" onClick={() => onSave(null)}>Remove quest</button>}
+      <button type="button" className="sd-text-button" onClick={onFindQuest}><Compass size={14} aria-hidden="true" /> Find a new quest</button>
+      <button type="button" className="sd-button" aria-label="Cancel" onClick={onCancel}><X size={16} /></button>
+    </div>
+  </form>;
 }
 
 function ProjectJourney({ course }) {
@@ -101,25 +166,6 @@ function ProjectJourney({ course }) {
         <div><dt>Expected evidence</dt><dd>{journey.evidence || 'Open the project for evidence instructions'}</dd></div></dl>
     </>}
   </section>;
-}
-
-export function GoalsSlide({ plan, loaded, syncState }) {
-  const { active, completed } = splitGoals(plan);
-  const [view, setView] = useState('active');
-  return <>
-    <div className="sd-section-line"><p className="sd-intro">Small steps towards something bigger.</p><a className="sd-link" href={hrefFor.goals()}>Edit goals <ArrowRight size={16} /></a></div>
-    <div className="sd-plan-tabs" role="group" aria-label="Goal status">{[['active', 'Current goals'], ['completed', 'Achieved goals']].map(([id, label]) => <button type="button" key={id} aria-pressed={view === id} onClick={() => setView(id)}>{label} <span>{(id === 'active' ? active : completed).length}</span></button>)}</div>
-    {!loaded ? <p role="status">Loading your goals…</p> : <div className="sd-goals">{(view === 'active' ? active : completed).map((goal) => {
-      const done = goal.steps.filter((step) => step.done).length;
-      return <a className="sd-goal" href={hrefFor.goals()} key={goal.id} aria-label={`Open goal in Goal Setting: ${goal.explore}${nextGoalStep(goal) ? `. Next step: ${nextGoalStep(goal).text}` : ''}`}>
-        <div className="ig-goal-readout" aria-hidden="true"><strong>{goal.steps.length ? done : '–'}</strong><small>{goal.steps.length ? `of ${goal.steps.length} steps` : 'no steps yet'}</small></div>
-        <div><span className="sd-eyebrow">{view === 'completed' ? 'Achieved goal' : 'My goal'} · personal check-ins</span><h3>{goal.explore}</h3><StepMeter states={goal.steps.map((step) => step.done)} /><p>{goal.steps.length ? `${goal.done ? 'Goal marked achieved · ' : ''}${done} of ${goal.steps.length} steps checked` : goal.done ? 'Goal marked achieved.' : 'Add the steps you want to take in Goal Setting.'}</p>{view === 'active' && nextGoalStep(goal) && <div className="sd-goal-next"><span>Next unfinished step</span><strong>{nextGoalStep(goal).text}</strong></div>}</div><ArrowRight size={20} />
-      </a>;
-    })}</div>}
-    {loaded && !(view === 'active' ? active : completed).length && <div className="sd-empty"><h3>{view === 'active' ? 'What would you like to work towards?' : 'Leave room for your first achievement.'}</h3><p>{view === 'active' ? 'Create a goal and its steps in your existing Goal Setting space.' : 'Completed goals stay here. They are never cleared to make room.'}</p><a className="sd-primary" href={hrefFor.goals()}>Open Goal Setting <ArrowRight size={16} /></a></div>}
-    {plan.focus?.habit && <p className="sd-caption">Your daily habit: {plan.focus.habit} · check it off in your Daily Learning Plan.</p>}
-    <p className="sd-caption">Goal steps are personal check-ins, separate from assessed course progress.{syncState === 'local-only' ? ' Account sync is unavailable; showing this device’s plan.' : ''}</p>
-  </>;
 }
 
 /** The PBL Studio term project: Design Thinking tasks the learner ticked, kept apart from course sessions. */
@@ -141,18 +187,20 @@ function TermProjectPlate({ project, renderReadiness }) {
   </section>;
 }
 
-export function ProgressLearningSlide({ data, project, plan, goalsLoaded, goalSync, renderReadiness }) {
-  const steps = goalSteps(splitGoals(plan).active);
-  return <>
-    <p className="sd-intro">Recorded completion, one instrument per record. Nothing here measures speed, ability or rank.</p>
+/** Course and project quests: the real records behind course quests, one instrument per record. */
+export function CourseQuests({ data, project, renderReadiness, onOpenActivity, activities = [] }) {
+  return <section className="qs-courses" aria-labelledby="qs-courses-title">
+    <div className="sd-section-line"><h3 id="qs-courses-title" className="ig-lane-title">Quests from my courses</h3><a className="sd-link" href={hrefFor.courses()}>My Courses <ArrowRight size={15} /></a></div>
+    <p className="sd-caption">Recorded completion only. Nothing here measures speed, ability or rank.</p>
     <div className="ig-cluster">
       <section className="ig-pbl" aria-labelledby="ig-pbl-title"><h3 id="ig-pbl-title" className="ig-lane-title">STEM & PBL · course sessions</h3><CourseStatus data={data} />
-        {data.courses.map(({ program, summary, progressUnavailable, needsRecheck }) => {
+        {data.courses.map((course) => {
+          const { program, summary, progressUnavailable, needsRecheck } = course;
           const reading = summary && !progressUnavailable ? gaugeReading(summary.done, summary.total) : null;
           const stages = summary ? phaseStages(program.phases, summary) : [];
           const milestones = reading ? phaseMilestones(program.phases, summary).map((mark) => ({ ...mark, complete: stages.find((stage) => stage.id === mark.id)?.complete })) : [];
           return <article className="sd-record ig-plate ig-dial-plate" key={program.id}>
-            <div className="ig-plate-head"><span className="sd-eyebrow">Project</span><h4>{program.title}</h4></div>
+            <div className="ig-plate-head"><span className="sd-eyebrow">Course quest</span><h4>{program.title}</h4></div>
             {needsRecheck ? <p className="sd-notice">{RECHECK}</p> : progressUnavailable ? <p className="sd-notice">Account progress is unavailable. We can’t verify this course’s current status.</p> : !summary ? <p className="sd-caption">No saved session progress yet. Open your project to begin.</p>
               : !reading ? <p className="sd-notice">This project doesn’t list any sessions yet, so there’s nothing to measure. Open the project or ask your coach.</p> : <div className="ig-dial-row">
               <SessionGauge label={`${program.title}: project sessions`} done={summary.done} total={summary.total} milestones={milestones} />
@@ -163,31 +211,19 @@ export function ProgressLearningSlide({ data, project, plan, goalsLoaded, goalSy
                 {stages.length > 0 && !milestones.length && <p className="sd-caption">Stage markers aren’t drawn on the dial because the stage session counts don’t add up to the project total.</p>}
               </div>
             </div>}
-            <a className="sd-link" href={hrefFor.program(program.id, 'plan')}>View detailed project record <ArrowRight size={16} /></a>
+            {summary?.pct !== 100 && <ProjectJourney course={course} />}
+            <a className="sd-primary" href={hrefFor.program(program.id, 'plan')}>{summary?.pct === 100 ? 'Review project' : summary ? 'Continue project' : 'Open project'} <ArrowRight size={16} /></a>
           </article>;
         })}
+        {activities.length > 0 && <details className="sd-explore"><summary><FlaskConical size={16} /> Explore a STEM activity</summary><div className="sd-activity-links">{activities.map((item) => <button type="button" key={item.id} onClick={() => onOpenActivity(item.id)}>{item.label}<ArrowRight size={15} /></button>)}</div><p className="sd-caption">Exploration is optional; opening an activity is not counted as course mastery.</p></details>}
       </section>
       <div className="ig-side">
         <section className="ig-plate ig-academic" aria-labelledby="ig-academic-title"><h3 id="ig-academic-title" className="ig-lane-title">Academic learning</h3>
           <UnavailableDial label="Academic progress" status="Not connected" detail="No needle · not zero" />
-          <p className="sd-caption">Academic completion, grades and milestones appear only once verified provider records are connected.</p>
-          <a className="sd-link" href={hrefFor.courses()}>View My Courses <ArrowRight size={16} /></a></section>
-        <section className="ig-plate ig-goal-plate" aria-labelledby="ig-goal-title"><h3 id="ig-goal-title" className="ig-lane-title">Personal goal steps</h3>
-          {!goalsLoaded ? <p role="status" className="sd-caption">Loading your goals…</p> : steps.total ? <>
-            <div className="ig-goal-readout"><strong>{steps.done}</strong><small>of {steps.total} steps checked</small></div>
-            <StepMeter done={steps.done} total={steps.total} label={`${steps.done} of ${steps.total} personal steps checked across current goals`} />
-          </> : <p className="sd-caption">No steps in your current goals yet.</p>}
-          <p className="sd-caption">Self-reported check-ins from your current goals. Separate from assessed learning.</p>
-          <a className="sd-link" href={hrefFor.goals()}>Open Goal Setting <ArrowRight size={16} /></a></section>
-        <section className="ig-plate ig-competency-plate" aria-labelledby="ig-competency-title"><h3 id="ig-competency-title" className="ig-lane-title">My Competencies</h3>
-          <p className="sd-caption">WeLearn’s future-skills competencies, area by area, with the evidence you have tagged to each. Coach-verified mastery comes later.</p>
-          <a className="sd-link" href={hrefFor.pbl('competencies')}>See my competencies <ArrowRight size={16} /></a></section>
+          <AcademicLearning />
+        </section>
       </div>
     </div>
-    {project.updatedAt ? <TermProjectPlate project={project} renderReadiness={renderReadiness} /> : null}
-    <section className="ig-goals-section" aria-labelledby="ig-goals-title">
-      <h3 id="ig-goals-title" className="ig-lane-title">My goals · personal check-ins</h3>
-      <GoalsSlide plan={plan} loaded={goalsLoaded} syncState={goalSync} />
-    </section>
-  </>;
+    {project?.updatedAt ? <TermProjectPlate project={project} renderReadiness={renderReadiness} /> : null}
+  </section>;
 }

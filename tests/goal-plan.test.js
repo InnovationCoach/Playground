@@ -168,3 +168,36 @@ describe('game layer', () => {
     expect(questStations(p, '2026-10-23').next).toBe('focus');
   });
 });
+
+import { cleanQuest, setStepQuest, toggleStep } from '../src/features/goals/goalPlan.js';
+import { questOptions, questTarget, questStatus, questTally } from '../src/features/dashboard/questModel.js';
+describe('goal -> tasks -> quests', () => {
+  const base = () => hydratePlan({ goals: [{ id: 'g', explore: 'Finish Level 2 maths', steps: [{ id: 's1', text: 'Fractions unit' }, { id: 's2', text: 'Practice test' }] }] });
+  it('keeps one clean quest per task through a save and reload', () => {
+    const plan = setStepQuest(base(), 'g', 's1', { kind: 'course', ref: 'solar-car', title: 'Solar Car', extra: 'dropped' }, 7);
+    const reloaded = hydratePlan(JSON.parse(JSON.stringify(plan)));
+    expect(reloaded.goals[0].steps[0].quest).toEqual({ kind: 'course', ref: 'solar-car', title: 'Solar Car' });
+    expect(reloaded.goals[0].steps[1].quest).toBeNull();
+    expect(setStepQuest(reloaded, 'g', 's1', null).goals[0].steps[0].quest).toBeNull();
+  });
+  it('rejects quests that point nowhere', () => {
+    expect(cleanQuest({ kind: 'course', title: 'No ref' })).toBeNull();
+    expect(cleanQuest({ kind: 'badge', ref: 'x', title: 'x' })).toBeNull();
+    expect(cleanQuest({ kind: 'own', ref: 'ignored', title: '  Build a kite ' })).toEqual({ kind: 'own', ref: '', title: 'Build a kite' });
+  });
+  it('carries the quest onto today\'s checklist and ticks tasks outside it', () => {
+    const plan = setStepQuest(base(), 'g', 's1', { kind: 'project', title: 'Term project' });
+    expect(todayItems(plan, '2026-11-01')[0].quest).toEqual({ kind: 'project', ref: '', title: 'Term project' });
+    expect(toggleStep(plan, 'g', 's2').goals[0].steps.map((s) => s.done)).toEqual([false, true]);
+  });
+  it('links quests to real records and reports only recorded status', () => {
+    expect(questTarget({ kind: 'course', ref: 'p 1' }).href).toBe('#/pbl/programs/p%201/plan');
+    expect(questTarget({ kind: 'activity', ref: 'a1' })).toEqual({ activity: 'a1' });
+    expect(questTarget({ kind: 'own', title: 'x' })).toBeNull();
+    const courses = [{ program: { id: 'p', title: 'P' }, summary: { done: 2, total: 6 } }];
+    expect(questStatus({ kind: 'course', ref: 'p' }, courses)).toBe('2 of 6 sessions marked complete');
+    expect(questStatus({ kind: 'course', ref: 'gone' }, courses)).toBe('Not in your current courses');
+    expect(questOptions({ courses, activities: [] }).map((g) => g.group)).toEqual(['My courses & projects', 'PBL Studio']);
+    expect(questTally([{ steps: [{ done: true, quest: {} }, { done: false, quest: null }] }])).toEqual({ done: 1, total: 2, withQuest: 1 });
+  });
+});

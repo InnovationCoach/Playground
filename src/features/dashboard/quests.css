@@ -1,0 +1,62 @@
+/* My Quests: goal (long vision) -> tasks (checklist) -> one quest per task. */
+.qs-sr { position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap; }
+.sd-root .qs-ladder { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;list-style:none;padding:0;margin:18px 0 26px;counter-reset:qs; }
+.sd-root .qs-ladder li { position:relative;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid var(--gh-border);border-radius:14px;background:var(--gh-surface);color:var(--gh-heading); }
+.sd-root .qs-ladder li:not(:last-child)::after { content:'→';position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:var(--md-accent);font-weight:700;font-size:13px; }
+.sd-root .qs-ladder svg { flex-shrink:0;margin-top:2px;color:var(--md-accent); }
+.sd-root .qs-ladder strong { display:block;font-size:14px; }
+.sd-root .qs-ladder span { display:block;font-size:11px;line-height:1.5;color:var(--gh-text-2); }
+
+.sd-root .qs-goals,.sd-root .qs-courses { margin-top:8px; }
+.sd-root .qs-courses { margin-top:34px;padding-top:24px;border-top:1px solid var(--gh-border); }
+.sd-root .qs-tally { margin:-12px 0 14px; }
+.sd-root .qs-goal-list { display:grid;gap:14px; }
+.sd-root .qs-goal { padding:20px 22px;background:var(--gh-surface);border:1px solid var(--gh-border);border-left:4px solid var(--md-accent);border-radius:18px; }
+.sd-root .qs-goal-head { display:grid;grid-template-columns:84px minmax(0,1fr);gap:20px;align-items:center;margin-bottom:12px; }
+.sd-root .qs-goal-head .ig-goal-readout { text-align:center;border-right:1px solid var(--gh-border);padding-right:16px; }
+.sd-root .qs-goal-head .ig-goal-readout strong { display:block;font-size:36px;line-height:1;color:var(--gh-heading); }
+.sd-root .qs-goal-head .ig-goal-readout small { font-size:11px;color:var(--gh-text-2); }
+.sd-root .qs-goal-head .sd-eyebrow { display:inline-flex;align-items:center;gap:5px; }
+.sd-root .qs-goal h4 { font-size:clamp(19px,2.2vw,24px);line-height:1.3;margin:4px 0 8px;color:var(--gh-heading); }
+
+.sd-root .qs-tasks { list-style:none;padding:0;margin:0;display:grid;gap:2px; }
+.sd-root .qs-tasks li { display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,auto);align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--gh-border); }
+.sd-root .qs-tasks li[data-done] .qs-task-text { color:var(--gh-text-2);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--gh-text-2) 60%,transparent); }
+.sd-root .qs-task-text { font-size:14px;line-height:1.45;color:var(--gh-heading);min-width:0; }
+.sd-root .qs-task-text small { display:block;font-size:11px;color:var(--gh-text-2); }
+.sd-root .qs-check { display:grid;place-items:center;width:24px;height:24px;border-radius:7px;border:2px solid var(--gh-border);background:transparent;color:var(--gh-surface);cursor:pointer;padding:0; }
+.sd-root .qs-check[aria-pressed=true] { background:var(--md-accent);border-color:var(--md-accent);color:#fff; }
+.sd-root .qs-check:disabled { cursor:default;opacity:.75; }
+.sd-root .qs-check:focus-visible,.sd-root .qs-quest-go:focus-visible,.sd-root .qs-add-quest:focus-visible { outline:2px solid var(--md-accent);outline-offset:2px; }
+
+.sd-root .qs-quest { display:flex;align-items:center;gap:8px;justify-self:end;min-width:0;max-width:340px; }
+.sd-root .qs-quest-go { display:flex;align-items:center;gap:8px;min-width:0;padding:7px 11px;border-radius:11px;border:1px solid color-mix(in srgb,var(--md-accent) 45%,var(--gh-border));background:color-mix(in srgb,var(--md-accent) 10%,var(--gh-surface));color:var(--gh-heading);font:inherit;font-size:12px;font-weight:650;text-align:left;text-decoration:none; }
+.sd-root a.qs-quest-go,.sd-root button.qs-quest-go { cursor:pointer; }
+.sd-root .qs-quest-go>span { min-width:0;overflow:hidden;text-overflow:ellipsis; }
+.sd-root .qs-quest-go small { display:block;font-size:10px;font-weight:600;color:var(--gh-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.sd-root .qs-quest-go svg { flex-shrink:0;color:var(--md-accent); }
+.sd-root .qs-change { font-size:11px; }
+.sd-root .qs-add-quest { justify-self:end;display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:11px;border:1px dashed var(--gh-border);background:transparent;color:var(--gh-text-2);font:inherit;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap; }
+.sd-root .qs-add-quest:hover { border-color:var(--md-accent);color:var(--gh-heading); }
+
+.sd-root .qs-picker { grid-column:1 / -1;display:grid;gap:10px;padding:14px;border-radius:13px;background:var(--gh-subtle, color-mix(in srgb,var(--gh-heading) 5%,transparent));border:1px solid var(--gh-border); }
+.sd-root .qs-picker label { display:grid;gap:5px;font-size:12px;font-weight:650;color:var(--gh-heading); }
+.sd-root .qs-picker select,.sd-root .qs-picker input { font:inherit;font-size:14px;padding:9px 11px;border-radius:10px;border:1px solid var(--gh-border);background:var(--gh-surface);color:var(--gh-heading);min-width:0; }
+.sd-root .qs-picker-actions { display:flex;flex-wrap:wrap;align-items:center;gap:10px; }
+.sd-root .qs-picker-actions .sd-button { margin-left:auto; }
+.sd-root .qs-picker-actions .sd-text-button { display:inline-flex;align-items:center;gap:5px; }
+
+.sd-root .qs-daily { margin-top:16px;padding:14px 18px;border:1px solid var(--gh-border);border-radius:16px;background:var(--gh-surface); }
+.sd-root .qs-daily .qs-tasks li { grid-template-columns:28px minmax(0,1fr); }
+.sd-root .qs-daily .qs-tasks li:first-child { border-top:0; }
+
+@media(max-width:720px) {
+  .sd-root .qs-ladder { grid-template-columns:1fr;gap:8px; }
+  .sd-root .qs-ladder li:not(:last-child)::after { content:'↓';right:auto;left:22px;top:auto;bottom:-13px;transform:none; }
+  .sd-root .qs-goal { padding:16px; }
+  .sd-root .qs-goal-head { grid-template-columns:1fr;gap:6px; }
+  .sd-root .qs-goal-head .ig-goal-readout { display:flex;align-items:baseline;gap:8px;text-align:left;border-right:0;padding:0; }
+  .sd-root .qs-goal-head .ig-goal-readout strong { font-size:28px; }
+  .sd-root .qs-tasks li { grid-template-columns:28px minmax(0,1fr); }
+  .sd-root .qs-quest,.sd-root .qs-add-quest { grid-column:2;justify-self:start;max-width:100%; }
+}

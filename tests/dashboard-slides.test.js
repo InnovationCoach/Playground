@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest';
 import { hydratePrefs } from '../src/features/dashboard/dashboardModel.js';
 import { hydrateSlides, SLIDE_IDS, moveSlide, splitGoals, TOOL_SLIDES } from '../src/features/dashboard/slideModel.js';
 
-describe('five-slide dashboard preferences', () => {
-  it('defaults to the five essential slides and preserves legacy personal spaces', () => {
+describe('dashboard slide preferences', () => {
+  it('defaults to the essential slides and preserves legacy personal spaces', () => {
     const stored = { pages: [{ name: 'Quiet desk', layout: 'slider', order: ['notes', 'focus'], hidden: ['badges'], sizes: { notes: 'wide' } }], font: 'serif', calm: true };
     const prefs = hydratePrefs(stored);
     expect(prefs.slideOrder).toEqual(SLIDE_IDS);
@@ -20,10 +20,11 @@ describe('five-slide dashboard preferences', () => {
     expect(prefs.slideTitles.daily).toBe('My Quests'); expect(prefs.slideTitles.find).toHaveLength(40);
     expect(prefs.dashboardLayout).toBe('slides');
   });
-  it('retires the old Goals slide, adds Find a Quest after My Quests, and renames the old default title', () => {
-    expect(SLIDE_IDS).toEqual(['daily', 'find', 'progress', 'creative', 'universe']);
-    const saved = hydrateSlides({ slideOrder: ['daily', 'goals', 'creative', 'progress', 'universe'], slideTitles: { daily: 'My Daily Learning Plan', goals: 'My Goals', creative: 'Studio' } });
-    expect(saved.slideOrder).toEqual(['daily', 'find', 'creative', 'progress', 'universe']);
+  it('merges the old Goals and Progress slides into My Quests, adds Find a Quest, and renames the old default title', () => {
+    expect(SLIDE_IDS).toEqual(['daily', 'portfolio', 'find', 'creative', 'universe']);
+    const saved = hydrateSlides({ slideOrder: ['daily', 'goals', 'creative', 'progress', 'universe'], slideTitles: { daily: 'My Daily Learning Plan', goals: 'My Goals', progress: 'Stats', creative: 'Studio' } });
+    expect(saved.slideOrder).toEqual(['daily', 'portfolio', 'find', 'creative', 'universe']);
+    expect(saved.slideTitles).not.toHaveProperty('progress');
     expect(saved.slideTitles.daily).toBe('My Quests');
     expect(saved.slideTitles.creative).toBe('Studio');
     expect(saved.slideTitles).not.toHaveProperty('goals');
@@ -42,7 +43,7 @@ describe('five-slide dashboard preferences', () => {
   it('gives every existing optional tool one primary slide', () => {
     expect(Object.keys(TOOL_SLIDES)).toHaveLength(7);
     expect(TOOL_SLIDES.notes).toBe('creative'); expect(TOOL_SLIDES.focus).toBe('creative');
-    expect(TOOL_SLIDES.badges).toBe('universe'); expect(TOOL_SLIDES.readiness).toBe('progress');
+    expect(TOOL_SLIDES.badges).toBe('universe'); expect(TOOL_SLIDES.readiness).toBe('daily');
   });
   it('keeps achieved goals without inventing completion for a goal with no steps', () => {
     const empty = { id: 'empty', done: false, steps: [] }, checked = { id: 'checked', done: false, steps: [{ done: true }] }, explicit = { id: 'explicit', done: true, steps: [{ done: false }] };

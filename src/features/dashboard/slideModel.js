@@ -1,17 +1,17 @@
 /** Presentation preferences only. Learning records remain in their existing stores. */
 export const SLIDES = [
-  { id: 'daily', title: 'My Quests', short: 'My Quests', eyebrow: 'YOUR SPACE. YOUR PACE.' },
+  { id: 'daily', title: 'My Quests', short: 'My Quests', eyebrow: 'GOALS. TASKS. QUESTS.' },
+  { id: 'portfolio', title: 'My Portfolio', short: 'Portfolio', eyebrow: 'SHOW WHAT YOU CAN DO.' },
   { id: 'find', title: 'Find a Quest', short: 'Find a Quest', eyebrow: 'WHAT DO YOU WANT TO LEARN?' },
-  { id: 'progress', title: 'My Learning Progress', short: 'Progress', eyebrow: 'SEE WHAT YOU’RE BUILDING.' },
   { id: 'creative', title: 'My Creative Space', short: 'Creative space', eyebrow: 'A PLACE FOR UNFINISHED IDEAS.' },
   { id: 'universe', title: 'My Spark Universe', short: 'Universe', eyebrow: 'MAKE THIS FEEL LIKE YOU.' }
 ];
 export const SLIDE_IDS = SLIDES.map((slide) => slide.id);
-export const TOOL_SLIDES = { focus: 'creative', notes: 'creative', checkin: 'creative', badges: 'universe', picked: 'universe', skill: 'universe', readiness: 'progress' };
+export const TOOL_SLIDES = { focus: 'creative', notes: 'creative', checkin: 'creative', badges: 'universe', picked: 'universe', skill: 'universe', readiness: 'daily' };
 /** Former default titles: a saved copy of one of these is not a learner's own name. */
 const RETIRED_TITLES = { daily: ['My Daily Learning Plan'] };
 export function hydrateSlides(stored = {}) {
-  // Retired slides (e.g. the old Goals slide, now part of Progress) drop out;
+  // Retired slides (the old Goals and Progress slides, now part of My Quests) drop out;
   // new slides join next to the slide they follow in the template.
   const order = [...new Set(Array.isArray(stored.slideOrder) ? stored.slideOrder.filter((id) => SLIDE_IDS.includes(id)) : [])];
   SLIDE_IDS.forEach((id, index) => {
