@@ -22,7 +22,7 @@ router.use((req,res,next)=>{
   next();
 });
 function learner(req) {
-  if (!['student', 'coach', 'teacher', 'admin'].includes(req.spaceCaller.role)) fail(403,'FORBIDDEN','Sign in to customize your space.');
+  if (req.spaceCaller.role !== 'student') fail(403,'FORBIDDEN','Sign in as a learner to customize your space.');
   return req.spaceCaller.uid;
 }
 async function fetchMediaMetadata(path) {
