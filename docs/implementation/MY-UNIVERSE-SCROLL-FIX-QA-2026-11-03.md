@@ -56,3 +56,13 @@ Read-only: no runtime edits in either checkout. Mani's `service.html` tab and th
 - **Safari:** WebDriver still refuses ("You must enable 'Allow remote automation' in the Developer section of Safari Settings"), even after Mani's change.
 - **Touch:** real touch or trackpad momentum on hardware.
 - **Physical phones:** the demo listens only on 127.0.0.1; see the overlay QA note.
+
+## Integrated lead acceptance
+
+GPT accepted code `ccf9cae` and integrated Opus evidence commit `be340c3`. The supported Universe suite passed **134/134** in 13 files, `npm run build` passed, and `git diff --check` passed. The build retains its existing large-chunk advisory. No deployment or production data change occurred.
+
+The lead independently used native scroll input in Mani's actual `service.html` viewport (625×505). Before the fix: a 363px stage contained a 1204px implicit grid row/dialog, so the body had no internal overflow and the clipped stage was incorrectly scrolled 213px. After the fix: the dialog is bounded to 361px inside the 363px stage; real scroll input reached 849px and returned to zero while the stage stayed at zero. On the restored limitations response it reached its actual bottom, 672.5 of 673px, exposing Back and Review your work. Proof is `captures/scroll-fix-service/bottom-controls.jpg`; there is no synthetic preview badge in this service page.
+
+Applying the component update triggered a full development-preview refresh, which lost the unsaved 93-character sentence starter then on screen. GPT informed Mani during the fix and reopened the account's saved wind mission, including the saved 212-character limitations response. No decision was made between conflicting drafts and no reference answer was loaded or submitted. In future, perform component updates in an isolated preview when a learner has unsaved work; CSS-only hot updates are preferable for a live scroll adjustment.
+
+The `pilot.html` badge overlap noted above is outside this `service.html` fix. PageDown/PageUp remain inconclusive through the automation tool; native wheel scrolling and Tab focus movement were verified. Physical touch and Safari validation remain separate.
