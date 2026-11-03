@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity 6 · SO₂ → Sulfate · WeLearn</title>
+  <meta name="description" content="WeLearn Activity 6: SO₂ to sulfate on gold nanoparticles. A computational educational model.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <style>
+    /* The app's palette and surfaces, copied from index.html :root. This page is
+       deployed on its own hosting site, so it cannot share that stylesheet. */
+    :root {
+      --brand-lavender: #ceaaee; --brand-purple: #8250a0; --brand-green: #96d700; --brand-navy: #003c69;
+      --brand-sky: #9bd2ff;
+      --primary: var(--brand-green); --on-primary: #102000;
+      --bg-dark: #01182c; --card-bg: #04294a; --card-border: #184a73;
+      --surface-sunken: #011f38; --surface-input: #01213b; --surface-raised: #0a3a62;
+      --text-light: #f8fafc; --text-muted: #aebfcf; --link: var(--brand-sky);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: var(--bg-dark); color: var(--text-light); line-height: 1.5; }
+    .container { max-width: 1440px; margin: 0 auto; padding: 0 16px; }
+  </style>
+  <script>
+    // Same project and the same accounts as the main WeLearn site.
+    var firebaseConfig = {
+      projectId: "dnd-master-73449",
+      appId: "1:80880435576:web:00740e29e4181dd7a9488d",
+      storageBucket: "dnd-master-73449.firebasestorage.app",
+      apiKey: "AIzaSyBpLWqHOfy3A8FTILx4kE4bimhbbwPlOqQ",
+      authDomain: "dnd-master-73449.firebaseapp.com",
+      messagingSenderId: "80880435576",
+      measurementId: "G-FMJH93L0G0"
+    };
+    (function () {
+      // Emulator review mode: localhost only, opt-in with ?emulators=1, as on the main site.
+      var isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+      var param = new URLSearchParams(location.search).get("emulators");
+      if (isLocal && param !== null) {
+        try { localStorage.setItem("hi:useEmulators", param === "1" || param === "true" ? "true" : "false"); } catch (e) {}
+      }
+      var useEmulators = false;
+      try { useEmulators = isLocal && localStorage.getItem("hi:useEmulators") === "true"; } catch (e) {}
+      if (useEmulators) firebaseConfig.projectId = "demo-hearisland-local";
+      window.__hearIslandUseEmulators = useEmulators;
+
+      firebase.initializeApp(firebaseConfig);
+      if (useEmulators) {
+        firebase.auth().useEmulator("http://127.0.0.1:9099", { disableWarnings: true });
+        firebase.firestore().useEmulator("127.0.0.1", 8088);
+      }
+      // Shared classroom devices: a sign-in must not outlive the tab. This site
+      // is a new origin, so there are no older LOCAL sessions to clear.
+      window.__hearIslandAuthReady = firebase.auth()
+        .setPersistence(firebase.auth.Auth.Persistence.SESSION)
+        .catch(function () {});
+    })();
+  </script>
+</head>
+<body>
+  <div id="activity6-root"></div>
+  <script type="module" src="/src/activity6/main.jsx"></script>
+</body>
+</html>

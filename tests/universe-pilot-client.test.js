@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createUniverseClient, CONTRACT_HEADER } from '../src/features/universe/pilot/universeClient.js';
+import { createUniverseClient, CONTRACT_HEADER, scopedTokenProvider, scopeKey } from '../src/features/universe/pilot/universeClient.js';
 
 const identity = { releaseId: 'r1', missionId: 'thalassa-wind-survey', missionVersion: '0.2.0-draft', routeId: 'guided', taskId: 'wind-capacity-factor', policyVersion: 'p1' };
 const json = (status, body) => new Response(body === undefined ? 'not json' : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -93,5 +93,33 @@ describe('mission service adapter (contract 0.1.1, API 1.0.0)', () => {
     }
     expect((await c({ draft: { draftId: 'd1', revision: 1 } }).saveDraft('m', {}, 'k')).code).toBe('MALFORMED_RESPONSE'); // no updatedAt
     expect((await c({ draft: { draftId: 'd1', revision: 1, updatedAt: '2026-11-02T04:00:00Z' } }).saveDraft('m', {}, 'k')).state).toBe('loaded');
+  });
+});
+
+describe('scoped token retrieval (F7)', () => {
+  const user = (uid, orgId) => ({ uid, getIdTokenResult: vi.fn(async () => ({ token: `tok-${uid}-${orgId}`, claims: orgId === undefined ? {} : { orgId } })) });
+
+  it('fails closed without a full scope, for another account, another organization claim or an account switch mid-request', async () => {
+    const get = scopedTokenProvider({ currentUser: user('u1', 'org-a') });
+    expect(await get(null)).toBeNull();
+    expect(await get({ uid: 'u1' })).toBeNull();
+    expect(await get({ uid: 'u2', orgId: 'org-a' })).toBeNull();
+    expect(await get({ uid: 'u1', orgId: 'org-b' })).toBeNull();
+    expect(await get({ uid: 'u1', orgId: 'org-a' })).toBe('tok-u1-org-a');
+    expect(await scopedTokenProvider({ currentUser: user('u1', undefined) })({ uid: 'u1', orgId: 'org-a' })).toBeNull(); // no verified claim
+    const auth = { currentUser: null };
+    const switching = { uid: 'u1', getIdTokenResult: async () => { auth.currentUser = user('u2', 'org-a'); return { token: 't', claims: { orgId: 'org-a' } }; } };
+    auth.currentUser = switching;
+    expect(await scopedTokenProvider(auth)({ uid: 'u1', orgId: 'org-a' })).toBeNull();
+  });
+
+  it('never sends work when the scope no longer matches the signed-in account, and the unscoped base sends nothing', async () => {
+    const fetchImpl = vi.fn();
+    const base = createUniverseClient({ fetchImpl, getToken: scopedTokenProvider({ currentUser: user('u2', 'org-a') }) });
+    expect(await base.withScope({ uid: 'u1', orgId: 'org-a' }).saveDraft('m', { expectedRevision: 0 }, 'ui-key-0000000000000003')).toEqual({ state: 'unauthenticated' });
+    expect(await base.availability(identity)).toEqual({ state: 'unauthenticated' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(scopeKey({ uid: 'u1', orgId: 'org-a' })).toBe('u1|org-a');
+    expect(scopeKey({ uid: 'u1', orgId: null })).toBeNull();
   });
 });

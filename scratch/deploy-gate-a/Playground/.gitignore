@@ -1,0 +1,12 @@
+node_modules/
+.DS_Store
+*.log
+.env
+.env*
+!.env.example
+.firebase/
+dist/
+dist-activity6/
+build/
+.cache/
+scripts/firebase-admin-key.json

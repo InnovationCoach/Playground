@@ -1,0 +1,138 @@
+{
+  "student": [
+    {
+      "name": "goals-modal",
+      "hash": "#/courses",
+      "click": "Goal setting",
+      "settle": 2500,
+      "escape": true
+    },
+    {
+      "name": "home-programs",
+      "hash": "#/home",
+      "click": "PBL Programs",
+      "scroll": true
+    },
+    {
+      "name": "home-goals",
+      "click": "Learning Goals",
+      "scroll": true
+    },
+    {
+      "name": "home-calendar",
+      "click": "School Calendar",
+      "scroll": true
+    },
+    {
+      "name": "pbl-evidence",
+      "hash": "#/pbl",
+      "click": "Evidence portfolio"
+    },
+    {
+      "name": "pbl-competencies",
+      "click": "Competencies"
+    },
+    {
+      "name": "activity-solar",
+      "hash": "#/courses",
+      "click": "ACTIVITY 5",
+      "settle": 3500
+    }
+  ],
+  "primary": [
+    {
+      "name": "activity",
+      "click": "Hot Spots in Our Playground",
+      "settle": 2500
+    }
+  ],
+  "coach": [
+    {
+      "name": "tab-pbl",
+      "click": "PBL Studio",
+      "hash": "",
+      "settle": 3000
+    },
+    {
+      "name": "tab-steam",
+      "click": "STEAM Activities"
+    },
+    {
+      "name": "tab-academic",
+      "click": "Academic Progress"
+    },
+    {
+      "name": "tab-goals",
+      "click": "Learning Goals"
+    },
+    {
+      "name": "tab-calendar",
+      "click": "School Calendar"
+    },
+    {
+      "name": "tab-posts",
+      "click": "Posts for students"
+    },
+    {
+      "name": "management",
+      "click": "Management tools",
+      "settle": 2500
+    },
+    {
+      "name": "messages-new",
+      "hash": "#/messages",
+      "click": "New",
+      "escape": true
+    },
+    {
+      "name": "worksheet",
+      "hash": "#/worksheet/hot-spots",
+      "settle": 2500
+    }
+  ],
+  "admin": [
+    {
+      "name": "student-detail",
+      "hash": "#/admin/students",
+      "click": "mia@school.edu",
+      "settle": 3000
+    },
+    {
+      "name": "learning-goals",
+      "hash": "#/admin/learning",
+      "click": "Learning Goals"
+    },
+    {
+      "name": "learning-calendar",
+      "click": "School Calendar"
+    },
+    {
+      "name": "learning-support",
+      "click": "Learner support"
+    }
+  ],
+  "parent": [
+    {
+      "name": "tab-pbl",
+      "hash": "",
+      "click": "PBL Progress",
+      "settle": 3000,
+      "scroll": true
+    },
+    {
+      "name": "tab-goals",
+      "click": "Learning Goals",
+      "scroll": true
+    },
+    {
+      "name": "tab-academic",
+      "click": "Academic Progress",
+      "scroll": true
+    },
+    {
+      "name": "tab-calendar",
+      "click": "School Calendar",
+      "scroll": true
+    }
+  ]
+}

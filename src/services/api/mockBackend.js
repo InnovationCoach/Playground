@@ -49,7 +49,7 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
 
   // One pre-issued invite for the first WPR student with no parent, so the
   // parent flow can be tried directly.
-  const demoChild = db.users.find((u) => u.role === 'student' && u.cohortId === 'cohort-wpr'
+  const demoChild = db.users.find((u) => u.role === 'student' && u.cohortId?.endsWith('-primary')
     && !db.parentLinks.some((l) => l.studentUid === u.uid));
   if (demoChild) {
     db.parentInvites.push({ inviteId: 'invite-demo', orgId: db.organization.orgId, studentUid: demoChild.uid, codeHash: hashCode(DEMO_PARENT_INVITE_CODE), expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(), createdBy: 'mock-admin-001' });

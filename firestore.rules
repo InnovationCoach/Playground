@@ -63,6 +63,18 @@ service cloud.firestore {
              .data.get('classIds', []).hasAny(myClassIds());
     }
 
+    // A removed assignment or suspension must stop assessment writes even
+    // while the coach still holds a previously issued token.
+    function canWriteCoachRecord(userId) {
+      let coach = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let learner = get(/databases/$(database)/documents/users/$(userId)).data;
+      return isCoachOf(userId)
+        && learner.role == 'student'
+        && coach.role == request.auth.token.role
+        && coach.get('status', 'active') != 'suspended'
+        && coach.get('classIds', []).hasAny(learner.get('classIds', []));
+    }
+
     // A join code the learner typed, resolved through classCodes/{CODE}.
     //
     // This is what makes client-side enrolment safe without a backend. The
@@ -197,7 +209,125 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.token.get('role', 'student') in ['admin', 'supervisor'];
     }
 
+    function isValidUniversePreferencesMap(prefs) {
+      return prefs is map
+        && prefs.keys().hasOnly(['detail', 'motion', 'textView', 'captions', 'calmMode'])
+        && prefs.get('detail', 'standard') in ['standard', 'high']
+        && prefs.get('motion', true) is bool
+        && prefs.get('textView', false) is bool
+        && prefs.get('captions', true) is bool
+        && prefs.get('calmMode', false) is bool;
+    }
+
+    // Validate types explicitly, then the bounded joined shape in one regex.
+    // Splitting must preserve count so embedded separators cannot masquerade as IDs.
+    function isValidUniverseBookmarks(bookmarks) {
+      let count = bookmarks.size();
+      let joined = bookmarks.join('|');
+      return bookmarks is list && count <= 50
+        && (count <= 0 || bookmarks[0] is string)
+        && (count <= 1 || bookmarks[1] is string)
+        && (count <= 2 || bookmarks[2] is string)
+        && (count <= 3 || bookmarks[3] is string)
+        && (count <= 4 || bookmarks[4] is string)
+        && (count <= 5 || bookmarks[5] is string)
+        && (count <= 6 || bookmarks[6] is string)
+        && (count <= 7 || bookmarks[7] is string)
+        && (count <= 8 || bookmarks[8] is string)
+        && (count <= 9 || bookmarks[9] is string)
+        && (count <= 10 || bookmarks[10] is string)
+        && (count <= 11 || bookmarks[11] is string)
+        && (count <= 12 || bookmarks[12] is string)
+        && (count <= 13 || bookmarks[13] is string)
+        && (count <= 14 || bookmarks[14] is string)
+        && (count <= 15 || bookmarks[15] is string)
+        && (count <= 16 || bookmarks[16] is string)
+        && (count <= 17 || bookmarks[17] is string)
+        && (count <= 18 || bookmarks[18] is string)
+        && (count <= 19 || bookmarks[19] is string)
+        && (count <= 20 || bookmarks[20] is string)
+        && (count <= 21 || bookmarks[21] is string)
+        && (count <= 22 || bookmarks[22] is string)
+        && (count <= 23 || bookmarks[23] is string)
+        && (count <= 24 || bookmarks[24] is string)
+        && (count <= 25 || bookmarks[25] is string)
+        && (count <= 26 || bookmarks[26] is string)
+        && (count <= 27 || bookmarks[27] is string)
+        && (count <= 28 || bookmarks[28] is string)
+        && (count <= 29 || bookmarks[29] is string)
+        && (count <= 30 || bookmarks[30] is string)
+        && (count <= 31 || bookmarks[31] is string)
+        && (count <= 32 || bookmarks[32] is string)
+        && (count <= 33 || bookmarks[33] is string)
+        && (count <= 34 || bookmarks[34] is string)
+        && (count <= 35 || bookmarks[35] is string)
+        && (count <= 36 || bookmarks[36] is string)
+        && (count <= 37 || bookmarks[37] is string)
+        && (count <= 38 || bookmarks[38] is string)
+        && (count <= 39 || bookmarks[39] is string)
+        && (count <= 40 || bookmarks[40] is string)
+        && (count <= 41 || bookmarks[41] is string)
+        && (count <= 42 || bookmarks[42] is string)
+        && (count <= 43 || bookmarks[43] is string)
+        && (count <= 44 || bookmarks[44] is string)
+        && (count <= 45 || bookmarks[45] is string)
+        && (count <= 46 || bookmarks[46] is string)
+        && (count <= 47 || bookmarks[47] is string)
+        && (count <= 48 || bookmarks[48] is string)
+        && (count <= 49 || bookmarks[49] is string)
+        && (count == 0 || (
+          joined.size() <= 3249
+          && joined.split('[|]').size() == count
+          && joined.matches('^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}([|][A-Za-z0-9][A-Za-z0-9_.:-]{0,63}){0,49}$')
+        ));
+    }
+
+    function isValidUniverseExplorerPrefs(data) {
+      return data is map
+        && data.keys().hasOnly([
+          'activityId',
+          'schemaVersion',
+          'bookmarks',
+          'preferences',
+          'lastVisitedPlanetId',
+          'updatedAt'
+        ])
+        && data.get('activityId', 'universe-v1') == 'universe-v1'
+        && data.get('schemaVersion', 1) is int
+        && data.get('schemaVersion', 1) == 1
+        && isValidUniverseBookmarks(data.get('bookmarks', []))
+        && isValidUniversePreferencesMap(data.get('preferences', {}))
+        && (
+          data.get('lastVisitedPlanetId', null) == null ||
+          (data.get('lastVisitedPlanetId', '') is string
+            && data.get('lastVisitedPlanetId', '').size() >= 1
+            && data.get('lastVisitedPlanetId', '').size() <= 64)
+        )
+        && (
+          data.get('updatedAt', request.time) is timestamp ||
+          (data.get('updatedAt', '') is string && data.get('updatedAt', '').size() <= 64) ||
+          data.get('updatedAt', 0) is int
+        );
+    }
+
     // ---------------------------------------------------------------------
+    // Personalization and portfolio grants are served exclusively by the scoped API.
+    match /learnerSpaces/{uid} { allow read, write: if false; }
+    match /learnerPortfolios/{uid} { allow read, write: if false; }
+    match /portfolioAudienceGrants/{uid} { allow read, write: if false; }
+
+    // Teen Quest XP, badges, streaks and the XP ledger are written only by the
+    // API, so no learner can award themselves XP. Squad goals hold class totals.
+    match /learnerQuest/{uid} { allow read, write: if false; }
+    match /learnerQuest/{uid}/{document=**} { allow read, write: if false; }
+    match /classes/{classId}/questSquad/{docId} { allow read, write: if false; }
+
+    // Coach AI activity builder: API-only. Connections hold KMS ciphertext and
+    // key metadata; drafts and usage counters are written only by the server.
+    match /coachAiConnections/{uid} { allow read, write: if false; }
+    match /schools/{schoolId}/programOfferings/{offeringId}/activityDrafts/{draftId} { allow read, write: if false; }
+    match /schools/{schoolId}/aiUsage/{month} { allow read, write: if false; }
+
     // User profiles
     // ---------------------------------------------------------------------
     match /users/{userId} {
@@ -207,10 +337,15 @@ service cloud.firestore {
       // unconstrained collection read is rejected in full.
       allow read: if isOwner(userId) || isAdminOrSupervisor() || coachSharesClassWith(resource.data);
 
-      // New accounts are always learners/students. Coach access is granted out-of-band
-      // with the Admin SDK (scripts/grant-coach.js), which bypasses these rules.
+      // New accounts are always learners/students. Coach access and tenant/class
+      // authority are granted out-of-band with the Admin SDK, never self-assigned on create.
       allow create: if isOwner(userId)
-        && request.resource.data.get('role', 'student') in ['student', 'learner'];
+        && request.resource.data.get('role', 'student') in ['student', 'learner']
+        && !request.resource.data.keys().hasAny(['orgId', 'status', 'publicId', 'consent', 'enrolledVia'])
+        && request.resource.data.get('classIds', []) is list
+        && request.resource.data.get('classIds', []).size() == 0
+        && request.resource.data.get('schoolIds', []) is list
+        && request.resource.data.get('schoolIds', []).size() == 0;
 
       // `role` may never be self-assigned or changed - it is the privilege boundary.
       // `classIds` is the tenancy boundary and is equally closed, with one
@@ -232,14 +367,16 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['activeProgramId', 'updatedAt'])
       );
-      allow delete: if isOwner(userId);
+      allow delete: if false;
 
       match /notes/{noteId} {
         allow read, create, update, delete: if isOwner(userId);
       }
 
       match /progress/{docId} {
-        allow read, create, update, delete: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && (docId != 'universe-v1' || isValidUniverseExplorerPrefs(request.resource.data));
       }
 
       match /goals/{goalId} {
@@ -254,7 +391,9 @@ service cloud.firestore {
 
       match /activityProgress/{docId} {
         allow read: if isOwner(userId) || isCoachOf(userId);
-        allow create, update, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && (docId != 'universe-v1' || isValidUniverseExplorerPrefs(request.resource.data));
+        allow delete: if isOwner(userId);
       }
 
       match /activityPreferences/{document=**} {
@@ -270,13 +409,36 @@ service cloud.firestore {
       // Coach-authored feedback on student work.
       match /feedback/{feedbackId} {
         allow read: if isOwner(userId) || isCoachOf(userId);
-        allow create, update, delete: if isAuthenticated();
+        function validFeedback() {
+          let value = request.resource.data;
+          return value.keys().hasOnly(['coachId', 'coachName', 'timestamp', 'type', 'rating', 'feedbackText', 'workId'])
+            && value.coachId == request.auth.uid
+            && value.coachName is string && value.coachName.size() <= 160
+            && value.timestamp is number
+            && (!('workId' in value) || value.workId is string && value.workId.size() <= 200)
+            && (value.type == 'work_rating' && !('feedbackText' in value) && value.rating is int && value.rating >= 1 && value.rating <= 5
+              || value.type == 'written_feedback' && !('rating' in value) && value.feedbackText is string && value.feedbackText.size() > 0 && value.feedbackText.size() <= 4000);
+        }
+        allow create: if isAuthenticated() && canWriteCoachRecord(userId) && validFeedback();
+        allow update: if isAuthenticated() && canWriteCoachRecord(userId) && resource.data.coachId == request.auth.uid && validFeedback();
+        allow delete: if isAuthenticated() && canWriteCoachRecord(userId) && resource.data.coachId == request.auth.uid;
       }
 
       // Coach notifications to students.
       match /notifications/{notificationId} {
         allow read: if isOwner(userId);
-        allow create, delete, update: if isAuthenticated();
+        allow create: if isAuthenticated() && canWriteCoachRecord(userId)
+          && request.resource.data.keys().hasOnly(['fromUid', 'from', 'message', 'timestamp', 'read', 'type'])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.from is string && request.resource.data.from.size() <= 160
+          && request.resource.data.message is string && request.resource.data.message.size() <= 4000
+          && request.resource.data.timestamp is number
+          && request.resource.data.read == false
+          && request.resource.data.type == 'coach_message';
+        allow update: if isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+          && request.resource.data.read is bool;
+        allow delete: if isOwner(userId) || isAuthenticated() && canWriteCoachRecord(userId) && resource.data.fromUid == request.auth.uid;
       }
 
       // Conversations between a child and the AI tutor.
@@ -939,18 +1101,44 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Private atomic Universe audit events. The legacy flat audit reader above
+    // does not match this nested path, so it cannot reveal learner feedback.
+    match /auditLogs/universe/events/{eventId} {
+      allow read, write: if false;
+    }
+
     // ---------------------------------------------------------------------
-    // My Universe Mission Submissions (GEMINI GO-4.md §2)
+    // My Universe Mission Submissions & Service-Only Collections (Contract 0.1.1 §7)
     // Server-written only. Client write access strictly forbidden.
     // ---------------------------------------------------------------------
     match /missionSubmissions/{submissionId} {
-      allow write: if false;
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.learnerUid ||
-        isAdminOrSupervisor() ||
-        (isTeacher() && resource.data.get('classIds', []).hasAny(myClassIds()))
-      );
+      // All records, including legacy reflections, use the scoped API. An old
+      // JWT must not bypass current membership/roster checks via direct reads.
+      allow read, write: if false;
+    }
+
+    match /missionDrafts/{draftId} {
+      allow read, write: if false;
+    }
+
+    match /missionSubmissionLocks/{lockId} {
+      allow read, write: if false;
+    }
+
+    match /missionRevisionLinks/{submissionId} {
+      allow read, write: if false;
+    }
+
+    match /universeIdempotency/{idempotencyId} {
+      allow read, write: if false;
+    }
+
+    match /universeMemberships/{uid} {
+      allow read, write: if false;
+    }
+
+    match /universeTaskStatus/{taskKey} {
+      allow read, write: if false;
     }
   }
 }
-

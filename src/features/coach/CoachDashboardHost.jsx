@@ -1,4 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { LeavePanel } from '../admin/pilot/PilotOperations.jsx';
+import { useEffect, useRef, useState } from 'react';
+import { StudentInviteDialog } from './StudentInviteDialog.jsx';
+import { CoachWorkspace } from './CoachWorkspace.jsx';
 import CoachDashboard from '../../components/Coach/CoachDashboard.js';
 import { ClassProgramsPanel } from './ClassProgramsPanel.jsx';
 import { CoachUniverseSubmissions } from './universe/CoachUniverseSubmissions.jsx';
@@ -15,18 +18,26 @@ import { CoachUniverseSubmissions } from './universe/CoachUniverseSubmissions.js
  * "My classes" (programs and join codes) is React and sits above it, outside
  * that subtree.
  */
-export function CoachDashboardHost({ coachUser }) {
+function ManagementTools({ coachUser, onAddStudent, classId, onClassChange }) {
   const containerRef = useRef(null);
   const instanceRef = useRef(null);
 
+  const coachUid = coachUser?.uid;
+
   useEffect(() => {
-    if (!containerRef.current || instanceRef.current) return;
+    if (!containerRef.current) return;
 
     let disposed = false;
 
+    // Clear previous innerHTML before initiating new dashboard instance
+    containerRef.current.innerHTML = '';
+
     const dashboard = new CoachDashboard({
       containerId: containerRef.current.id,
-      coachUser
+      coachUser,
+      onAddStudent,
+      classId,
+      onClassChange
     });
     instanceRef.current = dashboard;
 
@@ -45,17 +56,37 @@ export function CoachDashboardHost({ coachUser }) {
         instanceRef.current.destroy();
       }
       instanceRef.current = null;
-      // The class renders by assigning innerHTML, so clearing the node is the
-      // whole teardown. Listeners live on the replaced children.
       if (containerRef.current) containerRef.current.innerHTML = '';
     };
-  }, [coachUser?.uid]);
+  }, [coachUid]);
 
-  return (
-    <>
-      <ClassProgramsPanel coachUser={coachUser} />
-      <CoachUniverseSubmissions coachUser={coachUser} />
-      <div id="coach-dashboard-card" ref={containerRef} />
-    </>
-  );
+  return <div id="coach-dashboard-card" ref={containerRef} style={{ minHeight: '600px', width: '100%' }} />;
 }
+
+export function CoachDashboardHost({ coachUser, orgId = null }) {
+  const [management, setManagement] = useState(false);
+  const [invite, setInvite] = useState(false);
+  const [classId, setClassId] = useState('all');
+  const [rosterVersion, setRosterVersion] = useState(0);
+  return <>
+    <div className="gh-app" style={{ padding: '0 20px', maxWidth: 1240, margin: '0 auto' }}>
+      <details className="gh-card" style={{ margin: '16px 0', padding: '1rem 1.25rem' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', color: 'var(--gh-heading)' }}>
+          Day-off requests · request leave and track responses
+        </summary>
+        <div style={{ marginTop: '1rem' }}>
+          <LeavePanel />
+        </div>
+      </details>
+    </div>
+    {/* Class programs and My Universe submissions (main line) stay above the workspace. */}
+    <ClassProgramsPanel coachUser={coachUser} />
+    <CoachUniverseSubmissions coachUser={coachUser} orgId={orgId} />
+    {invite && <StudentInviteDialog initialClassId={classId} onClose={() => setInvite(false)} onCreated={() => setRosterVersion(n => n + 1)} />}
+    {management ? <>
+    <div className="gh-app cw-management"><button className="gh-btn gh-btn-ghost" onClick={() => setManagement(false)}>← Back to progress overview</button><p role="status">Class management tools. Select one assigned class before adding a task or assignment. Unavailable records are marked explicitly.</p></div>
+    <ManagementTools classId={classId} onClassChange={setClassId} key={rosterVersion} coachUser={coachUser} onAddStudent={() => setInvite(true)} />
+    </> : <CoachWorkspace initialClassId={classId} onClassChange={setClassId} coachUser={coachUser} rosterVersion={rosterVersion} onAddStudent={() => setInvite(true)} onManagement={() => setManagement(true)} />}
+  </>;
+}
+

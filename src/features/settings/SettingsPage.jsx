@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Languages, LockKeyhole, UserRound, Sun, Moon, Monitor } from 'lucide-react';
+import { Languages, LockKeyhole, UserRound, Sun, Moon, Monitor, Flag } from 'lucide-react';
+import { useSchoolResource, mutateSchool, schoolPath, serviceMessage } from '../school/useSchoolWorkspace.js';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { LOCALES } from '../../app/i18n/messages.js';
 import { changePassword, saveLocale, saveThemePreference } from '../../auth.js';
@@ -40,6 +41,7 @@ export function SettingsPage({ user, profile, role, embedded }) {
       <ThemeCard uid={user.uid} />
       <LanguageCard uid={user.uid} />
       <PasswordCard />
+      {role === 'admin' && <SchoolFeaturesCard />}
     </>
   );
   return embedded ? <div className="gh-narrow">{content}</div> : <div className="gh-page gh-narrow">{content}</div>;
@@ -184,5 +186,45 @@ function PasswordCard() {
         </button>
       </div>
     </form>
+  );
+}
+
+/** Admin-only school feature switches (Teen Quest pilot first). */
+function SchoolFeaturesCard() {
+  const { t } = useLocale();
+  const context = useSchoolResource('/api/learning-context');
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const schools = context.data?.schools || [];
+  async function toggle(school, questMode) {
+    setBusy(school.id); setStatus(null);
+    try {
+      await mutateSchool('PATCH', schoolPath(school.id, 'features'), { questMode });
+      setStatus({ type: 'success', text: t('settings.featureSaved') });
+      context.reload();
+    } catch (error) {
+      setStatus({ type: 'error', text: serviceMessage(error) });
+    } finally {
+      setBusy(null);
+    }
+  }
+  return (
+    <section className="gh-card" aria-labelledby="gh-features-title">
+      <CardHead icon={Flag} id="gh-features-title" title={t('settings.schoolFeatures')} desc={t('settings.schoolFeaturesDesc')} />
+      {status && <Alert type={status.type}>{status.text}</Alert>}
+      {context.loading && <p role="status">…</p>}
+      {context.error && <Alert type="error">{serviceMessage(context.error)}</Alert>}
+      {!context.loading && !context.error && !schools.length && <p className="gh-card-desc">{t('settings.noSchools')}</p>}
+      <div style={{ display: 'grid', gap: '0.75rem' }}>
+        {schools.map((school) => (
+          <label key={school.id} htmlFor={`quest-${school.id}`} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', cursor: 'pointer' }}>
+            <input id={`quest-${school.id}`} type="checkbox" style={{ width: 20, height: 20, marginTop: 2 }}
+              checked={school.features?.questMode === true} disabled={busy === school.id}
+              onChange={(e) => toggle(school, e.target.checked)} />
+            <span><strong>{school.name}</strong> · {t('settings.questMode')}<br /><span className="gh-card-desc">{t('settings.questModeHint')}</span></span>
+          </label>
+        ))}
+      </div>
+    </section>
   );
 }

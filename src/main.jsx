@@ -18,7 +18,7 @@ import { ThemeProvider } from './app/theme/ThemeProvider.jsx';
 import { FocusMiniHost } from './features/focus/FocusWidget.jsx';
 
 function Root() {
-  const [userTheme, setUserTheme] = useState('system');
+  const [userTheme, setUserTheme] = useState('light');
 
   return (
     <LocaleProvider>

@@ -33,7 +33,7 @@ import './sparkBrand.css';
 
 export function MyDashboard(props) { return <StudentDashboard key={props.uid || 'signed-out'} {...props} />; }
 
-function StudentDashboard({ uid, profile, classIds = [], onJoined, onOpenActivity }) {
+function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined, onOpenActivity }) {
   const { prefs, update, syncState } = useDashboardPrefs(uid);
   const { plan, update: updatePlan, syncState: goalSync, loaded: goalsLoaded } = useGoalPlan(uid);
   const cloudProject = useCloudProject(uid);
@@ -114,7 +114,7 @@ function StudentDashboard({ uid, profile, classIds = [], onJoined, onOpenActivit
       renderReadiness={() => <WorkspaceTools prefs={prefs} slide="progress" renderWidget={renderWidget} />} />;
     if (id === 'creative') return <PersonalSpace prefs={prefs} update={update} renderWidget={renderWidget} />;
     return <>
-      <SparkUniverse prefs={prefs} plan={plan} uid={uid} active={activeSlide === 'universe'} onPersonalise={() => setPanelOpen(true)} onOpenActivity={onOpenActivity} />
+      <SparkUniverse prefs={prefs} plan={plan} uid={uid} orgId={orgId} active={activeSlide === 'universe'} onPersonalise={() => setPanelOpen(true)} onOpenActivity={onOpenActivity} />
       <div className="sd-section-line"><h3>Personal milestones & inspiration</h3><button type="button" className="sd-text-button" onClick={() => setActiveSlide('creative')}>Arrange optional tools <ArrowRight size={16} /></button></div>
       <p className="sd-caption">These existing milestones reflect self-reported actions. They are not verified mastery, XP or unlock evidence.</p>
       <WorkspaceTools prefs={prefs} slide="universe" renderWidget={renderWidget} />

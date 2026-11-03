@@ -30,16 +30,28 @@ export function initAdmin() {
   }
 
   const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'demo-hearisland-local';
+  const usingEmulators =
+    Boolean(process.env.FIRESTORE_EMULATOR_HOST) ||
+    Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST) ||
+    process.env.FUNCTIONS_EMULATOR === 'true' ||
+    projectId.startsWith('demo-');
+
   const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
     || path.join(__dirname, '..', 'scripts', 'firebase-admin-key.json');
 
+  // Signed media URLs (learner, program and lesson media) need the bucket.
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET
+    || (projectId.startsWith('demo-') ? `${projectId}.appspot.com` : `${projectId}.firebasestorage.app`);
+
   try {
-    if (fs.existsSync(keyPath)) {
-      initializeApp({ credential: cert(JSON.parse(fs.readFileSync(keyPath, 'utf8'))), projectId });
+    if (usingEmulators) {
+      initializeApp({ projectId, storageBucket });
+    } else if (fs.existsSync(keyPath)) {
+      initializeApp({ credential: cert(JSON.parse(fs.readFileSync(keyPath, 'utf8'))), projectId, storageBucket });
     } else {
       // Works on Cloud Run / App Hosting, where credentials come from the
       // runtime service account rather than a key file.
-      initializeApp({ credential: applicationDefault(), projectId });
+      initializeApp({ credential: applicationDefault(), projectId, storageBucket });
     }
 
     // initializeApp succeeds even with unusable credentials, so prove the auth

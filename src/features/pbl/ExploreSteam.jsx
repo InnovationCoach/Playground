@@ -31,7 +31,10 @@ export function ExploreSteam({ onOpenActivity }) {
               <div className="pb-steam-head">
                 <ActivityIcon id={id} size={42} iconSize={20} />
                 <div className="pb-grow">
-                  {kicker && <span className="pb-kicker">{kicker}</span>}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span className="pb-kicker" style={{ color: 'var(--gh-purple)', fontWeight: 600 }}>Sustainable Futures PBL</span>
+                    {kicker && <span className="pb-kicker">· {kicker}</span>}
+                  </div>
                   <h3>{title}</h3>
                   <p className="pb-sub">{nav.description}</p>
                 </div>

@@ -1,0 +1,4 @@
+const attendance = [{uid:'a',name:'Alex Morgan',status:'present',note:'',updatedAt:'2026-11-03T02:00:00Z',updatedBy:{name:'School admin'}},{uid:'b',name:'Sam Rivera',status:'unmarked',note:''},{uid:'c',name:'Taylor Chen',status:'late',note:'Transport delay',updatedAt:'2026-11-03T02:15:00Z',updatedBy:{name:'School admin'}}];
+const leave = [{id:'one',name:'Coach Alex',startDate:'2026-11-10',endDate:'2026-11-11',reason:'Personal leave',status:'pending',createdAt:'2026-11-03T02:00:00Z'}];
+const inventory = [{id:'one',name:'Science kits',location:'Lab cupboard A',quantity:2,minimum:3},{id:'two',name:'Arduino boards',location:'Technology room',quantity:12,minimum:5}];
+export async function schoolRequest(method,path) { if(method!=='GET') throw new Error('Visual preview only. Use the local test services to verify saving.'); return {items:path.includes('/history')?[]:path.includes('/attendance')?attendance:path.endsWith('/leave')?leave:inventory}; }

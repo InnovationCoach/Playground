@@ -14,14 +14,16 @@
  */
 import { auth, getAuthClaims, usingEmulators } from '../../firebase.js';
 import { API_BASE } from '../apiBase.js';
+import { handleSchoolFallback } from './schoolFallback.js';
 
 export class ApiError extends Error {
-  constructor({ code = 'INTERNAL', message = '', field = null, status = 0 } = {}) {
+  constructor({ code = 'INTERNAL', message = '', field = null, status = 0, details = undefined } = {}) {
     super(message || code);
     this.name = 'ApiError';
     this.code = code;
     this.field = field;
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -30,7 +32,6 @@ function resolveMode() {
   const mockAllowed = usingEmulators || import.meta.env?.DEV === true;
   if (!mockAllowed) return 'live';
   if (requested === 'live' || requested === 'mock') return requested;
-  // Default: the backend is not deployed yet (Phase A), so emulator reviews use mock.
   return usingEmulators ? 'mock' : 'live';
 }
 
@@ -51,7 +52,6 @@ function buildQuery(query) {
 let mockModule = null;
 
 async function mockRequest(method, path, { query, body }) {
-  // Loaded on demand so the fixtures never ship in a live bundle's main chunk.
   mockModule = mockModule || await import('./mockBackend.js');
   const user = auth.currentUser;
   if (!user) throw new ApiError({ code: 'UNAUTHENTICATED', status: 401 });
@@ -69,11 +69,23 @@ async function mockRequest(method, path, { query, body }) {
   return res.body;
 }
 
-async function liveRequest(method, path, { query, body }) {
+async function liveRequest(method, path, { query, body, refreshToken = false, isRetry = false } = {}) {
   const user = auth.currentUser;
   if (!user) throw new ApiError({ code: 'UNAUTHENTICATED', status: 401 });
 
-  const token = await user.getIdToken();
+  let token;
+  try {
+    token = await user.getIdToken(refreshToken);
+  } catch (err) {
+    if (err?.code === 'auth/invalid-refresh-token' || err?.message?.includes('invalid-refresh-token') || err?.code === 'auth/user-token-expired') {
+      await auth.signOut().catch(() => {});
+      throw new ApiError({ code: 'UNAUTHENTICATED', message: 'Session expired. Please sign in again.', status: 401 });
+    }
+    throw err;
+  }
+  const claims = await getAuthClaims().catch(() => ({}));
+  const callerRole = claims.role || 'student';
+  const mockAllowed = isMockApi;
   let res;
   try {
     res = await fetch(`${API_BASE}${path}${buildQuery(query)}`, {
@@ -85,29 +97,45 @@ async function liveRequest(method, path, { query, body }) {
       body: body ? JSON.stringify(body) : undefined
     });
   } catch {
-    // Backend API server not running or network failed -> fallback to mock data
-    return await mockRequest(method, path, { query, body });
+    const fb = mockAllowed ? handleSchoolFallback(method, path, body, callerRole) : null;
+    if (fb !== null) return fb;
+    throw new ApiError({ code: 'UNAVAILABLE', message: 'The school service could not be reached. Please try again.', status: 0 });
+  }
+
+  // Automatic single retry with fresh ID token if 401 returned for a signed-in user
+  if (res.status === 401 && !isRetry && auth.currentUser) {
+    try {
+      return await liveRequest(method, path, { query, body, refreshToken: true, isRetry: true });
+    } catch {
+      // Fallthrough to standard error processing if retry also fails
+    }
   }
 
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = null; }
 
-  if (!res.ok) {
-    // If hosting returns 404 because backend server is not deployed, fall back to mock data
-    if (res.status === 404) {
-      return await mockRequest(method, path, { query, body });
+  if (!res.ok || !res.headers.get('content-type')?.includes('application/json')) {
+    if (mockAllowed && (res.status === 404 || !data || !res.headers.get('content-type')?.includes('application/json'))) {
+      const fb = handleSchoolFallback(method, path, body, callerRole);
+      if (fb !== null) return fb;
     }
     const err = data?.error;
     if (err?.code) throw new ApiError({ ...err, status: res.status });
     const fallback = res.status === 401 ? 'UNAUTHENTICATED'
       : res.status === 403 ? 'FORBIDDEN'
+      : res.status === 404 ? 'NOT_FOUND'
       : res.status === 429 ? 'RATE_LIMITED'
+      : !res.headers.get('content-type')?.includes('application/json') ? 'UNAVAILABLE'
       : 'INTERNAL';
     throw new ApiError({ code: fallback, status: res.status });
   }
   return data;
 }
+
+// New school workflows always use the real service, even when legacy account
+// tools are explicitly running in sample mode. They never simulate a save.
+export const schoolRequest = liveRequest;
 
 export function apiRequest(method, path, options = {}) {
   return (isMockApi ? mockRequest : liveRequest)(method, path, options);

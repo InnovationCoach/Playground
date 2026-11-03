@@ -10,3 +10,5 @@ dist-activity6/
 build/
 .cache/
 scripts/firebase-admin-key.json
+tmp/
+output/

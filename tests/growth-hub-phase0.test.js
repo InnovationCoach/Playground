@@ -7,6 +7,7 @@
  * the UI will break the day the real API replaces it.
  */
 import { describe, it, expect } from 'vitest';
+import {readFileSync} from 'node:fs';
 import { createMockBackend } from '../src/services/api/mockBackend.js';
 import { DEMO_PARENT_INVITE_CODE } from '../src/services/api/mockFixtures.js';
 import { pageRange, nextTokens, toggleSort } from '../src/features/admin/ui/pagination.js';
@@ -110,7 +111,7 @@ describe('mock backend follows the §7 contract', () => {
 
   it('validates creates field by field and rejects a duplicate email with CONFLICT', async () => {
     const api = fresh();
-    const base = { role: 'student', email: 'new.kid@welearn.test', givenNames: 'New', surname: 'Kid', schoolIds: ['sch-bkk'], cohortId: 'cohort-w2e', ageBand: '13-15' };
+    const base = { role: 'student', email: 'new.kid@welearn.test', givenNames: 'New', surname: 'Kid', schoolIds: ['sch-bkk'], cohortId: 'cohort-lower-secondary', ageBand: '13-15' };
     expect((await call(api, admin, 'POST', '/api/admin/users', { body: { ...base, phone: '0812345678' } })).body.error.field).toBe('phone');
     expect((await call(api, admin, 'POST', '/api/admin/users', { body: { ...base, cohortId: undefined } })).body.error.field).toBe('cohortId');
     const created = await call(api, admin, 'POST', '/api/admin/users', { body: base });
@@ -126,7 +127,7 @@ describe('mock backend follows the §7 contract', () => {
 
   it('creates primary learners as pending with consent gate removed', async () => {
     const api = fresh();
-    const res = await call(api, admin, 'POST', '/api/admin/users', { body: { role: 'student', email: 'little@welearn.test', givenNames: 'Little', surname: 'One', schoolIds: ['sch-bkk'], cohortId: 'cohort-wpr', ageBand: 'primary' } });
+    const res = await call(api, admin, 'POST', '/api/admin/users', { body: { role: 'student', email: 'little@welearn.test', givenNames: 'Little', surname: 'One', schoolIds: ['sch-bkk'], cohortId: 'cohort-lower-primary', ageBand: 'primary' } });
     expect(res.body.status).toBe('pending');
     expect(res.body.consent).toBeNull();
   });
@@ -224,11 +225,13 @@ describe('routes', () => {
     expect(parseRoute('#/admin/staff')).toEqual({ screen: 'admin', page: 'list', kind: 'staff' });
     expect(parseRoute('#/admin/users/abc%2F1')).toEqual({ screen: 'admin', page: 'detail', uid: 'abc/1' });
     expect(parseRoute('#/admin/new/parents')).toEqual({ screen: 'admin', page: 'create', kind: 'parents' });
-    expect(parseRoute('#/admin/new/wizards')).toEqual({ screen: 'admin', page: 'list', kind: 'students' });
+    expect(parseRoute('#/admin/new/wizards')).toEqual({ screen: 'admin', page: 'pilot' });
     expect(parseRoute('#/settings')).toEqual({ screen: 'settings' });
     expect(parseRoute('#/courses')).toEqual({ screen: 'courses' });
     expect(parseRoute('#/coach/dashboard')).toEqual({ screen: 'coach' });
     expect(parseRoute('#/unknown/route')).toBeNull();
+    expect(parseRoute('#/coach/dashboard')).toEqual({screen:'coach'});
+    expect(parseRoute('#/programs')).toEqual({screen:'programs'});
     expect(parseRoute('')).toBeNull();
   });
 });
@@ -269,3 +272,16 @@ describe('interface text', () => {
     expect(translate('en', 'no.such.key')).toBe('no.such.key');
   });
 });
+
+describe('Legacy router preserves private dashboard and portfolio routes', () => {
+  it('leaves these React screens intact for students and coaches', () => {
+    const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+    const source = html.match(/    function handleHashRouting\(\) \{[\s\S]*?\n    \}/)[0];
+    for (const role of ['student', 'teacher']) for (const hash of ['#/space', '#/portfolio', '#/portfolio/learner', '#/programs', '#/journey']) {
+      const views = [];
+      const handler = new Function('firebase', 'window', 'switchPhase', `${source}; return handleHashRouting;`)({auth:()=>({currentUser:{uid:'test'}})}, {currentUserRole:role,location:{hash}}, view=>views.push(view));
+      handler(); expect(views).toEqual([]);
+    }
+  });
+});
+

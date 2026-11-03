@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { fbm } from './proceduralTextures.js';
-import { Sky, Beacon } from './environmentKit.jsx';
+import { Sky, Beacon, Equipment } from './environmentKit.jsx';
 
 /**
  * Thalassa Research Station: the spike's one enterable environment, loaded as
@@ -102,8 +102,12 @@ function Vent({ x, z }) {
   </group>;
 }
 
-export default function ExplorerEnvironment({ environment, selected, onSelect, motion, low }) {
+export default function ExplorerEnvironment({ environment, selected, onSelect, motion, low, equipment = null }) {
   const byId = Object.fromEntries(environment.locations.map((l) => [l.id, l]));
+  // Planned equipment rests on the platform deck, on land, or on a small float at the waterline.
+  const deck = byId.platform.position, onDeck = (x, z) => Math.hypot(x - deck[0], z - deck[2]) < 6.5;
+  const standAt = (x, z) => (onDeck(x, z) ? 0.76 : Math.max(heightAt(x, z), 0.1));
+  const water = (x, z) => !onDeck(x, z) && heightAt(x, z) < 0.1;
   return <group>
     <fog attach="fog" args={['#c9e4ef', 90, 330]} />
     <hemisphereLight args={['#dff1ff', '#2a4a55', 0.9]} />
@@ -116,5 +120,6 @@ export default function ExplorerEnvironment({ environment, selected, onSelect, m
     <TideGauge x={byId['tide-gauge'].position[0]} z={byId['tide-gauge'].position[2]} />
     <Vent x={byId.vent.position[0]} z={byId.vent.position[2]} />
     {environment.locations.map((l) => <Beacon key={l.id} location={l} selected={selected === l.id} onSelect={onSelect} groundAt={heightAt} />)}
+    <Equipment equipment={equipment} standAt={standAt} water={water} motion={motion} />
   </group>;
 }

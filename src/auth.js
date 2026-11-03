@@ -5,6 +5,7 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
+  onIdTokenChanged,
   doc,
   setDoc,
   getDoc,
@@ -156,18 +157,22 @@ export async function logoutUser() {
 /**
  * Listen for Authentication state changes.
  *
+ * With { tokens: true } it observes ID-token changes instead (a superset: sign-in,
+ * sign-out, account switch and same-user token/claim changes).
+ *
  * Waits for index.html's stale-session check (window.__hearIslandAuthReady)
  * before subscribing. Without the wait, the first event could be a user restored
  * from a previous person's session, and the dashboard would render their data
  * before the check signed them out.
  */
-export function subscribeToAuth(callback) {
+export function subscribeToAuth(callback, { tokens = false } = {}) {
   let unsubscribe = null;
   let cancelled = false;
   Promise.resolve(window.__hearIslandAuthReady)
     .catch(() => {})
     .then(() => {
-      if (!cancelled) unsubscribe = onAuthStateChanged(auth, callback);
+      // `tokens` also reports ID-token changes for the same user (refreshes, changed claims).
+      if (!cancelled) unsubscribe = (tokens ? onIdTokenChanged : onAuthStateChanged)(auth, callback);
     });
   return () => {
     cancelled = true;

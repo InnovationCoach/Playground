@@ -1,6 +1,8 @@
 import { useId } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Check, CircleDashed, PenLine } from 'lucide-react';
 import { codePoints, edgeKey, partStatus, tableTemplate, withCell, withPart } from './missionSession.js';
+import { workRows } from './focusFlow.js';
 
 const KIND_LABEL = { text: 'Written explanation', table: 'Table', choice: 'Choice and reason', diagram: 'Route diagram' };
 export const partTitle = (partId) => partId.split('-').map((w, i) => (i ? w : w[0].toUpperCase() + w.slice(1))).join(' ');
@@ -18,8 +20,12 @@ function StarterButton({ starter, value, onInsert }) {
     <PenLine size={14} aria-hidden="true" />{used ? 'Starter added' : 'Add sentence starter'}</button>;
 }
 
-/** One notebook part, editable. Every alternative the task accepts stays available and keeps its own content. */
-export function NotebookPart({ route, partId, work, setWork, disabled, guided }) {
+/**
+ * One notebook part, editable. Every alternative the task accepts stays available and keeps its own content.
+ * In `focus` mode a table shows one row at a time (full table on request) and a diagram one stage at a time;
+ * `view` / `onView` hold that UI-only position so it is shared wherever the part appears.
+ */
+export function NotebookPart({ route, partId, work, setWork, disabled, guided, focus = false, view = {}, onView = () => {}, headingId }) {
   const uid = useId();
   const rule = route.requiredParts.find((r) => r.partId === partId);
   const p = work.parts[partId];
@@ -28,26 +34,32 @@ export function NotebookPart({ route, partId, work, setWork, disabled, guided })
   const diagram = route.diagramTemplates?.[partId];
   const starter = route.sentenceStarters?.[partId] || table?.textStarter || diagram?.textStarter || null;
   const update = (patch) => setWork((w) => withPart(w, partId, patch));
-  return <section className="px-part" aria-labelledby={`${uid}-h`}>
+  guided = focus && guided ? 'closed' : guided;
+  const hId = headingId || `${uid}-h`;
+  return <section className={`px-part${focus ? ' is-focus' : ''}`} aria-labelledby={hId}>
     <header className="px-part-head">
-      <h4 id={`${uid}-h`}>{partTitle(partId)}</h4>
+      {focus ? <span className="px-part-name" id={hId}>Notebook · {partTitle(partId)}</span> : <h4 id={hId}>{partTitle(partId)}</h4>}
       <span className={`px-pill ${status.complete ? 'is-done' : 'is-todo'}`}>{status.complete ? <><Check size={13} aria-hidden="true" />Ready to send</> : <><CircleDashed size={13} aria-hidden="true" />In progress</>}</span>
     </header>
-    <p className="px-criterion"><strong>What your coach looks for:</strong> {rule.evidenceCriterion}</p>
+    {!focus && <p className="px-criterion"><strong>What your coach looks for:</strong> {rule.evidenceCriterion}</p>}
     <fieldset disabled={disabled} className="px-fieldset">
       <legend className="mx-sr">{partTitle(partId)}</legend>
       {rule.anyOfKinds.length > 1 && <div className="px-format" role="radiogroup" aria-label={`Format for ${partTitle(partId)}`}>
         {rule.anyOfKinds.map((k) => <label key={k}><input type="radio" name={`${uid}-kind`} checked={p.kind === k} onChange={() => update({ kind: k })} />{KIND_LABEL[k]}</label>)}
-        <small className="mx-muted">Each format is judged on the same reasoning. Switching keeps what you wrote in both.</small>
+        <small className="mx-muted">{focus ? 'Both formats count equally. Switching keeps both.' : 'Each format is judged on the same reasoning. Switching keeps what you wrote in both.'}</small>
       </div>}
       {p.kind === 'text' && <TextField id={`${uid}-text`} label={rule.anyOfKinds.length > 1 ? `Your ${partTitle(partId).toLowerCase()} in words` : 'Your answer'}
         value={p.text} onChange={(text) => update({ text })} starter={starter} guided={guided} />}
       {p.kind === 'table' && (p.savedTable ? <SavedTable t={p.savedTable} onReplace={() => update({ savedTable: null })} />
-        : <TableEditor t={table} cells={p.cells} onCell={(r, c, v) => setWork((w) => withCell(w, partId, r, c, v))} />)}
+        : focus && !view.fullTable ? <TableRowEditor t={table} cells={p.cells} row={view.row ?? 0} onRow={(row) => onView({ row })} onFull={() => onView({ fullTable: true })}
+          onCell={(r, c, v) => setWork((w) => withCell(w, partId, r, c, v))} />
+          : <>{focus && <button type="button" className="px-ghost" aria-pressed="true" onClick={() => onView({ fullTable: false })}>Show one row at a time</button>}
+            <TableEditor t={table} cells={p.cells} onCell={(r, c, v) => setWork((w) => withCell(w, partId, r, c, v))} /></>)}
       {p.kind === 'choice' && <ChoiceEditor uid={uid} route={route} partId={partId} p={p} update={update} starter={starter} guided={guided} />}
-      {p.kind === 'diagram' && <DiagramEditor uid={uid} t={diagram} p={p} update={update} starter={starter} guided={guided} />}
+      {p.kind === 'diagram' && <DiagramEditor uid={uid} t={diagram} p={p} update={update} starter={starter} guided={guided} stage={focus ? view.stage ?? 0 : null} onStage={(stage) => onView({ stage })} />}
     </fieldset>
-    {!status.complete && status.reason && <p className="px-why">{status.reason}</p>}
+    {/* Focus mode never nags mid-step; the review checklist names what is missing. */}
+    {!focus && !status.complete && status.reason && <p className="px-why">{status.reason}</p>}
   </section>;
 }
 
@@ -58,7 +70,9 @@ function TextField({ id, label, value, onChange, starter, guided, rows = 5 }) {
     <div className="px-field-foot"><span id={`${id}-c`}><Counter value={value} /></span>
       <StarterButton starter={starter} value={value} onInsert={onChange} />
     </div>
-    {guided && starter && !value && <p className="px-starter-hint">Starter: “{starter}”</p>}
+    {/* R6: in focus mode the Guided starter text stays closed until asked for; the Add button is unchanged. */}
+    {guided === 'closed' && starter && !value && <details className="px-optional"><summary>See the sentence starter</summary><p className="px-starter-hint">“{starter}”</p></details>}
+    {guided === true && starter && !value && <p className="px-starter-hint">Starter: “{starter}”</p>}
   </div>;
 }
 
@@ -76,6 +90,31 @@ function TableEditor({ t, cells, onCell }) {
       </tr>)}</tbody>
     </table>
     <p className="mx-muted">Grey cells are given facts. Fill every blank cell; label any rounding you use.</p>
+  </div>;
+}
+
+/** Focus mode: one row of the table, with the given facts beside the cells to fill. The full table is one click away. */
+function TableRowEditor({ t, cells, row, onRow, onFull, onCell }) {
+  const rows = workRows(t);
+  const pos = Math.min(Math.max(0, rows.indexOf(rows.includes(row) ? row : rows[0])), rows.length - 1);
+  const r = rows[pos];
+  const tr = t.rows[r];
+  const rowName = tr.cells[0].value || tr.id;
+  return <div className="px-rowfocus">
+    <p className="px-rowpos"><strong>{t.caption}</strong> · row {pos + 1} of {rows.length}: {rowName}</p>
+    {/* R5: a short polite announcement of the newly shown row, never the whole table. */}
+    <p className="mx-sr" role="status" aria-live="polite">Row {pos + 1} of {rows.length}: {rowName}</p>
+    <div className="px-rowcells">{tr.cells.map((cell, c) => {
+      if (c === 0) return null;
+      if (!cell.editable) return <p key={c} className="px-given"><span>{t.columns[c]}</span><b>{cell.value}</b></p>;
+      return <label key={c} className="px-cell"><span>{t.columns[c]}</span>
+        <input value={cells[r][c]} maxLength={200} aria-label={`${rowName}, ${t.columns[c]}`} onChange={(e) => onCell(r, c, e.target.value)} /></label>;
+    })}</div>
+    <div className="px-row">
+      <button type="button" className="px-ghost" disabled={pos === 0} onClick={() => onRow(rows[pos - 1])}><ChevronLeft size={14} aria-hidden="true" />Previous row</button>
+      <button type="button" className="px-ghost" disabled={pos === rows.length - 1} onClick={() => onRow(rows[pos + 1])}>Next row<ChevronRight size={14} aria-hidden="true" /></button>
+      <button type="button" className="px-ghost" aria-pressed="false" onClick={onFull}>Show full table</button>
+    </div>
   </div>;
 }
 
@@ -101,27 +140,34 @@ function ChoiceEditor({ uid, route, partId, p, update, starter, guided }) {
   </div>;
 }
 
-function DiagramEditor({ uid, t, p, update, starter, guided }) {
+const STAGES = ['Places', 'Links', 'In words'];
+
+function DiagramEditor({ uid, t, p, update, starter, guided, stage = null, onStage }) {
   const has = (id) => p.nodeIds.includes(id);
   const toggleNode = (id) => update({ nodeIds: has(id) ? p.nodeIds.filter((n) => n !== id) : [...p.nodeIds, id] });
   const toggleEdge = (k) => update({ edgeKeys: p.edgeKeys.includes(k) ? p.edgeKeys.filter((e) => e !== k) : [...p.edgeKeys, k] });
   const nodes = t.nodeVocabulary.filter((n) => has(n.id));
   const edges = t.edgeVocabulary.filter((e) => p.edgeKeys.includes(edgeKey(e)) && has(e.fromId) && has(e.toId));
+  // Focus mode shows one stage at a time (places, links, description); every stage stays one click away.
+  const show = (i) => stage === null || stage === i;
   return <div className="px-diagram">
-    <p className="mx-muted">{t.learnerAction}</p>
-    <fieldset className="px-checks"><legend>Places in the route</legend>
+    {stage === null ? <p className="mx-muted">{t.learnerAction}</p>
+      : <div className="px-stages" role="group" aria-label="Diagram stage">{STAGES.map((name, i) => <button key={name} type="button" aria-pressed={stage === i} onClick={() => onStage(i)}>{i + 1}. {name}</button>)}</div>}
+    {show(0) && <fieldset className="px-checks"><legend>Places in the route</legend>
       {t.nodeVocabulary.map((n) => <label key={n.id}><input type="checkbox" checked={has(n.id)} onChange={() => toggleNode(n.id)} />{n.label}</label>)}
-    </fieldset>
-    <fieldset className="px-checks"><legend>Relationships</legend>
+    </fieldset>}
+    {show(1) && <fieldset className="px-checks"><legend>Relationships</legend>
       {t.edgeVocabulary.map((e) => {
         const k = edgeKey(e), from = t.nodeVocabulary.find((n) => n.id === e.fromId), to = t.nodeVocabulary.find((n) => n.id === e.toId);
         const ready = has(e.fromId) && has(e.toId);
         return <label key={k} className={ready ? '' : 'is-off'}><input type="checkbox" disabled={!ready} checked={p.edgeKeys.includes(k) && ready} onChange={() => toggleEdge(k)} />
           {from.label} → {to.label} <em>({e.label})</em>{!ready && <span className="mx-sr"> (add both places first)</span>}</label>;
       })}
-    </fieldset>
-    <DiagramPicture caption={t.caption} nodes={nodes} edges={edges} />
-    <TextField id={`${uid}-desc`} label="Describe the route in words (required)" value={p.description} onChange={(description) => update({ description })} starter={starter} guided={guided} rows={4} />
+    </fieldset>}
+    {stage === null ? <DiagramPicture caption={t.caption} nodes={nodes} edges={edges} />
+      : <details className="px-optional"><summary>See the diagram so far</summary><DiagramPicture caption={t.caption} nodes={nodes} edges={edges} /></details>}
+    {show(2) && <TextField id={`${uid}-desc`} label="Describe the route in words (required)" value={p.description} onChange={(description) => update({ description })} starter={starter} guided={guided} rows={4} />}
+    {stage !== null && stage < 2 && <button type="button" className="px-ghost" onClick={() => onStage(stage + 1)}>Next stage: {STAGES[stage + 1]}<ChevronRight size={14} aria-hidden="true" /></button>}
   </div>;
 }
 

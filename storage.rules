@@ -30,10 +30,97 @@ service firebase.storage {
       allow read, write: if false;
     }
 
-    // F2: Community Space Media
+    // Coach lesson uploads. Students receive temporary URLs from the scoped API.
+    match /lessonMedia/{schoolId}/{offeringId}/{lessonId}/{uid}/{filename} {
+      function canUploadLesson() {
+        let profile = firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) ? firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data : {};
+        let school = firestore.exists(/databases/(default)/documents/schools/$(schoolId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)).data : {};
+        let offering = firestore.exists(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)).data : {};
+        let lesson = firestore.exists(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)/lessons/$(lessonId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)/lessons/$(lessonId)).data : {};
+        let role = request.auth.token.get('role', profile.get('role', ''));
+        let userClassIds = request.auth.token.get('classIds', profile.get('classIds', []));
+        let isAuthor = (lesson.get('authorUid', request.auth.uid) == request.auth.uid
+            || offering.get('createdBy', '') == request.auth.uid);
+        let hasClass = offering.get('classIds', []).hasAny(userClassIds);
+        return (role == 'admin' || role == 'coach' || role == 'teacher')
+          && profile.get('status', '') != 'suspended'
+          && school.get('status', '') != 'suspended'
+          && lesson.get('status', 'draft') == 'draft'
+          && (role == 'admin'
+            || (schoolId in profile.get('schoolIds', []) || schoolId in request.auth.token.get('schoolIds', []) || profile.get('schoolId', '') == schoolId))
+          && (role == 'admin'
+            || (role in ['coach', 'teacher'] && isAuthor && hasClass));
+      }
+
+      allow read: if false;
+      allow create, update: if isOwner(uid) && canUploadLesson()
+        && request.resource != null
+        && request.resource.size > 0 && request.resource.size <= 100 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+      allow delete: if isOwner(uid) && canUploadLesson();
+    }
+
+    // Program resources remain private; the scoped API issues temporary read URLs.
+    match /programMedia/{schoolId}/{offeringId}/{uid}/{filename} {
+      function canManageProgram() {
+        let profile = firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) ? firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data : {};
+        let school = firestore.exists(/databases/(default)/documents/schools/$(schoolId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)).data : {};
+        let offering = firestore.exists(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)).data : {};
+        let role = request.auth.token.get('role', profile.get('role', ''));
+        let userClassIds = request.auth.token.get('classIds', profile.get('classIds', []));
+        let isAssigned = (offering.get('createdBy', '') == request.auth.uid
+            || offering.get('coachUids', []).hasAny([request.auth.uid])
+            || offering.get('assignedCoachUids', []).hasAny([request.auth.uid]));
+        let hasClass = offering.get('classIds', []).hasAny(userClassIds);
+        return (role == 'admin' || role == 'coach' || role == 'teacher')
+          && profile.get('status', '') != 'suspended'
+          && school.get('status', '') != 'suspended'
+          && (role == 'admin'
+            || (schoolId in profile.get('schoolIds', []) || schoolId in request.auth.token.get('schoolIds', []) || profile.get('schoolId', '') == schoolId))
+          && (role == 'admin'
+            || (role in ['coach', 'teacher'] && isAssigned && hasClass));
+      }
+
+      allow read: if false;
+      allow create, update: if isOwner(uid) && canManageProgram()
+        && request.resource != null
+        && request.resource.size > 0 && request.resource.size <= 100 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg','image/png','image/webp','image/gif',
+          'video/mp4','video/webm','application/pdf','application/vnd.ms-powerpoint',
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+      allow delete: if isOwner(uid) && canManageProgram();
+    }
+
+    // Learner media is private. Authorized portfolio reads receive temporary URLs.
+    match /learnerMedia/{uid}/{uploadId}/{filename} {
+      function isLearnerActive() {
+        let userDocPath = /databases/(default)/documents/users/$(uid);
+        let userExists = firestore.exists(userDocPath);
+        let status = userExists ? firestore.get(userDocPath).data.get('status', 'active') : 'active';
+        return status != 'suspended';
+      }
+
+      allow read: if false;
+      allow create, update: if isOwner(uid)
+        && isLearnerActive()
+        && request.resource != null
+        && request.resource.size > 0 && request.resource.size <= 20 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg','image/png','image/webp','image/gif',
+          'audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4','video/quicktime',
+          'model/gltf-binary','model/gltf+json','application/octet-stream','application/zip','text/plain'];
+      allow delete: if isOwner(uid) && isLearnerActive();
+    }
+
+    // F2: Community Space Media (supports 2-segment and 3-segment paths)
+    match /community/{uid}/{filename} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(uid) && isAllowedFileType() && isWithinSizeLimit();
+      allow delete: if isOwner(uid);
+    }
     match /community/{uid}/{postId}/{filename} {
       allow read: if isAuthenticated();
-      allow write: if isOwner(uid) && isAllowedFileType() && isWithinSizeLimit();
+      allow create, update: if isOwner(uid) && isAllowedFileType() && isWithinSizeLimit();
+      allow delete: if isOwner(uid);
     }
 
     // F3: Private Message Attachments
@@ -70,7 +157,36 @@ service firebase.storage {
     // Legacy / Activity uploads
     match /solarCar/{uid}/{filename} {
       allow read: if isAuthenticated();
-      allow write: if isOwner(uid) && request.resource.size <= 10 * 1024 * 1024;
+      allow create, update: if isOwner(uid) && isAllowedFileType() && request.resource.size <= 10 * 1024 * 1024;
+      allow delete: if isOwner(uid);
+    }
+
+    // W2E Multimodal Evidence Submissions
+    // Scoped strictly to the submitting learner, their assigned coaches, and admins.
+    match /schools/{schoolId}/submissions/{submissionId}/evidence/{filename} {
+      function canAccessSubmissionEvidence() {
+        let profile = firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) ? firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data : {};
+        let role = request.auth.token.get('role', profile.get('role', ''));
+        let inSchool = (role == 'admin'
+          || schoolId in profile.get('schoolIds', [])
+          || schoolId in request.auth.token.get('schoolIds', [])
+          || profile.get('schoolId', '') == schoolId);
+        let subDoc = firestore.exists(/databases/(default)/documents/schools/$(schoolId)/submissions/$(submissionId))
+          ? firestore.get(/databases/(default)/documents/schools/$(schoolId)/submissions/$(submissionId)).data
+          : {};
+        let learnerUid = subDoc.get('learnerUid', subDoc.get('studentUid', subDoc.get('uid', '')));
+        let isLearner = (learnerUid != '' && request.auth.uid == learnerUid) || submissionId.matches('^' + request.auth.uid + '(_.*)?$');
+        let userClasses = request.auth.token.get('classIds', profile.get('classIds', []));
+        let isAssignedCoach = (role in ['coach', 'teacher']) && (
+          (subDoc.get('classId', '') != '' && subDoc.get('classId', '') in userClasses)
+          || (learnerUid != '' && firestore.exists(/databases/(default)/documents/users/$(learnerUid)) && firestore.get(/databases/(default)/documents/users/$(learnerUid)).data.get('classIds', []).hasAny(userClasses))
+        );
+        return isAuthenticated() && (role == 'admin' || (inSchool && (isLearner || isAssignedCoach)));
+      }
+
+      allow read: if canAccessSubmissionEvidence();
+      allow create, update: if canAccessSubmissionEvidence() && isWithinSizeLimit();
+      allow delete: if canAccessSubmissionEvidence();
     }
 
     // Canva Exports (Private exports of learner designs)

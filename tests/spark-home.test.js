@@ -10,7 +10,7 @@ import { childRecords } from '../src/services/api/mockChildRecords.js';
 
 // The screens App.jsx renders for each role. A SPARK card may only point at one of these.
 const ALLOWED = {
-  student: ['courses', 'pbl', 'goals', 'dashboard', 'futureSkills', 'homeSearch', 'community', 'spark', 'settings', 'canva'],
+  student: ['courses', 'programs', 'space', 'journey', 'portfolio', 'pbl', 'goals', 'dashboard', 'futureSkills', 'homeSearch', 'community', 'spark', 'settings', 'canva'],
   teacher: ['coach', 'pbl', 'resources', 'community', 'spark', 'settings', 'canva'],
   parent: ['parent', 'settings', 'spark'],
   supervisor: ['admin', 'pbl', 'settings', 'resources', 'spark', 'canva'],

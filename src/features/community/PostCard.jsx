@@ -1,5 +1,6 @@
+import { MediaImage, MediaVideo, mediaKind } from '../media/MediaViewer.jsx';
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Flag } from 'lucide-react';
+import { Heart, MessageCircle, Flag, X } from 'lucide-react';
 import { useAuth } from '../../app/AuthProvider.jsx';
 import { likePost, unlikePost, hasUserLiked, addComment, getComments, onCommentsChanged, deletePost } from './communityAPI.js';
 import { ReportModal } from './ReportModal.jsx';
@@ -78,9 +79,10 @@ export function PostCard({ post }) {
         {canDelete && (
           <button
             onClick={handleDelete}
+            aria-label="Delete post"
             style={{ background: 'transparent', border: 'none', color: 'var(--gh-red)', cursor: 'pointer', padding: '4px' }}
           >
-            ✕
+            <X size={16} aria-hidden="true" />
           </button>
         )}
       </div>
@@ -90,10 +92,10 @@ export function PostCard({ post }) {
       {post.media?.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
           {post.media.map((m, i) => (
-            m.type === 'image' ? (
-              <img key={i} src={m.url} alt="Post media" style={{ maxWidth: '100%', height: 'auto', borderRadius: '10px', maxHeight: 200 }} />
+            mediaKind(m) === 'image' ? (
+              <MediaImage key={i} src={m.url} alt="Post media" style={{ maxWidth: '100%', height: 'auto', borderRadius: '10px', maxHeight: 200 }} />
             ) : (
-              <video key={i} src={m.url} controls style={{ maxWidth: '100%', height: 'auto', borderRadius: '10px', maxHeight: 200 }} />
+              <MediaVideo key={i} src={m.url} title="Post video" style={{ maxWidth: '100%', height: 'auto', borderRadius: '10px', maxHeight: 200 }} />
             )
           ))}
         </div>

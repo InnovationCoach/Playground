@@ -1,0 +1,69 @@
+{
+  "score": 5,
+  "summary": "Scoped Phase 1 Universe rules assessment: current and legacy submissions, drafts, revision links, locks, idempotency, membership/task status and private Universe audit events are API-only. Owner navigation preferences have bounded typed create/update validation. The local emulator suites pass 131 tests; the service/API suite passes 65 and all three real-client mission flows pass. No unresolved finding remains in this explicitly limited rules scope. This is not a whole-application security certification or a deployed-system assessment.",
+  "scope": [
+    "missionSubmissions",
+    "missionDrafts",
+    "missionSubmissionLocks",
+    "missionRevisionLinks",
+    "universeIdempotency",
+    "universeMemberships",
+    "universeTaskStatus",
+    "auditLogs/universe/events",
+    "users/{uid} profile self-grant boundary",
+    "users/{uid}/activityProgress/universe-v1",
+    "users/{uid}/progress/universe-v1"
+  ],
+  "reviewer": "GPT lead; firebase-security-rules-auditor checklist",
+  "evaluatedSourceCommit": "d2b78afb6c31b11c6b6f23d3870f0870e371c87b",
+  "firestoreRulesSha256": "a7937ed926de85fbb916888f5487c6c25e50c90a0bd74bed9bc478179b60dd71",
+  "evidence": {
+    "rules": "131/131, 2 files, local Firestore 8288, project demo-universe-phase1-checks",
+    "api": "65/65, 5 files, local Auth 9399 and Firestore 8288, same demo project",
+    "realClientFlow": "3 routes + parent scenario pass; save/replay/concurrent submit/return/revise/review and no grants",
+    "productionWrites": false
+  },
+  "checks": [
+    {
+      "check": "Update Bypass",
+      "result": "pass",
+      "evidence": "Both universe-v1 owning matches apply the same field/type/bounds checks to create and update. Invalid nested/oversized/non-string ID values, delimiter tricks, 51 entries and cross-owner writes are denied; all 50 maximum-length valid IDs succeed."
+    },
+    {
+      "check": "Authority Source",
+      "result": "pass within Universe",
+      "evidence": "Client-writable profile fields cannot grant Universe organization/class authority. API verifies current Auth claims/protected membership and current org/rosters, including stale-token replay; raw client record reads/writes are denied."
+    },
+    {
+      "check": "Business Logic vs Rules",
+      "result": "pass",
+      "evidence": "Actual API, using privileged server transactions, provides permitted drafts/history/reviews. Client direct access is unnecessary; scoped owner/coach paths and legacy read-only history remain served by API."
+    },
+    {
+      "check": "Storage Abuse",
+      "result": "pass within reviewed scope",
+      "evidence": "Navigation list is at most 50 ASCII IDs of 1\u201364 characters (3,200 ID characters plus separators), preference maps use a bounded allowlist. Family lock has scalar counters; immutable per-attempt revision links avoid growing arrays/maps. Server enforces 64 KiB requests/records and reviewed-record size."
+    },
+    {
+      "check": "Type Safety",
+      "result": "pass",
+      "evidence": "Explicit list element types plus bounded joined-ID shape; malformed nested maps/booleans/null and excessive lengths fail closed. Shared validation bounds all submitted evidence and authority fields."
+    },
+    {
+      "check": "Field-Level vs Identity-Level",
+      "result": "pass",
+      "evidence": "Preference rules require the existing owner identity as well as schema allowlists; cross-owner writes fail. Universe records/private audit events have no client role bypass."
+    },
+    {
+      "check": "Overlapping Matches",
+      "result": "pass",
+      "evidence": "Restrictions are inside owning preference rules. Default recursive rule denies access. Flat legacy audit reader does not match nested Universe audit events; get/list/write denials are tested."
+    }
+  ],
+  "findings": [],
+  "limits": [
+    "Only the listed Universe paths and their relevant profile boundary are assessed. Other application collections and legacy flat audit readers are outside this score.",
+    "No production rules deployment or production data inspection occurred. Existing real pilot account provisioning, any legacy flat Universe audit data and applicable rollout operations require their own preflight before activation.",
+    "Student-device, touch and assistive-technology validation is the next round requested by Mani."
+  ]
+}

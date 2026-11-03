@@ -19,6 +19,10 @@ import { LoginPage } from '../features/auth/LoginPage.jsx';
 import { Sidebar, readCollapsed, writeCollapsed } from '../features/shell/Sidebar.jsx';
 import { Header } from '../features/shell/Header.jsx';
 import { StudentDashboard } from '../features/student/StudentDashboard.jsx';
+import { PortfolioEditor, PortfolioViewer } from '../features/personalization/Personalization.jsx';
+import { JourneyPortfolio } from '../features/journey/JourneyPortfolio.jsx';
+import { SchoolLearningPanel } from '../features/school/SchoolLearningPanel.jsx';
+import { LiveCourseDiscovery } from '../features/courses/LiveCourseDiscovery.jsx';
 import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
 import { CoachPblStudio } from '../features/coach/studio/CoachPblStudio.jsx';
 import { CanvaPage } from '../features/canva/CanvaPage.jsx';
@@ -43,7 +47,7 @@ import { showGoalsPanel } from '../integrations/goalSettingIntegration.js';
 const KNOWN_VIEWS = new Set(ACTIVITY_NAV.map((a) => a.id));
 
 export function App() {
-  const { status, user, profile, role, classIds, error, signOut, refreshProfile } = useAuth();
+  const { status, user, profile, role, classIds, orgId, error, signOut, refreshProfile } = useAuth();
   const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
   const [activityScenario, setActivityScenario] = useState(null);
@@ -178,7 +182,7 @@ export function App() {
   // The new Growth Hub screens are light; the legacy activity pages are still
   // dark. The body colour follows, so overscroll and short pages match.
   const lightSurface = status !== 'ready' || CONSOLE_ROLES.includes(role) || role === 'parent'
-    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard', 'spark'].includes(route?.screen);
+    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard', 'spark', 'space', 'programs', 'journey', 'portfolio'].includes(route?.screen);
   useEffect(() => {
     document.body.dataset.surface = lightSurface ? 'light' : 'dark';
   }, [lightSurface]);
@@ -263,6 +267,43 @@ export function App() {
           {route.screen === 'worksheet' ? <Worksheet activityId={route.activityId} />
             : route.screen === 'guide' ? <TeacherGuide activityId={route.activityId} />
             : <PrimaryResources />}
+        </div>
+      </>
+    );
+  }
+
+  // Learner spaces: My space (personal dashboard with cover and profile
+  // images), school programs and the portfolio maker are secondary learners'
+  // own screens. A shared portfolio link opens read-only for permitted viewers.
+  if (role === 'student' && !isPrimary && ['space', 'programs', 'journey'].includes(route?.screen)) {
+    return (
+      <>
+        <Header {...headerProps} />
+        {sidebar}
+        {route.screen === 'space'
+          ? <StudentDashboard profile={profile} uid={user.uid} onProfileChanged={refreshProfile} />
+          : (
+            <div className="gh-app">
+              {route.screen === 'programs'
+                ? <SchoolLearningPanel initialArea="programs" hideTabs />
+                : <JourneyPortfolio uid={user.uid} profile={profile} printView={route.print} />}
+            </div>
+          )}
+      </>
+    );
+  }
+
+  if (route?.screen === 'portfolio') {
+    const owner = !route.uid || route.uid === user?.uid;
+    return (
+      <>
+        <Header {...headerProps} />
+        {sidebar}
+        <div className="gh-app">
+          {owner && role === 'student'
+            ? <PortfolioEditor uid={user.uid} />
+            : route.uid ? <PortfolioViewer uid={route.uid} role={role} />
+            : <p>Select a learner portfolio link to view shared work.</p>}
         </div>
       </>
     );
@@ -381,6 +422,7 @@ export function App() {
       <>
         <Header {...headerProps} />
         <JuniorExplorers uid={user.uid} displayName={profile?.displayName} />
+        <SchoolLearningPanel initialArea="calendar" hideTabs />
       </>
     );
   }
@@ -395,7 +437,7 @@ export function App() {
 
       {route?.screen === 'spark' ? spark
       : route?.screen === 'dashboard' && role === 'student' && !isPrimary ? (
-        <MyDashboard key={user?.uid} uid={user?.uid} profile={profile} classIds={profile?.classIds || []} onJoined={refreshProfile}
+        <MyDashboard key={user?.uid} uid={user?.uid} orgId={orgId} profile={profile} classIds={profile?.classIds || []} onJoined={refreshProfile}
                      onOpenActivity={navigate} />
       ) : route?.screen === 'futureSkills' && role === 'student' ? (
         <FutureSkillsPage isPrimary={isPrimary} />
@@ -412,6 +454,8 @@ export function App() {
         <div className="gh-app">
           <GoalsPage uid={user?.uid} displayName={profile?.displayName} />
         </div>
+      ) : route?.screen === 'courses' && route.discover && role === 'student' && !isPrimary ? (
+        <LiveCourseDiscovery uid={user?.uid} classIds={profile?.classIds || []} name={profile?.displayName} onOpenActivity={navigate} />
       ) : route?.screen === 'courses' ? (
         <div className="gh-app">
           <MyCourses isPrimary={isPrimary} onOpenActivity={navigate} displayName={profile?.displayName}
@@ -441,10 +485,11 @@ export function App() {
             classIds: classIds || profile?.classIds || [],
             role: profile?.role || role
           }}
+          orgId={orgId}
         />
       ) : (
         <>
-          {view === 'home' && (
+          {role === 'student' && view === 'home' && (
             <StudentDashboard profile={profile} uid={user?.uid} onProfileChanged={refreshProfile} />
           )}
           {view === 'solar' && <SolarCarChallenge uid={user.uid} />}

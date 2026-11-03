@@ -10,6 +10,9 @@
  *   #/primary-resources  #/worksheet/<id>  #/guide/<id>  printable primary material
  *   #/pbl  #/pbl/<tab>                                   PBL Studio (term project)
  *   #/pbl/programs/<programId>/<section>                 one program in the PBL library
+ *   #/journey  #/journey/print                           design-thinking portfolio maker (+ PDF view)
+ *   #/courses/discover                                   Course discovery (secondary learners)
+ *   #/space  #/programs  #/portfolio[/<uid>]             My space, school programs, shareable portfolio
  *   #/community                                          community posts
  *   #/messages  #/messages/<convId>                      private messages
  *   #/goals                                              goal setting (secondary learners)
@@ -33,16 +36,23 @@ export function parseRoute(hash) {
   const [head, a, b, c] = parts;
   if (head === 'admin') {
     if (KINDS.includes(a)) return { screen: 'admin', page: 'list', kind: a };
+    if (['staff-attendance', 'student-attendance', 'leave', 'inventory'].includes(a)) return { screen: 'admin', page: a };
     if (a === 'billing') return { screen: 'admin', page: 'billing' };
     if (a === 'materials') return { screen: 'admin', page: 'materials' };
+    if (a === 'learning') return { screen: 'admin', page: 'learning' };
     if (a === 'users' && b) return { screen: 'admin', page: 'detail', uid: b };
     if (a === 'new' && KINDS.includes(b)) return { screen: 'admin', page: 'create', kind: b };
-    return { screen: 'admin', page: 'list', kind: 'students' };
+    return { screen: 'admin', page: 'pilot' };
   }
+  if (head === 'portfolio') return { screen: 'portfolio', uid: a || null };
+  if (head === 'space') return { screen: 'space' };
+  if (head === 'journey') return { screen: 'journey', print: a === 'print' };
   if (head === 'settings') return { screen: 'settings' };
   if (head === 'primary-resources') return { screen: 'resources' };
   if (head === 'worksheet' && a) return { screen: 'worksheet', activityId: a };
   if (head === 'guide' && a) return { screen: 'guide', activityId: a };
+  if (head === 'programs') return { screen: 'programs' };
+  if (head === 'courses' && a === 'discover') return { screen: 'courses', discover: true };
   if (head === 'courses') return { screen: 'courses' };
   if (head === 'pbl' && a === 'programs' && b) return { screen: 'pbl', tab: 'programs', programId: b, section: c || null };
   if (head === 'pbl') return { screen: 'pbl', tab: a || null };
@@ -69,6 +79,11 @@ export const hrefFor = {
   create: (kind) => `#/admin/new/${kind}`,
   settings: () => '#/settings',
   courses: () => '#/courses',
+  courseDiscovery: () => '#/courses/discover',
+  programs: () => '#/programs',
+  space: () => '#/space',
+  journey: () => '#/journey',
+  portfolio: () => '#/portfolio',
   parent: () => '#/parent',
   parentChild: (uid, section) => `#/parent/${encodeURIComponent(uid)}${section ? `/${section}` : ''}`,
   resources: () => '#/primary-resources',

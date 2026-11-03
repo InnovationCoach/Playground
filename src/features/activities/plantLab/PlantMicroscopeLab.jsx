@@ -1,3 +1,4 @@
+import { MediaImage } from '../../media/MediaViewer.jsx';
 /**
  * Activity 7 - Plant Microscope Lab.
  *
@@ -506,7 +507,7 @@ function LabBook({ records, onOpen, onDelete, onHome }) {
                         if (!sampleStarted(exp, o)) return null;
                         return (
                           <div key={s.id} className="pl-seen">
-                            {o.drawing ? <img src={o.drawing} alt={`Drawing of ${s.label}`} /> : null}
+                            {o.drawing ? <MediaImage src={o.drawing} alt={`Drawing of ${s.label}`} /> : null}
                             <div><b>{s.icon} {s.label}</b><br />{sampleSummary(exp, o)}</div>
                           </div>
                         );
