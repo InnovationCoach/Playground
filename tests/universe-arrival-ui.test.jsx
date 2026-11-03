@@ -331,7 +331,10 @@ describe('how-this-mission-works clip on arrival (O05)', () => {
     await click('Watch the video · 1:13');
     expect(document.body.querySelector('video').getAttribute('src')).toMatch(/^https:\/\/res\.cloudinary\.com\/dkplz6vbx\/video\/upload\/v\d+\/[\w-]+\.mp4$/);
     await act(async () => root.unmount()); root = createRoot(host);
-    await show({ initialArrival: MASS_POWER, arrivalVideos: ARRIVAL_VIDEOS }); // no clip for this route yet
+    await show({ initialArrival: MASS_POWER, arrivalVideos: ARRIVAL_VIDEOS });
+    expect(named('Watch the video · 1:10')).toBeTruthy(); // Ignis has its own uploaded clip
+    await act(async () => root.unmount()); root = createRoot(host);
+    await show({ initialArrival: { planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided' }, arrivalVideos: ARRIVAL_VIDEOS }); // not uploaded yet
     expect(named('Skip video')).toBeUndefined();
     expect(named('Ready now')).toBeTruthy();
   });

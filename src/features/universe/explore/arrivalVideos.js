@@ -83,7 +83,7 @@ export const ARRIVAL_VIDEOS = Object.freeze({
     title: 'How this mission works',
     duration: '1:10',
     summary: 'The limits, the rocket equation, the mass ledger, and sending your work.',
-    src: null, // set to the uploaded https://res.cloudinary.com/<cloud>/video/upload/… link
+    src: 'https://res.cloudinary.com/dkplz6vbx/video/upload/v1793681362/IHUXnNr7VKBL6nReVK2peA_un6ujs.mp4', // uploaded 3 Nov 2026
     cues: Object.freeze([
       [0.6, 1.56, "Welcome to Ignis."],
       [1.56, 4.95, "Your mission weighs mass, time and power for the expedition."],

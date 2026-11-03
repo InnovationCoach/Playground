@@ -93,7 +93,11 @@ Local commit only. Nothing pushed, deployed or uploaded. No server, rules, auth,
 
 ## Still open
 
-- **Uploads:** Mani uploads `journey-timing/how-it-works.mp4` and `mass-power/how-it-works.mp4` and sends both links; Opus sets them, then checks the hosted files the same way as wind.
+- **Mass and power: uploaded and set.**
+  - Link: `https://res.cloudinary.com/dkplz6vbx/video/upload/v1793681362/IHUXnNr7VKBL6nReVK2peA_un6ujs.mp4`. The size (5,911,491 bytes) matches only the Mass and power render; byte ranges (206) and the derived poster both work.
+  - At 5197 with no preview switch: it played the hosted file (69.8 s, no media error) and seeked to 50 s with the ledger caption.
+- **Journey timing: still to upload.** The second link Mani sent was the wind clip again (already set), so `spacecraft-journey|guided` stays `null` and shows no player.
+- **Shipped-registry test:** now expects the Mass and power clip on Ignis and no player for Journey timing.
 
 
 1. **Educator review:** GPT/educator review of the narration (`script.json`). The voice is synthetic; a human recording can replace the MP4 later with no code change if the timings are kept (or the cues are updated).
