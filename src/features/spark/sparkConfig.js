@@ -71,7 +71,8 @@ export const SPARK_ROLES = {
       card('supervisor.competencies', 'Award', 'magenta', 'live', hrefFor.pbl('competencies')),
       card('supervisor.portfolio', 'FolderOpen', 'purple', 'soon'),
       card('supervisor.reports', 'FileText', 'navy', 'soon'),
-      card('supervisor.people', 'Users', 'navy', 'live', hrefFor.list('students'), 'pendingAccounts')
+      card('supervisor.people', 'Users', 'navy', 'live', hrefFor.list('students'), 'pendingAccounts'),
+      card('supervisor.inventory', 'Boxes', 'lime', 'live', hrefFor.inventory())
     ]
   },
   admin: {
@@ -81,6 +82,8 @@ export const SPARK_ROLES = {
       card('admin.studio', 'Layers', 'purple', 'live', hrefFor.pbl('programs')),
       card('admin.projects', 'Rocket', 'lime', 'live', hrefFor.pbl('project')),
       card('admin.competencies', 'Award', 'magenta', 'live', hrefFor.pbl('competencies')),
+      card('admin.inventory', 'Boxes', 'lime', 'live', hrefFor.inventory()),
+      card('admin.attendanceLeave', 'ClipboardCheck', 'purple', 'live', hrefFor.staffAttendance()),
       card('admin.portfolio', 'FolderOpen', 'purple', 'soon'),
       card('admin.reports', 'FileText', 'navy', 'soon'),
       card('admin.insights', 'ChartLine', 'lime', 'soon'),

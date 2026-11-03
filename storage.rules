@@ -123,6 +123,22 @@ service firebase.storage {
       allow delete: if isOwner(uid);
     }
 
+    // Equipment inventory photos: any signed-in user may view; admins/supervisors manage.
+    match /assets/{assetId}/{filename} {
+      function canManageAssets() {
+        let profile = firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) ? firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data : {};
+        return isAuthenticated()
+          && request.auth.token.get('role', profile.get('role', '')) in ['admin', 'supervisor'];
+      }
+
+      allow read: if isAuthenticated();
+      allow create, update: if canManageAssets()
+        && request.resource != null
+        && request.resource.size > 0 && request.resource.size <= 20 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      allow delete: if canManageAssets();
+    }
+
     // F3: Private Message Attachments
     //
     // Only the conversation's members (and admins/supervisors, for the audit

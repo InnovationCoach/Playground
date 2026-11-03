@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ArrowLeft, IdCard, Mail, School, Pencil, KeyRound, AtSign, Send, UserPlus, ShieldBan, ShieldCheck,
-  Unlink, UserRound, History, ChevronLeft, ChevronRight, CircleCheck, CircleAlert, Link2, Clock
+  Unlink, UserRound, History, ChevronLeft, ChevronRight, CircleCheck, CircleAlert, Link2, Clock, Plus, Check
 } from 'lucide-react';
 import { useLocale } from '../../../app/i18n/LocaleProvider.jsx';
 import { STAFF_ROLES } from '../../../app/roles.js';
 import {
   getUser, getUserHistory, setUserRole, suspendUser, unsuspendUser, resendActivation,
-  changeUserEmail, issueParentInvite, revokeParentLink
+  changeUserEmail, issueParentInvite, revokeParentLink, createParentLink, setUserPassword, listUsers
 } from '../../../services/api/endpoints.js';
 import { describeApiError } from '../../../services/api/apiClient.js';
 import { useAsync } from '../ui/useAsync.js';
@@ -147,7 +147,15 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
 
             {(user.role === 'student' || user.role === 'parent') && (
               <div className="gh-card">
-                <div className="gh-card-head"><h3>{user.role === 'parent' ? t('account.children') : t('account.parents')}</h3></div>
+                <div className="gh-card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0 }}>{user.role === 'parent' ? t('account.children') : t('account.parents')}</h3>
+                  {perms.editAccounts && (
+                    <button type="button" className="gh-btn gh-btn-sm gh-btn-primary" onClick={() => setDialog('link')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Plus size={14} aria-hidden="true" />
+                      {user.role === 'parent' ? t('account.action.linkChild') : t('account.action.linkParent')}
+                    </button>
+                  )}
+                </div>
                 {user.links?.length ? (
                   <ul className="gh-link-list">
                     {user.links.map((l) => (
@@ -177,8 +185,14 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
               <div className="gh-card-head"><h3>{t('account.actions')}</h3></div>
               <div className="gh-actions">
                 <Action icon={Pencil} onClick={() => setDialog('edit')}>{t('account.action.editDetails')}</Action>
+                <Action icon={KeyRound} onClick={() => setDialog('password')}>{t('account.action.setPassword')}</Action>
+                {(user.role === 'parent' || user.role === 'student') && (
+                  <Action icon={Link2} onClick={() => setDialog('link')}>
+                    {user.role === 'parent' ? t('account.action.linkChild') : t('account.action.linkParent')}
+                  </Action>
+                )}
                 {STAFF_ROLES.includes(user.role) && !isSelf && (
-                  <Action icon={KeyRound} onClick={() => setDialog('role')}>{t('account.action.changeRole')}</Action>
+                  <Action icon={ShieldCheck} onClick={() => setDialog('role')}>{t('account.action.changeRole')}</Action>
                 )}
                 <Action icon={AtSign} onClick={() => setDialog('email')}>{t('account.action.changeEmail')}</Action>
                 {user.status === 'pending' && (
@@ -208,6 +222,20 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
       {dialog === 'role' && <RoleDialog user={user} onClose={() => setDialog(null)} onDone={(res) => done(null, res)} />}
       {dialog === 'email' && <EmailDialog user={user} onClose={() => setDialog(null)} onDone={(res) => done(null, res)} />}
       {dialog === 'invite' && <InviteDialog user={user} onClose={() => { setDialog(null); refresh(); }} />}
+      {dialog === 'link' && (
+        <LinkDialog user={user} onClose={() => setDialog(null)} onDone={(res) => {
+          setDialog(null);
+          refresh();
+          setNotice({ type: 'success', text: user.role === 'parent' ? t('account.linkedChildSuccess') : t('account.linkedParentSuccess') });
+        }} />
+      )}
+      {dialog === 'password' && (
+        <SetPasswordDialog user={user} onClose={() => setDialog(null)} onDone={(res) => {
+          setDialog(null);
+          refresh();
+          setNotice({ type: 'success', text: t('account.setPassword.success') });
+        }} />
+      )}
       {dialog?.type === 'revoke' && (
         <ConfirmDialog icon={Unlink} tone="red" title={t('account.revoke.title')} body={t('account.revoke.body')} danger
                        confirmLabel={t('account.action.revokeLink')} run={() => revokeParentLink(dialog.linkId)}
@@ -427,3 +455,202 @@ function HistoryList({ uid }) {
 }
 
 const fmt = (v) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v));
+
+function LinkDialog({ user, onClose, onDone }) {
+  const { t } = useLocale();
+  const isParent = user.role === 'parent';
+  const targetRole = isParent ? 'student' : 'parent';
+  const title = isParent ? t('account.linkChild.title') : t('account.linkParent.title');
+  const desc = isParent ? t('account.linkChild.body', { name: user.displayName }) : t('account.linkParent.body', { name: user.displayName });
+
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [selectedUid, setSelectedUid] = useState('');
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    listUsers({ role: targetRole, pageSize: 100 })
+      .then((res) => {
+        const existingUids = new Set((user.links || []).map((l) => l.uid));
+        const available = (res.items || []).filter((u) => !existingUids.has(u.uid));
+        setCandidates(available);
+        if (available.length > 0) setSelectedUid(available[0].uid);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err);
+        setLoading(false);
+      });
+  }, [targetRole, user.links]);
+
+  const filtered = candidates.filter((c) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (c.displayName || '').toLowerCase().includes(q)
+      || (c.email || '').toLowerCase().includes(q)
+      || (c.publicId || '').toLowerCase().includes(q);
+  });
+
+  const submit = async (e) => {
+    e?.preventDefault();
+    if (!selectedUid) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await createParentLink({
+        parentUid: isParent ? user.uid : selectedUid,
+        studentUid: isParent ? selectedUid : user.uid
+      });
+      onDone(res);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title={title} onClose={onClose}>
+      <form onSubmit={submit}>
+        <p className="gh-modal-desc">{desc}</p>
+        {error && <Alert type="error">{describeApiError(error, t)}</Alert>}
+
+        {loading ? (
+          <div className="gh-skel" style={{ height: '3.5rem', margin: '1rem 0' }} />
+        ) : candidates.length === 0 ? (
+          <p className="gh-muted" style={{ margin: '1.5rem 0' }}>{t('common.none')}</p>
+        ) : (
+          <div style={{ margin: '1rem 0' }}>
+            <input
+              type="text"
+              className="gh-input"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, or public ID..."
+              style={{ marginBottom: '0.75rem' }}
+            />
+            <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid var(--gh-border, #e2e8f0)', borderRadius: '8px' }}>
+              {filtered.map((c) => {
+                const isSelected = selectedUid === c.uid;
+                return (
+                  <button
+                    key={c.uid}
+                    type="button"
+                    onClick={() => setSelectedUid(c.uid)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '0.65rem 0.85rem',
+                      background: isSelected ? 'var(--gh-bg-active, #eff6ff)' : 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid var(--gh-border-light, #f1f5f9)',
+                      cursor: 'pointer',
+                      gap: '0.75rem'
+                    }}
+                  >
+                    <Avatar name={c.displayName} seed={c.uid} size={32} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: isSelected ? 'var(--gh-primary, #2563eb)' : 'inherit' }}>
+                        {c.displayName}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--gh-muted, #64748b)' }}>
+                        <span className="gh-mono">{c.publicId}</span> · {c.email}
+                      </div>
+                    </div>
+                    {isSelected && <span style={{ color: 'var(--gh-primary, #2563eb)', fontWeight: 700 }}><Check size={16} /></span>}
+                  </button>
+                );
+              })}
+              {filtered.length === 0 && (
+                <p className="gh-muted" style={{ padding: '1rem', margin: 0, textAlign: 'center' }}>{t('common.none')}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="gh-modal-actions">
+          <button type="button" className="gh-btn" onClick={onClose} disabled={busy}>{t('common.cancel')}</button>
+          <button type="submit" className="gh-btn gh-btn-primary" disabled={busy || !selectedUid || candidates.length === 0}>
+            {busy ? t('common.saving') : (isParent ? t('account.action.linkChild') : t('account.action.linkParent'))}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function SetPasswordDialog({ user, onClose, onDone }) {
+  const { t } = useLocale();
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    let p = '';
+    for (let i = 0; i < 8; i++) p += chars.charAt(Math.floor(Math.random() * chars.length));
+    setPassword(`${p}!1`);
+  };
+
+  const submit = async (e) => {
+    e?.preventDefault();
+    if (!password || password.trim().length < 6) {
+      setError(new Error('Password must be at least 6 characters.'));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await setUserPassword(user.uid, password.trim());
+      onDone(res);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title={t('account.setPassword.title', { name: user.displayName })} onClose={onClose}>
+      <form onSubmit={submit}>
+        <p className="gh-modal-desc">{t('account.setPassword.body')}</p>
+        {error && <Alert type="error">{describeApiError(error, t)}</Alert>}
+
+        <Field id="f-new-pass" label={t('form.password')} hint={t('form.passwordHint')}>
+          {(a) => (
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <input
+                  id="f-new-pass"
+                  className="gh-input"
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  autoComplete="new-password"
+                  {...a}
+                />
+              </div>
+              <button type="button" className="gh-btn gh-btn-sm gh-btn-outline" onClick={generatePassword} style={{ whiteSpace: 'nowrap' }}>
+                <KeyRound size={14} style={{ marginRight: '0.3rem' }} />
+                {t('form.generatePassword')}
+              </button>
+            </div>
+          )}
+        </Field>
+
+        <div className="gh-modal-actions">
+          <button type="button" className="gh-btn" onClick={onClose} disabled={busy}>{t('common.cancel')}</button>
+          <button type="submit" className="gh-btn gh-btn-primary" disabled={busy || password.trim().length < 6}>
+            {busy ? t('common.saving') : t('account.action.setPassword')}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}

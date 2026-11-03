@@ -291,12 +291,14 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
   }
 
   const displayName = `${givenNames} ${surname}`;
+  const hasPassword = Boolean(body.password && String(body.password).trim().length >= 6);
   let authUser;
   try {
     authUser = await getAuth().createUser({
       email,
       displayName,
-      emailVerified: false
+      emailVerified: hasPassword,
+      ...(hasPassword ? { password: String(body.password).trim() } : {})
     });
   } catch (err) {
     return sendError(res, 500, 'INTERNAL', err.message);
@@ -322,7 +324,7 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
     uid,
     publicId,
     role: body.role,
-    status: 'pending',
+    status: hasPassword ? 'active' : 'pending',
     givenNames,
     surname,
     displayName,
@@ -767,6 +769,59 @@ router.post('/:uid/change-email', requireClaims, requireAdmin, async (req, res) 
 
   await sendEmail({ to: newEmail, template: 'change-email', locale: 'en', data: { uid: req.params.uid, newEmail } });
   return res.json({ sent: true });
+});
+
+// POST /api/admin/users/:uid/set-password
+router.post('/:uid/set-password', requireClaims, requireAdmin, async (req, res) => {
+  const { password } = req.body || {};
+  if (!password || String(password).trim().length < 6) {
+    return sendError(res, 400, 'VALIDATION', 'Password must be at least 6 characters.', 'password');
+  }
+
+  const db = getFirestore();
+  const userSnap = await db.collection('users').doc(req.params.uid).get();
+  if (!userSnap.exists) {
+    return sendError(res, 404, 'NOT_FOUND', 'No such account.');
+  }
+
+  const user = userSnap.data();
+  const cleanPassword = String(password).trim();
+
+  try {
+    await getAuth().updateUser(user.uid, { password: cleanPassword, emailVerified: true });
+  } catch (err) {
+    if (err.code === 'auth/user-not-found') {
+      await getAuth().createUser({
+        uid: user.uid,
+        email: user.email,
+        password: cleanPassword,
+        displayName: user.displayName,
+        emailVerified: true
+      });
+      await getAuth().setCustomUserClaims(user.uid, {
+        role: user.role,
+        orgId: user.orgId || 'org-welearn',
+        schoolIds: user.schoolIds || [],
+        classIds: user.classIds || []
+      });
+    } else {
+      return sendError(res, 500, 'INTERNAL', err.message);
+    }
+  }
+
+  await db.collection('users').doc(user.uid).update({
+    status: 'active',
+    updatedAt: new Date().toISOString()
+  });
+
+  await writeAuditLog(db, {
+    caller: req.caller,
+    subjectUid: user.uid,
+    action: 'PASSWORD_RESET',
+    summary: 'Admin set login password'
+  });
+
+  return res.json({ success: true, message: 'Password updated successfully' });
 });
 
 // GET /api/admin/users/:uid/history

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Users, GraduationCap, HeartHandshake, Settings, FlaskConical, ArrowLeft, Printer, CreditCard, PackageCheck, House, Rocket } from 'lucide-react';
+import { Users, GraduationCap, HeartHandshake, Settings, FlaskConical, ArrowLeft, Printer, CreditCard, PackageCheck, House, Rocket, Boxes } from 'lucide-react';
 import { Avatar } from '../shell/Avatar.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { consolePermissions } from '../../app/roles.js';
@@ -12,6 +12,9 @@ import { clearReferenceCache } from './accounts/useReferenceData.js';
 import { StudentBillingOverview } from './billing/StudentBillingOverview.jsx';
 import { MaterialRequestsList } from './materials/MaterialRequestsList.jsx';
 import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
+import { InventoryList } from './inventory/InventoryList.jsx';
+import { AssetDetail } from './inventory/AssetDetail.jsx';
+import { AssetForm } from './inventory/AssetForm.jsx';
 import { SettingsPage } from '../settings/SettingsPage.jsx';
 import './admin.css';
 import { AttendancePanel, LeavePanel, InventoryPanel, PilotHome } from './pilot/PilotOperations.jsx';
@@ -54,10 +57,48 @@ export function AdminConsole({ route, role, user, profile, navigate, embedded = 
     body = <AttendancePanel key={route.page} kind={route.page === 'staff-attendance' ? 'staff' : 'students'} canEdit={role === 'admin'} />;
   } else if (route.page === 'leave') {
     body = <LeavePanel admin canEdit={role === 'admin'} />;
-  } else if (route.page === 'inventory') {
-    body = <InventoryPanel canEdit={role === 'admin'} />;
   } else if (route.page === 'pilot') {
     body = <PilotHome />;
+  } else if (route.page === 'inventory') {
+    if (route.subpage === 'new' && perms.editInventory) {
+      body = (
+        <div className="gh-narrow" style={{ maxWidth: 820 }}>
+          <a
+            className="gh-crumb"
+            href={hrefFor.inventory()}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(hrefFor.inventory());
+            }}
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+            {t('inventory.title')}
+          </a>
+          <AssetForm
+            onCancel={() => navigate(hrefFor.inventory())}
+            onDone={(newId) => navigate(hrefFor.inventory('detail', newId))}
+          />
+        </div>
+      );
+    } else if (route.subpage === 'detail' && route.assetId) {
+      body = (
+        <AssetDetail
+          key={route.assetId}
+          assetId={route.assetId}
+          perms={perms}
+          onBack={() => navigate(hrefFor.inventory())}
+          onRefresh={() => {}}
+        />
+      );
+    } else {
+      body = (
+        <InventoryList
+          perms={perms}
+          onOpen={(id) => navigate(hrefFor.inventory('detail', id))}
+          onCreate={() => navigate(hrefFor.inventory('new'))}
+        />
+      );
+    }
   } else if (route.page === 'detail') {
     body = (
       <AccountDetail
@@ -175,6 +216,18 @@ export function AdminConsole({ route, role, user, profile, navigate, embedded = 
           {t('nav.materials')}
         </a>
 
+        <a href={hrefFor.inventory()} className="gh-nav-link"
+           aria-current={route.screen === 'admin' && route.page === 'inventory' ? 'page' : undefined}>
+          <Boxes size={18} strokeWidth={2} aria-hidden="true" />{t('nav.inventory')}
+        </a>
+        <a href={hrefFor.staffAttendance()} className="gh-nav-link"
+           aria-current={route.screen === 'admin' && route.page === 'staff-attendance' ? 'page' : undefined}>
+          <Users size={18} strokeWidth={2} aria-hidden="true" />{t('nav.staffAttendance')}
+        </a>
+        <a href={hrefFor.leave()} className="gh-nav-link"
+           aria-current={route.screen === 'admin' && route.page === 'leave' ? 'page' : undefined}>
+          <HeartHandshake size={18} strokeWidth={2} aria-hidden="true" />{t('nav.leaveRequests')}
+        </a>
         <div className="gh-side-label">{t('nav.teaching')}</div>
         <a
           href="#/admin/learning"

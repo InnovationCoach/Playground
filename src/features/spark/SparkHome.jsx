@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  ArrowRight, Award, BookOpen, ChartLine, ClipboardCheck, Clock, Compass, FileText, FolderOpen, Heart,
+  ArrowRight, Award, BookOpen, Boxes, ChartLine, ClipboardCheck, Clock, Compass, FileText, FolderOpen, Heart,
   Layers, LayoutDashboard, Lightbulb, MessageCircle, Rocket, Search, Settings, Sparkles, Target, UserPlus,
   Users, WandSparkles
 } from 'lucide-react';
@@ -17,7 +17,7 @@ import { SparkGlyph } from './SparkMark.jsx';
 import './spark.css';
 
 const ICONS = {
-  Award, BookOpen, ChartLine, ClipboardCheck, Compass, FileText, FolderOpen, Heart, Layers,
+  Award, BookOpen, Boxes, ChartLine, ClipboardCheck, Compass, FileText, FolderOpen, Heart, Layers,
   LayoutDashboard, MessageCircle, Rocket, Settings, Sparkles, Target, Users, WandSparkles
 };
 
