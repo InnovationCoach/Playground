@@ -28,9 +28,9 @@ const DEMO = Object.freeze({
   }
 });
 const TASKS = [
-  { id: 'wind', missionId: 'thalassa-wind-survey', routeId: 'guided', label: 'Thalassa wind · guided (wind-capacity-factor)' },
-  { id: 'journey-guided', missionId: 'spacecraft-journey', routeId: 'guided', label: 'Spacecraft journey · guided (journey-rates)' },
-  { id: 'journey-advanced', missionId: 'spacecraft-journey', routeId: 'advanced', label: 'Spacecraft journey · advanced (journey-mass-power)' }
+  { id: 'wind', missionId: 'thalassa-wind-survey', routeId: 'guided', label: 'Thalassa wind · guided (wind-capacity-factor)', title: 'Wind energy estimate', description: 'Help Thalassa choose a power plan.', grades: '6–8', challenge: 2 },
+  { id: 'journey-guided', missionId: 'spacecraft-journey', routeId: 'guided', label: 'Spacecraft journey · guided (journey-rates)', title: 'Journey timing', description: 'Compare travel time and supplies for Ignis.', grades: '6–8', challenge: 2 },
+  { id: 'journey-advanced', missionId: 'spacecraft-journey', routeId: 'advanced', label: 'Spacecraft journey · advanced (journey-mass-power)', title: 'Mass and power tradeoffs', description: 'Balance the expedition’s mass, time and power.', grades: '9–11', challenge: 4 }
 ];
 
 if (!LOCAL) {
@@ -40,7 +40,7 @@ if (!LOCAL) {
 }
 
 async function start() {
-  const [{ initializeApp }, fa, { MyUniverseExplorer }, { CoachUniverseSubmissions }, { createDefaultUniverseClient, describeFailure }, session, fixtures, { default: catalogUrl }] = await Promise.all([
+  const [{ initializeApp }, fa, { MyUniverseExplorer }, { CoachUniverseSubmissions }, { createDefaultUniverseClient }, session, fixtures, { default: catalogUrl }] = await Promise.all([
     import('firebase/app'), import('firebase/auth'),
     import('../../src/features/universe/explore/MyUniverseExplorer.jsx'),
     import('../../src/features/coach/universe/CoachUniverseSubmissions.jsx'),
@@ -73,6 +73,7 @@ async function start() {
     const [exampleName, setExampleName] = useState('');
     const [log, setLog] = useState([]);
     const [busy, setBusy] = useState(false);
+    const [startError, setStartError] = useState(null);
     const [open, setOpen] = useState(0);
     const task = TASKS.find((t) => t.id === taskId);
     const examples = useMemo(() => examplesFor(task), [task]);
@@ -95,8 +96,19 @@ async function start() {
         await fa.signOut(auth);
         await fa.signInWithEmailAndPassword(auth, DEMO.actors[actor].email, DEMO.password);
         note(`Signed in: ${DEMO.actors[actor].label}`, { uid: auth.currentUser.uid });
-      } catch (e) { note('Sign-in failed (is the Auth emulator seeded?)', { code: e.code, message: e.message }); }
-      setBusy(false);
+        return true;
+      } catch (e) { note('Sign-in failed (is the Auth emulator seeded?)', { code: e.code, message: e.message }); return false; }
+      finally { setBusy(false); }
+    }
+
+    // Explicit learner entry: reuse the demo learner's own draft; never load a reference answer.
+    async function startMission(id) {
+      setStartError(null);
+      setTaskId(id);
+      const signedIn = viewer && ctx.role === 'student' ? true : await signIn('learner');
+      if (!signedIn) { setStartError('The local preview could not open. Please try again.'); return; }
+      setOpen((n) => n + 1);
+      setView('explorer');
     }
 
     async function loadExample() {
@@ -142,8 +154,8 @@ async function start() {
     }
 
     const t = taskEntry(task);
-    const bar = <details className="sv-bar" open aria-label="Emulator demo controls">
-      <summary>EMULATOR DEMO CONTROLS · not part of the learner UI</summary>
+    const bar = <details className="sv-bar" aria-label="Emulator demo controls">
+      <summary>Test tools · local preview only</summary>
       {PARAMS.get('metrics') === '1' && <p><strong>Metrics overlay on</strong> (preview switch <code>?metrics=1</code>; not in the learner app).</p>}
       <p>Local Auth emulator <code>{DEMO.authEmulator}</code> · mission service <code>{DEMO.api}</code> · project <code>{DEMO.firebase.projectId}</code>. Synthetic actors and fixture tasks only.</p>
       <h3>1. Actor</h3>
@@ -166,14 +178,21 @@ async function start() {
       {log.length ? log.map((e, i) => <div key={i}><p><strong>{e.at} · {e.title}</strong></p><pre>{JSON.stringify(e.value, null, 2)}</pre></div>) : <p>Nothing yet.</p>}
     </details>;
 
-    if ((view === 'explorer' || view === 'explore') && viewer) return <>{bar}<MyUniverseExplorer key={`${viewer.uid}|${viewer.orgId}|${open}|${view}`} preview catalogUrl={catalogUrl} forceTextView={PARAMS.get('text') === '1'}
+    if ((view === 'explorer' || view === 'explore') && viewer) return <MyUniverseExplorer key={`${viewer.uid}|${viewer.orgId}|${open}|${view}`} preview catalogUrl={catalogUrl} forceTextView={PARAMS.get('text') === '1'}
       showMetrics={PARAMS.get('metrics') === '1'} missionRegistry={FIXTURE_RELEASES} missionClient={client} viewer={viewer} allowInReviewMissions onClose={() => setView('home')}
-      initialMission={view === 'explorer' ? { id: t.entry.mission.id, route: t.route.id } : null} /></>;
-    if (view === 'coach' && viewer) return <>{bar}<main className="sv-coach">
-      <CoachUniverseSubmissions coachUser={{ uid: viewer.uid, displayName: ctx.email }} orgId={viewer.orgId} client={client} registry={FIXTURE_RELEASES} /></main></>;
-    return <>{bar}<main className="sv-home"><h1>My Universe · local service demo</h1>
-      <p>Real learner and coach screens, the real mission client, a local mission service and the local Auth emulator. Fixture missions and synthetic actors only. Nothing here reaches a Firebase project.</p>
-      <p>{viewer ? `Ready as ${ctx.email}.` : describeFailure({ state: 'unauthenticated' })}</p></main></>;
+      initialMission={view === 'explorer' ? { id: t.entry.mission.id, route: t.route.id } : null} />;
+    if (view === 'coach' && viewer) return <main className="sv-coach">
+      <button type="button" className="sv-back" onClick={() => setView('home')}>Back to missions</button>
+      <CoachUniverseSubmissions coachUser={{ uid: viewer.uid, displayName: ctx.email }} orgId={viewer.orgId} client={client} registry={FIXTURE_RELEASES} /></main>;
+    return <><main className="sv-home"><p className="sv-eyebrow">My Universe</p><h1>Choose a mission</h1>
+      <p>Explore one action at a time. Open an example whenever you need it.</p>
+      <div className="sv-missions">{TASKS.map((x) => <button type="button" className="sv-mission" key={x.id} disabled={busy || ctx.state === 'resolving'} onClick={() => startMission(x.id)}>
+        <strong>{x.title}</strong><span>{x.description}</span><small>Suggested grades {x.grades} · Challenge {x.challenge} of 5</small>
+      </button>)}</div>
+      {busy && <p role="status">Opening your mission…</p>}
+      {startError && <p role="alert">{startError}</p>}
+      <p className="sv-preview-note">Local preview · fictional learner account</p>
+    </main>{bar}</>;
   }
 
   root.render(<Harness />);
