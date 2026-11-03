@@ -75,9 +75,25 @@ export async function sendMessage(conversationId, senderId, text, files = []) {
 
   // Upload files
   for (const file of files) {
+    if (!file.size || file.size <= 0) throw new Error(`File "${file.name}" is empty.`);
+    if (file.size > 20 * 1024 * 1024) {
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      throw new Error(`Attachment "${file.name}" (${mb} MB) exceeds the 20 MB message limit. Please choose a file under 20 MB.`);
+    }
+    const ext = file.name.split('.').at(-1).toLowerCase();
+    if (['heic', 'heif'].includes(ext) || file.type === 'image/heic' || file.type === 'image/heif') {
+      throw new Error('iPhone HEIC/HEIF photos are not supported by web browsers. Please export as JPEG or PNG before sending.');
+    }
     const filePath = `messages/${conversationId}/${Date.now()}_${file.name}`;
     const storageRef = storage.ref(filePath);
-    await storageRef.put(file);
+    try {
+      await storageRef.put(file);
+    } catch (err) {
+      if (err.code === 'storage/unauthorized') {
+        throw new Error(`Attachment upload denied for "${file.name}". Ensure your file is under 20 MB and in a supported format.`);
+      }
+      throw err;
+    }
     const url = await storageRef.getDownloadURL();
 
     media.push({

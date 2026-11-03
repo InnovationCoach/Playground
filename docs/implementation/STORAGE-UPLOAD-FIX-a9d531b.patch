@@ -1,0 +1,1044 @@
+From a9d531b7af5fe798facd93adc6ac5f477764cb61 Mon Sep 17 00:00:00 2001
+From: InnovationCoach <mgolzary84@gmail.com>
+Date: Wed, 7 Oct 2026 14:09:03 +0700
+Subject: [PATCH] Harden media ownership and recover private upload previews
+
+---
+ .../STORAGE-UPLOAD-FIX-REVIEW.md              |  59 +++++++++
+ firebase.json                                 |   5 +-
+ firestore.rules                               |   3 +-
+ index.html                                    |   2 +
+ package.json                                  |   7 +-
+ server/routes/personalization.js              |  12 +-
+ src/features/community/communityAPI.js        |   8 +-
+ src/features/messages/messagesAPI.js          |   8 +-
+ .../personalization/Personalization.jsx       |  26 ++--
+ src/features/personalization/learnerUpload.js |  53 ++++++++
+ .../personalization/usePersonalization.js     |  49 ++++----
+ src/firebase.js                               |   7 +-
+ src/services/mediaUploadValidation.js         |  29 +++++
+ storage.rules                                 | 119 ++++++++++++++----
+ tests/api/personalization.test.js             |  20 ++-
+ tests/learner-upload.test.js                  |  73 +++++++++++
+ tests/personalization-ui.test.jsx             |  25 +++-
+ tests/storage/dashboard-media.test.js         |   7 +-
+ tests/storage/learning-media.test.js          |  10 ++
+ tests/storage/media-hardening.test.js         |  79 ++++++++++++
+ vitest.config.js                              |   2 +-
+ 21 files changed, 525 insertions(+), 78 deletions(-)
+ create mode 100644 docs/implementation/STORAGE-UPLOAD-FIX-REVIEW.md
+ create mode 100644 src/features/personalization/learnerUpload.js
+ create mode 100644 src/services/mediaUploadValidation.js
+ create mode 100644 tests/learner-upload.test.js
+ create mode 100644 tests/storage/media-hardening.test.js
+
+diff --git a/docs/implementation/STORAGE-UPLOAD-FIX-REVIEW.md b/docs/implementation/STORAGE-UPLOAD-FIX-REVIEW.md
+new file mode 100644
+index 0000000..239bc00
+--- /dev/null
++++ b/docs/implementation/STORAGE-UPLOAD-FIX-REVIEW.md
+@@ -0,0 +1,59 @@
++# Local image/video upload fix for review
++
++Prepared October 7, 2026 (Asia/Bangkok). No deployment, merge, IAM change, or live user/media changes.
++
++Branch: `codex/fix-dashboard-image-uploads` in the isolated checkout `/private/tmp/hearisland-upload-fix`.
++Baseline: `0b6300fcf54793d39a0bcc7c556640bf0111ba95`.
++The final local commit is supplied in the delivery message and exported patch. The original workspace's uncommitted work is preserved.
++
++## Result
++
++Known permission defects are closed, phone-format failures receive actionable guidance, and private learner uploads can retry preview without sending their binary again. A successful settings/work save is no longer reported as a failed transaction solely because signing a preview URL failed afterward.
++
++This patch does not prove that every live upload is fixed. The reported live request, file, account, and runtime were not supplied for reproduction.
++
++## Changed files
++
++- `storage.rules`: learner media requires an existing profile with exactly `active` status. Lesson/program uploads require active matching profiles and current signed school/class assignments. Message reads/uploads require conversation participation; updates/deletes require object ownership, with explicit verified-admin moderation. Upload owner metadata is immutable. Scoped school evidence requires an existing offering/submission and matching current school/class access. Students manage only their own submission; scoped staff may read and moderate by deleting, but cannot overwrite another author's file.
++- `firestore.rules`: conversation updates cannot change participants or other identity fields; only summary/unread fields may change. This closes the route by which an existing participant could add an outsider and bypass the new Storage membership gate.
++- `src/features/messages/messagesAPI.js`: attachment uploads include `ownerUid` metadata and normalized MIME.
++- `src/features/community/communityAPI.js`, `src/services/mediaUploadValidation.js`: image/video format and size checks happen before upload. Errors distinguish byte-upload failure from attachment URL retrieval failure.
++- `src/features/personalization/learnerUpload.js`: MIME normalization/fallback, explicit HEIC/HEIF and MOV guidance, stage-specific errors, owner checks, preview retry on the retained path, and explicit discard of the unsaved upload.
++- `src/features/personalization/usePersonalization.js`, `Personalization.jsx`: preview retry/discard actions; pending uploads block competing file selection; failed saves retain draft attachments. Saved-but-unavailable previews show a warning rather than causing re-upload.
++- `server/routes/personalization.js`: strict preview requests return `503 PREVIEW_UNAVAILABLE` if signing fails. Read/save responses preserve data and committed revisions with a preview warning. No new public read permission or cloud IAM role is granted.
++- `index.html`, `src/firebase.js`: local emulator mode wires Storage to port 9199, uses a demo bucket, and wires secondary registration apps consistently.
++- `firebase.json`, `package.json`: Storage emulator configuration, complete local start commands, and a Storage test command. No dependency was added.
++- `vitest.config.js`, `tests/learner-upload.test.js`, `tests/personalization-ui.test.jsx`, `tests/api/personalization.test.js`, `tests/storage/dashboard-media.test.js`, `tests/storage/learning-media.test.js`, `tests/storage/media-hardening.test.js`: meaningful regression coverage for format validation, retry/discard, signing failure after a committed save, active profiles, stale assignments, outsiders, owner metadata spoofing/overwrite, moderation, and protected conversation identities.
++
++## Validation
++
++| Check | Result |
++|---|---|
++| `npm run test:storage` (Firestore + Storage, `demo-hearisland-local`) | 27 passed across 3 files |
++| `npm test` (Firestore, `demo-hearisland-rules`) | 607 passed across 30 files |
++| Auth/Firestore emulator + `vitest run --config tests/api/vitest.api.config.js tests/api/personalization.test.js` | 13 passed; signing and object metadata mocked |
++| `npm run build` | Passed |
++| `git diff --check` | Passed |
++
++The full-suite total already includes the upload unit/UI tests; do not add their count again. Tests use synthetic identities and bytes. MIME-rule tests are authorization tests, not real media-decoding or malware validation.
++
++## Compatibility and limits
++
++1. HEIC/HEIF and MOV are deliberately not presented as playable supported formats. Export photos to JPEG/PNG and genuinely convert videos to MP4/WebM. No HEIC decoder or video transcoder was installed. Existing community/message rules still permit legacy QuickTime files; the updated clients guide new uploads to supported formats.
++2. Real Safari/iPhone capture, decoding, playback, browser network behavior, and full browser-to-Storage-to-API upload flows remain unverified. The UI recovery path was verified in jsdom with a simulated preview failure.
++3. The legacy `schools/{schoolId}/submissions/{submissionId}/evidence/{filename}` path is denied. No current uploader for it was found. Future evidence uploads must use the actual offering/submission model; this patch supplies the rules, not a new evidence-upload screen. Review any external/older clients before deployment.
++4. Legacy message objects without `ownerUid` remain readable by participants but cannot be overwritten/deleted by ordinary clients. Verified admin moderation can delete them. Any metadata backfill must verify ownership from trusted message records; it is not included.
++5. Existing permanent download-token URLs are not revoked or converted to scoped URLs by this patch. Storage membership rules protect SDK requests, not possession of an existing bearer URL. A separate controlled migration is needed if revocation of these URLs is required.
++6. Explicit discard deletes a pending unsaved learner upload. Closing a tab does not guarantee immediate cleanup; existing backend cleanup removes unreferenced objects older than its 15-minute grace period when invoked by a later save. No background cleanup job was deployed.
++7. Staff account profile/role/assignment data must be active and mirrored in signed claims; stale or missing grants now fail closed. The learner customization API remains learner-only; this patch does not expand dashboard roles or create staff customization endpoints.
++8. No email-domain restriction was applied. It is a separate policy that could block legitimate non-WeLearn users.
++
++## Production signing verification required
++
++The API uses the Admin Storage SDK's `getSignedUrl`. Tests prove response/retry behavior when signing fails, not that the live runtime can sign. Identify the actual deployed runtime service account and credential mechanism, then verify object-read permission and signing permission. IAM-backed signing needs `iam.serviceAccounts.signBlob` on the signing identity; local private-key signing uses a different mechanism. Do not grant `storage.admin` as a workaround. No cloud permission was changed.
++
++## Review before deployment
++
++Review the commit and compatibility notes, verify active account records/assignments, test representative JPEG/PNG/MP4 files in a nonproduction browser environment, and check the live signing identity. The changed frontend/backend and both rules files need coordinated release because message uploads now include ownership metadata and Firestore membership fields must stay protected. Production release requires separate owner approval.
++
++References: [Firebase Storage rules API](https://firebase.google.com/docs/reference/security/storage), [Storage emulator setup](https://firebase.google.com/docs/emulator-suite/connect_storage).
+diff --git a/firebase.json b/firebase.json
+index e79e58f..09b4d87 100644
+--- a/firebase.json
++++ b/firebase.json
+@@ -62,6 +62,9 @@
+     },
+     "ui": {
+       "enabled": false
++    },
++    "storage": {
++      "port": 9199
+     }
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/firestore.rules b/firestore.rules
+index 40f0f23..1762b17 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -593,7 +593,8 @@ service cloud.firestore {
+       allow update: if isAuthenticated() && (
+         request.auth.uid in resource.data.participantIds
+         || isAdminOrSupervisor()
+-      );
++      ) && request.resource.data.diff(resource.data).affectedKeys()
++        .hasOnly(['lastMessageAt', 'lastMessagePreview', 'unread']);
+       allow delete: if false;
+ 
+       match /messages/{msgId} {
+diff --git a/index.html b/index.html
+index 79a2876..7dad04e 100644
+--- a/index.html
++++ b/index.html
+@@ -1610,6 +1610,7 @@
+         // The Firestore emulator partitions data by project id, so this must
+         // match the project scripts/seed-emulator.js writes to.
+         firebaseConfig.projectId = "demo-hearisland-local";
++        firebaseConfig.storageBucket = "demo-hearisland-local.appspot.com";
+       }
+ 
+       window.__hearIslandUseEmulators = useEmulators;
+@@ -1650,6 +1651,7 @@
+       if (useEmulators) {
+         firebase.auth().useEmulator("http://127.0.0.1:9099", { disableWarnings: true });
+         firebase.firestore().useEmulator("127.0.0.1", 8088);
++        firebase.storage().useEmulator("127.0.0.1", 9199);
+         console.warn(
+           "%c[Firebase] EMULATOR MODE - not the live project. Data here is throwaway.",
+           "background:#f59e0b;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px"
+diff --git a/package.json b/package.json
+index 9dc6972..d0328ae 100644
+--- a/package.json
++++ b/package.json
+@@ -11,7 +11,7 @@
+     "build": "vite build",
+     "preview": "vite preview",
+     "server:dev": "node server/gemini-index.js",
+-    "server:dev:emulator": "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GOOGLE_CLOUD_PROJECT=demo-hearisland-local GCLOUD_PROJECT=demo-hearisland-local node server/gemini-index.js",
++    "server:dev:emulator": "FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 FIREBASE_STORAGE_BUCKET=demo-hearisland-local.appspot.com FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GOOGLE_CLOUD_PROJECT=demo-hearisland-local GCLOUD_PROJECT=demo-hearisland-local node server/gemini-index.js",
+     "seed": "node scripts/seed-coach-data.js",
+     "seed:dry": "node scripts/seed-coach-data.js --dry-run",
+     "test": "firebase emulators:exec --only firestore --project demo-hearisland-rules \"vitest run\"",
+@@ -22,10 +22,11 @@
+     "migrate:classes:dry": "node scripts/migrate-to-classes.js --dry-run",
+     "migrate:agebands": "node scripts/migrate-age-bands.js",
+     "migrate:agebands:dry": "node scripts/migrate-age-bands.js --dry-run",
+-    "emulators": "firebase emulators:start --only firestore,auth --project demo-hearisland-local",
++    "emulators": "firebase emulators:start --only firestore,auth,storage --project demo-hearisland-local",
+     "seed:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node scripts/seed-emulator.js",
+     "codes": "node scripts/class-codes.js",
+-    "codes:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GCLOUD_PROJECT=demo-hearisland-local node scripts/class-codes.js"
++    "codes:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GCLOUD_PROJECT=demo-hearisland-local node scripts/class-codes.js",
++    "test:storage": "firebase emulators:exec --only firestore,storage --project demo-hearisland-local \"vitest run --config tests/storage/vitest.config.js\""
+   },
+   "dependencies": {
+     "@google-cloud/firestore": "^9.3.1",
+diff --git a/server/routes/personalization.js b/server/routes/personalization.js
+index b31f52a..704e82a 100644
+--- a/server/routes/personalization.js
++++ b/server/routes/personalization.js
+@@ -85,12 +85,17 @@ async function cleanupUnreferencedMedia(uid, candidatePaths = []) {
+     console.warn('[Storage Cleanup] Unreferenced media cleanup failed:', err?.message);
+   }
+ }
+-async function signMedia(media, download = false) {
++async function signMedia(media, download = false, strict = false) {
+   if (!media) return null;
+   // Temporary signed URLs expire in 5 minutes (300,000 ms).
+   const options = {action:'read', expires: Date.now()+5*60*1000};
+   if (download) options.responseDisposition = 'attachment';
+-  const [url] = await bucket().file(media.path).getSignedUrl(options);
++  let url;
++  try { [url] = await bucket().file(media.path).getSignedUrl(options); }
++  catch {
++    if(strict) fail(503,'PREVIEW_UNAVAILABLE','Private media preview is unavailable. The upload succeeded; retry preview without uploading again.');
++    return {name:media.name,contentType:media.contentType,size:media.size,url:'',previewError:'PREVIEW_UNAVAILABLE'};
++  }
+   // Viewers receive only display metadata and a temporary URL, never object paths.
+   return {name:media.name,contentType:media.contentType,size:media.size,url};
+ }
+@@ -106,6 +111,7 @@ async function ownerData(uid) {
+   data.dashboard = await displaySurface(data.dashboard,true);
+   data.portfolio = await displaySurface(data.portfolio,true);
+   data.items = await Promise.all(data.items.map(async item => ({...item,media:item.media ? {...item.media,...await signMedia(item.media,['code','model'].includes(item.kind))} : null})));
++  data.mediaPreviewUnavailable = [data.dashboard.appearance.picture,data.dashboard.appearance.cover,data.portfolio.appearance.picture,data.portfolio.appearance.cover,...data.items.map(i=>i.media)].some(m=>m?.previewError);
+   return data;
+ }
+ router.get('/learner-space',wrap(async(req,res) => {res.json(await ownerData(learner(req)));}));
+@@ -132,7 +138,7 @@ router.put('/learner-space',wrap(async(req,res) => {
+ router.post('/learner-space/media-preview',wrap(async(req,res)=>{
+   const uid = learner(req), media = await validateMedia(asset(req.body?.media,uid),req.body?.kind || 'image');
+   if(!media) fail(400,'VALIDATION','Choose an uploaded file.');
+-  res.json({...media,...await signMedia(media,['code','model'].includes(req.body?.kind))});
++  res.json({...media,...await signMedia(media,['code','model'].includes(req.body?.kind),true)});
+ }));
+ router.post('/learner-space/items',wrap(async(req,res) => {
+   const uid = learner(req), item = normalizeItem(req.body,uid);
+diff --git a/src/features/community/communityAPI.js b/src/features/community/communityAPI.js
+index 2c15b79..d155303 100644
+--- a/src/features/community/communityAPI.js
++++ b/src/features/community/communityAPI.js
+@@ -1,3 +1,4 @@
++import {putSocialMedia} from '../../services/mediaUploadValidation.js';
+ import { db, storage, serverTimestamp, increment, collection, addDoc, updateDoc, deleteDoc, setDoc, doc, query, where, orderBy, getDocs, getDoc, onSnapshot } from '../../firebase.js';
+ 
+ /**
+@@ -15,14 +16,13 @@ export async function createPost(userId, userRole, text, files = [], authorName
+   for (const file of files) {
+     const filePath = `community/${userId}/${Date.now()}_${file.name}`;
+     const storageRef = storage.ref(filePath);
+-    await storageRef.put(file);
+-    const url = await storageRef.getDownloadURL();
++    const {url,contentType} = await putSocialMedia(storageRef,file);
+ 
+     media.push({
+       url,
+       storagePath: filePath,
+-      type: file.type.startsWith('video/') ? 'video' : 'image',
+-      mimeType: file.type,
++      type: contentType.startsWith('video/') ? 'video' : 'image',
++      mimeType: contentType,
+       sizeBytes: file.size
+     });
+   }
+diff --git a/src/features/messages/messagesAPI.js b/src/features/messages/messagesAPI.js
+index ab970f6..d82e277 100644
+--- a/src/features/messages/messagesAPI.js
++++ b/src/features/messages/messagesAPI.js
+@@ -1,3 +1,4 @@
++import {putSocialMedia} from '../../services/mediaUploadValidation.js';
+ import { db, storage, serverTimestamp, collection, addDoc, updateDoc, doc, query, where, orderBy, getDocs, getDoc, onSnapshot } from '../../firebase.js';
+ 
+ /**
+@@ -77,14 +78,13 @@ export async function sendMessage(conversationId, senderId, text, files = []) {
+   for (const file of files) {
+     const filePath = `messages/${conversationId}/${Date.now()}_${file.name}`;
+     const storageRef = storage.ref(filePath);
+-    await storageRef.put(file);
+-    const url = await storageRef.getDownloadURL();
++    const {url,contentType} = await putSocialMedia(storageRef,file, {customMetadata:{ownerUid:senderId}});
+ 
+     media.push({
+       url,
+       storagePath: filePath,
+-      type: file.type.startsWith('video/') ? 'video' : 'image',
+-      mimeType: file.type,
++      type: contentType.startsWith('video/') ? 'video' : 'image',
++      mimeType: contentType,
+       sizeBytes: file.size
+     });
+   }
+diff --git a/src/features/personalization/Personalization.jsx b/src/features/personalization/Personalization.jsx
+index 463ec68..cb2b20e 100644
+--- a/src/features/personalization/Personalization.jsx
++++ b/src/features/personalization/Personalization.jsx
+@@ -4,6 +4,7 @@ import {PALETTES,BACKGROUNDS,WIDGETS,LAYOUTS,KINDS,AUDIENCES,defaults,moveWidget
+ import {schoolRequest} from '../../services/api/apiClient.js';
+ import ImageCropDialog from './ImageCropDialog.jsx';
+ import {IMAGE_TYPES,MAX_MEDIA_SIZE} from './personalizationModel.js';
++import {learnerContentType} from './learnerUpload.js';
+ import {refreshLearnerAvatar} from '../shell/useLearnerAvatar.js';
+ import {Camera,ImagePlus,Lock,Settings2} from 'lucide-react';
+ import {PROFILE_SPACE_STRINGS as copy,profileText} from './profileSpaceStrings.js';
+@@ -13,16 +14,18 @@ export function surfaceStyle(surface) {return {'--lp-accent':PALETTES[surface.ap
+ function SurfaceHeader({surface,name,privateDashboard=false}) {
+   return <header className="lp-header">{surface.appearance.cover?.url && <img className="lp-cover" src={surface.appearance.cover.url} alt={privateDashboard ? "My dashboard banner" : "Portfolio cover"}/>}<div className="lp-identity">{surface.appearance.picture?.url ? <img className="lp-avatar" src={surface.appearance.picture.url} alt={`${name || 'Learner'} profile`}/> : <span className="lp-avatar lp-initial" aria-hidden="true">{(name || 'L').slice(0,1)}</span>}<div><h1>{surface.heading || name || 'My space'}</h1>{name && <p>{name}</p>}</div></div><p className="lp-intro">{surface.introduction}</p>{surface.interests && <p><strong>Interests:</strong> {surface.interests}</p>}</header>;
+ }
+-function Feedback({space}) {return <>{space.error && <p className="lp-error" role="alert">{space.error}</p>}<p className="lp-status" role="status" aria-live="polite">{space.status}</p></>;}
++function UploadRecovery({space}) {return space.pendingUpload ? <div role="status"><p>A file was uploaded, but its preview needs another attempt.</p><button type="button" disabled={space.busy} onClick={space.retryUpload}>Retry file preview</button><button type="button" disabled={space.busy} onClick={space.discardUpload}>Discard unsaved upload</button></div> : null;}
++function Feedback({space}) {return <><UploadRecovery space={space}/>{space.error && <p className="lp-error" role="alert">{space.error}</p>}<p className="lp-status" role="status" aria-live="polite">{space.status}</p></>;}
++
+ function SettingsEditor({space,uid,surfaceKey,externalBusy=false}) {
+   const surface=space.draft[surfaceKey], [uploading,setUploading]=useState(false);
+   const update=(key,value)=>space.change(d=>({...d,[surfaceKey]:{...d[surfaceKey],[key]:value}}));
+   const appearance=(key,value)=>space.change(d=>({...d,[surfaceKey]:{...d[surfaceKey],appearance:{...d[surfaceKey].appearance,[key]:value}}}));
+   async function upload(key,file) {
+     if(!file)return;setUploading(true);space.setError('');
+-    try {appearance(key,await uploadLearnerFile(uid,file));}catch(e){space.setError(e.message);}finally{setUploading(false);}
++    try {appearance(key,await uploadLearnerFile(uid,file));}catch(e){space.uploadFailed(e,media=>appearance(key,media));}finally{setUploading(false);}
+   }
+-  return <fieldset className="lp-editor" disabled={space.busy || uploading || externalBusy || !space.saved}><legend>{surfaceKey==='dashboard'?copy.settingsLegend:'Personalize your shareable portfolio'}</legend>
++  return <fieldset className="lp-editor" disabled={space.busy || uploading || !!space.pendingUpload || externalBusy || !space.saved}><legend>{surfaceKey==='dashboard'?copy.settingsLegend:'Personalize your shareable portfolio'}</legend>
+     <p>{surfaceKey==='dashboard'?copy.settingsPrivacy:'Only this portfolio introduction, interests and selected work can be shared. Personal goals and support information stay on your private dashboard.'}</p>
+     <div className="lp-fields"><Field label={copy.heading}><input maxLength={100} value={surface.heading} onChange={e=>update('heading',e.target.value)}/></Field><Field label={copy.introduction}><textarea maxLength={600} value={surface.introduction} onChange={e=>update('introduction',e.target.value)}/></Field><Field label={copy.interests}><input maxLength={300} value={surface.interests} onChange={e=>update('interests',e.target.value)}/></Field>
+     {surfaceKey==='dashboard' && <Field label={copy.privateGoals}><textarea maxLength={1200} value={surface.goals} onChange={e=>update('goals',e.target.value)}/></Field>}
+@@ -41,12 +44,12 @@ function DashboardProfile({space,uid,profile,onUploading,onPersonalize}) {
+   const pictureInput=useRef(null),coverInput=useRef(null),imageSettings=useRef(null),pickerFocus=useRef(null);
+   function openPicker(kind,trigger){pickerFocus.current=trigger;imageSettings.current.open=true;(kind==='picture'?pictureInput:coverInput).current?.click();}
+   const surface=space.draft.dashboard, appearance=surface.appearance, interests=interestList(surface.interests);
+-  const disabled=space.loading||space.busy||uploading||!space.saved;
++  const disabled=space.loading||space.busy||uploading||!!space.pendingUpload||!space.saved;
+   const name=profile?.displayName?.trim(), photoLabel=appearance.picture?copy.changePhoto:copy.addPhoto;
+   function select(kind,file){
+     if(!file)return;
+     space.setError('');
+-    if(!IMAGE_TYPES.includes(file.type)){space.setError(copy.imageTypesError);return;}
++    try {if(!IMAGE_TYPES.includes(learnerContentType(file))){space.setError(copy.imageTypesError);return;}}catch(e){space.setError(/HEIC|HEIF|MOV/.test(e.message)?e.message:copy.imageTypesError);return;}
+     if(!file.size||file.size>MAX_MEDIA_SIZE){space.setError(copy.imageSizeError);return;}
+     setSelection({kind,file,returnFocus:pickerFocus.current||document.activeElement});onUploading(true);
+   }
+@@ -55,6 +58,14 @@ function DashboardProfile({space,uid,profile,onUploading,onPersonalize}) {
+   async function apply(file){
+     setUploading(true);
+     try{const uploaded=await uploadLearnerFile(uid,file);space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[selection.kind]:uploaded}}}));setSelection(null);onUploading(false);}
++    catch(e){
++      const kind=selection.kind;
++      if(e.retry){
++        space.uploadFailed(e,media=>space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[kind]:media}}})));
++        setSelection(null);onUploading(false);
++      }
++      throw e;
++    }
+     finally{setUploading(false);}
+   }
+   return <>
+@@ -101,6 +112,7 @@ export function PersonalizedDashboard({uid,profile,widgets}) {
+       {id==='about'?<div><h2>{copy.aboutHeading}</h2><p>{d.introduction || copy.aboutPlaceholder}</p><h3>{copy.goalsHeading}</h3><p className="lp-intro">{d.goals || copy.goalsPlaceholder}</p></div>:widgets[id]}
+     </section>)}</div>
+     {reviewing && <div className="lp-changes" role="region" aria-label={copy.changesRegion}>
++      <UploadRecovery space={space}/>
+       {space.error && <p className="lp-error" role="alert">{space.error}</p>}
+       <p className="lp-changes-note" role="status" aria-live="polite">{changed?copy.unsaved:space.status||copy.everythingSaved}</p>
+       <div className="lp-actions"><button type="button" className="lp-primary" disabled={locked||!changed} onClick={save}>{space.busy?copy.saving:copy.save}</button><button type="button" disabled={locked||!space.history.length} onClick={space.undo}>{copy.undo}<span className="lp-sr">{copy.undoDetail}</span></button><button type="button" disabled={locked||!changed} onClick={space.discard}>{copy.discard}<span className="lp-sr">{copy.discardDetail}</span></button></div>
+@@ -134,10 +146,10 @@ const emptyItem=()=>({title:'',kind:'writing',body:'',link:'',media:null,audienc
+ function WorkEditor({space,uid}) {
+   const [item,setItem]=useState(emptyItem), [uploading,setUploading]=useState(false), [preview,setPreview]=useState(false), [removing,setRemoving]=useState(null), [itemHistory,setItemHistory]=useState([]), [recording,setRecording]=useState(false);
+   const update=(key,value)=>{setItemHistory(h=>[...h.slice(-19),structuredClone(item)]);setItem(i=>({...i,[key]:value}));setPreview(false);};
+-  async function fileSelected(file){if(!file)return;setUploading(true);space.setError('');try {update('media',await uploadLearnerFile(uid,file,item.kind));}catch(e){space.setError(e.message);}finally{setUploading(false);}}
++  async function fileSelected(file){if(!file)return;setUploading(true);space.setError('');try {update('media',await uploadLearnerFile(uid,file,item.kind));}catch(e){space.uploadFailed(e,media=>update('media',media));}finally{setUploading(false);}}
+   return <section className="lp-work-editor"><h2>Add and curate your work</h2><p>New work starts private. Audience choices apply only to this entry. Recorded reflections can include a transcript in the text field.</p>
+     <form onSubmit={async e=>{e.preventDefault();if(!recording && await space.saveItem(item)){setItem(emptyItem());setItemHistory([]);setPreview(false);}}}>
+-    <fieldset disabled={space.busy || uploading}><legend>{item.id?'Edit portfolio work':'Add portfolio work'}</legend><div className="lp-fields"><Field label="Work type"><select value={item.kind} disabled={recording} onChange={e=>{setItemHistory(h=>[...h.slice(-19),structuredClone(item)]);setItem({...item,kind:e.target.value,media:null});setPreview(false);}}>{Object.entries(KINDS).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></Field>
++    <fieldset disabled={space.busy || uploading || !!space.pendingUpload}><legend>{item.id?'Edit portfolio work':'Add portfolio work'}</legend><div className="lp-fields"><Field label="Work type"><select value={item.kind} disabled={recording} onChange={e=>{setItemHistory(h=>[...h.slice(-19),structuredClone(item)]);setItem({...item,kind:e.target.value,media:null});setPreview(false);}}>{Object.entries(KINDS).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></Field>
+     <Field label="Work title"><input required maxLength={160} value={item.title} onChange={e=>update('title',e.target.value)}/></Field><Field label={item.kind==='code'?'Code or project description':'Reflection, description or transcript'}><textarea maxLength={12000} rows={5} value={item.body} onChange={e=>update('body',e.target.value)}/></Field>
+     <Field label="Project link (HTTPS)"><input type="url" pattern="https://.*" value={item.link} onChange={e=>update('link',e.target.value)}/></Field>
+     {item.kind!=='writing' && <Field label="Upload work (up to 20 MB)"><input type="file" accept={item.kind==='image'?'image/jpeg,image/png,image/webp,image/gif':item.kind==='model'?'.glb,.gltf,.obj':item.kind==='code'?'.zip,.txt,.py,.js,.ts,.json,.html,.css,.ino':'audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav,video/webm,video/mp4'} onChange={e=>{const f=e.target.files[0];e.target.value='';fileSelected(f);}}/></Field>}
+diff --git a/src/features/personalization/learnerUpload.js b/src/features/personalization/learnerUpload.js
+new file mode 100644
+index 0000000..12ee35d
+--- /dev/null
++++ b/src/features/personalization/learnerUpload.js
+@@ -0,0 +1,53 @@
++import {MAX_MEDIA_SIZE, MEDIA_TYPES} from './personalizationModel.js';
++
++export function learnerContentType(file) {
++  const ext = file.name.split('.').at(-1).toLowerCase();
++  const mime = (file.type || '').split(';')[0].toLowerCase();
++  if (['heic', 'heif'].includes(ext) || ['image/heic', 'image/heif'].includes(mime)) {
++    throw new Error('HEIC/HEIF photos are not supported yet. Export this photo as JPEG or PNG and try again.');
++  }
++  if (ext === 'mov' || mime === 'video/quicktime') {
++    throw new Error('MOV videos are not supported yet. Export or convert this video to MP4 or WebM; changing the filename is not enough.');
++  }
++  const codeTypes = {glb:'model/gltf-binary',gltf:'model/gltf+json',obj:'text/plain',zip:'application/zip',txt:'text/plain',py:'text/plain',js:'text/plain',ts:'text/plain',json:'text/plain',html:'text/plain',css:'text/plain',ino:'text/plain'};
++  const fallback = {jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',mp4:'video/mp4',webm:'video/webm',mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',ogg:'audio/ogg'};
++  const type = codeTypes[ext] || mime || fallback[ext];
++  if (!MEDIA_TYPES.includes(type)) throw new Error('Choose a supported image, audio/video reflection, code file, ZIP, GLB, glTF or OBJ.');
++  return type;
++}
++
++export function createLearnerUploader({storage, request, currentUid, uuid}) {
++  return async function upload(uid, file, kind = 'image') {
++    if (!uid || currentUid() !== uid) throw new Error('Sign in again before uploading your file.');
++    if (!file || !file.size || file.size > MAX_MEDIA_SIZE) throw new Error('Choose a file between 1 byte and 20 MB.');
++    const contentType = learnerContentType(file);
++    const name = file.name.slice(0,160), safe = name.replace(/[^A-Za-z0-9_.-]/g,'_');
++    const media = {path:`learnerMedia/${uid}/${uuid()}/${safe}`,name};
++    try { await storage.ref(media.path).put(file,{contentType}); }
++    catch (cause) {
++      const error = new Error(cause.code === 'storage/unauthorized'
++        ? 'File upload was denied. Ask your school administrator to check your active account and upload permissions.'
++        : 'File upload failed. Check your connection and try again.');
++      Object.assign(error,{code:cause.code || 'upload-failed',stage:'upload',cause});
++      throw error;
++    }
++    let discarded = false;
++    async function preview() {
++      if (discarded || currentUid() !== uid) throw new Error('This upload is no longer available. Sign in and choose the file again.');
++      try {
++        const result = await request('POST','/api/learner-space/media-preview',{body:{media,kind}});
++        if(currentUid() !== uid) throw new Error('The signed-in account changed.');
++        if (!result?.url) throw new Error('The preview service did not return a URL.');
++        return result;
++      } catch (cause) {
++        const error = new Error('File uploaded, but its private preview could not be prepared. Retry preview without uploading again, or discard the upload.');
++        Object.assign(error,{code:'preview-failed',stage:'preview',media,cause,retry:preview,discard:async()=>{
++          if (currentUid() !== uid) throw new Error('Sign in as the upload owner before discarding it.');
++          await storage.ref(media.path).delete(); discarded = true;
++        }});
++        throw error;
++      }
++    }
++    return preview();
++  };
++}
+diff --git a/src/features/personalization/usePersonalization.js b/src/features/personalization/usePersonalization.js
+index 00b2a86..fa8f609 100644
+--- a/src/features/personalization/usePersonalization.js
++++ b/src/features/personalization/usePersonalization.js
+@@ -1,19 +1,36 @@
+ import {useCallback, useEffect, useState} from 'react';
+ import {schoolRequest} from '../../services/api/apiClient.js';
+-import {defaults, normalizeSettings, MAX_MEDIA_SIZE, MEDIA_TYPES} from './personalizationModel.js';
++import {defaults, normalizeSettings} from './personalizationModel.js';
+ import {PROFILE_SPACE_STRINGS as copy} from './profileSpaceStrings.js';
+-import {storage} from '../../firebase.js';
++import {storage,auth} from '../../firebase.js';
++import {createLearnerUploader} from './learnerUpload.js';
+ export function usePersonalization(uid) {
++  const [pendingUpload,setPendingUpload] = useState(null);
++  useEffect(()=>setPendingUpload(null),[uid]);
++  function uploadFailed(error,onReady) {
++    setError(error.message);
++    if(error.retry) setPendingUpload({error,onReady});
++  }
++  async function retryUpload() {
++    if(!pendingUpload)return;setBusy(true);setError('');
++    try {pendingUpload.onReady(await pendingUpload.error.retry());setPendingUpload(null);setStatus('Preview ready. Save your changes to keep this file.');}
++    catch(e){setError(e.message);}finally{setBusy(false);}
++  }
++  async function discardUpload() {
++    if(!pendingUpload)return;setBusy(true);
++    try {await pendingUpload.error.discard();setPendingUpload(null);setError('');setStatus('Unsaved upload removed.');}
++    catch(e){setError('The unsaved upload could not be removed. Retry when connected.');}finally{setBusy(false);}
++  }
+   const [saved,setSaved] = useState(null), [draft,setDraft] = useState(defaults), [history,setHistory] = useState([]);
+   const [loading,setLoading] = useState(true), [busy,setBusy] = useState(false), [error,setError] = useState(''), [status,setStatus] = useState('');
+   const reload = useCallback(async () => {
+     setLoading(true); setError('');
+-    try {const data = await schoolRequest('GET','/api/learner-space'); setSaved(data);setDraft(data);setHistory([]);}
++    try {const data = await schoolRequest('GET','/api/learner-space'); setSaved(data);setDraft(data);setHistory([]);if(data.mediaPreviewUnavailable)setError('Your saved files are private, but their previews are unavailable. Reload to retry; do not upload them again.');}
+     catch(e) {setSaved(null);setDraft(defaults());setHistory([]);setError(e.message || copy.loadFailed);}
+     finally {setLoading(false);}
+   },[]);
+   useEffect(()=>{let active=true; setLoading(true);setSaved(null);setDraft(defaults());setHistory([]);setStatus('');setError('');
+-    schoolRequest('GET','/api/learner-space').then(data=>{if(active){setSaved(data);setDraft(data);setHistory([]);}}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});
++    schoolRequest('GET','/api/learner-space').then(data=>{if(active){setSaved(data);setDraft(data);setHistory([]);if(data.mediaPreviewUnavailable)setError('Your saved files are private, but their previews are unavailable. Reload to retry; do not upload them again.');}}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});
+     return ()=>{active=false;};
+   },[uid]);
+   function change(transform) {setHistory(h=>[...h.slice(-19),structuredClone(draft)]);setDraft(transform(structuredClone(draft)));setStatus(copy.previewStatus);}
+@@ -21,29 +38,17 @@ export function usePersonalization(uid) {
+   function discard() {if(saved){setDraft(structuredClone(saved));setHistory([]);setStatus(copy.discardedStatus);}}
+   async function save() {
+     setBusy(true);setError('');
+-    try {const data = await schoolRequest('PUT','/api/learner-space',{body:{...normalizeSettings(draft,uid),revision:draft.revision}});setSaved(data);setDraft(data);setStatus(copy.savedStatus);}
+-    catch(e){setError(e.message || copy.saveFailed);}finally{setBusy(false);}
++    try {const data = await schoolRequest('PUT','/api/learner-space',{body:{...normalizeSettings(draft,uid),revision:draft.revision}});setSaved(data);setDraft(data);setStatus(copy.savedStatus);if(data.mediaPreviewUnavailable)setError('Your changes were saved, but a private media preview is unavailable. Reload to retry preview; do not upload the file again.');}
++    catch(e){setError(`Your file is still attached, but saving failed: ${e.message || copy.saveFailed}. Retry Save without uploading again.`);}finally{setBusy(false);}
+   }
+   async function saveItem(item, remove=false) {
+     setBusy(true);setError('');
+     try {
+       const path = `/api/learner-space/items${item.id ? `/${encodeURIComponent(item.id)}` : ''}`;
+       const data = await schoolRequest(remove?'DELETE':item.id?'PATCH':'POST',path,{body:item});
+-      setSaved(data);setDraft(d=>({...d,items:data.items,approvedAudienceCount:data.approvedAudienceCount}));setStatus(remove?'Work removed.':'Work and audience settings saved.');return true;
+-    }catch(e){setError(e.message || 'Work could not be saved.');return false;}finally{setBusy(false);}
++      setSaved(data);setDraft(d=>({...d,items:data.items,approvedAudienceCount:data.approvedAudienceCount}));setStatus(remove?'Work removed.':'Work and audience settings saved.');if(data.mediaPreviewUnavailable)setError('Your work was saved, but its private preview is unavailable. Reload to retry preview.');return true;
++    }catch(e){setError(`Your work could not be saved: ${e.message || 'Please try again.'} Your attachment is retained; retry Save.`);return false;}finally{setBusy(false);}
+   }
+-  return {saved,draft,change,undo,discard,save,saveItem,reload,history,loading,busy,error,status,setError};
+-}
+-export async function uploadLearnerFile(uid,file,kind='image') {
+-  if(!uid || !file || !file.size || file.size>MAX_MEDIA_SIZE) throw new Error('Choose a file between 1 byte and 20 MB.');
+-  // Explicit metadata supports text code, ZIPs and model formats consistently.
+-  const ext = file.name.split('.').at(-1).toLowerCase();
+-  const types = {glb:'model/gltf-binary',gltf:'model/gltf+json',obj:'text/plain',zip:'application/zip',txt:'text/plain',py:'text/plain',js:'text/plain',ts:'text/plain',json:'text/plain',html:'text/plain',css:'text/plain',ino:'text/plain'};
+-  const contentType = types[ext] || file.type.split(';')[0];
+-  if(!MEDIA_TYPES.includes(contentType)) throw new Error('Choose an image, audio/video reflection, code file, ZIP, GLB, glTF or OBJ.');
+-  const name = file.name.slice(0,160), safe = name.replace(/[^A-Za-z0-9_.-]/g,'_');
+-  const path = `learnerMedia/${uid}/${crypto.randomUUID()}/${safe}`;
+-  await storage.ref(path).put(file,{contentType});
+-  // Do not generate permanent download tokens or store public URLs.
+-  return schoolRequest('POST','/api/learner-space/media-preview',{body:{media:{path,name},kind}});
++  return {saved,draft,change,undo,discard,save,saveItem,reload,history,loading,busy,error,status,setError,pendingUpload,uploadFailed,retryUpload,discardUpload};
+ }
++export const uploadLearnerFile = createLearnerUploader({storage,request:schoolRequest,currentUid:()=>auth.currentUser?.uid,uuid:()=>crypto.randomUUID()});
+diff --git a/src/firebase.js b/src/firebase.js
+index 9a0e626..f9a4056 100644
+--- a/src/firebase.js
++++ b/src/firebase.js
+@@ -170,7 +170,12 @@ export { auth, db, storage };
+ 
+ export async function registerStudentAccount(email, password, displayName, groupName) {
+   const appName = "StudentReg_" + Date.now();
+-  const secondaryApp = firebase.initializeApp(firebaseConfig, appName);
++  const secondaryApp = firebase.initializeApp(firebase.app().options, appName);
++  if (USE_EMULATORS) {
++    secondaryApp.auth().useEmulator('http://127.0.0.1:9099', {disableWarnings:true});
++    secondaryApp.firestore().useEmulator('127.0.0.1',8088);
++    secondaryApp.storage().useEmulator('127.0.0.1',9199);
++  }
+   try {
+     const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+     const studentUser = userCredential.user;
+diff --git a/src/services/mediaUploadValidation.js b/src/services/mediaUploadValidation.js
+new file mode 100644
+index 0000000..dd25eb2
+--- /dev/null
++++ b/src/services/mediaUploadValidation.js
+@@ -0,0 +1,29 @@
++export function socialMediaType(file) {
++  const ext = file.name.split('.').at(-1).toLowerCase();
++  const type = (file.type || '').split(';')[0].toLowerCase();
++  if (['heic','heif'].includes(ext) || ['image/heic','image/heif'].includes(type)) {
++    throw new Error('Export HEIC/HEIF photos as JPEG or PNG before uploading.');
++  }
++  if (ext === 'mov' || type === 'video/quicktime') {
++    throw new Error('Convert MOV videos to MP4 or WebM before uploading; changing the filename is not enough.');
++  }
++  const mime = type || {jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',mp4:'video/mp4',webm:'video/webm'}[ext];
++  if (!['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm'].includes(mime)) {
++    throw new Error('Choose JPG, PNG, WebP, GIF, MP4 or WebM.');
++  }
++  if (!file.size || file.size > 20*1024*1024) throw new Error('Choose an image or video between 1 byte and 20 MB.');
++  return mime;
++}
++
++export async function putSocialMedia(storageRef,file,metadata={}) {
++  const contentType=socialMediaType(file);
++  try {await storageRef.put(file,{contentType,...metadata});}
++  catch(cause){
++    const error=new Error(cause.code==='storage/unauthorized'
++      ? 'Image/video upload was denied. Check your account and attachment permissions with your school administrator.'
++      : 'Image/video upload failed. Check your connection and try again.');
++    Object.assign(error,{code:cause.code,stage:'upload',cause});throw error;
++  }
++  try {return {url:await storageRef.getDownloadURL(),contentType};}
++  catch(cause){throw new Error('The file uploaded, but its attachment URL could not be retrieved. Please try again.');}
++}
+diff --git a/storage.rules b/storage.rules
+index ddc9b16..03763b1 100644
+--- a/storage.rules
++++ b/storage.rules
+@@ -37,18 +37,20 @@ service firebase.storage {
+         let school = firestore.exists(/databases/(default)/documents/schools/$(schoolId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)).data : {};
+         let offering = firestore.exists(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)).data : {};
+         let lesson = firestore.exists(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)/lessons/$(lessonId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)/lessons/$(lessonId)).data : {};
+-        let role = request.auth.token.get('role', profile.get('role', ''));
++        let role = request.auth.token.get('role', '');
+         return (role == 'admin' || role == 'coach' || role == 'teacher')
+-          && profile.get('status', '') != 'suspended'
+-          && school.get('status', '') != 'suspended'
++          && profile.get('role', '') == role
++          && profile.get('status', '') == 'active'
++          && school.get('status', '') == 'active'
+           && (role == 'admin'
+-            || (schoolId in profile.get('schoolIds', []) || schoolId in request.auth.token.get('schoolIds', []) || profile.get('schoolId', '') == schoolId))
++            || (schoolId in profile.get('schoolIds', []) && schoolId in request.auth.token.get('schoolIds', [])))
+           && lesson.get('status', '') == 'draft'
+           && lesson.get('classId', '') in offering.get('classIds', [])
+           && (role == 'admin'
+             || (role in ['coach', 'teacher']
+               && lesson.get('authorUid', '') == request.auth.uid
+-              && lesson.get('classId', '') in request.auth.token.get('classIds', profile.get('classIds', []))));
++              && lesson.get('classId', '') in request.auth.token.get('classIds', [])
++              && lesson.get('classId', '') in profile.get('classIds', [])));
+       }
+ 
+       allow read: if false;
+@@ -64,17 +66,18 @@ service firebase.storage {
+         let profile = firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) ? firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data : {};
+         let school = firestore.exists(/databases/(default)/documents/schools/$(schoolId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)).data : {};
+         let offering = firestore.exists(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)).data : {};
+-        let role = request.auth.token.get('role', profile.get('role', ''));
++        let role = request.auth.token.get('role', '');
+         return (role == 'admin' || role == 'coach' || role == 'teacher')
+-          && profile.get('status', '') != 'suspended'
+-          && school.get('status', '') != 'suspended'
++          && profile.get('role', '') == role
++          && profile.get('status', '') == 'active'
++          && school.get('status', '') == 'active'
+           && (role == 'admin'
+-            || (schoolId in profile.get('schoolIds', []) || schoolId in request.auth.token.get('schoolIds', []) || profile.get('schoolId', '') == schoolId))
++            || (schoolId in profile.get('schoolIds', []) && schoolId in request.auth.token.get('schoolIds', [])))
+           && (role == 'admin'
+             || (role in ['coach', 'teacher']
+               && offering.get('createdBy', '') == request.auth.uid
+               && offering.get('classIds', []).hasAny(
+-                request.auth.token.get('classIds', profile.get('classIds', []))
++                request.auth.token.get('classIds', []).removeAll(request.auth.token.get('classIds', []).removeAll(profile.get('classIds', [])))
+               )));
+       }
+ 
+@@ -92,8 +95,8 @@ service firebase.storage {
+       function isLearnerActive() {
+         let userDocPath = /databases/(default)/documents/users/$(uid);
+         let userExists = firestore.exists(userDocPath);
+-        let status = userExists ? firestore.get(userDocPath).data.get('status', 'active') : 'active';
+-        return status != 'suspended';
++        let status = userExists ? firestore.get(userDocPath).data.get('status', '') : '';
++        return userExists && status == 'active';
+       }
+ 
+       allow read: if false;
+@@ -119,16 +122,49 @@ service firebase.storage {
+       allow delete: if isOwner(uid);
+     }
+ 
+-    // F3: Private Message Attachments (supports 2-segment and 3-segment paths)
++    function hasActiveProfile() {
++      return isAuthenticated()
++        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
++        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('status', '') == 'active';
++    }
++
++    function isConversationParticipant(convId) {
++      return hasActiveProfile()
++        && firestore.exists(/databases/(default)/documents/conversations/$(convId))
++        && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(convId)).data.get('participantIds', []);
++    }
++
++    function isAttachmentModerator() {
++      return hasActiveProfile()
++        && request.auth.token.get('role', '') == 'admin'
++        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin';
++    }
++
++    function ownsAttachment() {
++      return resource.metadata.get('ownerUid', '') == request.auth.uid;
++    }
++
++    function validAttachmentOwner() {
++      return request.resource.metadata.get('ownerUid', '') == request.auth.uid;
++    }
++
++    // Existing two- and three-segment URLs remain readable to participants.
++    // Legacy objects lacking owner metadata cannot be modified by clients.
+     match /messages/{convId}/{filename} {
+-      allow read: if isAuthenticated();
+-      allow create, update: if isAuthenticated() && isAllowedFileType() && isWithinSizeLimit();
+-      allow delete: if isAuthenticated();
++      allow read: if isConversationParticipant(convId) || isAttachmentModerator();
++      allow create: if isConversationParticipant(convId) && (resource == null || ownsAttachment()) && validAttachmentOwner()
++        && isAllowedFileType() && request.resource.size > 0 && isWithinSizeLimit();
++      allow update: if isConversationParticipant(convId) && ownsAttachment() && validAttachmentOwner()
++        && isAllowedFileType() && request.resource.size > 0 && isWithinSizeLimit();
++      allow delete: if (isConversationParticipant(convId) && ownsAttachment()) || isAttachmentModerator();
+     }
+     match /messages/{convId}/{msgId}/{filename} {
+-      allow read: if isAuthenticated();
+-      allow create, update: if isAuthenticated() && isAllowedFileType() && isWithinSizeLimit();
+-      allow delete: if isAuthenticated();
++      allow read: if isConversationParticipant(convId) || isAttachmentModerator();
++      allow create: if isConversationParticipant(convId) && (resource == null || ownsAttachment()) && validAttachmentOwner()
++        && isAllowedFileType() && request.resource.size > 0 && isWithinSizeLimit();
++      allow update: if isConversationParticipant(convId) && ownsAttachment() && validAttachmentOwner()
++        && isAllowedFileType() && request.resource.size > 0 && isWithinSizeLimit();
++      allow delete: if (isConversationParticipant(convId) && ownsAttachment()) || isAttachmentModerator();
+     }
+ 
+     // Legacy / Activity uploads
+@@ -138,13 +174,46 @@ service firebase.storage {
+       allow delete: if isOwner(uid);
+     }
+ 
+-    // W2E Multimodal Evidence Submissions
++    // The old school/submission path lacks an offering scope and has no current
++    // client uploader. Keep it closed; do not guess its ownership from metadata.
+     match /schools/{schoolId}/submissions/{submissionId}/evidence/{filename} {
+-      allow read: if isAuthenticated();
+-      allow create, update: if isAuthenticated() && isWithinSizeLimit();
+-      allow delete: if isAuthenticated();
++      allow read, write: if false;
++    }
++
++    // Matches the existing Firestore offering/submission model.
++    match /schools/{schoolId}/programOfferings/{offeringId}/submissions/{submissionId}/evidence/{filename} {
++      function canAccessEvidence() {
++        let profile = firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
++        let school = firestore.exists(/databases/(default)/documents/schools/$(schoolId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)).data : {};
++        let offering = firestore.exists(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)).data : {};
++        let submission = firestore.exists(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)/submissions/$(submissionId)) ? firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)/submissions/$(submissionId)).data : {};
++        let role = request.auth.token.get('role', '');
++        return school.get('status', '') == 'active'
++          && profile.get('role', '') == role
++          && schoolId in profile.get('schoolIds', [])
++          && schoolId in request.auth.token.get('schoolIds', [])
++          && submission.get('classId', '') in profile.get('classIds', [])
++          && submission.get('classId', '') in request.auth.token.get('classIds', [])
++          && submission.get('classId', '') in offering.get('classIds', [])
++          && ((role == 'student' && submission.get('learnerUid', '') == request.auth.uid)
++            || role in ['teacher', 'coach', 'admin']);
++      }
++      function ownsSubmission() {
++        return firestore.get(/databases/(default)/documents/schools/$(schoolId)/programOfferings/$(offeringId)/submissions/$(submissionId)).data.learnerUid == request.auth.uid;
++      }
++      function isScopedModerator() {
++        return request.auth.token.get('role', '') in ['teacher', 'coach', 'admin'];
++      }
++      allow read: if hasActiveProfile() && canAccessEvidence();
++      allow create: if hasActiveProfile() && canAccessEvidence() && ownsSubmission()
++        && (resource == null || ownsAttachment())
++        && validAttachmentOwner() && isAllowedFileType()
++        && request.resource.size > 0 && isWithinSizeLimit();
++      allow update: if hasActiveProfile() && canAccessEvidence() && ownsSubmission()
++        && ownsAttachment() && validAttachmentOwner() && isAllowedFileType()
++        && request.resource.size > 0 && isWithinSizeLimit();
++      allow delete: if hasActiveProfile() && canAccessEvidence()
++        && ((ownsSubmission() && ownsAttachment()) || isScopedModerator());
+     }
+   }
+ }
+-
+-
+diff --git a/tests/api/personalization.test.js b/tests/api/personalization.test.js
+index ab43e89..1e560c7 100644
+--- a/tests/api/personalization.test.js
++++ b/tests/api/personalization.test.js
+@@ -1,6 +1,6 @@
+ import {beforeAll,afterAll,describe,it,expect,vi} from 'vitest';
+ const files=vi.hoisted(()=>({}));
+-vi.mock('firebase-admin/storage',()=>({getStorage:()=>({bucket:()=>({file:path=>({getMetadata:async()=>{if(!files[path])throw new Error('Not found');return [files[path]];},setMetadata:async value=>{files[path]={...files[path],...value};},getSignedUrl:async()=>[`https://media.example/temporary/${encodeURIComponent(path)}`]})})})}));
++vi.mock('firebase-admin/storage',()=>({getStorage:()=>({bucket:()=>({file:path=>({getMetadata:async()=>{if(!files[path])throw new Error('Not found');return [files[path]];},setMetadata:async value=>{files[path]={...files[path],...value};},getSignedUrl:async()=>{if(files[path]?.signError)throw new Error('signBlob denied');return [`https://media.example/temporary/${encodeURIComponent(path)}`];}})})})}));
+ import {setupApiTestEnv} from './api-test-helper.js';
+ import {defaults} from '../../src/features/personalization/personalizationModel.js';
+ describe('Private personalization and scoped portfolio sharing',()=>{
+@@ -85,4 +85,22 @@ describe('Private personalization and scoped portfolio sharing',()=>{
+     const current=await call('GET','/api/learner-space');const saved=await call('PUT','/api/learner-space','owner',{...current.body,items:[]});expect(saved.body.items).toHaveLength(current.body.items.length);
+     const item=saved.body.items[0];expect((await call('DELETE',`/api/learner-space/items/${item.id}`,'owner',{revision:0})).status).toBe(409);expect((await call('DELETE',`/api/learner-space/items/${item.id}`,'owner',{revision:item.revision})).status).toBe(200);
+   });
++  it('reports preview signing failure without losing a successful settings save or its revision',async()=>{
++    const path=`learnerMedia/${uid}/retry/picture.png`;
++    files[path]={contentType:'image/png',size:500,signError:true};
++    const media={path,name:'picture.png'};
++    const preview=await call('POST','/api/learner-space/media-preview','owner',{media,kind:'image'});
++    expect(preview.status).toBe(503);expect(preview.body.error.code).toBe('PREVIEW_UNAVAILABLE');
++    const current=await call('GET','/api/learner-space');
++    current.body.dashboard.appearance.picture=media;
++    const saved=await call('PUT','/api/learner-space','owner',current.body);
++    expect(saved.status).toBe(200);expect(saved.body.revision).toBe(current.body.revision+1);
++    expect(saved.body.mediaPreviewUnavailable).toBe(true);
++    expect(saved.body.dashboard.appearance.picture).toMatchObject({path,url:'',previewError:'PREVIEW_UNAVAILABLE'});
++    files[path].signError=false;
++    const retry=await call('POST','/api/learner-space/media-preview','owner',{media,kind:'image'});
++    expect(retry.status).toBe(200);expect(retry.body.url).toContain('https://media.example/temporary/');
++    const reloaded=await call('GET','/api/learner-space');expect(reloaded.body.mediaPreviewUnavailable).toBe(false);
++  });
++
+ });
+diff --git a/tests/learner-upload.test.js b/tests/learner-upload.test.js
+new file mode 100644
+index 0000000..49d24fe
+--- /dev/null
++++ b/tests/learner-upload.test.js
+@@ -0,0 +1,73 @@
++import {describe,it,expect,vi} from 'vitest';
++import {createLearnerUploader,learnerContentType} from '../src/features/personalization/learnerUpload.js';
++import {socialMediaType,putSocialMedia} from '../src/services/mediaUploadValidation.js';
++
++function setup() {
++  const put=vi.fn().mockResolvedValue({}),remove=vi.fn().mockResolvedValue({});
++  const request=vi.fn().mockResolvedValue({path:'learnerMedia/owner/id/photo.png',name:'photo.png',url:'https://example.test/private'});
++  let uid='owner';
++  const upload=createLearnerUploader({storage:{ref:()=>({put,delete:remove})},request,currentUid:()=>uid,uuid:()=> 'id'});
++  return {put,remove,request,upload,signOut:()=>{uid='someone-else';}};
++}
++const file={name:'photo.png',size:3,type:'image/png'};
++describe('Private learner upload recovery',()=>{
++  it('gives explicit phone format guidance before any upload',async()=>{
++    const t=setup();
++    for(const [name,type] of [['photo.heic','image/heic'],['photo.heif',''],['movie.mov','video/quicktime']])await expect(t.upload('owner',{...file,name,type})).rejects.toThrow(/Export|convert/);
++    expect(t.put).not.toHaveBeenCalled();
++  });
++  it('uses explicit MIME with filename fallback and strips codec parameters',()=>{
++    expect(learnerContentType({...file,type:''})).toBe('image/png');
++    expect(learnerContentType({name:'video.webm',type:'video/webm;codecs=vp9'})).toBe('video/webm');
++  });
++  it('reports permission failure at upload stage without calling preview',async()=>{
++    const t=setup();t.put.mockRejectedValue({code:'storage/unauthorized'});
++    await expect(t.upload('owner',file)).rejects.toMatchObject({stage:'upload',code:'storage/unauthorized'});
++    expect(t.request).not.toHaveBeenCalled();
++  });
++  it('retains uploaded path and retries preview without uploading twice',async()=>{
++    const t=setup();t.request.mockRejectedValueOnce(new Error('signBlob denied'));
++    const error=await t.upload('owner',file).catch(e=>e);
++    expect(error).toMatchObject({stage:'preview',media:{path:'learnerMedia/owner/id/photo.png'}});
++    await expect(error.retry()).resolves.toHaveProperty('url');
++    expect(t.put).toHaveBeenCalledTimes(1);expect(t.request).toHaveBeenCalledTimes(2);
++    expect(t.request.mock.calls[1][2].body.media).toEqual(error.media);
++  });
++  it('treats empty URLs as preview failure and discards only the uploaded object',async()=>{
++    const t=setup();t.request.mockResolvedValue({url:''});
++    const error=await t.upload('owner',file).catch(e=>e);
++    expect(error.code).toBe('preview-failed');await error.discard();expect(t.remove).toHaveBeenCalledTimes(1);
++    await expect(error.retry()).rejects.toThrow('no longer available');
++  });
++  it('prevents uploading or retrying/discarding after account changes',async()=>{
++    const t=setup();t.request.mockRejectedValue(new Error('offline'));
++    const error=await t.upload('owner',file).catch(e=>e);t.signOut();
++    await expect(error.retry()).rejects.toThrow('no longer available');
++    await expect(error.discard()).rejects.toThrow('owner');
++    await expect(t.upload('owner',file)).rejects.toThrow('Sign in again');
++    expect(t.put).toHaveBeenCalledTimes(1);expect(t.remove).not.toHaveBeenCalled();
++  });
++});
++
++describe('Community and message upload validation',()=>{
++  it('validates phone formats and size before sending bytes',async()=>{
++    const storageRef={put:vi.fn(),getDownloadURL:vi.fn()};
++    await expect(putSocialMedia(storageRef,{...file,name:'phone.heic',type:'image/heic'})).rejects.toThrow('Export HEIC');
++    await expect(putSocialMedia(storageRef,{...file,name:'phone.mov',type:'video/quicktime'})).rejects.toThrow('Convert MOV');
++    await expect(putSocialMedia(storageRef,{...file,size:21*1024*1024})).rejects.toThrow('20 MB');
++    expect(storageRef.put).not.toHaveBeenCalled();
++    expect(socialMediaType({...file,type:''})).toBe('image/png');
++  });
++  it('sends signed-in owner metadata and normalized MIME for attachments',async()=>{
++    const storageRef={put:vi.fn().mockResolvedValue({}),getDownloadURL:vi.fn().mockResolvedValue('https://example.test/image')};
++    await expect(putSocialMedia(storageRef,file,{customMetadata:{ownerUid:'owner'}})).resolves.toMatchObject({contentType:'image/png'});
++    expect(storageRef.put).toHaveBeenCalledWith(file,{contentType:'image/png',customMetadata:{ownerUid:'owner'}});
++  });
++  it('distinguishes upload denial from URL retrieval failure',async()=>{
++    const storageRef={put:vi.fn().mockRejectedValue({code:'storage/unauthorized'}),getDownloadURL:vi.fn()};
++    await expect(putSocialMedia(storageRef,file)).rejects.toMatchObject({stage:'upload'});
++    expect(storageRef.getDownloadURL).not.toHaveBeenCalled();
++    storageRef.put.mockResolvedValue({});storageRef.getDownloadURL.mockRejectedValue(new Error('denied'));
++    await expect(putSocialMedia(storageRef,file)).rejects.toThrow('file uploaded');
++  });
++});
+diff --git a/tests/personalization-ui.test.jsx b/tests/personalization-ui.test.jsx
+index 8f5a1a5..a2f2c1d 100644
+--- a/tests/personalization-ui.test.jsx
++++ b/tests/personalization-ui.test.jsx
+@@ -3,7 +3,7 @@ import React,{act} from 'react';
+ import {createRoot} from 'react-dom/client';
+ import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
+ vi.mock('../src/features/personalization/imageCrop.js',async()=>({...await vi.importActual('../src/features/personalization/imageCrop.js'),cropImage:vi.fn().mockImplementation(async(image,rect,kind)=>new File(['cropped'],kind==='picture'?'profile-picture.png':'dashboard-banner.png',{type:'image/png'}))}));
+-vi.mock('../src/firebase.js',()=>({storage:{ref:vi.fn()}}));
++vi.mock('../src/firebase.js',()=>({auth:{currentUser:{uid:'learner'}},storage:{ref:vi.fn()}}));
+ vi.mock('../src/services/api/apiClient.js',()=>({schoolRequest:vi.fn()}));
+ import {storage} from '../src/firebase.js';
+ import {schoolRequest} from '../src/services/api/apiClient.js';
+@@ -78,7 +78,7 @@ it('cancels cropping before uploading and restores keyboard focus',async()=>{
+  expect(host.querySelector('[role="dialog"]')).toBeTruthy();expect(storage.ref).not.toHaveBeenCalled();await act(async()=>host.querySelector('[role="dialog"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})));expect(host.querySelector('[role="dialog"]')).toBeNull();expect(storage.ref).not.toHaveBeenCalled();expect(document.activeElement).toBe(input);expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:crop-preview');
+ });
+ it('keeps a failed crop upload open with an actionable error and no settings write',async()=>{
+- storage.ref.mockReturnValue({put:vi.fn().mockRejectedValue(new Error('Upload unavailable'))});await renderDashboard();const input=host.querySelector('input[type="file"]');Object.defineProperty(input,'files',{value:[new File(['image'],'photo.png',{type:'image/png'})]});await act(async()=>input.dispatchEvent(new Event('change',{bubbles:true})));await applyCrop();expect(host.querySelector('[role="dialog"]')).toBeTruthy();expect(host.textContent).toContain('Upload unavailable');expect(schoolRequest.mock.calls.some(([m])=>m==='PUT')).toBe(false);
++ storage.ref.mockReturnValue({put:vi.fn().mockRejectedValue(new Error('Upload unavailable'))});await renderDashboard();const input=host.querySelector('input[type="file"]');Object.defineProperty(input,'files',{value:[new File(['image'],'photo.png',{type:'image/png'})]});await act(async()=>input.dispatchEvent(new Event('change',{bubbles:true})));await applyCrop();expect(host.querySelector('[role="dialog"]')).toBeTruthy();expect(host.textContent).toContain('File upload failed. Check your connection');expect(schoolRequest.mock.calls.some(([m])=>m==='PUT')).toBe(false);
+ });
+ it('rejects unsupported dashboard images before opening the crop dialog',async()=>{
+  await renderDashboard();const input=host.querySelector('input[type="file"]');Object.defineProperty(input,'files',{value:[new File(['script'],'image.svg',{type:'image/svg+xml'})]});await act(async()=>input.dispatchEvent(new Event('change',{bubbles:true})));expect(host.querySelector('[role="dialog"]')).toBeNull();expect(storage.ref).not.toHaveBeenCalled();expect(host.textContent).toContain('Choose a JPG');
+@@ -110,3 +110,24 @@ it('resets crop controls and returns focus after applying the crop',async()=>{
+  const slider=host.querySelector('[aria-label="Zoom"]');await act(async()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(slider,'2');slider.dispatchEvent(new Event('input',{bubbles:true}));});expect(slider.value).toBe('2');await click('Reset');expect(slider.value).toBe('1');expect(storage.ref).not.toHaveBeenCalled();
+  await click('Use this crop');expect(storage.ref).toHaveBeenCalledTimes(1);expect(document.activeElement).toBe(trigger);expect(host.querySelector('[role="dialog"]')).toBeNull();
+ });
++
++
++it('retries a failed private preview without uploading the cropped binary again',async()=>{
++  const put=vi.fn().mockResolvedValue({});storage.ref.mockReturnValue({put,delete:vi.fn()});
++  let attempts=0;
++  schoolRequest.mockImplementation(async(method,path,options)=>{
++    if(path.endsWith('/media-preview')){
++      if(++attempts===1)throw new Error('signing unavailable');
++      return {...options.body.media,url:'https://media.example/private'};
++    }
++    return structuredClone(data);
++  });
++  await renderDashboard();const input=host.querySelector('input[type="file"]');
++  Object.defineProperty(input,'files',{value:[new File(['image'],'photo.png',{type:'image/png'})]});
++  await act(async()=>input.dispatchEvent(new Event('change',{bubbles:true})));await applyCrop();
++  expect(host.querySelector('[role="dialog"]')).toBeNull();
++  expect(host.textContent).toContain('File uploaded, but its private preview');
++  await click('Retry file preview');expect(put).toHaveBeenCalledTimes(1);expect(attempts).toBe(2);
++  expect(host.querySelector('.lp-profile-photo img') || host.querySelector('img[src="https://media.example/private"]')).toBeTruthy();
++  expect(host.textContent).not.toContain('Retry file preview');
++});
+diff --git a/tests/storage/dashboard-media.test.js b/tests/storage/dashboard-media.test.js
+index 6bff15d..ee49c28 100644
+--- a/tests/storage/dashboard-media.test.js
++++ b/tests/storage/dashboard-media.test.js
+@@ -17,6 +17,7 @@ describe('Dashboard and Feature Storage rules', () => {
+ 
+     await env.withSecurityRulesDisabled(async (context) => {
+       const db = context.firestore();
++      await setDoc(doc(db,'conversations','conv-abc'),{participantIds:['student-alice','coach-charlie']});
+       // Users
+       await setDoc(doc(db, 'users', 'student-alice'), { role: 'student', status: 'active' });
+       await setDoc(doc(db, 'users', 'student-bob'), { role: 'student', status: 'active' });
+@@ -134,7 +135,7 @@ describe('Dashboard and Feature Storage rules', () => {
+       const storage = getStorage('student-alice');
+       const path = 'messages/conv-abc/attachment.png';
+       await assertSucceeds(
+-        uploadBytes(ref(storage, path), new Uint8Array([1, 2, 3]), { contentType: 'image/png' })
++        uploadBytes(ref(storage, path), new Uint8Array([1, 2, 3]), { contentType: 'image/png', customMetadata:{ownerUid:'student-alice'} })
+       );
+       await assertSucceeds(deleteObject(ref(storage, path)));
+     });
+@@ -143,7 +144,7 @@ describe('Dashboard and Feature Storage rules', () => {
+       const storage = getStorage('student-alice');
+       const path = 'messages/conv-abc/msg-1/attachment.png';
+       await assertSucceeds(
+-        uploadBytes(ref(storage, path), new Uint8Array([1, 2, 3]), { contentType: 'image/png' })
++        uploadBytes(ref(storage, path), new Uint8Array([1, 2, 3]), { contentType: 'image/png', customMetadata:{ownerUid:'student-alice'} })
+       );
+       await assertSucceeds(deleteObject(ref(storage, path)));
+     });
+@@ -152,7 +153,7 @@ describe('Dashboard and Feature Storage rules', () => {
+       const storage = getUnauthStorage();
+       const path = 'messages/conv-abc/unauth.png';
+       await assertFails(
+-        uploadBytes(ref(storage, path), new Uint8Array([1, 2, 3]), { contentType: 'image/png' })
++        uploadBytes(ref(storage, path), new Uint8Array([1, 2, 3]), { contentType: 'image/png', customMetadata:{ownerUid:'student-alice'} })
+       );
+     });
+   });
+diff --git a/tests/storage/learning-media.test.js b/tests/storage/learning-media.test.js
+index a070350..2184189 100644
+--- a/tests/storage/learning-media.test.js
++++ b/tests/storage/learning-media.test.js
+@@ -36,4 +36,14 @@ describe('Learning resource Storage rules',()=>{
+     await assertFails(upload('storage-coach','coach',`lessonMedia/${school}/${offering}/published/storage-coach/file`,'application/pdf'));
+     await assertFails(upload('storage-coach','coach',`programMedia/${school}/${offering}/storage-coach/html`,'text/html'));
+   });
++  it('revokes uploads when current profile status or assignments no longer match signed claims',async()=>{
++    const path=`programMedia/${school}/${offering}/storage-coach/revoked`;
++    for(const patch of [{status:'pending'},{status:'active',schoolIds:[]},{schoolIds:[school],classIds:[]}]){
++      await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),'users','storage-coach'),patch,{merge:true}));
++      await assertFails(upload('storage-coach','coach',path,'image/png'));
++    }
++    await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),'users','storage-coach'),{status:'active',schoolIds:[school],classIds:[cls]},{merge:true}));
++    await assertSucceeds(upload('storage-coach','coach',path,'image/png'));
++  });
++
+ });
+diff --git a/tests/storage/media-hardening.test.js b/tests/storage/media-hardening.test.js
+new file mode 100644
+index 0000000..24c4414
+--- /dev/null
++++ b/tests/storage/media-hardening.test.js
+@@ -0,0 +1,79 @@
++import {readFileSync} from 'node:fs';
++import {beforeAll,afterAll,describe,it} from 'vitest';
++import {initializeTestEnvironment,assertSucceeds,assertFails} from '@firebase/rules-unit-testing';
++import {doc,setDoc,updateDoc} from 'firebase/firestore';
++import {ref,uploadBytes,getMetadata,deleteObject} from 'firebase/storage';
++
++describe('Media identity and tenant isolation',()=>{
++  let env;
++  const claims={role:'student',schoolIds:['hardening-school'],classIds:['hardening-class']};
++  const evidence='schools/hardening-school/programOfferings/hardening-offering/submissions/hardening-submission/evidence/';
++  const store=(uid,c=claims)=>env.authenticatedContext(uid,c).storage();
++  const upload=(uid,path,type='image/png',ownerUid=uid,c=claims)=>uploadBytes(ref(store(uid,c),path),new Uint8Array([1,2,3]),{contentType:type,customMetadata:{ownerUid}});
++  beforeAll(async()=>{
++    env=await initializeTestEnvironment({projectId:'demo-hearisland-local',firestore:{host:'127.0.0.1',port:8088,rules:readFileSync('firestore.rules','utf8')},storage:{host:'127.0.0.1',port:9199,rules:readFileSync('storage.rules','utf8')}});
++    await env.withSecurityRulesDisabled(async ctx=>{
++      const db=ctx.firestore();
++      for(const uid of ['hardening-owner','hardening-peer','hardening-outsider'])await setDoc(doc(db,'users',uid),{...claims,status:'active'});
++      await setDoc(doc(db,'users','hardening-coach'),{...claims,role:'coach',status:'active'});
++      await setDoc(doc(db,'users','hardening-admin'),{role:'admin',status:'active'});
++      for(const [uid,status] of [['hardening-pending','pending'],['hardening-unknown','mystery'],['hardening-missing-status',null]])await setDoc(doc(db,'users',uid),status?{status}:{});
++      await setDoc(doc(db,'conversations','hardening-conv'),{participantIds:['hardening-owner','hardening-peer']});
++      await setDoc(doc(db,'schools','hardening-school'),{status:'active'});
++      await setDoc(doc(db,'schools','hardening-school','programOfferings','hardening-offering'),{classIds:['hardening-class']});
++      await setDoc(doc(db,'schools','hardening-school','programOfferings','hardening-offering','submissions','hardening-submission'),{learnerUid:'hardening-owner',classId:'hardening-class'});
++    });
++  });
++  afterAll(async()=>env?.cleanup());
++  it('rejects missing, pending, unknown and missing-status learner profiles',async()=>{
++    for(const uid of ['hardening-nonexistent','hardening-pending','hardening-unknown','hardening-missing-status'])await assertFails(upload(uid,`learnerMedia/${uid}/id/photo.png`));
++  });
++  it('permits owner MP4 but rejects MOV/HEIC and private direct reads',async()=>{
++    const path='learnerMedia/hardening-owner/id/video.mp4';
++    await assertSucceeds(upload('hardening-owner',path,'video/mp4'));
++    await assertFails(getMetadata(ref(store('hardening-owner'),path)));
++    for(const type of ['video/quicktime','image/heic','image/heif'])await assertFails(upload('hardening-owner',`learnerMedia/hardening-owner/id/${type.replace('/','-')}`,type));
++  });
++  for(const suffix of ['attachment.png','msg-id/attachment.png']){
++    it(`protects conversation ownership for ${suffix}`,async()=>{
++      const path=`messages/hardening-conv/${suffix}`;
++      await assertFails(upload('hardening-outsider',path));
++      await assertFails(upload('hardening-owner',path,'image/png','hardening-peer'));
++      await assertSucceeds(upload('hardening-owner',path));
++      await assertSucceeds(getMetadata(ref(store('hardening-peer'),path)));
++      await assertFails(getMetadata(ref(store('hardening-outsider'),path)));
++      await assertFails(upload('hardening-peer',path));
++      await assertFails(deleteObject(ref(store('hardening-peer'),path)));
++      await assertFails(upload('hardening-owner',path,'image/png','hardening-peer'));
++      await assertSucceeds(upload('hardening-owner',path,'video/mp4'));
++      await assertSucceeds(deleteObject(ref(store('hardening-owner'),path)));
++    });
++  }
++  it('requires existing conversation and verified admin status for moderation',async()=>{
++    await assertFails(upload('hardening-owner','messages/nonexistent/photo.png'));
++    const path='messages/hardening-conv/moderate.png';await assertSucceeds(upload('hardening-owner',path));
++    await assertFails(deleteObject(ref(store('hardening-outsider',{role:'admin'}),path)));
++    await assertSucceeds(deleteObject(ref(store('hardening-admin',{role:'admin'}),path)));
++  });
++  it('prevents a conversation participant from granting an outsider attachment access',async()=>{
++    const db=env.authenticatedContext('hardening-owner',claims).firestore();
++    await assertFails(updateDoc(doc(db,'conversations','hardening-conv'),{participantIds:['hardening-owner','hardening-outsider']}));
++    await assertSucceeds(updateDoc(doc(db,'conversations','hardening-conv'),{lastMessagePreview:'Allowed message summary'}));
++  });
++  it('denies the unscoped legacy evidence path',async()=>{
++    await assertFails(upload('hardening-owner','schools/hardening-school/submissions/legacy/evidence/photo.png'));
++  });
++  it('allows submission owner and scoped staff reads, blocks peers and scope spoofing',async()=>{
++    const path=evidence+'photo.png';await assertSucceeds(upload('hardening-owner',path));
++    await assertFails(upload('hardening-peer',path));
++    await assertFails(getMetadata(ref(store('hardening-peer'),path)));
++    await assertFails(deleteObject(ref(store('hardening-peer'),path)));
++    await assertFails(upload('hardening-owner',path,'image/png','hardening-peer'));
++    await assertFails(upload('hardening-owner',evidence+'no-school.png','image/png','hardening-owner',{...claims,schoolIds:['another-school']}));
++    await assertFails(upload('hardening-owner',evidence+'no-class.png','image/png','hardening-owner',{...claims,classIds:[]}));
++    await assertFails(upload('hardening-owner',evidence.replace('hardening-submission','nonexistent')+'photo.png'));
++    await assertSucceeds(getMetadata(ref(store('hardening-coach',{...claims,role:'coach'}),path)));
++    await assertFails(upload('hardening-coach',path,'image/png','hardening-coach',{...claims,role:'coach'}));
++    await assertSucceeds(deleteObject(ref(store('hardening-coach',{...claims,role:'coach'}),path)));
++  });
++});
+diff --git a/vitest.config.js b/vitest.config.js
+index b006ddc..a0d8fdd 100644
+--- a/vitest.config.js
++++ b/vitest.config.js
+@@ -8,7 +8,7 @@ export default defineConfig({
+     // emulators:exec); the solar car and SO₂ model suites are pure and also run on
+     // their own via `npm run test:unit`. The other files in tests/ are standalone node
+     // scripts run directly (node tests/<file>), not via vitest.
+-    include: ['tests/coach-roster-stats.test.js', 'tests/profile-image-crop.test.js', 'tests/activity-ai-generation.test.js', 'tests/activity-builder.test.jsx', 'tests/journey.test.jsx', 'tests/activity-spec.test.js', 'tests/quest-model.test.js', 'tests/quest-ui.test.jsx', 'tests/simulation-lab.test.jsx', 'tests/goal-setting-modal.test.js', 'tests/personalization-model.test.js', 'tests/personalization-ui.test.jsx', 'tests/w2e-learning-studio.test.jsx', 'tests/program-chooser.test.jsx', 'tests/goals-dashboard.test.js', 'tests/school-workspace-ui.test.jsx', 'tests/school-api-client.test.js', 'tests/firestore-rules.test.js', 'tests/solar-car-model.test.js', 'tests/so2-model.test.js', 'tests/plant-lab-model.test.js', 'tests/hex-grid-model.test.js', 'tests/junior-explorers.test.js', 'tests/activity-search.test.js', 'tests/growth-hub-phase0.test.js', 'tests/primary-worksheets.test.js', 'tests/pbl.test.js', 'tests/so2-filter.test.js', 'tests/sim-economy.test.js'],
++    include: ['tests/learner-upload.test.js', 'tests/coach-roster-stats.test.js', 'tests/profile-image-crop.test.js', 'tests/activity-ai-generation.test.js', 'tests/activity-builder.test.jsx', 'tests/journey.test.jsx', 'tests/activity-spec.test.js', 'tests/quest-model.test.js', 'tests/quest-ui.test.jsx', 'tests/simulation-lab.test.jsx', 'tests/goal-setting-modal.test.js', 'tests/personalization-model.test.js', 'tests/personalization-ui.test.jsx', 'tests/w2e-learning-studio.test.jsx', 'tests/program-chooser.test.jsx', 'tests/goals-dashboard.test.js', 'tests/school-workspace-ui.test.jsx', 'tests/school-api-client.test.js', 'tests/firestore-rules.test.js', 'tests/solar-car-model.test.js', 'tests/so2-model.test.js', 'tests/plant-lab-model.test.js', 'tests/hex-grid-model.test.js', 'tests/junior-explorers.test.js', 'tests/activity-search.test.js', 'tests/growth-hub-phase0.test.js', 'tests/primary-worksheets.test.js', 'tests/pbl.test.js', 'tests/so2-filter.test.js', 'tests/sim-economy.test.js'],
+     testTimeout: 15000,
+     hookTimeout: 30000,
+     // Rule evaluation shares one emulator; parallel files would race on
+-- 
+2.39.2 (Apple Git-143)
+

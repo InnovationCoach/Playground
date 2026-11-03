@@ -15,8 +15,10 @@ import { sendError } from './lib/errors.js';
 
 import sessionRouter from './routes/session.js';
 import adminUsersRouter from './routes/admin-users.js';
+import coachStudentsRouter from './routes/coach-students.js';
 import referenceRouter from './routes/reference.js';
 import operationsRouter from './routes/operations.js';
+import pilotOperationsRouter from './routes/pilot-operations.js';
 import parentsRouter from './routes/parents.js';
 import schoolWorkspaceRouter from './routes/school-workspace.js';
 import personalizationRouter from './routes/personalization.js';
@@ -86,8 +88,10 @@ export function createApp() {
   // ============= NEW PHASE 0 CONTRACT ENDPOINTS =============
   app.use('/api', sessionRouter);
   app.use('/api/admin/users', adminUsersRouter);
+  app.use('/api/coach/students', coachStudentsRouter);
   app.use('/api/admin', referenceRouter);
   app.use('/api/admin', operationsRouter);
+  app.use('/api/pilot', pilotOperationsRouter);
   app.use('/api', parentsRouter);
   app.use('/api', schoolWorkspaceRouter);
   app.use('/api', personalizationRouter);

@@ -1,4 +1,6 @@
+import { LeavePanel } from '../admin/pilot/PilotOperations.jsx';
 import { useEffect, useRef, useState } from 'react';
+import { StudentInviteDialog } from './StudentInviteDialog.jsx';
 import { CoachWorkspace } from './CoachWorkspace.jsx';
 import CoachDashboard from '../../components/Coach/CoachDashboard.js';
 
@@ -12,7 +14,7 @@ import CoachDashboard from '../../components/Coach/CoachDashboard.js';
  *
  * React must not touch the container's children: the class owns that subtree.
  */
-function ManagementTools({ coachUser }) {
+function ManagementTools({ coachUser, onAddStudent, classId, onClassChange }) {
   const containerRef = useRef(null);
   const instanceRef = useRef(null);
 
@@ -28,7 +30,10 @@ function ManagementTools({ coachUser }) {
 
     const dashboard = new CoachDashboard({
       containerId: containerRef.current.id,
-      coachUser
+      coachUser,
+      onAddStudent,
+      classId,
+      onClassChange
     });
     instanceRef.current = dashboard;
 
@@ -53,10 +58,25 @@ function ManagementTools({ coachUser }) {
 
 export function CoachDashboardHost({ coachUser }) {
   const [management, setManagement] = useState(false);
-  if (management) return <>
-    <div className="gh-app cw-management"><button className="gh-btn gh-btn-ghost" onClick={() => setManagement(false)}>← Back to progress overview</button><p role="status">Existing management tools. Curriculum figures are examples; materials may use demonstration data while the backend connection is unavailable.</p></div>
-    <ManagementTools coachUser={coachUser} />
+  const [invite, setInvite] = useState(false);
+  const [classId, setClassId] = useState('all');
+  const [rosterVersion, setRosterVersion] = useState(0);
+  return <>
+    <div className="gh-app" style={{ padding: '0 20px', maxWidth: 1240, margin: '0 auto' }}>
+      <details className="gh-card" style={{ margin: '16px 0', padding: '1rem 1.25rem' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', color: 'var(--gh-heading)' }}>
+          Day-off requests · request leave and track responses
+        </summary>
+        <div style={{ marginTop: '1rem' }}>
+          <LeavePanel />
+        </div>
+      </details>
+    </div>
+    {invite && <StudentInviteDialog initialClassId={classId} onClose={() => setInvite(false)} onCreated={() => setRosterVersion(n => n + 1)} />}
+    {management ? <>
+    <div className="gh-app cw-management"><button className="gh-btn gh-btn-ghost" onClick={() => setManagement(false)}>← Back to progress overview</button><p role="status">Class management tools. Select one assigned class before adding a task or assignment. Unavailable records are marked explicitly.</p></div>
+    <ManagementTools classId={classId} onClassChange={setClassId} key={rosterVersion} coachUser={coachUser} onAddStudent={() => setInvite(true)} />
+    </> : <CoachWorkspace initialClassId={classId} onClassChange={setClassId} coachUser={coachUser} rosterVersion={rosterVersion} onAddStudent={() => setInvite(true)} onManagement={() => setManagement(true)} />}
   </>;
-  return <CoachWorkspace coachUser={coachUser} onManagement={() => setManagement(true)} />;
 }
 

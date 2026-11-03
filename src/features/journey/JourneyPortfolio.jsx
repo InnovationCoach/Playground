@@ -1,3 +1,4 @@
+import { MediaImage, MediaVideo, mediaKind } from '../media/MediaViewer.jsx';
 /**
  * Portfolio maker: a design-thinking portfolio built stage by stage.
  *
@@ -163,13 +164,13 @@ function EvidenceCard({ item, stage, space, t }) {
   return (
     <li className="jp-ev">
       {item.kind === 'image' && item.media?.url
-        ? <img className="jp-ev-thumb" src={item.media.url} alt={item.title} />
+        ? <MediaImage className="jp-ev-thumb" src={item.media.url} alt={item.title} />
         : <span className="jp-ev-icon" aria-hidden="true"><Icon size={20} /></span>}
       <div className="jp-ev-body">
         <strong>{item.title}</strong>
         {item.body && <p>{item.body}</p>}
-        {item.kind === 'recording' && item.media?.url && (item.media.contentType?.startsWith('video/')
-          ? <video controls preload="metadata" src={item.media.url} />
+        {item.kind === 'recording' && item.media?.url && (mediaKind(item.media) === 'video'
+          ? <MediaVideo src={item.media.url} title={item.title} />
           : <audio controls preload="metadata" src={item.media.url} />)}
         {item.media && !['image', 'recording'].includes(item.kind) && <small>{item.media.name}</small>}
         {item.link && <a href={item.link} target="_blank" rel="noopener noreferrer">{item.link}</a>}

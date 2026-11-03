@@ -1,7 +1,8 @@
 import { fail } from './schoolScope.js';
-export const LESSON_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'];
+import { LEARNING_MEDIA_TYPES } from '../../src/features/school/media/mediaSpec.js';
+export const LESSON_MEDIA_TYPES = LEARNING_MEDIA_TYPES;
 export async function validateLessonAttachments(attachments, prefix, bucket) {
-  if (!Array.isArray(attachments) || attachments.length > 8) fail(400, 'VALIDATION', 'Choose up to eight images or videos.');
+  if (!Array.isArray(attachments) || attachments.length > 8) fail(400, 'VALIDATION', 'Choose up to eight images, videos, PDFs or slide presentations.');
   const seen = new Set();
   for (const attachment of attachments) {
     const path = attachment?.path;
@@ -10,10 +11,14 @@ export async function validateLessonAttachments(attachments, prefix, bucket) {
   }
   return Promise.all(attachments.map(async attachment => {
     const path = attachment.path;
-    const [metadata] = await bucket().file(path).getMetadata();
+    const file = bucket().file(path);
+    let metadata;
+    try { [metadata] = await file.getMetadata(); } catch { fail(400, 'VALIDATION', 'The uploaded resource is unavailable. Upload it again.'); }
     const size = Number(metadata.size);
     if (!LESSON_MEDIA_TYPES.includes(metadata.contentType) || !Number.isFinite(size) || size <= 0 || size > 100 * 1024 * 1024) fail(400, 'VALIDATION', 'Unsupported media type or file larger than 100 MB.');
     if (typeof attachment.name !== 'string' || !attachment.name.trim() || attachment.name.length > 200) fail(400, 'VALIDATION', 'Media filename is required.');
+    // Keep publication/enrollment checks effective even if the SDK added a token.
+    if (metadata.metadata?.firebaseStorageDownloadTokens) await file.setMetadata({metadata:{firebaseStorageDownloadTokens:null}});
     return { path, name: attachment.name.trim(), contentType: metadata.contentType, size };
   }));
 }

@@ -1,4 +1,8 @@
-import { installDraftRoutes, linkedActivity } from '../lib/ai/activityDrafts.js';
+import { validateCompetencyIds } from '../../src/features/pbl/content/competencyValidation.js';
+import { installPathwayRoutes } from '../lib/learnerPathway.js';
+import { validateProgram } from '../../src/features/school/programs/programSpec.js';
+import { programPrompt, generateProgram } from '../lib/ai/programGeneration.js';
+import { installDraftRoutes, linkedActivity, runGeneration } from '../lib/ai/activityDrafts.js';
 import { validateActivity, validateActivityResponses, ActivityValidationError } from '../../src/features/activities/spec/activitySpec.js';
 import { validateSimulation } from '../../src/features/school/simulationModel.js';
 import { Router } from 'express';
@@ -179,25 +183,44 @@ router.get('/schools/:schoolId/program-offerings', wrap(async (req, res) => {
     }
   }
   res.json({
-    items: list.sort((a, b) => a.semester - b.semester)
+    items: await Promise.all(list.sort((a, b) => a.semester - b.semester).map(async offering => ({...offering, attachments: await signedMedia(offering.attachments)})))
   });
+}));
+router.post('/schools/:schoolId/program-drafts/convert', wrap(async (req, res) => {
+  const caller = req.schoolCaller;
+  if (caller.role !== 'admin' && !staff(caller)) fail(403,'FORBIDDEN','Only coaches and admins can design programs.');
+  await assignedClass(caller, req.schoolId, requireId(req.body.classId));
+  const prompt = programPrompt(req.body);
+  const result = await runGeneration(req, adapter => generateProgram(adapter, prompt), async tx => {
+    const user = await tx.get(getFirestore().collection('users').doc(caller.uid));
+    const cls = await tx.get(getFirestore().collection('classes').doc(req.body.classId));
+    const school = await tx.get(root(req.schoolId));
+    const profile = user.data();
+    if (!school.exists || school.data().status === 'suspended' || !profile || profile.status === 'suspended' || profile.role !== caller.role || !profile.schoolIds?.includes(req.schoolId) || (caller.role !== 'admin' && !profile.classIds?.includes(req.body.classId)) || !cls.exists || cls.data().schoolId !== req.schoolId || cls.data().status === 'archived') fail(403,'FORBIDDEN','Your school or class assignment changed during conversion.');
+    return () => audit(tx,req.schoolId,caller,'PROGRAM_CONVERTED',req.body.classId);
+  });
+  res.json({program:result});
 }));
 router.post('/schools/:schoolId/program-offerings', wrap(async (req, res) => {
   const caller = req.schoolCaller;
   if (caller.role !== 'admin' && !staff(caller)) fail(403, 'FORBIDDEN', 'Only coaches and admins can create program offerings.');
   const custom = req.body.programId === 'custom';
+  let designed;
+  try { if (req.body.programDraft !== undefined) { if (!custom) fail(400,'VALIDATION','Program drafts require a custom program.'); designed = validateProgram(req.body.programDraft); } } catch (e) { fail(400,'VALIDATION',e.message); }
   const program = custom ? {
     id: `custom-${randomBytes(8).toString('hex')}`,
-    title: requireText(req.body.title, 'Program title', 200),
-    drivingQuestion: requireText(req.body.drivingQuestion, 'Driving question', 1000),
-    semester: Number(req.body.semester || 1), gradeBand: 'Coach-created program',
-    milestones: [{id:'explore',title:'Explore and predict'},{id:'experiment',title:'Build and experiment'},{id:'reflect',title:'Reflect and share'}], rubric: []
+    title: designed?.title || requireText(req.body.title, 'Program title', 200),
+    drivingQuestion: designed?.drivingQuestion || requireText(req.body.drivingQuestion, 'Driving question', 1000),
+    semester: Number(req.body.semester || 1), gradeBand: designed?.gradeBand || 'Coach-created program',
+    ...(designed ? {overview:designed.overview} : {}),
+    milestones: designed?.milestones || [{id:'explore',title:'Explore and predict'},{id:'experiment',title:'Build and experiment'},{id:'reflect',title:'Reflect and share'}], rubric: []
   } : programById(req.body.programId);
   if (!program) fail(400, 'VALIDATION', 'Choose a school program or create a custom program.');
   if (!Number.isInteger(program.semester) || program.semester < 1 || program.semester > 3) fail(400, 'VALIDATION', 'Choose semester 1–3.');
   const yearId = requireId(req.body.yearId),
     classIds = req.body.classIds;
   if (!Array.isArray(classIds) || !classIds.length || classIds.length > 20 || new Set(classIds).size !== classIds.length) fail(400, 'VALIDATION', 'Choose 1–20 unique classes.');
+  if (designed && classIds.length !== 1) fail(400,'VALIDATION','Assign a program draft to one class at a time.');
   for (const id of classIds) await assignedClass(caller, req.schoolId, id);
   const ref = root(req.schoolId).collection('programOfferings').doc(`${yearId}-${program.id}`);
   const value = {
@@ -207,7 +230,7 @@ router.post('/schools/:schoolId/program-offerings', wrap(async (req, res) => {
     semester: program.semester,
     yearId,
     classIds,
-    status: 'published',
+    status: designed ? 'draft' : 'published',
     revision: 1,
     createdAt: now(),
     createdBy: caller.uid
@@ -216,12 +239,72 @@ router.post('/schools/:schoolId/program-offerings', wrap(async (req, res) => {
   await getFirestore().runTransaction(async tx => {
     if ((await tx.get(ref)).exists) fail(409, 'CONFLICT', 'This offering already exists for the school year.');
     tx.create(ref, value);
+    if (designed) for (const classId of classIds) for (const item of [...designed.activities,...designed.simulations]) {
+      const lesson = ref.collection('lessons').doc();
+      tx.create(lesson,{...item,classId,simulation:item.simulation || null,attachments:[],status:'draft',revision:1,authorUid:caller.uid,createdAt:now(),updatedAt:now()});
+    }
     audit(tx, req.schoolId, caller, 'OFFERING_CREATED', ref.id);
   });
   res.status(201).json({
     ...value,
     id: ref.id
   });
+}));
+router.patch('/schools/:schoolId/program-offerings/:offeringId/media', wrap(async (req,res) => {
+  const {ref,value} = await offeringAccess(req,req.params.offeringId,true), caller=req.schoolCaller;
+  if (caller.role !== 'admin' && value.createdBy !== caller.uid) fail(403,'FORBIDDEN','Only the program creator can manage its resources.');
+  for (const id of value.classIds) await assignedClass(caller,req.schoolId,id);
+  const attachments=await validateLessonAttachments(req.body.attachments,`programMedia/${req.schoolId}/${ref.id}/`,lessonBucket);
+  let revision;
+  await getFirestore().runTransaction(async tx => {
+    const snap=await tx.get(ref), current=snap.data();
+    if (!current || current.revision !== req.body.revision) fail(409,'CONFLICT','The program changed. Reload before saving its resources.');
+    if (caller.role !== 'admin' && current.createdBy !== caller.uid) fail(403,'FORBIDDEN','Program ownership changed.');
+    if (JSON.stringify(current.classIds) !== JSON.stringify(value.classIds)) fail(409,'CONFLICT','Program classes changed. Reload before saving.');
+    revision=current.revision+1;
+    tx.update(ref,{attachments,revision,updatedAt:now()});
+    audit(tx,req.schoolId,caller,'PROGRAM_MEDIA_UPDATED',ref.id);
+  });
+  res.json({saved:true,revision});
+}));
+router.patch('/schools/:schoolId/program-offerings/:offeringId/definition', wrap(async (req,res) => {
+  const {ref,value} = await offeringAccess(req,req.params.offeringId,true);
+  for (const id of value.classIds) await assignedClass(req.schoolCaller,req.schoolId,id);
+  let definition;
+  try { definition=validateProgram({...req.body.programDefinition,activities:[],simulations:[]}); } catch(e) {fail(400,'VALIDATION',e.message);}
+  await getFirestore().runTransaction(async tx => {
+    const snap=await tx.get(ref), current=snap.data();
+    if (!current?.programDefinition || current.status !== 'draft' || current.revision !== req.body.revision) fail(409,'CONFLICT','The program changed. Reload before saving.');
+    const lessons=await tx.get(ref.collection('lessons'));
+    if (lessons.docs.some(d=>!definition.milestones.some(m=>m.id===d.data().milestoneId))) fail(400,'VALIDATION','A milestone still has linked lessons.');
+    const {activities,simulations,...details}=definition;
+    tx.update(ref,{title:details.title,programDefinition:{...details,id:current.programId,semester:current.semester,rubric:current.programDefinition.rubric || []},revision:current.revision+1,updatedAt:now()});
+    audit(tx,req.schoolId,req.schoolCaller,'PROGRAM_DETAILS_UPDATED',ref.id);
+  });
+  res.json({saved:true});
+}));
+router.post('/schools/:schoolId/program-offerings/:offeringId/publish', wrap(async (req,res) => {
+  const {ref,value} = await offeringAccess(req,req.params.offeringId,true);
+  // Publishing affects the whole offering, so require authority over every assigned class.
+  for (const id of value.classIds) await assignedClass(req.schoolCaller,req.schoolId,id);
+  await getFirestore().runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    const current = snap.data();
+    if (!current || current.revision !== req.body.revision || current.status !== 'draft') fail(409,'CONFLICT','The program changed. Reload before publishing.');
+    const lessons = await tx.get(ref.collection('lessons'));
+    if (!lessons.size || lessons.size > 40) fail(400,'VALIDATION','Add 1–40 lessons before publishing.');
+    for (const d of lessons.docs) {
+      const lesson = d.data();
+      if (lesson.status === 'draft' && lesson.authorUid !== req.schoolCaller.uid && req.schoolCaller.role !== 'admin') fail(403,'FORBIDDEN','Only the author can publish a draft lesson.');
+      if (lesson.status === 'draft' && lesson.activity?.provenance?.aiAssisted && req.body.safetyConfirmed !== true) fail(400,'SAFETY_CONFIRMATION_REQUIRED','Confirm the activity safety review before publishing.');
+      if (!current.classIds.includes(lesson.classId)) fail(400,'VALIDATION','A lesson is outside the program class.');
+      lessonBody(lesson,current.programDefinition || programById(current.programId));
+    }
+    for (const d of lessons.docs) if (d.data().status === 'draft') tx.update(d.ref,{...(d.data().activity ? {activity:{...d.data().activity,provenance:{...d.data().activity.provenance,reviewedBy:req.schoolCaller.uid,reviewedAt:now()}}} : {}),status:'published',revision:d.data().revision+1,publishedAt:now(),updatedAt:now()});
+    tx.update(ref,{status:'published',revision:current.revision+1,updatedAt:now()});
+    audit(tx,req.schoolId,req.schoolCaller,'PROGRAM_PUBLISHED',ref.id);
+  });
+  res.json({published:true});
 }));
 router.patch('/schools/:schoolId/program-offerings/:offeringId', wrap(async (req, res) => {
   const caller = req.schoolCaller;
@@ -365,18 +448,70 @@ router.get('/schools/:schoolId/program-offerings/:offeringId/lessons', wrap(asyn
   res.json({ items: list.sort((a, b) => a.createdAt.localeCompare(b.createdAt)) });
 }));
 const lessonBucket = () => getStorage().bucket(process.env.FIREBASE_STORAGE_BUCKET || 'dnd-master-73449.firebasestorage.app');
+async function signedMedia(attachments = []) {
+  return Promise.all(attachments.map(async attachment => {
+    const [url] = await lessonBucket().file(attachment.path).getSignedUrl({action:'read', expires:Date.now()+60*60*1000});
+    return {...attachment,url};
+  }));
+}
+
 
 function lessonBody(body, program) {
   const title = requireText(body.title, 'Lesson title'),
-    outcome = requireText(body.outcome, 'Learning outcome', 1000),
-    instructions = requireText(body.instructions, 'Instructions', 10000);
+    outcome = requireText(body.outcome, 'Learning outcome', 1000);
+
+  let instructions = typeof body.instructions === 'string' ? body.instructions.trim() : '';
+  if (!instructions && Array.isArray(body.steps) && body.steps.length > 0) {
+    instructions = body.steps.map((s, i) => `Step ${i + 1}: ${s.title || ''}\n${s.instructions || ''}`).join('\n\n').trim();
+  }
+  if (!instructions) fail(400, 'VALIDATION', 'Lesson instructions or steps are required.');
+  if (instructions.length > 10000) fail(400, 'VALIDATION', 'Instructions must contain at most 10000 characters.');
+
   if (!program.milestones.some(m => m.id === body.milestoneId)) fail(400, 'VALIDATION', 'Choose a milestone in this program.');
   let simulation;
   try { simulation = validateSimulation(body.simulation); } catch (error) { fail(400, 'VALIDATION', error.message); }
+
+  if (body.steps !== undefined && (!Array.isArray(body.steps) || body.steps.length > 20)) fail(400, 'VALIDATION', 'Choose up to 20 learning steps. Nothing has been saved.');
+  const steps = Array.isArray(body.steps) ? body.steps.slice(0, 20).map((s, idx) => ({
+    id: typeof s.id === 'string' && s.id ? s.id.slice(0, 80) : `step-${idx + 1}`,
+    order: idx + 1,
+    title: typeof s.title === 'string' ? s.title.slice(0, 200).trim() : `Step ${idx + 1}`,
+    type: ['introduction', 'task', 'resource', 'practice', 'reflection', 'submission'].includes(s.type) ? s.type : 'task',
+    instructions: typeof s.instructions === 'string' ? s.instructions.slice(0, 5000) : '',
+    durationMinutes: Number.isFinite(Number(s.durationMinutes)) ? Math.max(1, Math.min(240, Number(s.durationMinutes))) : 15,
+    competencyIds: validateCompetencyIds(s.competencyIds, {label: `Step ${idx + 1} competencies`, max: 10})
+  })) : [];
+
+  const competencyIds = validateCompetencyIds(body.competencyIds);
+  const prerequisiteCompetencyIds = validateCompetencyIds(body.prerequisiteCompetencyIds, { label: 'Prerequisite competencies' });
+  if (prerequisiteCompetencyIds.some(id => competencyIds.includes(id))) fail(400, 'VALIDATION', 'A target competency cannot also be its own prerequisite.');
+  const successCriteria = Array.isArray(body.successCriteria) ? body.successCriteria.slice(0, 15).map(c => typeof c === 'string' ? c.slice(0, 500).trim() : '').filter(Boolean) : [];
+  const estimatedMinutes = Number.isFinite(Number(body.estimatedMinutes)) ? Math.max(5, Math.min(600, Number(body.estimatedMinutes))) : 45;
+  const prerequisites = typeof body.prerequisites === 'string' ? body.prerequisites.slice(0, 1000).trim() : '';
+
+  const evidenceSpec = body.evidenceSpec && typeof body.evidenceSpec === 'object' ? {
+    type: body.evidenceSpec.type === 'team' ? 'team' : 'individual',
+    acceptedFormats: Array.isArray(body.evidenceSpec.acceptedFormats) ? body.evidenceSpec.acceptedFormats.slice(0, 10) : ['document', 'media'],
+    reviewer: typeof body.evidenceSpec.reviewer === 'string' ? body.evidenceSpec.reviewer.slice(0, 100) : 'coach',
+    completionRule: typeof body.evidenceSpec.completionRule === 'string' ? body.evidenceSpec.completionRule.slice(0, 100) : 'rubric'
+  } : {
+    type: 'individual',
+    acceptedFormats: ['document', 'media'],
+    reviewer: 'coach',
+    completionRule: 'rubric'
+  };
+
   return {
     title,
     outcome,
     instructions,
+    steps,
+    competencyIds,
+    prerequisiteCompetencyIds,
+    successCriteria,
+    estimatedMinutes,
+    prerequisites,
+    evidenceSpec,
     simulation,
     ...(body.activity === undefined ? {} : {activity: validateActivity({...body.activity, provenance: {aiAssisted: false}})}),
     milestoneId: body.milestoneId,
@@ -470,6 +605,10 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/lessons/:lessonId/
     if (caller.role !== 'admin' && !caller.classIds.includes(value.classId)) fail(403, 'FORBIDDEN', 'Class access changed.');
     if (value.revision !== req.body.revision || value.status !== 'draft') fail(409, 'CONFLICT', 'This lesson changed. Reload before publishing.');
     if (value.activity?.provenance?.aiAssisted && req.body.safetyConfirmed !== true) fail(400, 'SAFETY_CONFIRMATION_REQUIRED', 'Confirm the safety review before publishing.');
+    validateCompetencyIds(value.competencyIds);
+    const prerequisites = validateCompetencyIds(value.prerequisiteCompetencyIds, { label: 'Prerequisite competencies' });
+    if (prerequisites.some(id => value.competencyIds?.includes(id))) fail(400, 'VALIDATION', 'A target competency cannot also be its own prerequisite.');
+    if (Array.isArray(value.steps)) for (const step of value.steps) validateCompetencyIds(step.competencyIds, {label: 'Step competencies', max: 10});
     if(value.activity) provenance={...value.activity.provenance,reviewedBy:caller.uid,reviewedAt:now()};
     tx.update(lesson, {
       ...(value.activity ? {activity: {...value.activity, provenance}} : {}),
@@ -546,6 +685,7 @@ router.post('/schools/:schoolId/program-offerings/:offeringId/submissions', wrap
       };
       return;
     }
+    if (req.body.expectedLessonRevision !== undefined && req.body.expectedLessonRevision !== l.revision) fail(409, 'CONFLICT', 'The lesson changed since you chose this quest. Keep your work and ask your coach to check the updated lesson before submitting.');
     result = {
       learnerUid: caller.uid,
       classId: l.classId,
@@ -620,6 +760,10 @@ router.get('/schools/:schoolId/learner-goals', wrap(async (req, res) => {
     list = permitted;
   }
   // Parents never receive unpublished or coach-private fields.
+  if (caller.role === 'parent') list = list.map(g => g.source === 'competency-pathway' ? {
+    id: g.id, learnerUid: g.learnerUid, classId: g.classId, target: g.target, domain: g.domain,
+    dueDate: g.dueDate, state: g.state, acknowledged: g.acknowledged, revision: g.revision
+  } : g);
   res.json({
     items: list
   });
@@ -678,6 +822,7 @@ router.patch('/schools/:schoolId/learner-goals/:goalId', wrap(async (req, res) =
     };else {
       if (!staff(caller) && caller.role !== 'admin') fail(403, 'FORBIDDEN', 'Only assigned staff can review a goal.');
       if (!['active', 'achieved', 'archived'].includes(req.body.state)) fail(400, 'VALIDATION', 'Choose a valid goal state.');
+      if (g.source === 'competency-pathway' && req.body.state !== 'archived') fail(400, 'VALIDATION', 'Assess the quest competencies using reviewed evidence to change achievement.');
       update = {
         state: req.body.state
       };
@@ -1147,5 +1292,7 @@ router.post('/schools/:schoolId/ai-drafts/:draftId/accept', wrap(async (req, res
 
   res.json({ accepted: true, draftId });
 }));
+
+installPathwayRoutes(router, { wrap, root, audit });
 
 export default router;

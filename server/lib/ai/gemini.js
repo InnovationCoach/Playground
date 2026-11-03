@@ -53,7 +53,7 @@ export function createAdapter({ apiKey, model } = {}) {
         signal: controller.signal,
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: prompt.system }] },
-          contents: [{ role: 'user', parts: [{ text: prompt.user }] }],
+          contents: [{ role: 'user', parts: [{ text: prompt.user }, ...(prompt.document ? [{inlineData: prompt.document}] : [])] }],
           generationConfig: { maxOutputTokens, ...(json ? { responseMimeType: 'application/json' } : {}) }
         })
       });

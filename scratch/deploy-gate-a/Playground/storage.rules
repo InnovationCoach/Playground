@@ -1,0 +1,82 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAllowedFileType() {
+      return request.resource.contentType.matches('image/jpeg')
+          || request.resource.contentType.matches('image/png')
+          || request.resource.contentType.matches('image/webp')
+          || request.resource.contentType.matches('image/gif')
+          || request.resource.contentType.matches('video/mp4')
+          || request.resource.contentType.matches('video/webm')
+          || request.resource.contentType.matches('video/quicktime');
+    }
+
+    function isWithinSizeLimit() {
+      return request.resource.size <= 20 * 1024 * 1024; // 20 MB max
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // F2: Community Space Media
+    match /community/{uid}/{postId}/{filename} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(uid) && isAllowedFileType() && isWithinSizeLimit();
+    }
+
+    // F3: Private Message Attachments
+    //
+    // Only the conversation's members (and admins/supervisors, for the audit
+    // view) may read them; before this, any signed-in user could. Members may
+    // add images, video, voice notes and common documents, up to 20 MB each.
+    // Files are never overwritten or deleted from the client.
+    function isMessageFileType() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp|gif)')
+          || request.resource.contentType.matches('video/(mp4|webm|quicktime)')
+          || request.resource.contentType.matches('audio/(webm|ogg|mp4|mpeg|aac|x-m4a|wav)(;.*)?')
+          || request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('application/(msword|vnd[.]ms-excel|vnd[.]ms-powerpoint)')
+          || request.resource.contentType.matches('application/vnd[.]openxmlformats-officedocument[.].*')
+          || request.resource.contentType.matches('text/(plain|csv)');
+    }
+
+    function isConversationMember(convId) {
+      return isAuthenticated()
+        && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(convId)).data.participantIds;
+    }
+
+    function isAuditor() {
+      return isAuthenticated() && request.auth.token.get('role', 'student') in ['admin', 'supervisor'];
+    }
+
+    match /messages/{convId}/{msgId}/{filename} {
+      allow read: if isConversationMember(convId) || isAuditor();
+      allow create: if isConversationMember(convId) && isMessageFileType() && isWithinSizeLimit();
+      allow update, delete: if false;
+    }
+
+    // Legacy / Activity uploads
+    match /solarCar/{uid}/{filename} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(uid) && request.resource.size <= 10 * 1024 * 1024;
+    }
+
+    // Canva Exports (Private exports of learner designs)
+    match /canva-exports/{ownerUid}/{filename} {
+      allow read: if isOwner(ownerUid);
+      allow write: if false; // written only by Admin SDK / server
+    }
+  }
+}

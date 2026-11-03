@@ -9,6 +9,7 @@ import { schoolRequest } from '../src/services/api/apiClient.js';
 import { SchoolLearningPanel } from '../src/features/school/SchoolLearningPanel.jsx';
 import { useSchoolResource } from '../src/features/school/useSchoolWorkspace.js';
 import { PROGRAM_CATALOGUE } from '../src/features/pbl/content/programCatalogue.js';
+import { storage } from '../src/firebase.js';
 let host,root;
 const context={role:'teacher',schools:[{id:'school',name:'School',timezone:'Asia/Bangkok'}],classes:[{id:'class',name:'Class',schoolId:'school'}]};
 const offerings=PROGRAM_CATALOGUE.map(p=>({id:p.id,programId:p.id,title:p.title,semester:p.semester,yearId:'2026',classIds:['class'],status:'published',revision:1}));
@@ -64,19 +65,40 @@ describe('Program switching and honest access states',()=>{
 });
 
 describe('Coach lesson media', () => {
+  it('uploads program slides with explicit metadata and saves them to the selected program', async () => {
+    schoolRequest.mockImplementation((method,path,options)=>{
+      if(method==='PATCH' && path.endsWith('/media'))return Promise.resolve({saved:true,revision:2});
+      if(path.endsWith('/program-offerings'))return Promise.resolve({items:[{...offerings[0],createdBy:'coach'}]});
+      return mockRead(method,path);
+    });
+    const put=vi.fn(()=>({on:(_event,progress,_reject,resolve)=>{progress({bytesTransferred:4,totalBytes:4});resolve();}}));
+    storage.ref.mockReturnValue({put});
+    await render();
+    const input=host.querySelector('.sw-program-resources input[type=file]');
+    Object.defineProperty(input,'files',{value:[new File(['PDF!'],'Intro.pdf',{type:''})]});
+    await act(async()=>input.dispatchEvent(new Event('change',{bubbles:true})));
+    await act(async()=>host.querySelector('.sw-program-resources form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+    expect(put).toHaveBeenCalledWith(expect.any(File),{contentType:'application/pdf'});
+    expect(storage.ref).toHaveBeenCalledWith(expect.stringMatching(/^programMedia\/school\/sustainable-futures\/coach\//));
+    expect(schoolRequest).toHaveBeenCalledWith('PATCH','/api/schools/school/program-offerings/sustainable-futures/media',{body:{revision:1,attachments:[expect.objectContaining({name:'Intro.pdf',contentType:'application/pdf',size:4})]}});
+  });
   it('shows the upload picker for staff in the selected program', async () => {
     await render();
     const input = host.querySelector('.sw-lessons input[type="file"]');
     expect(input).toBeTruthy();
     expect(input.multiple).toBe(true);
     expect(input.accept).toContain('video/mp4');
+    expect(input.accept).toContain('application/pdf');
+    expect(input.accept).toContain('.pptx');
   });
   it('renders published images and playable videos for students without an upload picker', async () => {
     schoolRequest.mockImplementation((method, path) => {
       if (path === '/api/learning-context') return Promise.resolve({ ...context, role: 'student' });
       if (path.endsWith('/lessons')) return Promise.resolve({ items: [{ id: 'media-lesson', title: 'Coach instructions', outcome: 'Build', instructions: 'Watch before starting', status: 'published', revision: 2, attachments: [
         { path: 'image', name: 'Example design', contentType: 'image/png', url: 'https://example.com/design.png' },
-        { path: 'video', name: 'Demonstration', contentType: 'video/mp4', url: 'https://example.com/demo.mp4' }
+        { path: 'video', name: 'Demonstration', contentType: 'video/mp4', url: 'https://example.com/demo.mp4' },
+        { path: 'pdf', name: 'Lesson slides.pdf', contentType: 'application/pdf', url: 'https://example.com/slides.pdf' },
+        { path: 'pptx', name: 'Presentation.pptx', contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', url: 'https://example.com/slides.pptx' }
       ] }] });
       return mockRead(method, path);
     });
@@ -84,6 +106,20 @@ describe('Coach lesson media', () => {
     expect(host.querySelector('.sw-lessons img').alt).toBe('Example design');
     expect(host.querySelector('.sw-lessons video').controls).toBe(true);
     expect(host.querySelector('.sw-lessons input[type="file"]')).toBeNull();
+    expect(host.querySelectorAll('.sw-lessons img')).toHaveLength(1);
+    expect(host.querySelector('a[href="https://example.com/slides.pdf"]').textContent).toContain('Open PDF');
+    expect(host.querySelector('a[href="https://example.com/slides.pptx"]').textContent).toContain('Download presentation');
+  });
+  it('shows enrolled program posters and resources without student edit controls', async () => {
+    schoolRequest.mockImplementation((method,path)=>{
+      if(path==='/api/learning-context')return Promise.resolve({...context,role:'student'});
+      if(path.endsWith('/program-offerings'))return Promise.resolve({items:[{...offerings[0],attachments:[{path:'poster',name:'Program poster',contentType:'image/png',url:'https://example.com/poster.png'},{path:'slides',name:'Program slides',contentType:'application/pdf',url:'https://example.com/program.pdf'}]}]});
+      return mockRead(method,path);
+    });
+    await render();
+    expect(host.querySelector('.sw-program-poster').src).toBe('https://example.com/poster.png');
+    expect(host.querySelector('.sw-program-resources a').href).toBe('https://example.com/program.pdf');
+    expect(host.querySelector('.sw-program-resources input[type=file]')).toBeNull();
   });
 });
 
@@ -107,15 +143,33 @@ describe('Yearly school calendar', () => {
 describe('Coach-created programs',()=>{
  it('offers a visible create action and opens an editable assigned-class program form',async()=>{
   await render();expect(host.querySelector('.sw-create-program')).toBeTruthy();await click('Create your own program');
-  expect(host.querySelector('section[aria-label="Create your own program"]')).toBeTruthy();
-  const form=host.querySelector('section[aria-label="Create your own program"] form');
+  expect(host.querySelector('section[aria-label="Program maker"]')).toBeTruthy();
+  const form=host.querySelector('section[aria-label="Program maker"] form');
   const fill=async(el,value)=>act(async()=>{Object.getOwnPropertyDescriptor(el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));});
   await fill(form.querySelector('input'),'Microgrid makers');await fill(form.querySelector('textarea'),'How can our district keep clean power available?');
   const definition={id:'custom-makers',title:'Microgrid makers',drivingQuestion:'How can our district keep clean power available?',semester:1,gradeBand:'Coach-created program',milestones:[{id:'explore',title:'Explore'}],rubric:[]};
   schoolRequest.mockImplementation(async(method,path,{body}={})=>method==='POST'?{id:'offering-makers',programId:'custom-makers',programDefinition:definition,...body,title:definition.title,status:'published',revision:1}:mockRead(method,path));
   await act(async()=>form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
   const call=schoolRequest.mock.calls.find(([method,path])=>method==='POST'&&path.endsWith('program-offerings'));
-  expect(call[2].body).toMatchObject({programId:'custom',title:'Microgrid makers',classIds:['class'],semester:1});
-  expect(host.textContent).toContain('Program created. Generate its join code below.');expect(host.textContent).toContain('Microgrid makers');expect(host.textContent).toContain('Enrollment code management');
+  expect(call[2].body).toMatchObject({programId:'custom',programDraft:expect.objectContaining({title:'Microgrid makers'}),classIds:['class'],semester:1});
+  expect(host.textContent).toContain('Microgrid makers');expect(host.textContent).toContain('Enrollment code management');
  });
+});
+
+it('shows student activities and simulations in separate program sections',async()=>{
+ const {simulationFromPrompt}=await import('../src/features/school/simulationModel.js');
+ schoolRequest.mockImplementation((method,path)=>{
+  if(path==='/api/learning-context')return Promise.resolve({...context,role:'student'});
+  if(path.endsWith('/lessons'))return Promise.resolve({items:[
+   {id:'activity',title:'Rainfall investigation',outcome:'Measure volume',instructions:'Record rainfall',milestoneId:'phase1',status:'published',revision:2},
+   {id:'simulation',title:'Tank simulation',outcome:'Balance supply',instructions:'Compare designs',milestoneId:'phase1',status:'published',revision:2,simulation:simulationFromPrompt('Collect water')}
+  ]});
+  return mockRead(method,path);
+ });
+ await render();
+ const activities=host.querySelector('.sw-lessons section[aria-label="Activities"]'), simulations=host.querySelector('.sw-lessons section[aria-label="Simulations"]');
+ expect(activities.querySelector('details').open).toBe(false);
+ expect(simulations.querySelector('details').open).toBe(false);
+ expect(activities.textContent).toContain('Rainfall investigation');expect(activities.textContent).not.toContain('Tank simulation');
+ expect(simulations.textContent).toContain('Tank simulation');expect(simulations.querySelector('.sw-simulation')).toBeTruthy();expect(activities.querySelector('.sw-simulation')).toBeNull();
 });

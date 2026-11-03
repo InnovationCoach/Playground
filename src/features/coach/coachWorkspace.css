@@ -27,3 +27,15 @@
 /* Isolate React workspace headers from the legacy page-wide header rule. */
 .cw-app header { background:transparent; color:var(--gh-text); border:0; padding:0; box-shadow:none; }
 .cw-app header h1 { color:var(--gh-text); display:block; }
+
+.cw-invite-dialog { border:1px solid #cbd5e1; border-radius:16px; padding:24px; width:min(520px,calc(100vw - 32px)); max-height:90vh; overflow:auto; color:#172b40; background:white; }
+.cw-invite-dialog::backdrop { background:rgba(15,23,42,.55); }
+.cw-invite-dialog fieldset { border:0; padding:0; margin:0; }
+.cw-invite-dialog label { display:block; margin:16px 0; font-weight:600; }
+.cw-invite-dialog input,.cw-invite-dialog select { display:block; box-sizing:border-box; width:100%; padding:10px; border:1px solid #94a3b8; border-radius:6px; margin-top:6px; }
+.cw-invite-dialog button { margin:6px 8px 0 0; }
+
+.cw-feedback { margin-top:24px; border-top:1px solid #cbd5e1; padding-top:16px; }
+.cw-feedback label { display:block; }
+.cw-feedback textarea { display:block; width:100%; min-height:120px; box-sizing:border-box; padding:10px; margin:8px 0; border:1px solid #94a3b8; border-radius:6px; font:inherit; }
+.cw-invite-dialog.gh-app { box-sizing:border-box; min-height:0; height:fit-content; max-height:calc(100dvh - 32px); margin:auto; }

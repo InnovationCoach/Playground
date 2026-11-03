@@ -312,7 +312,7 @@ function AppScreens() {
   // these from the profile document). Settings renders inside the console.
   if (CONSOLE_ROLES.includes(role)) {
     const consoleRoute = route?.screen === 'admin' || route?.screen === 'settings'
-      ? route : { screen: 'admin', page: 'list', kind: 'students' };
+      ? route : { screen: 'admin', page: 'pilot' };
     return (
       <>
         <Header {...headerProps} />

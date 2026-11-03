@@ -24,12 +24,13 @@ export function parseRoute(hash) {
   const [head, a, b] = parts;
   if (head === 'admin') {
     if (KINDS.includes(a)) return { screen: 'admin', page: 'list', kind: a };
+    if (['staff-attendance', 'student-attendance', 'leave', 'inventory'].includes(a)) return { screen: 'admin', page: a };
     if (a === 'billing') return { screen: 'admin', page: 'billing' };
     if (a === 'materials') return { screen: 'admin', page: 'materials' };
     if (a === 'learning') return { screen: 'admin', page: 'learning' };
     if (a === 'users' && b) return { screen: 'admin', page: 'detail', uid: b };
     if (a === 'new' && KINDS.includes(b)) return { screen: 'admin', page: 'create', kind: b };
-    return { screen: 'admin', page: 'list', kind: 'students' };
+    return { screen: 'admin', page: 'pilot' };
   }
   if (head === 'coach' && (!a || a === 'dashboard')) return {screen:'coach'};
   if (head === 'portfolio') return {screen:'portfolio', uid: a || null};

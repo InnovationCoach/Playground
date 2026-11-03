@@ -1,3 +1,4 @@
+import { MediaImage, MediaVideo, mediaKind } from '../media/MediaViewer.jsx';
 import {useEffect,useRef,useState} from 'react';
 import {usePersonalization,uploadLearnerFile} from './usePersonalization.js';
 import {PALETTES,BACKGROUNDS,WIDGETS,LAYOUTS,KINDS,AUDIENCES,defaults,moveWidget,previewItems,safeProjectLink} from './personalizationModel.js';
@@ -54,8 +55,16 @@ function DashboardProfile({space,uid,profile,onUploading,onPersonalize}) {
   function remove(kind){space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[kind]:null}}}));}
   async function apply(file){
     setUploading(true);
-    try{const uploaded=await uploadLearnerFile(uid,file);space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[selection.kind]:uploaded}}}));setSelection(null);onUploading(false);}
-    finally{setUploading(false);}
+    try{
+      const uploaded=await uploadLearnerFile(uid,file);
+      space.change(d=>({...d,dashboard:{...d.dashboard,appearance:{...d.dashboard.appearance,[selection.kind]:uploaded}}}));
+      setSelection(null);
+      onUploading(false);
+    }catch(e){
+      space.setError(e.message || 'Image upload failed.');
+      onUploading(false);
+      throw e;
+    }finally{setUploading(false);}
   }
   return <>
     <header className="lp-profile-header" aria-label={copy.profileRegion}>
@@ -82,13 +91,13 @@ function DashboardProfile({space,uid,profile,onUploading,onPersonalize}) {
     {selection&&<ImageCropDialog key={selection.kind} {...selection} onCancel={cancel} onApply={apply}/>}
   </>;
 }
-export function PersonalizedDashboard({uid,profile,widgets}) {
+export function PersonalizedDashboard({uid,profile,widgets,onProfileChanged}) {
   const space=usePersonalization(uid), [editing,setEditing]=useState(false), [dragId,setDragId]=useState(null), [announcement,setAnnouncement]=useState(''), [decorating,setDecorating]=useState(false);
   const d=space.draft.dashboard;
   const changed=!!space.saved&&JSON.stringify(d)!==JSON.stringify(space.saved.dashboard);
   const reviewing=!!space.saved&&(editing||changed), locked=space.loading||space.busy||decorating||!space.saved;
   function move(id,target){space.change(value=>({...value,dashboard:{...value.dashboard,widgetOrder:moveWidget(value.dashboard.widgetOrder,id,target)}}));setAnnouncement(profileText('widgetMoved',{name:WIDGETS[id],position:target+1,total:4}));}
-  async function save(){await space.save();refreshLearnerAvatar(uid);}
+  async function save(){await space.save();refreshLearnerAvatar(uid);if(typeof onProfileChanged==='function')onProfileChanged();}
   return <section className={`lp-space lp-dashboard lp-layout-${d.layout}`} style={surfaceStyle(d)} aria-label={copy.dashboardRegion}>
     <div className="lp-toolbar"><p className="lp-private-badge"><Lock size={15} aria-hidden="true"/><span><strong>{copy.privateBadge}</strong>{copy.privateBadgeDetail}</span></p><div className="lp-toolbar-actions"><a href="#/portfolio">{copy.portfolioLink}</a><button type="button" className="lp-personalize" aria-label={copy.personalize} aria-expanded={editing} onClick={()=>setEditing(v=>!v)} disabled={space.loading || decorating || !space.saved}>{copy.personalizeShort}<span className="lp-narrow-sr">{copy.personalizeSuffix}</span></button></div></div>
     {space.loading && <p role="status">{copy.loading}</p>}
@@ -110,7 +119,7 @@ export function PersonalizedDashboard({uid,profile,widgets}) {
 function WorkCard({item}) {
   let link = ''; try {link = safeProjectLink(item.link);} catch { /* unsafe drafts are never linked */ }
   return <article className="lp-work"><small>{KINDS[item.kind]}</small><h3>{item.title}</h3>{item.body && (item.kind==='code'?<pre><code>{item.body}</code></pre>:<p className="lp-intro">{item.body}</p>)}{link && <a href={link} target="_blank" rel="noopener noreferrer">Open project link ↗</a>}
-    {item.media?.url && <div className="lp-media">{item.kind==='image'?<img src={item.media.url} alt={item.title}/>:item.kind==='recording'?(item.media.contentType.startsWith('video/')?<video controls preload="metadata" src={item.media.url}/>:<audio controls preload="metadata" src={item.media.url}/>):<a href={item.media.url} download={item.media.name}>Download {item.media.name}</a>}</div>}
+    {item.media?.url && <div className="lp-media">{item.kind==='image'?<MediaImage src={item.media.url} alt={item.title}/>:item.kind==='recording'?(mediaKind(item.media)==='video'?<MediaVideo src={item.media.url} title={item.title}/>:<audio controls preload="metadata" src={item.media.url}/>):<a href={item.media.url} download={item.media.name}>Download {item.media.name}</a>}</div>}
   </article>;
 }
 export function PortfolioPresentation({portfolio,items}) {return <section className={`lp-space lp-portfolio lp-portfolio-${portfolio.layout}`} style={surfaceStyle(portfolio)} aria-label="Shareable portfolio"><SurfaceHeader surface={portfolio}/><div className="lp-work-grid">{items.map(item=><WorkCard key={item.id} item={item}/>)}{!items.length && <p>No work is shared with this audience yet.</p>}</div></section>;}

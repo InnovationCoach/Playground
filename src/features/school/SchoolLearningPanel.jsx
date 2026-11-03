@@ -1,6 +1,15 @@
+import { ProgramMediaEditor } from './programs/ProgramMediaEditor.jsx';
+import { LearningMedia } from './media/LearningMedia.jsx';
+import { MEDIA_ACCEPT, MEDIA_HINT, learningMediaType, validateMediaFiles } from './media/mediaSpec.js';
+import { ProgramDetailsEditor } from './programs/ProgramDetailsEditor.jsx';
+import { ProgramMaker } from './programs/ProgramMaker.jsx';
 import { useActivityText } from '../activities/builder/activityMessages.js';
 import { ActivityCoachTools, ActivityLesson } from '../activities/builder/ActivityEntry.jsx';
 import { SimulationBuilder, SimulationLab } from './SimulationLab.jsx';
+import { CompactLessonList } from './lessons/CompactLessonList.jsx';
+import { CoachLessonEditor } from './lessons/CoachLessonEditor.jsx';
+import { LearnerLessonView } from './lessons/LearnerLessonView.jsx';
+import { emptyLesson, normalizeLesson } from './lessons/lessonModel.js';
 import { useEffect, useState } from 'react';
 import { auth, storage } from '../../firebase.js';
 import { BookOpen, CalendarDays, Target, GraduationCap, RefreshCw, Sparkles, HeartHandshake } from 'lucide-react';
@@ -8,6 +17,7 @@ import { PROGRAM_CATALOGUE, programById } from '../pbl/content/programCatalogue.
 import { useSchoolResource, schoolPath, mutateSchool, serviceMessage } from './useSchoolWorkspace.js';
 import { QuestArea } from '../quest/QuestHome.jsx';
 import { QuestSummary } from '../quest/QuestSummary.jsx';
+import { LearnerPathway } from '../quest/LearnerPathway.jsx';
 import { W2eCoachSupportPanel } from './W2eCoachSupportPanel.jsx';
 import './schoolWorkspace.css';
 import { CALENDAR_REFERENCE } from './calendarReference.js';
@@ -110,14 +120,14 @@ function Programs({
   initialProgram = ''
 }) {
   const {t}=useActivityText();
-  const [creating,setCreating]=useState(false),[semester,setSemester]=useState(1);
+  const [creating,setCreating]=useState(false),[publishReviewed,setPublishReviewed]=useState(false);
   const offerings = useSchoolResource(schoolPath(school.id, 'program-offerings'),true);
   const [selected, setSelected] = useState(initialProgram || 'sustainable-futures'),
     [offeringId, setOfferingId] = useState(''),
     [code, setCode] = useState(''),
     [year, setYear] = useState('2026-2027'),
     [classId, setClassId] = useState(classes[0]?.id || '');
-  const [customTitle, setCustomTitle] = useState(''), [customQuestion, setCustomQuestion] = useState(''), [justCreated,setJustCreated]=useState(null);
+  const [justCreated,setJustCreated]=useState(null);
   const [state, run] = useMutation(offerings.reload),
     customPrograms = [...new Map((offerings.data?.items || []).filter(o => o.programDefinition).map(o => [o.programDefinition.id,o.programDefinition])).values()],
     catalogue = [...PROGRAM_CATALOGUE, ...customPrograms,...(justCreated&&!customPrograms.some(p=>p.id===justCreated.programId)?[justCreated.programDefinition]:[])],
@@ -125,17 +135,17 @@ function Programs({
     list = [...(offerings.data?.items || []),...(justCreated&&!offerings.error&&!(offerings.data?.items||[]).some(o=>o.id===justCreated.id)?[justCreated]:[])].filter(o => o.classIds.some(id => classes.some(c => c.id === id)));
   const options = list.filter(o => o.programId === selected),
     offering = options.find(o => o.id === offeringId) || options[0];
+  useEffect(()=>setPublishReviewed(false),[offering?.id,offering?.revision]);
   const isStaff = ['teacher', 'coach', 'admin'].includes(role);
   return <div>
-    {isStaff&&<section className="sw-card sw-create-program"><h3>{t('createProgram')}</h3><p>{t('programHint')}</p><button type="button" className="gh-btn gh-btn-primary" aria-expanded={creating} onClick={()=>setCreating(v=>!v)}>{t(creating?'programCancel':'createProgram')}</button>{!classes.length&&<p role="status">{t('programNoClass')}</p>}</section>}
+    {isStaff&&<section className="sw-card sw-create-program"><h3>{t('createProgram')}</h3><p>{t('programHint')}</p><button type="button" className="gh-btn gh-btn-primary" aria-expanded={creating} disabled={creating} onClick={()=>setCreating(true)}>{t(creating?'programCancel':'createProgram')}</button>{!classes.length&&<p role="status">{t('programNoClass')}</p>}</section>}
     <div className="sw-programs">{catalogue.map(p => <button key={p.id} className={selected === p.id ? 'sw-program sw-selected' : 'sw-program'} aria-pressed={selected === p.id} onClick={() => {
         setSelected(p.id);
         setOfferingId('');
-      }}><span>Semester {p.semester}</span><strong>{p.title}</strong><small>{p.gradeBand}</small></button>)}</div>
-    {isStaff && creating && <section className="sw-card" aria-label={t('createProgram')}><form className="sw-form" onSubmit={async e=>{e.preventDefault();const created=await run(()=>mutateSchool('POST',schoolPath(school.id,'program-offerings'),{programId:'custom',title:customTitle,drivingQuestion:customQuestion,yearId:year,semester,classIds:[classId]}),t('programCreated'));if(created){setJustCreated(created);setSelected(created.programId);setOfferingId(created.id);setCustomTitle('');setCustomQuestion('');setCreating(false);}}}>
-      <Field label={t('programTitle')}><input required maxLength={200} value={customTitle} onChange={e=>setCustomTitle(e.target.value)}/></Field><Field label={t('programQuestion')}><textarea required maxLength={1000} value={customQuestion} onChange={e=>setCustomQuestion(e.target.value)}/></Field><Field label={t('schoolYear')}><input required pattern="[A-Za-z0-9_-]+" value={year} onChange={e=>setYear(e.target.value)}/></Field><ClassSelect classes={classes} value={classId} onChange={setClassId}/><Field label={t('programSemester')}><select value={semester} onChange={e=>setSemester(Number(e.target.value))}>{[1,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></Field><button className="gh-btn gh-btn-primary" disabled={state.busy||!classId||!customTitle.trim()||!customQuestion.trim()}>{t('createCustom')}</button></form></section>}
+      }}>{list.find(o=>o.programId===p.id)?.attachments?.find(a=>a.contentType?.startsWith('image/')&&a.url) && <img className="sw-program-poster" src={list.find(o=>o.programId===p.id).attachments.find(a=>a.contentType?.startsWith('image/')&&a.url).url} alt="" loading="lazy"/>}<span>Semester {p.semester}</span><strong>{p.title}</strong><small>{p.gradeBand}</small></button>)}</div>
+    {isStaff && creating && <ProgramMaker school={school} classes={classes} onCancel={()=>setCreating(false)} onCreated={created=>{setJustCreated(created);setSelected(created.programId);setOfferingId(created.id);setCreating(false);offerings.reload();}}/>}
     {message(offerings.error)}{offerings.loading && <p role="status">Loading program enrollments…</p>}
-    <h3>{template.title}</h3><p>{template.drivingQuestion}</p><ol className="sw-milestones">{template.milestones.map(m => <li key={m.id}>{m.title}</li>)}</ol>
+    <h3>{template.title}</h3><p>{template.drivingQuestion}</p>{template.overview&&<p className="sw-preserve">{template.overview}</p>}<ol className="sw-milestones">{template.milestones.map(m => <li key={m.id}>{m.title}</li>)}</ol>
     {template.rubric.length > 0 && <details><summary>Assessment criteria</summary><ul>{template.rubric.map(r => <li key={r.title}>{r.title} · {r.weight}% · {r.standard}</li>)}</ul></details>}
     {selected === 'sustainable-futures' && <p><a href="#/pbl">Open existing Sustainable Futures Studio →</a><small className="sw-muted sw-block">Existing portfolios keep their original term identifier.</small></p>}
     {options.length > 1 && <Field label="School year offering"><select value={offering?.id || ''} onChange={e => setOfferingId(e.target.value)}>{options.map(o => <option key={o.id} value={o.id}>{o.yearId}</option>)}</select></Field>}
@@ -156,8 +166,8 @@ function Programs({
       }), 'Offering created for the selected class.');
     }}><Field label="School year ID"><input required pattern="[A-Za-z0-9_-]+" value={year} onChange={e => setYear(e.target.value)} /></Field><ClassSelect classes={classes} value={classId} onChange={setClassId} /><button disabled={state.busy || !classId} className="gh-btn gh-btn-primary">Create offering</button></form>}
     <Feedback state={state} />
-    {offering && <><p className="sw-muted">{offering.yearId} · Semester {offering.semester} · {offering.status}</p>{role === 'admin' && <OfferingClasses key={`classes-${offering.id}-${offering.revision}`} school={school} offering={offering} classes={classes} onSaved={offerings.reload} />}{isStaff && <EnrollmentCode key={`codes-${offering.id}-${offering.revision}`} school={school} offering={offering} classes={classes} />}
-      <Lessons key={`lessons-${offering.id}`} school={school} offering={offering} classes={classes} template={template} isStaff={isStaff} /><EvidenceReviews key={`evidence-${offering.id}`} school={school} offering={offering} role={role} /></>}
+    {offering && <><p className="sw-muted">{offering.yearId} · Semester {offering.semester} · {offering.status}</p>{role === 'admin' && <OfferingClasses key={`classes-${offering.id}-${offering.revision}`} school={school} offering={offering} classes={classes} onSaved={offerings.reload} />}{isStaff && offering.status==='draft' && offering.programDefinition && <ProgramDetailsEditor key={`${offering.id}-${offering.revision}`} school={school} offering={offering} onSaved={offerings.reload}/>}{isStaff && offering.status==='draft' && <div className="sw-card"><p>Review the program lessons below. Publishing makes this program and its draft lessons available to enrolled students.</p><label><input type="checkbox" checked={publishReviewed} onChange={e=>setPublishReviewed(e.target.checked)}/> I reviewed the program, lesson instructions and activity safety.</label><button className="gh-btn gh-btn-primary" disabled={state.busy||!publishReviewed} onClick={()=>run(()=>mutateSchool('POST',`${schoolPath(school.id,'program-offerings')}/${offering.id}/publish`,{revision:offering.revision,safetyConfirmed:publishReviewed}),'Program published. Students can now join and open its lessons.')}>Publish program</button></div>}{isStaff && offering.status==='published' && <EnrollmentCode key={`codes-${offering.id}-${offering.revision}`} school={school} offering={offering} classes={classes} />}
+      <section className="sw-program-resources" aria-label="Program resources"><h3>Program resources</h3><p className="sw-muted">Watch, explore and prepare for your lessons.</p><LearningMedia attachments={offering.attachments}/>{!offering.attachments?.length && <p>{isStaff ? 'Add a poster, video or slide deck for this program.' : 'Your coach will share program resources here.'}</p>}{isStaff && (role==='admin' || offering.createdBy===auth.currentUser?.uid) && <ProgramMediaEditor key={`media-${offering.id}-${offering.revision}`} school={school} offering={offering} onSaved={offerings.reload}/>}</section><Lessons key={`lessons-${offering.id}-${offering.revision}`} school={school} offering={offering} classes={classes} template={template} isStaff={isStaff} /><EvidenceReviews key={`evidence-${offering.id}`} school={school} offering={offering} role={role} /></>}
   </div>;
 }
 function ClassSelect({
@@ -196,88 +206,191 @@ function Lessons({
   isStaff
 }) {
   const base = schoolPath(school.id, `program-offerings/${offering.id}/lessons`),
-    lessons = useSchoolResource(base,true);
+    lessons = useSchoolResource(base, true);
   const choices = classes.filter(c => offering.classIds.includes(c.id));
-  const blank = {
-    title: '',
-    outcome: '',
-    instructions: '',
-    classId: choices[0]?.id || '',
-    milestoneId: template.milestones[0].id
-  };
+  const blank = emptyLesson(choices[0]?.id || '', template.milestones[0]?.id || '');
   const [mediaFiles, setMediaFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState('');
-  const [fileKey, setFileKey] = useState(0);
   const [draft, setDraft] = useState(blank),
     [editId, setEditId] = useState(null),
+    [isAdding, setIsAdding] = useState(false),
+    [previewLesson, setPreviewLesson] = useState(null),
     [state, run] = useMutation(lessons.reload);
-  const update = (key, value) => setDraft(d => ({
-    ...d,
-    [key]: value
-  }));
-  return <section className="sw-lessons"><h3>Program lessons</h3>{message(lessons.error)}{lessons.loading && <p role="status">Loading lessons…</p>}
-    {!lessons.loading && !lessons.error && !lessons.data?.items.length && <p>No lessons have been published for your class yet.</p>}
-    {(lessons.data?.items || []).map(l => <article className="sw-card" key={l.id}><small>{template.milestones.find(m => m.id === l.milestoneId)?.title} · {l.status} · Version {l.revision}</small><h4>{l.title}</h4><p><strong>Learning outcome:</strong> {l.outcome}</p><p className="sw-preserve">{l.instructions}</p><LessonMedia attachments={l.attachments} />{l.simulation && <SimulationLab settings={l.simulation}/>}{l.activity && !isStaff && l.status==='published' && <ActivityLesson lesson={l} uid={auth.currentUser?.uid} schoolId={school.id} offeringId={offering.id}/>} {isStaff && !l.activity && l.status === 'draft' && <div className="sw-actions"><button className="gh-btn gh-btn-ghost" disabled={state.busy} onClick={() => {
-          setDraft(l);
-          setMediaFiles([]);
-          setFileKey(k => k + 1);
-          setEditId(l.id);
-        }}>Edit draft</button><button className="gh-btn gh-btn-primary" disabled={state.busy} onClick={() => run(() => mutateSchool('POST', `${base}/${l.id}/publish`, {
-          revision: l.revision
-        }), 'Lesson published to the selected class.')}>Publish lesson</button></div>}</article>)}
-    {isStaff && <ActivityCoachTools {...{school,offering,classes,template}} lessons={lessons.data?.items||[]} onSaved={lessons.reload}/>}
-    {isStaff && <details className="sw-card" open={!!editId}><summary>{editId ? 'Edit lesson draft' : 'Add a lesson'}</summary><form className="sw-form" onSubmit={async e => {
-        e.preventDefault();
-        const result = await run(async () => {
-          const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'];
-          if ((draft.attachments?.length || 0) + mediaFiles.length > 8) throw new Error('Choose up to eight images or videos per lesson.');
-          for (const file of mediaFiles) {
-            if (!allowed.includes(file.type) || file.size === 0 || file.size > 100 * 1024 * 1024) throw new Error('Use JPG, PNG, WebP, GIF, MP4 or WebM files, up to 100 MB each.');
+
+  const startAddLesson = () => {
+    setDraft(emptyLesson(choices[0]?.id || '', template.milestones[0]?.id || ''));
+    setEditId(null);
+    setMediaFiles([]);
+    setIsAdding(true);
+    setPreviewLesson(null);
+  };
+
+  const startEditLesson = lesson => {
+    setDraft(normalizeLesson(lesson));
+    setEditId(lesson.id);
+    setMediaFiles([]);
+    setIsAdding(true);
+    setPreviewLesson(null);
+  };
+
+  const cancelEditor = () => {
+    setDraft(blank);
+    setEditId(null);
+    setIsAdding(false);
+    setMediaFiles([]);
+  };
+
+  const saveLesson = async e => {
+    if (e && e.preventDefault) e.preventDefault();
+    const result = await run(async () => {
+      validateMediaFiles(mediaFiles, draft.attachments?.length || 0);
+      const { attachments: existing = [], ...content } = draft;
+      const saved = await mutateSchool(
+        editId ? 'PATCH' : 'POST',
+        editId ? `${base}/${editId}` : base,
+        { ...content, ...(editId ? { attachments: existing.map(({ url, ...a }) => a) } : {}) }
+      );
+      const id = editId || saved.id;
+      let revision = editId ? draft.revision + 1 : saved.revision;
+      let attachments = existing.map(({ url, ...a }) => a);
+      setEditId(id);
+      setDraft({ ...content, attachments, revision });
+
+      for (let i = 0; i < mediaFiles.length; i++) {
+        const file = mediaFiles[i];
+        const path = `lessonMedia/${school.id}/${offering.id}/${id}/${auth.currentUser.uid}/${crypto.randomUUID()}`;
+        try {
+          const task = storage.ref(path).put(file, { contentType: learningMediaType(file) });
+          await new Promise((resolve, reject) => task.on('state_changed', snap => setUploadProgress(`Uploading ${file.name}: ${Math.round(snap.bytesTransferred / snap.totalBytes * 100)}%`), reject, resolve));
+        } catch (uploadErr) {
+          if (uploadErr.code === 'storage/unauthorized') {
+            throw new Error(`Upload denied for "${file.name}". Please ensure the file is under the 100 MB limit and your coach account is assigned to this class/school.`);
           }
-          const { attachments: existing = [], ...content } = draft;
-          const saved = await mutateSchool(editId ? 'PATCH' : 'POST', editId ? `${base}/${editId}` : base, { ...content, ...(editId ? { attachments: existing.map(({url, ...a}) => a) } : {}) });
-          const id = editId || saved.id;
-          let revision = editId ? draft.revision + 1 : saved.revision;
-          let attachments = existing.map(({url, ...a}) => a);
-          setEditId(id);
-          setDraft({ ...content, attachments, revision });
-          // Preserve each completed upload in the draft so failures can be retried.
-          for (let i = 0; i < mediaFiles.length; i++) {
-            const file = mediaFiles[i];
-            const path = `lessonMedia/${school.id}/${offering.id}/${id}/${auth.currentUser.uid}/${crypto.randomUUID()}`;
-            const task = storage.ref(path).put(file, { contentType: file.type });
-            await new Promise((resolve, reject) => task.on('state_changed', snap => setUploadProgress(`Uploading ${file.name}: ${Math.round(snap.bytesTransferred / snap.totalBytes * 100)}%`), reject, resolve));
-            const next = [...attachments, { path, name: file.name, contentType: file.type, size: file.size }];
-            await mutateSchool('PATCH', `${base}/${id}`, { ...content, attachments: next, revision });
-            attachments = next;
-            revision += 1;
-            setDraft({ ...content, attachments, revision });
-            setMediaFiles(files => files.slice(1));
-          }
-          return true;
-        }, 'Lesson draft saved with its media. Publish it when ready.');
-        setUploadProgress('');
-        if (result) {
-          setDraft(blank);
-          setEditId(null);
-          setMediaFiles([]);
-          setFileKey(k => k + 1);
+          throw uploadErr;
         }
-      }}><Field label="Lesson title"><input required maxLength={200} value={draft.title} onChange={e => update('title', e.target.value)} /></Field><ClassSelect classes={choices} value={draft.classId} onChange={v => update('classId', v)} /><Field label="Milestone"><select value={draft.milestoneId} onChange={e => update('milestoneId', e.target.value)}>{template.milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}</select></Field><Field label="Learning outcome"><textarea required maxLength={1000} value={draft.outcome} onChange={e => update('outcome', e.target.value)} /></Field><Field label="Instructions and evidence to collect"><textarea required rows={5} maxLength={10000} value={draft.instructions} onChange={e => update('instructions', e.target.value)} /></Field><SimulationBuilder value={draft.simulation} onChange={v=>update("simulation",v)}/><Field label="Images and videos"><input key={fileKey} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" disabled={state.busy} onChange={e => setMediaFiles(Array.from(e.target.files || []))} /><small>Up to 8 files per lesson, 100 MB each. MP4 or WebM videos.</small></Field>{mediaFiles.length > 0 && <p>{mediaFiles.map(f => f.name).join(", ")}</p>}{uploadProgress && <p role="status">{uploadProgress}</p>}<LessonMedia attachments={draft.attachments} />{draft.attachments?.map(a => <button key={a.path} type="button" disabled={state.busy} className="gh-btn gh-btn-ghost" onClick={() => update("attachments", draft.attachments.filter(item => item.path !== a.path))}>Remove {a.name} from draft</button>)}<div className="sw-actions"><button className="gh-btn gh-btn-primary" disabled={state.busy || !draft.classId}>{state.busy ? 'Saving…' : 'Save draft'}</button>{editId && <button type="button" disabled={state.busy} className="gh-btn gh-btn-ghost" onClick={() => {
-            setMediaFiles([]);
-            setFileKey(k => k + 1);
-            setDraft(blank);
-            setEditId(null);
-          }}>Cancel edit</button>}</div></form></details>}
-    <Feedback state={state} />
-  </section>;
+        const next = [...attachments, { path, name: file.name, contentType: learningMediaType(file), size: file.size }];
+        await mutateSchool('PATCH', `${base}/${id}`, { ...content, attachments: next, revision });
+        attachments = next;
+        revision += 1;
+        setDraft({ ...content, attachments, revision });
+        setMediaFiles(files => files.slice(1));
+      }
+      return true;
+    }, 'Lesson draft saved with its structured steps and media.');
+    setUploadProgress('');
+    if (result) {
+      cancelEditor();
+    }
+  };
+
+  return (
+    <section className="sw-lessons">
+      <div className="sw-lessons-header-bar">
+        <h3>Program lessons</h3>
+        {isStaff && !isAdding && !editId && (
+          <button type="button" className="gh-btn gh-btn-primary" onClick={startAddLesson}>
+            + Add a lesson
+          </button>
+        )}
+      </div>
+
+      {message(lessons.error)}
+      {lessons.loading && <p role="status">Loading lessons…</p>}
+
+      {/* Interactive Learner View Preview */}
+      {previewLesson && (
+        <div className="sw-preview-card sw-card">
+          <div className="sw-preview-header">
+            <h4>{isStaff ? 'Learner Preview' : 'Your lesson'}</h4>
+            <button type="button" className="gh-btn gh-btn-ghost gh-btn-small" onClick={() => setPreviewLesson(null)}>
+              Close preview
+            </button>
+          </div>
+          <LearnerLessonView lesson={previewLesson} template={template} onClose={() => setPreviewLesson(null)} />
+        </div>
+      )}
+
+      {/* 6-Section Coach Guided Authoring Editor */}
+      {(isAdding || editId) && isStaff && (
+        <CoachLessonEditor
+          draft={draft}
+          onChange={setDraft}
+          onSave={saveLesson}
+          onCancel={cancelEditor}
+          choices={choices}
+          template={template}
+          busy={state.busy}
+          isEdit={!!editId}
+          mediaFiles={mediaFiles}
+          setMediaFiles={setMediaFiles}
+          uploadProgress={uploadProgress}
+        />
+      )}
+
+      {/* Compact Ordered Lesson List */}
+      {!isAdding && !editId && (
+        <CompactLessonList
+          lessons={lessons.data?.items || []}
+          template={template}
+          isStaff={isStaff}
+          onEdit={startEditLesson}
+          onPublish={l => run(() => mutateSchool('POST', `${base}/${l.id}/publish`, { revision: l.revision }), 'Lesson published to the selected class.')}
+          onPreview={l => setPreviewLesson(l)}
+          busy={state.busy}
+        />
+      )}
+
+      {/* Activities / Simulations Special Handlers */}
+      {!isStaff && lessons.data?.items?.some(l => l.status === 'published' && !l.simulation) && (
+        <section aria-label="Activities">
+          {lessons.data?.items?.filter(l => l.status === 'published' && !l.simulation).map(l => (
+            <details className="sw-card sw-lesson-resource-details" key={l.id}>
+              <summary><strong>{l.title}</strong> · Resources & interactive work</summary>
+              <p><strong>Learning outcome:</strong> {l.outcome}</p>
+              <p className="sw-preserve">{l.instructions}</p>
+              {l.attachments?.length > 0 && <LearningMedia attachments={l.attachments} />}
+              {l.activity && <ActivityLesson lesson={l} uid={auth.currentUser?.uid} schoolId={school.id} offeringId={offering.id} />}
+            </details>
+          ))}
+        </section>
+      )}
+
+      {!isStaff && lessons.data?.items?.some(l => l.status === 'published' && l.simulation) && (
+        <section aria-label="Simulations">
+          {lessons.data?.items?.filter(l => l.status === 'published' && l.simulation).map(l => (
+            <details className="sw-card sw-lesson-resource-details" key={l.id}>
+              <summary><strong>{l.title}</strong> · Resources & interactive work</summary>
+              <p><strong>Learning outcome:</strong> {l.outcome}</p>
+              <p className="sw-preserve">{l.instructions}</p>
+              {l.attachments?.length > 0 && <LearningMedia attachments={l.attachments} />}
+              <SimulationLab settings={l.simulation} />
+            </details>
+          ))}
+        </section>
+      )}
+
+      {/* Hidden file input for staff file picking when not in expanded editor */}
+      {isStaff && !isAdding && !editId && (
+        <div style={{ display: 'none' }}>
+          <input
+            type="file"
+            multiple
+            accept={MEDIA_ACCEPT}
+            onChange={e => {
+              setMediaFiles(Array.from(e.target.files || []));
+              startAddLesson();
+            }}
+          />
+        </div>
+      )}
+
+      {isStaff && <ActivityCoachTools {...{school,offering,classes,template}} lessons={lessons.data?.items||[]} onSaved={lessons.reload}/>}
+
+      <Feedback state={state} />
+    </section>
+  );
 }
-export function LessonMedia({ attachments = [] }) {
-  return <div className="sw-lesson-media">{attachments.map(a => <figure key={a.path}>
-    {a.url && (a.contentType.startsWith('video/') ? <video controls preload="metadata" src={a.url} aria-label={a.name} /> : <img loading="lazy" src={a.url} alt={a.name} />)}
-    <figcaption>{a.name}</figcaption>
-  </figure>)}</div>;
-}
+export function LessonMedia(props) { return <LearningMedia {...props}/>; }
 function LearnerSelect({
   learners,
   value,
@@ -309,6 +422,8 @@ function Goals({
       setClassId('');
     }} />}{!learners.loading && !learners.error && !choices.length && <p>No learners are available in your assigned scope.</p>}
     {role !== 'student' && selected && <QuestSummary key={`${selected.id}-${selectedClass?.id || ''}`} school={school} learner={selected} classId={isStaff ? selectedClass?.id : undefined} role={role} />}
+    {role === 'student' && scopedClasses.length > 1 && <ClassSelect classes={scopedClasses} value={selectedClass?.id || ''} onChange={setClassId} />}
+    {(isStaff || role === 'student') && selected && selectedClass && <LearnerPathway key={`${school.id}-${selected.id}-${selectedClass.id}-${role}`} school={school} learnerUid={selected.id} classId={selectedClass.id} role={role} onSaved={goals.reload} />}
     {isStaff && selected && <form className="sw-form" onSubmit={async e => {
       e.preventDefault();
       const result = await run(() => mutateSchool('POST', schoolPath(school.id, 'learner-goals'), {
@@ -321,7 +436,7 @@ function Goals({
       if (result) setTarget('');
     }}><ClassSelect classes={scopedClasses} value={selectedClass?.id || ''} onChange={setClassId} /><Field label="Learning area"><select value={domain} onChange={e => setDomain(e.target.value)}><option value="pbl">PBL Studio</option><option value="steam">STEAM activities</option><option value="academic">Academic learning</option></select></Field><Field label="Measurable goal and evidence of success"><textarea required maxLength={1000} value={target} onChange={e => setTarget(e.target.value)} placeholder="For example: test two prototype designs and compare the recorded results." /></Field><Field label="Due date"><input required type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></Field><button className="gh-btn gh-btn-primary" disabled={state.busy || !selectedClass}>Assign goal</button></form>}
     {message(goals.error)}{goals.loading && <p role="status">Loading goals…</p>}{goals.data?.items.length === 0 && <p>No coach goals recorded for this learner yet.</p>}
-    {(goals.data?.items || []).map(g => <article className="sw-card" key={g.id}><small>{g.domain.toUpperCase()} · Due {g.dueDate} · {g.state}</small><p>{g.target}</p><small>{g.acknowledged ? 'Learner acknowledged' : 'Awaiting learner acknowledgement'}</small>{isStaff && g.state !== 'archived' && <div className="sw-actions">{['active', 'achieved', 'archived'].filter(s => s !== g.state).map(s => <button className="gh-btn gh-btn-ghost" disabled={state.busy} key={s} onClick={() => run(() => mutateSchool('PATCH', schoolPath(school.id, `learner-goals/${g.id}`), {
+    {(goals.data?.items || []).filter(g => role === 'parent' || g.source !== 'competency-pathway').map(g => <article className="sw-card" key={g.id}><small>{g.domain.toUpperCase()} · {g.dueDate ? `Due ${g.dueDate} · ` : ''}{g.state}</small><p>{g.target}</p><small>{g.acknowledged ? 'Learner acknowledged' : 'Awaiting learner acknowledgement'}</small>{isStaff && g.state !== 'archived' && <div className="sw-actions">{['active', 'achieved', 'archived'].filter(s => s !== g.state).map(s => <button className="gh-btn gh-btn-ghost" disabled={state.busy} key={s} onClick={() => run(() => mutateSchool('PATCH', schoolPath(school.id, `learner-goals/${g.id}`), {
           state: s,
           revision: g.revision
         }), `Goal ${s}.`)}>{s === 'achieved' ? 'Confirm achieved' : s === 'archived' ? 'Archive goal' : 'Reopen goal'}</button>)}</div>}{role === 'student' && !g.acknowledged && <button className="gh-btn gh-btn-ghost" disabled={state.busy} onClick={() => run(() => mutateSchool('PATCH', schoolPath(school.id, `learner-goals/${g.id}`), {

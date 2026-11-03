@@ -21,21 +21,60 @@ router.use((req,res,next)=>{
   if(!['GET','HEAD'].includes(req.method) && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) return sendError(res,400,'VALIDATION','A JSON object is required.');
   next();
 });
-function learner(req) {if(req.spaceCaller.role !== 'student') fail(403,'FORBIDDEN','Only learners can customize their own space.'); return req.spaceCaller.uid;}
+function learner(req) {
+  if (!['student', 'coach', 'teacher', 'admin'].includes(req.spaceCaller.role)) fail(403,'FORBIDDEN','Sign in to customize your space.');
+  return req.spaceCaller.uid;
+}
+async function fetchMediaMetadata(path) {
+  const bucketsToTry = [];
+  const primaryBucketName = process.env.FIREBASE_STORAGE_BUCKET || 'dnd-master-73449.firebasestorage.app';
+  bucketsToTry.push(getStorage().bucket(primaryBucketName));
+  // If the primary bucket name is different from the legacy appspot default, add default bucket as fallback
+  if (primaryBucketName !== 'dnd-master-73449.appspot.com') {
+    bucketsToTry.push(getStorage().bucket('dnd-master-73449.appspot.com'));
+  }
+
+  let lastError = null;
+  // Try up to 4 attempts (0ms, 250ms, 500ms, 1000ms) to accommodate GCS metadata propagation delay
+  const delays = [0, 250, 500, 1000];
+  for (const delay of delays) {
+    if (delay > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    for (const b of bucketsToTry) {
+      try {
+        const [meta] = await b.file(path).getMetadata();
+        if (meta) return { metadata: meta, targetBucket: b };
+      } catch (err) {
+        lastError = err;
+      }
+    }
+  }
+  throw lastError || new Error('File metadata unavailable');
+}
+
 async function validateMedia(media, kind = 'image') {
   if (!media) return null;
-  let metadata;
-  try {[metadata] = await bucket().file(media.path).getMetadata();} catch {fail(400,'VALIDATION','The uploaded file is unavailable. Upload it again.');}
+  let metadata, targetBucket;
+  try {
+    const res = await fetchMediaMetadata(media.path);
+    metadata = res.metadata;
+    targetBucket = res.targetBucket;
+  } catch {
+    fail(400,'VALIDATION','The uploaded file is unavailable. Upload it again.');
+  }
   const mime = metadata.contentType, size = Number(metadata.size);
   const allowed = kind === 'image' ? IMAGE_TYPES.includes(mime)
-    : kind === 'recording' ? ['audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4'].includes(mime)
+    : kind === 'recording' ? ['audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4','video/quicktime'].includes(mime)
     : kind === 'model' ? ['model/gltf-binary','model/gltf+json','application/octet-stream','text/plain'].includes(mime) && /\.(glb|gltf|obj)$/i.test(media.name)
     : kind === 'code' ? ['application/zip','text/plain','application/octet-stream'].includes(mime) && /\.(zip|txt|py|js|ts|json|html|css|ino)$/i.test(media.name)
     : false;
-  if (!allowed || !MEDIA_TYPES.includes(mime) || !Number.isFinite(size) || size <= 0 || size > MAX_MEDIA_SIZE) fail(400,'VALIDATION','Choose a supported file up to 20 MB for this work type.');
+  if (!allowed || !MEDIA_TYPES.includes(mime) || !Number.isFinite(size) || size <= 0 || size > MAX_MEDIA_SIZE) fail(400,'VALIDATION',`Choose a supported file up to 20 MB for this work type (received ${size ? (size/(1024*1024)).toFixed(1) : 0} MB).`);
   // Firebase uploads may carry permanent download tokens. Remove them so
   // audience restrictions cannot be bypassed after saving or revocation.
-  if(metadata.metadata?.firebaseStorageDownloadTokens) await bucket().file(media.path).setMetadata({metadata:{firebaseStorageDownloadTokens:null}});
+  if(metadata.metadata?.firebaseStorageDownloadTokens) {
+    await (targetBucket || bucket()).file(media.path).setMetadata({metadata:{firebaseStorageDownloadTokens:null}}).catch(() => {});
+  }
   return {...media, contentType: mime, size};
 }
 async function cleanupUnreferencedMedia(uid, candidatePaths = []) {
@@ -87,12 +126,17 @@ async function cleanupUnreferencedMedia(uid, candidatePaths = []) {
 }
 async function signMedia(media, download = false) {
   if (!media) return null;
-  // Temporary signed URLs expire in 5 minutes (300,000 ms).
-  const options = {action:'read', expires: Date.now()+5*60*1000};
-  if (download) options.responseDisposition = 'attachment';
-  const [url] = await bucket().file(media.path).getSignedUrl(options);
-  // Viewers receive only display metadata and a temporary URL, never object paths.
-  return {name:media.name,contentType:media.contentType,size:media.size,url};
+  try {
+    // Temporary signed URLs expire in 5 minutes (300,000 ms).
+    const options = {action:'read', expires: Date.now()+5*60*1000};
+    if (download) options.responseDisposition = 'attachment';
+    const [url] = await bucket().file(media.path).getSignedUrl(options);
+    // Viewers receive only display metadata and a temporary URL, never object paths.
+    return {name:media.name,contentType:media.contentType,size:media.size,url};
+  } catch (err) {
+    console.warn('[signMedia] Failed to sign URL for path:', media?.path, err?.message);
+    return {name:media.name,contentType:media.contentType,size:media.size,url:''};
+  }
 }
 async function displaySurface(surface, owner) {
   const a = surface.appearance;

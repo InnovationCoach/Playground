@@ -168,38 +168,13 @@ export async function getAuthClaims(forceRefresh = false) {
 
 export { auth, db, storage };
 
-export async function registerStudentAccount(email, password, displayName, groupName) {
-  const appName = "StudentReg_" + Date.now();
-  const secondaryApp = firebase.initializeApp(firebaseConfig, appName);
-  try {
-    const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
-    const studentUser = userCredential.user;
-
-    if (displayName) {
-      await studentUser.updateProfile({ displayName });
-    }
-
-    const studentData = {
-      uid: studentUser.uid,
-      email: email,
-      displayName: displayName || email.split('@')[0],
-      role: 'student',
-      groupName: groupName || 'Climate Champions 7A',
-      createdAt: Date.now()
-    };
-
-    const secondaryDb = secondaryApp.firestore();
-    await secondaryDb.collection('users').doc(studentUser.uid).set(studentData);
-    await secondaryDb.collection('students').doc(studentUser.uid).set(studentData);
-
-    await secondaryApp.auth().signOut();
-    await secondaryApp.delete();
-
-    return studentData;
-  } catch (err) {
-    try { await secondaryApp.delete(); } catch(e) {}
-    throw err;
+// Student provisioning must use the authenticated server route. Never create a
+// secondary client Auth session: that bypasses coach authorization and leaves
+// class assignment and partial-account cleanup to the browser.
+export async function registerStudentAccount(student) {
+  if (!student || typeof student !== 'object' || Array.isArray(student)) {
+    throw new Error('Use the student invitation form with a verified class.');
   }
+  const { schoolRequest } = await import('./services/api/apiClient.js');
+  return schoolRequest('POST', '/api/coach/students', { body: student });
 }
-
-

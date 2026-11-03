@@ -247,6 +247,22 @@ describe('School workspace: scoped programs, lessons, goals, academics and calen
     })).status).toBe(403);
     expect((await request('POST', `${base}/program-offerings/${offeringId}/lessons`, 'student', body)).status).toBe(403);
   });
+  it('validates and preserves PBL alignment across lesson save and publish', async () => {
+    const path = `${base}/program-offerings/${offeringId}/lessons`;
+    const body = {title:'Aligned lesson',outcome:'Compare evidence',instructions:'Investigate',milestoneId:'phase-1',classId:cls,competencyIds:['ctps-01','ctps-09'],steps:[{id:'investigate',title:'Investigate',instructions:'Record evidence',competencyIds:['sdl-01']}]};
+    for (const change of [{competencyIds:['unknown']},{competencyIds:['sdl-01','sdl-01']},{steps:[{...body.steps[0],competencyIds:['2.1.1']}]}]) {
+      expect((await request('POST',path,'coach',{...body,...change})).status).toBe(400);
+    }
+    const created = await request('POST',path,'coach',body);
+    expect(created.status).toBe(201);
+    const ref=env.db.collection('schools').doc(school).collection('programOfferings').doc(offeringId).collection('lessons').doc(created.body.id);
+    expect((await ref.get()).data().competencyIds).toEqual(['ctps-01','ctps-09']);
+    expect((await ref.get()).data().steps[0].competencyIds).toEqual(['sdl-01']);
+    await ref.update({competencyIds:['unknown']});
+    expect((await request('POST',`${path}/${created.body.id}/publish`,'coach',{revision:1})).status).toBe(400);
+    expect((await ref.get()).data().status).toBe('draft');
+    await ref.delete();
+  });
   it('publishes lessons with revision checks and preserves published content', async () => {
     const path = `${base}/program-offerings/${offeringId}/lessons/${lesson.id}`;
     expect((await request('POST', `${path}/publish`, 'coach', {

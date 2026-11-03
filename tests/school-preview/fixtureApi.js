@@ -1,6 +1,6 @@
 import { PROGRAM_CATALOGUE } from '../../src/features/pbl/content/programCatalogue.js';
 const role=new URLSearchParams(location.search).get('role')||'teacher';
-const offerings=PROGRAM_CATALOGUE.map(p=>({id:`2026-${p.id}`,programId:p.id,title:p.title,semester:p.semester,yearId:'2026-2027',classIds:['demo-class'],status:'published'}));
+const offerings=PROGRAM_CATALOGUE.map(p=>({id:`2026-${p.id}`,programId:p.id,title:p.title,semester:p.semester,yearId:'2026-2027',classIds:['demo-class'],status:'published',createdBy:'demo-coach',revision:1,attachments:p.semester===1?[{path:'sample-poster',name:'Sustainable Futures poster',contentType:'image/svg+xml',url:'/tests/school-preview/program-poster.svg'},{path:'sample-slides',name:'Project introduction.pdf',contentType:'application/pdf',url:'/tests/school-preview/sample-slides.pdf'}]:[]}));
 let sequence=10;
 const lessons=[{id:'sample-lesson',title:'Compare prototype designs',outcome:'Use recorded test data to choose a design.',instructions:'Test two designs. Record results, then explain your choice.',milestoneId:'phase-1',classId:'demo-class',status:'published',revision:2,createdAt:'2026-10-01',authorUid:'demo-coach'}];
 const goals=[{id:'sample-goal',learnerUid:'demo-learner',classId:'demo-class',target:'Compare two prototype designs using measured results.',domain:'pbl',dueDate:'2026-10-16',state:'active',revision:1,acknowledged:false}];

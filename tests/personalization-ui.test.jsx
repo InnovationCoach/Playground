@@ -77,8 +77,9 @@ it('cancels cropping before uploading and restores keyboard focus',async()=>{
  await renderDashboard();const input=host.querySelector('input[type="file"]');input.focus();Object.defineProperty(input,'files',{value:[new File(['image'],'photo.png',{type:'image/png'})]});await act(async()=>input.dispatchEvent(new Event('change',{bubbles:true})));
  expect(host.querySelector('[role="dialog"]')).toBeTruthy();expect(storage.ref).not.toHaveBeenCalled();await act(async()=>host.querySelector('[role="dialog"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})));expect(host.querySelector('[role="dialog"]')).toBeNull();expect(storage.ref).not.toHaveBeenCalled();expect(document.activeElement).toBe(input);expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:crop-preview');
 });
-it('keeps a failed crop upload open with an actionable error and no settings write',async()=>{
+it('keeps a failed crop upload open with an actionable error and releases decoration lock when cancelled',async()=>{
  storage.ref.mockReturnValue({put:vi.fn().mockRejectedValue(new Error('Upload unavailable'))});await renderDashboard();const input=host.querySelector('input[type="file"]');Object.defineProperty(input,'files',{value:[new File(['image'],'photo.png',{type:'image/png'})]});await act(async()=>input.dispatchEvent(new Event('change',{bubbles:true})));await applyCrop();expect(host.querySelector('[role="dialog"]')).toBeTruthy();expect(host.textContent).toContain('Upload unavailable');expect(schoolRequest.mock.calls.some(([m])=>m==='PUT')).toBe(false);
+ await click('Cancel image change');expect(host.querySelector('.lp-personalize').disabled).toBe(false);
 });
 it('rejects unsupported dashboard images before opening the crop dialog',async()=>{
  await renderDashboard();const input=host.querySelector('input[type="file"]');Object.defineProperty(input,'files',{value:[new File(['script'],'image.svg',{type:'image/svg+xml'})]});await act(async()=>input.dispatchEvent(new Event('change',{bubbles:true})));expect(host.querySelector('[role="dialog"]')).toBeNull();expect(storage.ref).not.toHaveBeenCalled();expect(host.textContent).toContain('Choose a JPG');

@@ -1,0 +1,735 @@
+<title>Growth Hub Staff Testing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Layout: a field manual. Sticky role bar, then one column of step cards (screenshot left, instructions right), feedback inline under each step. */
+:root {
+  --page: #F4F4F8; --surface: #FFFFFF; --surface-2: #FAFAFD; --tint: #F0E8F7; --sky: #E9F4FF;
+  --line: #E3E4DE; --line-strong: #8A93A6;
+  --ink: #17324D; --ink-strong: #003C69; --muted: #4A5D70;
+  --purple: #8250A0; --purple-ink: #6B3F86; --on-purple: #FFFFFF;
+  --lime: #96D700; --lime-ink: #557A00; --lime-tint: #F1FAD6;
+  --amber: #A15C00; --amber-tint: #FFF3DC; --red: #AE3435; --red-tint: #FBECEC; --grey-tint: #EEEFEA;
+  --shadow: 0 1px 2px rgba(1,29,54,.06), 0 4px 16px rgba(1,29,54,.05);
+  --f-display: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #0E1726; --surface: #152236; --surface-2: #1A2940; --tint: #2A2140; --sky: #142B44;
+  --line: #2A3A52; --line-strong: #5E6F88;
+  --ink: #DCE6F2; --ink-strong: #F2F6FB; --muted: #9DB0C6;
+  --purple: #C49BE0; --purple-ink: #D7B8EC; --on-purple: #1B1030;
+  --lime: #A8E52A; --lime-ink: #B9EC55; --lime-tint: #22331A;
+  --amber: #F2B562; --amber-tint: #3A2A12; --red: #F08A8B; --red-tint: #3A1C1F; --grey-tint: #233249;
+  --shadow: 0 1px 2px rgba(0,0,0,.3);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --page: #0E1726; --surface: #152236; --surface-2: #1A2940; --tint: #2A2140; --sky: #142B44;
+  --line: #2A3A52; --line-strong: #5E6F88;
+  --ink: #DCE6F2; --ink-strong: #F2F6FB; --muted: #9DB0C6;
+  --purple: #C49BE0; --purple-ink: #D7B8EC; --on-purple: #1B1030;
+  --lime: #A8E52A; --lime-ink: #B9EC55; --lime-tint: #22331A;
+  --amber: #F2B562; --amber-tint: #3A2A12; --red: #F08A8B; --red-tint: #3A1C1F; --grey-tint: #233249;
+  --shadow: 0 1px 2px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font: 15px/1.55 var(--f-body); padding-inline: 16px; padding-block: 0 64px; }
+h1, h2, h3, h4 { font-family: var(--f-display); color: var(--ink-strong); text-wrap: balance; margin: 0; line-height: 1.2; }
+p { margin: 0; }
+a { color: var(--purple); }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; border-radius: 6px; }
+.wrap { max-width: 1120px; margin: 0 auto; }
+.eyebrow { font: 600 12px/1 var(--f-body); letter-spacing: .09em; text-transform: uppercase; color: var(--purple); }
+.mono { font-family: var(--f-mono); font-size: .9em; }
+
+/* top bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; margin-inline: -16px; padding: 10px 16px; background: color-mix(in srgb, var(--page) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.bar .wrap { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 15px var(--f-display); color: var(--ink-strong); margin-right: auto; }
+.brand i { width: 26px; height: 26px; border-radius: 8px; background: var(--purple); display: grid; place-items: center; color: var(--on-purple); font-style: normal; font-size: 13px; }
+.views { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.views button { border: 0; background: none; padding: 6px 14px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--muted); }
+.views button[aria-pressed="true"] { background: var(--purple); color: var(--on-purple); }
+.save { font-size: 13px; color: var(--muted); min-width: 0; }
+.save b { color: var(--lime-ink); font-weight: 600; }
+.jump { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
+.jump:empty { display: none; }
+.jump a { text-decoration: none; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font-variant-numeric: tabular-nums; }
+.jump a span { color: var(--muted); font-weight: 500; }
+
+/* intro */
+.hero { padding-block: 40px 28px; display: grid; gap: 14px; }
+.hero h1 { font-size: clamp(28px, 4.6vw, 44px); font-weight: 800; letter-spacing: -.02em; max-width: 22ch; }
+.hero p.lede { font-size: 17px; color: var(--muted); max-width: 64ch; }
+.how { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
+.how div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 4px; align-content: start; }
+.how b { font: 700 13px var(--f-display); color: var(--purple); }
+.how p { font-size: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
+.panel h2 { font-size: 18px; margin-bottom: 10px; }
+.panel p + p { margin-top: 8px; }
+.tablewrap { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.rules { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.rules li { display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 6px; }
+.rules li::before { content: "!"; width: 18px; height: 18px; border-radius: 50%; background: var(--amber-tint); color: var(--amber); font-weight: 700; font-size: 12px; display: grid; place-items: center; margin-top: 2px; }
+.field { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.field input, .field select, .field textarea { font-weight: 400; font-size: 15px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 9px 11px; width: 100%; }
+.field textarea { min-height: 72px; resize: vertical; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.row > .field { flex: 1 1 200px; }
+
+/* picker */
+.pick h2 { font-size: 22px; margin-bottom: 4px; }
+.pick > p { color: var(--muted); margin-bottom: 14px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.dcard { position: relative; text-align: left; background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 0; cursor: pointer; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+.dcard img { width: 100%; aspect-ratio: 16/10; object-fit: cover; object-position: top left; display: block; border-bottom: 1px solid var(--line); }
+.dcard div { padding: 12px 14px 14px; display: grid; gap: 3px; align-content: start; }
+.dcard strong { font: 700 16px var(--f-display); color: var(--ink-strong); }
+.dcard small { color: var(--muted); font-size: 13px; }
+.dcard .count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dcard[aria-pressed="true"] { border-color: var(--purple); box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 22%, transparent); }
+.dcard .tick { position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--surface); border: 2px solid var(--line-strong); display: grid; place-items: center; font-weight: 800; color: transparent; }
+.dcard[aria-pressed="true"] .tick { background: var(--lime); border-color: var(--lime); color: #003C69; }
+
+/* dashboard sections */
+.dash { margin-top: 44px; scroll-margin-top: 110px; }
+.dhead { display: grid; gap: 8px; padding-bottom: 16px; border-bottom: 2px solid var(--purple); margin-bottom: 18px; }
+.dhead h2 { font-size: clamp(24px, 3.4vw, 32px); font-weight: 800; letter-spacing: -.01em; }
+.dhead .acct { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--muted); }
+.dhead .acct b { color: var(--ink); font-weight: 600; }
+.meter { height: 6px; background: var(--grey-tint); border-radius: 99px; overflow: hidden; max-width: 360px; }
+.meter i { display: block; height: 100%; background: var(--lime); width: 0; transition: width .3s; }
+.step { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 14px; scroll-margin-top: 110px; }
+.step.done-pass { border-left: 5px solid var(--lime); }
+.step.done-issue { border-left: 5px solid var(--red); }
+.step.done-blocked { border-left: 5px solid var(--amber); }
+.step.done-skip { border-left: 5px solid var(--line-strong); }
+.shot { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.shot button { border: 1px solid var(--line); border-radius: 10px; padding: 0; background: var(--surface-2); cursor: zoom-in; overflow: hidden; display: block; width: 100%; }
+.shot img { display: block; width: 100%; height: auto; }
+.shot .thumbs { display: flex; gap: 8px; }
+.shot .thumbs button { width: 30%; }
+.shot figcaption { font-size: 12px; color: var(--muted); }
+.body { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.num { font: 600 12px var(--f-mono); color: var(--purple); letter-spacing: .04em; }
+.body h3 { font-size: 19px; font-weight: 700; }
+.body ol { margin: 0; padding-left: 20px; display: grid; gap: 5px; }
+.body ol li::marker { color: var(--purple); font-weight: 700; }
+.expect { background: var(--lime-tint); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.expect b, .watch b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 2px; }
+.expect b { color: var(--lime-ink); }
+.watch { background: var(--amber-tint); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.watch b { color: var(--amber); }
+.verdict { display: flex; gap: 6px; flex-wrap: wrap; }
+.verdict button { border: 1px solid var(--line-strong); background: var(--surface); padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.verdict button[aria-pressed="true"][data-v="pass"] { background: var(--lime); border-color: var(--lime); color: #003C69; }
+.verdict button[aria-pressed="true"][data-v="issue"] { background: var(--red); border-color: var(--red); color: var(--surface); }
+.verdict button[aria-pressed="true"][data-v="blocked"] { background: var(--amber); border-color: var(--amber); color: var(--surface); }
+.verdict button[aria-pressed="true"][data-v="skip"] { background: var(--grey-tint); border-color: var(--line-strong); }
+.wrapup { background: var(--tint); border-radius: 16px; padding: 20px; display: grid; gap: 14px; }
+.wrapup h3 { font-size: 19px; }
+.stars { display: flex; gap: 6px; flex-wrap: wrap; }
+.stars button { min-width: 44px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); cursor: pointer; font-weight: 700; }
+.stars button[aria-pressed="true"] { background: var(--purple); color: var(--on-purple); border-color: var(--purple); }
+.stars small { align-self: center; color: var(--muted); font-size: 13px; }
+.empty { text-align: center; color: var(--muted); padding: 36px 16px; border: 2px dashed var(--line); border-radius: 16px; margin-top: 28px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 28px; }
+.btn { border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; cursor: pointer; background: var(--purple); color: var(--on-purple); }
+.btn.ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); }
+.note { font-size: 13px; color: var(--muted); }
+
+/* responses */
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-block: 20px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 6px; }
+.stat strong { font: 700 15px var(--f-display); color: var(--ink-strong); }
+.bars { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--grey-tint); }
+.bars i { display: block; height: 100%; }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; background: var(--c); }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--c, var(--red)); border-radius: 12px; padding: 12px 14px; display: grid; gap: 4px; }
+.issues { display: grid; gap: 10px; }
+.issue .meta { font-size: 12px; color: var(--muted); }
+.issue p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.filters .field { flex: 0 1 220px; }
+
+/* lightbox */
+dialog { border: 0; padding: 0; background: transparent; max-width: min(96vw, 1500px); max-height: 94vh; }
+dialog::backdrop { background: rgba(1,20,40,.82); }
+dialog img { display: block; max-width: 100%; max-height: 88vh; border-radius: 10px; }
+dialog p { color: #fff; font-size: 14px; margin-top: 8px; text-align: center; }
+dialog button { position: fixed; top: 14px; right: 14px; border: 0; border-radius: 999px; width: 40px; height: 40px; font-size: 20px; cursor: pointer; background: #fff; color: #003C69; }
+
+@media (max-width: 860px) {
+  .grid2, .step { grid-template-columns: minmax(0, 1fr); }
+  .how { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) { .how { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+
+<header class="bar">
+  <div class="wrap">
+    <div class="brand"><i>W</i>Growth Hub · Staff testing</div>
+    <span class="save" id="saveState" aria-live="polite">Not saved yet</span>
+    <div class="views" role="group" aria-label="View">
+      <button type="button" id="vGuide" aria-pressed="true">Test guide</button>
+      <button type="button" id="vResp" aria-pressed="false">All feedback</button>
+    </div>
+    <nav class="jump" id="jump" aria-label="Your dashboards"></nav>
+  </div>
+</header>
+
+<main class="wrap" id="guideView">
+  <section class="hero">
+    <span class="eyebrow">WeLearn Growth Hub · Testing round, October 2026</span>
+    <h1>Test the dashboard you know best, and tell us what you find.</h1>
+    <p class="lede">Every screenshot below comes from the real platform. Pick one or more dashboards, sign in with the matching test account, work through each step and mark what happened. Your answers save as you go, so you can stop and come back.</p>
+    <div class="how">
+      <div><b>1 · Choose</b><p>Pick the dashboards you will test. Most people pick one or two.</p></div>
+      <div><b>2 · Sign in</b><p>Open the platform in a second tab and sign in with that dashboard's test account.</p></div>
+      <div><b>3 · Follow</b><p>Do each step, compare with the screenshot, then mark Pass, Issue, Blocked or Skip.</p></div>
+      <div><b>4 · Tell us</b><p>Write what you saw for anything that is not a pass, then finish the short wrap-up.</p></div>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>Where to test</h2>
+      <p>Platform: <a href="https://dnd-master-73449.web.app" target="_blank" rel="noopener">dnd-master-73449.web.app</a></p>
+      <p>The test lead will give you the shared test password. Use these accounts only. They hold practice data, not real learners.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Dashboard</th><th>Test account</th><th>Who it is</th></tr></thead>
+          <tbody>
+            <tr><td>Student</td><td class="mono">mia@school.edu</td><td>Mia Chen, Year 9 Climate Science</td></tr>
+            <tr><td>Junior Explorers</td><td class="mono">primary.student@school.edu</td><td>Penny Primary, Year 3</td></tr>
+            <tr><td>Coach</td><td class="mono">coach.rivera@school.edu</td><td>Sam Rivera, Year 9 Climate coach</td></tr>
+            <tr><td>Admin</td><td class="mono">admin.test@school.edu</td><td>Administrator</td></tr>
+            <tr><td>Supervisor</td><td class="mono">supervisor.test@school.edu</td><td>View-only console</td></tr>
+            <tr><td>Parent</td><td class="mono">parent.test@school.edu</td><td>Parent of Mia Chen</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Before you start</h2>
+      <ul class="rules">
+        <li>Do not change the password on any test account. Others share it.</li>
+        <li>Do not suspend, unlink or delete accounts unless a step tells you to.</li>
+        <li>Only use made-up names and test emails in forms. Never real learner data.</li>
+        <li>If a screen looks different from the screenshot, that is useful. Mark it and describe the difference.</li>
+        <li>Test in a private or incognito window so you stay signed in to one account at a time.</li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="panel" style="margin-bottom:16px">
+    <h2>About you</h2>
+    <div class="row">
+      <label class="field">Your team or role
+        <select id="team">
+          <option value="">Choose…</option>
+          <option>Teacher / coach</option><option>Primary teacher</option><option>School leadership</option>
+          <option>Administration / office</option><option>Finance</option><option>IT / technical</option><option>Other</option>
+        </select>
+      </label>
+      <label class="field">Device you are testing on
+        <select id="device">
+          <option value="">Choose…</option>
+          <option>Laptop or desktop</option><option>iPad or tablet</option><option>Phone</option>
+        </select>
+      </label>
+      <label class="field">Browser
+        <select id="browser">
+          <option value="">Choose…</option>
+          <option>Chrome</option><option>Safari</option><option>Edge</option><option>Firefox</option><option>Other</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="pick" id="pick">
+    <h2>Choose your dashboards</h2>
+    <p>Select one or more. The test steps for each appear below in the order you choose.</p>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <div id="dashes"></div>
+  <div class="empty" id="emptyPick">Pick a dashboard above to see its test steps.</div>
+
+  <div class="actions">
+    <button type="button" class="btn ghost" id="copyBtn">Copy my feedback as text</button>
+    <span class="note" id="copyNote">Use this if saving is not working for you: paste it into an email or chat to the test lead.</span>
+  </div>
+  <textarea id="copyArea" class="field" style="display:none;width:100%;min-height:160px;margin-top:10px" readonly aria-label="Your feedback as text"></textarea>
+</main>
+
+<main class="wrap" id="respView" hidden>
+  <section class="hero" style="padding-bottom:8px">
+    <span class="eyebrow">Everyone's results</span>
+    <h1>All feedback</h1>
+    <p class="lede" id="respLede">Results from every tester appear here as they save.</p>
+  </section>
+  <div class="stats" id="stats"></div>
+  <div class="filters">
+    <label class="field">Dashboard<select id="fDash"><option value="">All dashboards</option></select></label>
+    <label class="field">Show<select id="fKind"><option value="issue">Issues and blocked steps</option><option value="all">All notes</option><option value="wrap">Wrap-up comments</option></select></label>
+  </div>
+  <div class="issues" id="issues"></div>
+</main>
+
+<dialog id="lb"><button type="button" id="lbClose" aria-label="Close">×</button><img id="lbImg" alt=""><p id="lbCap"></p></dialog>
+
+<script>
+const S = (n) => `shots/${n}.jpg`;
+const DASHES = [
+  { id: 'student', name: 'Student', sub: 'Secondary learner · W2e Studio', account: 'mia@school.edu', who: 'Mia Chen · Year 9 Climate Science', cover: 'student-courses',
+    steps: [
+      { t: 'Sign in and land on My Courses', shots: ['login', 'student-courses'],
+        do: ['Open the platform and sign in as <span class="mono">mia@school.edu</span>.', 'Wait for the first screen to load.'],
+        expect: 'You land on <b>My Courses</b> with “Welcome back, Mia” and three PBL programmes. The left menu shows Learn, Create and Connect groups.' },
+      { t: 'Choose a PBL programme and its STEAM activities', shots: ['student-courses'],
+        do: ['Look at the three programme cards. Sustainable Futures should show <b>Selected</b>.', 'Click <b>Open Studio</b> on a programme, then come back.', 'Scroll down to <b>Attached STEAM Activities</b> and read the activity cards.'],
+        expect: 'Each programme shows its driving question and how many STEAM activities are attached. Activity cards have an Open button.' },
+      { t: 'Run a STEAM activity (Solar Car)', shots: ['student-activity-solar'],
+        do: ['On My Courses, click <b>Activity 5 · Solar Car</b>.', 'In Stage 1 “Weigh It”, type a mass for one part.', 'Open <b>Show the maths</b> and check the summary numbers update.', 'Try one other activity from the list.'],
+        expect: 'Six stages from Weigh It to Design Review. Totals such as Total mass and Predicted speed change as you enter values.' },
+      { t: 'Set goals with the goal wizard', shots: ['student-goals-modal'],
+        do: ['Click <b>Goal setting</b> in the left menu.', 'Answer “What would you love to explore?” and move through the wizard.', 'Finish, or close it and check nothing breaks.'],
+        expect: 'A friendly step-by-step window opens over the page and walks you from interests to goals.' },
+      { t: 'Personalise the private dashboard', shots: ['student-home'],
+        do: ['Click <b>Home</b>.', 'Click <b>Personalize dashboard</b>, choose a profile picture and a banner image.', 'Check the preview, then try <b>Discard dashboard preview</b>, then do it again and <b>Save dashboard changes</b>.', 'Reload the page.'],
+        expect: 'Your picture and banner show after saving and stay after a reload. Discard returns to the previous look.' },
+      { t: 'Studio Home: next step and asking a coach', shots: ['student-home'],
+        do: ['Scroll to the <b>Studio Home</b> tab under My learning space.', 'Click <b>Mark this step done</b> on the next-step card.', 'Click <b>Ask my coach</b>, pick a reason and send a request.'],
+        expect: 'Progress updates when a step is marked done. The coach request confirms that it was sent. (Coach testers can check it arrives.)' },
+      { t: 'Home tabs: programmes, goals and calendar', shots: ['student-home-programs', 'student-home-goals', 'student-home-calendar'],
+        do: ['Open the <b>PBL Programs</b> tab. Read the semester cards and the class code box.', 'Open <b>Learning Goals</b>, then <b>Academic Progress</b>.', 'Open <b>School Calendar</b> and switch between Year, Agenda and Month views.'],
+        expect: 'Each tab loads without an error. Empty areas say clearly that nothing is recorded yet, rather than showing a blank space or an error code.' },
+      { t: 'PBL Studio: my project', shots: ['student-pbl'],
+        do: ['Click <b>PBL Studio</b> in the left menu.', 'Click each of the seven phases from Explore to Showcase.', 'Tick a task, choose an interest chip such as Environment, and look at the AI co-pilot panel.'],
+        expect: 'The phase timeline shows weeks. Task counts (for example 1/3 tasks) update as you tick.' },
+      { t: 'Evidence portfolio and competencies', shots: ['student-pbl-evidence', 'student-pbl-competencies'],
+        do: ['In PBL Studio open <b>Evidence portfolio</b>. Try the Phase and Type filters.', 'Open <b>Competencies</b> and read one competency.', 'Open <b>Explore: STEAM</b> and <b>Our approach</b>.'],
+        expect: 'Evidence shows the end-of-term readiness count. Competencies list how many have evidence (for example 0/14).' },
+      { t: 'Portfolio maker (design journey)', shots: ['student-journey'],
+        do: ['Click <b>Portfolio maker</b>.', 'In stage 1 Explore, add a photo or file as evidence.', 'Write a short reflection and click <b>Save reflection</b>.', 'Click <b>Export PDF</b>.'],
+        expect: 'The stage counter moves from “0 of 7 stages complete”. The PDF view shows your evidence and reflection.' },
+      { t: 'Showcase portfolio', shots: ['student-portfolio'],
+        do: ['Click <b>Showcase portfolio</b>.', 'Change the heading, accent colour and layout, then <b>Save personalization</b>.', 'Click <b>Add work</b> to add one piece, then <b>Preview portfolio</b>.', 'Click <b>Copy portfolio link</b>.'],
+        expect: 'Only the introduction, interests and chosen work appear in the preview. Personal goals stay private.' },
+      { t: 'Community and Messages', shots: ['student-community', 'student-messages'],
+        do: ['Open <b>Community</b>, write a short test post and click <b>Post</b>.', 'Open <b>Messages</b>. If a coach tester has messaged Mia, open it and reply.'],
+        expect: 'Your post appears in the feed. Messages lists conversations started by a coach.' },
+      { t: 'Settings: theme and language', shots: ['student-settings'],
+        do: ['Open Settings from your name at the top right.', 'Switch Appearance to Dark, reload, then back to Light.', 'Switch language to ไทย or 中文 and look around, then back to English.', 'Do not change the password.'],
+        expect: 'Theme and language change straight away and are still set after a reload.' }
+    ] },
+  { id: 'primary', name: 'Junior Explorers', sub: 'Primary learner, ages 6–11', account: 'primary.student@school.edu', who: 'Penny Primary · Year 3', cover: 'primary-home',
+    steps: [
+      { t: 'Sign in and see the activity board', shots: ['primary-home'],
+        do: ['Sign in as <span class="mono">primary.student@school.edu</span>.', 'Note what you see first. This account is marked “pending consent”.'],
+        expect: 'A bright Junior Explorers board with eight activities, each with a “Let’s go!” button. If you see a consent or waiting screen instead, describe it.' },
+      { t: 'Read-aloud, big text and level', shots: ['primary-home'],
+        do: ['Toggle <b>Read to me</b> and <b>Big text</b> on and off.', 'Switch between <b>Starter (6–8)</b> and <b>Explorer (9–11)</b>.'],
+        expect: 'Text size changes clearly. Activity wording changes between Starter and Explorer.' },
+      { t: 'Open an activity', shots: ['primary-activity'],
+        do: ['Click <b>Hot Spots in Our Playground</b>.', 'Press a 🔊 speaker button.', 'Click <b>Start</b> on “Get your thermometer ready”, then on Test 1.', 'Use <b>All activities</b> to go back.'],
+        expect: 'Short steps with big buttons. The speaker reads the text aloud. Steps are simple enough for a 6–8 year old.' },
+      { t: 'School calendar for young learners', shots: ['primary-home'],
+        do: ['Scroll below the activities to the School Calendar.', 'Look for upcoming events.'],
+        expect: 'The calendar loads without an error and is easy to read for a primary pupil.' }
+    ] },
+  { id: 'coach', name: 'Coach', sub: 'Teacher / course coordinator', account: 'coach.rivera@school.edu', who: 'Sam Rivera · Year 9 Climate Science', cover: 'coach-dashboard',
+    steps: [
+      { t: 'Coach dashboard overview', shots: ['coach-dashboard'],
+        do: ['Sign in as <span class="mono">coach.rivera@school.edu</span>.', 'Read the three counters: learners, PBL project records, evidence entries.', 'Change the <b>Class</b> filter to Year 9 Climate Science and back.', 'Click <b>Refresh records</b>.'],
+        expect: 'Five learners in the class. Counters match what you see in the tabs. “Loaded” time updates on refresh.' },
+      { t: 'Your learners', shots: ['coach-dashboard'],
+        do: ['Scroll to <b>Your learners</b>.', 'Search for “Mia”, then select her.'],
+        expect: 'The learner list filters as you type and the side panel shows that learner’s work.',
+        watch: 'Check whether everyone in the list really belongs in Year 9 Climate Science. Note any learner who should not be there.' },
+      { t: 'PBL Studio tab', shots: ['coach-tab-pbl'],
+        do: ['Click the <b>PBL Studio</b> tab.', 'Read the three semester programmes.', 'Click <b>Open existing Sustainable Futures Studio</b>.'],
+        expect: 'The three programmes show. The studio opens the Sustainable Futures project view.' },
+      { t: 'STEAM Activities tab', shots: ['coach-tab-steam'],
+        do: ['Click <b>STEAM Activities</b>.', 'Click <b>Review</b> on Mia Chen.'],
+        expect: 'A table of learners with activity records and completions. Review shows Mia’s recorded activity work.' },
+      { t: 'Academic Progress: record an observation', shots: ['coach-tab-academic'],
+        do: ['Click <b>Academic Progress</b> and choose a learner.', 'Use <b>Record a dated academic observation</b> to add a short test note.'],
+        expect: 'The observation saves with today’s date and appears in the list. The page says provider connections are pending, which is expected for now.' },
+      { t: 'Learning Goals: assign a goal', shots: ['coach-tab-goals'],
+        do: ['Click <b>Learning Goals</b>. Choose Mia Chen, the class and a learning area.', 'Write a measurable goal, set a due date and click <b>Assign goal</b>.'],
+        expect: 'The goal appears under the learner. Student and parent testers should then see it too.' },
+      { t: 'School Calendar', shots: ['coach-tab-calendar'],
+        do: ['Click <b>School Calendar</b>. Try Year, Agenda and Month.', 'If you can add an event, add one called “Test event” on a future date.'],
+        expect: 'All three views load. A new event shows in the calendar for learners in your class.' },
+      { t: 'Posts for students', shots: ['coach-tab-posts'],
+        do: ['Click <b>Posts for students</b>, write a short test post and click <b>Post</b>.'],
+        expect: 'The post appears in the feed and in the student Community page.' },
+      { t: 'Management tools', shots: ['coach-management'],
+        do: ['Click <b>Management tools</b> at the top of the dashboard.', 'Look at the counters and lists, then use <b>Back to progress overview</b>.'],
+        expect: 'The older management view loads and the back link returns you to the dashboard.',
+        watch: 'This page says its figures may be examples. Note any class names or numbers that do not match your real class.' },
+      { t: 'Message a learner', shots: ['coach-messages-new'],
+        do: ['Open <b>Messages</b> and click <b>New</b>.', 'Choose Mia Chen, type a short message and click <b>Start</b>.'],
+        expect: 'The conversation opens and the message shows. It reaches Mia’s Messages page.' },
+      { t: 'PBL framework', shots: ['coach-pbl'],
+        do: ['Click <b>PBL framework</b> in the left menu.', 'Open each tab: Our approach, Project phases, Explore: NGSS rubrics, Competencies.'],
+        expect: 'Clear explanation of the programme that you could share with a new colleague.' },
+      { t: 'Primary resources: worksheets and guides', shots: ['coach-resources', 'coach-worksheet'],
+        do: ['Click <b>Primary resources</b>.', 'Open a <b>Worksheet</b>, switch Starter and Explorer.', 'Open the <b>Teacher guide</b> for the same activity and try <b>Print</b>.'],
+        expect: 'Each of the eight activities has a worksheet and a teacher guide that print cleanly on A4.' }
+    ] },
+  { id: 'admin', name: 'Admin', sub: 'Administrator and supervisor console', account: 'admin.test@school.edu', who: 'Admin Test · Administrator', cover: 'admin-students',
+    steps: [
+      { t: 'Students list', shots: ['admin-students'],
+        do: ['Sign in as <span class="mono">admin.test@school.edu</span>.', 'Search for “Mia”. Filter by cohort W2E and by status.', 'Sort by Name and by Created. Change “Per page”.'],
+        expect: 'Every filter and sort changes the list. The row count at the bottom matches.' },
+      { t: 'A student record', shots: ['admin-student-detail'],
+        do: ['Open Mia Chen.', 'Read Details, then open <b>Account history</b>.', 'Check <b>Linked parents</b> shows Parent Test.', 'Click <b>Issue parent invite code</b> and copy the code for the parent tester. Do not press Suspend or Unlink.'],
+        expect: 'All fields are filled where data exists, with dashes for empty ones. An invite code is shown once.' },
+      { t: 'Add a student (form check)', shots: ['admin-new-student'],
+        do: ['Go back to Students and click <b>Add student</b>.', 'Click <b>Create account</b> with the form empty and read the error messages.', 'Fill in a made-up learner with a test email. Only press Create account if the test lead says so, otherwise click Cancel.'],
+        expect: 'Required fields are clearly marked and errors say exactly what to fix. The page explains the learner sets their own password by email.' },
+      { t: 'Staff and parents lists', shots: ['admin-staff', 'admin-parents'],
+        do: ['Open <b>Staff</b> and filter by Role.', 'Open <b>Parents</b> and check the number of children shown for Parent Test.'],
+        expect: 'Coaches show as Course Coordinator. Parent Test shows one linked child.' },
+      { t: 'School learning: PBL programmes', shots: ['admin-learning'],
+        do: ['Open <b>School learning &amp; calendar</b>.', 'Switch School between Bangkok Campus and Online School.', 'Read the three semester offerings and the Create offering form.'],
+        expect: 'Offerings load for each school and the create form is clear.' },
+      { t: 'Learning goals, calendar and learner support', shots: ['admin-learning-goals', 'admin-learning-calendar', 'admin-learning-support'],
+        do: ['Open the <b>Learning Goals</b> tab and choose a learner.', 'Open <b>School Calendar</b> and look at <b>Review and import the school’s 2026–2027 calendar</b>. Do not import unless asked.', 'Open <b>Learner support</b> and filter by learner.'],
+        expect: 'Each tab loads with the learners of the chosen school. Support requests sent by student testers appear under Open requests.' },
+      { t: 'Material requests', shots: ['admin-materials'],
+        do: ['Open <b>Material Requests</b>. Read the four totals at the top.', 'Filter by Category and Status.', 'Click <b>Submit New Request</b> and add a small test item.', 'Approve, reject or fulfil only your own test item.'],
+        expect: 'Totals update when a status changes. The request shows who asked for it and why.' },
+      { t: 'Financials and billing', shots: ['admin-billing'],
+        do: ['Open <b>Financials &amp; Billing</b>.', 'Filter by Payment Status.', 'Click <b>Record Payment</b> for one test learner and enter a small amount.'],
+        expect: 'Collected, outstanding and overdue totals update after a payment.',
+        watch: 'All test learners show as overdue. Tell us if the figures or wording would confuse finance staff.' },
+      { t: 'Message audit', shots: ['admin-messages'],
+        do: ['Open <b>Messages</b> from the left menu.', 'Open a conversation between a coach and a learner, if there is one.'],
+        expect: 'Administrators can read all conversations for safeguarding but cannot post in them.' },
+      { t: 'Settings and school features', shots: ['admin-settings'],
+        do: ['Open <b>Settings</b>.', 'Read <b>School features</b>. Do not switch features off unless the test lead asks.'],
+        expect: 'Each school has its own switches, with a clear note about when learners see the change.' },
+      { t: 'Supervisor: view-only access', shots: ['supervisor-students'],
+        do: ['In a new private window, sign in as <span class="mono">supervisor.test@school.edu</span>.', 'Open Students and a student record.', 'Look for any button that changes data.'],
+        expect: 'A note says “You can view accounts. Only administrators can change them.” There is no Add, Edit or Suspend button.' }
+    ] },
+  { id: 'parent', name: 'Parent', sub: 'Family view of a child’s learning', account: 'parent.test@school.edu', who: 'Parent Test · parent of Mia Chen', cover: 'parent-portal',
+    steps: [
+      { t: 'My children', shots: ['parent-portal'],
+        do: ['Sign in as <span class="mono">parent.test@school.edu</span>.', 'Read Mia’s card: school, year level and cohort.'],
+        expect: 'Mia Chen shows as Active at Bangkok Campus, Year 9. The page says it is a read-only view.' },
+      { t: 'Link a child with an invite code', shots: ['parent-portal'],
+        do: ['Get an invite code from an admin tester (Admin step 2).', 'Type it into <b>Invite code</b> and click <b>Link child</b>.', 'Also try a made-up code such as ABCD-2345.'],
+        expect: 'A real code links the child once. A wrong code gives a clear message about what went wrong.' },
+      { t: 'Family overview and PBL progress', shots: ['parent-tab-pbl'],
+        do: ['Read the <b>Family overview</b> tab.', 'Open <b>PBL Progress</b> and choose Mia.'],
+        expect: 'Plain language a parent understands. Empty areas say nothing is recorded yet.' },
+      { t: 'Learning goals and badges', shots: ['parent-tab-goals'],
+        do: ['Open <b>Learning Goals</b> and choose Mia.', 'Look at the badges and any goal a coach tester assigned.'],
+        expect: 'Badges such as First Evidence and Curious Mind show. Coach-assigned goals appear here.' },
+      { t: 'Academic progress and calendar', shots: ['parent-tab-academic', 'parent-tab-calendar'],
+        do: ['Open <b>Academic Progress</b>, then <b>School Calendar</b>.'],
+        expect: 'Coach observations show with dates. Upcoming school events are listed.' },
+      { t: 'Settings, language and read-only check', shots: ['parent-settings'],
+        do: ['Open Settings and switch language to ไทย, then back.', 'Go back through every tab and look for anything a parent could change by mistake.'],
+        expect: 'Language switches cleanly. Parents cannot edit their child’s learning anywhere.' }
+    ] }
+];
+const VERDICTS = [['pass', 'Pass'], ['issue', 'Issue'], ['blocked', 'Blocked'], ['skip', 'Skip']];
+const VCOLOR = { pass: 'var(--lime)', issue: 'var(--red)', blocked: 'var(--amber)', skip: 'var(--line-strong)' };
+const RATING = ['Very hard', 'Hard', 'OK', 'Easy', 'Very easy'];
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const LS = 'gh-staff-test-draft';
+let state = { team: '', device: '', browser: '', chosen: [], dash: {} };
+try { const d = JSON.parse(localStorage.getItem(LS) || 'null'); if (d && typeof d === 'object') state = { ...state, ...d }; } catch {}
+
+let db = null, me = null, userApi = null, docRef = null, loadedRemote = false;
+const dashState = (id) => (state.dash[id] ||= { steps: {}, rating: 0, good: '', bad: '', fix: '' });
+
+/* ---------- guide rendering ---------- */
+function renderCards() {
+  $('cards').innerHTML = DASHES.map((d) => `
+    <button type="button" class="dcard" data-id="${d.id}" aria-pressed="${state.chosen.includes(d.id)}">
+      <span class="tick" aria-hidden="true">✓</span>
+      <img src="${S(d.cover)}" alt="" loading="lazy">
+      <div><strong>${d.name}</strong><small>${d.sub}</small><span class="count">${d.steps.length} steps</span></div>
+    </button>`).join('');
+}
+
+function shotHtml(step) {
+  const [first, ...rest] = step.shots;
+  const btn = (n, label) => `<button type="button" data-zoom="${n}" data-cap="${esc(step.t)}" aria-label="Enlarge screenshot: ${esc(label)}"><img src="${S(n)}" alt="${esc(label)}" loading="lazy"></button>`;
+  return `<figure class="shot" style="margin:0">${btn(first, step.t)}${rest.length ? `<div class="thumbs">${rest.map((n) => btn(n, step.t)).join('')}</div>` : ''}<figcaption>Real screenshot · click to enlarge</figcaption></figure>`;
+}
+
+function renderDashes() {
+  const box = $('dashes');
+  $('emptyPick').hidden = state.chosen.length > 0;
+  box.innerHTML = state.chosen.map((id) => {
+    const d = DASHES.find((x) => x.id === id); if (!d) return '';
+    const ds = dashState(id);
+    const steps = d.steps.map((s, i) => {
+      const key = `${id}-${i + 1}`; const r = ds.steps[key] || {};
+      return `<article class="step ${r.v ? 'done-' + r.v : ''}" id="${key}">
+        ${shotHtml(s)}
+        <div class="body">
+          <span class="num">${d.name.toUpperCase()} · STEP ${i + 1} OF ${d.steps.length}</span>
+          <h3>${s.t}</h3>
+          <ol>${s.do.map((x) => `<li>${x}</li>`).join('')}</ol>
+          <div class="expect"><b>You should see</b>${s.expect}</div>
+          ${s.watch ? `<div class="watch"><b>Look closely</b>${s.watch}</div>` : ''}
+          <div class="verdict" role="group" aria-label="Result for step ${i + 1}">
+            ${VERDICTS.map(([v, l]) => `<button type="button" data-step="${key}" data-v="${v}" aria-pressed="${r.v === v}">${l}</button>`).join('')}
+          </div>
+          <label class="field">What happened? ${r.v && r.v !== 'pass' ? '(please describe)' : '(optional)'}
+            <textarea id="n-${key}" data-note="${key}" placeholder="What did you click, what did you expect, what did you see instead?">${esc(r.n || '')}</textarea>
+          </label>
+        </div>
+      </article>`;
+    }).join('');
+    return `<section class="dash" id="${id}">
+      <div class="dhead">
+        <span class="eyebrow">Dashboard</span>
+        <h2>${d.name}</h2>
+        <div class="acct"><span>Sign in as <b class="mono">${d.account}</b></span><span>${d.who}</span><span id="prog-${id}"></span></div>
+        <div class="meter"><i id="meter-${id}"></i></div>
+      </div>
+      ${steps}
+      <div class="wrapup">
+        <h3>Wrap-up: the ${d.name} dashboard overall</h3>
+        <div class="field">How easy was it to use?
+          <div class="stars" role="group" aria-label="Ease of use">
+            ${RATING.map((l, i) => `<button type="button" data-rate="${id}" data-n="${i + 1}" aria-pressed="${ds.rating === i + 1}" title="${l}">${i + 1}</button>`).join('')}
+            <small id="rl-${id}">${ds.rating ? RATING[ds.rating - 1] : '1 = very hard · 5 = very easy'}</small>
+          </div>
+        </div>
+        <label class="field">What worked well?<textarea id="w-good-${id}" data-wrap="${id}" data-k="good">${esc(ds.good)}</textarea></label>
+        <label class="field">What was confusing, slow or missing?<textarea id="w-bad-${id}" data-wrap="${id}" data-k="bad">${esc(ds.bad)}</textarea></label>
+        <label class="field">If we fix one thing first, what should it be?<textarea id="w-fix-${id}" data-wrap="${id}" data-k="fix">${esc(ds.fix)}</textarea></label>
+      </div>
+    </section>`;
+  }).join('');
+  updateProgress();
+}
+
+function updateProgress() {
+  const jump = [];
+  for (const id of state.chosen) {
+    const d = DASHES.find((x) => x.id === id); if (!d) continue;
+    const done = Object.keys(dashState(id).steps).filter((k) => dashState(id).steps[k].v).length;
+    const p = $('prog-' + id); if (p) p.textContent = `${done} of ${d.steps.length} steps marked`;
+    const m = $('meter-' + id); if (m) m.style.width = `${(done / d.steps.length) * 100}%`;
+    jump.push(`<a href="#${id}">${d.name} <span>${done}/${d.steps.length}</span></a>`);
+  }
+  $('jump').innerHTML = jump.join('');
+}
+
+/* ---------- saving ---------- */
+let saveTimer = null, saving = false, pending = false;
+function setSave(html) { $('saveState').innerHTML = html; }
+function persist() {
+  try { localStorage.setItem(LS, JSON.stringify(state)); } catch {}
+  clearTimeout(saveTimer);
+  if (!docRef) { setSave(db === null && loadedRemote ? 'Saved on this device only' : 'Saved on this device'); return; }
+  setSave('Saving…');
+  saveTimer = setTimeout(flush, 900);
+}
+async function flush() {
+  if (!docRef) return;
+  if (saving) { pending = true; return; }
+  saving = true;
+  try {
+    await docRef.set({ ...state, uid: me, updatedAt: new Date().toISOString() });
+    setSave(`<b>Saved</b> · ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+  } catch (e) {
+    if (e && e.code === 'invalid_argument') { docRef = null; setSave('Saved on this device only. Use “Copy my feedback” to send it.'); }
+    else setSave('Could not save just now. Your answers are kept on this device.');
+  } finally {
+    saving = false;
+    if (pending) { pending = false; flush(); }
+  }
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', (e) => {
+  const card = e.target.closest('.dcard');
+  if (card) {
+    const id = card.dataset.id;
+    state.chosen = state.chosen.includes(id) ? state.chosen.filter((x) => x !== id) : [...state.chosen, id];
+    renderCards(); renderDashes(); persist();
+    if (state.chosen.includes(id)) document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  const vb = e.target.closest('[data-step][data-v]');
+  if (vb) {
+    const key = vb.dataset.step, id = key.split('-')[0], ds = dashState(id);
+    const cur = ds.steps[key] || {};
+    cur.v = cur.v === vb.dataset.v ? '' : vb.dataset.v;
+    ds.steps[key] = cur;
+    const art = document.getElementById(key);
+    art.className = 'step' + (cur.v ? ' done-' + cur.v : '');
+    art.querySelectorAll('[data-v]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === cur.v)));
+    const lab = art.querySelector('.field');
+    lab.firstChild.nodeValue = `What happened? ${cur.v && cur.v !== 'pass' ? '(please describe)' : '(optional)'}\n`;
+    if (cur.v === 'issue' || cur.v === 'blocked') art.querySelector('textarea').focus();
+    updateProgress(); persist();
+    return;
+  }
+  const rb = e.target.closest('[data-rate]');
+  if (rb) {
+    const ds = dashState(rb.dataset.rate); ds.rating = Number(rb.dataset.n);
+    rb.parentElement.querySelectorAll('[data-rate]').forEach((b) => b.setAttribute('aria-pressed', String(b === rb)));
+    $('rl-' + rb.dataset.rate).textContent = RATING[ds.rating - 1];
+    persist(); return;
+  }
+  const z = e.target.closest('[data-zoom]');
+  if (z) { $('lbImg').src = S(z.dataset.zoom); $('lbImg').alt = z.dataset.cap; $('lbCap').textContent = z.dataset.cap; $('lb').showModal(); }
+});
+$('lbClose').onclick = () => $('lb').close();
+$('lb').addEventListener('click', (e) => { if (e.target === $('lb')) $('lb').close(); });
+
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.dataset.note) { const id = t.dataset.note.split('-')[0]; const ds = dashState(id); (ds.steps[t.dataset.note] ||= {}).n = t.value; persist(); }
+  else if (t.dataset.wrap) { dashState(t.dataset.wrap)[t.dataset.k] = t.value; persist(); }
+});
+['team', 'device', 'browser'].forEach((k) => $(k).addEventListener('change', (e) => { state[k] = e.target.value; persist(); }));
+
+function asText() {
+  const out = [`Growth Hub staff testing feedback`, `Team: ${state.team || '-'} · Device: ${state.device || '-'} · Browser: ${state.browser || '-'}`, ''];
+  for (const id of state.chosen) {
+    const d = DASHES.find((x) => x.id === id); const ds = dashState(id);
+    out.push(`== ${d.name} (${d.account}) ==`);
+    d.steps.forEach((s, i) => { const r = ds.steps[`${id}-${i + 1}`] || {}; out.push(`${i + 1}. ${s.t}: ${(r.v || 'not marked').toUpperCase()}${r.n ? ' - ' + r.n : ''}`); });
+    out.push(`Ease of use: ${ds.rating ? ds.rating + '/5' : '-'}`, `Worked well: ${ds.good || '-'}`, `Confusing or missing: ${ds.bad || '-'}`, `Fix first: ${ds.fix || '-'}`, '');
+  }
+  return out.join('\n');
+}
+$('copyBtn').onclick = () => {
+  const txt = asText(), area = $('copyArea');
+  area.value = txt; area.style.display = 'block';
+  navigator.clipboard?.writeText(txt).then(() => { $('copyNote').textContent = 'Copied. Paste it into an email or chat to the test lead.'; })
+    .catch(() => { area.focus(); area.select(); $('copyNote').textContent = 'Select the text below and copy it.'; });
+};
+
+/* ---------- views ---------- */
+function showView(resp) {
+  $('guideView').hidden = resp; $('respView').hidden = !resp;
+  $('vGuide').setAttribute('aria-pressed', String(!resp)); $('vResp').setAttribute('aria-pressed', String(resp));
+  $('jump').style.display = resp ? 'none' : '';
+  window.scrollTo(0, 0);
+}
+$('vGuide').onclick = () => showView(false);
+$('vResp').onclick = () => showView(true);
+
+/* ---------- all feedback ---------- */
+let allDocs = [];
+$('fDash').innerHTML += DASHES.map((d) => `<option value="${d.id}">${d.name}</option>`).join('');
+$('fDash').onchange = renderResponses; $('fKind').onchange = renderResponses;
+
+async function renderResponses() {
+  if (!db) { $('respLede').textContent = 'Shared results are not available in this view. Open the guide on claude.ai while signed in to see everyone’s feedback.'; return; }
+  const people = allDocs.length;
+  $('respLede').textContent = people ? `${people} ${people === 1 ? 'person has' : 'people have'} saved feedback so far.` : 'No one has saved feedback yet. Results appear here as soon as testers start marking steps.';
+  const ids = allDocs.map((d) => d.uid).filter(Boolean);
+  const profs = userApi && ids.length ? await userApi.profiles(ids) : {};
+  const nameOf = (uid) => (profs[uid] && profs[uid].name) || 'A tester';
+
+  $('stats').innerHTML = DASHES.map((d) => {
+    const c = { pass: 0, issue: 0, blocked: 0, skip: 0 }; let testers = 0, rsum = 0, rn = 0;
+    for (const doc of allDocs) {
+      const ds = doc.dash && doc.dash[d.id]; if (!ds || !(doc.chosen || []).includes(d.id)) continue;
+      testers++; if (ds.rating) { rsum += ds.rating; rn++; }
+      for (const r of Object.values(ds.steps || {})) if (r && c[r.v] !== undefined) c[r.v]++;
+    }
+    const tot = c.pass + c.issue + c.blocked + c.skip;
+    const bars = tot ? Object.entries(c).map(([k, n]) => `<i style="width:${(n / tot) * 100}%;background:${VCOLOR[k]}"></i>`).join('') : '';
+    return `<div class="stat"><strong>${d.name}</strong>
+      <span class="note">${testers} ${testers === 1 ? 'tester' : 'testers'} · ease ${rn ? (rsum / rn).toFixed(1) + '/5' : '–'}</span>
+      <div class="bars">${bars}</div>
+      <div class="legend">${Object.entries(c).map(([k, n]) => `<span style="--c:${VCOLOR[k]}">${n} ${k}</span>`).join('')}</div></div>`;
+  }).join('');
+
+  const fd = $('fDash').value, kind = $('fKind').value, items = [];
+  for (const doc of allDocs) {
+    for (const d of DASHES) {
+      if (fd && fd !== d.id) continue;
+      const ds = doc.dash && doc.dash[d.id]; if (!ds || !(doc.chosen || []).includes(d.id)) continue;
+      if (kind === 'wrap') {
+        const parts = [['Worked well', ds.good], ['Confusing or missing', ds.bad], ['Fix first', ds.fix]].filter((p) => p[1]);
+        if (parts.length || ds.rating) items.push({ c: 'var(--purple)', head: `${d.name} · wrap-up${ds.rating ? ' · ease ' + ds.rating + '/5' : ''}`, uid: doc.uid, doc, text: parts.map((p) => `${p[0]}: ${p[1]}`).join('\n') });
+        continue;
+      }
+      d.steps.forEach((s, i) => {
+        const r = (ds.steps || {})[`${d.id}-${i + 1}`]; if (!r || !r.v) return;
+        if (kind === 'issue' && !(r.v === 'issue' || r.v === 'blocked')) return;
+        if (kind === 'all' && !r.n) return;
+        items.push({ c: VCOLOR[r.v], head: `${d.name} · step ${i + 1}: ${s.t} · ${r.v.toUpperCase()}`, uid: doc.uid, doc, text: r.n || '(no note)' });
+      });
+    }
+  }
+  const box = $('issues'); box.textContent = '';
+  if (!items.length) { box.innerHTML = '<div class="empty">Nothing to show for this filter yet.</div>'; return; }
+  for (const it of items) {
+    const el = document.createElement('div'); el.className = 'issue'; el.style.setProperty('--c', it.c);
+    const h = document.createElement('strong'); h.textContent = it.head;
+    const m = document.createElement('span'); m.className = 'meta';
+    m.textContent = [nameOf(it.uid), it.doc.team, it.doc.device, it.doc.browser].filter(Boolean).join(' · ');
+    const p = document.createElement('p'); p.textContent = it.text;
+    el.append(h, m, p); box.append(el);
+  }
+}
+
+/* ---------- boot ---------- */
+function applyStateToForm() { ['team', 'device', 'browser'].forEach((k) => { $(k).value = state[k] || ''; }); }
+applyStateToForm(); renderCards(); renderDashes();
+setSave('Answers save as you go');
+
+(async () => {
+  const claude = window.claude;
+  if (!claude || !claude.use) { loadedRemote = true; setSave('Saved on this device only'); return; }
+  [db, userApi] = await Promise.all([claude.use('db'), claude.use('user')]);
+  loadedRemote = true;
+  if (!db) { setSave('Saved on this device only'); renderResponses(); return; }
+  me = userApi ? await userApi.id() : null;
+  if (me) {
+    docRef = db.doc('feedback/' + me);
+    try {
+      const snap = await docRef.get();
+      if (snap.exists) {
+        const remote = snap.data();
+        // Remote copy wins unless this device has answers the server lacks.
+        const localHas = state.chosen.length > 0;
+        if (!localHas || (remote.updatedAt && remote.chosen && remote.chosen.length)) {
+          state = { team: remote.team || '', device: remote.device || '', browser: remote.browser || '', chosen: remote.chosen || [], dash: JSON.parse(JSON.stringify(remote.dash || {})) };
+          applyStateToForm(); renderCards(); renderDashes();
+          try { localStorage.setItem(LS, JSON.stringify(state)); } catch {}
+        } else flush();
+        setSave('<b>Saved</b> · your earlier answers are loaded');
+      } else if (state.chosen.length) flush();
+    } catch { /* keep the local draft */ }
+  } else setSave('Sign in to claude.ai to save to the shared results');
+  db.collection('feedback').onSnapshot((snap) => {
+    allDocs = snap.docs.map((d) => ({ ...d.data(), uid: d.data().uid || d.id }));
+    if (!$('respView').hidden || true) renderResponses();
+  }, () => { $('respLede').textContent = 'Shared results stopped updating. Reload the page to try again.'; });
+})();
+</script>

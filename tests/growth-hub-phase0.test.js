@@ -111,7 +111,7 @@ describe('mock backend follows the §7 contract', () => {
 
   it('validates creates field by field and rejects a duplicate email with CONFLICT', async () => {
     const api = fresh();
-    const base = { role: 'student', email: 'new.kid@welearn.test', givenNames: 'New', surname: 'Kid', schoolIds: ['sch-bkk'], cohortId: 'cohort-w2e', ageBand: '13-15' };
+    const base = { role: 'student', email: 'new.kid@welearn.test', givenNames: 'New', surname: 'Kid', schoolIds: ['sch-bkk'], cohortId: 'cohort-lower-secondary', ageBand: '13-15' };
     expect((await call(api, admin, 'POST', '/api/admin/users', { body: { ...base, phone: '0812345678' } })).body.error.field).toBe('phone');
     expect((await call(api, admin, 'POST', '/api/admin/users', { body: { ...base, cohortId: undefined } })).body.error.field).toBe('cohortId');
     const created = await call(api, admin, 'POST', '/api/admin/users', { body: base });
@@ -127,7 +127,7 @@ describe('mock backend follows the §7 contract', () => {
 
   it('creates primary learners as pending with consent required', async () => {
     const api = fresh();
-    const res = await call(api, admin, 'POST', '/api/admin/users', { body: { role: 'student', email: 'little@welearn.test', givenNames: 'Little', surname: 'One', schoolIds: ['sch-bkk'], cohortId: 'cohort-wpr', ageBand: 'primary' } });
+    const res = await call(api, admin, 'POST', '/api/admin/users', { body: { role: 'student', email: 'little@welearn.test', givenNames: 'Little', surname: 'One', schoolIds: ['sch-bkk'], cohortId: 'cohort-lower-primary', ageBand: 'primary' } });
     expect(res.body.status).toBe('pending');
     expect(res.body.consent).toEqual({ status: 'required' });
   });
@@ -225,7 +225,7 @@ describe('routes', () => {
     expect(parseRoute('#/admin/staff')).toEqual({ screen: 'admin', page: 'list', kind: 'staff' });
     expect(parseRoute('#/admin/users/abc%2F1')).toEqual({ screen: 'admin', page: 'detail', uid: 'abc/1' });
     expect(parseRoute('#/admin/new/parents')).toEqual({ screen: 'admin', page: 'create', kind: 'parents' });
-    expect(parseRoute('#/admin/new/wizards')).toEqual({ screen: 'admin', page: 'list', kind: 'students' });
+    expect(parseRoute('#/admin/new/wizards')).toEqual({ screen: 'admin', page: 'pilot' });
     expect(parseRoute('#/settings')).toEqual({ screen: 'settings' });
     expect(parseRoute('#/courses')).toEqual({ screen: 'courses' });
     expect(parseRoute('#/coach/dashboard')).toEqual({screen:'coach'});

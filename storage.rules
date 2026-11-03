@@ -43,19 +43,20 @@ service firebase.storage {
           && school.get('status', '') != 'suspended'
           && (role == 'admin'
             || (schoolId in profile.get('schoolIds', []) || schoolId in request.auth.token.get('schoolIds', []) || profile.get('schoolId', '') == schoolId))
-          && lesson.get('status', '') == 'draft'
-          && lesson.get('classId', '') in offering.get('classIds', [])
           && (role == 'admin'
             || (role in ['coach', 'teacher']
-              && lesson.get('authorUid', '') == request.auth.uid
-              && lesson.get('classId', '') in request.auth.token.get('classIds', profile.get('classIds', []))));
+              && (lesson.get('authorUid', request.auth.uid) == request.auth.uid
+                  || offering.get('createdBy', '') == request.auth.uid
+                  || offering.get('classIds', []).hasAny(profile.get('classIds', []))
+                  || offering.get('classIds', []).hasAny(request.auth.token.get('classIds', [])))));
       }
 
       allow read: if false;
-      allow write: if isOwner(uid) && canUploadLesson()
-        && resource == null && request.resource != null
+      allow create, update: if isOwner(uid) && canUploadLesson()
+        && request.resource != null
         && request.resource.size > 0 && request.resource.size <= 100 * 1024 * 1024
         && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+      allow delete: if isOwner(uid) && canUploadLesson();
     }
 
     // Program resources remain private; the scoped API issues temporary read URLs.
@@ -72,19 +73,19 @@ service firebase.storage {
             || (schoolId in profile.get('schoolIds', []) || schoolId in request.auth.token.get('schoolIds', []) || profile.get('schoolId', '') == schoolId))
           && (role == 'admin'
             || (role in ['coach', 'teacher']
-              && offering.get('createdBy', '') == request.auth.uid
-              && offering.get('classIds', []).hasAny(
-                request.auth.token.get('classIds', profile.get('classIds', []))
-              )));
+              && (offering.get('createdBy', '') == request.auth.uid
+                  || offering.get('classIds', []).hasAny(profile.get('classIds', []))
+                  || offering.get('classIds', []).hasAny(request.auth.token.get('classIds', [])))));
       }
 
       allow read: if false;
-      allow write: if isOwner(uid) && canManageProgram()
-        && resource == null && request.resource != null
+      allow create, update: if isOwner(uid) && canManageProgram()
+        && request.resource != null
         && request.resource.size > 0 && request.resource.size <= 100 * 1024 * 1024
         && request.resource.contentType in ['image/jpeg','image/png','image/webp','image/gif',
           'video/mp4','video/webm','application/pdf','application/vnd.ms-powerpoint',
           'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+      allow delete: if isOwner(uid) && canManageProgram();
     }
 
     // Learner media is private. Authorized portfolio reads receive temporary URLs.
@@ -102,7 +103,7 @@ service firebase.storage {
         && request.resource != null
         && request.resource.size > 0 && request.resource.size <= 20 * 1024 * 1024
         && request.resource.contentType in ['image/jpeg','image/png','image/webp','image/gif',
-          'audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4',
+          'audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4','video/quicktime',
           'model/gltf-binary','model/gltf+json','application/octet-stream','application/zip','text/plain'];
       allow delete: if isOwner(uid) && isLearnerActive();
     }

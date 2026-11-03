@@ -4,28 +4,29 @@
   "type": "module",
   "main": "server/index.js",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "server:dev": "node server/gemini-index.js",
-    "server:dev:emulator": "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GOOGLE_CLOUD_PROJECT=demo-hearisland-local GCLOUD_PROJECT=demo-hearisland-local node server/gemini-index.js",
+    "server:dev:emulator": "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 FIREBASE_STORAGE_BUCKET=demo-hearisland-local.appspot.com GOOGLE_CLOUD_PROJECT=demo-hearisland-local GCLOUD_PROJECT=demo-hearisland-local node server/gemini-index.js",
     "seed": "node scripts/seed-coach-data.js",
     "seed:dry": "node scripts/seed-coach-data.js --dry-run",
     "test": "firebase emulators:exec --only firestore --project demo-hearisland-rules \"vitest run\"",
     "test:api": "firebase emulators:exec --only firestore,auth --project demo-hearisland-local \"vitest run --config tests/api/vitest.api.config.js\"",
     "test:watch": "firebase emulators:exec --only firestore --project demo-hearisland-rules \"vitest\"",
-    "test:unit": "vitest run tests/profile-image-crop.test.js tests/activity-ai-generation.test.js tests/activity-builder.test.jsx tests/journey.test.jsx tests/activity-spec.test.js tests/quest-model.test.js tests/quest-ui.test.jsx tests/simulation-lab.test.jsx tests/goal-setting-modal.test.js tests/personalization-model.test.js tests/personalization-ui.test.jsx tests/solar-car-model.test.js tests/so2-model.test.js tests/plant-lab-model.test.js tests/hex-grid-model.test.js tests/junior-explorers.test.js tests/activity-search.test.js tests/growth-hub-phase0.test.js tests/primary-worksheets.test.js tests/pbl.test.js tests/so2-filter.test.js tests/school-api-client.test.js tests/school-workspace-ui.test.jsx tests/w2e-learning-studio.test.jsx tests/program-chooser.test.jsx tests/goals-dashboard.test.js",
+    "test:unit": "vitest run tests/course-discovery.test.jsx tests/pathway-model.test.js tests/learner-pathway-ui.test.jsx tests/profile-image-crop.test.js tests/activity-ai-generation.test.js tests/activity-builder.test.jsx tests/journey.test.jsx tests/activity-spec.test.js tests/quest-model.test.js tests/quest-ui.test.jsx tests/simulation-lab.test.jsx tests/goal-setting-modal.test.js tests/personalization-model.test.js tests/personalization-ui.test.jsx tests/solar-car-model.test.js tests/so2-model.test.js tests/plant-lab-model.test.js tests/hex-grid-model.test.js tests/junior-explorers.test.js tests/activity-search.test.js tests/growth-hub-phase0.test.js tests/primary-worksheets.test.js tests/pbl.test.js tests/so2-filter.test.js tests/school-api-client.test.js tests/school-workspace-ui.test.jsx tests/w2e-learning-studio.test.jsx tests/program-chooser.test.jsx tests/goals-dashboard.test.js",
     "migrate:classes": "node scripts/migrate-to-classes.js",
     "migrate:classes:dry": "node scripts/migrate-to-classes.js --dry-run",
     "migrate:agebands": "node scripts/migrate-age-bands.js",
     "migrate:agebands:dry": "node scripts/migrate-age-bands.js --dry-run",
-    "emulators": "firebase emulators:start --only firestore,auth --project demo-hearisland-local",
+    "emulators": "firebase emulators:start --only firestore,auth,storage --project demo-hearisland-local",
     "seed:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node scripts/seed-emulator.js",
     "codes": "node scripts/class-codes.js",
-    "codes:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GCLOUD_PROJECT=demo-hearisland-local node scripts/class-codes.js"
+    "codes:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 GCLOUD_PROJECT=demo-hearisland-local node scripts/class-codes.js",
+    "test:storage": "firebase emulators:exec --only firestore,storage --project demo-hearisland-local \"vitest run --config tests/storage/vitest.config.js\""
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.3.1",
