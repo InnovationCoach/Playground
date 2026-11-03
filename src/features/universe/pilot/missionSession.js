@@ -108,6 +108,8 @@ const hasBlank = (s) => /(^|\s)__+(\s|[.,;:]|$)/.test(s);
 export function partStatus(route, partId, p) {
   const wire = partToWire(route, partId, p);
   const rule = route.requiredParts.find((r) => r.partId === partId);
+  // An empty explanation is "not started", not a length problem (the shared message speaks only to the upper limit).
+  if (wire.kind === 'text' && !(wire.text || '').trim()) return { complete: false, reason: 'Write your explanation for this part.' };
   const alone = validateEvidence([wire], { ...route, requiredParts: [rule] });
   if (!alone.ok) return { complete: false, reason: alone.error.message };
   if (wire.kind === 'table' && !p.savedTable) {

@@ -106,3 +106,11 @@ describe('pilot mission session model', () => {
     expect(evidenceFromWork(windRoute, work)).toHaveLength(6);
   });
 });
+
+describe('review checklist reasons', () => {
+  it('calls an empty written explanation not started, not too long', () => {
+    const work = emptyWork(windRoute);
+    const textPart = windRoute.requiredParts.find((r) => partToWire(windRoute, r.partId, work.parts[r.partId]).kind === 'text');
+    expect(partStatus(windRoute, textPart.partId, work.parts[textPart.partId])).toEqual({ complete: false, reason: 'Write your explanation for this part.' });
+  });
+});

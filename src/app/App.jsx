@@ -47,7 +47,7 @@ import { showGoalsPanel } from '../integrations/goalSettingIntegration.js';
 const KNOWN_VIEWS = new Set(ACTIVITY_NAV.map((a) => a.id));
 
 export function App() {
-  const { status, user, profile, role, classIds, error, signOut, refreshProfile } = useAuth();
+  const { status, user, profile, role, classIds, orgId, error, signOut, refreshProfile } = useAuth();
   const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
   const [activityScenario, setActivityScenario] = useState(null);
@@ -437,7 +437,7 @@ export function App() {
 
       {route?.screen === 'spark' ? spark
       : route?.screen === 'dashboard' && role === 'student' && !isPrimary ? (
-        <MyDashboard key={user?.uid} uid={user?.uid} profile={profile} classIds={profile?.classIds || []} onJoined={refreshProfile}
+        <MyDashboard key={user?.uid} uid={user?.uid} orgId={orgId} profile={profile} classIds={profile?.classIds || []} onJoined={refreshProfile}
                      onOpenActivity={navigate} />
       ) : route?.screen === 'futureSkills' && role === 'student' ? (
         <FutureSkillsPage isPrimary={isPrimary} />
@@ -485,6 +485,7 @@ export function App() {
             classIds: classIds || profile?.classIds || [],
             role: profile?.role || role
           }}
+          orgId={orgId}
         />
       ) : (
         <>

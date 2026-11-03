@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Lightbulb, Eye, ChevronLeft, ChevronRight, Send, RefreshCw, History, ClipboardList, BookOpen, CloudOff, Cloud, AlertTriangle, PenLine } from 'lucide-react';
-import { checkNumber, displayAnswer, canonicalStringify } from '../../../../shared/universe/index.js';
+import { checkNumber, displayAnswer, canonicalStringify, getMissionDecision, getSupportDescription } from '../../../../shared/universe/index.js';
 import {
   identityFor, identityKey, sameIdentity, routeDatasets, emptyWork, withAnswer, partStatus,
-  draftBody, submissionBody, checkSubmission, checkDraft, workFromSaved, codePoints
+  draftBody, submissionBody, checkSubmission, checkDraft, workFromSaved, codePoints, evidenceFromWork
 } from './missionSession.js';
 import { NotebookPart, EvidenceView, Counter, partTitle } from './NotebookParts.jsx';
+import { learningDesign, buildActions, firstActionOf, stepsUsingPart, actionCopy, gradeLabel, standardsAcross } from './focusFlow.js';
 import { newIdempotencyKey, describeFailure } from './universeClient.js';
 import { DatasetView } from './DatasetView.jsx';
+import { useDialogFocus } from './dialogFocus.js';
 import './pilot.css';
 
 const AUTOSAVE_MS = 1200;
@@ -27,11 +29,30 @@ export function restorable(registry, identity, d) {
 }
 const STATUS_TEXT = { submitted: 'Sent · waiting for your coach', returned: 'Returned for revision', approved: 'Reviewed by your coach' };
 
+export function timeMs(ts) {
+  if (!ts) return NaN;
+  return typeof ts === 'string' ? Date.parse(ts) : ts.seconds != null ? ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6) : ts._seconds != null ? ts._seconds * 1000 : NaN;
+}
+
 export function formatTime(ts) {
-  if (!ts) return '';
-  const ms = typeof ts === 'string' ? Date.parse(ts) : ts.seconds != null ? ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6) : ts._seconds != null ? ts._seconds * 1000 : NaN;
+  const ms = timeMs(ts);
   if (!Number.isFinite(ms)) return '';
   return new Date(ms).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+/** Answers that mean this screen may no longer speak for the signed-in learner: drop what it holds privately. */
+export const isScopeFailure = (r) => r?.state === 'unauthenticated' || (r?.state === 'error' && (r.status === 403 || r.code === 'FORBIDDEN'));
+
+/**
+ * Revising a returned attempt continues from whichever is newer: the account draft (kept,
+ * with its revision, when work is sent) or the returned attempt. A draft already linked to
+ * this attempt, or saved after it was sent, holds newer work and is never overwritten.
+ */
+export function draftIsNewer(draft, attempt) {
+  if (!draft) return false;
+  if (draft.previousSubmissionId === attempt.submissionId) return true;
+  const saved = timeMs(draft.updatedAt), sent = timeMs(attempt.createdAt);
+  return Number.isFinite(saved) && Number.isFinite(sent) && saved > sent;
 }
 
 export const availabilityOf = (result) => (result?.state === 'loaded' ? result.data.availability : null);
@@ -90,14 +111,14 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
   }, [key]);
 
   const body = useRef(null);
-  useEffect(() => { heading.current?.focus(); if (body.current) body.current.scrollTop = 0; }, [routeId, view]);
+  useEffect(() => { heading.current?.focus(); const sheet = body.current?.closest('.px-sheet'); if (sheet) sheet.scrollTop = 0; }, [routeId, view]);
 
   const loadHistory = useCallback(async (cursor) => {
     setHistory((h) => ({ ...h, state: cursor ? 'more' : 'loading' }));
     const res = await client.mySubmissions({ missionId: mission.id, limit: 20, cursor });
     if (!alive.current) return;
     if (res.state === 'loaded') setHistory((h) => ({ state: 'loaded', items: cursor ? [...h.items, ...(res.data.submissions || [])] : res.data.submissions || [], nextCursor: res.data.nextCursor || null }));
-    else setHistory((h) => ({ ...h, state: 'error', result: res }));
+    else setHistory((h) => (isScopeFailure(res) ? { state: 'error', result: res, items: [], nextCursor: null } : { ...h, state: 'error', result: res }));
   }, [client, mission.id]);
   useEffect(() => { loadHistory(); }, [loadHistory]);
   // Optional deep link ({ route, view, step }) so previews and device checks can open a state directly.
@@ -120,19 +141,36 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
   }, [client]);
 
   // Choosing a route opens that exact task's own draft: work never moves between routes.
-  async function chooseRoute(r, seed) {
+  // `revising` (a returned attempt) waits for the account draft, then continues from the newer of the two.
+  async function chooseRoute(r, { seed, revising } = {}) {
     const id = identityFor(bundle, mission, r), k = identityKey(id);
     setRouteId(r.id); setView('work'); setSend({ state: 'idle' });
     if (seed) { edited.current[k] = true; setWorks((all) => ({ ...all, [k]: seed })); setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), state: 'not-saved' } })); }
-    else setWorks((all) => (all[k] ? all : { ...all, [k]: emptyWork(r, { supportMode: Object.values(all)[0]?.supportMode }) }));
+    else if (!revising) setWorks((all) => (all[k] ? all : { ...all, [k]: emptyWork(r, { supportMode: Object.values(all)[0]?.supportMode }) }));
     checkAvailability(id, k);
-    if (saves[k]?.loaded) return;
+    if (saves[k]?.loaded && !revising) return;
     setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), state: all[k]?.state || 'not-saved', loading: true, loadError: null } }));
     const res = await client.getDraft(id);
     if (!alive.current) return;
-    if (res.state !== 'loaded') { setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), loading: false, state: all[k]?.state || 'not-saved', loadError: res } })); return; }
+    const fromAttempt = revising ? workFromSaved(r, revising, { previousSubmissionId: revising.submissionId }) : null;
+    if (res.state !== 'loaded') {
+      // The attempt stays readable; saving is paused (loadError) so an unseen account draft is never overwritten.
+      if (fromAttempt) setWorks((all) => ({ ...all, [k]: fromAttempt }));
+      setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), loading: false, state: all[k]?.state || 'not-saved', loadError: res } }));
+      return;
+    }
     const d = res.data.draft;
+    if (revising && (!d || restorable(registry, id, d))) {
+      const keep = draftIsNewer(d, revising);
+      const linked = keep && d.previousSubmissionId === revising.submissionId;
+      edited.current[k] = !linked;
+      setWorks((all) => ({ ...all, [k]: keep ? workFromSaved(r, d, { previousSubmissionId: revising.submissionId }) : fromAttempt }));
+      // Saving continues from the account draft's revision, so there is no false conflict and nothing newer is lost.
+      setSaves((all) => ({ ...all, [k]: { state: linked ? 'saved' : 'not-saved', loading: false, loaded: true, revision: d?.revision ?? 0, updatedAt: d?.updatedAt } }));
+      return;
+    }
     if (d && !restorable(registry, id, d)) {
+      if (fromAttempt) setWorks((all) => ({ ...all, [k]: fromAttempt }));
       // A saved draft that doesn't fit this exact task is never restored as blank or relabelled work.
       setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), loading: false, state: all[k]?.state || 'not-saved', loadError: { state: 'error', code: 'MALFORMED_RESPONSE', message: 'Your saved work for this task couldn’t be read, so it wasn’t loaded. Nothing has been overwritten.' } } }));
       return;
@@ -158,16 +196,19 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
     const submitted = work;
     setSaves((all) => ({ ...all, [key]: { ...(all[key] || {}), state: 'saving' } }));
     const res = await client.saveDraft(identity.missionId, body, idem);
-    if (!alive.current) return;
+    if (!alive.current) return false;
     if (res.state === 'loaded') {
       const d = res.data.draft ?? res.data;
       // Edits made while the save was in flight stay "not saved" until the next save.
       setSaves((all) => ({ ...all, [key]: { state: latest.current[key] === submitted ? 'saved' : 'not-saved', loaded: true, revision: d.revision, updatedAt: d.updatedAt } }));
+      // R4: true only if the exact work now on screen is what was saved (edits made meanwhile are not).
+      return latest.current[key] === submitted;
     } else if (res.state === 'error' && res.code === 'DRAFT_CONFLICT') {
       setSaves((all) => ({ ...all, [key]: { ...(all[key] || {}), state: 'conflict', currentDraft: res.details?.currentDraft || null } }));
     } else {
       setSaves((all) => ({ ...all, [key]: { ...(all[key] || {}), state: 'error', failure: res } }));
     }
+    return false;
   }, [route, work, open, save, identity, key, client]);
 
   // Autosave after a pause, only while the service says the mission is open and nothing conflicts.
@@ -207,47 +248,96 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
 
   function revise(item) {
     const r = mission.routes.find((x) => x.id === item.routeId);
+    const k = identityKey(identityFor(bundle, mission, r)), w = works[k], s = saves[k];
     setReviseFrom(item);
-    chooseRoute(r, workFromSaved(r, item, { previousSubmissionId: item.submissionId }));
+    // Work already on this screen that is newer than the returned attempt (unsaved edits, or saved after it was sent) is kept and linked.
+    if (s?.loaded && !s.loadError && w && (w.previousSubmissionId === item.submissionId || (edited.current[k] && s.state !== 'saved') || draftIsNewer({ updatedAt: s.updatedAt }, item))) {
+      chooseRoute(r, { seed: { ...w, previousSubmissionId: item.submissionId } });
+      return;
+    }
+    chooseRoute(r, { revising: item });
   }
 
-  function onKeyDown(e) {
-    if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); onClose(); }
+  // Focus flow: one action at a time. The cursor is UI-only; the wire keeps the authored activeStepId.
+  const design = useMemo(() => (route ? learningDesign(bundle, mission, route) : null), [bundle, mission, route]);
+  const actions = useMemo(() => (route ? buildActions(route, design) : []), [route, design]);
+  const [cursor, setCursor] = useState(null);
+  const at = work ? (cursor && cursor.key === key && cursor.stepId === work.activeStepId ? cursor.index : firstActionOf(actions, work.activeStepId)) : 0;
+  const actionHeading = useRef(null), moved = useRef(false);
+  const go = (index) => {
+    const a = actions[Math.max(0, Math.min(actions.length - 1, index))];
+    moved.current = true;
+    setCursor({ key, stepId: a.stepId, index: a.index });
+    if (a.stepId !== work.activeStepId) setWork((w) => ({ ...w, activeStepId: a.stepId }));
+  };
+  useEffect(() => { if (moved.current) { moved.current = false; actionHeading.current?.focus(); } }, [at, view]);
+  const [partViews, setPartViews] = useState({});
+  const partView = (partId) => partViews[`${key}|${partId}`] || {};
+  const onPartView = (partId) => (patch) => setPartViews((all) => ({ ...all, [`${key}|${partId}`]: { ...(all[`${key}|${partId}`] || {}), ...patch } }));
+
+  // Closing with work that isn't saved to the account says so at the moment of closing.
+  const [closing, setClosing] = useState(false);
+  const closingNow = useRef(false);
+  closingNow.current = closing;
+  const savesNow = useRef(saves);
+  savesNow.current = saves;
+  const pendingKeys = (all = saves) => Object.keys(latest.current).filter((k) => edited.current[k] && (all[k]?.state || 'not-saved') !== 'saved');
+  const unsavedKeys = pendingKeys();
+  const routeNameOf = (k) => mission.routes.find((r) => identityKey(identityFor(bundle, mission, r)) === k)?.name || 'Another task';
+  const requestClose = () => {
+    if (closing) { setClosing(false); return; } // Escape on the close question means "keep working"
+    if (unsavedKeys.length) setClosing(true); else onClose();
+  };
+  // R3: "Save and close" is offered only when the open task is the only unsaved one, and closes only if,
+  // after its save, nothing anywhere is still unsaved (otherwise the question stays, naming what is pending).
+  async function saveAndClose() {
+    const ok = await doSave();
+    // "Keep working" pressed while the save was in flight wins: never close behind the learner's back.
+    if (!alive.current || !closingNow.current) return;
+    if (ok && pendingKeys(savesNow.current).filter((k) => k !== key).length === 0) onClose(); else setClosing(!ok ? false : true);
   }
+
+  const sheetRef = useRef(null);
+  const onKeyDown = useDialogFocus(sheetRef, requestClose, heading);
+  const routeLabel = route ? scenarioLabel(bundle, mission, route, design) : '';
 
   const draftLabel = bundle.status !== 'published';
-  return <div className="mx-mission-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-    <section className="mx-mission px-sheet" role="dialog" aria-modal="true" aria-labelledby="px-title" onKeyDown={onKeyDown}>
+  return <div className="mx-mission-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) requestClose(); }}>
+    <section className="mx-mission px-sheet is-focus" role="dialog" aria-modal="true" aria-labelledby="px-title" onKeyDown={onKeyDown} ref={sheetRef}>
       <header className="mx-mission-top">
         <div>
           <span className="mx-eyebrow">Mission{route ? ` · ${route.name}` : ' · Briefing'}</span>
           <h2 id="px-title" ref={heading} tabIndex={-1}>{mission.title}</h2>
-          {route && <p className="px-meta">Challenge {route.challengeLevel} · Grades {route.gradeBand} · Version {mission.version}</p>}
+          {route && <p className="px-meta">{routeLabel} · Challenge {route.challengeLevel} of 5 · {gradeLabel(route, design)}</p>}
         </div>
-        <button type="button" className="mx-icon" onClick={onClose} aria-label="Close mission"><X size={20} aria-hidden="true" /></button>
+        <button type="button" className="mx-icon" onClick={requestClose} aria-label="Close mission"><X size={20} aria-hidden="true" /></button>
       </header>
       {draftLabel && <p className="mx-draft">{preview ? 'Synthetic preview · ' : ''}Draft mission awaiting educator review · not a published task</p>}
-      {route && <nav className="px-tabs" aria-label="Mission sections">
-        <button type="button" aria-pressed={view === 'work'} onClick={() => setView('work')}><PenLine size={15} aria-hidden="true" />Work</button>
-        <button type="button" aria-pressed={view === 'review'} onClick={() => setView('review')}><ClipboardList size={15} aria-hidden="true" />Review and send</button>
+      {route && !closing && <nav className="px-tabs" aria-label="Mission sections">
+        <button type="button" aria-pressed={view === 'work'} onClick={() => { moved.current = true; setView('work'); }}><PenLine size={15} aria-hidden="true" />Work</button>
+        <button type="button" aria-pressed={view === 'review'} onClick={() => { moved.current = true; setView('review'); }}><ClipboardList size={15} aria-hidden="true" />Review and send</button>
         <button type="button" aria-pressed={view === 'history'} onClick={() => setView('history')}><History size={15} aria-hidden="true" />My attempts{items.length ? ` (${items.length})` : ''}</button>
         <button type="button" onClick={() => { setRouteId(null); setSend({ state: 'idle' }); }}><ChevronLeft size={15} aria-hidden="true" />Routes</button>
       </nav>}
       <div className="mx-mission-body" ref={body}>
-        {!route && <Briefing bundle={bundle} mission={mission} onChoose={(r) => chooseRoute(r)} history={history} onHistory={() => { setRouteId(mission.routes[0].id); chooseRoute(mission.routes[0]); setView('history'); }} />}
-        {route && <>
-          <StatusBar availResult={avail[key]} availability={availability} save={save} onSave={() => doSave()} onRetryAvail={() => checkAvailability(identity, key)} open={open} />
+        {closing && <ClosePanel names={unsavedKeys.map(routeNameOf)} otherTask={unsavedKeys.some((k) => k !== key)} canSave={!!route && open && !save?.loadError && save?.state !== 'saving' && unsavedKeys.length === 1 && unsavedKeys[0] === key}
+          onKeep={() => setClosing(false)} onSave={saveAndClose} onDiscard={onClose} saving={save?.state === 'saving'} />}
+        {!closing && !route && <Briefing bundle={bundle} mission={mission} onChoose={(r) => chooseRoute(r)} history={history} onHistory={() => { setRouteId(mission.routes[0].id); chooseRoute(mission.routes[0]); setView('history'); }} />}
+        {!closing && route && <>
+          <StatusLine availResult={avail[key]} availability={availability} save={save} onSave={() => doSave()} onRetryAvail={() => checkAvailability(identity, key)} open={open}
+            support={<Support route={route} work={work} setWork={setWork} />} />
           {save.loadError && <div className="px-alert" role="alert"><AlertTriangle size={16} aria-hidden="true" />
             <p>{save.loadError.message ? save.loadError.message : `Your saved work couldn’t be loaded. ${describeFailure(save.loadError)}`} Saving is paused so nothing is overwritten. <button type="button" className="px-link" onClick={() => chooseRoute(route)}>Try loading again</button></p></div>}
           {save.state === 'conflict' && <div className="px-alert" role="alert"><AlertTriangle size={16} aria-hidden="true" />
             <div><p>Your account has a different saved version of this task{save.currentDraft ? ` (saved ${formatTime(save.currentDraft.updatedAt)})` : ''}. Nothing has been overwritten.</p>
               <div className="px-row">{save.currentDraft && restorable(registry, identity, save.currentDraft) && <button type="button" className="px-ghost" onClick={() => resolveConflict(true)}>Load the account version</button>}
                 <button type="button" className="px-ghost" disabled={!open} onClick={() => resolveConflict(false)}>Keep this screen’s work and save it</button></div></div></div>}
-          {reviseFrom && view !== 'history' && <div className="px-note" role="status"><strong>Revising attempt {reviseFrom.attemptNumber ?? ''}.</strong> {reviseFrom.coachNote ? `Your coach asked: “${reviseFrom.coachNote}”` : ''} Sending creates a new attempt linked to the returned one; the returned attempt stays as it was.</div>}
-          <Support route={route} work={work} setWork={setWork} />
-          {view === 'work' && work && <WorkView bundle={bundle} mission={mission} route={route} work={work} setWork={setWork} open={open} onReview={() => setView('review')} />}
-          {view === 'review' && work && <ReviewView route={route} identity={identity} registry={registry} work={work} setWork={setWork} open={open} sendable={sendable} availability={availability}
-            openAttempt={openAttempt} historyState={history.state} send={send} onSend={sendForReview} onJump={(stepId) => { setWork((w) => ({ ...w, activeStepId: stepId })); setView('work'); }} />}
+          {reviseFrom && view !== 'history' && <details className="px-note px-revising"><summary><strong>Revising attempt {reviseFrom.attemptNumber ?? ''}</strong>{reviseFrom.coachNote ? ' · your coach’s note' : ''}</summary>
+            {reviseFrom.coachNote && <p>“{reviseFrom.coachNote}”</p>}<p>Sending creates a new attempt linked to the returned one; the returned attempt stays as it was.</p></details>}
+          {view === 'work' && work && <FocusWork bundle={bundle} mission={mission} route={route} design={design} actions={actions} at={at} go={go} headingRef={actionHeading}
+            work={work} setWork={setWork} open={open} partView={partView} onPartView={onPartView} onReview={() => { moved.current = true; setView('review'); }} />}
+          {view === 'review' && work && <ReviewView route={route} routeLabel={routeLabel} identity={identity} registry={registry} work={work} setWork={setWork} open={open} sendable={sendable} availability={availability} headingRef={actionHeading}
+            openAttempt={openAttempt} historyState={history.state} send={send} onSend={sendForReview} onJump={(partId) => { setView('work'); go(actions.findIndex((a) => a.partId === partId)); }} />}
           {view === 'history' && <HistoryView bundle={bundle} mission={mission} history={history} onMore={() => loadHistory(history.nextCursor)} onRetry={() => loadHistory()} onRevise={revise} openAttempt={openAttempt} />}
         </>}
       </div>
@@ -255,94 +345,144 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
   </div>;
 }
 
+/** Route and scenario named together, so cases with different authored numbers never blur together. */
+function scenarioLabel(bundle, mission, route, design) {
+  if (design?.routeNote) return design.routeNote;
+  const cases = routeDatasets(bundle, mission, route).map((d) => d.id.replace(/-\d+$/, '').replace(/-/g, ' ')).join(' + ');
+  return `${route.name}${cases ? ` · ${cases}` : ''}`;
+}
+
+function ClosePanel({ names, otherTask, canSave, onKeep, onSave, onDiscard, saving }) {
+  const ref = useRef(null);
+  useEffect(() => { ref.current?.focus(); }, []);
+  return <div className="px-close" role="alertdialog" aria-labelledby="px-close-h" aria-describedby="px-close-p">
+    <h3 id="px-close-h" ref={ref} tabIndex={-1}>Close this mission?</h3>
+    <p id="px-close-p">{names.length > 1 || otherTask ? 'Changes in these tasks aren’t saved to your account yet:' : 'Your latest changes aren’t saved to your account yet.'} If you close now, they will be lost. Work already saved stays saved.</p>
+    {(names.length > 1 || otherTask) && <ul className="px-close-list">{names.map((n, i) => <li key={i}>{n}</li>)}</ul>}
+    {!canSave && <p className="px-fine">To keep them, choose Keep working, open each task and save it (or wait for “Saved”).</p>}
+    <div className="px-row">
+      <button type="button" className="mx-primary" onClick={onKeep}>Keep working</button>
+      {canSave && <button type="button" className="px-ghost" disabled={saving} onClick={onSave}>{saving ? 'Saving…' : 'Save and close'}</button>}
+      <button type="button" className="px-ghost" onClick={onDiscard}>Close without saving</button>
+    </div>
+  </div>;
+}
+
 function Briefing({ bundle, mission, onChoose, history, onHistory }) {
+  const designs = mission.routes.map((r) => learningDesign(bundle, mission, r));
+  const d = designs.find(Boolean);
+  const ngss = standardsAcross(designs);
   return <>
-    {mission.storyOpening && <p className="px-story">{mission.storyOpening}</p>}
-    <p className="mx-question">{mission.drivingQuestion}</p>
-    <p><strong>Your role:</strong> {mission.role}</p>
-    <p>{mission.scenario}</p>
-    <p><strong>Your decision:</strong> {mission.decision}</p>
-    <details className="px-drawer"><summary><BookOpen size={15} aria-hidden="true" />Evidence for this mission</summary>
-      {(mission.evidenceRefs || []).map((id) => bundle.datasets.find((d) => d.id === id)).filter(Boolean).map((d) => <DatasetView key={d.id} dataset={d} />)}
-    </details>
+    <p className="mx-question">{d?.situation || mission.drivingQuestion}</p>
+    <dl className="px-brief">
+      <div><dt>Your role</dt><dd>{d?.role || mission.role}</dd></div>
+      <div><dt>Your decision</dt><dd>{d?.decision || getMissionDecision(mission)}</dd></div>
+      {d?.objective && <div><dt>Goal</dt><dd>{d.objective}</dd></div>}
+    </dl>
     <h3>Choose a route</h3>
-    <p className="mx-muted">Routes are different tasks. Pick the one you want to attempt; your age never chooses for you. Inside a route you can switch between Guided and Independent help at any time without losing work.</p>
-    <div className="mx-routes">{mission.routes.map((r) => <button type="button" key={r.id} className="mx-route" onClick={() => onChoose(r)}>
+    <div className="mx-routes">{mission.routes.map((r, i) => <button type="button" key={r.id} className="mx-route" onClick={() => onChoose(r)}>
       <strong>{r.name}</strong>
-      <span className="px-route-tags"><span>Challenge {r.challengeLevel} of 5</span><span>Grades {r.gradeBand}</span><span>{r.planningMinutes?.join('–')} min</span></span>
-      <span>{r.steps.length} steps · {r.requiredParts.length} notebook parts to send</span>
-      <small>Help: {r.supportModes.map((m) => (m === 'guided' ? 'Guided' : 'Independent')).join(' or ')}</small>
+      <span className="px-route-tags"><span>Challenge {r.challengeLevel} of 5</span><span>{gradeLabel(r, designs[i])}</span><span>{r.planningMinutes?.join('–')} min</span></span>
+      {designs[i]?.routeNote && <span>{designs[i].routeNote}</span>}
     </button>)}</div>
-    <details className="mx-limits"><summary>What this model leaves out</summary><ul>{mission.limitations.map((l) => <li key={l}>{l}</li>)}</ul></details>
+    <p className="px-fine">Grade ranges are suggestions, not limits. You choose; you can switch help style inside any route.</p>
+    <details className="px-optional"><summary>The full story</summary>
+      {mission.storyOpening && <p className="px-story">{mission.storyOpening}</p>}
+      <p>{mission.drivingQuestion}</p><p>{mission.scenario}</p>
+    </details>
+    <details className="px-optional"><summary><BookOpen size={15} aria-hidden="true" />Evidence and sources</summary>
+      {(mission.evidenceRefs || []).map((id) => bundle.datasets.find((x) => x.id === id)).filter(Boolean).map((x) => <DatasetView key={x.id} dataset={x} />)}
+    </details>
+    <details className="px-optional mx-limits"><summary>What this model leaves out</summary><ul>{mission.limitations.map((l) => <li key={l}>{l}</li>)}</ul></details>
+    {ngss.length > 0 && <details className="px-optional"><summary>Science standards (NGSS)</summary>
+      <ul>{ngss.map((n) => <li key={n.code}><a href={n.url} target="_blank" rel="noreferrer">{n.code}</a>{n.scope ? ` · ${n.scope}` : ''}</li>)}</ul></details>}
     <button type="button" className="px-ghost" onClick={onHistory}><History size={15} aria-hidden="true" />My attempts{history.state === 'loaded' && history.items.length ? ` (${history.items.length})` : ''}</button>
   </>;
 }
 
-function StatusBar({ availResult, availability, save, onSave, onRetryAvail, open }) {
-  let availLine;
-  if (!availResult) availLine = <span role="status">Checking whether this mission is open…</span>;
-  else if (availResult.state !== 'loaded') availLine = <span>{describeFailure(availResult)} Saving and sending wait until the mission service confirms this mission is open. You can still read the briefing, the evidence and your notes. <button type="button" className="px-link" onClick={onRetryAvail}>Check again</button></span>;
-  else if (!open) availLine = <span>{availability.reason || AVAIL_TEXT[availability.status] || AVAIL_TEXT.unknown} You can still read the briefing, the evidence and your notes. <button type="button" className="px-link" onClick={onRetryAvail}>Check again</button></span>;
-  else availLine = <span>{availability.status === 'open' ? 'Open for work' : `Work allowed by the service (status: ${availability.status})`}{availability.checkedAt ? ` · checked ${formatTime(availability.checkedAt)}` : ''}</span>;
-  const saveText = {
-    'not-saved': 'Not saved', saving: 'Saving…', saved: `Saved to your account${save.updatedAt ? ` · ${formatTime(save.updatedAt)}` : ''}`,
-    error: 'Not saved: the last save didn’t go through', conflict: 'Not saved: two versions to choose between'
-  }[save.state] || 'Not saved';
-  return <div className={`px-status${open ? '' : ' is-closed'}`}>
-    <p>{availLine}</p>
-    <p className={`px-save is-${save.state}`} role="status">{save.state === 'saved' ? <Cloud size={14} aria-hidden="true" /> : <CloudOff size={14} aria-hidden="true" />}{save.loading ? 'Loading your saved work…' : saveText}
+/** One compact line: whether the mission is open, the save state, and the help style. Failures keep their actions. */
+function StatusLine({ availResult, availability, save, onSave, onRetryAvail, open, support }) {
+  let avail;
+  if (!availResult) avail = <span role="status">Checking…</span>;
+  else if (availResult.state !== 'loaded') avail = <span>{describeFailure(availResult)} You can still read everything. <button type="button" className="px-link" onClick={onRetryAvail}>Check again</button></span>;
+  else if (!open) avail = <span>{availability.reason || AVAIL_TEXT[availability.status] || AVAIL_TEXT.unknown} You can still read everything. <button type="button" className="px-link" onClick={onRetryAvail}>Check again</button></span>;
+  else avail = <span>{availability.status === 'open' ? 'Open' : `Open in this preview (${availability.status})`}</span>;
+  const saveText = { 'not-saved': 'Not saved yet', saving: 'Saving…', saved: `Saved${save.updatedAt ? ` · ${formatTime(save.updatedAt)}` : ''}`, error: 'Not saved', conflict: 'Not saved · two versions' }[save.state] || 'Not saved yet';
+  return <div className={`px-status is-compact${open ? '' : ' is-closed'}`}>
+    <p className="px-avail">{avail}</p>
+    <p className={`px-save is-${save.state}`} role="status">{save.state === 'saved' ? <Cloud size={14} aria-hidden="true" /> : <CloudOff size={14} aria-hidden="true" />}{save.loading ? 'Loading saved work…' : saveText}
       {save.state === 'error' && <> — {describeFailure(save.failure)}</>}
       {(save.state === 'not-saved' || save.state === 'error') && open && !save.loadError && <button type="button" className="px-link" onClick={onSave}>Save now</button>}</p>
-    {save.state === 'not-saved' && <p className="px-fine">Work on this screen is kept only until you close it, unless it is saved to your account.</p>}
+    {support}
   </div>;
 }
 
 function Support({ route, work, setWork }) {
   if (!work || route.supportModes.length < 2) return null;
-  return <fieldset className="px-support"><legend>Help style</legend>
+  return <fieldset className="px-support is-compact"><legend>Help</legend>
     {route.supportModes.map((m) => <label key={m}><input type="radio" name="px-support" checked={work.supportMode === m} onChange={() => setWork((w) => ({ ...w, supportMode: m }))} />
       {m === 'guided' ? 'Guided' : 'Independent'}</label>)}
-    <small className="mx-muted">{route.supportPresentation?.[work.supportMode]} Switching keeps all your work and is never a lower grade.</small>
+    <details className="px-optional px-inline"><summary>What changes?</summary><p>{getSupportDescription(work.supportMode)} Either help style is an equal way to do this task.</p></details>
   </fieldset>;
 }
 
-function WorkView({ bundle, mission, route, work, setWork, open, onReview }) {
-  const index = Math.max(0, route.steps.findIndex((s) => s.id === work.activeStepId));
-  const step = route.steps[index];
-  const go = (i) => setWork((w) => ({ ...w, activeStepId: route.steps[i].id }));
+const ACTION_LABEL = { practice: 'Try it', part: 'Your notebook', read: 'Read' };
+
+/** The work view: exactly one action (a practice check or one notebook part) and its response, then Back / Next. */
+function FocusWork({ bundle, mission, route, design, actions, at, go, headingRef, work, setWork, open, partView, onPartView, onReview }) {
+  const a = actions[at];
+  const step = route.steps[a.stepIndex];
+  const copy = actionCopy(a, step, design);
+  const inStep = actions.filter((x) => x.stepId === a.stepId);
   const guided = work.supportMode === 'guided';
   const lab = mission.optionalLab && !mission.optionalLab.enabledInAssessedFlow;
+  const rule = a.partId ? route.requiredParts.find((r) => r.partId === a.partId) : null;
+  const shared = a.partId ? stepsUsingPart(actions, a.partId) : [];
+  const last = at === actions.length - 1;
   return <>
-    <details className="px-drawer"><summary><BookOpen size={15} aria-hidden="true" />Evidence for this task</summary>
-      {routeDatasets(bundle, mission, route).map((d) => <DatasetView key={d.id} dataset={d} />)}
-      {lab && <p className="px-note">The station’s Hex-Grid lab isn’t part of this assessed task yet. Use the plan cards and your table.</p>}
-    </details>
-    <ol className="mx-stepper" aria-label="Steps">{route.steps.map((s, i) => <li key={s.id}>
-      <button type="button" aria-current={i === index ? 'step' : undefined} onClick={() => go(i)}>{i + 1}<span className="mx-sr"> {s.title}</span></button></li>)}</ol>
-    <div className="mx-step">
-      <h3>Step {index + 1} of {route.steps.length}: {step.title}</h3>
-      <p>{step.prompt}</p>
+    <p className="px-progress">Step {a.stepIndex + 1} of {route.steps.length}{inStep.length > 1 ? ` · part ${inStep.indexOf(a) + 1} of ${inStep.length}` : ''}</p>
+    <div className={`px-action-card is-${a.type}`}>
+      <span className="mx-eyebrow">{ACTION_LABEL[a.type]}</span>
+      <h3 ref={headingRef} tabIndex={-1} className="px-action-title">{a.type === 'part' ? `${copy.title}: ${partTitle(a.partId).toLowerCase()}` : copy.title}</h3>
+      {copy.action && <p className="px-action">{copy.action}</p>}
+      {a.type === 'part' && !copy.action && <p className="px-action">Add what this step found to your notebook.</p>}
       {lab && /\blab\b/i.test(step.prompt) && <p className="px-note">The lab link is hidden in this pilot. Use the equivalent plan table instead.</p>}
-      {route.workedExample?.practiceStepId === step.id && <WorkedExample ex={route.workedExample} open={guided} />}
-      {step.kind === 'number' && <NumberPractice key={step.id} step={step} value={work.answers[step.id]?.rawText ?? ''} onChange={(rawText) => setWork((w) => withAnswer(w, step.id, { rawText }))} />}
-      {step.kind === 'choose' && <ChoicePractice key={step.id} step={step} value={work.answers[step.id]?.selectedId ?? ''} onChange={(selectedId) => setWork((w) => withAnswer(w, step.id, { selectedId }))} />}
-      {step.kind !== 'reflect' && <Help key={`h-${step.id}`} step={step} />}
-      {(step.evidencePartIds || []).length > 0 && <div className="px-bound">
-        <h4 className="px-bound-title">Your notebook {step.evidencePartIds.length > 1 ? 'parts' : 'part'} for this step</h4>
+
+      {a.type === 'practice' && step.kind === 'number' && <NumberPractice key={step.id} step={step} value={work.answers[step.id]?.rawText ?? ''} onChange={(rawText) => setWork((w) => withAnswer(w, step.id, { rawText }))} />}
+      {a.type === 'practice' && step.kind === 'choose' && <ChoicePractice key={step.id} step={step} value={work.answers[step.id]?.selectedId ?? ''} onChange={(selectedId) => setWork((w) => withAnswer(w, step.id, { selectedId }))} />}
+
+      {a.type === 'part' && <>
+        {shared.length > 1 && <p className="px-fine">One shared notebook part for steps {shared.join(', ')}. Fill in what you can now; you can finish it at any of those steps.</p>}
         {!open && <p className="px-fine">Notebook editing is paused until the mission service confirms this mission is open.</p>}
-        {step.evidencePartIds.map((p) => <NotebookPart key={p} route={route} partId={p} work={work} setWork={setWork} disabled={!open} guided={guided} />)}
-      </div>}
+        <NotebookPart key={a.partId} route={route} partId={a.partId} work={work} setWork={setWork} disabled={!open} guided={guided} focus view={partView(a.partId)} onView={onPartView(a.partId)} />
+      </>}
+
+      <div className="px-optionals">
+        {a.type === 'practice' && route.workedExample?.practiceStepId === step.id && <WorkedExample ex={route.workedExample} />}
+        {a.type === 'practice' && (step.hints?.length > 0 || step.solution) && <details className="px-optional"><summary><Lightbulb size={15} aria-hidden="true" />Hints</summary><Help key={`h-${step.id}`} step={step} /></details>}
+        {copy.reference && <details className="px-optional"><summary>Reference: what this means</summary><p>{copy.reference}</p></details>}
+        {rule && <details className="px-optional"><summary>What your coach reviews</summary><p>{rule.evidenceCriterion}</p></details>}
+        {copy.action !== step.prompt && <details className="px-optional"><summary>Full task</summary><p>{step.prompt}</p></details>}
+        <details className="px-optional"><summary><BookOpen size={15} aria-hidden="true" />Evidence for this task</summary>
+          {routeDatasets(bundle, mission, route).map((d) => <DatasetView key={d.id} dataset={d} />)}
+          {lab && <p className="px-note">The station’s Hex-Grid lab isn’t part of this assessed task yet. Use the plan cards and your table.</p>}
+        </details>
+      </div>
     </div>
-    <nav className="mx-step-nav" aria-label="Step navigation">
-      {index > 0 ? <button type="button" onClick={() => go(index - 1)}><ChevronLeft size={16} aria-hidden="true" />Previous</button> : <span />}
-      {index < route.steps.length - 1 ? <button type="button" className="mx-primary" onClick={() => go(index + 1)}>Next step<ChevronRight size={16} aria-hidden="true" /></button>
-        : <button type="button" className="mx-primary" onClick={onReview}>Review your work<ClipboardList size={16} aria-hidden="true" /></button>}
+    <nav className="mx-step-nav" aria-label="Move between actions">
+      <button type="button" disabled={at === 0} onClick={() => go(at - 1)}><ChevronLeft size={16} aria-hidden="true" />Back</button>
+      {last ? <button type="button" className="mx-primary" onClick={onReview}>Review your work<ClipboardList size={16} aria-hidden="true" /></button>
+        : <button type="button" className="mx-primary" onClick={() => go(at + 1)}>Next<ChevronRight size={16} aria-hidden="true" /></button>}
     </nav>
+    <details className="px-optional px-allsteps"><summary>All steps</summary>
+      <ol className="mx-stepper" aria-label="Steps">{route.steps.map((s, i) => <li key={s.id}>
+        <button type="button" aria-current={i === a.stepIndex ? 'step' : undefined} onClick={() => go(firstActionOf(actions, s.id))}>{i + 1}<span className="mx-sr"> {s.title}</span></button></li>)}</ol>
+    </details>
   </>;
 }
 
-function WorkedExample({ ex, open }) {
-  return <details className="px-worked" open={open}><summary>Worked example: {ex.title}</summary><ol>{ex.steps.map((s) => <li key={s}>{s}</li>)}</ol></details>;
+function WorkedExample({ ex }) {
+  return <details className="px-worked px-optional"><summary>Worked example: {ex.title}</summary><ol>{ex.steps.map((s) => <li key={s}>{s}</li>)}</ol></details>;
 }
 
 function formatRule(step) {
@@ -391,7 +531,7 @@ function Help({ step }) {
   </>;
 }
 
-function ReviewView({ route, identity, registry, work, setWork, open, sendable, availability, openAttempt, historyState, send, onSend, onJump }) {
+function ReviewView({ route, routeLabel, identity, registry, work, setWork, open, sendable, availability, openAttempt, historyState, send, onSend, onJump, headingRef }) {
   const statuses = route.requiredParts.map((r) => ({ rule: r, ...partStatus(route, r.partId, work.parts[r.partId]) }));
   const local = checkSubmission(registry, identity, submissionBody(route, identity, work));
   const reflectionOk = codePoints(work.reflection.trim()) >= 20 && codePoints(work.reflection) <= 2000;
@@ -400,25 +540,28 @@ function ReviewView({ route, identity, registry, work, setWork, open, sendable, 
   if (availability && open && !sendable) blockers.push(availability.reason || 'Sending isn’t open for this mission right now.');
   if (historyState !== 'loaded') blockers.push(historyState === 'error' ? 'Your earlier attempts couldn’t be checked, so sending waits until they can.' : 'Checking your earlier attempts…');
   if (openAttempt) blockers.push(`Attempt ${openAttempt.attemptNumber ?? ''} is already waiting for your coach. You can send again after it is reviewed.`);
-  if (statuses.some((s) => !s.complete)) blockers.push('Finish every notebook part below.');
+  if (statuses.some((s) => !s.complete)) blockers.push('Finish every notebook part.');
   if (!reflectionOk) blockers.push('Write a reflection of at least 20 characters.');
   if (!local.ok && !blockers.length) blockers.push(local.error.message);
-  const firstStep = (partId) => route.steps.find((s) => (s.evidencePartIds || []).includes(partId))?.id;
   const sending = send.state === 'sending';
+  const ready = statuses.filter((s) => s.complete).length;
   return <>
-    <h3>Review your work</h3>
-    <p className="mx-muted">Every part below goes to your coach together. Sending records your work for review; it doesn’t mark it correct or open new places.</p>
+    <h3 ref={headingRef} tabIndex={-1} className="px-action-title">Review and send</h3>
+    <p className="px-fine">{routeLabel}</p>
+    <p className="px-progress">{ready} of {statuses.length} notebook parts ready</p>
     <ul className="px-checklist">{statuses.map((s) => <li key={s.rule.partId} className={s.complete ? 'is-done' : ''}>
       <span>{s.complete ? 'Ready' : 'Not finished'}</span> <strong>{partTitle(s.rule.partId)}</strong>
       {!s.complete && s.reason && <small> · {s.reason}</small>}
-      <button type="button" className="px-link" onClick={() => onJump(firstStep(s.rule.partId))}>Go to this part</button>
+      <button type="button" className="px-link" onClick={() => onJump(s.rule.partId)}>Go to this part</button>
     </li>)}</ul>
     <div className="px-field">
       <label htmlFor="px-reflection">Reflection for your coach: what did you decide, and what would you check next?</label>
       <textarea id="px-reflection" rows={4} value={work.reflection} disabled={!open} onChange={(e) => setWork((w) => ({ ...w, reflection: e.target.value }))} />
       <Counter value={work.reflection} min={20} />
     </div>
+    <details className="px-optional"><summary>See everything you’ll send</summary><EvidenceView evidence={evidenceFromWork(route, work)} route={route} /></details>
     {blockers.length > 0 && <div className="px-blockers" role="status"><p><strong>Not ready to send yet:</strong></p><ul>{blockers.map((b) => <li key={b}>{b}</li>)}</ul></div>}
+    <p className="px-fine">Sending records your work for review. It doesn’t mark it correct or open new places.</p>
     <button type="button" className="mx-primary" disabled={blockers.length > 0 || sending} onClick={onSend}><Send size={15} aria-hidden="true" />{sending ? 'Sending…' : work.previousSubmissionId ? 'Send revised work for review' : 'Send for review'}</button>
     <SendResult send={send} />
   </>;
@@ -442,13 +585,16 @@ function SendResult({ send }) {
 function HistoryView({ bundle, mission, history, onMore, onRetry, onRevise, openAttempt }) {
   if (history.state === 'loading' || history.state === 'idle') return <p role="status">Loading your attempts…</p>;
   if (history.state === 'error') return <div className="px-alert" role="alert"><AlertTriangle size={16} aria-hidden="true" /><p>Your attempts couldn’t be loaded. {describeFailure(history.result)} <button type="button" className="px-link" onClick={onRetry}><RefreshCw size={14} aria-hidden="true" />Try again</button></p></div>;
-  if (!history.items.length) return <p>No attempts sent for this mission yet.</p>;
+  const more = history.nextCursor && <button type="button" className="px-ghost" disabled={history.state === 'more'} onClick={onMore}>{history.state === 'more' ? 'Loading…' : 'Show older attempts'}</button>;
+  // A page can be empty while more follow; only a final empty page means there are none.
+  if (!history.items.length) return history.nextCursor ? <><p>No attempts on this page yet. Older attempts may follow.</p>{more}</> : <p>No attempts sent for this mission yet.</p>;
   return <>
     <h3>My attempts</h3>
     <ul className="px-history">{history.items.map((s) => {
       const r = mission.routes.find((x) => x.id === s.routeId);
       const exact = !!r && sameIdentity(s, identityFor(bundle, mission, r));
-      const canRevise = s.status === 'returned' && !s.legacyFormat && exact && !openAttempt;
+      const superseded = history.items.some((x) => x.previousSubmissionId === s.submissionId);
+      const canRevise = s.status === 'returned' && !s.legacyFormat && exact && !openAttempt && !superseded;
       return <li key={s.submissionId} className={`px-attempt is-${s.status}`}>
         <header><strong>Attempt {s.attemptNumber ?? '?'}</strong><span className={`px-pill is-${s.status}`}>{STATUS_TEXT[s.status] || s.status}</span></header>
         <p className="px-meta">{s.legacyFormat ? 'Earlier reflection-only format · ' : ''}Version {s.missionVersion} · {r?.name || s.routeId} · {s.supportMode === 'independent' ? 'Independent' : s.supportMode === 'guided' ? 'Guided' : 'help style not recorded'} help · sent {formatTime(s.createdAt)}{s.reviewedAt ? ` · reviewed ${formatTime(s.reviewedAt)}` : ''}</p>
@@ -458,9 +604,25 @@ function HistoryView({ bundle, mission, history, onMore, onRetry, onRevise, open
         {!exact && !s.legacyFormat && <p className="px-fine">This attempt used a different version of the task. It stays read-only.</p>}
         <details><summary>What was sent</summary><p className="px-pre">{s.reflection}</p>{!s.legacyFormat && <EvidenceView evidence={s.evidence} route={r} />}</details>
         {canRevise && <button type="button" className="mx-primary" onClick={() => onRevise(s)}><PenLine size={15} aria-hidden="true" />Revise and resend</button>}
-        {s.status === 'returned' && openAttempt && <p className="px-fine">A newer attempt is waiting for review.</p>}
+        {s.status === 'returned' && (openAttempt || superseded) && <p className="px-fine">{superseded ? 'You already sent a revision of this attempt.' : 'A newer attempt is waiting for review.'}</p>}
       </li>;
     })}</ul>
-    {history.nextCursor && <button type="button" className="px-ghost" disabled={history.state === 'more'} onClick={onMore}>{history.state === 'more' ? 'Loading…' : 'Show older attempts'}</button>}
+    {more}
   </>;
+}
+
+/** Shown instead of a mission when the signed-in learner's organization isn't confirmed: nothing is requested or kept. */
+export function MissionSignInNotice({ mission, onClose }) {
+  const ref = useRef(null), heading = useRef(null);
+  const onKeyDown = useDialogFocus(ref, onClose, heading);
+  useEffect(() => { heading.current?.focus(); }, []);
+  return <div className="mx-mission-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <section className="mx-mission px-sheet" role="dialog" aria-modal="true" aria-labelledby="px-signin-title" onKeyDown={onKeyDown} ref={ref}>
+      <header className="mx-mission-top">
+        <div><span className="mx-eyebrow">Mission</span><h2 id="px-signin-title" ref={heading} tabIndex={-1}>{mission.title}</h2></div>
+        <button type="button" className="mx-icon" onClick={onClose} aria-label="Close mission"><X size={20} aria-hidden="true" /></button>
+      </header>
+      <div className="mx-mission-body"><p role="status">Missions open once you’re signed in with a school account we can confirm. Nothing from this mission has been loaded or saved.</p></div>
+    </section>
+  </div>;
 }

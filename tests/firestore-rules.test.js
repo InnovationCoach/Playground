@@ -19,6 +19,13 @@ import {
 import fs from 'fs';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, getDocs, query, where, writeBatch, serverTimestamp } from 'firebase/firestore';
 
+const rulesHost = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8088';
+const rulesProject = process.env.GCLOUD_PROJECT || 'demo-hearisland-rules';
+if (!/^(127\.0\.0\.1|localhost):\d+$/.test(rulesHost) || !/^demo-[a-z0-9-]+$/.test(rulesProject)) {
+  throw new Error('Rules tests require a local emulator and a demo project.');
+}
+const [rulesHostname, rulesPort] = rulesHost.split(':');
+
 let testEnv;
 
 const CLASS_A = 'class_a';
@@ -34,11 +41,11 @@ const anon = () => testEnv.unauthenticatedContext();
 
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
-    projectId: 'demo-hearisland-rules',
+    projectId: rulesProject,
     firestore: {
       rules: fs.readFileSync('firestore.rules', 'utf8'),
-      host: '127.0.0.1',
-      port: Number(process.env.FIRESTORE_EMULATOR_HOST?.split(':').at(-1) || 8088)
+      host: rulesHostname,
+      port: Number(rulesPort)
     }
   });
 });

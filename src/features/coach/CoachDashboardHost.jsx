@@ -63,7 +63,7 @@ function ManagementTools({ coachUser, onAddStudent, classId, onClassChange }) {
   return <div id="coach-dashboard-card" ref={containerRef} style={{ minHeight: '600px', width: '100%' }} />;
 }
 
-export function CoachDashboardHost({ coachUser }) {
+export function CoachDashboardHost({ coachUser, orgId = null }) {
   const [management, setManagement] = useState(false);
   const [invite, setInvite] = useState(false);
   const [classId, setClassId] = useState('all');
@@ -81,7 +81,7 @@ export function CoachDashboardHost({ coachUser }) {
     </div>
     {/* Class programs and My Universe submissions (main line) stay above the workspace. */}
     <ClassProgramsPanel coachUser={coachUser} />
-    <CoachUniverseSubmissions coachUser={coachUser} />
+    <CoachUniverseSubmissions coachUser={coachUser} orgId={orgId} />
     {invite && <StudentInviteDialog initialClassId={classId} onClose={() => setInvite(false)} onCreated={() => setRosterVersion(n => n + 1)} />}
     {management ? <>
     <div className="gh-app cw-management"><button className="gh-btn gh-btn-ghost" onClick={() => setManagement(false)}>← Back to progress overview</button><p role="status">Class management tools. Select one assigned class before adding a task or assignment. Unavailable records are marked explicitly.</p></div>

@@ -7,14 +7,17 @@ import { CATALOG_URL, loadCosmos } from './cosmosCatalog.js';
 import * as firebase from '../../../firebase.js';
 import { API_BASE } from '../../../services/apiBase.js';
 import { PUBLISHED_RELEASES } from '../../../../shared/universe/index.js';
-import { createDefaultUniverseClient } from '../pilot/universeClient.js';
+import { createDefaultUniverseClient, scopeKey } from '../pilot/universeClient.js';
 import { findPilotMission } from '../pilot/missionSession.js';
-import { PilotMissionSheet } from '../pilot/PilotMissionSheet.jsx';
+import { PilotMissionSheet, MissionSignInNotice } from '../pilot/PilotMissionSheet.jsx';
 import {
   initialNav, reduce, current, childrenOf, itemFor, breadcrumbs, describeView, planetAccess, canLand,
   pathTo, transitionBetween, framedSelection, LEVEL_LABEL
 } from './explorerModel.js';
-import { ExplorerTextView, StatusChip, FactList } from './ExplorerTextView.jsx';
+import { ExplorerTextView, SurfaceTextView, StatusChip, FactList } from './ExplorerTextView.jsx';
+import { ArrivalCard, usePlanetArrival, resolveExpedition, arrivalChoices } from './PlanetArrival.jsx';
+import { getPlanetArrivalDesign } from '../../../../shared/universe/planetArrival.js';
+import { ARRIVAL_VIDEOS, videoFor } from './arrivalVideos.js';
 import { MissionSheet } from '../missions/MissionSheet.jsx';
 import { MISSIONS, visibleMission } from '../missions/registry.js';
 import { MissionList } from '../missions/MissionList.jsx';
@@ -32,6 +35,25 @@ function autoLowQuality() {
   if (typeof navigator === 'undefined') return true;
   const touch = navigator.maxTouchPoints > 1;
   return touch || (navigator.hardwareConcurrency || 4) < 6;
+}
+
+/**
+ * Where a normal learner entry starts: on the planet's surface when it can be landed on (the
+ * world first, no mission over it), otherwise at the planet so its access message is shown.
+ */
+export function arrivalNav(arrival, cosmos, opts) {
+  const planet = arrival?.planetId ? cosmos.planetById(arrival.planetId) : null;
+  if (!planet) return initialNav();
+  const path = canLand(planet, opts) ? pathTo('environment', planet.environmentId, cosmos) : pathTo('planet', planet.id, cosmos);
+  return path ? { path, selected: null } : initialNav();
+}
+
+/** True when this view is a surface that opens with the arrival card: the details dock then starts collapsed. */
+export function arrivesOn(nav, cosmos) {
+  const here = current(nav);
+  if (here.level !== 'environment') return false;
+  const design = getPlanetArrivalDesign(cosmos.environmentById(here.id)?.planetId);
+  return !!design && design.environmentId === here.id;
 }
 
 /**
@@ -116,27 +138,36 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
  * never fight slide swipes or arrow keys.
  */
 function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader,
-  missionRegistry = PUBLISHED_RELEASES, missionClient, viewerKey = '', initialMission = null, allowInReviewMissions = false }) {
-  const client = missionClient || defaultClient();
-  const [serverAccess, setServerAccess] = useState(null);
+  missionRegistry = PUBLISHED_RELEASES, missionClient, viewer = null, initialMission = null, initialArrival = null, allowInReviewMissions = false,
+  arrivalVideos = ARRIVAL_VIDEOS, trustArrivalVideos = false }) {
+  // Mission service calls are bound to one learner in one verified organization. Until the host
+  // supplies both, nothing is requested and no mission opens (fail closed).
+  const viewerKey = scopeKey(viewer);
+  const base = missionClient || defaultClient();
+  const client = useMemo(() => (viewerKey ? base.withScope({ uid: viewer.uid, orgId: viewer.orgId }) : null), [base, viewerKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Access answers are tagged with the scope that asked; a different viewer never sees them, even for one render.
+  const [accessReply, setAccessReply] = useState(null);
+  const serverAccess = accessReply && accessReply.key === viewerKey ? accessReply.destinations : null;
   const opts = useMemo(() => ({ preview, serverAccess, pilotRegistry: missionRegistry }), [preview, serverAccess, missionRegistry]);
   const webgl = useMemo(() => !forceTextView && hasWebGL2(), [forceTextView]);
-  const [state, setState] = useState(() => ({
-    nav: initialNav(),
-    travel: { from: 'approach', duration: 1.8 },
-    panelOpen: true,
-    sheetExpanded: false
-  }));
+  // initialMission is the explicit technical deep link (tests, drafts, device checks); it wins over an arrival.
+  const arrivalEntry = initialMission ? null : initialArrival;
+  const [state, setState] = useState(() => {
+    const nav = arrivalNav(arrivalEntry, cosmos, { preview, serverAccess: null, pilotRegistry: missionRegistry });
+    return { nav, travel: { from: 'approach', duration: 1.8 }, panelOpen: !arrivesOn(nav, cosmos), sheetExpanded: false };
+  });
   const { nav, travel, panelOpen, sheetExpanded } = state;
   const [view, setView] = useState(webgl ? '3d' : 'text');
   const [contextLost, setContextLost] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.visibilityState === 'hidden'); // opened in a background tab counts as hidden
   const [low, setLow] = useState(autoLowQuality);
   const [traveling, setTraveling] = useState(false);
   const [env, setEnv] = useState({ status: 'idle', Comp: null, kind: null });
   const [newer, setNewer] = useState(null);
   const [missionId, setMissionId] = useState(initialMission?.id ?? null); // deep link (previews and device tests)
+  const [missionInitial, setMissionInitial] = useState(initialMission); // the route (and deep-link state) to open with
+  const openMission = useCallback((id, start = null) => { setMissionInitial(start); setMissionId(id); }, []);
   const pilotEntry = missionId ? findPilotMission(missionRegistry, missionId) : null;
   const mission = !pilotEntry && MISSIONS.find((m) => m.id === missionId) || null;
   const [metrics, setMetrics] = useState(null);
@@ -152,11 +183,37 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const landable = canLand(planet, opts);
   const in3d = view === '3d' && webgl && !contextLost;
 
+  // Arrival on a supported surface: time, placement and choice belong to this learner/org and planet only.
+  const arrivalPlanetId = environment?.planetId || null;
+  const designFor = arrivalPlanetId ? getPlanetArrivalDesign(arrivalPlanetId) : null;
+  const arrivalDesign = designFor && designFor.environmentId === environment.id ? designFor : null;
+  const missionOpen = !!(mission || pilotEntry);
+  const surfaceReady = !environment ? false : in3d ? env.status === 'ready' && env.kind === environment.sceneKind && !traveling : true;
+  // The how-to clip for this visit's single mission, if one is uploaded. Watching it is not exploring time.
+  const [videoStates, setVideoStates] = useState({});
+  const visitKey = `${viewerKey || 'guest'}|${arrivalPlanetId}`;
+  const videoState = videoStates[visitKey] || null;
+  const [arrival, arrivalDo, arrivalHold] = usePlanetArrival({ owner: viewerKey || 'guest', planetId: arrivalPlanetId, design: arrivalDesign,
+    flags: { active, visible: !hidden, ready: surfaceReady && videoState !== 'playing', missionOpen } });
+  const expedition = useMemo(() => resolveExpedition(arrivalEntry, missionRegistry, opts), [arrivalEntry, missionRegistry, opts]);
+  const choices = useMemo(() => (arrivalPlanetId ? arrivalChoices(arrivalPlanetId, expedition, opts) : []), [arrivalPlanetId, expedition, opts]);
+  const video = useMemo(() => (choices.length === 1 ? videoFor(choices[0], arrivalVideos, { trusted: trustArrivalVideos }) : null), [choices, arrivalVideos, trustArrivalVideos]);
+  const siteAt = (id) => {
+    const site = arrivalDesign?.sites.find((x) => x.id === id), loc = site && environment.locations.find((l) => l.id === site.locationId);
+    return loc ? { id, x: loc.position[0] + site.offset[0], z: loc.position[2] + site.offset[2] } : null;
+  };
+  const equipment = arrivalDesign && arrival ? {
+    kind: arrivalDesign.equipment.id,
+    placed: arrival.placedSiteId ? siteAt(arrival.placedSiteId) : null,
+    preview: arrival.phase === 'placing' && arrival.siteId && arrival.siteId !== arrival.placedSiteId ? siteAt(arrival.siteId) : null
+  } : null;
+
   const go = useCallback((action) => setState((s) => {
     const next = reduce(s.nav, { ...action, opts, cosmos });
     if (next === s.nav) return s;
     const t = transitionBetween(s.nav, next);
-    const open = nextPanelOpen(s.panelOpen, s.nav, next, { dragging: dragging.current });
+    const landing = arrivesOn(next, cosmos) && !arrivesOn(s.nav, cosmos);
+    const open = landing ? false : action.quiet ? s.panelOpen : nextPanelOpen(s.panelOpen, s.nav, next, { dragging: dragging.current });
     const resetExpand = open && (!s.panelOpen || s.nav.path.length !== next.path.length || s.nav.selected !== next.selected);
     return {
       nav: next,
@@ -181,7 +238,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     mounted.current = true;
     const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     const sync = () => setReduced(!!mq?.matches); sync(); mq?.addEventListener?.('change', sync);
-    const vis = () => setHidden(document.visibilityState === 'hidden'); document.addEventListener('visibilitychange', vis);
+    const vis = () => setHidden(document.visibilityState === 'hidden'); vis(); document.addEventListener('visibilitychange', vis);
     const overflow = document.body.style.overflow; document.body.style.overflow = 'hidden';
     heading.current?.focus();
     return () => { mounted.current = false; mq?.removeEventListener?.('change', sync); document.removeEventListener('visibilitychange', vis); document.body.style.overflow = overflow; document.body.style.cursor = ''; };
@@ -215,10 +272,10 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const planetIds = useMemo(() => (cosmos.planets || []).map((p) => p.id), [cosmos]);
   useEffect(() => {
     let alive = true;
-    setServerAccess(null);
-    if (!planetIds.length) return undefined;
+    setAccessReply(null);
+    if (!planetIds.length || !client) return undefined;
     client.access(planetIds).then((res) => {
-      if (alive) setServerAccess(res.state === 'loaded' && res.data?.destinations ? res.data.destinations : null);
+      if (alive) setAccessReply(res.state === 'loaded' && res.data?.destinations ? { key: viewerKey, destinations: res.data.destinations } : null);
     });
     return () => { alive = false; };
   }, [planetIds, missionId, client, viewerKey]);
@@ -302,6 +359,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
 
   const running = active && !hidden && (traveling || (here.level === 'environment' && motion));
   const select = (id) => { if (!dragging.current) go({ type: 'select', id }); };
+  const selectQuietly = (id) => go({ type: 'select', id, quiet: true }); // a site chosen in the card frames it without reopening the dock
 
   const scene = in3d && <div className="mx-canvas">
     <Canvas dpr={low ? [1, 1.25] : [1, 1.75]} gl={{ antialias: !low, powerPreference: 'high-performance' }}
@@ -309,11 +367,23 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       onCreated={({ gl }) => gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); setContextLost(true); })}>
       <color attach="background" args={['#05101f']} />
       {here.level !== 'environment' && <><Starfield low={low} /><Nebulae low={low} /><SpaceLevel cosmos={cosmos} entry={here} selected={nav.selected} onSelect={select} low={low} /></>}
-      {environment && env.status === 'ready' && env.kind === environment.sceneKind && <env.Comp environment={environment} selected={nav.selected} onSelect={select} motion={motion} low={low} />}
+      {environment && env.status === 'ready' && env.kind === environment.sceneKind && <env.Comp environment={environment} selected={nav.selected} onSelect={select} motion={motion} low={low} equipment={equipment} />}
       <CameraRig shot={shot} travel={travel} motion={motion} onTravel={setTraveling} onDragChange={onDragChange} panelOpen={panelOpen} api={api} />
       {showMetrics && <SpikeMetrics onSample={(m) => setMetrics((prev) => (prev && Object.keys(m).every((k) => prev[k] === m[k]) ? prev : m))} />}
     </Canvas>
   </div>;
+
+  const textNotice = contextLost ? 'The 3D view stopped on this device, so here is the text view. Your place is kept.'
+    : !webgl ? '3D isn’t available on this device, so here is the text view. It has the same destinations and details.' : null;
+  // The text view's explicit way onto a surface; the same access rule as the 3D landing button.
+  const land = (planetId) => {
+    const p = cosmos.planetById(planetId), path = canLand(p, opts) && pathTo('environment', p.environmentId, cosmos);
+    if (path) go({ type: 'jump', path });
+  };
+  const arrivalCard = (inline) => arrivalDesign && arrival && !missionOpen && <ArrivalCard key={`${viewerKey}|${arrivalPlanetId}`} inline={inline}
+    design={arrivalDesign} state={arrival} dispatch={arrivalDo} hold={arrivalHold}
+    video={video} videoState={videoState} onVideo={(v) => setVideoStates((all) => ({ ...all, [visitKey]: v }))} planetName={cosmos.planetById(arrivalPlanetId)?.name} choices={choices}
+    onSelectSite={selectQuietly} onStart={(c) => openMission(c.id, c.routeId ? { id: c.id, route: c.routeId } : null)} />;
 
   const crumbs = breadcrumbs(nav, cosmos);
   const newerNotice = newer && <div className="mx-newer" role="status"><p>A newer version of this universe is available.</p>
@@ -338,9 +408,13 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     <div className="mx-stage">
       {scene}
       {in3d && <div className={`mx-fade${traveling ? '' : ' is-done'}`} key={`${nav.path.length}-${here.id || ''}`} aria-hidden="true" />}
-      {!in3d && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} onOpenMission={setMissionId} onOpenActivity={onOpenActivity} canUse3d={webgl && !contextLost}
-        notice={contextLost ? 'The 3D view stopped on this device, so here is the text view. Your place is kept.' : !webgl ? '3D isn’t available on this device, so here is the text view. It has the same destinations and details.' : null}
+      {!in3d && environment && <SurfaceTextView cosmos={cosmos} environment={environment} opts={opts} selected={nav.selected} onSelect={select} headingRef={heading}
+        notice={textNotice} canUse3d={webgl && !contextLost} onShow3d={() => setView('3d')} onBack={() => go({ type: 'back' })}
+        onOpenMission={openMission} onOpenActivity={onOpenActivity} arrivalCard={arrivalCard(true)} />}
+      {!in3d && !environment && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} onOpenMission={openMission} onOpenActivity={onOpenActivity} canUse3d={webgl && !contextLost}
+        notice={textNotice} onLand={land}
         onShow3d={(level, id) => { const path = pathTo(level, id, cosmos); if (path) { go({ type: 'jump', path }); setView('3d'); } }} />}
+      {in3d && arrivalCard(false)}
       {in3d && <div className={`mx-panel-dock${panelOpen ? ' is-open' : ' is-collapsed'}${sheetExpanded ? ' is-expanded' : ''}`}>
         <div className="mx-panel-controls">
           {panelOpen && <button type="button" className="mx-sheet-size" aria-expanded={sheetExpanded} aria-controls="mx-panel" onClick={() => setState((s) => ({ ...s, sheetExpanded: !s.sheetExpanded }))}>
@@ -355,13 +429,14 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
           <span className="mx-eyebrow">{LEVEL_LABEL[here.level]}</span>
           <h2 id="mx-panel-title" ref={heading} tabIndex={-1}>{here.level === 'universe' ? 'My Universe' : itemFor(here, cosmos)?.name}</h2>
           {here.level === 'universe' && newerNotice}
-          <Panel cosmos={cosmos} nav={nav} opts={opts} onOpenMission={setMissionId} onOpenActivity={onOpenActivity} go={go} select={select} env={env} onRetry={load} onTextView={() => setView('text')} />
+          <Panel cosmos={cosmos} nav={nav} opts={opts} onOpenMission={openMission} onOpenActivity={onOpenActivity} go={go} select={select} env={env} onRetry={load} onTextView={() => setView('text')} />
           <p className="mx-hint">Drag to look around · pinch or scroll to zoom · arrow keys rotate · D toggles details · Esc goes back · L for text view</p>
         </aside>
       </div>}
-      {!in3d && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
+      {!in3d && !environment && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
       {mission && <MissionSheet mission={mission} onClose={() => setMissionId(null)} />}
-      {pilotEntry && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={initialMission?.id === pilotEntry.mission.id ? initialMission : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} onClose={() => setMissionId(null)} />}
+      {pilotEntry && !client && <MissionSignInNotice mission={pilotEntry.mission} onClose={() => setMissionId(null)} />}
+      {pilotEntry && client && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={missionInitial?.id === pilotEntry.mission.id ? missionInitial : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} onClose={() => setMissionId(null)} />}
       {showMetrics && in3d && <div className="mx-metrics" aria-hidden="true">
         {metrics ? <>{metrics.at && performance.now() - metrics.at < 1600 ? `${metrics.fps} fps` : 'idle · renders on demand'} · {metrics.calls} draw calls · {metrics.triangles.toLocaleString()} tris · {metrics.geometries} geometries · {metrics.textures} textures · {low ? 'standard' : 'high'} detail</> : 'measuring…'}
       </div>}

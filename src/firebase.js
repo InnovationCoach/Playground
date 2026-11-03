@@ -56,6 +56,12 @@ export function onAuthStateChanged(authInstance, callback) {
   return targetAuth.onAuthStateChanged(cb);
 }
 
+export function onIdTokenChanged(authInstance, callback) {
+  const targetAuth = (authInstance && authInstance.onIdTokenChanged) ? authInstance : auth;
+  const cb = typeof authInstance === 'function' ? authInstance : callback;
+  return targetAuth.onIdTokenChanged(cb);
+}
+
 // Firestore helper functions
 export function doc(dbInstance, ...paths) {
   const targetDb = (dbInstance && dbInstance.collection) ? dbInstance : db;
