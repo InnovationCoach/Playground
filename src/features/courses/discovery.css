@@ -9,3 +9,5 @@
 /* Keep discovery copy readable at ordinary laptop and mobile sizes. */
 .cd-card-content h3{font-size:14px}.cd-card-description{font-size:12px}.cd-card-meta,.cd-provider,.cd-card-bottom{font-size:10px}.cd-suggestion-reason{font-size:12px}.cd-suggestion strong{font-size:13px}.cd-source-option,.cd-topic-option{font-size:12px}.cd-recommend-head p{font-size:12px}.cd-recommend-foot{font-size:11px}.cd-suggestion-link{font-size:11px}.cd-card-meta{gap:8px}.cd-results-tabs button{font-size:12px}.cd-topic-row button{font-size:11px}
 @media(max-width:759px){.cd-card-content h3{font-size:13px}.cd-card-description{font-size:11px}.cd-card-meta,.cd-provider,.cd-card-bottom{font-size:9px}.cd-suggestion-reason{font-size:11px}.cd-suggestion strong{font-size:13px}.cd-recommend-head p{font-size:11px}.cd-recommend-foot{font-size:10px}.cd-suggestion-link{font-size:10px}.cd-results-tabs button{font-size:11px}.cd-topic-row button{font-size:10px}}
+/* The legacy shell styles every <header> (index.html); keep the hero on the page background. */
+.cd-page .cd-hero{background:none;border-bottom:0;box-shadow:none}

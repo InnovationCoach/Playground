@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { schoolRequest } from '../../../services/api/apiClient.js';
 import './pilot.css';
 
-const request = (method, path, options) => schoolRequest(method, `/pilot${path}`, options);
+const request = (method, path, options) => schoolRequest(method, `/api/pilot${path}`, options);
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 function useRecords(path, version) {

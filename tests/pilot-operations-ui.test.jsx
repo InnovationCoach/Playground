@@ -33,7 +33,7 @@ describe('Pilot operations screens', () => {
     expect(host.textContent).toContain('1 pending requests');
     await click('Approve');
     await act(async () => host.querySelector('form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
-    expect(schoolRequest).toHaveBeenCalledWith('PATCH','/pilot/leave/req',{body:{status:'approved',response:''}});
+    expect(schoolRequest).toHaveBeenCalledWith('PATCH','/api/pilot/leave/req',{body:{status:'approved',response:''}});
     const before = schoolRequest.mock.calls.length;
     await act(async () => vi.advanceTimersByTimeAsync(30000));
     expect(schoolRequest.mock.calls.length).toBeGreaterThan(before);
