@@ -7,6 +7,7 @@ import { FIXTURE_RELEASES } from '../../shared/universe/fixtures/index.js';
 import { createSyntheticService, SYNTHETIC_PEOPLE } from './syntheticUniverseService.js';
 import { createUniverseClient } from '../../src/features/universe/pilot/universeClient.js';
 import catalogUrl from '../../public/cosmos/v1/catalog.json?url';
+import { ARRIVAL_VIDEOS } from '../../src/features/universe/explore/arrivalVideos.js';
 
 const flags = new URLSearchParams(location.search);
 // Learner expedition cards (O04): each opens the planet first; the mission waits for the learner.
@@ -15,6 +16,10 @@ const EXPEDITIONS = [
   { id: 'journey-guided', planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided', title: 'Journey timing', where: 'Thalassa departure station', description: 'Compare travel time and supplies for Ignis.', grades: '6–8', challenge: 2 },
   { id: 'journey-advanced', planetId: 'ignis', missionId: 'spacecraft-journey', routeId: 'advanced', title: 'Mass and power tradeoffs', where: 'Ignis', description: 'Balance the expedition’s mass, time and power.', grades: '9–11', challenge: 4 }
 ];
+// Preview-only clip source: ?video=local plays the rendered file from ./media (not committed); ?video=<link> plays that link.
+const videoParam = flags.get('video');
+const previewVideos = videoParam ? { ...ARRIVAL_VIDEOS, 'thalassa-wind-survey|guided': { ...ARRIVAL_VIDEOS['thalassa-wind-survey|guided'],
+  src: videoParam === 'local' ? './media/thalassa-wind-how-it-works.mp4' : videoParam, poster: videoParam === 'local' ? './media/thalassa-wind-poster.jpg' : undefined } } : undefined;
 const expeditionFor = (id) => { const x = EXPEDITIONS.find((e) => e.id === id); return x ? { planetId: x.planetId, missionId: x.missionId, routeId: x.routeId } : null; };
 const service = createSyntheticService({ latency: Number(flags.get('latency') ?? 350) });
 if (flags.get('mode')) service.setMode(flags.get('mode'));
@@ -45,7 +50,7 @@ function Harness() {
   </main></>;
   if (view === 'explorer' && person.role === 'student') return <>{bar}<MyUniverseExplorer key={run} preview catalogUrl={catalogUrl} forceTextView={flags.get('text') === '1'}
     missionRegistry={FIXTURE_RELEASES} missionClient={client} viewer={viewer} onClose={() => setView('home')} allowInReviewMissions
-    initialArrival={arrival}
+    initialArrival={arrival} arrivalVideos={previewVideos} trustArrivalVideos={videoParam === 'local'}
     initialMission={flags.get('open') ? { id: flags.get('open'), route: flags.get('route'), view: flags.get('tab'), step: flags.get('step') } : null} /></>;
   return <>{bar}<main className="pv-home"><h1>My Universe pilot · synthetic preview</h1>
     <p>Both pilot missions (G03 revision 2 fixtures) with an in-memory stand-in for the mission service. Use the controls to switch learner, organization and service state.</p>

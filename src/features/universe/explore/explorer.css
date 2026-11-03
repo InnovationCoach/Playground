@@ -278,3 +278,20 @@
   .mx-arrival.is-pill { right: auto; }
 }
 .mx-arrival.is-inline { max-height: none; width: auto; }
+
+/* O05 how-to clip in the arrival card: offered with a poster, played inline with captions. */
+.mx-arrival.is-video { width: min(720px, calc(100% - 32px)); max-height: calc(100% - 32px); }
+.mx-arrival-video { width: 100%; max-height: min(52vh, 405px); border-radius: 10px; background: #000; }
+.mx-arrival-watch { display: grid; gap: 6px; flex: 1 1 100%; padding: 6px; border-radius: 12px; border: 1px solid var(--mx-lime); background: #102849; text-align: left; }
+.mx-arrival-watch img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; }
+.mx-arrival-watch span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px; font-weight: 700; color: var(--mx-lime); }
+.mx-arrival .mx-link { display: inline-flex; align-items: center; gap: 6px; }
+.mx-arrival-transcript summary { cursor: pointer; color: var(--mx-sky); font-size: 13px; min-height: 36px; display: flex; align-items: center; }
+.mx-arrival-transcript p { font-size: 13px; }
+@media (max-width: 820px) { .mx-arrival.is-video { width: auto; right: 10px; max-height: calc(100% - 76px); } }
+.mx-arrival.is-video.is-inline { width: auto; max-height: none; }
+@media (max-width: 599px) {
+  .mx-arrival.is-offer, .mx-arrival.is-video { max-height: calc(100% - 76px); }
+  .mx-arrival-watch { flex: 0 1 auto; }
+  .mx-arrival-watch img { display: none; } /* phones: room for Watch and Skip without scrolling */
+}

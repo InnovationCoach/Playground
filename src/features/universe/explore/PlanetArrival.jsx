@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronRight, MapPin } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronRight, MapPin, PlayCircle } from 'lucide-react';
+import { captionsVtt } from './arrivalVideos.js';
 import { createArrivalState, advanceArrival, reduceArrival } from '../../../../shared/universe/planetArrival.js';
 import { findPilotMission } from '../pilot/missionSession.js';
 import { visibleMission } from '../missions/registry.js';
@@ -85,7 +86,8 @@ const siteName = (design, id) => design.sites.find((s) => s.id === id)?.name || 
  * Small, nonmodal card on the surface. A timer may change its content but never moves focus,
  * reopens a postponed card or opens a mission; only the learner's own buttons do anything.
  */
-export function ArrivalCard({ design, state, dispatch, planetName, choices, onStart, onSelectSite, inline = false, hold = null }) {
+export function ArrivalCard({ design, state, dispatch, planetName, choices, onStart, onSelectSite, inline = false, hold = null,
+  video = null, videoState = null, onVideo = () => {} }) {
   const heading = useRef(null), pill = useRef(null), live = useRef(null), moveFocus = useRef(false);
   const act = (action) => { moveFocus.current = true; dispatch(action); };
   const collapsed = state.phase === 'exploring' && state.postponed;
@@ -96,7 +98,17 @@ export function ArrivalCard({ design, state, dispatch, planetName, choices, onSt
     const say = state.phase === 'placing' ? `${design.title}: you can set up equipment when you’re ready.`
       : state.phase === 'ready' ? (state.placedSiteId ? `${equipment.name} placed: ${lower(siteName(design, state.placedSiteId))}.` : 'Ready for the mission when you are.') : '';
     if (live.current && say) live.current.textContent = say;
-  }, [state.phase, state.placedSiteId, collapsed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.phase, state.placedSiteId, collapsed, videoState]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // O05 how-to clip: offered first on arrival, played only on request, captions on by default.
+  const captions = useMemo(() => (video?.cues?.length && typeof URL.createObjectURL === 'function'
+    ? URL.createObjectURL(new Blob([captionsVtt(video.cues)], { type: 'text/vtt' })) : null), [video]);
+  useEffect(() => () => { if (captions) URL.revokeObjectURL(captions); }, [captions]);
+  const watch = () => { moveFocus.current = true; onVideo('playing'); };
+  const finishVideo = () => { moveFocus.current = true; onVideo('seen'); };
+  const transcript = video && <details className="px-optional mx-arrival-transcript"><summary>Read it instead</summary>
+    <p>{video.cues.map((c) => c[2]).join(' ')}</p></details>;
+  const watchAgain = video && <button type="button" className="mx-link" onClick={watch}><PlayCircle size={15} aria-hidden="true" /> Watch how this mission works ({video.duration})</button>;
 
   const cls = `mx-arrival${inline ? ' is-inline' : ''}`;
   // Keys used in the card stay in the card: no camera orbit, zoom, reset or Back from the explorer's shortcuts.
@@ -118,6 +130,31 @@ export function ArrivalCard({ design, state, dispatch, planetName, choices, onSt
     </div>;
   }
 
+  if (video && videoState === 'playing') return <section ref={box} className={`${cls} is-video`} aria-labelledby="mx-arrival-title" {...own}>
+    <span className="mx-eyebrow">Arrived · {planetName} · {video.duration}</span>
+    <h3 id="mx-arrival-title" ref={heading} tabIndex={-1}>{video.title}</h3>
+    <video className="mx-arrival-video" src={video.src} poster={video.poster || undefined} controls autoPlay playsInline preload="metadata" onEnded={finishVideo}>
+      {captions && <track kind="captions" srcLang="en" label="English" src={captions} default />}
+    </video>
+    <div className="mx-arrival-actions"><button type="button" className="mx-primary" onClick={finishVideo}>Done</button></div>
+    {transcript}
+    {liveRegion}
+  </section>;
+  if (video && !videoState && state.phase === 'exploring') return <section ref={box} className={`${cls} is-offer`} aria-labelledby="mx-arrival-title" {...own}>
+    <span className="mx-eyebrow">Arrived · {planetName}</span>
+    <h3 id="mx-arrival-title" ref={heading} tabIndex={-1}>{design.title}</h3>
+    <p>Before you explore, see how this mission works. {video.summary}</p>
+    <div className="mx-arrival-actions">
+      <button type="button" className="mx-arrival-watch" onClick={watch}>
+        {video.poster && <img src={video.poster} alt="" />}
+        <span><PlayCircle size={18} aria-hidden="true" /> Watch the video · {video.duration}</span>
+      </button>
+      <button type="button" className="mx-link" onClick={finishVideo}>Skip video</button>
+    </div>
+    {transcript}
+    {liveRegion}
+  </section>;
+
   const moving = state.phase === 'placing' && !!state.placedSiteId;
   const chosen = design.sites.find((s) => s.id === state.siteId);
   return <section ref={box} className={cls} aria-labelledby="mx-arrival-title" {...own}>
@@ -125,6 +162,7 @@ export function ArrivalCard({ design, state, dispatch, planetName, choices, onSt
       <span className="mx-eyebrow">Arrived · {planetName}</span>
       <h3 id="mx-arrival-title" ref={heading} tabIndex={-1}>{design.title}</h3>
       <p>{design.lookPrompt}</p>
+      {watchAgain}
       <div className="mx-arrival-actions">
         <button type="button" onClick={() => act({ type: 'ready-now' })}>Ready now</button>
         <button type="button" onClick={() => act({ type: 'keep-exploring' })}>Keep exploring</button>
@@ -166,6 +204,7 @@ export function ArrivalCard({ design, state, dispatch, planetName, choices, onSt
           <button type="button" className="mx-primary" onClick={() => onStart(c)}>Start mission<ChevronRight size={16} aria-hidden="true" /></button>
         </div>) : <p className="mx-muted">No missions are open on {planetName} yet.</p>}
         <button type="button" onClick={() => act({ type: 'keep-exploring' })}>Explore more</button>
+        {watchAgain}
       </div>
     </>}
     {liveRegion}

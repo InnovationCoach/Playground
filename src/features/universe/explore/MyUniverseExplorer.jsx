@@ -17,6 +17,7 @@ import {
 import { ExplorerTextView, SurfaceTextView, StatusChip, FactList } from './ExplorerTextView.jsx';
 import { ArrivalCard, usePlanetArrival, resolveExpedition, arrivalChoices } from './PlanetArrival.jsx';
 import { getPlanetArrivalDesign } from '../../../../shared/universe/planetArrival.js';
+import { ARRIVAL_VIDEOS, videoFor } from './arrivalVideos.js';
 import { MissionSheet } from '../missions/MissionSheet.jsx';
 import { MISSIONS, visibleMission } from '../missions/registry.js';
 import { MissionList } from '../missions/MissionList.jsx';
@@ -137,7 +138,8 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
  * never fight slide swipes or arrow keys.
  */
 function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader,
-  missionRegistry = PUBLISHED_RELEASES, missionClient, viewer = null, initialMission = null, initialArrival = null, allowInReviewMissions = false }) {
+  missionRegistry = PUBLISHED_RELEASES, missionClient, viewer = null, initialMission = null, initialArrival = null, allowInReviewMissions = false,
+  arrivalVideos = ARRIVAL_VIDEOS, trustArrivalVideos = false }) {
   // Mission service calls are bound to one learner in one verified organization. Until the host
   // supplies both, nothing is requested and no mission opens (fail closed).
   const viewerKey = scopeKey(viewer);
@@ -187,10 +189,15 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const arrivalDesign = designFor && designFor.environmentId === environment.id ? designFor : null;
   const missionOpen = !!(mission || pilotEntry);
   const surfaceReady = !environment ? false : in3d ? env.status === 'ready' && env.kind === environment.sceneKind && !traveling : true;
+  // The how-to clip for this visit's single mission, if one is uploaded. Watching it is not exploring time.
+  const [videoStates, setVideoStates] = useState({});
+  const visitKey = `${viewerKey || 'guest'}|${arrivalPlanetId}`;
+  const videoState = videoStates[visitKey] || null;
   const [arrival, arrivalDo, arrivalHold] = usePlanetArrival({ owner: viewerKey || 'guest', planetId: arrivalPlanetId, design: arrivalDesign,
-    flags: { active, visible: !hidden, ready: surfaceReady, missionOpen } });
+    flags: { active, visible: !hidden, ready: surfaceReady && videoState !== 'playing', missionOpen } });
   const expedition = useMemo(() => resolveExpedition(arrivalEntry, missionRegistry, opts), [arrivalEntry, missionRegistry, opts]);
   const choices = useMemo(() => (arrivalPlanetId ? arrivalChoices(arrivalPlanetId, expedition, opts) : []), [arrivalPlanetId, expedition, opts]);
+  const video = useMemo(() => (choices.length === 1 ? videoFor(choices[0], arrivalVideos, { trusted: trustArrivalVideos }) : null), [choices, arrivalVideos, trustArrivalVideos]);
   const siteAt = (id) => {
     const site = arrivalDesign?.sites.find((x) => x.id === id), loc = site && environment.locations.find((l) => l.id === site.locationId);
     return loc ? { id, x: loc.position[0] + site.offset[0], z: loc.position[2] + site.offset[2] } : null;
@@ -374,7 +381,8 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     if (path) go({ type: 'jump', path });
   };
   const arrivalCard = (inline) => arrivalDesign && arrival && !missionOpen && <ArrivalCard key={`${viewerKey}|${arrivalPlanetId}`} inline={inline}
-    design={arrivalDesign} state={arrival} dispatch={arrivalDo} hold={arrivalHold} planetName={cosmos.planetById(arrivalPlanetId)?.name} choices={choices}
+    design={arrivalDesign} state={arrival} dispatch={arrivalDo} hold={arrivalHold}
+    video={video} videoState={videoState} onVideo={(v) => setVideoStates((all) => ({ ...all, [visitKey]: v }))} planetName={cosmos.planetById(arrivalPlanetId)?.name} choices={choices}
     onSelectSite={selectQuietly} onStart={(c) => openMission(c.id, c.routeId ? { id: c.id, route: c.routeId } : null)} />;
 
   const crumbs = breadcrumbs(nav, cosmos);

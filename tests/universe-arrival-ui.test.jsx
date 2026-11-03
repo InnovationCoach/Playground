@@ -294,3 +294,54 @@ describe('planet arrival in the 3D view', () => {
     expect(dock()).toBeNull();
   });
 });
+
+describe('how-this-mission-works clip on arrival (O05)', () => {
+  const CLIP = 'https://res.cloudinary.com/dkplz6vbx/video/upload/v1/universe/thalassa-wind-how-it-works.mp4';
+  const withClip = (src) => ({ 'thalassa-wind-survey|guided': { title: 'How this mission works', duration: '1:13', summary: 'Reading the wind table.', src, cues: [[0.6, 1.8, 'Welcome to Thalassa.']] } });
+
+  it('offers the clip first, plays it only on request with captions, and leaves the arrival as it was', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    await show({ initialArrival: WIND, arrivalVideos: withClip(CLIP) });
+    expect(heading()).toBe('Welcome to Thalassa');
+    expect(named('Watch the video · 1:13')).toBeTruthy();
+    expect(card().querySelector('img').getAttribute('src')).toBe('https://res.cloudinary.com/dkplz6vbx/video/upload/so_15,w_1280/v1/universe/thalassa-wind-how-it-works.jpg');
+    expect(document.body.querySelector('video')).toBeNull(); // nothing plays by itself
+    expect(card().querySelector('details summary').textContent).toBe('Read it instead');
+
+    await click('Watch the video · 1:13');
+    const video = document.body.querySelector('video.mx-arrival-video');
+    expect(video.getAttribute('src')).toBe(CLIP);
+    expect(video.controls).toBe(true);
+    expect(document.activeElement.textContent).toBe('How this mission works');
+    expect(vi.getTimerCount()).toBe(0); // watching is not exploring time
+    await act(async () => vi.advanceTimersByTime(120_000));
+    await act(async () => video.dispatchEvent(new Event('ended')));
+    expect(document.body.querySelector('video')).toBeNull();
+    expect(heading()).toBe('Welcome to Thalassa'); // still exploring: the 45 s did not pass while watching
+    expect(document.activeElement.textContent).toBe('Welcome to Thalassa');
+    expect(vi.getTimerCount()).toBe(1);
+    expect(named('Watch how this mission works (1:13)')).toBeTruthy(); // available again
+  });
+
+  it('can be skipped with no effect on setup or the mission', async () => {
+    await show({ initialArrival: WIND, arrivalVideos: withClip(CLIP) });
+    await click('Skip video');
+    expect(heading()).toBe('Welcome to Thalassa');
+    await click('Skip setup');
+    expect(named('Watch how this mission works (1:13)')).toBeTruthy();
+    await click('Start mission');
+    expect(text()).toContain('Mission · Wind energy estimate');
+  });
+
+  it('shows no player without an uploaded Cloudinary link, for other hosts, or when several missions are offered', async () => {
+    await show({ initialArrival: WIND }); // the shipped registry has no link yet
+    expect(named('Skip video')).toBeUndefined();
+    await act(async () => root.unmount()); root = createRoot(host);
+    await show({ initialArrival: WIND, arrivalVideos: withClip('https://example.com/video/upload/x.mp4') });
+    expect(named('Skip video')).toBeUndefined();
+    await act(async () => root.unmount()); root = createRoot(host);
+    await show({ arrivalVideos: withClip(CLIP) });
+    await click('Land on Thalassa'); // general landing: two missions, so no single how-to clip
+    expect(named('Skip video')).toBeUndefined();
+  });
+});
