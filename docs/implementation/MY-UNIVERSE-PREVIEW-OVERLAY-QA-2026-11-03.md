@@ -46,3 +46,7 @@ This is existing focus-flow behaviour, not part of the overlay fix.
 - `03-phone-mission-unobscured.jpg`: 375 px wind mission sheet; Close, tabs and status visible, no test controls.
 
 Not covered: Safari, physical phones, touch hardware, screen readers.
+
+## Integrated lead acceptance
+
+GPT accepted the local fix at `7384798`. Its exact patch SHA-256 is `b14543bfaaf69af1a7a80b432bc37a740c661e02caeb562c6674a125dc682dca`, matching the patch independently checked above. Opus evidence commit `82a58a3` was integrated as `55e2b2b`. Lead validation: JSX compilation passed, `git diff --check` passed, and the supported Universe interface suite passed **134/134** across 13 files. The lead also opened the wind mission from the new card, confirmed zero `.sv-bar` panels in the mission, and used Next successfully. No reference draft was loaded. This is a local preview fix; production source and deployment are unchanged.
