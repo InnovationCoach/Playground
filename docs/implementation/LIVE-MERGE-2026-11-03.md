@@ -101,3 +101,17 @@ npx vite --port 5191           # open http://localhost:5191/?emulators=1
 ```
 
 Signed media URLs cannot be created by the emulator, because there are no credentials. An uploaded banner saves, but shows the default art locally.
+
+## Arrival merge (`arrival/main` dc0c975 onto `codex/release-20261103`)
+
+Merged `arrival/main` (`dc0c975`) into `codex/release-20261103`. All 6 conflict files resolved:
+
+| File | Decision |
+|---|---|
+| `docs/implementation/MY-UNIVERSE-O04-PLANET-ARRIVAL-2026-11-03.md` | Kept HEAD's lead UI review section documenting viewport visibility, keyboard interaction, and quiet timing checks. |
+| `docs/implementation/MY-UNIVERSE-SCROLL-FIX-QA-2026-11-03.md` | Adopted arrival/main's completed Opus read-only QA report and lead acceptance section. |
+| `package.json` | Combined `server:dev:emulator` to run `server/emulator-index.js` with `ALLOW_DRAFT_MISSIONS=true`, all emulator host envs, and storage bucket. Preserved arrival/main's new universe test/emulator scripts and HEAD's full unit/api test commands. |
+| `server/auth.js` | Combined arrival/main's `usingEmulators` check with HEAD's `storageBucket` configuration across all initialization branches. |
+| `src/features/coach/CoachDashboardHost.jsx` | Kept HEAD's `ManagementTools` subcomponent, day-off leave panel, invite dialog, and `CoachWorkspace` shell, while adopting arrival/main's `orgId = null` parameter and forwarding it to `<CoachUniverseSubmissions coachUser={coachUser} orgId={orgId} />`. |
+| `tests/firestore-rules.test.js` | Adopted arrival/main's dynamic `rulesHostname` and `rulesPort` parsing from `process.env.FIRESTORE_EMULATOR_HOST`. |
+
