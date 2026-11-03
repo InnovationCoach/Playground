@@ -55,7 +55,7 @@ export const ARRIVAL_VIDEOS = Object.freeze({
     title: 'How this mission works',
     duration: '1:06',
     summary: 'Reading the concept table, turning seconds into days, and sending your work.',
-    src: null, // set to the uploaded https://res.cloudinary.com/<cloud>/video/upload/… link
+    src: 'https://res.cloudinary.com/dkplz6vbx/video/upload/v1793681586/Jurney_gt5hhl.mp4', // uploaded 3 Nov 2026
     cues: Object.freeze([
       [0.6, 3.09, "Welcome to Thalassa's departure station."],
       [3.09, 3.89, "Your mission:"],

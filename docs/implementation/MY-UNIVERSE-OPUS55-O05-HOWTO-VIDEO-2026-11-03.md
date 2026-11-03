@@ -96,8 +96,10 @@ Local commit only. Nothing pushed, deployed or uploaded. No server, rules, auth,
 - **Mass and power: uploaded and set.**
   - Link: `https://res.cloudinary.com/dkplz6vbx/video/upload/v1793681362/IHUXnNr7VKBL6nReVK2peA_un6ujs.mp4`. The size (5,911,491 bytes) matches only the Mass and power render; byte ranges (206) and the derived poster both work.
   - At 5197 with no preview switch: it played the hosted file (69.8 s, no media error) and seeked to 50 s with the ledger caption.
-- **Journey timing: still to upload.** The second link Mani sent was the wind clip again (already set), so `spacecraft-journey|guided` stays `null` and shows no player.
-- **Shipped-registry test:** now expects the Mass and power clip on Ignis and no player for Journey timing.
+- **Journey timing: uploaded and set.**
+  - Link: `https://res.cloudinary.com/dkplz6vbx/video/upload/v1793681586/Jurney_gt5hhl.mp4`. The size (5,881,078 bytes) matches only the Journey timing render; byte ranges and the poster work.
+  - At 5197: it played the hosted file (66.0 s, no media error) and seeked to 40 s with the concept-table caption.
+- **All three clips now have a link.** The shipped-registry test checks the wind, Journey timing and Mass and power clips, and uses an explicit `src: null` override for the "not uploaded" case. Suite 151/151; the build passes.
 
 
 1. **Educator review:** GPT/educator review of the narration (`script.json`). The voice is synthetic; a human recording can replace the MP4 later with no code change if the timings are kept (or the cues are updated).

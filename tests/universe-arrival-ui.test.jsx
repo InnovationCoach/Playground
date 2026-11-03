@@ -334,7 +334,11 @@ describe('how-this-mission-works clip on arrival (O05)', () => {
     await show({ initialArrival: MASS_POWER, arrivalVideos: ARRIVAL_VIDEOS });
     expect(named('Watch the video · 1:10')).toBeTruthy(); // Ignis has its own uploaded clip
     await act(async () => root.unmount()); root = createRoot(host);
-    await show({ initialArrival: { planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided' }, arrivalVideos: ARRIVAL_VIDEOS }); // not uploaded yet
+    await show({ initialArrival: { planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided' }, arrivalVideos: ARRIVAL_VIDEOS });
+    expect(named('Watch the video · 1:06')).toBeTruthy(); // the departure-station clip
+    await act(async () => root.unmount()); root = createRoot(host);
+    const notUploaded = { ...ARRIVAL_VIDEOS, 'spacecraft-journey|guided': { ...ARRIVAL_VIDEOS['spacecraft-journey|guided'], src: null } };
+    await show({ initialArrival: { planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided' }, arrivalVideos: notUploaded });
     expect(named('Skip video')).toBeUndefined();
     expect(named('Ready now')).toBeTruthy();
   });
