@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W2e learning studio · WeLearn design preview</title>
+<meta name="description" content="Isolated visual design preview of the WeLearn W2e learner and coach dashboards. Sample records only.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./studio.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<!-- Icon sprite: lucide shapes (ISC), 24px grid, stroke 2, matching the app's lucide-react icon system -->
+<svg hidden aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M10 2v7.5a2 2 0 0 1-.2.9L4.7 20.5a1 1 0 0 0 .9 1.5h12.8a1 1 0 0 0 .9-1.5l-5.1-10.1a2 2 0 0 1-.2-.9V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m6 4 14 8-14 8Z"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4M3 5h4M19 17v4M17 19h4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+  <symbol id="i-file-check" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36z"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-focus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/></symbol>
+  <symbol id="i-arrow-l" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></symbol>
+  <symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></symbol>
+  <symbol id="i-network" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.82 3.98M15.41 6.51l-6.82 3.98"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
+  <symbol id="i-palette" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".8"/><circle cx="17.5" cy="10.5" r=".8"/><circle cx="8.5" cy="7.5" r=".8"/><circle cx="6.5" cy="12.5" r=".8"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1a1.6 1.6 0 0 1 1.7-1.7h2c3 0 5.5-2.5 5.5-5.6C22 6 17.5 2 12 2z"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3 8 10 8a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></symbol>
+  <symbol id="i-sprout" viewBox="0 0 24 24"><path d="M7 20h10M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></symbol>
+  <symbol id="i-hex" viewBox="0 0 24 24"><path d="M21 16.5a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16.5v-9a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4a2 2 0 0 1 1 1.73z"/></symbol>
+</svg>
+
+<!-- Unmistakable preview notice -->
+<div class="notice" role="status" aria-label="Preview notice">
+  <span><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><strong>Design preview</strong> Sample learners and records</span>
+  <span class="sep" aria-hidden="true">·</span><span>Nothing is saved</span>
+  <span class="sep" aria-hidden="true">·</span><span>No AI service is called</span>
+  <span class="sep" aria-hidden="true">·</span><span>No coach is notified</span>
+</div>
+
+<div class="shell" id="shell">
+  <!-- Sidebar navigation -->
+  <nav class="sidebar on-dark" id="sidebar" aria-label="Main">
+    <div class="sidebar-brand">
+      <a class="brand-mark" href="#home" data-nav="home" id="brandLink">
+        <img src="https://res.cloudinary.com/dkplz6vbx/image/upload/e_trim/h_120/v1790512837/copy_of_untitled_design_25_o4mqca.png" alt="WeLearn" height="34" id="brandLogo">
+        <span class="brand-fallback" aria-hidden="true">WeLearn</span>
+        <span class="brand-text">W2e studio</span>
+      </a>
+      <button class="collapse-btn" id="collapseBtn" type="button" aria-expanded="true" aria-controls="sidebar" aria-label="Collapse navigation"><svg class="icon" aria-hidden="true"><use href="#i-panel"/></svg></button>
+      <button class="drawer-close" id="closeDrawerBtn" type="button" aria-label="Close menu" hidden><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+
+    <ul class="nav-list" id="navLearner">
+      <li><a class="nav-link" href="#home" data-nav="home" data-label="Home" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg><span class="nav-label">Home</span></a></li>
+      <li><a class="nav-link" href="#pbl" data-nav="pbl" data-label="PBL Studio"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><span class="nav-label">PBL Studio</span></a></li>
+      <li><a class="nav-link" href="#steam" data-nav="steam" data-label="STEAM Activities"><svg class="icon" aria-hidden="true"><use href="#i-flask"/></svg><span class="nav-label">STEAM Activities</span></a></li>
+      <li><a class="nav-link" href="#academic" data-nav="academic" data-label="Academic Progress"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg><span class="nav-label">Academic Progress</span></a></li>
+      <li><a class="nav-link" href="#goals" data-nav="goals" data-label="My Goals"><svg class="icon" aria-hidden="true"><use href="#i-target"/></svg><span class="nav-label">My Goals</span></a></li>
+      <li><a class="nav-link" href="#calendar" data-nav="calendar" data-label="School Calendar"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg><span class="nav-label">School Calendar</span></a></li>
+    </ul>
+
+    <ul class="nav-list" id="navCoach" hidden>
+      <li><a class="nav-link" href="#coach-top" data-coachnav="coach-top" data-label="Class overview" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg><span class="nav-label">Class overview</span></a></li>
+      <li><a class="nav-link" href="#c-requests" data-coachnav="c-requests" data-label="Support requests"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg><span class="nav-label">Support requests</span></a></li>
+      <li><a class="nav-link" href="#c-evidence" data-coachnav="c-evidence" data-label="Evidence review"><svg class="icon" aria-hidden="true"><use href="#i-file-check"/></svg><span class="nav-label">Evidence review</span></a></li>
+      <li><a class="nav-link" href="#c-goals" data-coachnav="c-goals" data-label="Learner goals"><svg class="icon" aria-hidden="true"><use href="#i-target"/></svg><span class="nav-label">Learner goals</span></a></li>
+      <li><a class="nav-link" href="#c-progress" data-coachnav="c-progress" data-label="PBL and STEAM progress"><svg class="icon" aria-hidden="true"><use href="#i-trend"/></svg><span class="nav-label">PBL &amp; STEAM progress</span></a></li>
+      <li><a class="nav-link" href="#c-academic" data-coachnav="c-academic" data-label="Academic observations"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg><span class="nav-label">Academic observations</span></a></li>
+      <li><a class="nav-link" href="#c-calendar" data-coachnav="c-calendar" data-label="School calendar"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg><span class="nav-label">School calendar</span></a></li>
+    </ul>
+
+    <div class="sidebar-foot">
+      <button class="nav-link" type="button" id="helpSidebar" data-label="Ask my coach"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg><span class="nav-label">Ask my coach</span></button>
+      <button class="nav-link" type="button" id="prefsBtn" data-label="Display preferences"><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg><span class="nav-label">Display preferences</span></button>
+    </div>
+  </nav>
+  <div class="drawer-backdrop" id="backdrop"></div>
+
+  <div class="content">
+    <header class="topbar">
+      <button class="btn btn-icon btn-secondary menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="sidebar" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+      <div class="topbar-title">
+        <h2 id="pageTitle">Home</h2>
+        <small id="pageSub">Year 9 · W2e pod</small>
+      </div>
+      <div class="segmented" id="viewToggle" role="group" aria-label="Learning view">
+        <button type="button" id="focus" aria-pressed="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-focus"/></svg>Focus</button>
+        <button type="button" id="explore" aria-pressed="true"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-grid"/></svg>Explore</button>
+      </div>
+      <div class="proto" role="group" aria-label="Prototype controls">
+        <span class="label">Prototype</span>
+        <div class="segmented">
+          <button type="button" id="studentView" aria-pressed="true">Learner</button>
+          <button type="button" id="coachView" aria-pressed="false">Coach</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="main" tabindex="-1">
+      <!-- ================= LEARNER ================= -->
+      <div id="learner">
+
+        <!-- HOME -->
+        <section class="page is-active" data-page="home" aria-labelledby="homeHeading">
+          <div class="hero" id="hero">
+            <svg class="deco-shapes deco" viewBox="0 0 900 300" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+              <defs><pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.6" fill="#8250A0" opacity=".25"/></pattern></defs>
+              <rect x="560" y="150" width="340" height="150" fill="url(#dots)"/>
+              <circle cx="760" cy="60" r="90" fill="#9BD2FF" opacity=".45"/>
+              <circle cx="840" cy="210" r="46" fill="#CEAAEE" opacity=".6"/>
+              <path d="M600 250 C 650 180, 700 320, 760 240 S 860 190, 900 230" fill="none" stroke="#96D700" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+              <path d="M640 40 l 34 20 v 40 l -34 20 l -34 -20 v -40 z" fill="none" stroke="#8250A0" stroke-width="3" opacity=".55"/>
+              <circle cx="585" cy="110" r="6" fill="#AE266C" opacity=".7"/>
+            </svg>
+            <div class="hero-text">
+              <span class="eyebrow"><span class="dot"></span>Friday 3 October</span>
+              <h1 id="homeHeading">Hi Alex. <span class="hl">Start with one step.</span></h1>
+              <p class="lead">Your campus energy investigation is about ten minutes from its next milestone. Pick it up when you are ready.</p>
+              <div class="actions">
+                <button class="btn btn-primary" id="continueBtn" type="button">Continue my next step <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-r"/></svg></button>
+                <button class="btn btn-ghost" type="button" id="heroHelp"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chat"/></svg>Ask my coach</button>
+              </div>
+            </div>
+
+            <!-- Motivational slider (manual by default) -->
+            <section class="slider" id="slider" role="region" aria-roledescription="carousel" aria-label="Encouragement">
+              <div class="slider-head">
+                <span class="eyebrow">A thought for today</span>
+                <span class="muted" id="slideCount" aria-hidden="true">1 / 4</span>
+              </div>
+              <div class="slider-viewport" id="sliderViewport">
+                <div class="slider-track" id="sliderTrack">
+                  <div class="slide" role="group" aria-roledescription="slide" aria-label="1 of 4">
+                    <div class="art" style="background:#F1FAD6"><svg viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="40" r="18" fill="none" stroke="#003C69" stroke-width="3"/><circle cx="36" cy="40" r="7" fill="#96D700"/><path d="M36 10v8M14 40h6M52 40h6" stroke="#8250A0" stroke-width="3" stroke-linecap="round"/><circle cx="54" cy="18" r="4" fill="#AE266C"/></svg></div>
+                    <div><blockquote>Big ideas begin with one small experiment.</blockquote><p>Your next step takes about ten minutes.</p><button class="btn-link" type="button" data-slide-action="continue">Go to my next step</button></div>
+                  </div>
+                  <div class="slide" role="group" aria-roledescription="slide" aria-label="2 of 4" aria-hidden="true">
+                    <div class="art" style="background:#F9E6EF"><svg viewBox="0 0 72 72" aria-hidden="true"><path d="M16 50 C 24 20, 48 20, 56 50" fill="none" stroke="#AE266C" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="50" r="5" fill="#8250A0"/><circle cx="56" cy="50" r="5" fill="#8250A0"/><circle cx="36" cy="28" r="6" fill="#96D700"/><path d="M30 58h12" stroke="#003C69" stroke-width="3" stroke-linecap="round"/></svg></div>
+                    <div><blockquote>Your questions belong here.</blockquote><p>Curiosity space has no grades and no deadlines.</p><button class="btn-link" type="button" data-slide-action="curiosity">Open curiosity space</button></div>
+                  </div>
+                  <div class="slide" role="group" aria-roledescription="slide" aria-label="3 of 4" aria-hidden="true">
+                    <div class="art" style="background:#E9F4FF"><svg viewBox="0 0 72 72" aria-hidden="true"><path d="M12 52 L28 36 L40 46 L60 20" fill="none" stroke="#003C69" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="28" cy="36" r="4" fill="#8250A0"/><circle cx="40" cy="46" r="4" fill="#AE266C"/><circle cx="60" cy="20" r="5" fill="#96D700"/><path d="M12 60h48" stroke="#9BD2FF" stroke-width="3" stroke-linecap="round"/></svg></div>
+                    <div><blockquote>Try, notice, adjust. That is progress.</blockquote><p>Pausing is allowed. Your checked steps stay with the task.</p></div>
+                  </div>
+                  <div class="slide" role="group" aria-roledescription="slide" aria-label="4 of 4" aria-hidden="true">
+                    <div class="art" style="background:#F0E8F7"><svg viewBox="0 0 72 72" aria-hidden="true"><rect x="12" y="38" width="14" height="22" rx="3" fill="#8250A0"/><rect x="29" y="26" width="14" height="34" rx="3" fill="#96D700"/><rect x="46" y="14" width="14" height="46" rx="3" fill="#003C69"/><circle cx="19" cy="24" r="5" fill="none" stroke="#AE266C" stroke-width="3"/></svg></div>
+                    <div><blockquote>There is more than one way to show what you know.</blockquote><p>Write, record, photograph, or build a model.</p><button class="btn-link" type="button" data-slide-action="evidence">See the evidence formats</button></div>
+                  </div>
+                </div>
+              </div>
+              <div class="slider-controls">
+                <ul class="slider-dots" id="sliderDots" aria-label="Choose a slide">
+                  <li><button type="button" data-slide="0" aria-label="Slide 1" aria-current="true"></button></li>
+                  <li><button type="button" data-slide="1" aria-label="Slide 2"></button></li>
+                  <li><button type="button" data-slide="2" aria-label="Slide 3"></button></li>
+                  <li><button type="button" data-slide="3" aria-label="Slide 4"></button></li>
+                </ul>
+                <div class="slider-nav">
+                  <label class="autoplay"><input type="checkbox" id="autoplay">Auto-advance</label>
+                  <button class="btn btn-icon" type="button" id="prevSlide" aria-label="Previous slide"><svg class="icon" aria-hidden="true"><use href="#i-chev-l"/></svg></button>
+                  <button class="btn btn-icon" type="button" id="nextSlide" aria-label="Next slide"><svg class="icon" aria-hidden="true"><use href="#i-chev-r"/></svg></button>
+                </div>
+              </div>
+              <div class="visually-hidden" aria-live="polite" id="sliderLive"></div>
+            </section>
+            <div class="focus-welcome" aria-label="Welcome">
+              <svg class="icon icon-lg" aria-hidden="true"><use href="#i-focus"/></svg>
+              <div><strong>Focus view is on.</strong> One task, your progress, and your coach. Everything else waits for you.</div>
+            </div>
+          </div>
+
+          <div class="layout">
+            <div class="stack">
+              <!-- NEXT STEP -->
+              <section class="card next-step" id="nextStep" aria-labelledby="nextHeading" tabindex="-1">
+                <svg class="deco" viewBox="0 0 260 260" aria-hidden="true"><circle cx="150" cy="150" r="110" fill="none" stroke="#9BD2FF" stroke-width="2"/><circle cx="150" cy="150" r="80" fill="none" stroke="#CEAAEE" stroke-width="2"/><circle cx="150" cy="150" r="50" fill="none" stroke="#96D700" stroke-width="2"/><circle cx="230" cy="150" r="6" fill="#8250A0"/><circle cx="150" cy="70" r="5" fill="#AE266C"/></svg>
+                <div class="next-head">
+                  <div>
+                    <span class="eyebrow"><span class="dot"></span>My next step · Net Zero Microgrid · Milestone 2</span>
+                    <h2 id="nextHeading">Find the campus energy hotspots</h2>
+                  </div>
+                  <div class="progress-ring" id="progressRing" role="img" aria-label="0 of 3 steps done" style="--p:0"><span id="progressText">0/3</span></div>
+                </div>
+                <p class="purpose">Choose one space on campus. Record three things that use electricity, then explain which one probably uses the most and why. This becomes your first observation for the pod mission.</p>
+                <div class="meta">
+                  <span class="chip"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>About 10 minutes</span>
+                  <span class="chip"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg>Notebook or camera</span>
+                  <span class="chip"><svg class="icon" aria-hidden="true"><use href="#i-pin"/></svg>Any room or outdoor space</span>
+                </div>
+                <ol class="checklist" aria-label="Steps">
+                  <li><label><input type="checkbox" class="step"><span><span class="step-num">1</span> Choose a room or outdoor space.</span></label></li>
+                  <li><label><input type="checkbox" class="step"><span><span class="step-num">2</span> Identify three things that use electricity.</span></label></li>
+                  <li><label><input type="checkbox" class="step"><span><span class="step-num">3</span> Explain which might use the most energy, and why.</span></label></li>
+                </ol>
+                <div class="actions">
+                  <button class="btn btn-primary" id="evidence" type="button"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-upload"/></svg>Show my thinking</button>
+                  <button class="btn btn-secondary" id="help" type="button"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chat"/></svg>Ask my coach</button>
+                  <button class="btn btn-ghost" id="pause" type="button"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-pause"/></svg>Pause</button>
+                  <button class="btn btn-ai btn-sm" id="explainAi" type="button"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-refresh"/></svg>Explain this another way</button>
+                </div>
+                <div id="taskStatus" class="status" role="status"></div>
+              </section>
+
+              <!-- PACING -->
+              <section class="card card-compact optional" aria-labelledby="paceHeading">
+                <div class="card-head"><h3 id="paceHeading"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg>How much would you like to take on today?</h3><span class="badge badge-sample">Optional</span></div>
+                <p class="muted">This only changes the suggestion below. You can choose any task at any time.</p>
+                <div class="choices" id="energy" role="group" aria-label="Pacing check-in">
+                  <button class="choice" type="button" aria-pressed="false" data-energy="A small step is enough. Try identifying just one electricity user first, then stop or continue.">A small step<svg class="icon icon-sm icon-check" aria-hidden="true"><use href="#i-check"/></svg></button>
+                  <button class="choice" type="button" aria-pressed="false" data-energy="Stay with the three-step campus investigation at your own pace.">Steady pace<svg class="icon icon-sm icon-check" aria-hidden="true"><use href="#i-check"/></svg></button>
+                  <button class="choice" type="button" aria-pressed="false" data-energy="Optional stretch: estimate daily energy use for your space and explain your assumptions.">Ready to stretch<svg class="icon icon-sm icon-check" aria-hidden="true"><use href="#i-check"/></svg></button>
+                  <button class="choice" type="button" aria-pressed="false" data-energy="No check-in needed. Your next step stays the same.">Skip<svg class="icon icon-sm icon-check" aria-hidden="true"><use href="#i-check"/></svg></button>
+                </div>
+                <div id="energyResult" class="status" role="status"></div>
+              </section>
+
+              <!-- SECONDARY CARDS -->
+              <div class="mini-grid optional">
+                <section class="card card-pattern mini mini-curiosity" aria-labelledby="curHeading">
+                  <svg class="deco" viewBox="0 0 120 120" aria-hidden="true"><circle cx="80" cy="40" r="30" fill="#F9E6EF"/><path d="M50 90 C 60 60, 90 60, 100 90" fill="none" stroke="#AE266C" stroke-width="3"/><circle cx="100" cy="90" r="5" fill="#8250A0"/></svg>
+                  <span class="eyebrow"><span class="dot"></span>Curiosity space</span>
+                  <h3 id="curHeading">How does a game use energy?</h3>
+                  <p>Graphics, computing and the electricity behind your favourite games. No grade, no deadline.</p>
+                  <div class="actions"><button class="btn btn-secondary btn-sm" id="curiosity" type="button">Follow this question</button><button class="btn btn-ai btn-sm" id="deeperAi" type="button"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sparkles"/></svg>Suggest a deeper question</button></div>
+                </section>
+                <section class="card card-pattern mini mini-planner" aria-labelledby="planHeading">
+                  <svg class="deco" viewBox="0 0 120 120" aria-hidden="true"><path d="M30 20 l 26 15 v 30 l -26 15 l -26 -15 v -30 z" fill="#E9F4FF"/><path d="M40 90 h 60" stroke="#96D700" stroke-width="4" stroke-linecap="round"/><path d="M60 30 h 40" stroke="#8250A0" stroke-width="3" stroke-linecap="round" opacity=".5"/></svg>
+                  <span class="eyebrow"><span class="dot"></span>Quest planner</span>
+                  <h3 id="planHeading">A big idea, a smaller start</h3>
+                  <p>Turn a question into five steps you can edit before you talk to your coach.</p>
+                  <div class="actions"><button class="btn btn-secondary btn-sm" id="planner" type="button">Try an example plan</button><button class="btn btn-ai btn-sm" id="planAi" type="button"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sparkles"/></svg>Help me plan this quest</button></div>
+                </section>
+                <section class="card card-pattern mini mini-pod" aria-labelledby="podHeading">
+                  <svg class="deco" viewBox="0 0 120 120" aria-hidden="true"><circle cx="90" cy="35" r="14" fill="#F1FAD6"/><circle cx="60" cy="55" r="14" fill="#E9F4FF"/><circle cx="95" cy="75" r="14" fill="#F0E8F7"/><path d="M90 35 L60 55 L95 75" fill="none" stroke="#003C69" stroke-width="2"/></svg>
+                  <span class="eyebrow"><span class="dot"></span>Our pod mission</span>
+                  <h3 id="podHeading">Ten useful campus energy observations</h3>
+                  <p id="podText">6 of 10 collected together. Every contribution counts; nobody is ranked.</p>
+                  <div class="bar" role="progressbar" aria-label="Shared observations" aria-valuemin="0" aria-valuemax="10" aria-valuenow="6" id="podBar"><i style="width:60%"></i></div>
+                  <div class="actions"><button class="btn btn-ghost btn-sm" id="podAdd" type="button"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Add a sample observation</button></div>
+                  <div id="podStatus" class="status" role="status"></div>
+                </section>
+              </div>
+            </div>
+
+            <!-- RIGHT RAIL -->
+            <aside class="rail" aria-label="Information">
+              <section class="card" aria-labelledby="learnHeading">
+                <div class="card-head"><h3 id="learnHeading"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>My learning</h3></div>
+                <ul class="quicklinks">
+                  <li><a href="#pbl" data-nav="pbl"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><span>PBL programs<small>Net Zero Microgrid is current</small></span><svg class="icon chev" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+                  <li><a href="#academic" data-nav="academic"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg><span>Academic progress<small>Coach observation · 29 Sep</small></span><svg class="icon chev" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+                  <li><a href="#goals" data-nav="goals"><svg class="icon" aria-hidden="true"><use href="#i-target"/></svg><span>My goals<small>1 to acknowledge</small></span><svg class="icon chev" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+                </ul>
+              </section>
+              <section class="card optional" aria-labelledby="upHeading">
+                <div class="card-head"><h3 id="upHeading"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Coming up</h3><a href="#calendar" data-nav="calendar" class="btn-link">All events</a></div>
+                <ul class="events">
+                  <li class="event"><div class="date"><b>5</b><small>Oct</small></div><div><strong>Coach check-in</strong><small><span>10:00 · Learning studio</span><span class="badge badge-review">Pod</span></small></div></li>
+                  <li class="event"><div class="date cat-maker"><b>8</b><small>Oct</small></div><div><strong>Project workshop</strong><small><span>13:00 · Maker space</span><span class="badge badge-explore">Workshop</span></small></div></li>
+                  <li class="event"><div class="date cat-school"><b>16</b><small>Oct</small></div><div><strong>Milestone share</strong><small><span>14:00 · Studio</span><span class="badge badge-request">School</span></small></div></li>
+                </ul>
+                <span class="readonly"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-lock"/></svg>Sample calendar · School admins manage events</span>
+              </section>
+              <section class="card card-tint" aria-labelledby="coachHeading">
+                <div class="card-head"><h3 id="coachHeading"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg>Your coach is nearby</h3></div>
+                <p>Ask for a first step, a different explanation, a break, or a conversation. Your request goes only to your assigned coach.</p>
+                <button class="btn btn-dark" id="helpAside" type="button">Choose support</button>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <!-- PBL STUDIO -->
+        <section class="page" data-page="pbl" aria-labelledby="pblHeading">
+          <div class="page-head"><div><span class="eyebrow"><span class="dot"></span>PBL Studio</span><h1 id="pblHeading">Your programs</h1><p class="lead">Three semesters, one through-line: real problems, evidence you choose, feedback from your coach.</p></div></div>
+          <div class="legend" aria-label="Program states">
+            <span class="badge badge-done"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Assigned</span>
+            <span class="badge badge-review"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>Available with class code</span>
+            <span class="badge badge-missing"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Upcoming</span>
+          </div>
+          <div class="programs">
+            <article class="program program-sf" aria-labelledby="sfH">
+              <div class="program-art"><svg viewBox="0 0 300 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="250" cy="30" r="60" fill="#96D700" opacity=".35"/><path d="M0 100 C 60 60, 120 120, 180 80 S 280 60, 300 90" fill="none" stroke="#003C69" stroke-width="2" opacity=".5"/><circle cx="60" cy="40" r="18" fill="#fff" opacity=".7"/><circle cx="200" cy="90" r="8" fill="#8250A0" opacity=".6"/></svg><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-leaf"/></svg></span></div>
+              <div class="program-body">
+                <div class="state"><span class="eyebrow" style="margin:0">Semester 1</span><span class="badge badge-done"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Assigned</span></div>
+                <h3 id="sfH">Sustainable Futures</h3>
+                <p>Design a change that makes your school fairer and lighter on the planet. Your portfolio from this program stays yours.</p>
+                <div class="bar-label"><span>Milestones</span><strong>4 of 5</strong></div>
+                <div class="bar bar-sm" role="progressbar" aria-label="Sustainable Futures milestones" aria-valuemin="0" aria-valuemax="5" aria-valuenow="4"><i style="width:80%"></i></div>
+                <div class="actions"><button class="btn btn-secondary btn-sm" type="button" data-open="portfolio">Open portfolio</button></div>
+              </div>
+            </article>
+            <article class="program program-mg is-current" aria-labelledby="mgH">
+              <div class="program-art"><svg viewBox="0 0 300 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M0 70 h60 l20-30 l20 60 l20-30 h40 l20-20 l20 40 l20-20 h80" fill="none" stroke="#9BD2FF" stroke-width="3" stroke-linejoin="round"/><circle cx="60" cy="70" r="5" fill="#96D700"/><circle cx="160" cy="70" r="5" fill="#96D700"/><circle cx="260" cy="70" r="5" fill="#96D700"/><rect x="220" y="15" width="60" height="30" rx="6" fill="none" stroke="#9BD2FF" stroke-width="2" opacity=".6"/></svg><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg></span></div>
+              <div class="program-body">
+                <div class="state"><span class="eyebrow" style="margin:0">Semester 2 · Current</span><span class="badge badge-done"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Assigned</span></div>
+                <h3 id="mgH">Net Zero Microgrid</h3>
+                <p>Map where energy goes on campus, then model a small resilient grid that keeps the important things running.</p>
+                <div class="bar-label"><span>Milestones</span><strong>1 of 5</strong></div>
+                <div class="bar bar-sm" role="progressbar" aria-label="Net Zero Microgrid milestones" aria-valuemin="0" aria-valuemax="5" aria-valuenow="1"><i style="width:20%"></i></div>
+                <div class="actions"><button class="btn btn-primary btn-sm" type="button" data-nav="home" data-focus-next="true">Continue milestone 2</button></div>
+              </div>
+            </article>
+            <article class="program program-ar" aria-labelledby="arH">
+              <div class="program-art"><svg viewBox="0 0 300 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><g fill="none" stroke="#8250A0" stroke-width="1.5" opacity=".7"><path d="M40 20 L120 50 L200 15 L260 60 L180 100 L100 90 Z"/><path d="M120 50 L180 100 M120 50 L100 90 M200 15 L180 100 M40 20 L100 90"/></g><circle cx="120" cy="50" r="6" fill="#AE266C"/><circle cx="200" cy="15" r="5" fill="#8250A0"/><circle cx="180" cy="100" r="5" fill="#003C69"/><circle cx="260" cy="60" r="5" fill="#96D700"/></svg><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-bot"/></svg></span></div>
+              <div class="program-body">
+                <div class="state"><span class="eyebrow" style="margin:0">Semester 3</span><span class="badge badge-missing"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Upcoming</span></div>
+                <h3 id="arH">Project Arachne</h3>
+                <p>Design and tune a four-legged robot that can cross rough ground. Opens when your school publishes the offering.</p>
+                <div class="bar-label"><span>Milestones</span><strong>Not started</strong></div>
+                <div class="bar bar-sm" role="progressbar" aria-label="Project Arachne milestones" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0"><i style="width:0"></i></div>
+                <div class="actions"><button class="btn btn-ghost btn-sm" type="button" data-open="arachne">What is it about?</button></div>
+              </div>
+            </article>
+          </div>
+
+          <div class="grid-2" style="margin-top:var(--space-5)">
+            <section class="card" aria-labelledby="availHeading">
+              <div class="card-head"><h3 id="availHeading"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>Available with a class code</h3></div>
+              <div class="item" style="margin-bottom:var(--space-3)">
+                <span class="avatar a4" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-car"/></svg></span>
+                <div><div class="item-head"><h4>STEAM elective · Solar Car Lab</h4><span class="badge badge-review"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>Available</span></div><p class="muted">Offered by your school this term. Your coach shares the code in the studio.</p></div>
+              </div>
+              <form class="join" id="joinForm" novalidate>
+                <div class="field"><label for="joinCode">Class code</label><input type="text" id="joinCode" autocomplete="off" placeholder="e.g. SOLAR-2026" aria-describedby="joinHint"><span class="hint" id="joinHint">Codes are issued by your school and expire. In this preview any code starting with “SOLAR” works.</span></div>
+                <button class="btn btn-primary" type="submit">Join</button>
+              </form>
+              <div id="joinStatus" class="status" role="status"></div>
+            </section>
+            <section class="card card-warm" aria-labelledby="schoolHeading">
+              <div class="card-head"><h3 id="schoolHeading"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>Who decides what is offered</h3></div>
+              <p>Your school chooses which programs run each semester and which classes join them. Assigned programs appear here automatically; available ones need a class code; upcoming ones open later.</p>
+              <p class="muted">In the live platform this comes from school offerings and enrolment records, never from the catalogue alone.</p>
+            </section>
+          </div>
+        </section>
+
+        <!-- STEAM -->
+        <section class="page" data-page="steam" aria-labelledby="steamHeading">
+          <div class="page-head"><div><span class="eyebrow"><span class="dot"></span>STEAM Activities</span><h1 id="steamHeading">Hands-on labs</h1><p class="lead">Short, practical activities you can run in the studio or at home. Availability is set by your school.</p></div><span class="badge badge-sample">Sample list</span></div>
+          <div class="steam">
+            <section class="card"><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-car"/></svg></span><h3>Solar Car Lab</h3><p class="muted">Build and test a small solar-powered car. Measure how angle and shade change speed.</p><div class="meta"><span class="chip"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>45 min</span><span class="badge badge-done"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Completed</span></div></section>
+            <section class="card"><span class="icon-badge" style="background:var(--wl-lime-100);color:var(--wl-lime-700)"><svg class="icon" aria-hidden="true"><use href="#i-sprout"/></svg></span><h3>Plant Lab</h3><p class="muted">Track growth under different light and water conditions over two weeks.</p><div class="meta"><span class="chip"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>2 weeks</span><span class="badge badge-review"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>In progress</span></div></section>
+            <section class="card"><span class="icon-badge" style="background:var(--wl-purple-100);color:var(--wl-purple-700)"><svg class="icon" aria-hidden="true"><use href="#i-hex"/></svg></span><h3>Hex Grid Energy Model</h3><p class="muted">Simulate how a town shares power on a hexagonal map. Links to the Microgrid program.</p><div class="meta"><span class="chip"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>30 min</span><span class="badge badge-missing"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Not started</span></div></section>
+          </div>
+        </section>
+
+        <!-- ACADEMIC -->
+        <section class="page" data-page="academic" aria-labelledby="acadHeading">
+          <div class="page-head"><div><span class="eyebrow"><span class="dot"></span>Academic Progress</span><h1 id="acadHeading">Separate from your projects</h1><p class="lead">Your online courses and your PBL evidence are kept apart. Each record shows where it came from and when it was last updated.</p></div></div>
+          <div id="acadLoading" class="card skeleton" aria-busy="true" aria-label="Loading academic progress" hidden><i class="w40"></i><i class="h40"></i><i class="w60"></i><i></i></div>
+          <div class="grid-2" id="acadContent">
+            <section class="card provider" aria-labelledby="cambHeading">
+              <div class="provider-head"><h3 id="cambHeading">CambriLearn</h3><span class="badge badge-review"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg>Coach recorded</span></div>
+              <h4>Mathematics · Linear equations</h4>
+              <div class="bar-label"><span>Units completed</span><strong>7 of 12</strong></div>
+              <div class="bar bar-navy" role="progressbar" aria-label="Mathematics units" aria-valuemin="0" aria-valuemax="12" aria-valuenow="7"><i style="width:58%"></i></div>
+              <p class="quote">“Practising linear equations with confidence. Next: word problems.”</p>
+              <div class="source"><span>Source: <code>coach_recorded</code></span><span>Observed 29 Sep 2026</span><span>Updated 30 Sep 2026</span></div>
+            </section>
+            <section class="card provider" aria-labelledby="edmHeading">
+              <div class="provider-head"><h3 id="edmHeading">Edmentum</h3><span class="badge badge-missing"><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg>No data yet</span></div>
+              <div class="empty"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg><strong>No verified provider feed</strong><span>Automatic progress appears once your school arranges provider access. Until then your coach can record dated observations.</span></div>
+              <div class="source"><span>Provider access: pending</span></div>
+            </section>
+          </div>
+          <section class="card card-tint" style="margin-top:var(--space-4)" aria-labelledby="pblSepHeading">
+            <div class="card-head"><h3 id="pblSepHeading"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg>PBL progress lives in PBL Studio</h3><a href="#pbl" data-nav="pbl" class="btn-link">Open PBL Studio</a></div>
+            <p class="muted">Milestones and coach feedback on project evidence are never mixed into provider course records.</p>
+          </section>
+        </section>
+
+        <!-- GOALS -->
+        <section class="page" data-page="goals" aria-labelledby="goalsHeading">
+          <div class="page-head"><div><span class="eyebrow"><span class="dot"></span>My Goals</span><h1 id="goalsHeading">Agreed with your coach</h1><p class="lead">Goals are set together. You acknowledge them; your coach confirms when they are achieved.</p></div></div>
+          <section class="card">
+            <div class="goal"><span class="goal-icon"><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg></span><div><strong>Explain one energy estimate using evidence</strong><small>PBL · Net Zero Microgrid · Due 16 Oct 2026</small></div><span class="badge badge-done"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Acknowledged</span></div>
+            <div class="goal" id="goalAck"><span class="goal-icon" style="background:var(--wl-lime-100)"><svg class="icon" aria-hidden="true"><use href="#i-flask"/></svg></span><div><strong>Record one STEAM observation each week</strong><small>STEAM · Plant Lab · Due 23 Oct 2026</small></div><button class="btn btn-secondary btn-sm" type="button" id="ackGoal">Acknowledge</button></div>
+            <div class="goal"><span class="goal-icon" style="background:var(--wl-purple-100)"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg></span><div><strong>Finish the linear equations unit</strong><small>Academic · CambriLearn · Achieved 26 Sep 2026</small></div><span class="badge badge-done"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Achieved</span></div>
+          </section>
+          <div id="goalStatus" class="status" role="status"></div>
+        </section>
+
+        <!-- CALENDAR -->
+        <section class="page" data-page="calendar" aria-labelledby="calHeading">
+          <div class="page-head"><div><span class="eyebrow"><span class="dot"></span>School Calendar</span><h1 id="calHeading">Coming up</h1><p class="lead">Read-only. School administrators add and edit events.</p></div><span class="readonly" style="margin:0"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-lock"/></svg>Read-only view</span></div>
+          <section class="card">
+            <ul class="events">
+              <li class="event"><div class="date"><b>5</b><small>Oct</small></div><div><strong>Coach check-in</strong><small><span>Mon · 10:00–10:30 · Learning studio</span><span class="badge badge-review">Pod</span></small></div></li>
+              <li class="event"><div class="date cat-maker"><b>8</b><small>Oct</small></div><div><strong>Project workshop</strong><small><span>Thu · 13:00–15:00 · Maker space</span><span class="badge badge-explore">Workshop</span></small></div></li>
+              <li class="event"><div class="date cat-school"><b>16</b><small>Oct</small></div><div><strong>Milestone share</strong><small><span>Fri · 14:00 · Studio</span><span class="badge badge-request">School</span></small></div></li>
+              <li class="event"><div class="date cat-pod"><b>19</b><small>Oct</small></div><div><strong>Term break begins</strong><small><span>Mon · All day</span><span class="badge badge-done">Holiday</span></small></div></li>
+              <li class="event"><div class="date"><b>2</b><small>Nov</small></div><div><strong>Term resumes</strong><small><span>Mon · All day</span><span class="badge badge-done">Holiday</span></small></div></li>
+            </ul>
+          </section>
+        </section>
+      </div>
+
+      <!-- ================= COACH ================= -->
+      <div id="coach" hidden>
+        <section class="page is-active" data-page="coach" aria-labelledby="coachTop">
+          <div class="page-head" id="coach-top">
+            <div><span class="eyebrow"><span class="dot"></span>Coach dashboard</span><h1 id="coachTop">Support the next step.</h1><p class="lead">Requests, evidence and goals for your pod, with academic observations kept separate.</p></div>
+            <div class="coach-tools">
+              <div class="field"><label for="classSelect">Class</label><select id="classSelect"><option>Year 9 · W2e pod</option></select></div>
+              <div class="field"><label for="learnerSelect">Show</label><select id="learnerSelect"><option value="all">Whole class</option><option value="alex">Alex only</option><option value="jordan">Jordan only</option><option value="mia">Mia only</option><option value="sam">Sam only</option></select></div>
+            </div>
+          </div>
+
+          <div class="tiles" aria-label="Summary">
+            <a class="tile tile-request" href="#c-requests"><span class="tile-icon"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg></span><div><b id="tileRequests">1</b><span>Support requests</span></div></a>
+            <a class="tile tile-review" href="#c-evidence"><span class="tile-icon"><svg class="icon" aria-hidden="true"><use href="#i-file-check"/></svg></span><div><b>2</b><span>Awaiting review</span></div></a>
+            <a class="tile tile-urgent" href="#c-goals"><span class="tile-icon"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg></span><div><b>1</b><span>Overdue goal</span></div></a>
+            <a class="tile tile-missing" href="#c-academic"><span class="tile-icon"><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg></span><div><b>1</b><span>Missing data</span></div></a>
+          </div>
+
+          <div class="coach-layout">
+            <div class="stack">
+              <section class="card" id="c-requests" aria-labelledby="reqHeading" tabindex="-1">
+                <div class="card-head"><h2 id="reqHeading"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg>Support requests</h2><span class="badge badge-sample">Learner-written</span></div>
+                <p class="muted">Requests use the learner's own words. Nothing here is inferred from behaviour or timing.</p>
+                <div class="request-list" id="requests"></div>
+              </section>
+
+              <section class="card" id="c-evidence" aria-labelledby="evHeading" tabindex="-1">
+                <div class="card-head"><h2 id="evHeading"><svg class="icon" aria-hidden="true"><use href="#i-file-check"/></svg>Evidence awaiting review</h2><button class="btn btn-ai btn-sm" type="button" id="draftAi"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sparkles"/></svg>Draft a feedback prompt</button></div>
+                <div class="evidence-list">
+                  <div class="item learner-row" data-learner="jordan">
+                    <span class="avatar a2" aria-hidden="true">J</span>
+                    <div><div class="item-head"><h4>Jordan · Sustainable Futures · Milestone 4</h4><span class="badge badge-review"><svg class="icon" aria-hidden="true"><use href="#i-file-check"/></svg>Awaiting review</span></div>
+                    <p>Audio explanation (2:40): how insulation changes energy demand.</p>
+                    <p class="muted">Suggested question: “Which observation supports your explanation?”</p>
+                    <div class="actions"><button class="btn btn-secondary btn-sm" type="button" data-open="review">Review evidence</button><button class="btn btn-ghost btn-sm" type="button" data-open="transcript">Read transcript</button></div></div>
+                  </div>
+                  <div class="item learner-row" data-learner="mia">
+                    <span class="avatar a3" aria-hidden="true">M</span>
+                    <div><div class="item-head"><h4>Mia · Net Zero Microgrid · Milestone 2</h4><span class="badge badge-review"><svg class="icon" aria-hidden="true"><use href="#i-file-check"/></svg>Awaiting review</span></div>
+                    <p>Photo and short list: three electricity users in the library.</p>
+                    <p class="muted">Suggested question: “Which one surprised you, and why?”</p>
+                    <div class="actions"><button class="btn btn-secondary btn-sm" type="button" data-open="review">Review evidence</button></div></div>
+                  </div>
+                  <div class="item learner-row" data-learner="alex">
+                    <span class="avatar" aria-hidden="true">A</span>
+                    <div><div class="item-head"><h4>Alex · Net Zero Microgrid · Milestone 2</h4><span class="badge badge-missing"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Not submitted yet</span></div>
+                    <p class="muted">Next step is in progress. No action needed.</p></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card" id="c-goals" aria-labelledby="cgHeading" tabindex="-1">
+                <div class="card-head"><h2 id="cgHeading"><svg class="icon" aria-hidden="true"><use href="#i-target"/></svg>Assigned learner goals</h2></div>
+                <div class="table-wrap"><table>
+                  <thead><tr><th scope="col">Learner</th><th scope="col">Goal</th><th scope="col">Due</th><th scope="col">Status</th></tr></thead>
+                  <tbody>
+                    <tr class="learner-row" data-learner="alex"><td>Alex</td><td>Explain one energy estimate using evidence</td><td>16 Oct</td><td><span class="badge badge-done"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Acknowledged</span></td></tr>
+                    <tr class="learner-row" data-learner="jordan"><td>Jordan</td><td>Submit the insulation explanation</td><td>29 Sep</td><td><span class="badge badge-urgent"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>Overdue</span></td></tr>
+                    <tr class="learner-row" data-learner="mia"><td>Mia</td><td>Record one observation per week</td><td>23 Oct</td><td><span class="badge badge-review"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Awaiting acknowledgement</span></td></tr>
+                    <tr class="learner-row" data-learner="sam"><td>Sam</td><td>Finish the hex grid model</td><td>30 Oct</td><td><span class="badge badge-done"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Achieved</span></td></tr>
+                  </tbody>
+                </table></div>
+              </section>
+
+              <section class="card" id="c-progress" aria-labelledby="cpHeading" tabindex="-1">
+                <div class="card-head"><h2 id="cpHeading"><svg class="icon" aria-hidden="true"><use href="#i-trend"/></svg>PBL &amp; STEAM progress</h2><span class="badge badge-sample">Alphabetical · not ranked</span></div>
+                <div class="table-wrap"><table>
+                  <thead><tr><th scope="col">Learner</th><th scope="col">Net Zero Microgrid</th><th scope="col">STEAM activities</th></tr></thead>
+                  <tbody>
+                    <tr class="learner-row" data-learner="alex"><td>Alex</td><td>Milestone 1 of 5<div class="bar bar-sm" role="progressbar" aria-label="Alex PBL milestones" aria-valuemin="0" aria-valuemax="5" aria-valuenow="1"><i style="width:20%"></i></div></td><td>1 of 3 completed<div class="bar bar-sm bar-navy" role="progressbar" aria-label="Alex STEAM activities" aria-valuemin="0" aria-valuemax="3" aria-valuenow="1"><i style="width:33%"></i></div></td></tr>
+                    <tr class="learner-row" data-learner="jordan"><td>Jordan</td><td>Milestone 2 of 5<div class="bar bar-sm" role="progressbar" aria-label="Jordan PBL milestones" aria-valuemin="0" aria-valuemax="5" aria-valuenow="2"><i style="width:40%"></i></div></td><td>2 of 3 completed<div class="bar bar-sm bar-navy" role="progressbar" aria-label="Jordan STEAM activities" aria-valuemin="0" aria-valuemax="3" aria-valuenow="2"><i style="width:66%"></i></div></td></tr>
+                    <tr class="learner-row" data-learner="mia"><td>Mia</td><td>Milestone 2 of 5<div class="bar bar-sm" role="progressbar" aria-label="Mia PBL milestones" aria-valuemin="0" aria-valuemax="5" aria-valuenow="2"><i style="width:40%"></i></div></td><td>1 of 3 completed<div class="bar bar-sm bar-navy" role="progressbar" aria-label="Mia STEAM activities" aria-valuemin="0" aria-valuemax="3" aria-valuenow="1"><i style="width:33%"></i></div></td></tr>
+                    <tr class="learner-row" data-learner="sam"><td>Sam</td><td>Milestone 1 of 5<div class="bar bar-sm" role="progressbar" aria-label="Sam PBL milestones" aria-valuemin="0" aria-valuemax="5" aria-valuenow="1"><i style="width:20%"></i></div></td><td>3 of 3 completed<div class="bar bar-sm bar-navy" role="progressbar" aria-label="Sam STEAM activities" aria-valuemin="0" aria-valuemax="3" aria-valuenow="3"><i style="width:100%"></i></div></td></tr>
+                  </tbody>
+                </table></div>
+              </section>
+
+              <section class="card" id="c-academic" aria-labelledby="caHeading" tabindex="-1">
+                <div class="card-head"><h2 id="caHeading"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Academic observations</h2><span class="badge badge-sample">Separate from PBL</span></div>
+                <p class="muted">Dated, coach-recorded notes. CambriLearn and Edmentum provider access is pending; no grades are synced.</p>
+                <div class="table-wrap"><table>
+                  <thead><tr><th scope="col">Learner</th><th scope="col">Provider</th><th scope="col">Course</th><th scope="col">Observation</th><th scope="col">Date</th></tr></thead>
+                  <tbody>
+                    <tr class="learner-row" data-learner="alex"><td>Alex</td><td>CambriLearn</td><td>Mathematics</td><td>7 of 12 units · linear equations</td><td>29 Sep</td></tr>
+                    <tr class="learner-row" data-learner="jordan"><td>Jordan</td><td>CambriLearn</td><td>Science</td><td>5 of 10 units · energy transfer</td><td>26 Sep</td></tr>
+                    <tr class="learner-row" data-learner="mia"><td>Mia</td><td>Edmentum</td><td>English</td><td>Unit 3 essay drafted</td><td>24 Sep</td></tr>
+                    <tr class="learner-row" data-learner="sam"><td>Sam</td><td>Edmentum</td><td>—</td><td><span class="badge badge-missing"><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg>Missing data</span> No observation recorded this term</td><td>—</td></tr>
+                  </tbody>
+                </table></div>
+              </section>
+            </div>
+
+            <aside class="stack" aria-label="Learner context">
+              <section class="card card-warm" id="prefsCard" aria-labelledby="prefHeading">
+                <div class="card-head"><h3 id="prefHeading"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg><span id="prefName">Alex’s</span> preferences</h3><span class="badge badge-sample">Learner-selected</span></div>
+                <div id="prefsAlex">
+                  <div class="meta"><span class="chip">Explain aloud</span><span class="chip">One step at a time</span><span class="chip">Quiet work area</span><span class="chip">Audio evidence</span></div>
+                  <h4>Interests to build on</h4><p>Game design · Energy systems · Drawing</p>
+                  <h4>A possible coaching prompt</h4><p class="quote">“Would it help to talk through one example together before you record it?”</p>
+                </div>
+                <div id="prefsEmpty" class="empty" hidden><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg><strong>No preferences shared yet</strong><span>Learners choose what to share. Ask in your next check-in if it would help.</span></div>
+                <p class="muted" style="margin-top:var(--space-3)">Shown apart from grades. Prompts are suggestions, not assessments.</p>
+              </section>
+              <section class="card" id="c-calendar" aria-labelledby="ccHeading" tabindex="-1">
+                <div class="card-head"><h3 id="ccHeading"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Upcoming school events</h3></div>
+                <ul class="events">
+                  <li class="event"><div class="date"><b>5</b><small>Oct</small></div><div><strong>Coach check-in</strong><small><span>10:00 · Learning studio</span><span class="badge badge-review">Pod</span></small></div></li>
+                  <li class="event"><div class="date cat-maker"><b>8</b><small>Oct</small></div><div><strong>Project workshop</strong><small><span>13:00 · Maker space</span><span class="badge badge-explore">Workshop</span></small></div></li>
+                  <li class="event"><div class="date cat-school"><b>16</b><small>Oct</small></div><div><strong>Milestone share</strong><small><span>14:00 · Studio</span><span class="badge badge-request">School</span></small></div></li>
+                </ul>
+                <span class="readonly"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-lock"/></svg>Read-only · Admins edit events</span>
+              </section>
+              <section class="card card-tint" aria-labelledby="noteHeading">
+                <div class="card-head"><h3 id="noteHeading"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>What this view never does</h3></div>
+                <ul style="padding-left:1.1rem;font-size:var(--text-sm)"><li>No emotion or frustration scores.</li><li>No ability levels inferred from time, edits or mouse movement.</li><li>No rankings between learners.</li></ul>
+              </section>
+            </aside>
+          </div>
+        </section>
+      </div>
+
+      <footer class="foot"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-info"/></svg><span>Prototype only. Preferences and requests reset when you reload. No monitoring, automatic grading, or public peer discovery.</span></footer>
+    </main>
+  </div>
+</div>
+
+<!-- ================= DIALOGS ================= -->
+<dialog id="dialog" aria-labelledby="dialogTitle">
+  <div class="dialog-body"><div class="dialog-head"><h2 id="dialogTitle">Title</h2><button class="btn btn-icon close-x" type="button" data-close aria-label="Close dialog"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></div><div id="dialogContent"></div></div>
+  <div class="dialog-foot"><button class="btn btn-secondary" type="button" data-close>Close</button></div>
+</dialog>
+
+<dialog id="supportDialog" aria-labelledby="supportTitle">
+  <form method="dialog" id="supportForm">
+    <div class="dialog-body">
+      <div class="dialog-head"><h2 id="supportTitle"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg>What would help right now?</h2><button class="btn btn-icon close-x" type="button" data-close aria-label="Close dialog"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+      <p class="muted">Choose what you want your on-site coach to know. Only your assigned coach sees this.</p>
+      <div class="field"><label for="support">Your request</label><select id="support"><option>Help me find the first step</option><option>Explain this a different way</option><option>I would like a break</option><option>I would like to talk privately</option></select></div>
+      <div class="field"><label for="supportNote">Add a note <span class="muted">(optional)</span></label><textarea id="supportNote" maxlength="500" placeholder="Anything you want your coach to know."></textarea><span class="hint">Up to 500 characters.</span></div>
+      <div class="status status-info"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>Demo only. In the live platform your coach would see this request; here it only appears in the preview's coach view.</span></div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-secondary" type="button" data-close>Cancel</button><button class="btn btn-primary" type="submit" id="sendSupport"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-send"/></svg>Add to demo coach view</button></div>
+  </form>
+</dialog>
+
+<dialog id="evidenceDialog" aria-labelledby="evidenceTitle">
+  <div class="dialog-body">
+    <div class="dialog-head"><h2 id="evidenceTitle"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>Show your thinking</h2><button class="btn btn-icon close-x" type="button" data-close aria-label="Close dialog"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <p class="muted">Use a format that works for you. Your coach reviews the same learning goal for every format.</p>
+    <div class="formats" role="group" aria-label="Evidence format">
+      <button class="format" type="button" aria-pressed="false" data-format="Written explanation"><svg class="icon" aria-hidden="true"><use href="#i-pen"/></svg>Write</button>
+      <button class="format" type="button" aria-pressed="false" data-format="Audio explanation"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg>Audio</button>
+      <button class="format" type="button" aria-pressed="false" data-format="Photo or diagram"><svg class="icon" aria-hidden="true"><use href="#i-camera"/></svg>Photo</button>
+      <button class="format" type="button" aria-pressed="false" data-format="Video explanation"><svg class="icon" aria-hidden="true"><use href="#i-video"/></svg>Video</button>
+      <button class="format" type="button" aria-pressed="false" data-format="Code or model"><svg class="icon" aria-hidden="true"><use href="#i-code"/></svg>Code</button>
+    </div>
+    <div id="formatResult" class="status status-info" role="status"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>Choose a format to see what to include.</span></div>
+    <div id="formatTools" hidden>
+      <div class="dropzone" id="dropzone"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg><strong id="dropTitle">Drop a file here or choose one</strong><span>Uploads are not connected in this preview.</span><div class="rec-row"><button class="btn btn-secondary btn-sm" type="button" aria-disabled="true" id="chooseFile">Choose file</button><button class="btn btn-secondary btn-sm" type="button" aria-disabled="true" id="recordBtn"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-mic"/></svg>Record</button></div></div>
+    </div>
+  </div>
+  <div class="dialog-foot"><span class="left muted" style="font-size:var(--text-sm)">A coach gives feedback. AI never assigns a grade.</span><button class="btn btn-secondary" type="button" data-close>Back to my task</button></div>
+</dialog>
+
+<dialog id="prefsDialog" aria-labelledby="prefsTitle">
+  <div class="dialog-body">
+    <div class="dialog-head"><h2 id="prefsTitle"><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg>Display preferences</h2><button class="btn btn-icon close-x" type="button" data-close aria-label="Close dialog"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <p class="muted">Yours to change any time. These settings only affect how the studio looks, never what you can access.</p>
+    <div class="toggle-row"><label for="prefCalm"><svg class="icon icon-sm" aria-hidden="true" style="display:inline;vertical-align:-3px"><use href="#i-palette"/></svg> Calm colours<small>Fewer gradients and patterns</small></label><span class="switch"><input type="checkbox" id="prefCalm" role="switch"></span></div>
+    <div class="toggle-row"><label for="prefMotion"><svg class="icon icon-sm" aria-hidden="true" style="display:inline;vertical-align:-3px"><use href="#i-pause"/></svg> Reduce motion<small>No transitions or sliding</small></label><span class="switch"><input type="checkbox" id="prefMotion" role="switch"></span></div>
+    <div class="toggle-row"><span class="lbl" id="textSizeLbl" style="font-weight:600"><svg class="icon icon-sm" aria-hidden="true" style="display:inline;vertical-align:-3px"><use href="#i-type"/></svg> Text size</span>
+      <div class="segmented" role="group" aria-labelledby="textSizeLbl" id="textSize"><button type="button" data-text="" aria-pressed="true">Default</button><button type="button" data-text="large" aria-pressed="false">Large</button><button type="button" data-text="larger" aria-pressed="false">Larger</button></div></div>
+    <p class="muted" style="font-size:var(--text-sm)">Preview only: preferences reset when you reload. In the platform they would be stored per learner, or on this device only.</p>
+  </div>
+  <div class="dialog-foot"><button class="btn btn-primary" type="button" data-close>Done</button></div>
+</dialog>
+
+<!-- AI panel: demonstration content, nothing is generated or sent -->
+<dialog class="drawer" id="aiDrawer" aria-labelledby="aiTitle">
+  <div class="drawer-head">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="badge badge-demo"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>Demonstration content · not generated</span><button class="btn btn-icon close-x" type="button" data-close aria-label="Close panel"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <h2 id="aiTitle"><svg class="icon" aria-hidden="true"><use href="#i-sparkles"/></svg><span id="aiTitleText">Help me plan this quest</span></h2>
+    <p class="muted" id="aiIntro" style="margin:0">A future assistant would draft from approved project content. You edit, then decide.</p>
+  </div>
+  <div class="dialog-body">
+    <dl class="context-box" id="aiContext"></dl>
+    <div class="suggestion">
+      <header><strong>Suggested draft</strong><span class="muted">Editable</span></header>
+      <label class="visually-hidden" for="aiText">Suggested draft</label>
+      <textarea id="aiText"></textarea>
+    </div>
+    <div id="aiStatus" class="status" role="status"></div>
+  </div>
+  <div class="dialog-foot drawer-foot"><button class="btn btn-ghost left" type="button" data-close><svg class="icon icon-sm" aria-hidden="true"><use href="#i-undo"/></svg>Back to my task</button><button class="btn btn-secondary" type="button" id="aiDiscard">Discard</button><button class="btn btn-primary" type="button" id="aiUse">Use this draft</button></div>
+</dialog>
+
+<script src="./studio.js"></script>
+</body>
+</html>

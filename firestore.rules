@@ -63,6 +63,18 @@ service cloud.firestore {
              .data.get('classIds', []).hasAny(myClassIds());
     }
 
+    // A removed assignment or suspension must stop assessment writes even
+    // while the coach still holds a previously issued token.
+    function canWriteCoachRecord(userId) {
+      let coach = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let learner = get(/databases/$(database)/documents/users/$(userId)).data;
+      return isCoachOf(userId)
+        && learner.role == 'student'
+        && coach.role == request.auth.token.role
+        && coach.get('status', 'active') != 'suspended'
+        && coach.get('classIds', []).hasAny(learner.get('classIds', []));
+    }
+
     // A join code the learner typed, resolved through classCodes/{CODE}.
     //
     // This is what makes client-side enrolment safe without a backend. The
@@ -198,6 +210,23 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // Personalization and portfolio grants are served exclusively by the scoped API.
+    match /learnerSpaces/{uid} { allow read, write: if false; }
+    match /learnerPortfolios/{uid} { allow read, write: if false; }
+    match /portfolioAudienceGrants/{uid} { allow read, write: if false; }
+
+    // Teen Quest XP, badges, streaks and the XP ledger are written only by the
+    // API, so no learner can award themselves XP. Squad goals hold class totals.
+    match /learnerQuest/{uid} { allow read, write: if false; }
+    match /learnerQuest/{uid}/{document=**} { allow read, write: if false; }
+    match /classes/{classId}/questSquad/{docId} { allow read, write: if false; }
+
+    // Coach AI activity builder: API-only. Connections hold KMS ciphertext and
+    // key metadata; drafts and usage counters are written only by the server.
+    match /coachAiConnections/{uid} { allow read, write: if false; }
+    match /schools/{schoolId}/programOfferings/{offeringId}/activityDrafts/{draftId} { allow read, write: if false; }
+    match /schools/{schoolId}/aiUsage/{month} { allow read, write: if false; }
+
     // User profiles
     // ---------------------------------------------------------------------
     match /users/{userId} {
@@ -270,13 +299,36 @@ service cloud.firestore {
       // Coach-authored feedback on student work.
       match /feedback/{feedbackId} {
         allow read: if isOwner(userId) || isCoachOf(userId);
-        allow create, update, delete: if isAuthenticated();
+        function validFeedback() {
+          let value = request.resource.data;
+          return value.keys().hasOnly(['coachId', 'coachName', 'timestamp', 'type', 'rating', 'feedbackText', 'workId'])
+            && value.coachId == request.auth.uid
+            && value.coachName is string && value.coachName.size() <= 160
+            && value.timestamp is number
+            && (!('workId' in value) || value.workId is string && value.workId.size() <= 200)
+            && (value.type == 'work_rating' && !('feedbackText' in value) && value.rating is int && value.rating >= 1 && value.rating <= 5
+              || value.type == 'written_feedback' && !('rating' in value) && value.feedbackText is string && value.feedbackText.size() > 0 && value.feedbackText.size() <= 4000);
+        }
+        allow create: if isAuthenticated() && canWriteCoachRecord(userId) && validFeedback();
+        allow update: if isAuthenticated() && canWriteCoachRecord(userId) && resource.data.coachId == request.auth.uid && validFeedback();
+        allow delete: if isAuthenticated() && canWriteCoachRecord(userId) && resource.data.coachId == request.auth.uid;
       }
 
       // Coach notifications to students.
       match /notifications/{notificationId} {
         allow read: if isOwner(userId);
-        allow create, delete, update: if isAuthenticated();
+        allow create: if isAuthenticated() && canWriteCoachRecord(userId)
+          && request.resource.data.keys().hasOnly(['fromUid', 'from', 'message', 'timestamp', 'read', 'type'])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.from is string && request.resource.data.from.size() <= 160
+          && request.resource.data.message is string && request.resource.data.message.size() <= 4000
+          && request.resource.data.timestamp is number
+          && request.resource.data.read == false
+          && request.resource.data.type == 'coach_message';
+        allow update: if isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+          && request.resource.data.read is bool;
+        allow delete: if isOwner(userId) || isAuthenticated() && canWriteCoachRecord(userId) && resource.data.fromUid == request.auth.uid;
       }
 
       // Conversations between a child and the AI tutor.

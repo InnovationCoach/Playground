@@ -43,6 +43,7 @@ export async function requireClaims(req, res, next) {
     const publicId = userData.publicId || null;
 
     req.caller = {
+      signedClaims: decoded,
       uid: decoded.uid,
       email: decoded.email,
       role,

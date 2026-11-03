@@ -1,0 +1,24 @@
+{
+  "score": 1,
+  "summary": "Focused static assessment of local feedback, ratings, notifications, assignments, and weekly-task rules referenced in the handover. Unauthorized cross-user writes are permitted. This score applies only to this inspected subset, not a completed whole-project audit; deployed rules and runtime exploitability were not tested.",
+  "findings": [
+    {
+      "check": "Field-Level vs. Identity-Level Security; Authority Source",
+      "severity": "critical",
+      "issue": "ratings, feedback, and notifications allow create/update/delete for any authenticated identity, irrespective of target learner, coach class membership, or authorship.",
+      "recommendation": "Require the intended authorized coach/class relationship, bind author identity to auth.uid, restrict edits/deletes to authorized actors, and separately allow only appropriate learner notification read-state updates. Add emulator tests denying student and unrelated-coach writes."
+    },
+    {
+      "check": "The Update Bypass",
+      "severity": "major",
+      "issue": "Assignments and weekly tasks authorize update using only resource.data.classId; the new classId is not protected, permitting reassignment into a class the caller does not teach.",
+      "recommendation": "Protect classId and ownership as immutable unless reassignment is explicitly supported; otherwise require authorized membership for both old and new classes and validate permitted changed fields."
+    },
+    {
+      "check": "Type Safety; Storage Abuse",
+      "severity": "moderate",
+      "issue": "The inspected feedback/rating/notification write rules do not enforce allowed fields, value types, text limits, or rating ranges. Authorship can be forged and oversized or malformed records accepted within platform limits.",
+      "recommendation": "Validate allowed/required keys, field types and limits, rating range, and author identity on create and update; enforce immutable provenance."
+    }
+  ]
+}

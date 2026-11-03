@@ -3,7 +3,8 @@ import { createContext, useContext, useEffect, useState } from 'react';
 const ThemeContext = createContext(null);
 
 /**
- * Theme preference: 'light' | 'dark' | 'system'
+ * Theme preference: 'light' | 'dark' | 'system'. Light is the default: the
+ * legacy surfaces were dark-only and too dark for daily use; dark stays available.
  * Persisted to users/{uid}.themePreference
  * System mode follows prefers-color-scheme media query
  */
@@ -12,6 +13,12 @@ export function ThemeProvider({ children, userThemePreference }) {
   const [systemDark, setSystemDark] = useState(
     () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false,
   );
+
+  // The saved preference arrives after sign-in, once the profile has loaded;
+  // follow it instead of keeping the value from first render.
+  useEffect(() => {
+    if (userThemePreference) setTheme(userThemePreference);
+  }, [userThemePreference]);
 
   // Determine effective theme (resolving 'system' against prefers-color-scheme)
   const effectiveTheme = theme === 'system'

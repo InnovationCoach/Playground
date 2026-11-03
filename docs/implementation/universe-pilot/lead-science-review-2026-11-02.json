@@ -1,0 +1,192 @@
+{
+  "reviewer": "GPT lead (AI), explicitly designated by Mani in chat on 2026-11-02",
+  "scope": "Science/calculation/NGSS support review for local Phase 1; no publication or human educator credential asserted",
+  "bundleContentSha256": "974d7ad370297bec650701cd9ebfc76a77abbb239281cb32dcf35fb5ec3231a7",
+  "sourceFileSha256": "7885a55c262070a470bf035c83bcb7543165098a7228da632bd09822a8647a04",
+  "numericChecks": [
+    {
+      "check": "wind hours",
+      "actual": 168,
+      "expected": 168,
+      "passed": true
+    },
+    {
+      "check": "full power hours",
+      "actual": 56.5,
+      "expected": 56.5,
+      "passed": true
+    },
+    {
+      "check": "raw capacity factor",
+      "actual": 0.33630952380952384,
+      "expected": 0.33630952380952384,
+      "passed": true
+    },
+    {
+      "check": "weekly MWh",
+      "actual": 56.5,
+      "expected": 56.5,
+      "passed": true
+    },
+    {
+      "check": "daily mean MWh",
+      "actual": 8.071428571428571,
+      "expected": 8.071428571428571,
+      "passed": true
+    },
+    {
+      "check": "plan-a base daily kWh",
+      "actual": 14160.0,
+      "expected": 14160.0,
+      "passed": true
+    },
+    {
+      "check": "plan-a surplus kWh/day",
+      "actual": 2160.0,
+      "expected": 2160.0,
+      "passed": true
+    },
+    {
+      "check": "plan-a stress daily kWh",
+      "actual": 10800.0,
+      "expected": 10800.0,
+      "passed": true
+    },
+    {
+      "check": "plan-b base daily kWh",
+      "actual": 16320.000000000002,
+      "expected": 16320.0,
+      "passed": true
+    },
+    {
+      "check": "plan-b surplus kWh/day",
+      "actual": 4320.000000000002,
+      "expected": 4320.0,
+      "passed": true
+    },
+    {
+      "check": "plan-b stress daily kWh",
+      "actual": 9600.0,
+      "expected": 9600.0,
+      "passed": true
+    },
+    {
+      "check": "chemical seconds",
+      "actual": 3600000.0,
+      "expected": 3600000.0,
+      "passed": true
+    },
+    {
+      "check": "chemical days",
+      "actual": 41.666666666666664,
+      "expected": 41.666666666666664,
+      "passed": true
+    },
+    {
+      "check": "chemical rounded provision days",
+      "actual": 42,
+      "expected": 42,
+      "passed": true
+    },
+    {
+      "check": "chemical fictional food kg",
+      "actual": 226.8,
+      "expected": 226.8,
+      "passed": true
+    },
+    {
+      "check": "ion seconds",
+      "actual": 6000000.0,
+      "expected": 6000000.0,
+      "passed": true
+    },
+    {
+      "check": "ion days",
+      "actual": 69.44444444444444,
+      "expected": 69.44444444444444,
+      "passed": true
+    },
+    {
+      "check": "ion rounded provision days",
+      "actual": 70,
+      "expected": 70,
+      "passed": true
+    },
+    {
+      "check": "ion fictional food kg",
+      "actual": 378.0,
+      "expected": 378.0,
+      "passed": true
+    },
+    {
+      "check": "sail seconds",
+      "actual": 12000000.0,
+      "expected": 12000000.0,
+      "passed": true
+    },
+    {
+      "check": "sail days",
+      "actual": 138.88888888888889,
+      "expected": 138.88888888888889,
+      "passed": true
+    },
+    {
+      "check": "sail rounded provision days",
+      "actual": 139,
+      "expected": 139,
+      "passed": true
+    },
+    {
+      "check": "sail fictional food kg",
+      "actual": 750.6,
+      "expected": 750.6,
+      "passed": true
+    },
+    {
+      "check": "chemical ideal propellant kg",
+      "actual": 19072.300884096952,
+      "expected": 19072.300884096952,
+      "passed": true
+    },
+    {
+      "check": "chemical supplies kg",
+      "actual": 667.8,
+      "expected": 667.8,
+      "passed": true
+    },
+    {
+      "check": "ion ideal propellant kg",
+      "actual": 1840.7642445419074,
+      "expected": 1840.7642445419074,
+      "passed": true
+    },
+    {
+      "check": "ion supplies kg",
+      "actual": 2226.0,
+      "expected": 2226.0,
+      "passed": true
+    },
+    {
+      "check": "Ignis fictional flux W/m2",
+      "actual": 468.7499999999999,
+      "expected": 468.7499999999999,
+      "passed": true
+    },
+    {
+      "check": "panel electrical W/m2",
+      "actual": 117.18749999999997,
+      "expected": 117.18749999999997,
+      "passed": true
+    },
+    {
+      "check": "ion propulsion panel m2",
+      "actual": 256.00000000000006,
+      "expected": 256,
+      "passed": true
+    }
+  ],
+  "numericCheckCount": 30,
+  "numericPassed": true,
+  "contentMutated": false,
+  "classroomDeviceFollowUp": "Mani specified testing this Mac now and student devices next."
+}

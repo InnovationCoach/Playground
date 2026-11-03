@@ -11,6 +11,7 @@
  * Usage: npm run seed:emulator (with emulators running)
  */
 
+import { SCHOOL_COHORTS } from '../src/utils/schoolCohorts.js';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
@@ -73,21 +74,22 @@ for (const s of SCHOOLS) {
     timezone: s.timezone,
     locale: s.locale,
     status: s.status,
+    // Teen Quest is switched on for the emulator so it can be reviewed; production schools opt in.
+    features: { questMode: true },
     createdAt: FieldValue.serverTimestamp()
   });
 }
 
 // 3. Cohorts
-const COHORTS = [
-  { id: 'cohort-w2e', code: 'W2E', name: { en: 'W2E (twice-exceptional, secondary)', zh: 'W2E（双重特殊，中学）', th: 'W2E (ผู้เรียนอัจฉริยภาพสองด้าน มัธยม)' }, ageBands: ['13-15', '16-18'], status: 'active' },
-  { id: 'cohort-wpr', code: 'WPR', name: { en: 'WPR (international, primary)', zh: 'WPR（国际，小学）', th: 'WPR (นานาชาติ ประถม)' }, ageBands: ['primary'], status: 'active' }
-];
+const COHORTS = SCHOOL_COHORTS.map(c => ({ ...c, id: c.cohortId }));
 for (const c of COHORTS) {
   await db.collection('cohorts').doc(c.id).set({
     orgId: ORG_ID,
     code: c.code,
     name: c.name,
     ageBands: c.ageBands,
+    minAge: c.minAge,
+    maxAgeExclusive: c.maxAgeExclusive,
     status: c.status,
     createdAt: FieldValue.serverTimestamp()
   });
@@ -110,8 +112,10 @@ for (const p of PROGRAMMES) {
 
 // 5. Classes
 const CLASSES = [
-  { id: 'class_yr9_climate', name: 'Year 9 Climate Science', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-w2e', yearLevel: 'Year 9', status: 'active' },
-  { id: 'class_yr12_eng', name: 'Year 12 Engineering', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-w2e', yearLevel: 'Year 12', status: 'active' }
+  { id: 'class_lower_primary', name: 'Lower Primary A', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-lower-primary', yearLevel: 'Year 3', status: 'active' },
+  { id: 'class_higher_primary', name: 'Higher Primary A', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-higher-primary', yearLevel: 'Year 5', status: 'active' },
+  { id: 'class_yr9_climate', name: 'Lower Secondary A', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-lower-secondary', yearLevel: 'Year 9', status: 'active' },
+  { id: 'class_yr12_eng', name: 'Higher Secondary A', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-higher-secondary', yearLevel: 'Year 12', status: 'active' }
 ];
 
 const issuedCodes = {};
@@ -181,7 +185,7 @@ for (const coach of COACHES) {
 const REVIEW_STAFF = [
   {
     email: 'admin.test@school.edu', givenNames: 'Admin', surname: 'Test', role: 'admin',
-    claims: { role: 'admin', orgId: ORG_ID }, schoolIds: ['sch-bkk', 'sch-online']
+    claims: { role: 'admin', orgId: ORG_ID, schoolIds: ['sch-bkk', 'sch-online'] }, schoolIds: ['sch-bkk', 'sch-online']
   },
   {
     email: 'supervisor.test@school.edu', givenNames: 'Supervisor', surname: 'Test', role: 'supervisor',
@@ -226,14 +230,14 @@ for (const staff of REVIEW_STAFF) {
 
 // 8. Students (Existing + Primary + Suspended)
 const STUDENTS = [
-  { email: 'mia@school.edu', givenNames: 'Mia', surname: 'Chen', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', cohort: 'lower-secondary', ageBand: 'lower-secondary', yearLevel: 'Year 9', minutes: 125, sessions: 6, status: 'active' },
-  { email: 'leo@school.edu', givenNames: 'Leo', surname: 'Martins', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', cohort: 'lower-secondary', ageBand: 'lower-secondary', yearLevel: 'Year 9', minutes: 95, sessions: 4, status: 'active' },
-  { email: 'noor@school.edu', givenNames: 'Noor', surname: 'Haddad', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', cohort: 'lower-secondary', ageBand: 'lower-secondary', yearLevel: 'Year 9', minutes: 160, sessions: 8, status: 'active' },
-  { email: 'tom@school.edu', givenNames: 'Tom', surname: 'Becker', classId: 'class_yr12_eng', cohortId: 'cohort-w2e', cohort: 'higher-secondary', ageBand: 'higher-secondary', yearLevel: 'Year 12', minutes: 210, sessions: 9, status: 'active' },
-  { email: 'ines@school.edu', givenNames: 'Inès', surname: 'Dupont', classId: 'class_yr12_eng', cohortId: 'cohort-w2e', cohort: 'higher-secondary', ageBand: 'higher-secondary', yearLevel: 'Year 12', minutes: 175, sessions: 7, status: 'active' },
+  { email: 'mia@school.edu', givenNames: 'Mia', surname: 'Chen', classId: 'class_yr9_climate', cohortId: 'cohort-lower-secondary', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Year 9', minutes: 125, sessions: 6, status: 'active' },
+  { email: 'leo@school.edu', givenNames: 'Leo', surname: 'Martins', classId: 'class_yr9_climate', cohortId: 'cohort-lower-secondary', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Year 9', minutes: 95, sessions: 4, status: 'active' },
+  { email: 'noor@school.edu', givenNames: 'Noor', surname: 'Haddad', classId: 'class_yr9_climate', cohortId: 'cohort-lower-secondary', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Year 9', minutes: 160, sessions: 8, status: 'active' },
+  { email: 'tom@school.edu', givenNames: 'Tom', surname: 'Becker', classId: 'class_yr12_eng', cohortId: 'cohort-higher-secondary', cohort: 'higher-secondary', ageBand: '16-18', yearLevel: 'Year 12', minutes: 210, sessions: 9, status: 'active' },
+  { email: 'ines@school.edu', givenNames: 'Inès', surname: 'Dupont', classId: 'class_yr12_eng', cohortId: 'cohort-higher-secondary', cohort: 'higher-secondary', ageBand: '16-18', yearLevel: 'Year 12', minutes: 175, sessions: 7, status: 'active' },
   // Phase 0 additions:
-  { email: 'primary.student@school.edu', givenNames: 'Penny', surname: 'Primary', classId: 'class_yr9_climate', cohortId: 'cohort-wpr', cohort: 'primary', ageBand: 'primary', yearLevel: 'Year 3', minutes: 0, sessions: 0, status: 'pending', consent: { status: 'required' } },
-  { email: 'suspended.student@school.edu', givenNames: 'Sam', surname: 'Suspended', classId: 'class_yr9_climate', cohortId: 'cohort-w2e', cohort: 'lower-secondary', ageBand: 'lower-secondary', yearLevel: 'Year 9', minutes: 10, sessions: 1, status: 'suspended', disabled: true }
+  { email: 'primary.student@school.edu', givenNames: 'Penny', surname: 'Primary', classId: 'class_lower_primary', cohortId: 'cohort-lower-primary', cohort: 'primary', ageBand: 'primary', yearLevel: 'Year 3', minutes: 0, sessions: 0, status: 'pending', consent: { status: 'required' } },
+  { email: 'suspended.student@school.edu', givenNames: 'Sam', surname: 'Suspended', classId: 'class_yr9_climate', cohortId: 'cohort-lower-secondary', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Year 9', minutes: 10, sessions: 1, status: 'suspended', disabled: true }
 ];
 
 let miaStudentUid = null;
@@ -248,7 +252,7 @@ for (const s of STUDENTS) {
     miaStudentUid = user.uid;
   }
 
-  await auth.setCustomUserClaims(user.uid, { role: 'student', orgId: ORG_ID });
+  await auth.setCustomUserClaims(user.uid, { role: 'student', orgId: ORG_ID, schoolIds: ['sch-bkk'], classIds: [s.classId] });
 
   const userDoc = {
     uid: user.uid,
@@ -283,6 +287,44 @@ for (const s of STUDENTS) {
       .doc(new Date().toISOString().slice(0, 10))
       .set({ timeSpentMinutes: s.minutes, sessionsCount: s.sessions });
   }
+}
+
+// 8b. Teen Quest sample progress for Mia (emulator review data only).
+if (miaStudentUid) {
+  const { localDate, addDays, isSchoolDay, levelFor } = await import('../src/features/quest/questModel.js');
+  const { TERM } = await import('../src/features/pbl/content/pblModel.js');
+  const today = localDate(new Date(), 'Asia/Bangkok');
+  let last = addDays(today, -1);
+  while (!isSchoolDay(last)) last = addDays(last, -1);
+  const xp = 1240;
+  await db.collection('learnerQuest').doc(miaStudentUid).set({
+    schemaVersion: 1, xp, level: levelFor(xp).level,
+    counters: { taskSteps: 9, reflections: 4, goalsAcknowledged: 2, evidence: 3, reviewed: 2, goalsAchieved: 1, bestStreak: 6 },
+    streak: { count: 4, lastActiveDate: last, freezes: 1 },
+    daily: { date: null, selfXp: 0 },
+    badges: [
+      { id: 'first-evidence', earnedAt: new Date(Date.now() - 12 * 86400000).toISOString() },
+      { id: 'curious-mind', earnedAt: new Date(Date.now() - 8 * 86400000).toISOString() },
+      { id: 'goal-getter', earnedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
+      { id: 'spark-5', earnedAt: new Date(Date.now() - 3 * 86400000).toISOString() }
+    ],
+    celebrations: [], showOnPortfolio: false, calmView: false, revision: 1, updatedAt: new Date().toISOString()
+  });
+  await db.collection('users').doc(miaStudentUid).collection('activityProgress').doc(`pbl-${TERM.id}`).set({
+    version: 1, termId: TERM.id, currentPhase: 'explore', interests: [], sparks: '', problem: {}, impact: null,
+    codeLanguage: 'microbit-python', finalFormat: null, tasksDone: { explore: [0] }, evidence: [], updatedAt: Date.now(), activityId: `pbl-${TERM.id}`
+  });
+  const wins = [['evidence_reviewed', 25, true, 1], ['evidence_submitted', 40, true, 2], ['reflection', 15, false, 3], ['task_step', 10, false, 4]];
+  for (const [type, xpAward, verified, daysAgo] of wins) {
+    await db.collection('learnerQuest').doc(miaStudentUid).collection('xpEvents').doc(`${type}__seed-${daysAgo}`).set({
+      type, xp: xpAward, verified, sourceId: `seed-${daysAgo}`, classId: 'class_yr9_climate', schoolId: 'sch-bkk',
+      localDate: addDays(today, -daysAgo), createdAt: new Date(Date.now() - daysAgo * 86400000).toISOString()
+    });
+  }
+  // Leo sits just below level 2, so one reflection shows the real level-up celebration.
+  const leo = await auth.getUserByEmail('leo@school.edu').catch(() => null);
+  if (leo) await db.collection('learnerQuest').doc(leo.uid).set({ schemaVersion: 1, xp: 95, level: 1, counters: { reflections: 2 }, streak: { count: 0, lastActiveDate: null, freezes: 0 }, revision: 1 });
+  await db.collection('classes').doc('class_yr9_climate').collection('questSquad').doc('current').set({ count: 84, goal: 120, updatedAt: new Date().toISOString() });
 }
 
 // 9. Parent Link (parent.test@school.edu linked to mia@school.edu)

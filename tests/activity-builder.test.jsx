@@ -1,0 +1,125 @@
+// @vitest-environment jsdom
+import React, {act} from 'react';
+import {createRoot} from 'react-dom/client';
+import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
+vi.mock('../src/services/api/apiClient.js',()=>({schoolRequest:vi.fn()}));
+vi.mock('../src/firebase.js',()=>({auth:{currentUser:{uid:'learner'}}}));
+import {schoolRequest} from '../src/services/api/apiClient.js';
+import {LocaleProvider} from '../src/app/i18n/LocaleProvider.jsx';
+import ActivityPlayer from '../src/features/activities/builder/ActivityPlayer.jsx';
+import ActivityStudio,{reorderBlocks} from '../src/features/activities/builder/ActivityStudio.jsx';
+import PublishedActivities from '../src/features/activities/builder/PublishedActivities.jsx';
+import {activityMessages} from '../src/features/activities/builder/activityMessages.js';
+import {sampleActivity,validateActivity} from '../src/features/activities/spec/activitySpec.js';
+let host,root;
+const render=async child=>{await act(async()=>root.render(<LocaleProvider>{child}</LocaleProvider>));await act(async()=>{});};
+const click=async el=>{expect(el).toBeTruthy();await act(async()=>el.click());await act(async()=>{});};
+const button=text=>[...host.querySelectorAll('button')].find(el=>el.textContent===text);
+const field=text=>[...host.querySelectorAll('label')].find(el=>el.firstChild?.textContent?.trim()===text)?.querySelector('input,textarea,select');
+const input=async(el,value)=>{expect(el).toBeTruthy();await act(async()=>{const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:el.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value').set.call(el,value);el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}));});};
+const player=(props={})=><ActivityPlayer spec={sampleActivity()} uid="learner" schoolId="s" offeringId="o" lessonId="l" revision={2} {...props}/>;
+const studio=(props={})=><ActivityStudio school={{id:'s'}} offering={{id:'o',classIds:['c']}} classes={[{id:'c',name:'My class'},{id:'foreign',name:'Foreign class'}]} template={{milestones:[{id:'explore',title:'Explore'}]}} onClose={()=>{}} {...props}/>;
+beforeEach(()=>{globalThis.IS_REACT_ACT_ENVIRONMENT=true;localStorage.clear();host=document.createElement('div');document.body.append(host);root=createRoot(host);schoolRequest.mockReset();});
+afterEach(async()=>{await act(async()=>root.unmount());host.remove();vi.restoreAllMocks();delete globalThis.IS_REACT_ACT_ENVIRONMENT;});
+
+describe('Student activity player',()=>{
+ it('renders every block safely, with chart text, answer explanations and copy-only code',async()=>{
+  const spec=sampleActivity();spec.blocks.push({type:'code',language:'micropython',code:'<script>window.bad=true</script>',explanation:'Read only'});
+  const copy=vi.fn(async()=>{});Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:copy}});
+  await render(player({spec}));expect(host.querySelectorAll('.ab-player .ab-card')).toHaveLength(11);expect(host.querySelector('script')).toBeNull();
+  await input(host.querySelector('[aria-label="Row 1: Device"]'),'Lights');await input(host.querySelector('[aria-label="Row 1: Energy"]'),'60');expect(host.querySelector('.ab-chart').textContent).toContain('Lights: 60 Wh');
+  await click(host.querySelector('.ab-check input'));expect(host.textContent).toContain('Correct');expect(host.textContent).toContain('Energy is power used over time');
+  await click(button('Copy code'));expect(copy).toHaveBeenCalledWith(spec.blocks.at(-1).code);expect(window.bad).toBeUndefined();
+ });
+ it('prefills editable summary from reflection and submits typed answers through lesson evidence',async()=>{
+  schoolRequest.mockResolvedValue({id:'e'});await render(player());await click(host.querySelector('.ab-steps input'));await click(host.querySelector('input[type=radio]'));
+  const reflection=host.querySelector('.ab-card:last-child textarea'); // Evidence is last; use prompt label below.
+  await input(field(sampleActivity().blocks[7].prompt),'A smaller cooling load saves energy.');expect(field('Evidence summary').value).toBe('A smaller cooling load saves energy.');
+  await input(field('Evidence summary'),'My own summary');await input(field(sampleActivity().blocks[7].prompt),'Another thought');expect(field('Evidence summary').value).toBe('My own summary');
+  await click(button('Submit lesson evidence'));expect(schoolRequest).toHaveBeenCalledWith('POST','/api/schools/s/program-offerings/o/submissions',{body:expect.objectContaining({lessonId:'l',body:'My own summary',responses:{version:1,answers:{'1':{choice:0},'2':{done:[0]},'7':{text:'Another thought'}}}})});expect(host.textContent).toContain('Evidence submitted.');
+ });
+ it('restores per-learner answers and isolates learner and lesson revisions',async()=>{
+  await render(player());await input(field(sampleActivity().blocks[7].prompt),'Kept on this device');await act(async()=>root.unmount());root=createRoot(host);await render(player());expect(field('Evidence summary').value).toBe('Kept on this device');
+  await render(player({uid:'another'}));expect(field('Evidence summary').value).toBe('');await render(player({revision:3}));expect(field('Evidence summary').value).toBe('');
+ });
+ it('keeps preview responses out of local storage and hides evidence submission',async()=>{await render(player({preview:true}));await click(host.querySelector('input[type=radio]'));expect(localStorage.length).toBe(0);expect(button('Submit lesson evidence')).toBeUndefined();});
+ it('retries a failed submission with the same ID without clearing work',async()=>{schoolRequest.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({id:'e'});await render(player());await input(field('Evidence summary'),'Evidence remains');await click(button('Submit lesson evidence'));expect(host.querySelector('[role=alert]').textContent).toContain('Could not submit');await click(button('Submit lesson evidence'));expect(schoolRequest.mock.calls[0][2].body.submissionId).toBe(schoolRequest.mock.calls[1][2].body.submissionId);});
+ it('reports unavailable clipboard without claiming a copy succeeded',async()=>{const spec=sampleActivity();spec.blocks=[{type:'code',language:'micropython',code:'print(1)',explanation:'Read only'}];Object.defineProperty(navigator,'clipboard',{configurable:true,value:undefined});await render(player({spec}));await click(button('Copy code'));expect(host.textContent).toContain('Copy unavailable');});
+ it('announces local storage failures while retaining answers',async()=>{vi.spyOn(Storage.prototype,'setItem').mockImplementation(()=>{throw Error('quota');});await render(player());await input(field('Evidence summary'),'Still editable');expect(host.textContent).toContain('cannot keep answers');expect(field('Evidence summary').value).toBe('Still editable');});
+ it('discards corrupted storage rather than crashing',async()=>{localStorage.setItem('activityResponses:learner:s:o:l:2','{"responses":{"version":1,"answers":{"999":{}}},"body":"broken"}');await render(player());expect(field('Evidence summary').value).toBe('');});
+ it('records simulation trials with values and restores them after navigation',async()=>{await render(player());await input(field('My prediction'),'Five units may meet demand');await click(button('Record experiment'));await act(async()=>root.unmount());root=createRoot(host);await render(player());expect(host.querySelector('.sw-simulation ol').textContent).toContain('Experiment 1');await input(field('Evidence summary'),'Model evidence');schoolRequest.mockResolvedValue({});await click(button('Submit lesson evidence'));expect(schoolRequest.mock.calls[0][2].body.responses.answers['5'].trials[0]).toMatchObject({units:5,efficiency:80,supplied:8,cost:200,success:false});});
+ it('handles free predictions, empty answers and negative line data',async()=>{const spec=sampleActivity();spec.blocks[1]={type:'prediction',question:'Predict freely'};spec.blocks[4].kind='line';await render(player({spec}));await input(field('Your answer'),'Something');await input(field('Your answer'),'');await input(host.querySelector('[aria-label="Row 1: Device"]'),'Change');await input(host.querySelector('[aria-label="Row 1: Energy"]'),'-3');expect(host.querySelector('.ab-chart ul').textContent).toContain('Change: -3');await act(async()=>root.unmount());root=createRoot(host);await render(player({spec}));expect(host.querySelector('[aria-label="Row 1: Energy"]').value).toBe('-3');});
+});
+describe('Manual coach activity studio',()=>{
+ it('shows field errors for a blank draft and only assigned class choices',async()=>{await render(studio());expect(host.textContent).toContain('title: is required');const title=field('Activity title');expect(title.getAttribute('aria-invalid')).toBe('true');expect(document.getElementById(title.getAttribute('aria-describedby')).textContent).toContain('title: is required');expect(button('Save lesson draft').disabled).toBe(true);expect(field('Class').textContent).not.toContain('Foreign');});
+ it('creates a sample draft with server-compatible lesson fields and no AI generation',async()=>{schoolRequest.mockResolvedValue({id:'new',revision:1,status:'draft'});await render(studio());await click(button('Use Sustainable Futures sample'));await input(field('Learning outcome'),'Compare energy use');await input(field('Lesson instructions'),'Survey, record, explain');await click(button('Save lesson draft'));expect(schoolRequest.mock.calls.find(call=>call[0]!=='GET')).toEqual(['POST','/api/schools/s/program-offerings/o/lessons',{body:expect.objectContaining({classId:'c',milestoneId:'explore',activity:validateActivity(sampleActivity())})}]);expect(button('Review & publish').disabled).toBe(false);});
+ it('requires safety review in a focus-contained dialog before publishing',async()=>{schoolRequest.mockResolvedValue({id:'new',revision:1,status:'draft'});await render(studio());await click(button('Use Sustainable Futures sample'));await input(field('Learning outcome'),'Compare');await input(field('Lesson instructions'),'Record');await click(button('Save lesson draft'));const trigger=button('Review & publish');await click(trigger);const dialog=host.querySelector('[role=dialog]');expect(dialog).toBeTruthy();const buttons=dialog.querySelectorAll('button');expect(buttons[1].disabled).toBe(true);const checkbox=dialog.querySelector('input');expect(document.activeElement).toBe(checkbox);await click(checkbox);buttons[1].focus();await act(async()=>buttons[1].dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',bubbles:true})));expect(document.activeElement).toBe(checkbox);await click(buttons[1]);expect(schoolRequest.mock.calls.at(-1)).toEqual(['POST','/api/schools/s/program-offerings/o/lessons/new/publish',{body:{revision:1,safetyConfirmed:true}}]);expect(host.textContent).toContain('Published to the selected class');});
+ it('dismisses review with Escape and restores focus',async()=>{await render(studio({lesson:{id:'l',revision:1,status:'draft',classId:'c',milestoneId:'explore',outcome:'Compare',instructions:'Measure',activity:sampleActivity()}}));const trigger=button('Review & publish');trigger.focus();await click(trigger);await act(async()=>host.querySelector('[role=dialog] input').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})));expect(host.querySelector('[role=dialog]')).toBeNull();expect(document.activeElement).toBe(trigger);});
+ it('reorders by keyboard while retaining focus and chart source references',async()=>{await render(studio());await click(button('Use Sustainable Futures sample'));const move=host.querySelector('[aria-label="Move down 4"]');move.focus();await act(async()=>move.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',altKey:true,bubbles:true})));expect(document.activeElement).toBe(move);expect(field('Source table (block number)').value).toBe('3');expect(host.textContent).not.toContain('must point to an earlier');});
+ it('shows chart reference errors after deletion and disables saving',async()=>{await render(studio());await click(button('Use Sustainable Futures sample'));await click(host.querySelector('[aria-label="Remove 4"]'));expect(host.textContent).toContain('blocks[3].table');expect(button('Save lesson draft').disabled).toBe(true);});
+ it('adds editable blocks and previews at 390 px without publishing',async()=>{await render(studio());await click(button('Use Sustainable Futures sample'));await input(field('Activity blocks'),'code');await click(button('Add'));expect(field('Code language')).toBeTruthy();await input(field('Code'),'print(1)');await input(field('Explanation'),'Read safely');await click(button('390 px phone'));expect(host.querySelector('.ab-preview > div:last-child').style.width).toBe('390px');expect(schoolRequest.mock.calls.filter(call=>call[0]!=='GET')).toHaveLength(0);});
+ it('surfaces API field errors and keeps unsaved draft for correction',async()=>{schoolRequest.mockRejectedValue({code:'VALIDATION',details:[{path:'title',message:'Rejected title.'}]});await render(studio());await click(button('Use Sustainable Futures sample'));await input(field('Learning outcome'),'Compare');await input(field('Lesson instructions'),'Record');await click(button('Save lesson draft'));expect(host.textContent).toContain('title: Rejected title.');expect(field('Activity title').value).toBe(sampleActivity().title);});
+ it('preserves existing revision on edits and blocks editing published versions',async()=>{const lesson={id:'l',revision:4,status:'draft',classId:'c',milestoneId:'explore',outcome:'Compare',instructions:'Measure',activity:sampleActivity()};schoolRequest.mockResolvedValue({saved:true});await render(studio({lesson}));await input(field('Activity title'),'New title');await click(button('Save lesson draft'));expect(schoolRequest.mock.calls.find(call=>call[0]!=='GET')[2].body.revision).toBe(4);expect(schoolRequest.mock.calls.find(call=>call[0]!=='GET')[0]).toBe('PATCH');});
+ it('keeps chart references tied to their source table when moving other blocks',()=>{const blocks=sampleActivity().blocks;const moved=reorderBlocks(blocks,0,2);expect(moved[4].table).toBe(3);expect(moved[moved[4].table].type).toBe('dataTable');});
+});
+describe('Languages and quest integration',()=>{
+ it.each(['zh','th'])('provides complete %s UI messages marked for native review',locale=>{expect(Object.keys(activityMessages[locale]).sort()).toEqual(Object.keys(activityMessages.en).sort());});
+ it('lists only published activities in today’s quest through existing authorized lesson routes',async()=>{schoolRequest.mockImplementation(async(_,path)=>path.endsWith('program-offerings')?{items:[{id:'o'}]}:{items:[{id:'l',status:'published',revision:2,title:'Energy audit',activity:sampleActivity()},{id:'draft',status:'draft',activity:sampleActivity()}]});await render(<PublishedActivities school={{id:'s'}}/>);expect(host.textContent).toContain('Coach activities for today');expect(button('Open activity: Energy audit')).toBeTruthy();expect(host.querySelectorAll('button')).toHaveLength(1);await click(button('Open activity: Energy audit'));expect(host.querySelector('.ab-player')).toBeTruthy();});
+ it('shows denial rather than a misleading empty activity list',async()=>{schoolRequest.mockRejectedValue({code:'FORBIDDEN'});await render(<PublishedActivities school={{id:'s'}}/>);expect(host.querySelector('[role=alert]').textContent).toContain('Access denied');expect(host.textContent).not.toContain('No activities published');});
+});
+
+describe('School AI activity studio',()=>{
+ const aiSpec=()=>({...sampleActivity(),provenance:{aiAssisted:true,provider:'gemini',model:'local-mock'}});
+ function responses(){schoolRequest.mockImplementation(async(method,path,{body}={})=>{
+  if(method==='GET')return {items:[]};
+  if(path.endsWith('/generate'))return {draftId:'draft',revision:1,spec:aiSpec(),warnings:[],usage:{inputTokens:100,outputTokens:300},model:'local-mock'};
+  if(method==='PATCH'&&path.includes('activity-drafts'))return {draftId:'draft',revision:body.revision+1,spec:body.spec};
+  if(path.endsWith('regenerate-block'))return {revision:body.revision+1,spec:{...aiSpec(),blocks:aiSpec().blocks.map((b,i)=>i===body.blockIndex?{...b,text:'Improved introduction'}:b)}};
+  return {id:'lesson',revision:1,status:'draft',...body};
+ });}
+ async function generate(){await input(field('What should learners explore, build or test?'),'Build a district microgrid');await click(button('Generate with school AI'));}
+ it('generates an editable draft, derives lesson link from server draft and confirms safety before publishing',async()=>{
+  responses();await render(studio());await generate();expect(host.textContent).toContain('AI-assisted · local-mock');expect(field('Activity title').value).toBe(sampleActivity().title);
+  await input(field('Activity title'),'My microgrid');await click(button('Save lesson draft'));
+  const saved=schoolRequest.mock.calls.find(([method,path])=>method==='POST'&&path.endsWith('/lessons'));
+  expect(saved[2].body).toMatchObject({activityDraftId:'draft',activityDraftRevision:2,activity:{title:'My microgrid'}});
+  await click(button('Review & publish'));const dialog=host.querySelector('[role=dialog]');expect(dialog.querySelectorAll('button')[1].disabled).toBe(true);
+  await click(dialog.querySelector('input'));await click(dialog.querySelectorAll('button')[1]);expect(schoolRequest.mock.calls.at(-1)[2].body.safetyConfirmed).toBe(true);
+ });
+ it('saves all coach edits before regenerating only the selected block',async()=>{
+  responses();await render(studio());await generate();await input(field('Activity title'),'Changed title');
+  await input(host.querySelector('.ab-ai-block textarea'),'Make the opening a storm scenario');await click(button('Regenerate this block 1'));
+  const calls=schoolRequest.mock.calls.filter(([method,path])=>method!=='GET'&&path.includes('activity-drafts'));
+  expect(calls.at(-2)[0]).toBe('PATCH');expect(calls.at(-2)[2].body.spec.title).toBe('Changed title');expect(calls.at(-1)[2].body).toMatchObject({revision:2,blockIndex:0});expect(host.textContent).toContain('Improved introduction');
+ });
+ it.each(['AI_NOT_CONFIGURED','RATE_LIMITED','AI_CAP_REACHED','AI_TIMEOUT','AI_BAD_OUTPUT','CONFLICT'])('preserves manual editing after %s without claiming success',async code=>{
+  schoolRequest.mockImplementation(async(method)=>{if(method==='GET')return {items:[]};throw {code};});await render(studio());await generate();expect([...host.querySelectorAll('[role=alert]')].map(el=>el.textContent)).toContain(activityMessages.en[`ai_${code}`]);expect(host.textContent).not.toContain('AI draft ready');expect(field('Activity title').value).toBe('');expect(button('Start blank').disabled).toBe(false);
+ });
+ it('requires an explicit replacement choice before replacing existing unsaved work',async()=>{
+  responses();await render(studio());await click(button('Use Sustainable Futures sample'));await input(field('What should learners explore, build or test?'),'New design');expect(button('Generate with school AI').disabled).toBe(true);const checkbox=host.querySelector('.ab-ai input[type=checkbox]');await click(checkbox);expect(button('Generate with school AI').disabled).toBe(false);
+ });
+ it('resumes the caller’s server draft and preserves safe text rendering',async()=>{
+  schoolRequest.mockResolvedValue({items:[{draftId:'resume',revision:4,spec:{...aiSpec(),title:'<script>unsafe()</script>'},model:'local-mock'}]});await render(studio());await click(button('Resume draft'));expect(field('Activity title').value).toBe('<script>unsafe()</script>');expect(host.querySelector('script')).toBeNull();expect(host.textContent).toContain('AI-assisted');
+ });
+ it('keeps regeneration instructions attached to their block when keyboard reordered',async()=>{
+  responses();await render(studio());await generate();await input(host.querySelector('.ab-ai-block textarea'),'Keep my opening instructions');
+  await act(async()=>host.querySelector('[aria-label="Move down 1"]').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',altKey:true,bubbles:true})));
+  expect(host.querySelectorAll('.ab-ai-block textarea')[1].value).toBe('Keep my opening instructions');expect(host.querySelectorAll('.ab-ai-block textarea')[0].value).toBe('');
+ });
+ it('prompts before closing unsaved work in ActivityStudio',async()=>{
+  const onClose=vi.fn();const confirmSpy=vi.spyOn(window,'confirm').mockReturnValue(false);
+  await render(studio({onClose}));
+  await click(button('Close studio'));
+  expect(confirmSpy).toHaveBeenCalledWith('You have unsaved changes in this activity. Are you sure you want to close?');
+  expect(onClose).not.toHaveBeenCalled();
+  confirmSpy.mockReturnValue(true);
+  await click(button('Close studio'));
+  expect(onClose).toHaveBeenCalled();
+  confirmSpy.mockRestore();
+ });
+ it('renders field validation errors exactly once with no duplicate callouts',async()=>{
+  responses();await render(studio());
+  const titleErrors=[...host.querySelectorAll('[role=alert]')].filter(el=>el.textContent.includes('title: is required'));
+  expect(titleErrors.length).toBe(1);
+ });
+});

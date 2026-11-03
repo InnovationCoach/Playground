@@ -99,5 +99,5 @@ export async function setupApiTestEnv() {
     });
   }
 
-  return { auth, db, baseUrl, getIdToken, request, teardown };
+  return { app, auth, db, baseUrl, getIdToken, request, teardown };
 }

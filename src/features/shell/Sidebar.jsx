@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   House, Search, LayoutDashboard, BookOpen, Rocket, Target, Sparkles, Users, Printer, HeartHandshake,
-  GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2, Palette, Award
+  GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2, Palette, Award,
+  ClipboardCheck, CalendarOff, Boxes, LayoutGrid, School, Route, GalleryVerticalEnd, UserRound
 } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';
@@ -52,11 +53,17 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
         { key: 'admin:parents', icon: HeartHandshake, label: 'nav.parents', href: hrefFor.list('parents') }
       ] },
       { label: 'nav.operations', items: [
+        { key: 'admin:pilot', icon: LayoutGrid, label: 'nav.pilotOverview', href: '#/admin' },
+        { key: 'admin:staff-attendance', icon: ClipboardCheck, label: 'nav.staffAttendance', href: '#/admin/staff-attendance' },
+        { key: 'admin:student-attendance', icon: ClipboardCheck, label: 'nav.studentAttendance', href: '#/admin/student-attendance' },
+        { key: 'admin:leave', icon: CalendarOff, label: 'nav.leaveRequests', href: '#/admin/leave' },
+        { key: 'admin:inventory', icon: Boxes, label: 'nav.inventory', href: '#/admin/inventory' },
         { key: 'admin:billing', icon: CreditCard, label: 'nav.financials', href: hrefFor.billing() },
         { key: 'admin:materials', icon: PackageCheck, label: 'nav.materials', href: hrefFor.materials() }
       ] },
       { label: 'nav.teaching', items: [
         { key: 'pbl', icon: Rocket, label: 'nav.pbl', href: hrefFor.pbl() },
+        { key: 'admin:learning', icon: School, label: 'nav.schoolLearning', href: '#/admin/learning' },
         { key: 'canva', icon: Palette, label: 'nav.canva', href: hrefFor.canva() },
         { key: 'resources', icon: Printer, label: 'nav.primaryResources', href: hrefFor.resources() }
       ] },
@@ -82,11 +89,17 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
     ] },
     { label: 'nav.learning', items: [
       { key: 'courses', icon: BookOpen, label: 'nav.myCourses', onClick: onOpenCourses },
+      { key: 'programs', icon: School, label: 'nav.programs', href: hrefFor.programs() },
       { key: 'pbl', icon: Rocket, label: 'nav.pbl', href: hrefFor.pbl() },
       { key: 'competencies', icon: Award, label: 'nav.myCompetencies', href: hrefFor.pbl('competencies') },
       { key: 'canva', icon: Palette, label: 'nav.canva', href: hrefFor.canva() },
       { key: 'goals', icon: Target, label: 'nav.goals', onClick: onOpenGoals },
       { key: 'futureSkills', icon: Sparkles, label: 'nav.futureSkills', href: hrefFor.futureSkills() }
+    ] },
+    { label: 'nav.groupCreate', items: [
+      { key: 'space', icon: UserRound, label: 'nav.mySpace', href: hrefFor.space() },
+      { key: 'journey', icon: Route, label: 'nav.portfolioMaker', href: hrefFor.journey() },
+      { key: 'portfolio', icon: GalleryVerticalEnd, label: 'nav.showcase', href: hrefFor.portfolio() }
     ] },
     { label: 'nav.together', items: [home, { key: 'community', icon: Users, label: 'nav.community', href: hrefFor.community() }] },
     { label: 'nav.account', items: [settings] }

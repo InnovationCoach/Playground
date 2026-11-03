@@ -261,6 +261,18 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
         </a>
       )}
 
+      {!isPrimary && (
+        <a className="pb-term-card" href={hrefFor.courseDiscovery()}>
+          <span className="pb-term-icon"><Compass size={22} aria-hidden="true" /></span>
+          <span className="pb-grow">
+            <span className="pb-kicker">{t('courses.discoverKicker')}</span>
+            <strong>{t('courses.discoverTitle')}</strong>
+            <span className="pb-term-dq">{t('courses.discoverBody')}</span>
+          </span>
+          <span className="gh-btn gh-btn-primary">{t('courses.discoverCta')}<ArrowRight size={15} aria-hidden="true" /></span>
+        </a>
+      )}
+
       {searching && (
         <section className="gh-section" aria-labelledby="mc-results" aria-live="polite">
           <SectionHead id="mc-results" icon={Search} bg="var(--gh-purple-50)" fg="var(--gh-purple)"

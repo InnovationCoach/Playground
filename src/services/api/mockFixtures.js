@@ -1,3 +1,4 @@
+import { SCHOOL_COHORTS } from '../../utils/schoolCohorts.js';
 /**
  * Made-up accounts for the mock backend. Every person here is fictional and
  * every email is on the reserved `.test` domain, so nothing can reach a real
@@ -59,21 +60,18 @@ export function buildFixtures(seed = 20260925) {
     { schoolId: 'sch-online', orgId: organization.orgId, name: 'Online School (test)', timezone: 'Asia/Bangkok', locale: 'en', status: 'active' }
   ];
 
-  const cohorts = [
-    { cohortId: 'cohort-w2e', code: 'W2E', name: { en: 'W2E (twice-exceptional, secondary)', zh: 'W2E（双重特殊，中学）', th: 'W2E (ผู้เรียนอัจฉริยภาพสองด้าน มัธยม)' }, ageBands: ['13-15', '16-18'], status: 'active' },
-    { cohortId: 'cohort-wpr', code: 'WPR', name: { en: 'WPR (international, primary)', zh: 'WPR（国际，小学）', th: 'WPR (นานาชาติ ประถม)' }, ageBands: ['primary'], status: 'active' }
-  ];
+  const cohorts = SCHOOL_COHORTS.map(c => ({ ...c, name: { ...c.name }, ageBands: [...c.ageBands] }));
 
   const programmes = [
     { programmeId: 'prog-thai-diploma', code: 'THAI-DIP', name: { en: 'Thai Diploma', zh: '泰国文凭', th: 'ประกาศนียบัตรไทย' }, defaultLocale: 'th', status: 'active' }
   ];
 
   const classes = [
-    { classId: 'cls-y7-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-w2e', name: 'Year 7 Explorers', yearLevel: 'Year 7' },
-    { classId: 'cls-y9-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-w2e', name: 'Year 9 Innovators', yearLevel: 'Year 9' },
-    { classId: 'cls-y11-w2e', schoolId: 'sch-online', cohortId: 'cohort-w2e', name: 'Year 11 Research', yearLevel: 'Year 11' },
-    { classId: 'cls-y3-wpr', schoolId: 'sch-bkk', cohortId: 'cohort-wpr', name: 'Year 3 Discoverers', yearLevel: 'Year 3' },
-    { classId: 'cls-y5-wpr', schoolId: 'sch-bkk', cohortId: 'cohort-wpr', name: 'Year 5 Makers', yearLevel: 'Year 5' },
+    { classId: 'cls-y7-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-lower-secondary', name: 'Lower Secondary A', yearLevel: 'Year 7' },
+    { classId: 'cls-y9-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-lower-secondary', name: 'Lower Secondary B', yearLevel: 'Year 9' },
+    { classId: 'cls-y11-w2e', schoolId: 'sch-online', cohortId: 'cohort-higher-secondary', name: 'Higher Secondary A', yearLevel: 'Year 11' },
+    { classId: 'cls-y3-wpr', schoolId: 'sch-bkk', cohortId: 'cohort-lower-primary', name: 'Lower Primary A', yearLevel: 'Year 3' },
+    { classId: 'cls-y5-wpr', schoolId: 'sch-bkk', cohortId: 'cohort-higher-primary', name: 'Higher Primary A', yearLevel: 'Year 5' },
     { classId: 'cls-thai-dip', schoolId: 'sch-bkk', programmeId: 'prog-thai-diploma', name: 'Thai Diploma – Thai Language', yearLevel: 'Year 10' }
   ].map((c) => ({ ...c, orgId: organization.orgId, status: 'active' }));
 
@@ -134,7 +132,7 @@ export function buildFixtures(seed = 20260925) {
   // Students: 129, the total the wireframes showed, so "Displaying 1–30 of 129" is exercised.
   for (let i = 0; i < 129; i += 1) {
     const primary = i % 3 === 0;
-    const cls = primary ? pick(classes.filter((c) => c.cohortId === 'cohort-wpr')) : pick(classes.filter((c) => c.cohortId === 'cohort-w2e'));
+    const cls = primary ? pick(classes.filter((c) => c.cohortId?.endsWith('-primary'))) : pick(classes.filter((c) => c.cohortId?.endsWith('-secondary')));
     const consentVerified = !primary || rand() < 0.8;
     const s = person('student', {
       cohortId: cls.cohortId,

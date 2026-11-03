@@ -1,0 +1,624 @@
+{
+  "checkedAt": "2026-11-02T08:42:24+00:00",
+  "scope": "Authoring data checks only. Not an application, shared-validator, API, emulator, build, device, accessibility or educator assessment result.",
+  "bundleContentSha256": "974d7ad370297bec650701cd9ebfc76a77abbb239281cb32dcf35fb5ec3231a7",
+  "authoringRevision": 2,
+  "historicalSourceCommit": "b35f8b2c2f9eca1697c9b7560126edf44b4b73d4",
+  "passed": true,
+  "checkCount": 114,
+  "failedChecks": [],
+  "checks": [
+    {
+      "name": "bundle content checksum",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "two stable mission families",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unique dataset and source IDs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "draft and educator gates",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "review-only fixture with no grants",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "disabled artifact references",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "explicit hash encoding and capability kinds",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cross-serialization number vector",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dataset checksum: thalassa-wind-week-02",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dataset checksum: thalassa-plan-cards-02",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dataset checksum: journey-constant-rate-02",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dataset checksum: journey-mass-power-case-02",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mission checksum: thalassa-wind-survey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mission references: thalassa-wind-survey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "new version remains draft: thalassa-wind-survey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "route shape: thalassa-wind-survey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "required alternatives: thalassa-wind-survey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "alignment references: thalassa-wind-survey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "every step maps to authored evidence: thalassa-wind-survey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "concrete support content: thalassa-wind-survey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "authored table template: thalassa-wind-survey/guided/weighted-results",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "authored table template: thalassa-wind-survey/guided/plan-comparison",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "all required parts have a starter or choice: thalassa-wind-survey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "authored choice labels: thalassa-wind-survey/guided/recommendation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "finite numeric reference and practice policy: thalassa-wind-survey/guided/hours",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "finite numeric reference and practice policy: thalassa-wind-survey/guided/full-power",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "finite numeric reference and practice policy: thalassa-wind-survey/guided/capacity-factor",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "practice choice key: thalassa-wind-survey/guided/why-not-average",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mission checksum: spacecraft-journey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mission references: spacecraft-journey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "new version remains draft: spacecraft-journey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "route shape: spacecraft-journey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "required alternatives: spacecraft-journey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "alignment references: spacecraft-journey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "every step maps to authored evidence: spacecraft-journey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "concrete support content: spacecraft-journey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "authored table template: spacecraft-journey/guided/comparison",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "authored diagram vocabulary: spacecraft-journey/guided/route-plan",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "all required parts have a starter or choice: spacecraft-journey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "practice choice key: spacecraft-journey/guided/compare",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "finite numeric reference and practice policy: spacecraft-journey/guided/seconds",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "finite numeric reference and practice policy: spacecraft-journey/guided/days",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "finite numeric reference and practice policy: spacecraft-journey/guided/food",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "route shape: spacecraft-journey/advanced",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "required alternatives: spacecraft-journey/advanced",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "alignment references: spacecraft-journey/advanced",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "every step maps to authored evidence: spacecraft-journey/advanced",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "concrete support content: spacecraft-journey/advanced",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "authored table template: spacecraft-journey/advanced/comparison",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "authored diagram vocabulary: spacecraft-journey/advanced/route-plan",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "all required parts have a starter or choice: spacecraft-journey/advanced",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "finite numeric reference and practice policy: spacecraft-journey/advanced/chem-propellant",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "finite numeric reference and practice policy: spacecraft-journey/advanced/ion-propellant",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "finite numeric reference and practice policy: spacecraft-journey/advanced/supplies",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "finite numeric reference and practice policy: spacecraft-journey/advanced/panels",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "wind independently recomputed",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "bounded contiguous wind bands",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "legacy lab link remains hidden",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "declared rounded planning CF",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "plan calculation: plan-a",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "plan calculation: plan-b",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "guided calculation: chemical",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "guided calculation: ion",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "guided calculation: sail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "advanced independent exp calculation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "ion scenarios remain distinct",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "declared rounded numeric targets",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar identity: thalassa-wind-survey-guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar required parts and bounds: thalassa-wind-survey-guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided/criteria",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided/weighted-results",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided/plan-comparison",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided/recommendation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided/data-quality",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided/limitations-next-measurement",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar identity: spacecraft-journey-guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar required parts and bounds: spacecraft-journey-guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-guided/criteria",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-guided/comparison",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-guided/route-plan",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-guided/recommendation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar identity: spacecraft-journey-advanced",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar required parts and bounds: spacecraft-journey-advanced",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-advanced/criteria",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-advanced/comparison",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-advanced/route-plan",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-advanced/recommendation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-advanced/earth-transfer",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar identity: thalassa-wind-survey-guided-text-alternative",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar required parts and bounds: thalassa-wind-survey-guided-text-alternative",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided-text-alternative/criteria",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided-text-alternative/weighted-results",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided-text-alternative/plan-comparison",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided-text-alternative/recommendation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided-text-alternative/data-quality",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: thalassa-wind-survey-guided-text-alternative/limitations-next-measurement",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar identity: spacecraft-journey-guided-diagram-alternative",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar required parts and bounds: spacecraft-journey-guided-diagram-alternative",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-guided-diagram-alternative/criteria",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-guided-diagram-alternative/comparison",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-guided-diagram-alternative/route-plan",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exemplar part: spacecraft-journey-guided-diagram-alternative/recommendation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "positive accessible and diagram alternatives",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "historical wind quantities retained",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "legacy step IDs retained in order: thalassa-wind-survey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "legacy step IDs retained in order: spacecraft-journey/guided",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "legacy step IDs retained in order: spacecraft-journey/advanced",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "legacy journey primary inputs retained",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "readable pack matches hash: thalassa-wind-survey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "readable pack required part IDs: thalassa-wind-survey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "readable pack relative links: thalassa-wind-survey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "readable pack matches hash: spacecraft-journey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "readable pack required part IDs: spacecraft-journey",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "readable pack relative links: spacecraft-journey",
+      "passed": true,
+      "detail": null
+    }
+  ],
+  "exemplarPayloadSizes": [
+    {
+      "name": "thalassa-wind-survey-guided",
+      "utf8Bytes": 2269,
+      "parts": 6
+    },
+    {
+      "name": "spacecraft-journey-guided",
+      "utf8Bytes": 1765,
+      "parts": 4
+    },
+    {
+      "name": "spacecraft-journey-advanced",
+      "utf8Bytes": 2365,
+      "parts": 5
+    },
+    {
+      "name": "thalassa-wind-survey-guided-text-alternative",
+      "utf8Bytes": 2085,
+      "parts": 6
+    },
+    {
+      "name": "spacecraft-journey-guided-diagram-alternative",
+      "utf8Bytes": 2191,
+      "parts": 4
+    }
+  ],
+  "computedWind": {
+    "hours": 168,
+    "fullPowerHours": 56.5,
+    "rawCapacityFactor": 0.33630952380952384,
+    "planningCapacityFactor": 0.34,
+    "exactWeekKWh": 56500.0,
+    "rawDailyKWh": 8071.428571428573
+  },
+  "untested": [
+    "Actual runtime validators and API behavior",
+    "Builds and deployment packaging",
+    "Keyboard/screen-reader/device flows",
+    "NGSS proficiency, science/curriculum approval and age suitability",
+    "External source content re-fetch during this check"
+  ]
+}

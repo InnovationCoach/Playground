@@ -9,6 +9,7 @@ import { Avatar } from '../shell/Avatar.jsx';
 import { hrefFor } from '../../app/routes.js';
 import { ParentChildDashboard } from './ParentChildDashboard.jsx';
 import '../admin/admin.css';
+import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 
 /**
  * Parent portal, first version: linked children (read-only) and linking a
@@ -58,6 +59,7 @@ function ChildList({ onOpen }) {
       )}
 
       <LinkChildCard onLinked={(child) => { setLinkedName(child.givenNames || child.displayName); children.reload(); }} />
+      <SchoolLearningPanel key={items.map(child=>child.uid).join(',')} initialArea="home" />
     </div>
   );
 }

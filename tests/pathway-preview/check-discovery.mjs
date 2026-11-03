@@ -1,0 +1,47 @@
+import puppeteer from 'puppeteer-core';
+import { mkdir } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+
+const output = new URL('../../output/course-discovery-20261101/', import.meta.url).pathname;
+await mkdir(output, { recursive: true });
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const page = await browser.newPage();
+const errors = [], external = [];
+page.on('pageerror', e => errors.push(e.message));
+page.on('request', r => { if (/^https?:/.test(r.url()) && !r.url().startsWith('http://127.0.0.1:5190/')) external.push(r.url()); });
+const click = text => page.evaluate(text => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === text)?.click(), text);
+try {
+  await page.setViewport({ width: 1440, height: 1100 });
+  await page.goto('http://127.0.0.1:5190/tests/pathway-preview/discovery.html', { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.cd-course-card');
+  await page.screenshot({ path: `${output}desktop.png`, fullPage: true });
+  await page.type('#cd-search', 'arachne');
+  assert.equal(await page.$$eval('.cd-course-card', els => els.length), 1);
+  assert.match(await page.$eval('.cd-course-card', el => el.textContent), /Arachne/);
+  await page.$eval('#cd-search', el => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ''); el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForFunction(() => document.querySelectorAll('.cd-course-card').length > 1);
+  await click('External');
+  await page.waitForFunction(() => document.querySelectorAll('.cd-course-card').length === 3);
+  assert.equal(await page.$$eval('.cd-course-card', els => els.length), 3);
+  await page.click('.cd-course-card h3 button'); await page.waitForSelector('dialog[open]');
+  assert.match(await page.$eval('dialog', el => el.textContent), /fictional course/);
+  await page.keyboard.press('Escape'); assert.equal(await page.$('dialog'), null);
+  await click('All learning');
+  await page.click('.cd-suggestion'); await page.waitForSelector('dialog[open]');
+  await page.screenshot({ path: `${output}course-details.png`, fullPage: true });
+  await click('Choose this quest'); await page.waitForSelector('.cd-toast');
+  assert.match(await page.$eval('.cd-toast', el => el.textContent), /sample preview/);
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.setViewport({ width: 390, height: 844 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'Mobile layout overflows');
+  await page.screenshot({ path: `${output}mobile.png`, fullPage: true });
+  await click('Filters');
+  assert.equal(await page.$eval('#cd-filters', el => getComputedStyle(el).display !== 'none'), true);
+  await click('Filters');
+  await page.click('.cd-course-card h3 button'); await page.waitForSelector('dialog[open]');
+  assert.equal(await page.$eval('dialog', el => el.scrollWidth <= el.clientWidth), true, 'Mobile detail overflows');
+  await page.keyboard.press('Escape');
+  assert.deepEqual(errors, []); assert.deepEqual(external, []);
+  console.log('Course search, external filters, accessible details, quest choice, desktop/mobile and isolated requests passed.');
+  console.log(output);
+} finally { await browser.close(); }

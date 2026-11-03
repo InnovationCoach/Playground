@@ -1,0 +1,126 @@
+/* WeLearn W2e learning studio — design tokens
+   Source palette: Canva brand kit (2026-09-27), mirrored from the app's root
+   tokens in /index.html. Lavender #CEAAEE comes from that same kit entry
+   (--brand-lavender); it was not invented here.
+   Every component in studio.css reads from these tokens only. */
+
+:root {
+  /* ---- Brand palette (raw) ---- */
+  --wl-purple:   #8250A0;
+  --wl-lime:     #96D700;
+  --wl-navy:     #003C69;
+  --wl-sky:      #9BD2FF;
+  --wl-stone:    #D9DAD3;
+  --wl-magenta:  #AE266C;
+  --wl-red:      #AE3435;
+  --wl-white:    #FFFFFF;
+  --wl-lavender: #CEAAEE;
+
+  /* ---- Derived tints and shades (documented, not brand-kit swatches) ---- */
+  --wl-purple-700: #6B3F86;   /* primary hover / pressed */
+  --wl-purple-100: #F0E8F7;   /* lavender tint surface */
+  --wl-purple-200: #E2D3EF;
+  --wl-sky-100:    #E9F4FF;   /* welcoming light-blue surface */
+  --wl-sky-200:    #CFE8FF;
+  --wl-lime-100:   #F1FAD6;   /* progress / success tint */
+  --wl-lime-200:   #DDF3A3;
+  --wl-lime-700:   #557A00;   /* lime as text/icon on white, 5:1 */
+  --wl-magenta-100:#F9E6EF;
+  --wl-red-100:    #FBECEC;
+  --wl-red-700:    #8F2A2B;
+  --wl-navy-800:   #01294A;
+  --wl-navy-900:   #011D36;
+  --wl-stone-100:  #EEEFEA;
+  --wl-stone-200:  #E3E4DE;
+
+  /* ---- Semantic colour roles ---- */
+  --color-page:          #F4F4F8;
+  --color-surface:       var(--wl-white);
+  --color-surface-2:     #FAFAFD;
+  --color-surface-tint:  var(--wl-sky-100);
+  --color-surface-warm:  var(--wl-purple-100);
+  --color-surface-dark:  var(--wl-navy);
+  --color-line:          var(--wl-stone);
+  --color-line-soft:     var(--wl-stone-200);
+  --color-line-strong:   #8A93A6;   /* 3.1:1 on white: input, chip and indicator boundaries */
+
+  --color-ink:           #17324D;   /* body text, 13:1 on white */
+  --color-ink-strong:    var(--wl-navy);
+  --color-ink-muted:     #4A5D70;   /* 6.8:1 on white */
+  --color-ink-on-dark:   var(--wl-white);
+  --color-ink-on-dark-muted: #C8D9EA;
+
+  --color-primary:       var(--wl-purple);
+  --color-primary-hover: var(--wl-purple-700);
+  --color-on-primary:    var(--wl-white);
+  --color-highlight:     var(--wl-lime);
+  --color-on-highlight:  var(--wl-navy);
+  --color-accent:        var(--wl-magenta);
+  --color-danger:        var(--wl-red);
+  --color-danger-text:   var(--wl-red-700);
+  --color-link:          var(--wl-purple);
+
+  --color-focus:         var(--wl-navy);
+  --color-focus-on-dark: var(--wl-lime);
+
+  /* ---- Status roles (always paired with an icon + label) ---- */
+  --status-request-bg:   var(--wl-purple-100);  --status-request-fg:  var(--wl-purple-700);
+  --status-review-bg:    var(--wl-sky-100);     --status-review-fg:   var(--wl-navy);
+  --status-urgent-bg:    var(--wl-red-100);     --status-urgent-fg:   var(--wl-red-700);
+  --status-missing-bg:   var(--wl-stone-100);   --status-missing-fg:  var(--color-ink-muted);
+  --status-done-bg:      var(--wl-lime-100);    --status-done-fg:     var(--wl-navy);
+  --status-explore-bg:   var(--wl-magenta-100); --status-explore-fg:  var(--wl-magenta);
+
+  /* ---- Typography ---- */
+  --font-display: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+  --font-body:    Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --text-xs: 0.8125rem;  /* 13px — smallest size used anywhere */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-md: 1rem;       /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.375rem;   /* 22px */
+  --text-2xl: clamp(1.625rem, 1.2rem + 1.4vw, 2.125rem);
+  --text-3xl: clamp(1.9rem, 1.3rem + 2vw, 2.6rem);
+  --leading-tight: 1.2;
+  --leading-body: 1.55;
+
+  /* ---- Spacing (4px base) ---- */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 40px; --space-9: 56px;
+
+  /* ---- Radii, borders, shadows ---- */
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px; --radius-pill: 999px;
+  --shadow-1: 0 1px 2px rgba(0,60,105,.06), 0 1px 1px rgba(0,60,105,.04);
+  --shadow-2: 0 2px 6px rgba(0,60,105,.06), 0 12px 32px -16px rgba(0,60,105,.22);
+  --shadow-3: 0 24px 60px -24px rgba(0,28,54,.45);
+
+  /* ---- Layout ---- */
+  --sidebar-w: 256px;
+  --sidebar-w-collapsed: 76px;
+  --rail-w: 320px;
+  --content-max: 1360px;
+  --topbar-h: 64px;
+  --target-min: 44px;
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(.2,.7,.2,1);
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 360ms;
+}
+
+/* Learner display preferences (set on <html> by studio.js) */
+:root[data-text="large"] { font-size: 18px; }
+:root[data-text="larger"] { font-size: 20px; }
+
+:root[data-calm] {
+  --color-page: #F6F6F8;
+  --color-surface-tint: #F3F6FA;
+  --color-surface-warm: #F5F2F8;
+  --shadow-2: var(--shadow-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur: 0ms; --dur-slow: 0ms; }
+}
+:root[data-motion="reduce"] { --dur-fast: 0ms; --dur: 0ms; --dur-slow: 0ms; }

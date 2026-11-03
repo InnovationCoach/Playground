@@ -211,76 +211,13 @@ export async function getAuthClaims(forceRefresh = false) {
 
 export { auth, db, storage };
 
-export async function registerStudentAccount(email, password, displayName, classId) {
-  // 1. Try secure backend endpoint first
-  try {
-    const token = await auth.currentUser?.getIdToken();
-    if (token) {
-      const response = await fetch('/api/coach/learners', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ email, password, displayName, classId })
-      });
-      if (response.ok) {
-        return await response.json();
-      }
-      const errJson = await response.json().catch(() => ({}));
-      if (errJson?.message) throw new Error(errJson.message);
-    }
-  } catch (backendErr) {
-    // If running strictly in production, do not fall back
-    if (import.meta.env?.PROD) {
-      throw backendErr;
-    }
-    console.warn('[Register] Backend endpoint unavailable, running emulator fallback:', backendErr.message);
+// Student provisioning must use the authenticated server route. Never create a
+// secondary client Auth session: that bypasses coach authorization and leaves
+// class assignment and partial-account cleanup to the browser.
+export async function registerStudentAccount(student) {
+  if (!student || typeof student !== 'object' || Array.isArray(student)) {
+    throw new Error('Use the student invitation form with a verified class.');
   }
-
-  // 2. Emulator fallback (dev only)
-  const appName = "StudentReg_" + Date.now();
-  const secondaryApp = firebase.initializeApp(firebaseConfig, appName);
-  try {
-    const finalPassword = password || ('Learner' + Math.random().toString(36).slice(2, 8) + '!1');
-    const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, finalPassword);
-    const studentUser = userCredential.user;
-
-    if (displayName) {
-      await studentUser.updateProfile({ displayName });
-    }
-
-    const assignedClassId = classId || 'class_climate_champions_7a';
-    const learnerData = {
-      uid: studentUser.uid,
-      email: email,
-      displayName: displayName || email.split('@')[0],
-      role: 'learner',
-      classIds: [assignedClassId],
-      createdAt: Date.now(),
-      status: 'active'
-    };
-
-    const secondaryDb = secondaryApp.firestore();
-    await secondaryDb.collection('users').doc(studentUser.uid).set(learnerData);
-    
-    // Add to classes/{classId}.learnerIds
-    try {
-      const classRef = secondaryDb.collection('classes').doc(assignedClassId);
-      await classRef.update({
-        learnerIds: firebase.firestore.FieldValue.arrayUnion(studentUser.uid),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    } catch {}
-
-    await secondaryApp.auth().signOut();
-    await secondaryApp.delete();
-
-    return { ...learnerData, temporaryPassword: finalPassword };
-  } catch (err) {
-    try { await secondaryApp.delete(); } catch(e) {}
-    throw err;
-  }
+  const { schoolRequest } = await import('./services/api/apiClient.js');
+  return schoolRequest('POST', '/api/coach/students', { body: student });
 }
-
-

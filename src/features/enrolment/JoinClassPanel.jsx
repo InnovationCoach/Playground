@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { joinClassWithCode, JOIN_RESULT } from './joinClass.js';
+import { Ticket } from 'lucide-react';
 
 /**
  * "Join a class" for a learner who already has an account.
@@ -38,7 +39,7 @@ export function JoinClassPanel({ uid, classIds = [], onJoined }) {
 
   return (
     <div className={`join-panel${unattached ? ' join-panel-prompt' : ''}`}>
-      <h3>{unattached ? '🎟️ Join your class' : '🎟️ Join another class'}</h3>
+      <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Ticket size={20} aria-hidden="true" />{unattached ? 'Join your class' : 'Join another class'}</h3>
 
       {unattached && (
         <p className="join-panel-why">

@@ -1,651 +1,250 @@
-/**
- * Goal Setting Modal
- * Helps first-time users set short-term project goals with SEN chatbot guidance
- */
+import './goalSettingModal.css';
+
+const prompts = [
+  ['What would you love to explore?', 'Think about something you are curious about, a problem you want to solve, or something you would like to make.'],
+  ['What would you like to try or get better at?', 'Describe a small step in your own words. What would progress look like for you? You can add more than one goal.'],
+  ['When would you like to check in?', 'Choose a time to reflect on what you have tried. Your plan can change as you learn.']
+];
 
 export function createGoalSettingModal(userId = null) {
+  document.getElementById('goal-setting-modal')?.dispatchEvent(new Event('closeGoalSetting'));
+  const previousFocus = document.activeElement;
   const modal = document.createElement('div');
   modal.id = 'goal-setting-modal';
   modal.className = 'goal-setting-modal';
   modal.innerHTML = `
     <div class="goal-modal-overlay">
-      <div class="goal-modal-content">
+      <section class="goal-modal-content" role="dialog" aria-modal="true" aria-labelledby="goal-modal-title" aria-describedby="goal-modal-description">
         <div class="goal-modal-header">
-          <button type="button" class="goal-modal-close" id="goal-modal-close"
-                  aria-label="Close goal setting">&times;</button>
-          <h2>🎯 Let's Set Your Learning Goals</h2>
-          <p>Working with SEN Chatbot to plan your project</p>
+          <span class="goal-eyebrow">MY LEARNING JOURNAL</span>
+          <button type="button" class="goal-modal-close" aria-label="Close goal setting">×</button>
+          <h2 id="goal-modal-title">A little idea. A new beginning.</h2>
+          <p id="goal-modal-description">A space for your ideas to grow.</p>
+          <ol class="goal-progress" aria-label="Goal setting progress"><li><span>01</span> Explore</li><li><span>02</span> Plan</li><li><span>03</span> Review</li></ol>
         </div>
-
         <div class="goal-modal-body">
-          <!-- Step 1: Learning Path Selection -->
-          <div class="goal-step" id="goal-step-1">
-            <h3>Step 1: What will you be learning?</h3>
-            <div class="goal-options">
-              <button class="goal-option-btn" data-path="climate">
-                <span class="goal-emoji">🌍</span>
-                <span class="goal-title">Climate & Sustainability</span>
-              </button>
-              <button class="goal-option-btn" data-path="coding">
-                <span class="goal-emoji">🐍</span>
-                <span class="goal-title">Coding & Programming</span>
-              </button>
-            </div>
+          <p class="goal-step-count"></p>
+          <h3 class="goal-question" tabindex="-1"></h3>
+          <p class="goal-guidance"></p>
+          <div class="goal-tools">
+            <button type="button" class="goal-read">Read prompt aloud</button>
+            <div class="goal-voice"><button type="button" class="goal-dictate" aria-pressed="false"><span class="goal-mic" aria-hidden="true">♩</span><span class="goal-dictate-label">Use my voice</span></button><label class="goal-language"><span class="goal-sr-only">Voice language</span><select aria-label="Voice language"><option value="en-US">English</option><option value="th-TH">Thai</option></select></label></div>
           </div>
-
-          <!-- Step 2: PBL Topic Selection -->
-          <div class="goal-step hidden" id="goal-step-2">
-            <h3>Step 2: Choose a Project-Based Learning Topic</h3>
-            <div class="goal-topics">
-              <div class="topic-list" id="topic-list"></div>
-            </div>
+          <p class="goal-status" role="status" aria-live="polite"></p>
+          <div class="goal-step" data-step="0">
+            <label for="goal-topic">My idea or interest</label>
+            <textarea id="goal-topic" rows="3" maxlength="300" placeholder="I wonder how… / I would love to make…"></textarea>
+            <p class="goal-hint">Need a starting point? Try an idea, then make it your own.</p>
+            <div class="goal-ideas"><button type="button" data-idea="climate">Care for our planet</button><button type="button" data-idea="coding">Create with code</button><button type="button" data-idea="art">Make art</button><button type="button" data-idea="custom">Something new</button></div>
           </div>
-
-          <!-- Step 3: Goal Duration -->
-          <div class="goal-step hidden" id="goal-step-3">
-            <h3>Step 3: How long is your project?</h3>
-            <div class="goal-durations">
-              <button class="goal-duration-btn" data-days="7">
-                <span class="duration-emoji">⚡</span>
-                <span class="duration-label">1 Week</span>
-              </button>
-              <button class="goal-duration-btn" data-days="14">
-                <span class="duration-emoji">🎯</span>
-                <span class="duration-label">2 Weeks</span>
-              </button>
-              <button class="goal-duration-btn" data-days="30">
-                <span class="duration-emoji">📅</span>
-                <span class="duration-label">1 Month</span>
-              </button>
-            </div>
+          <div class="goal-step" data-step="1" hidden>
+            <label for="goal-input">A step I want to take</label>
+            <textarea id="goal-input" rows="3" maxlength="500" placeholder="I want to try… / I will know I am making progress when…"></textarea>
+            <button type="button" class="goal-add-btn">Add this goal</button>
+            <ul class="goals-list" aria-label="My goals"></ul>
           </div>
-
-          <!-- Step 4: Specific Goals -->
-          <div class="goal-step hidden" id="goal-step-4">
-            <h3>Step 4: What are your specific goals?</h3>
-            <div class="goal-input-area">
-              <input type="text" id="goal-input" placeholder="e.g., Build a climate model, Learn Python basics..." class="goal-input" />
-              <button class="goal-add-btn" id="goal-add-btn">+ Add Goal</button>
-            </div>
-            <div class="goals-list" id="goals-list"></div>
+          <div class="goal-step" data-step="2" hidden>
+            <label for="goal-days">Check in after this many days</label>
+            <input id="goal-days" type="number" min="1" max="365" value="14">
+            <div class="goal-ideas"><button type="button" data-days="7">1 week</button><button type="button" data-days="14">2 weeks</button><button type="button" data-days="30">1 month</button></div>
+            <div class="goal-review"><h4>My starting plan</h4><p class="goal-review-topic"></p><ul class="goal-review-list"></ul></div>
+            <p class="goal-hint">Saved to your learning dashboard. This does not publish your goals to your portfolio.</p>
           </div>
-
-          <!-- SEN Chatbot Helper -->
-          <div class="goal-chatbot-helper">
-            <div class="helper-avatar">🤖</div>
-            <div class="helper-message" id="helper-message">
-              Click on a learning path to get started! I'll help you plan your goals.
-            </div>
-          </div>
+          <p class="goal-voice-note"></p>
         </div>
-
-        <div class="goal-modal-footer">
-          <button class="goal-btn-back" id="goal-btn-back" style="display:none;">← Back</button>
-          <button class="goal-btn-next" id="goal-btn-next">Next →</button>
-          <button class="goal-btn-finish" id="goal-btn-finish" style="display:none;">✨ Start Learning!</button>
-        </div>
-      </div>
-    </div>
-  `;
-
+        <div class="goal-modal-footer"><button type="button" class="goal-btn-back" hidden>Back</button><button type="button" class="goal-btn-later">Maybe later</button><button type="button" class="goal-btn-next">Continue</button></div>
+      </section>
+    </div>`;
   document.body.appendChild(modal);
-  addGoalModalStyles();
-  attachGoalEventHandlers(userId);
-  attachDismissHandlers(modal);
-
-  return modal;
-}
-
-/**
- * Make the wizard dismissible.
- *
- * It previously had no close button, ignored Escape and swallowed backdrop
- * clicks, so a student who reached it could not get to the rest of the app until
- * they completed every step. It opens automatically on first sign-in, which made
- * that a hard trap rather than an inconvenience - and a modal with no keyboard
- * escape is an accessibility failure regardless.
- *
- * Dismissing is not the same as finishing: nothing is saved, and the wizard
- * reopens next session because the user is still flagged first-time. The goals
- * button in the nav reopens it on demand.
- */
-function attachDismissHandlers(modal) {
+  const $ = selector => modal.querySelector(selector);
+  const state = { step: 0, path: 'custom', goals: [] };
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let speaking = false;
+  let closed = false;
+  let recognitionFailed = false;
+  let voiceTimer;
+  const oldOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+  const status = message => { $('.goal-status').textContent = message; };
+  const stopVoice = () => {
+    clearTimeout(voiceTimer);
+    if (recognition) {
+      const active = recognition;
+      recognition = null;
+      active.onresult = active.onerror = active.onend = null;
+      active.abort();
+    }
+    $('.goal-dictate-label').textContent = 'Use my voice';
+    $('.goal-dictate').setAttribute('aria-pressed', 'false');
+    $('.goal-language select').disabled = false;
+  };
+  const stopReading = () => {
+    if (speaking) window.speechSynthesis?.cancel();
+    speaking = false;
+    $('.goal-read').textContent = 'Read prompt aloud';
+  };
   const close = () => {
+    if (closed) return;
+    closed = true;
+    stopVoice();
+    stopReading();
+    observer.disconnect();
     document.removeEventListener('keydown', onKeydown);
+    document.body.style.overflow = oldOverflow;
     modal.remove();
+    if (previousFocus?.isConnected) previousFocus.focus();
   };
-
-  function onKeydown(e) {
-    if (e.key === 'Escape') close();
+  const observer = new MutationObserver(() => { if (!modal.isConnected) close(); });
+  observer.observe(document.body, { childList: true });
+  function onKeydown(event) {
+    if (event.key === 'Escape') { event.preventDefault(); close(); }
+    if (event.key !== 'Tab') return;
+    const controls = [...modal.querySelectorAll('button, input, textarea, select')].filter(el => !el.disabled && !el.hidden && !el.closest('[hidden]'));
+    const first = controls[0], last = controls.at(-1);
+    if (event.shiftKey && (document.activeElement === first || !controls.includes(document.activeElement))) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && (document.activeElement === last || !controls.includes(document.activeElement))) { event.preventDefault(); first.focus(); }
   }
-
-  modal.querySelector('#goal-modal-close')?.addEventListener('click', close);
-
-  // Click the backdrop, but not the dialog itself.
-  modal.querySelector('.goal-modal-overlay')?.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) close();
-  });
-
   document.addEventListener('keydown', onKeydown);
-}
+  modal.addEventListener('closeGoalSetting', close);
+  $('.goal-modal-close').onclick = close;
+  $('.goal-btn-later').onclick = close;
+  $('.goal-modal-overlay').onclick = event => { if (event.target === event.currentTarget) close(); };
 
-function addGoalModalStyles() {
-  if (document.getElementById('goal-modal-styles')) return;
-
-  const style = document.createElement('style');
-  style.id = 'goal-modal-styles';
-  style.textContent = `
-    .goal-modal-close {
-      position: absolute;
-      top: 0.75rem;
-      right: 0.9rem;
-      background: transparent;
-      border: none;
-      color: #e9d5ff;
-      font-size: 1.6rem;
-      line-height: 1;
-      cursor: pointer;
-      padding: 0.15rem 0.5rem;
-      border-radius: 6px;
-      opacity: 0.75;
-      transition: opacity 0.2s, background 0.2s;
-    }
-
-    .goal-modal-close:hover,
-    .goal-modal-close:focus-visible {
-      opacity: 1;
-      background: rgba(255, 255, 255, 0.12);
-      outline: none;
-    }
-
-    .goal-modal-header {
-      position: relative;
-    }
-
-    .goal-setting-modal {
-      position: fixed;
-      inset: 0;
-      z-index: 2000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: fadeIn 0.3s ease;
-    }
-
-    .goal-modal-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-    }
-
-    .goal-modal-content {
-      position: relative;
-      background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
-      border-radius: 16px;
-      width: 90%;
-      max-width: 600px;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .goal-modal-header {
-      padding: 2rem;
-      border-bottom: 2px solid rgba(168, 85, 247, 0.3);
-      text-align: center;
-    }
-
-    .goal-modal-header h2 {
-      color: #e9d5ff;
-      margin: 0 0 0.5rem 0;
-      font-size: 1.8rem;
-    }
-
-    .goal-modal-header p {
-      color: #a78bfa;
-      margin: 0;
-      font-size: 0.95rem;
-    }
-
-    .goal-modal-body {
-      flex: 1;
-      padding: 2rem;
-      position: relative;
-    }
-
-    .goal-step {
-      animation: slideIn 0.3s ease;
-    }
-
-    .goal-step.hidden {
-      display: none;
-    }
-
-    .goal-step h3 {
-      color: #e9d5ff;
-      margin: 0 0 1.5rem 0;
-      font-size: 1.2rem;
-    }
-
-    .goal-options {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
-    .goal-option-btn {
-      background: rgba(168, 85, 247, 0.15);
-      border: 2px solid rgba(168, 85, 247, 0.3);
-      border-radius: 12px;
-      padding: 1.5rem;
-      cursor: pointer;
-      transition: all 0.3s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.75rem;
-      color: #e9d5ff;
-    }
-
-    .goal-option-btn:hover {
-      background: rgba(168, 85, 247, 0.3);
-      border-color: #a855f7;
-      transform: translateY(-2px);
-    }
-
-    .goal-emoji {
-      font-size: 2.5rem;
-    }
-
-    .goal-title {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .goal-topics {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
-    }
-
-    .topic-item {
-      background: rgba(168, 85, 247, 0.1);
-      border: 1px solid rgba(168, 85, 247, 0.2);
-      border-radius: 8px;
-      padding: 1rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      color: #e9d5ff;
-    }
-
-    .topic-item:hover {
-      background: rgba(168, 85, 247, 0.2);
-      border-color: #a855f7;
-    }
-
-    .topic-item.selected {
-      background: rgba(168, 85, 247, 0.3);
-      border-color: #a855f7;
-    }
-
-    .goal-durations {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
-    }
-
-    .goal-duration-btn {
-      background: rgba(168, 85, 247, 0.15);
-      border: 2px solid rgba(168, 85, 247, 0.3);
-      border-radius: 12px;
-      padding: 1.5rem 1rem;
-      cursor: pointer;
-      transition: all 0.3s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-      color: #e9d5ff;
-    }
-
-    .goal-duration-btn:hover {
-      background: rgba(168, 85, 247, 0.3);
-      border-color: #a855f7;
-    }
-
-    .goal-duration-btn.selected {
-      background: #a855f7;
-      border-color: #a855f7;
-    }
-
-    .duration-emoji {
-      font-size: 1.8rem;
-    }
-
-    .duration-label {
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-
-    .goal-input-area {
-      display: flex;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .goal-input {
-      flex: 1;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(168, 85, 247, 0.3);
-      color: #e9d5ff;
-      padding: 0.75rem 1rem;
-      border-radius: 8px;
-      font-size: 0.95rem;
-    }
-
-    .goal-input::placeholder {
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    .goal-add-btn {
-      background: #a855f7;
-      color: white;
-      border: none;
-      padding: 0.75rem 1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .goal-add-btn:hover {
-      background: #9333ea;
-    }
-
-    .goals-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .goal-item {
-      background: rgba(168, 85, 247, 0.1);
-      border: 1px solid rgba(168, 85, 247, 0.2);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #e9d5ff;
-    }
-
-    .goal-item-remove {
-      background: none;
-      border: none;
-      color: #f87171;
-      cursor: pointer;
-      font-size: 1.2rem;
-    }
-
-    .goal-chatbot-helper {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-      margin-top: 1.5rem;
-      padding: 1rem;
-      background: rgba(168, 85, 247, 0.1);
-      border-radius: 8px;
-      border-left: 4px solid #a855f7;
-    }
-
-    .helper-avatar {
-      font-size: 1.8rem;
-      flex-shrink: 0;
-    }
-
-    .helper-message {
-      color: #e9d5ff;
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-
-    .goal-modal-footer {
-      display: flex;
-      gap: 1rem;
-      justify-content: flex-end;
-      padding: 1.5rem 2rem;
-      border-top: 1px solid rgba(168, 85, 247, 0.2);
-      background: rgba(0, 0, 0, 0.2);
-    }
-
-    .goal-btn-back,
-    .goal-btn-next,
-    .goal-btn-finish {
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .goal-btn-back {
-      background: transparent;
-      color: #a78bfa;
-      border: 1px solid #a78bfa;
-    }
-
-    .goal-btn-back:hover {
-      background: rgba(168, 85, 247, 0.1);
-    }
-
-    .goal-btn-next,
-    .goal-btn-finish {
-      background: #a855f7;
-      color: white;
-    }
-
-    .goal-btn-next:hover,
-    .goal-btn-finish:hover {
-      background: #9333ea;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  `;
-
-  document.head.appendChild(style);
-}
-
-function attachGoalEventHandlers(userId = null) {
-  const state = {
-    currentStep: 1,
-    selectedPath: null,
-    selectedTopic: null,
-    selectedDuration: null,
-    goals: []
-  };
-
-  const topics = {
-    climate: [
-      '🌱 Urban Heat Island Mitigation',
-      '🌊 Coastal Erosion Solutions',
-      '♻️ Circular Economy Design',
-      '🌦️ Climate Adaptation Strategies',
-      '🏗️ Sustainable Building Design'
-    ],
-    coding: [
-      '🐍 Python Basics & Fundamentals',
-      '🤖 AI & Machine Learning Intro',
-      '📊 Data Analysis & Visualization',
-      '🌐 Web Development Basics',
-      '📱 Mobile App Development'
-    ]
-  };
-
-  // Path selection
-  document.querySelectorAll('.goal-option-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      state.selectedPath = btn.dataset.path;
-      renderTopics(state, topics[state.selectedPath]);
-      goToStep(state, 2);
-      updateHelperMessage(state, 'Great! Now choose a project topic that interests you.');
+  function renderGoals() {
+    $('.goals-list').replaceChildren();
+    state.goals.forEach((goal, index) => {
+      const row = document.createElement('li');
+      const text = document.createElement('span');
+      text.textContent = goal;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = 'Remove';
+      remove.setAttribute('aria-label', `Remove goal ${index + 1}`);
+      remove.onclick = () => { state.goals.splice(index, 1); renderGoals(); $('#goal-input').focus(); status('Goal removed.'); };
+      row.append(text, remove);
+      $('.goals-list').append(row);
     });
-  });
-
-  // Topic selection
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('.topic-item')) {
-      const item = e.target.closest('.topic-item');
-      document.querySelectorAll('.topic-item').forEach(t => t.classList.remove('selected'));
-      item.classList.add('selected');
-      state.selectedTopic = item.textContent.trim();
-      updateHelperMessage(state, `Excellent choice! How long do you want to work on "${state.selectedTopic}"?`);
-    }
-  });
-
-  // Duration selection
-  document.querySelectorAll('.goal-duration-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.goal-duration-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      state.selectedDuration = btn.dataset.days;
-      goToStep(state, 4);
-      updateHelperMessage(state, `Perfect! Now let's set specific, measurable goals for your ${btn.textContent.trim().toLowerCase()}.`);
-    });
-  });
-
-  // Add goal
-  document.getElementById('goal-add-btn').addEventListener('click', () => {
-    const input = document.getElementById('goal-input');
-    const goal = input.value.trim();
-    if (goal) {
-      state.goals.push(goal);
-      input.value = '';
-      renderGoals(state);
-    }
-  });
-
-  document.getElementById('goal-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      document.getElementById('goal-add-btn').click();
-    }
-  });
-
-  // Navigation
-  document.getElementById('goal-btn-back').addEventListener('click', () => {
-    goToStep(state, state.currentStep - 1);
-  });
-
-  document.getElementById('goal-btn-next').addEventListener('click', () => {
-    if (state.currentStep === 1 && !state.selectedPath) {
-      updateHelperMessage(state, '⚠️ Please select a learning path first.');
-      return;
-    }
-    if (state.currentStep === 2 && !state.selectedTopic) {
-      updateHelperMessage(state, '⚠️ Please select a topic first.');
-      return;
-    }
-    if (state.currentStep === 3 && !state.selectedDuration) {
-      updateHelperMessage(state, '⚠️ Please select a duration first.');
-      return;
-    }
-    goToStep(state, state.currentStep + 1);
-  });
-
-  document.getElementById('goal-btn-finish').addEventListener('click', () => {
-    if (state.goals.length === 0) {
-      updateHelperMessage(state, '⚠️ Please add at least one goal.');
-      return;
-    }
-    finishGoalSetting(state);
-  });
-
-  function renderTopics(state, topicsList) {
-    const list = document.getElementById('topic-list');
-    list.innerHTML = topicsList.map(topic =>
-      `<div class="topic-item">${topic}</div>`
-    ).join('');
   }
-
-  function renderGoals(state) {
-    const list = document.getElementById('goals-list');
-    list.innerHTML = state.goals.map((goal, i) =>
-      `<div class="goal-item">
-        <span>✅ ${goal}</span>
-        <button class="goal-item-remove" onclick="removeGoal(${i})">×</button>
-      </div>`
-    ).join('');
+  function addGoal() {
+    stopVoice();
+    const value = $('#goal-input').value.trim();
+    if (!value) { status('Describe a step you would like to take.'); $('#goal-input').focus(); return false; }
+    if (state.goals.length >= 10) { status('Keep your starting plan to 10 goals or fewer.'); return false; }
+    state.goals.push(value.slice(0, 500));
+    $('#goal-input').value = '';
+    renderGoals();
+    status('Goal added. You can add another or continue.');
+    $('#goal-input').focus();
+    return true;
   }
-
-  function goToStep(state, step) {
-    document.querySelectorAll('.goal-step').forEach(s => s.classList.add('hidden'));
-    document.getElementById(`goal-step-${step}`).classList.remove('hidden');
-
-    const backBtn = document.getElementById('goal-btn-back');
-    const nextBtn = document.getElementById('goal-btn-next');
-    const finishBtn = document.getElementById('goal-btn-finish');
-
-    backBtn.style.display = step > 1 ? 'block' : 'none';
-    nextBtn.style.display = step < 4 ? 'block' : 'none';
-    finishBtn.style.display = step === 4 ? 'block' : 'none';
-
-    state.currentStep = step;
-  }
-
-  function updateHelperMessage(state, message) {
-    document.getElementById('helper-message').textContent = message;
-  }
-
-  function finishGoalSetting(state) {
-    const goalData = {
-      learningPath: state.selectedPath,
-      topic: state.selectedTopic,
-      durationDays: parseInt(state.selectedDuration),
-      goals: state.goals,
-      createdAt: new Date().toISOString(),
-      completedGoals: []
+  $('.goal-add-btn').onclick = addGoal;
+  modal.querySelectorAll('[data-idea]').forEach(button => {
+    button.onclick = () => {
+      stopVoice();
+      state.path = ['coding', 'climate'].includes(button.dataset.idea) ? button.dataset.idea : 'custom';
+      $('#goal-topic').value = { climate: 'How could I help care for our planet?', coding: 'What could I create with code?', art: 'How could I express an idea through art?', custom: 'What is something new I would love to explore?' }[button.dataset.idea];
+      $('#goal-topic').focus();
     };
-
-    // Save to localStorage safely
-    try {
-      if (userId) {
-        localStorage.setItem(`userGoals_${userId}`, JSON.stringify(goalData));
-      }
-      console.log('[Goals] Goals saved to localStorage:', goalData);
-    } catch (e) {
-      console.warn('[Goals] Could not save goals to localStorage:', e.message);
+  });
+  $('#goal-topic').oninput = () => { state.path = 'custom'; };
+  modal.querySelectorAll('[data-days]').forEach(button => { button.onclick = () => { $('#goal-days').value = button.dataset.days; }; });
+  function renderStep(focus = true) {
+    stopVoice(); stopReading(); status('');
+    modal.querySelectorAll('.goal-step').forEach(el => { el.hidden = Number(el.dataset.step) !== state.step; });
+    modal.querySelectorAll('.goal-progress li').forEach((el, index) => {
+      if (index === state.step) el.setAttribute('aria-current', 'step'); else el.removeAttribute('aria-current');
+      el.classList.toggle('goal-done', index < state.step);
+    });
+    $('.goal-step-count').textContent = `Step ${state.step + 1} of 3`;
+    $('.goal-question').textContent = prompts[state.step][0];
+    $('.goal-guidance').textContent = prompts[state.step][1];
+    $('.goal-btn-back').hidden = state.step === 0;
+    $('.goal-btn-next').textContent = state.step === 2 ? 'Save my goals' : 'Continue';
+    $('.goal-voice').hidden = state.step === 2;
+    $('.goal-voice-note').hidden = state.step === 2;
+    if (state.step === 2) {
+      $('.goal-review-topic').textContent = $('#goal-topic').value.trim();
+      $('.goal-review-list').replaceChildren(...state.goals.map(goal => { const li = document.createElement('li'); li.textContent = goal; return li; }));
     }
-
-    // Close modal
-    document.getElementById('goal-setting-modal').remove();
-
-    // Show success message
-    const success = document.createElement('div');
-    success.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:1rem 2rem;border-radius:8px;font-weight:600;z-index:2001;animation:slideIn 0.3s ease;';
-    success.textContent = '✨ Goals set! Let\'s get started!';
-    document.body.appendChild(success);
-    setTimeout(() => success.remove(), 3000);
-
-    // Dispatch event
-    window.dispatchEvent(new CustomEvent('goalsSet', { detail: goalData }));
+    $('.goal-modal-body').scrollTop = 0;
+    if (focus) $('.goal-question').focus();
   }
-
-  // Make removeGoal available globally
-  window.removeGoal = (index) => {
-    state.goals.splice(index, 1);
-    renderGoals(state);
+  $('.goal-btn-back').onclick = () => { state.step--; renderStep(); };
+  $('.goal-btn-next').onclick = () => {
+    stopVoice();
+    if (state.step === 0 && !$('#goal-topic').value.trim()) { status('Share an idea or interest to begin.'); $('#goal-topic').focus(); return; }
+    if (state.step === 1) {
+      if ($('#goal-input').value.trim() && !addGoal()) return;
+      if (!state.goals.length) { status('Add a goal in your own words to continue.'); $('#goal-input').focus(); return; }
+    }
+    if (state.step < 2) { state.step++; renderStep(); return; }
+    const days = Number($('#goal-days').value);
+    if (!Number.isInteger(days) || days < 1 || days > 365) { status('Choose a check-in between 1 and 365 days.'); $('#goal-days').focus(); return; }
+    const goalData = { learningPath: state.path, topic: $('#goal-topic').value.trim(), durationDays: days, goals: [...state.goals], createdAt: new Date().toISOString(), completedGoals: [] };
+    try { if (userId) localStorage.setItem(`userGoals_${userId}`, JSON.stringify(goalData)); } catch { /* Account sync is handled by the existing goalsSet listener. */ }
+    close();
+    window.dispatchEvent(new CustomEvent('goalsSet', { detail: goalData }));
   };
+  $('.goal-dictate').disabled = !Recognition;
+  $('.goal-voice-note').textContent = Recognition
+    ? 'Optional voice typing uses your browser’s speech service. Review the text before saving.'
+    : 'Voice typing is unavailable in this browser. You can type your answers or use your device’s dictation keyboard.';
+  $('.goal-language').hidden = !Recognition;
+  $('.goal-dictate').onclick = () => {
+    if (recognition) { stopVoice(); status('Voice stopped. Review and edit your answer.'); return; }
+    stopReading();
+    recognitionFailed = false;
+    const input = state.step === 0 ? $('#goal-topic') : $('#goal-input');
+    const baseline = input.value.trim();
+    let confirmed = '';
+    try {
+      const active = new Recognition();
+      recognition = active;
+      active.lang = $('.goal-language select').value;
+      active.continuous = false;
+      active.interimResults = true;
+      active.onresult = event => {
+        if (closed || recognition !== active) return;
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) confirmed += `${event.results[i][0].transcript} `;
+          else interim += event.results[i][0].transcript;
+        }
+        input.value = [baseline, confirmed.trim(), interim].filter(Boolean).join(' ').slice(0, input.maxLength);
+        if (state.step === 0) state.path = 'custom';
+        status('Listening… Your words appear above.');
+      };
+      active.onerror = event => {
+        recognitionFailed = true;
+        const errors = { 'not-allowed': 'Microphone access was not allowed. You can enable it in browser settings or type your answer.', 'service-not-allowed': 'Voice recognition is unavailable here. Please type your answer.', 'no-speech': 'No speech was heard. Try again or type your answer.', 'audio-capture': 'No microphone is available. Please type your answer.', network: 'The speech service could not connect. Try again or type your answer.' };
+        status(errors[event.error] || 'Voice input could not finish. You can try again or type your answer.');
+        stopVoice();
+      };
+      active.onend = () => { if (recognition !== active) return; stopVoice(); if (!recognitionFailed) status('Voice finished. Review and edit your answer before saving.'); };
+      active.start();
+      $('.goal-dictate-label').textContent = 'Stop listening';
+      $('.goal-dictate').setAttribute('aria-pressed', 'true');
+      $('.goal-language select').disabled = true;
+      status('Listening… Speak about your idea.');
+      voiceTimer = setTimeout(() => { stopVoice(); status('Voice stopped after one minute. Review your answer or start again.'); }, 60000);
+    } catch { stopVoice(); status('Voice input is unavailable here. Please type your answer.'); }
+  };
+  const canRead = !!window.speechSynthesis && !!window.SpeechSynthesisUtterance;
+  $('.goal-read').disabled = !canRead;
+  $('.goal-read').onclick = () => {
+    if (speaking) { stopReading(); return; }
+    stopVoice();
+    const utterance = new window.SpeechSynthesisUtterance(prompts[state.step].join(' '));
+    utterance.lang = 'en-US';
+    speaking = true;
+    $('.goal-read').textContent = 'Stop reading';
+    utterance.onend = utterance.onerror = () => { speaking = false; if (!closed) $('.goal-read').textContent = 'Read prompt aloud'; };
+    window.speechSynthesis.speak(utterance);
+  };
+  renderStep(false);
+  $('.goal-modal-close').focus();
+  return modal;
 }
 
 export default { createGoalSettingModal };

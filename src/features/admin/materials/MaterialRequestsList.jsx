@@ -188,11 +188,12 @@ export function MaterialRequestsList({ perms, user }) {
     }] : [])
   ];
 
-  const summary = list.extra?.summary || {
-    pendingCount: 0,
-    approvedCount: 0,
-    fulfilledCount: 0,
-    totalEstimatedCost: 0
+  const summary = !list.error && !list.loading ? list.extra?.summary : null;
+  const summaryValue = (key, suffix = '') => {
+    if (list.loading) return 'Loading…';
+    const value = summary?.[key];
+    if (!Number.isFinite(value)) return 'Unavailable';
+    return key === 'totalEstimatedCost' ? formatCurrency(value) : `${value}${suffix}`;
   };
 
   const toolbar = (
@@ -263,7 +264,7 @@ export function MaterialRequestsList({ perms, user }) {
           </div>
           <div>
             <div className="gh-muted" style={{ fontSize: '0.85rem' }}>Pending Review</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f59e0b' }}>{summary.pendingCount} Requests</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f59e0b' }}>{summaryValue('pendingCount', ' Requests')}</div>
           </div>
         </div>
 
@@ -273,7 +274,7 @@ export function MaterialRequestsList({ perms, user }) {
           </div>
           <div>
             <div className="gh-muted" style={{ fontSize: '0.85rem' }}>Approved</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#10b981' }}>{summary.approvedCount} Items</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#10b981' }}>{summaryValue('approvedCount', ' Items')}</div>
           </div>
         </div>
 
@@ -283,7 +284,7 @@ export function MaterialRequestsList({ perms, user }) {
           </div>
           <div>
             <div className="gh-muted" style={{ fontSize: '0.85rem' }}>Fulfilled</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#3b82f6' }}>{summary.fulfilledCount} Items</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#3b82f6' }}>{summaryValue('fulfilledCount', ' Items')}</div>
           </div>
         </div>
 
@@ -293,7 +294,7 @@ export function MaterialRequestsList({ perms, user }) {
           </div>
           <div>
             <div className="gh-muted" style={{ fontSize: '0.85rem' }}>Total Requisition Value</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#a855f7' }}>{formatCurrency(summary.totalEstimatedCost)}</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#a855f7' }}>{summaryValue('totalEstimatedCost')}</div>
           </div>
         </div>
       </div>

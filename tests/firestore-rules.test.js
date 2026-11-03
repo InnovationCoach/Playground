@@ -38,7 +38,7 @@ beforeAll(async () => {
     firestore: {
       rules: fs.readFileSync('firestore.rules', 'utf8'),
       host: '127.0.0.1',
-      port: 8088
+      port: Number(process.env.FIRESTORE_EMULATOR_HOST?.split(':').at(-1) || 8088)
     }
   });
 });
@@ -1121,3 +1121,109 @@ describe('WeLearn SPARK: privilege boundaries and audit trail', () => {
   });
 });
 
+
+describe('API-managed school workspace is closed to direct browser access',()=>{
+  it('denies even signed admin browser writes to API-only calendar, goals, code and grade records',async()=>{
+    const db=testEnv.authenticatedContext('school-admin',{role:'admin',schoolIds:['school-one']}).firestore();
+    for(const path of ['schools/school-one/calendarEvents/event','schools/school-one/programOfferings/offering','schools/school-one/learnerGoals/goal','schools/school-one/academicSnapshots/snapshot','schools/school-one/supportRequests/req','schools/school-one/learnerPreferences/pref','schools/school-one/aiDrafts/draft','programEnrollmentCodes/hash','programJoinAttempts/student']) {
+      await assertFails(setDoc(doc(db,path),{title:'Bypass API'}));
+    }
+  });
+  it('denies direct reads of private provider snapshots and enrollment codes',async()=>{
+    for(const path of ['schools/school-one/academicSnapshots/snapshot','schools/school-one/supportRequests/req','schools/school-one/learnerPreferences/pref','schools/school-one/aiDrafts/draft','programEnrollmentCodes/hash']) {
+      await assertFails(getDoc(doc(studentA().firestore(),path)));
+      await assertFails(getDoc(doc(anon().firestore(),path)));
+    }
+  });
+});
+
+describe('Private dashboard and portfolio API boundaries', () => {
+  it('denies direct reads and writes even to owners and assigned coaches', async () => {
+    await testEnv.withSecurityRulesDisabled(async ctx => {
+      for (const name of ['learnerSpaces', 'learnerPortfolios', 'portfolioAudienceGrants']) {
+        await setDoc(doc(ctx.firestore(), name, 'student_a'), {private: 'Protected'});
+      }
+    });
+    for (const name of ['learnerSpaces', 'learnerPortfolios', 'portfolioAudienceGrants']) {
+      for (const ctx of [studentA(), studentA2(), coachA(), anon()]) {
+        await assertFails(getDoc(doc(ctx.firestore(), name, 'student_a')));
+        await assertFails(setDoc(doc(ctx.firestore(), name, 'student_a'), {viewerUids:['student_a2']}));
+      }
+    }
+  });
+});
+
+describe('Coach AI activity builder records are API-only', () => {
+  it('denies every role direct access to AI connections, drafts and usage', async () => {
+    const paths = ['coachAiConnections/coach_a', 'schools/school_a/programOfferings/offer_a/activityDrafts/draft_a', 'schools/school_a/aiUsage/2026-10'];
+    await testEnv.withSecurityRulesDisabled(async ctx => {
+      for (const path of paths) await setDoc(doc(ctx.firestore(), path), {ciphertext: 'x', last4: '1234', count: 1});
+    });
+    for (const path of paths) {
+      for (const ctx of [coachA(), studentA(), anon()]) {
+        await assertFails(getDoc(doc(ctx.firestore(), path)));
+        await assertFails(setDoc(doc(ctx.firestore(), path), {ciphertext: 'stolen', count: 0}));
+      }
+    }
+  });
+});
+
+describe('Teen Quest records are API-only', () => {
+  it('denies every role direct access to quest state, the XP ledger and squad totals', async () => {
+    const paths = ['learnerQuest/student_a', 'learnerQuest/student_a/xpEvents/evidence_submitted__x', 'classes/class_a/questSquad/current'];
+    await testEnv.withSecurityRulesDisabled(async ctx => {
+      for (const path of paths) await setDoc(doc(ctx.firestore(), path), {xp: 10, count: 1});
+    });
+    for (const path of paths) {
+      for (const ctx of [studentA(), studentA2(), coachA(), anon()]) {
+        await assertFails(getDoc(doc(ctx.firestore(), path)));
+        await assertFails(setDoc(doc(ctx.firestore(), path), {xp: 99999, count: 99999}));
+      }
+    }
+  });
+});
+
+describe('coach feedback and notification integrity', () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore(),'users','coach_a'),{role:'teacher',classIds:[CLASS_A],status:'active'});
+      await setDoc(doc(ctx.firestore(),'users','coach_b'),{role:'teacher',classIds:[CLASS_B],status:'active'});
+    });
+  });
+  const feedback = { coachId:'coach_a', coachName:'Sara', type:'written_feedback', feedbackText:'Review your evidence.', timestamp:1, workId:'pbl-pilot' };
+  it('allows assigned-coach feedback and rejects student forgery or a different class', async () => {
+    const path = ['users','student_a','feedback','review'];
+    await assertSucceeds(setDoc(doc(coachA().firestore(),...path), feedback));
+    await assertFails(setDoc(doc(studentA().firestore(),...path), {...feedback,coachId:'student_a'}));
+    await assertFails(setDoc(doc(coachB().firestore(),...path), {...feedback,coachId:'coach_b'}));
+    await assertFails(setDoc(doc(coachA().firestore(),'users','student_b','feedback','review'), feedback));
+  });
+  it('pins authorship and validates ratings, size and update payloads', async () => {
+    const db = coachA().firestore(), path = ['users','student_a','feedback','review'];
+    await assertFails(setDoc(doc(db,...path), {...feedback,coachId:'someone_else'}));
+    await assertFails(setDoc(doc(db,...path), {...feedback,type:'work_rating',rating:6}));
+    await assertFails(setDoc(doc(db,...path), {...feedback,feedbackText:'x'.repeat(4001)}));
+    await assertSucceeds(setDoc(doc(db,...path), feedback));
+    await assertFails(updateDoc(doc(db,...path), {rating:99,type:'work_rating'}));
+    await assertFails(updateDoc(doc(db,...path), {coachId:'coach_b'}));
+    await assertFails(updateDoc(doc(db,...path), {approved:true}));
+    await assertSucceeds(updateDoc(doc(db,...path), {feedbackText:'Try another run.'}));
+  });
+  it('only permits the recipient to change notification read state', async () => {
+    const path = ['users','student_a','notifications','message'];
+    const notification = {fromUid:'coach_a',from:'Sara',message:'Please review feedback.',timestamp:1,read:false,type:'coach_message'};
+    await assertFails(setDoc(doc(studentA2().firestore(),...path),notification));
+    await assertFails(setDoc(doc(coachB().firestore(),...path),{...notification,fromUid:'coach_b'}));
+    await assertSucceeds(setDoc(doc(coachA().firestore(),...path),notification));
+    await assertSucceeds(updateDoc(doc(studentA().firestore(),...path),{read:true}));
+    await assertFails(updateDoc(doc(studentA().firestore(),...path),{message:'forged'}));
+    await assertFails(updateDoc(doc(studentA2().firestore(),...path),{read:true}));
+  });
+  it('rejects assessment writes after the coach is reassigned or suspended', async () => {
+    const db = coachA().firestore();
+    await testEnv.withSecurityRulesDisabled(async ctx => updateDoc(doc(ctx.firestore(),'users','coach_a'),{classIds:[]}));
+    await assertFails(setDoc(doc(db,'users','student_a','feedback','review'), feedback));
+    await testEnv.withSecurityRulesDisabled(async ctx => updateDoc(doc(ctx.firestore(),'users','coach_a'),{classIds:[CLASS_A],status:'suspended'}));
+    await assertFails(setDoc(doc(db,'users','student_a','feedback','review'), feedback));
+  });
+});

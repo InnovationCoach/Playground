@@ -13,9 +13,25 @@ export async function createPost(userId, userRole, text, files = [], authorName 
 
   // Upload files to Storage
   for (const file of files) {
+    if (!file.size || file.size <= 0) throw new Error(`File "${file.name}" is empty.`);
+    if (file.size > 20 * 1024 * 1024) {
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      throw new Error(`File "${file.name}" (${mb} MB) exceeds the 20 MB community upload limit. Please choose a file under 20 MB.`);
+    }
+    const ext = file.name.split('.').at(-1).toLowerCase();
+    if (['heic', 'heif'].includes(ext) || file.type === 'image/heic' || file.type === 'image/heif') {
+      throw new Error('iPhone HEIC/HEIF photos are not supported by web browsers. Please export as JPEG or PNG before posting.');
+    }
     const filePath = `community/${userId}/${Date.now()}_${file.name}`;
     const storageRef = storage.ref(filePath);
-    await storageRef.put(file);
+    try {
+      await storageRef.put(file);
+    } catch (err) {
+      if (err.code === 'storage/unauthorized') {
+        throw new Error(`Upload denied for "${file.name}". Ensure your file is under 20 MB and in a supported format (JPG, PNG, WebP, GIF, MP4, WebM, MOV).`);
+      }
+      throw err;
+    }
     const url = await storageRef.getDownloadURL();
 
     media.push({
