@@ -3,8 +3,8 @@
 - **Date**: 3 November 2026
 - **Lead / Authorizer**: Mani Golzary (Platform Lead)
 - **Live URL**: [https://dnd-master-73449.web.app](https://dnd-master-73449.web.app)
-- **Git Commit**: `dfe1694` (merged into `main` and pushed to GitHub)
-- **Active Client Bundle**: `index-NPAo-iOk.js`
+- **Git Commit**: `8e89954` (merged into `main` and pushed to GitHub)
+- **Active Client Bundle**: `index-Cdti1pIi.js`
 
 ---
 
@@ -64,3 +64,7 @@ All tests executed and verified prior to deployment:
 6. **16:43:47** – Deployed `storage.rules`.
 7. **16:44:41** – Promoted `release-20261103` to `live` via `firebase hosting:clone`.
 8. **16:47:01** – End-to-end verification of live bundle and live API rewrite (`/api/universe/health`).
+9. **18:44:16** – Committed `8e89954` publishing pilot missions into `src/features/universe/pilot/publishedRegistry.js` and exposing expedition cards in `SparkUniverse.jsx`.
+10. **18:44:24** – Pushed `8e89954` to GitHub `main`.
+11. **18:44:55** – Deployed updated client to preview channel `release-20261103` (`index-Cdti1pIi.js`).
+12. **19:03:31** – Promoted `release-20261103` to `live` via `firebase hosting:clone`. Verified active bundle `index-Cdti1pIi.js` on live.
