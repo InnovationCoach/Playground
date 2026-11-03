@@ -12,39 +12,63 @@ export function Spark({ size = 22, className = '' }) {
 /**
  * Completion dial for recorded sessions. Needle angle and arc length come from
  * the same reading as the printed numbers. No scale words, red zones or rates:
- * it shows how much is recorded, not how fast.
+ * it shows how much is recorded, not how fast. One lit cell per recorded
+ * session (a continuous arc once there are too many to tell apart).
  */
 export function SessionGauge({ label, done, total, milestones = [], unit = COMPLETION_UNIT }) {
+  const uid = useId().replace(/:/g, '');
   const reading = gaugeReading(done, total);
   if (!reading) return null;
-  const step = Math.max(1, Math.ceil(reading.total / 48));
-  const ticks = [];
-  for (let i = 0; i <= reading.total; i += step) ticks.push(GAUGE.start + GAUGE.sweep * i / reading.total);
+  const cellular = reading.total <= 40;
+  const span = GAUGE.sweep / reading.total, gap = cellular && reading.total > 1 ? Math.min(2.4, span * 0.3) : 0;
+  const cells = cellular ? Array.from({ length: reading.total }, (_, i) => ({
+    d: arcPath(CX, CY, R, GAUGE.start + span * i + gap / 2, GAUGE.start + span * (i + 1) - gap / 2), on: i < reading.done
+  })) : [];
+  const nextMark = milestones.find((mark) => !mark.complete);
+  const left = reading.total - reading.done;
+  const status = left === 0 ? 'All sessions marked' : reading.done === 0 ? 'Ready to start' : `${left} to go`;
   const text = `${reading.done} of ${reading.total} ${unit} by you`;
+  const tip = polar(CX, CY, R, reading.angle);
   return <div className="ig-gauge sd-gauge" role="progressbar" aria-label={label} aria-valuemin={0}
-    aria-valuemax={reading.total} aria-valuenow={reading.done} aria-valuetext={text}>
+    aria-valuemax={reading.total} aria-valuenow={reading.done} aria-valuetext={text} data-full={left === 0 || undefined}>
     <svg viewBox="0 0 260 200" aria-hidden="true" focusable="false">
-      <path className="ig-track" d={arcPath(CX, CY, R, GAUGE.start, END)} />
-      <path className="ig-value" d={arcPath(CX, CY, R, GAUGE.start, reading.angle)} />
-      {ticks.map((angle, i) => {
-        const [x0, y0] = polar(CX, CY, R - 12, angle), [x1, y1] = polar(CX, CY, R - 19, angle);
-        return <line key={i} className="ig-tick" x1={x0} y1={y0} x2={x1} y2={y1} />;
-      })}
+      <defs>
+        <linearGradient id={`${uid}-arc`} gradientUnits="userSpaceOnUse" x1={CX - R} y1="0" x2={CX + R} y2="0">
+          <stop offset="0" className="ig-stop-a" /><stop offset=".5" className="ig-stop-b" /><stop offset="1" className="ig-stop-c" />
+        </linearGradient>
+        <radialGradient id={`${uid}-core`}><stop offset="0" className="ig-stop-glow" /><stop offset="1" className="ig-stop-glow" stopOpacity="0" /></radialGradient>
+        <filter id={`${uid}-glow`} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5" /></filter>
+      </defs>
+      <circle className="ig-core" cx={CX} cy={CY} r={R - 20} fill={`url(#${uid}-core)`} />
+      <path className="ig-inner-ring" d={arcPath(CX, CY, R - 24, GAUGE.start, END)} />
+      {cellular ? <>
+        <g className="ig-cells">{cells.map((cell, i) => <path key={i} className="ig-cell" d={cell.d} />)}</g>
+        <g className="ig-glow" filter={`url(#${uid}-glow)`}>{cells.map((cell, i) => cell.on && <path key={i} d={cell.d} stroke={`url(#${uid}-arc)`} />)}</g>
+        <g className="ig-value">{cells.map((cell, i) => cell.on && <path key={i} className="ig-cell-on" style={{ '--i': i }} d={cell.d} stroke={`url(#${uid}-arc)`} />)}</g>
+      </> : <>
+        <path className="ig-track" d={arcPath(CX, CY, R, GAUGE.start, END)} />
+        <path className="ig-glow" filter={`url(#${uid}-glow)`} d={arcPath(CX, CY, R, GAUGE.start, reading.angle)} stroke={`url(#${uid}-arc)`} />
+        <path className="ig-value" d={arcPath(CX, CY, R, GAUGE.start, reading.angle)} stroke={`url(#${uid}-arc)`} />
+      </>}
       {milestones.map((mark) => {
-        const [x0, y0] = polar(CX, CY, R + 9, mark.angle), [x1, y1] = polar(CX, CY, R - 22, mark.angle);
-        const [lx, ly] = polar(CX, CY, R + 20, mark.angle);
-        return <g key={mark.id} className="ig-milestone" data-complete={mark.complete || undefined}>
-          <line x1={x0} y1={y0} x2={x1} y2={y1} />
-          <circle cx={lx} cy={ly} r="8.5" /><text x={lx} y={ly + 3.5}>{mark.index + 1}</text>
+        const [lx, ly] = polar(CX, CY, R + 24, mark.angle);
+        return <g key={mark.id} className="ig-milestone" data-complete={mark.complete || undefined} data-next={mark === nextMark || undefined}>
+          {mark === nextMark && <circle className="ig-milestone-pulse" cx={lx} cy={ly} r="11" />}
+          <circle cx={lx} cy={ly} r="10" style={mark.complete ? { fill: `url(#${uid}-arc)` } : undefined} />
+          {mark.complete ? <path className="ig-milestone-check" d={`M${lx - 4} ${ly}l2.8 2.8 5.2-5.6`} /> : <text x={lx} y={ly + 3.6}>{mark.index + 1}</text>}
         </g>;
       })}
       <g className="ig-needle" style={{ transform: `rotate(${reading.angle}deg)`, transformOrigin: `${CX}px ${CY}px` }}>
-        <line x1={CX} y1={CY + 12} x2={CX} y2={CY - R + 26} />
+        <path d={`M${CX} ${CY - R + 14}L${CX - 5.5} ${CY - R + 27}L${CX + 5.5} ${CY - R + 27}Z`} fill={`url(#${uid}-arc)`} />
       </g>
-      <circle className="ig-pivot" cx={CX} cy={CY} r="6" />
-      <path className="ig-pivot-spark" d={sparkPath(CX, CY, 15)} />
+      <circle className="ig-tip-halo" cx={tip[0]} cy={tip[1]} r="13" />
+      <circle className="ig-tip" cx={tip[0]} cy={tip[1]} r="6.5" />
     </svg>
-    <div className="ig-readout" aria-hidden="true"><strong>{reading.done}<span> of </span>{reading.total}</strong><small>{unit}</small></div>
+    <div className="ig-readout" aria-hidden="true">
+      <strong><b>{reading.done}</b><span> / {reading.total}</span></strong>
+      <small>{unit}</small>
+      <em className="ig-chip">{status}</em>
+    </div>
   </div>;
 }
 
