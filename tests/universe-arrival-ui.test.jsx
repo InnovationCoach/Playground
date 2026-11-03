@@ -358,3 +358,20 @@ describe('how-this-mission-works clip on arrival (O05)', () => {
     expect(named('Skip video')).toBeUndefined();
   });
 });
+
+describe('clip registry', () => {
+  it('has a captioned clip for each expedition route; any set link is a Cloudinary video', async () => {
+    const { ARRIVAL_VIDEOS, isCloudinaryVideo } = await import('../src/features/universe/explore/arrivalVideos.js');
+    expect(Object.keys(ARRIVAL_VIDEOS).sort()).toEqual(['spacecraft-journey|advanced', 'spacecraft-journey|guided', 'thalassa-wind-survey|guided']);
+    for (const [key, clip] of Object.entries(ARRIVAL_VIDEOS)) {
+      expect(clip.duration, key).toMatch(/^\d:\d\d$/);
+      expect(clip.src === null || isCloudinaryVideo(clip.src), key).toBe(true);
+      expect(clip.cues.length, key).toBeGreaterThan(10);
+      clip.cues.forEach(([a, b, text], i) => {
+        expect(b).toBeGreaterThan(a);
+        if (i) expect(a).toBeGreaterThanOrEqual(clip.cues[i - 1][1] - 0.01);
+        expect(text.trim().length).toBeGreaterThan(0);
+      });
+    }
+  });
+});

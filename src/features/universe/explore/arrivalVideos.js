@@ -50,6 +50,61 @@ export const ARRIVAL_VIDEOS = Object.freeze({
     [62.63, 68.06, "Finally, compare the plans, test what happens with less wind, and make your recommendation."],
     [68.06, 71.46, "Check the review list, then send your work to your coach."]
     ])
+  }),
+  'spacecraft-journey|guided': Object.freeze({
+    title: 'How this mission works',
+    duration: '1:06',
+    summary: 'Reading the concept table, turning seconds into days, and sending your work.',
+    src: null, // set to the uploaded https://res.cloudinary.com/<cloud>/video/upload/… link
+    cues: Object.freeze([
+      [0.6, 3.09, "Welcome to Thalassa's departure station."],
+      [3.09, 3.89, "Your mission:"],
+      [3.89, 5.39, "plan a journey to Ignis."],
+      [5.39, 7.31, "You are the expedition planner."],
+      [7.31, 12.04, "In the end, you'll recommend a spacecraft concept, or ask for more evidence."],
+      [12.94, 14.79, "First, look around the station."],
+      [14.79, 18.56, "When you're ready, place a portable wind sensor, or skip setup."],
+      [18.56, 22.27, "It's only a plan, and it doesn't change the mission's numbers."],
+      [23.17, 24.74, "Then choose Start mission."],
+      [24.74, 28.29, "Each step shows one small task, and you can always go back."],
+      [29.19, 30.42, "Start with the limits."],
+      [30.42, 35.71, "The crew must arrive within eighty days, and carry no more than four hundred kilograms of food."],
+      [36.61, 39.68, "Next, open the evidence and read the concept table."],
+      [39.68, 42.44, "Each row gives one spacecraft's average speed."],
+      [42.44, 45.39, "Travel time is the distance divided by the speed."],
+      [46.29, 47.98, "Your time comes out in seconds."],
+      [47.98, 52.16, "Divide by the seconds in one day to get days, then compare it with the limit."],
+      [52.16, 53.96, "Hints are there if you need them."],
+      [54.86, 61.03, "Finally, check all three concepts, show the journey from the station to Ignis, and recommend a concept."],
+      [61.03, 64.45, "Check the review list, then send your work to your coach."]
+    ])
+  }),
+  'spacecraft-journey|advanced': Object.freeze({
+    title: 'How this mission works',
+    duration: '1:10',
+    summary: 'The limits, the rocket equation, the mass ledger, and sending your work.',
+    src: null, // set to the uploaded https://res.cloudinary.com/<cloud>/video/upload/… link
+    cues: Object.freeze([
+      [0.6, 1.56, "Welcome to Ignis."],
+      [1.56, 4.95, "Your mission weighs mass, time and power for the expedition."],
+      [4.95, 6.81, "You are the systems investigator."],
+      [6.81, 11.61, "You'll make a conditional recommendation, and name the evidence that could change it."],
+      [12.51, 14.57, "Look around the fissure field first."],
+      [14.57, 19.54, "When you're ready, place a solar meter where you would compare sunlight, or skip setup."],
+      [19.54, 20.51, "It's a plan only:"],
+      [20.51, 22.51, "the mission uses its supplied data."],
+      [23.41, 24.92, "Then choose Start mission."],
+      [24.92, 28.18, "You work one step at a time, and you can always go back."],
+      [29.08, 30.39, "Begin with the limits:"],
+      [30.39, 37.98, "one hundred and fifty days, twenty-one thousand kilograms of added mass, and two hundred and sixty square metres of ion panels."],
+      [38.88, 42.47, "Next, model the propellant with the supplied rocket equation."],
+      [42.47, 47.48, "Use the chemical engine's value first, then repeat the same steps for the ion engine."],
+      [48.38, 49.56, "Then build a ledger."],
+      [49.56, 53.21, "For each design, add the modelled propellant and the supplies."],
+      [53.21, 58.17, "The ion case uses its own one hundred and forty day assumption, not the timing case."],
+      [59.07, 64.96, "Finally, read the real engineering references, label your scenario, and defend a conditional choice."],
+      [64.96, 68.31, "Review your checklist, then send your work to your coach."]
+    ])
   })
 });
 

@@ -71,7 +71,30 @@ Local commit only. Nothing pushed, deployed or uploaded. No server, rules, auth,
 - **5197, no preview switch:** the Cloudinary poster loaded; a real click played the hosted file (73.0 s, no media error); a seek to 45 s worked with the matching caption showing. Capture `04-cloudinary-clip-playing-seeked.jpg`.
 - **Local copy removed:** the uncommitted copy in `tests/universe-preview/media/` is gone; `&video=local` only works if it's restored.
 
+## Journey timing and Mass and power clips (follow-up)
+
+- **Files (not in git):** same pipeline, in `output/my-universe/videos/journey-timing/` and `output/my-universe/videos/mass-power/` (MP4, poster, captions, script).
+  - Scenes now live in each folder's `scenes.mjs`.
+  - Narration is built by `tools/narrate.py`.
+- **Journey timing** (Thalassa departure station, guided):
+  - 66.0 s, 5.9 MB, seekable, 20 caption cues.
+  - Covers: limits (80 days, 400 kg food), reading the concept table (average speed per row; time = distance ÷ speed), converting seconds to days with hints, then check the concepts, show the journey, recommend and send.
+- **Mass and power** (Ignis, advanced):
+  - 69.8 s, 5.9 MB, seekable, 19 cues.
+  - Covers: limits (150 days, 21,000 kg, 260 m²), the supplied rocket equation for chemical then ion, the mass ledger one row at a time, and the independent 140-day ion assumption ("not the timing case"), then the references, label the scenario, defend a conditional choice and send.
+- **No answers given:** neither clip states a result.
+- **Sync check:** `probe.mjs` frames at 40 s match the narration (Mass and power: "Model chemical propellant").
+- **Registry:** both entries are in `arrivalVideos.js` with their cues; `src` stays `null` until uploaded, so no player shows for them yet.
+- **Preview:** `?video=local` now covers all three clips (local copies in `tests/universe-preview/media/`, removed again after checking).
+- **5197 checks:**
+  - Mass and power on Ignis: "Arrived · Ignis · 1:10", plays, seeks to 50 s with the ledger caption. Capture `05-mass-power-ignis-playing.jpg`.
+  - Journey timing on Thalassa: "1:06", seeks to 40 s with the concept-table caption.
+- **Tests:** a registry test covers three routes, ordered non-empty cues, and links that are `null` or Cloudinary. Suite 151/151, shared 35/35; the build passes with no preview media in the bundle.
+
 ## Still open
+
+- **Uploads:** Mani uploads `journey-timing/how-it-works.mp4` and `mass-power/how-it-works.mp4` and sends both links; Opus sets them, then checks the hosted files the same way as wind.
+
 
 1. **Educator review:** GPT/educator review of the narration (`script.json`). The voice is synthetic; a human recording can replace the MP4 later with no code change if the timings are kept (or the cues are updated).
 4. **Not done:**

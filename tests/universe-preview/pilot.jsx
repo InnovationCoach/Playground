@@ -18,8 +18,11 @@ const EXPEDITIONS = [
 ];
 // Preview-only clip source: ?video=local plays the rendered file from ./media (not committed); ?video=<link> plays that link.
 const videoParam = flags.get('video');
-const previewVideos = videoParam ? { ...ARRIVAL_VIDEOS, 'thalassa-wind-survey|guided': { ...ARRIVAL_VIDEOS['thalassa-wind-survey|guided'],
-  src: videoParam === 'local' ? './media/thalassa-wind-how-it-works.mp4' : videoParam, poster: videoParam === 'local' ? './media/thalassa-wind-poster.jpg' : undefined } } : undefined;
+// ?video=local plays every clip from ./media/<name>-how-it-works.mp4; ?video=<link> sets the wind clip only.
+const LOCAL_CLIPS = { 'thalassa-wind-survey|guided': 'thalassa-wind', 'spacecraft-journey|guided': 'journey-timing', 'spacecraft-journey|advanced': 'mass-power' };
+const previewVideos = !videoParam ? undefined : videoParam === 'local'
+  ? Object.fromEntries(Object.entries(ARRIVAL_VIDEOS).map(([k, v]) => [k, { ...v, src: `./media/${LOCAL_CLIPS[k]}-how-it-works.mp4`, poster: `./media/${LOCAL_CLIPS[k]}-poster.jpg` }]))
+  : { ...ARRIVAL_VIDEOS, 'thalassa-wind-survey|guided': { ...ARRIVAL_VIDEOS['thalassa-wind-survey|guided'], src: videoParam } };
 const expeditionFor = (id) => { const x = EXPEDITIONS.find((e) => e.id === id); return x ? { planetId: x.planetId, missionId: x.missionId, routeId: x.routeId } : null; };
 const service = createSyntheticService({ latency: Number(flags.get('latency') ?? 350) });
 if (flags.get('mode')) service.setMode(flags.get('mode'));
