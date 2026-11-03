@@ -111,7 +111,7 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
   }, [key]);
 
   const body = useRef(null);
-  useEffect(() => { heading.current?.focus(); if (body.current) body.current.scrollTop = 0; }, [routeId, view]);
+  useEffect(() => { heading.current?.focus(); const sheet = body.current?.closest('.px-sheet'); if (sheet) sheet.scrollTop = 0; }, [routeId, view]);
 
   const loadHistory = useCallback(async (cursor) => {
     setHistory((h) => ({ ...h, state: cursor ? 'more' : 'loading' }));

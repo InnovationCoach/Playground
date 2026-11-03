@@ -1,7 +1,9 @@
 /* Pilot mission sheet (contract 0.1.1). Reuses the explorer's .mx-* tokens and controls. */
-.mx-mission.px-sheet { display: flex; flex-direction: column; max-width: 880px; overflow: clip; }
-.mx-mission.px-sheet > * { flex: 0 0 auto; }
-.mx-mission.px-sheet > .mx-mission-body { flex: 1 1 auto; min-height: 0; }
+.mx-mission-wrap:has(> .px-sheet) { grid-template-rows: minmax(0, 1fr); min-height: 0; }
+/* One scroll area for the whole sheet, including its header on short screens.
+   The zero-minimum grid track keeps the sheet inside the explorer viewport. */
+.mx-mission.px-sheet { display: block; min-height: 0; max-height: 100%; max-width: 880px; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; scrollbar-gutter: stable; }
+.mx-mission.px-sheet > .mx-mission-body { min-height: 0; overflow: visible; }
 .px-meta { margin: 4px 0 0; font-size: 12.5px; color: var(--mx-muted); }
 .px-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 18px; border-bottom: 1px solid var(--mx-border); }
 .px-tabs button, .px-ghost { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 7px 12px; border-radius: 9px; border: 1px solid var(--mx-border); background: #12294a; font-size: 13.5px; color: inherit; font: inherit; cursor: pointer; }
