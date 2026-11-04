@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import {
-  Users, CheckCircle2, Clock, AlertTriangle, ArrowRight, Sparkles,
+  Users, CheckCircle2, AlertTriangle, Sparkles,
   Award, Shield, ExternalLink, Activity, BookOpen, Wrench, Eye
 } from 'lucide-react';
 import { STUDENT_2E_PROFILES } from '../studio/learnerProfiles.js';
-import { getEvaluations } from '../evaluation/evaluationsStore.js';
 import { hrefFor } from '../../../app/routes.js';
 
 const WELEARN_8_STAGES = [
@@ -12,15 +11,13 @@ const WELEARN_8_STAGES = [
   'Testing', 'Iteration', 'Polish', 'Showcase'
 ];
 
-export function LearnerSupervisionView({ learners: providedLearners, onSelectLearnerForStudio, onGoToEvaluation }) {
+export function LearnerSupervisionView({ learners: providedLearners, onSelectLearnerForStudio }) {
   const [selectedCohort, setSelectedCohort] = useState('all');
 
   const learners = (providedLearners && providedLearners.length > 0)
     ? providedLearners
     : STUDENT_2E_PROFILES;
   const activeCount = learners.length;
-  const allEvals = getEvaluations();
-  const pendingEvals = allEvals.filter(e => e.status === 'pending').length;
   const onTrackPercent = learners.length > 0
     ? Math.round((learners.filter(l => l.status !== 'needs_support' && l.status !== 'behind').length / learners.length) * 100)
     : 100;
@@ -37,21 +34,6 @@ export function LearnerSupervisionView({ learners: providedLearners, onSelectLea
             <span className="cp-metric-val">{activeCount}</span>
             <span className="cp-metric-lbl">Active 2e Learners</span>
           </div>
-        </div>
-
-        <div className="cp-metric-card">
-          <div className="cp-metric-icon icon-amber">
-            <Clock size={20} />
-          </div>
-          <div className="cp-metric-info">
-            <span className="cp-metric-val">{pendingEvals}</span>
-            <span className="cp-metric-lbl">Submissions Awaiting Review</span>
-          </div>
-          {pendingEvals > 0 && (
-            <button className="cp-metric-btn" onClick={() => onGoToEvaluation?.()}>
-              Grade Now <ArrowRight size={13} />
-            </button>
-          )}
         </div>
 
         <div className="cp-metric-card">
@@ -163,12 +145,6 @@ export function LearnerSupervisionView({ learners: providedLearners, onSelectLea
                     <Sparkles size={14} /> Open in Studio
                   </button>
 
-                  <button
-                    className="cp-btn-primary"
-                    onClick={() => onGoToEvaluation?.(learnerId)}
-                  >
-                    <CheckCircle2 size={14} /> Evaluate Work
-                  </button>
                 </div>
               </div>
             );

@@ -244,6 +244,7 @@ export const geminiApi = {
     }
 
     const data = await response.json();
+    if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('The tutor returned an empty reply.');
     return data.reply;
   },
 

@@ -78,6 +78,7 @@ export async function requestDesignReview({ report, testReport, image }) {
     }
 
     const data = await response.json();
+    if (typeof data.review !== 'string' || !data.review.trim()) throw new Error('The AI reviewer returned an empty review.');
     return { source: 'ai', text: data.review, sawPhoto: Boolean(image), timestamp: data.timestamp };
   } catch (err) {
     return {
