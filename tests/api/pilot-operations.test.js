@@ -13,6 +13,8 @@ describe('Pilot operations', () => {
       await env.db.collection('users').doc(uid).set({ uid, role: name === 'forged' ? 'admin' : role, orgId: org, displayName: name, status: 'active' });
       tokens[name] = await env.getIdToken(uid, { role, orgId: org });
     }
+    // Student record written before orgId existed: treated as the default organization, so it is not listed for pilot-ops-org.
+    await env.db.collection('users').doc('pilot-ops-legacy').set({ uid: 'pilot-ops-legacy', role: 'student', displayName: 'Legacy student', status: 'active' });
     for (const collection of ['pilotLeave','pilotInventory','pilotAttendance']) {
       const snap = await env.db.collection(collection).where('orgId','==',orgId).get();
       for (const d of snap.docs) await env.db.recursiveDelete(d.ref);
@@ -36,7 +38,9 @@ describe('Pilot operations', () => {
     expect((await call('admin','PUT',path,{date:'2026-11-03',status:'present',reason:'Register taken',note:'Morning'})).status).toBe(200);
     expect((await call('admin','PUT',path,{date:'2026-11-03',status:'late',reason:'Arrived at 9:15',note:'Transport delay'})).status).toBe(200);
     const list = await call('admin','GET','/attendance?kind=students&date=2026-11-03');
-    expect(list.body.items.find(r => r.uid === 'pilot-ops-student')).toMatchObject({status:'late',note:'Transport delay'});
+    expect(list.body.items.find(r => r.uid === 'pilot-ops-student')).toMatchObject({status:'late',note:'Transport delay',accountStatus:'active'});
+    expect(list.body.items.find(r => r.uid === 'pilot-ops-student')).toHaveProperty('lastSignInAt');
+    expect(list.body.items.find(r => r.uid === 'pilot-ops-legacy')).toBeUndefined();
     const history = await call('admin','GET',`${path}/history?date=2026-11-03`);
     expect(history.body.items).toHaveLength(2);
     expect(history.body.items.some(r => r.before?.status === 'present' && r.after.status === 'late')).toBe(true);

@@ -85,7 +85,8 @@ export function AttendancePanel({ kind, canEdit }) {
     }
   }
 
-  const filtered = data.items.filter(r => r.name.toLowerCase().includes(search.toLowerCase()));
+  const query = search.trim().toLowerCase();
+  const filtered = data.items.filter(r => `${r.name} ${r.email || ''} ${r.publicId || ''}`.toLowerCase().includes(query));
 
   return (
     <div className="pilot">
@@ -147,7 +148,7 @@ export function AttendancePanel({ kind, canEdit }) {
             }} />
           </label>
           <div className="gh-grow gh-input-icon">
-            <input className="gh-input" type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search names" />
+            <input className="gh-input" type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search names, emails or IDs" />
           </div>
         </div>
         <div className="gh-table-wrap">
@@ -155,6 +156,7 @@ export function AttendancePanel({ kind, canEdit }) {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Login</th>
                 <th>Status</th>
                 <th>Note</th>
                 <th>Last updated</th>
@@ -164,7 +166,16 @@ export function AttendancePanel({ kind, canEdit }) {
             <tbody>
               {filtered.map(r => (
                 <tr key={r.uid} className="gh-row">
-                  <td><strong>{r.name}</strong></td>
+                  <td>
+                    <strong>{r.name}</strong>
+                    {r.publicId && <div className="gh-muted gh-mono">{r.publicId}</div>}
+                  </td>
+                  <td>
+                    <div>{r.email || '—'}</div>
+                    <div className="gh-muted">
+                      {r.accountDisabled ? 'Account suspended' : r.lastSignInAt ? `Last sign-in ${new Date(r.lastSignInAt).toLocaleString()}` : 'Never signed in'}
+                    </div>
+                  </td>
                   <td><span className={`pilot-status ${r.status}`}>{r.status}</span></td>
                   <td className="gh-muted">{r.note || '—'}</td>
                   <td className="gh-muted">{r.updatedAt ? `${new Date(r.updatedAt).toLocaleString()} · ${r.updatedBy?.name || ''}` : '—'}</td>

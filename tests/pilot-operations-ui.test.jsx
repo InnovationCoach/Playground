@@ -20,6 +20,22 @@ describe('Pilot operations screens', () => {
     await click('Edit');
     expect([...host.querySelectorAll('label')].find(l => l.textContent === 'Reason for change').querySelector('input').required).toBe(true);
   });
+  it('shows each student login email and last sign-in beside attendance', async () => {
+    schoolRequest.mockResolvedValue({ items: [
+      { uid: 'a', name: 'Alex', email: 'alex@example.org', lastSignInAt: '2026-11-03T01:00:00.000Z', status: 'unmarked', note: '' },
+      { uid: 'b', name: 'Bo', email: 'bo@example.org', lastSignInAt: null, status: 'unmarked', note: '' }
+    ] });
+    await render(<AttendancePanel kind="students" canEdit={false}/>);
+    expect(host.textContent).toContain('alex@example.org');
+    expect(host.textContent).toContain('Last sign-in');
+    expect(host.textContent).toContain('Never signed in');
+    const search = host.querySelector('input[type=search]');
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(search, 'bo@example');
+      search.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(host.textContent).not.toContain('Alex');
+  });
   it('keeps service errors visible instead of reporting empty attendance', async () => {
     schoolRequest.mockRejectedValue(new Error('Access unavailable'));
     await render(<AttendancePanel kind="staff" canEdit/>);
