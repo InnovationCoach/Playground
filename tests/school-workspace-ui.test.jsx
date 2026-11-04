@@ -6,6 +6,8 @@ vi.mock('../src/app/i18n/LocaleProvider.jsx',()=>({useLocale:()=>({locale:'en'})
 vi.mock('../src/firebase.js', () => ({ auth: { currentUser: { uid: 'coach' } }, storage: { ref: vi.fn() } }));
 vi.mock('../src/services/api/apiClient.js',()=>({schoolRequest:vi.fn()}));
 import { schoolRequest } from '../src/services/api/apiClient.js';
+import { ClassCourses } from '../src/features/courses/ClassCourses.jsx';
+import { parseRoute } from '../src/app/routes.js';
 import { SchoolLearningPanel } from '../src/features/school/SchoolLearningPanel.jsx';
 import { useSchoolResource } from '../src/features/school/useSchoolWorkspace.js';
 import { PROGRAM_CATALOGUE } from '../src/features/pbl/content/programCatalogue.js';
@@ -172,4 +174,21 @@ it('shows student activities and simulations in separate program sections',async
  expect(simulations.querySelector('details').open).toBe(false);
  expect(activities.textContent).toContain('Rainfall investigation');expect(activities.textContent).not.toContain('Tank simulation');
  expect(simulations.textContent).toContain('Tank simulation');expect(simulations.querySelector('.sw-simulation')).toBeTruthy();expect(activities.querySelector('.sw-simulation')).toBeNull();
+});
+
+it('searches enrolled class courses and links to the exact offering', async () => {
+  schoolRequest.mockImplementation((method, path) => {
+    if (path === '/api/learning-context') return Promise.resolve({ ...context, role: 'student' });
+    return Promise.resolve({ items: [
+      { id: 'rover-class', programId: 'rover', status: 'published', programDefinition: { title: 'Autonomous Rover' } },
+      { id: 'rover-draft', programId: 'draft', status: 'draft', programDefinition: { title: 'Draft Rover' } }
+    ] });
+  });
+  await act(async () => root.render(<ClassCourses uid="learner" query="rover" />));
+  const links = [...host.querySelectorAll('a')];
+  expect(links).toHaveLength(1);
+  expect(links[0].textContent).toContain('Autonomous Rover');
+  expect(parseRoute(links[0].hash)).toEqual({
+    screen: 'programs', schoolId: 'school', programId: 'rover', offeringId: 'rover-class'
+  });
 });

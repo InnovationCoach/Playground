@@ -286,7 +286,8 @@ export function App() {
           : (
             <div className="gh-app">
               {route.screen === 'programs'
-                ? <SchoolLearningPanel initialArea="programs" hideTabs />
+                ? <SchoolLearningPanel key={route.offeringId || 'programs'} initialArea="programs" hideTabs
+                    initialSchool={route.schoolId} initialProgram={route.programId} initialOffering={route.offeringId} />
                 : <JourneyPortfolio uid={user.uid} profile={profile} printView={route.print} />}
             </div>
           )}

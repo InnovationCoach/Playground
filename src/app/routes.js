@@ -56,6 +56,7 @@ export function parseRoute(hash) {
   if (head === 'primary-resources') return { screen: 'resources' };
   if (head === 'worksheet' && a) return { screen: 'worksheet', activityId: a };
   if (head === 'guide' && a) return { screen: 'guide', activityId: a };
+  if (head === 'programs' && a && b && c) return { screen: 'programs', schoolId: a, programId: b, offeringId: c };
   if (head === 'programs') return { screen: 'programs' };
   if (head === 'courses' && a === 'discover') return { screen: 'courses', discover: true };
   if (head === 'courses') return { screen: 'courses' };
@@ -93,7 +94,9 @@ export const hrefFor = {
   settings: () => '#/settings',
   courses: () => '#/courses',
   courseDiscovery: () => '#/courses/discover',
-  programs: () => '#/programs',
+  programs: (schoolId, programId, offeringId) => schoolId && programId && offeringId
+    ? '#/programs/' + [schoolId, programId, offeringId].map(encodeURIComponent).join('/')
+    : '#/programs',
   space: () => '#/space',
   journey: () => '#/journey',
   portfolio: () => '#/portfolio',

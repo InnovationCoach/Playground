@@ -9,8 +9,8 @@ import { hrefFor } from '../../app/routes.js';
 import { HOME_HERO_URL } from '../../app/brand.js';
 import { buildCatalog, searchCatalog } from '../courses/catalog.js';
 import { useAddedCourses } from '../courses/useAddedCourses.js';
+import { ClassCourses } from '../courses/ClassCourses.jsx';
 import { CatalogCard } from '../courses/CatalogCard.jsx';
-import { getCustomPrograms, saveCustomProgram } from '../coach/programs/customProgramsStore.js';
 import { db, collection, query as firestoreQuery, where, getDocs } from '../../firebase.js';
 import { normaliseContractProgram } from '../../services/pblService.js';
 import { subscribeToPblTransfers } from '../coach/studio/pblTransferService.js';
@@ -51,7 +51,6 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
   const { t } = useLocale();
   // SPARK Home's search box opens this page at #/search/<query>.
   const [q, setQ] = useState(initialQuery);
-  const [customPrograms, setCustomPrograms] = useState(() => Object.values(getCustomPrograms()));
   const [remotePrograms, setRemotePrograms] = useState([]);
 
   // Sync with initialQuery when route updates
@@ -61,68 +60,37 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
     }
   }, [initialQuery]);
 
-  // Listen for local custom program updates
+  // Confirm open catalogue visibility on the server instead of reusing
+  // browser-cached publications after a coach moves them back to draft.
   useEffect(() => {
-    const onCustomChanged = () => {
-      setCustomPrograms(Object.values(getCustomPrograms()));
-    };
-    window.addEventListener('pbl-custom-programs-changed', onCustomChanged);
-    return () => window.removeEventListener('pbl-custom-programs-changed', onCustomChanged);
-  }, []);
-
-  // Fetch published programs from Firestore
-  useEffect(() => {
-    let cancelled = false;
-
+    let active = true;
+    let request = 0;
     async function loadPublishedPrograms() {
+      const current = ++request;
       try {
-        const publishedSnap = await getDocs(
-          firestoreQuery(collection(db, 'pbl_programs'), where('status', '==', 'published'))
-        );
-        const loaded = [];
-        publishedSnap.forEach((d) => {
-          const prog = normaliseContractProgram({ id: d.id, ...d.data() });
-          if (prog) {
-            saveCustomProgram(prog);
-            loaded.push(prog);
-          }
-        });
-        if (!cancelled && loaded.length > 0) {
-          setRemotePrograms((prev) => {
-            const map = new Map(prev.map((p) => [p.id, p]));
-            for (const p of loaded) map.set(p.id, p);
-            return Array.from(map.values());
-          });
-        }
-      } catch (err) {
-        console.warn('[HomeSearch] Remote programs load notice:', err?.message);
+        const snapshot = await getDocs(firestoreQuery(collection(db, 'pbl_programs'),
+          where('status', '==', 'published'), where('visibility', '==', 'centre')));
+        if (!active || current !== request) return;
+        setRemotePrograms(snapshot.docs.map(doc => normaliseContractProgram({ ...doc.data(), id: doc.id })));
+      } catch {
+        if (active && current === request) setRemotePrograms([]);
       }
     }
 
+    setRemotePrograms([]);
+    if (!uid) return;
     loadPublishedPrograms();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Subscribe to real-time program publications across tabs/clients
-  useEffect(() => {
-    const unsub = subscribeToPblTransfers((data) => {
-      if (data?.program) {
-        saveCustomProgram(data.program);
-        setRemotePrograms((prev) => {
-          const map = new Map(prev.map((p) => [p.id, p]));
-          map.set(data.program.id, data.program);
-          return Array.from(map.values());
-        });
-      }
-    });
-    return unsub;
-  }, []);
+    const unsubscribe = subscribeToPblTransfers(loadPublishedPrograms);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [uid]);
 
   const catalog = useMemo(() => {
     const map = new Map();
     for (const p of PROGRAMS) map.set(p.id, p);
     for (const p of LIBRARY_PROGRAMS) map.set(p.id, p);
-    for (const p of customPrograms) map.set(p.id, p);
     for (const p of remotePrograms) map.set(p.id, p);
     const allPrograms = Array.from(map.values());
     return buildCatalog({
@@ -131,7 +99,7 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
       parseLabel: parseActivityLabel,
       includePartners: true
     });
-  }, [customPrograms, remotePrograms]);
+  }, [remotePrograms]);
 
   const query = q.trim();
   const results = useMemo(() => (query ? searchCatalog(catalog, query) : []), [catalog, query]);
@@ -248,6 +216,7 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
 
       {query ? (
         <>
+        {tab !== 'external' && type !== 'activity' && <ClassCourses uid={uid} query={query} />}
         {suggested.length > 0 && <Suggestions list={suggested} query={query} outlineFor={outlineFor} onDetails={setDetail} onOpenActivity={onOpenActivity} />}
         <section className="gh-page hs-results" aria-labelledby="hs-count">
           <h2 id="hs-count" className="hs-sr">{t(results.length === 1 ? 'home.resultCountOne' : 'home.resultCount', { n: results.length, q: query })}</h2>
