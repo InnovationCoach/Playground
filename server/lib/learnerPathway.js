@@ -1,3 +1,4 @@
+import { installCourseSuggestionRoute } from '../routes/course-suggestions.js';
 import { getFirestore } from 'firebase-admin/firestore';
 import { createHash } from 'node:crypto';
 import { assignedClass, learnerAccess, staff, requireId, requireText, fail } from './schoolScope.js';
@@ -12,11 +13,10 @@ const bounded = snap => {
 };
 
 export function installPathwayRoutes(router, { wrap, root, audit }) {
-  async function scope(req, write = false) {
+  async function scope(req, write = false, uid = requireId(req.params.learnerUid), classId = requireId(req.query.classId)) {
     const caller = req.schoolCaller;
     if (!['student', 'coach', 'teacher', 'admin'].includes(caller.role)) fail(403, 'FORBIDDEN', 'Pathways are available to learners and their assigned coaches.');
     if (write && !staff(caller) && caller.role !== 'admin') fail(403, 'FORBIDDEN', 'Only assigned coaches can confirm competencies.');
-    const uid = requireId(req.params.learnerUid), classId = requireId(req.query.classId);
     const learner = await learnerAccess(caller, req.schoolId, uid, classId);
     if (!learner.classIds?.includes(classId)) fail(403, 'FORBIDDEN', 'This learner is not in the selected class.');
     if (caller.role !== 'student') await assignedClass(caller, req.schoolId, classId);
@@ -36,11 +36,12 @@ export function installPathwayRoutes(router, { wrap, root, audit }) {
     ]);
     const achievements = bounded(mastery);
     const goals = bounded(goalSnap).filter(g => g.classId === scoped.classId);
-    const lessons = [], evidence = [];
+    const lessons = [], evidence = [], programs = [];
     for (const offering of bounded(offeringSnap).filter(o => o.status === 'published')) {
       const ref = root(req.schoolId).collection('programOfferings').doc(offering.id);
       const member = await read(ref.collection('members').doc(scoped.uid));
       if (!member.exists || member.data().status !== 'active' || member.data().classId !== scoped.classId) continue;
+      if (offering.programDefinition?.id) programs.push(offering.programDefinition);
       const [lessonSnap, submissionSnap] = await Promise.all([
         read(ref.collection('lessons').where('classId', '==', scoped.classId).limit(101)),
         read(ref.collection('submissions').where('learnerUid', '==', scoped.uid).limit(101))
@@ -61,13 +62,15 @@ export function installPathwayRoutes(router, { wrap, root, audit }) {
     return { revision, frameworkVersion: FRAMEWORK_VERSION, pathwayVersion: PATHWAY_VERSION, achievements,
       recommendations: recommendPathway({ lessons, achievements, goals }),
       quests: goals.filter(g => g.source === 'competency-pathway'),
-      evidence: req.schoolCaller.role === 'student' ? [] : evidence, lessons, reviewedEvidence: evidence };
+      evidence: req.schoolCaller.role === 'student' ? [] : evidence, lessons, reviewedEvidence: evidence, programs, goals };
   }
+
+  installCourseSuggestionRoute(router, { wrap, scope, context });
 
   const path = '/schools/:schoolId/learners/:learnerUid/pathway';
   router.get(path, wrap(async (req, res) => {
     const data = await context(req, await scope(req));
-    const { lessons, reviewedEvidence, ...view } = data;
+    const { lessons, reviewedEvidence, programs, goals, ...view } = data;
     res.json(view);
   }));
 

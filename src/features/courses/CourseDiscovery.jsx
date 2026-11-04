@@ -6,7 +6,7 @@ import './discovery.css';
 const TOPICS = ['All topics', 'Climate & energy', 'Robotics', 'Engineering', 'Coding', 'Living systems'];
 
 export function CourseDiscovery({ items = [], recommendations = [], achievements = [], name, loading = false, error,
-  recommendationError, onRetry, onChooseQuest, onOpenActivity, onOpenProgram, preview = false, externalAvailable = false }) {
+  recommendationError, suggestionMethod, onRetry, onChooseQuest, onOpenActivity, onOpenProgram, preview = false, externalAvailable = false }) {
   const [query, setQuery] = useState(''), [source, setSource] = useState('all'), [topic, setTopic] = useState('All topics');
   const [kind, setKind] = useState('All formats'), [detail, setDetail] = useState(null), [filtersOpen, setFiltersOpen] = useState(false);
   const [busy, setBusy] = useState(false), [notice, setNotice] = useState(''), [saveError, setSaveError] = useState('');
@@ -38,7 +38,7 @@ export function CourseDiscovery({ items = [], recommendations = [], achievements
     <div className="cd-topic-row" aria-label="Explore a topic">{TOPICS.slice(0, 5).map(t => <button type="button" key={t} className={topic === t ? 'is-active' : ''} aria-pressed={topic === t} onClick={() => setTopic(t)}>{t === 'All topics' && <Compass size={14} />}{t}</button>)}</div>
 
     <section className="cd-recommend" aria-labelledby="cd-recommend-title">
-      <div className="cd-recommend-head"><div><span className="cd-recommend-icon"><Sparkles size={20} /></span><div><h2 id="cd-recommend-title">A next step that fits <em>you.</em></h2><p>{name ? `${name.split(' ')[0]}, ` : ''}your goals and achievements help shape these suggestions.</p></div></div><span className="cd-method">{preview ? 'PERSONALIZATION PREVIEW' : 'COMPETENCY-BASED'}</span></div>
+      <div className="cd-recommend-head"><div><span className="cd-recommend-icon"><Sparkles size={20} /></span><div><h2 id="cd-recommend-title">A next step that fits <em>you.</em></h2><p>{name ? `${name.split(' ')[0]}, ` : ''}your goals and achievements help shape these suggestions.</p></div></div><span className="cd-method">{preview ? 'PERSONALIZATION PREVIEW' : suggestionMethod || 'COMPETENCY-BASED'}</span></div>
       <div className="cd-context"><span><ShieldCheck size={15} />YOUR FOUNDATION</span>{achievements.length ? achievements.slice(0, 3).map(a => <span className="cd-achievement" key={a.id}><Check size={12} />{a.title}</span>) : <p>Start exploring. Your coach can help identify your strengths.</p>}<small>{achievements.length ? 'Coach-confirmed' : 'No confirmed skills yet'}</small></div>
       {loading ? <p className="cd-soft-state" role="status">Finding your next steps…</p> : recommendationError ? <div className="cd-soft-state"><p>Your personalized suggestions couldn’t load. You can still explore courses below.</p><button onClick={onRetry} type="button">Try suggestions again <RotateCcw size={14} /></button></div> : suggested.length ? <div className="cd-suggestion-grid">{suggested.map((item, i) => <button type="button" key={item.id} className="cd-suggestion" onClick={() => open(item)}>
         <span className="cd-suggestion-number">0{i + 1}</span><span className="cd-suggestion-body"><span className="cd-mini-label">{item.source === 'external' ? 'EXPLORE FURTHER' : item.readiness === 'confirmed' ? 'BUILD ON YOUR STRENGTHS' : 'A PLACE TO START'}</span><strong>{item.title}</strong><span className="cd-suggestion-reason">{item.reason}</span><span className="cd-suggestion-link">Take a closer look <ArrowRight size={15} /></span></span>

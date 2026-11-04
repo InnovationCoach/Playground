@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CourseDiscovery } from './CourseDiscovery.jsx';
 import { discoveryCatalog, pathwayDiscovery } from './discoveryModel.js';
 import { confirmedIds } from '../quest/pathwayModel.js';
@@ -22,8 +22,25 @@ function LiveDiscoveryData({ uid, classIds, name, onOpenActivity }) {
   const recommendations = useMemo(() => pathwayDiscovery(pathway.data?.recommendations || [], offerings.data?.items || []), [pathway.data, offerings.data]);
   const achievements = useMemo(() => [...confirmedIds(pathway.data?.achievements || [])].map(id => ({ id, title: competencyById(id).title })), [pathway.data]);
   const denied = [context.error, offerings.error, pathway.error].some(e => [401, 403].includes(e?.status));
+  const [ai, setAi] = useState(null);
+  const classId = activeClass?.id;
+  const pathwayData = pathway.data;
+  useEffect(() => {
+    if (!schoolId || !classId || !pathwayData || denied || pathway.error) return;
+    let active = true;
+    mutateSchool('POST', '/api/learner/course-suggestions', { schoolId, classId })
+      .then(result => { if (active) setAi({ pathwayData, schoolId, classId, result }); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [schoolId, classId, pathwayData, denied, pathway.error]);
+  const currentAi = ai?.pathwayData === pathwayData && ai?.schoolId === schoolId && ai?.classId === classId && !denied && !pathway.error
+    ? ai.result : null;
+  const aiRecommendations = currentAi?.source === 'ai' ? currentAi.suggestions.flatMap(({ id, reason }) => {
+    const item = items.find(course => course.id === id);
+    return item ? [{ ...item, reason }] : [];
+  }) : [];
   return <CourseDiscovery key={`${uid}-${schoolId}-${activeClass?.id}-${denied ? 'revoked' : 'active'}`} name={name} items={denied ? discoveryCatalog() : items}
-    recommendations={denied || pathway.error ? [] : recommendations} achievements={denied || pathway.error ? [] : achievements}
+    recommendations={denied || pathway.error ? [] : aiRecommendations.length ? aiRecommendations : recommendations} suggestionMethod={aiRecommendations.length ? 'AI suggestion' : 'Standard suggestions'} achievements={denied || pathway.error ? [] : achievements}
     loading={context.loading || pathway.loading} error={context.error || offerings.error} recommendationError={context.error || pathway.error}
     onRetry={() => { context.reload(); offerings.reload(); pathway.reload(); }} onOpenActivity={onOpenActivity}
     onOpenProgram={() => { window.location.hash = hrefFor.programs(); }}
