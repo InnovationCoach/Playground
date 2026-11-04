@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateClaudeText } from './lib/ai/claudeMessages.js';
 import {
   SAFETY_SETTINGS,
   PERSONAS,
@@ -459,23 +460,24 @@ export function createApp(options = {}) {
         'Return ONLY valid JSON. No markdown, no code fences.'
       ].filter(Boolean).join('\n');
 
-      const result = await withTimeout(
-        executeWithRetry(
-          () => model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: {
-              maxOutputTokens: 3500,
-              temperature: 0.4,
-              responseMimeType: 'application/json'
-            }
-          }),
-          1,
-          1000
-        ),
-        25000
-      );
-
-      const { text, blocked, reason } = extractText(result);
+      // SYNTHESIS_PROVIDER=anthropic routes this call to Claude; anything else keeps Gemini.
+      const { text, blocked, reason } = process.env.SYNTHESIS_PROVIDER === 'anthropic'
+        ? { text: await withTimeout(generateClaudeText({ apiKey: process.env.ANTHROPIC_API_KEY, model: process.env.CLAUDE_MODEL || 'claude-haiku-5-5', prompt, maxTokens: 3500, temperature: 0.4 }), 25000), blocked: false }
+        : extractText(await withTimeout(
+          executeWithRetry(
+            () => model.generateContent({
+              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              generationConfig: {
+                maxOutputTokens: 3500,
+                temperature: 0.4,
+                responseMimeType: 'application/json'
+              }
+            }),
+            1,
+            1000
+          ),
+          25000
+        ));
       if (blocked) {
         return res.status(400).json({ error: 'Synthesizer prompt or response was blocked by safety filters', reason });
       }
