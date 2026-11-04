@@ -17,7 +17,18 @@
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border: 0;
+  border-radius: var(--gh-radius, 12px);
+  box-shadow: var(--gh-shadow-sm);
+  background: linear-gradient(135deg, #0f2c4c 0%, #1d3f6e 100%);
+  color: #ffffff;
 }
+.pilot .pilot-header h1,
+.pilot .pilot-header .gh-sub,
+.pilot .pilot-header .pilot-eyebrow { color: #ffffff; }
+.pilot-header .gh-sub { opacity: 0.9; }
+.pilot .pilot-header .pilot-eyebrow { color: #e3d4f7; }
 
 .pilot h1 {
   font-family: var(--gh-font-display, 'Plus Jakarta Sans', sans-serif);
@@ -271,6 +282,7 @@
   box-shadow: var(--gh-shadow-sm);
 }
 .pilot-rate-value { font-size: 2.4rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.pilot-rate-value.is-empty { font-size: 1.35rem; font-weight: 700; line-height: 1.3; }
 .pilot-rate-label { font-size: 0.85rem; font-weight: 600; opacity: 0.9; margin-top: 0.35rem; }
 .pilot-rate-note { font-size: 0.78rem; opacity: 0.8; margin-top: 0.15rem; }
 
