@@ -5,6 +5,8 @@ import { requireClaims } from '../middleware/auth.js';
 import { sendError } from '../lib/errors.js';
 import { generateJoinCode, normaliseJoinCode } from '../../src/utils/joinCode.js';
 import { writeAuditLog } from '../lib/audit.js';
+import { buildChildProgress, ACTIVITY_DOCS } from '../../src/features/parent/childProgress.js';
+import { TERM } from '../../src/features/pbl/content/pblModel.js';
 
 const router = Router();
 const SECRET = process.env.PARENT_INVITE_SECRET || 'dev-secret-key-phase0';
@@ -222,6 +224,54 @@ router.get('/parent/children', requireClaims, async (req, res) => {
   }
 
   return res.json({ items, nextPageToken: null, total: items.length });
+});
+
+// GET /api/parent/children/:uid/progress (parent): docs/PARENT-DASHBOARD-CONTRACT.md.
+// A child without an active link is NOT_FOUND, so the response does not reveal that the uid exists.
+router.get('/parent/children/:uid/progress', requireClaims, async (req, res) => {
+  if (req.caller.role !== 'parent') {
+    return sendError(res, 403, 'FORBIDDEN', 'Only parents can view linked children.');
+  }
+
+  const db = getFirestore();
+  const childUid = req.params.uid;
+  const linkSnap = await db.collection('parentLinks')
+    .where('parentUid', '==', req.caller.uid)
+    .where('studentUid', '==', childUid)
+    .where('status', '==', 'active')
+    .limit(1)
+    .get();
+  if (linkSnap.empty) {
+    return sendError(res, 404, 'NOT_FOUND', 'No such child.');
+  }
+  const link = linkSnap.docs[0].data();
+
+  const studentSnap = await db.collection('users').doc(childUid).get();
+  if (!studentSnap.exists) {
+    return sendError(res, 404, 'NOT_FOUND', 'No such child.');
+  }
+  const student = studentSnap.data();
+
+  const progressRef = db.collection('users').doc(childUid).collection('activityProgress');
+  const activityIds = Object.values(ACTIVITY_DOCS);
+  const [pblSnap, ...activitySnaps] = await Promise.all([
+    progressRef.doc(`pbl-${TERM.id}`).get(),
+    ...activityIds.map(id => progressRef.doc(id).get())
+  ]);
+  const activityDocs = {};
+  activityIds.forEach((id, i) => {
+    if (activitySnaps[i].exists) activityDocs[id] = activitySnaps[i].data();
+  });
+
+  const body = buildChildProgress({
+    child: { linkId: link.linkId || linkSnap.docs[0].id, ...(await buildChildSummary(db, student)) },
+    goalPlan: student.goalPlan ?? null,
+    pblProject: pblSnap.exists ? pblSnap.data() : null,
+    activityDocs,
+    edmentum: { status: 'not_connected' },
+    now: new Date()
+  });
+  return res.json(body);
 });
 
 // DELETE /api/admin/parent-links/:linkId (admin)
