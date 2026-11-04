@@ -28,6 +28,7 @@ import {
   getEdmentumLearnerScores,
   launchEdmentumCourse
 } from '../edmentum/edmentumService.js';
+import { ClassCourses } from './ClassCourses.jsx';
 import { CatalogCard, srOnly } from './CatalogCard.jsx';
 import '../admin/admin.css';
 import '../pbl/pbl.css';
@@ -243,6 +244,8 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
           <Stat icon={Route} value={saved.length} label={t('courses.stat.saved')} />
         </div>
       )}
+
+      {!isPrimary && ['all', 'program'].includes(source) && <ClassCourses uid={uid} query={q} />}
 
       {joined && <div style={{ marginTop: '1.5rem' }}><Alert type="success">{joined}</Alert></div>}
       {uid && classIds.length === 0 && (

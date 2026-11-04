@@ -86,12 +86,15 @@ export function SchoolLearningPanel({
   initialArea = 'programs',
   hideTabs = false,
   classScope = 'all',
-  learnerName = ''
+  learnerName = '',
+  initialSchool = '',
+  initialProgram = '',
+  initialOffering = ''
 }) {
   const context = useSchoolResource('/api/learning-context');
-  const [schoolId, setSchoolId] = useState(''),
+  const [schoolId, setSchoolId] = useState(initialSchool),
     [area, setArea] = useState(initialArea),
-    [programChoice, setProgramChoice] = useState('');
+    [programChoice, setProgramChoice] = useState(initialProgram);
   useEffect(() => setArea(initialArea), [initialArea]);
   const schools = context.data?.schools || [],
     school = schools.find(s => s.id === schoolId) || schools[0];
@@ -105,7 +108,7 @@ export function SchoolLearningPanel({
     {school && !context.error && <div key={`${school.id}-${role}-${classScope}`}>
       <p className="sw-muted">{school.name} · {role === 'admin' ? 'School administration' : role === 'parent' ? 'Your linked children' : role === 'student' ? 'Your learning' : 'Your assigned classes'}</p>
       {area === 'home' && (role === 'parent' ? <ParentOverview school={school} onNavigate={setArea}/> : role === 'student' ? <QuestArea school={school} classes={classes} learnerName={learnerName} onNavigate={setArea} onJoined={context.reload} onChooseProgram={id => { setProgramChoice(id); setArea('programs'); }} /> : ['admin','supervisor','teacher','coach'].includes(role) ? <W2eCoachSupportPanel school={school} classes={classes} /> : null)}
-      {area === 'programs' && (role==='parent' ? <ParentProgramProgress school={school}/> : <Programs school={school} classes={classes} role={role} onJoined={programId=>{setProgramChoice(programId||'');context.reload();}} initialProgram={programChoice} />)}
+      {area === 'programs' && (role==='parent' ? <ParentProgramProgress school={school}/> : <Programs school={school} classes={classes} role={role} onJoined={programId=>{setProgramChoice(programId||'');context.reload();}} initialProgram={programChoice} initialOffering={school.id === initialSchool ? initialOffering : ''} />)}
       {area === 'goals' && <Goals school={school} classes={classes} role={role} />}
       {area === 'academic' && <Academic school={school} classes={classes} role={role} />}
       {area === 'calendar' && <SchoolCalendar school={school} role={role} />}
@@ -117,13 +120,14 @@ function Programs({
   classes,
   role,
   onJoined,
-  initialProgram = ''
+  initialProgram = '',
+  initialOffering = ''
 }) {
   const {t}=useActivityText();
   const [creating,setCreating]=useState(false),[publishReviewed,setPublishReviewed]=useState(false);
   const offerings = useSchoolResource(schoolPath(school.id, 'program-offerings'),true);
   const [selected, setSelected] = useState(initialProgram || 'sustainable-futures'),
-    [offeringId, setOfferingId] = useState(''),
+    [offeringId, setOfferingId] = useState(initialOffering),
     [code, setCode] = useState(''),
     [year, setYear] = useState('2026-2027'),
     [classId, setClassId] = useState(classes[0]?.id || '');
