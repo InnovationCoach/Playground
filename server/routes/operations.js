@@ -20,70 +20,9 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// Default initial sample material requests if collection is empty
-const SAMPLE_MATERIALS = [
-  {
-    requestId: 'mat-001',
-    item: 'Digital Solar Irradiance Sensors',
-    category: 'Lab Equipment',
-    quantity: 5,
-    estimatedCost: 2500,
-    totalCost: 12500,
-    requestedByUid: 'coach-wpr-1',
-    requestedByName: 'Coach Sam',
-    requestedByEmail: 'coach.wpr@school.edu',
-    reason: 'For Year 11 Net Zero Microgrid solar efficiency measurements.',
-    status: 'pending',
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
-  },
-  {
-    requestId: 'mat-002',
-    item: 'Microplastics Water Sample Centrifuge',
-    category: 'Lab Equipment',
-    quantity: 2,
-    estimatedCost: 8900,
-    totalCost: 17800,
-    requestedByUid: 'coach-wpr-1',
-    requestedByName: 'Coach Sam',
-    requestedByEmail: 'coach.wpr@school.edu',
-    reason: 'Water quality analysis lab for Sustainable Futures cohort.',
-    status: 'approved',
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString()
-  },
-  {
-    requestId: 'mat-003',
-    item: 'Arduino Microcontroller Kits (Pack of 10)',
-    category: 'Tech/Hardware',
-    quantity: 3,
-    estimatedCost: 3500,
-    totalCost: 10500,
-    requestedByUid: 'coach-wpr-1',
-    requestedByName: 'Coach Sam',
-    requestedByEmail: 'coach.wpr@school.edu',
-    reason: 'Hands-on IoT sensors for air quality monitoring.',
-    status: 'fulfilled',
-    createdAt: new Date(Date.now() - 86400000 * 10).toISOString()
-  }
-];
-
-// Seed material requests if missing
-async function ensureMaterialRequestsSeed(db) {
-  const coll = db.collection('materialRequests');
-  const snap = await coll.get();
-  if (snap.empty) {
-    const batch = db.batch();
-    for (const item of SAMPLE_MATERIALS) {
-      batch.set(coll.doc(item.requestId), item);
-    }
-    await batch.commit();
-  }
-}
-
 // GET /api/admin/materials
 router.get('/materials', requireClaims, requireConsoleAccess, async (req, res) => {
   const db = getFirestore();
-  await ensureMaterialRequestsSeed(db);
-
   const snap = await db.collection('materialRequests').get();
   let rows = snap.docs.map(d => ({ requestId: d.id, ...d.data() }));
 
@@ -206,14 +145,15 @@ router.get('/billing', requireClaims, requireConsoleAccess, async (req, res) => 
   let rows = [];
   for (const docSnap of studentsSnap.docs) {
     const student = docSnap.data();
-    const b = billingMap[student.uid] || {};
+    const b = billingMap[student.uid];
+    // A student with no billing record has no tuition entered yet. Never invent an amount.
+    const hasRecord = Number(b?.totalTuition) > 0;
+    const totalTuition = hasRecord ? Number(b.totalTuition) : null;
+    const amountPaid = hasRecord ? Number(b.amountPaid) || 0 : 0;
+    const remainingBalance = hasRecord ? Math.max(0, totalTuition - amountPaid) : null;
 
-    const totalTuition = Number(b.totalTuition) || 120000; // Default term tuition in THB
-    const amountPaid = Number(b.amountPaid) || 0;
-    const remainingBalance = Math.max(0, totalTuition - amountPaid);
-    
-    let status = b.status;
-    if (!status) {
+    let status = hasRecord ? b.status : 'no_record';
+    if (hasRecord && !status) {
       if (amountPaid >= totalTuition) status = 'paid';
       else if (amountPaid > 0) status = 'partial';
       else status = 'overdue';
@@ -224,12 +164,12 @@ router.get('/billing', requireClaims, requireConsoleAccess, async (req, res) => 
       studentName: student.displayName || `${student.givenNames || ''} ${student.surname || ''}`.trim() || 'Student',
       email: student.email || '',
       publicId: student.publicId || null,
-      cohortId: student.cohortId || 'cohort-w2e',
+      cohortId: student.cohortId || null,
       totalTuition,
       amountPaid,
       remainingBalance,
       status,
-      nextBillingDate: b.nextBillingDate || '2026-11-01'
+      nextBillingDate: hasRecord ? (b.nextBillingDate || null) : null
     });
   }
 
@@ -249,9 +189,10 @@ router.get('/billing', requireClaims, requireConsoleAccess, async (req, res) => 
   }
 
   const totalRevenue = rows.reduce((sum, r) => sum + r.amountPaid, 0);
-  const totalOutstanding = rows.reduce((sum, r) => sum + r.remainingBalance, 0);
+  const totalOutstanding = rows.reduce((sum, r) => sum + (r.remainingBalance || 0), 0);
   const overdueCount = rows.filter(r => r.status === 'overdue').length;
   const paidCount = rows.filter(r => r.status === 'paid').length;
+  const noRecordCount = rows.filter(r => r.status === 'no_record').length;
 
   const page = paginateArray(rows, req.query.pageToken, req.query.pageSize);
 
@@ -265,6 +206,7 @@ router.get('/billing', requireClaims, requireConsoleAccess, async (req, res) => 
         totalOutstanding,
         overdueCount,
         paidCount,
+        noRecordCount,
         totalStudents: rows.length
       }
     }
@@ -286,8 +228,15 @@ router.post('/billing/:uid/payment', requireClaims, requireAdmin, async (req, re
   const snap = await billingRef.get();
   const existing = snap.exists ? snap.data() : {};
 
-  const totalTuition = Number(existing.totalTuition) || 120000;
+  // Tuition is entered by an admin, never assumed. An existing record keeps its tuition.
+  const totalTuition = Number(existing.totalTuition) > 0 ? Number(existing.totalTuition) : Number(req.body?.totalTuition);
+  if (!Number.isSafeInteger(totalTuition) || totalTuition <= 0) {
+    return sendError(res, 400, 'VALIDATION', 'Enter the term tuition for this student before recording a payment.');
+  }
   const currentPaid = Number(existing.amountPaid) || 0;
+  if (numAmount > totalTuition - currentPaid) {
+    return sendError(res, 400, 'VALIDATION', 'The payment is larger than the outstanding balance.');
+  }
   const newAmountPaid = currentPaid + numAmount;
   const remaining = Math.max(0, totalTuition - newAmountPaid);
   const newStatus = remaining === 0 ? 'paid' : 'partial';
@@ -298,7 +247,7 @@ router.post('/billing/:uid/payment', requireClaims, requireAdmin, async (req, re
     amountPaid: newAmountPaid,
     remainingBalance: remaining,
     status: newStatus,
-    nextBillingDate: nextBillingDate || existing.nextBillingDate || '2026-11-01',
+    nextBillingDate: nextBillingDate || existing.nextBillingDate || null,
     lastPaymentDate: new Date().toISOString(),
     lastPaymentAmount: numAmount,
     updatedAt: new Date().toISOString(),

@@ -19,6 +19,7 @@ export function StudentBillingOverview({ perms }) {
   const [activePaymentUser, setActivePaymentUser] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [nextDate, setNextDate] = useState('');
+  const [paymentTuition, setPaymentTuition] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
@@ -46,7 +47,8 @@ export function StudentBillingOverview({ perms }) {
   const handleOpenPaymentModal = (user) => {
     setActivePaymentUser(user);
     setPaymentAmount('');
-    setNextDate(user.nextBillingDate || '2026-11-01');
+    setPaymentTuition('');
+    setNextDate(user.nextBillingDate || '');
   };
 
   const handleRecordPayment = async (e) => {
@@ -54,9 +56,11 @@ export function StudentBillingOverview({ perms }) {
     if (!activePaymentUser || !paymentAmount) return;
     setSubmitting(true);
     try {
+      const needsTuition = activePaymentUser.totalTuition == null;
       await recordPayment(activePaymentUser.uid, {
         amount: Number(paymentAmount),
-        nextBillingDate: nextDate
+        nextBillingDate: nextDate,
+        ...(needsTuition ? { totalTuition: Number(paymentTuition) } : {})
       });
       setFeedback({ type: 'success', text: `Payment of ${formatCurrency(paymentAmount)} recorded for ${activePaymentUser.studentName}.` });
       setActivePaymentUser(null);
@@ -93,7 +97,9 @@ export function StudentBillingOverview({ perms }) {
     {
       key: 'totalTuition',
       label: 'Tuition Fee',
-      render: (u) => <strong>{formatCurrency(u.totalTuition)}</strong>
+      render: (u) => (u.totalTuition == null
+        ? <span className="gh-muted">Not set</span>
+        : <strong>{formatCurrency(u.totalTuition)}</strong>)
     },
     {
       key: 'amountPaid',
@@ -103,16 +109,21 @@ export function StudentBillingOverview({ perms }) {
     {
       key: 'remainingBalance',
       label: 'Balance Due',
-      render: (u) => (
-        <span style={{ color: u.remainingBalance > 0 ? '#ef4444' : '#6b7280', fontWeight: u.remainingBalance > 0 ? 600 : 400 }}>
-          {formatCurrency(u.remainingBalance)}
-        </span>
-      )
+      render: (u) => (u.remainingBalance == null
+        ? <span className="gh-muted">—</span>
+        : (
+          <span style={{ color: u.remainingBalance > 0 ? '#ef4444' : '#6b7280', fontWeight: u.remainingBalance > 0 ? 600 : 400 }}>
+            {formatCurrency(u.remainingBalance)}
+          </span>
+        ))
     },
     {
       key: 'status',
       label: t('accounts.col.status'),
       render: (u) => {
+        if (u.status === 'no_record') {
+          return <span className="gh-badge gh-badge-plain">No billing record</span>;
+        }
         if (u.status === 'paid') {
           return <span className="gh-badge gh-badge-active"><CheckCircle size={13} style={{ marginRight: 4 }} />Paid in Full</span>;
         }
@@ -126,7 +137,7 @@ export function StudentBillingOverview({ perms }) {
       key: 'nextBillingDate',
       label: 'Next Billing Cycle',
       nowrap: true,
-      render: (u) => <span className="gh-muted">{u.nextBillingDate}</span>
+      render: (u) => <span className="gh-muted">{u.nextBillingDate || '—'}</span>
     },
     ...(perms.editAccounts ? [{
       key: 'actions',
@@ -184,6 +195,7 @@ export function StudentBillingOverview({ perms }) {
           <option value="paid">Paid in Full</option>
           <option value="partial">Partial Payment</option>
           <option value="overdue">Overdue</option>
+          <option value="no_record">No billing record</option>
         </select>
       </label>
     </>
@@ -234,6 +246,9 @@ export function StudentBillingOverview({ perms }) {
           <div>
             <div className="gh-muted" style={{ fontSize: '0.85rem' }}>Overdue Accounts</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f59e0b' }}>{summary.overdueCount} Students</div>
+            {summary.noRecordCount > 0 && (
+              <div className="gh-muted" style={{ fontSize: '0.8rem' }}>{summary.noRecordCount} with no billing record yet</div>
+            )}
           </div>
         </div>
 
@@ -269,18 +284,35 @@ export function StudentBillingOverview({ perms }) {
           <div className="gh-card" style={{ width: 440, maxWidth: '90vw', margin: 'auto', padding: '24px' }}>
             <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Record Payment</h3>
             <p className="gh-sub" style={{ marginBottom: '20px' }}>
-              Recording tuition payment for <strong>{activePaymentUser.studentName}</strong> (Balance: {formatCurrency(activePaymentUser.remainingBalance)}).
+              {activePaymentUser.totalTuition == null
+                ? <>No tuition is recorded for <strong>{activePaymentUser.studentName}</strong> yet. Enter the term tuition with this payment.</>
+                : <>Recording tuition payment for <strong>{activePaymentUser.studentName}</strong> (Balance: {formatCurrency(activePaymentUser.remainingBalance)}).</>}
             </p>
 
             <form onSubmit={handleRecordPayment}>
+              {activePaymentUser.totalTuition == null && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '6px' }}>Term tuition (฿)</label>
+                  <input
+                    className="gh-input"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={paymentTuition}
+                    onChange={(e) => setPaymentTuition(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontWeight: 600, marginBottom: '6px' }}>Payment Amount (฿)</label>
                 <input
                   className="gh-input"
                   type="number"
                   min="1"
-                  max={activePaymentUser.remainingBalance}
-                  placeholder={`Max: ${activePaymentUser.remainingBalance}`}
+                  max={activePaymentUser.remainingBalance ?? undefined}
+                  placeholder={activePaymentUser.remainingBalance == null ? '' : `Max: ${activePaymentUser.remainingBalance}`}
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   required
@@ -311,7 +343,7 @@ export function StudentBillingOverview({ perms }) {
                 <button
                   type="submit"
                   className="gh-btn gh-btn-primary"
-                  disabled={submitting || !paymentAmount}
+                  disabled={submitting || !paymentAmount || (activePaymentUser.totalTuition == null && !paymentTuition)}
                 >
                   {submitting ? t('common.saving') : 'Confirm Payment'}
                 </button>
