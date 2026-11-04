@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Settings, LogOut, Menu } from 'lucide-react';
+import { ChevronDown, Settings, LogOut, Menu, Compass } from 'lucide-react';
 import { SparkWordmark } from '../spark/SparkMark.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { hrefFor } from '../../app/routes.js';
 import { LOGO_URL } from '../../app/brand.js';
 import { Avatar } from './Avatar.jsx';
 import { NotificationBell } from '../studentProfile/NotificationBell.jsx';
+import { QuickTourButton } from '../../components/Onboarding/StudentOnboardingModal.jsx';
 
 /**
  * Top bar for every signed-in screen: logo on the left, the account menu on
@@ -43,6 +44,7 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome, onMen
 
       {email && (
         <div className="gh-topbar-right" ref={wrapRef}>
+          {role === 'student' && <QuickTourButton />}
           {uid && <NotificationBell uid={uid} />}
           <button type="button" className="gh-user-btn" aria-haspopup="menu" aria-expanded={open}
                   onClick={() => setOpen((o) => !o)}>
@@ -60,6 +62,19 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome, onMen
                   {role && <span>{t(`role.${role}`)}</span>}
                 </div>
               </div>
+              {role === 'student' && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="gh-menu-item"
+                  onClick={() => {
+                    setOpen(false);
+                    window.dispatchEvent(new CustomEvent('spark:open-tour'));
+                  }}
+                >
+                  <Compass size={17} aria-hidden="true" />Guided Tour
+                </button>
+              )}
               <a role="menuitem" className="gh-menu-item" href={hrefFor.settings()} onClick={() => setOpen(false)}>
                 <Settings size={17} aria-hidden="true" />{t('common.settings')}
               </a>

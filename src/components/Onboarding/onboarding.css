@@ -1,0 +1,494 @@
+/* Student Onboarding & Interactive Guided Tour Modal Styles */
+
+.spark-onboarding-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  animation: sparkFadeIn 0.25s ease-out;
+}
+
+@keyframes sparkFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sparkSlideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.spark-onboarding-card {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: sparkSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #0f172a;
+}
+
+.spark-onboarding-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.15s ease;
+  z-index: 10;
+}
+
+.spark-onboarding-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #0f172a;
+}
+
+/* Header Banner */
+.spark-onboarding-banner {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+  color: #ffffff;
+  padding: 2.25rem 2rem 1.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.spark-onboarding-banner::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(234, 179, 8, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.spark-onboarding-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fef08a;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.spark-onboarding-title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0 0 0.4rem 0;
+  color: #ffffff;
+}
+
+.spark-onboarding-subtitle {
+  font-size: 0.95rem;
+  color: #c7d2fe;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Body Content */
+.spark-onboarding-body {
+  padding: 1.75rem 2rem;
+  max-height: calc(85vh - 200px);
+  overflow-y: auto;
+}
+
+/* Welcome Grid of Highlights */
+.spark-welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 600px) {
+  .spark-welcome-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.spark-welcome-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.spark-welcome-card:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.spark-welcome-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.6rem;
+  background: #ede9fe;
+  color: #4f46e5;
+}
+
+.spark-welcome-card h4 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: #1e293b;
+}
+
+.spark-welcome-card p {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Tour Content */
+.spark-tour-step {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.spark-tour-intro {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.spark-tour-step-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #e0e7ff;
+  color: #4338ca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.spark-tour-step-heading {
+  margin: 0 0 0.35rem 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.spark-tour-step-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #475569;
+}
+
+/* Interactive Demos inside Tour */
+.spark-interactive-widget {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.spark-widget-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6366f1;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Demo: Daily Task Item */
+.spark-demo-task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.spark-demo-task-row:hover {
+  border-color: #6366f1;
+}
+
+.spark-demo-task-row.is-done {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.spark-demo-task-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.spark-demo-checkbox {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.spark-demo-task-row.is-done .spark-demo-checkbox {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+/* Demo: PBL Phases */
+.spark-demo-phases-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+@media (max-width: 540px) {
+  .spark-demo-phases-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.spark-demo-phase-btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.6rem 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  transition: all 0.15s ease;
+}
+
+.spark-demo-phase-btn:hover,
+.spark-demo-phase-btn.active {
+  background: #4338ca;
+  color: #ffffff;
+  border-color: #4338ca;
+  transform: translateY(-1px);
+}
+
+.spark-demo-phase-desc {
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  color: #475569;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  border: 1px dashed #cbd5e1;
+}
+
+/* Demo: Competency Chips */
+.spark-demo-competencies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.spark-demo-comp-chip {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.spark-demo-comp-chip:hover,
+.spark-demo-comp-chip.active {
+  background: #ede9fe;
+  border-color: #818cf8;
+  color: #3730a3;
+}
+
+/* Demo: Coach Card */
+.spark-demo-coach-card {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+
+.spark-demo-coach-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.spark-demo-coach-name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #1e293b;
+}
+
+.spark-demo-coach-msg {
+  font-size: 0.8rem;
+  color: #475569;
+  margin-top: 0.2rem;
+  line-height: 1.35;
+}
+
+/* Footer & Controls */
+.spark-onboarding-footer {
+  padding: 1.25rem 2rem;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.spark-tour-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.spark-tour-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.spark-tour-dot.active {
+  width: 22px;
+  background: #4f46e5;
+}
+
+.spark-tour-dot.passed {
+  background: #818cf8;
+}
+
+.spark-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.spark-btn-secondary {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.spark-btn-secondary:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.spark-btn-primary {
+  background: #4338ca;
+  border: 1px solid #3730a3;
+  color: #ffffff;
+  padding: 0.55rem 1.2rem;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  box-shadow: 0 2px 4px rgba(67, 56, 202, 0.25);
+  transition: all 0.15s ease;
+}
+
+.spark-btn-primary:hover {
+  background: #3730a3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(67, 56, 202, 0.35);
+}
+
+/* Quick Tour Floating Trigger Pill */
+.spark-quick-tour-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4338ca;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.spark-quick-tour-pill:hover {
+  background: rgba(99, 102, 241, 0.18);
+  color: #312e81;
+}
