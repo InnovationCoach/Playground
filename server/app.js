@@ -464,7 +464,7 @@ export function createApp(options = {}) {
           () => model.generateContent({
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             generationConfig: {
-              maxOutputTokens: 3500,
+              maxOutputTokens: 8192,
               temperature: 0.4,
               responseMimeType: 'application/json'
             }
