@@ -14,11 +14,12 @@ describe('Pilot operations screens', () => {
   it('shows unmarked attendance and correction controls only to administrators', async () => {
     schoolRequest.mockResolvedValue({ items: [{uid:'one',name:'Alex',status:'unmarked',note:''}] });
     await render(<AttendancePanel kind="students" canEdit={false}/>);
-    expect(host.textContent).toContain('1 unmarked');
+    expect(host.textContent).toContain('Unmarked');
+    expect(host.textContent).toContain('1 of 1 still unmarked');
     expect(host.textContent).not.toContain('Edit');
     await render(<AttendancePanel kind="students" canEdit/>);
     await click('Edit');
-    expect([...host.querySelectorAll('label')].find(l => l.textContent === 'Reason for change').querySelector('input').required).toBe(true);
+    expect([...host.querySelectorAll('label')].find(l => l.textContent.startsWith('Reason for this change')).querySelector('input').required).toBe(true);
   });
   it('shows each student login email and last sign-in beside attendance', async () => {
     schoolRequest.mockResolvedValue({ items: [
