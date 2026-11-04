@@ -15,6 +15,7 @@ import { sendError } from './lib/errors.js';
 
 import sessionRouter from './routes/session.js';
 import adminUsersRouter from './routes/admin-users.js';
+import pilotOperationsRouter from './routes/pilot-operations.js';
 import referenceRouter from './routes/reference.js';
 import operationsRouter from './routes/operations.js';
 import parentsRouter from './routes/parents.js';
@@ -88,6 +89,7 @@ export function createApp() {
   app.use('/api/admin/users', adminUsersRouter);
   app.use('/api/admin', referenceRouter);
   app.use('/api/admin', operationsRouter);
+  app.use('/api/pilot', pilotOperationsRouter);
   app.use('/api', parentsRouter);
   app.use('/api', schoolWorkspaceRouter);
   app.use('/api', personalizationRouter);

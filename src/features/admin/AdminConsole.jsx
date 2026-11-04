@@ -13,6 +13,7 @@ import { StudentBillingOverview } from './billing/StudentBillingOverview.jsx';
 import { MaterialRequestsList } from './materials/MaterialRequestsList.jsx';
 import { SettingsPage } from '../settings/SettingsPage.jsx';
 import './admin.css';
+import { AttendancePanel, LeavePanel, InventoryPanel, PilotHome } from './pilot/PilotOperations.jsx';
 import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 
 const NAV = [
@@ -49,6 +50,14 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
     body = <StudentBillingOverview perms={perms} />;
   } else if (route.page === 'materials') {
     body = <MaterialRequestsList perms={perms} user={user} />;
+  } else if (route.page === 'staff-attendance' || route.page === 'student-attendance') {
+    body = <AttendancePanel key={route.page} kind={route.page === 'staff-attendance' ? 'staff' : 'students'} canEdit={role === 'admin'} />;
+  } else if (route.page === 'leave') {
+    body = <LeavePanel admin canEdit={role === 'admin'} />;
+  } else if (route.page === 'inventory') {
+    body = <InventoryPanel canEdit={role === 'admin'} />;
+  } else if (route.page === 'pilot') {
+    body = <PilotHome />;
   } else if (route.page === 'detail') {
     body = (
       <AccountDetail
@@ -100,6 +109,11 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
           </a>
         ))}
         <div className="gh-side-label">{t('nav.operations')}</div>
+        <a href="#/admin" className="gh-nav-link" aria-current={route.screen === 'admin' && route.page === 'pilot' ? 'page' : undefined}><FlaskConical size={18} strokeWidth={2} aria-hidden="true" />Overview</a>
+        <a href="#/admin/staff-attendance" className="gh-nav-link" aria-current={route.screen === 'admin' && route.page === 'staff-attendance' ? 'page' : undefined}><Users size={18} strokeWidth={2} aria-hidden="true" />Staff attendance</a>
+        <a href="#/admin/student-attendance" className="gh-nav-link" aria-current={route.screen === 'admin' && route.page === 'student-attendance' ? 'page' : undefined}><GraduationCap size={18} strokeWidth={2} aria-hidden="true" />Student attendance</a>
+        <a href="#/admin/leave" className="gh-nav-link" aria-current={route.screen === 'admin' && route.page === 'leave' ? 'page' : undefined}><HeartHandshake size={18} strokeWidth={2} aria-hidden="true" />Day-off requests</a>
+        <a href="#/admin/inventory" className="gh-nav-link" aria-current={route.screen === 'admin' && route.page === 'inventory' ? 'page' : undefined}><PackageCheck size={18} strokeWidth={2} aria-hidden="true" />Inventory</a>
         <a href={hrefFor.billing()} className="gh-nav-link"
            aria-current={route.screen === 'admin' && route.page === 'billing' ? 'page' : undefined}>
           <CreditCard size={18} strokeWidth={2} aria-hidden="true" />{t('nav.financials')}
