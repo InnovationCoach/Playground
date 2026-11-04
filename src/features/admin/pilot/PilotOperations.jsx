@@ -157,7 +157,7 @@ export function AttendancePanel({ kind, canEdit }) {
 
       <section className="pilot-att-hero" aria-label="Attendance overview">
         <div className="pilot-rate">
-          <span className="pilot-rate-value">{rate === null ? '—' : `${rate}%`}</span>
+          <span className={`pilot-rate-value ${rate === null ? 'is-empty' : ''}`}>{rate === null ? 'Not started' : `${rate}%`}</span>
           <span className="pilot-rate-label">attendance rate</span>
           <span className="pilot-rate-note">{marked ? `${marked} of ${total} marked` : 'Nobody marked yet'}</span>
         </div>

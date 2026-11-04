@@ -282,6 +282,7 @@
   box-shadow: var(--gh-shadow-sm);
 }
 .pilot-rate-value { font-size: 2.4rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.pilot-rate-value.is-empty { font-size: 1.35rem; font-weight: 700; line-height: 1.3; }
 .pilot-rate-label { font-size: 0.85rem; font-weight: 600; opacity: 0.9; margin-top: 0.35rem; }
 .pilot-rate-note { font-size: 0.78rem; opacity: 0.8; margin-top: 0.15rem; }
 
