@@ -1,9 +1,12 @@
 import { Router } from 'express';
+import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { requireClaims } from '../middleware/auth.js';
 import { sendError } from '../lib/errors.js';
 
 export const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+const DEFAULT_ORG = 'org-welearn';
+const STAFF_ROLES = ['admin', 'supervisor', 'teacher', 'coach'];
 const router = Router();
 router.use(requireClaims);
 // Privileged access comes from verified token claims, never an editable profile.
@@ -15,6 +18,24 @@ router.use((req, res, next) => {
 const consoleOnly = (req, res, next) => ['admin', 'supervisor'].includes(req.pilotRole) ? next() : sendError(res, 403, 'FORBIDDEN', 'Administrator access required.');
 const adminOnly = (req, res, next) => req.pilotRole === 'admin' ? next() : sendError(res, 403, 'FORBIDDEN', 'Only administrators can make changes.');
 const org = req => req.caller.orgId;
+// Sign-in details for the attendance list. Auth is read in batches of 100; a failed lookup
+// leaves the Firestore email in place rather than failing the whole list.
+async function loginDetails(uids) {
+  const details = new Map();
+  for (let i = 0; i < uids.length; i += 100) {
+    try {
+      const { users } = await getAuth().getUsers(uids.slice(i, i + 100).map(uid => ({ uid })));
+      users.forEach(u => details.set(u.uid, {
+        authEmail: u.email || null,
+        lastSignInAt: u.metadata?.lastSignInTime ? new Date(u.metadata.lastSignInTime).toISOString() : null,
+        accountDisabled: Boolean(u.disabled)
+      }));
+    } catch (error) {
+      console.warn('Pilot attendance: login details unavailable', error.message);
+    }
+  }
+  return details;
+}
 const actor = req => ({ uid: req.caller.uid, name: req.caller.displayName });
 const stamp = req => ({ updatedAt: new Date().toISOString(), updatedBy: actor(req) });
 const belongs = (req, record) => record?.orgId === org(req);
@@ -24,14 +45,30 @@ router.get('/attendance', consoleOnly, async (req, res) => {
   const { date, kind } = req.query;
   if (!validDate(date) || !['staff', 'students'].includes(kind)) return fail(res, 'Select a valid date and attendance group.');
   const db = getFirestore();
+  // Filter by role in the query and by organization in memory: older user records may have no
+  // orgId, and those are treated as the default organization everywhere else (see auth middleware).
   const [users, records] = await Promise.all([
-    db.collection('users').where('orgId', '==', org(req)).get(),
+    db.collection('users').where('role', 'in', kind === 'students' ? ['student'] : STAFF_ROLES).get(),
     db.collection('pilotAttendance').where('orgId', '==', org(req)).where('date', '==', date).get()
   ]);
+  const people = users.docs
+    .map(d => ({ uid: d.id, ...d.data() }))
+    .filter(u => (u.orgId || DEFAULT_ORG) === org(req));
+  const logins = await loginDetails(people.map(u => u.uid));
   const byUid = new Map(records.docs.map(d => [d.data().uid, d.data()]));
-  const items = users.docs.filter(d => kind === 'students' ? d.data().role === 'student' : ['admin', 'supervisor', 'teacher', 'coach'].includes(d.data().role)).map(d => {
-    const u = d.data();
-    return { uid: d.id, name: u.displayName || `${u.givenNames || ''} ${u.surname || ''}`.trim() || u.email || d.id, classIds: u.classIds || [], ...(byUid.get(d.id) || { status: 'unmarked', note: '' }) };
+  const items = people.map(u => {
+    const login = logins.get(u.uid) || {};
+    return {
+      uid: u.uid,
+      name: u.displayName || `${u.givenNames || ''} ${u.surname || ''}`.trim() || u.email || u.uid,
+      classIds: u.classIds || [],
+      publicId: u.publicId || null,
+      email: u.email || login.authEmail || null,
+      lastSignInAt: login.lastSignInAt || null,
+      accountStatus: u.status || null,
+      accountDisabled: login.accountDisabled ?? (u.status === 'suspended'),
+      ...(byUid.get(u.uid) || { status: 'unmarked', note: '' })
+    };
   }).sort((a, b) => a.name.localeCompare(b.name));
   res.json({ items });
 });
