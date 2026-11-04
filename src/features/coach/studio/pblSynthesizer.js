@@ -20,13 +20,14 @@ export async function synthesizeGroundedUnit({ learner, sources, customFocus = '
   const activeSources = sources.filter((s) => s.active);
   const groundingContext = activeSources.map((s) => `[SOURCE: ${s.title}]\n${s.excerpt}`).join('\n\n');
 
-  // Attempt backend Gemini endpoint first if server is reachable
+  // A failed generation must surface as an error. Never substitute the local
+  // template: it would look like a grounded unit and could be published as one.
+  let res;
   try {
     const token = await auth.currentUser?.getIdToken().catch(() => null);
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers.Authorization = `Bearer ${token}`;
-
-    const res = await fetch(`${API_BASE}/api/pbl/synthesize`, {
+    res = await fetch(`${API_BASE}/api/pbl/synthesize`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -36,21 +37,19 @@ export async function synthesizeGroundedUnit({ learner, sources, customFocus = '
         activeSources: activeSources.map((s) => s.id)
       })
     });
-
-    if (res.ok) {
-      const data = await res.json();
-      const parsed = PblUnitSchema.safeParse(data.unit);
-      if (parsed.success) {
-        return parsed.data;
-      }
-      console.warn('[Synthesizer] Backend returned unit with schema discrepancies, falling back to local grounded generator:', parsed.error);
-    }
-  } catch (err) {
-    console.info('[Synthesizer] Backend unavailable, running client-side grounded generator:', err.message);
+  } catch {
+    throw new Error('The AI service could not be reached. Check your connection and try again.');
   }
 
-  // Grounded Synthesizer Engine (deterministic, authentic grounded synthesis based on learner & sources)
-  return generateGroundedUnitLocal({ learner, activeSources, customFocus });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(body?.error || 'The unit could not be generated. Please try again.');
+  }
+  const parsed = PblUnitSchema.safeParse(body?.unit);
+  if (!parsed.success) {
+    throw new Error('The generated unit did not match the expected format. Please try again.');
+  }
+  return parsed.data;
 }
 
 /**

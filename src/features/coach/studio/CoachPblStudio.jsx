@@ -189,10 +189,8 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
     try {
       const targetClassId = selectedClassId !== 'all' ? selectedClassId : null;
       const res = await publishProgramToCatalog(unit, coachUser?.uid, targetClassId);
-      setTransferredInfo({
-        ...res,
-        mode: 'catalog'
-      });
+      setTransferredInfo({ ...res, mode: 'catalog', title: unit.unitTitle });
+      setUnit(null);
       confettiFrom(triggerEl, { big: true });
       buzz([30, 60, 30]);
     } catch (err) {
@@ -213,10 +211,8 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
     try {
       const targetClassId = learner.classIds?.[0] || (selectedClassId !== 'all' ? selectedClassId : null);
       const res = await publishAndTransferToStudent(unit, learner.id || learner.uid, coachUser?.uid, targetClassId);
-      setTransferredInfo({
-        ...res,
-        mode: 'direct'
-      });
+      setTransferredInfo({ ...res, mode: 'direct', title: unit.unitTitle, learnerName: learner.name });
+      setUnit(null);
       confettiFrom(triggerEl, { big: true });
       buzz([30, 60, 30]);
     } catch (err) {
@@ -851,11 +847,11 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
                   </div>
                   {transferredInfo.mode === 'catalog' ? (
                     <span>
-                      <strong>{unit.unitTitle}</strong> is now live and findable in Student Search. Any learner can search for this course at <code>#/search</code>, add it, and start it.
+                      <strong>{transferredInfo.title}</strong> is now live and findable in Student Search. Any learner can search for this course at <code>#/search</code>, add it, and start it.
                     </span>
                   ) : (
                     <span>
-                      Active in <strong>{learner.name}'s</strong> dashboard. Real-time updates emitted to <code>#/pbl/programs/{transferredInfo.programId}</code>.
+                      <strong>{transferredInfo.title}</strong> is active in <strong>{transferredInfo.learnerName}'s</strong> dashboard. Real-time updates emitted to <code>#/pbl/programs/{transferredInfo.programId}</code>.
                     </span>
                   )}
                   <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
@@ -875,6 +871,13 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
                     >
                       <Eye size={14} /> Open Course View
                     </a>
+                    <button
+                      type="button"
+                      className="cp-btn-student-view"
+                      onClick={() => { setTransferredInfo(null); setTransferError(null); handleSynthesize(); }}
+                    >
+                      <Sparkles size={14} /> Create another unit
+                    </button>
                   </div>
                 </div>
               )}
