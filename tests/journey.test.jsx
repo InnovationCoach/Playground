@@ -143,8 +143,8 @@ describe('Portfolio maker', () => {
 });
 
 describe('Side menu', () => {
-  it('lists My space, the portfolio maker and the showcase under Create for students', () => {
+  it('lists My space and the portfolio maker under Create for students', () => {
     const create = menuFor('student', { onOpenGoals() {}, onOpenCourses() {}, onNavigate() {} }).find((g) => g.label === 'nav.groupCreate');
-    expect(create.items.map((i) => i.href)).toEqual(['#/space', '#/journey', '#/portfolio']);
+    expect(create.items.map((i) => i.href)).toEqual(['#/space', '#/journey']);
   });
 });
