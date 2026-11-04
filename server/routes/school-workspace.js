@@ -46,7 +46,7 @@ const audit = (tx, schoolId, caller, action, entityId, details = {}) => tx.set(r
   ...details,
   createdAt: now()
 });
-router.use((req, res, next) => /^\/(learning-context|schools|program-enrollments)(\/|$)/.test(req.path) ? next() : next('router'));
+router.use((req, res, next) => req.path === '/learner/course-suggestions' || /^\/(learning-context|schools|program-enrollments)(\/|$)/.test(req.path) ? next() : next('router'));
 router.use(requireClaims);
 router.use((req, res, next) => {
   if (!['GET', 'HEAD'].includes(req.method) && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) return sendError(res, 400, 'VALIDATION', 'A JSON object is required.');
