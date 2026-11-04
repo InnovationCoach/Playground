@@ -27,6 +27,7 @@ import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
 import { CoachPblStudio } from '../features/coach/studio/CoachPblStudio.jsx';
 import { CanvaPage } from '../features/canva/CanvaPage.jsx';
 import { EdmentumIntegrationConsole } from '../features/edmentum/EdmentumIntegrationConsole.jsx';
+import { StudentOnboardingModal } from '../components/Onboarding/StudentOnboardingModal.jsx';
 import { showActivity, hideAllActivities, isLegacyActivity, isReactActivity, trackActivityOpen, ACTIVITY_NAV } from '../features/activities/activityHost.js';
 import { SolarCarChallenge } from '../features/activities/solarCar/SolarCarChallenge.jsx';
 import { So2SulfateSimulation } from '../features/activities/so2Sulfate/So2SulfateSimulation.jsx';
@@ -431,6 +432,11 @@ export function App() {
     <>
       <Header {...headerProps} />
       {sidebar}
+
+      {/* Student Onboarding & Interactive Guided Tour */}
+      {role === 'student' && user && !isPrimary && (
+        <StudentOnboardingModal user={user} profile={profile} />
+      )}
 
       {/* Not on Goal setting or My Dashboard: both show today's checklist, and two copies of the plan on one screen would overwrite each other. */}
       {role === 'student' && !isPrimary && user && !['goals', 'dashboard', 'spark'].includes(route?.screen) && <DailyGoalsNotice uid={user.uid} />}
