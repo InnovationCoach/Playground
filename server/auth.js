@@ -33,11 +33,13 @@ export function initAdmin() {
   const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
     || path.join(__dirname, '..', 'scripts', 'firebase-admin-key.json');
 
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || 'dnd-master-73449.firebasestorage.app';
+
   try {
     if (fs.existsSync(keyPath)) {
-      initializeApp({ credential: cert(JSON.parse(fs.readFileSync(keyPath, 'utf8'))), projectId });
+      initializeApp({ credential: cert(JSON.parse(fs.readFileSync(keyPath, 'utf8'))), projectId, storageBucket });
     } else {
-      initializeApp();
+      initializeApp({ projectId, storageBucket });
     }
     adminReady = true;
   } catch (err) {

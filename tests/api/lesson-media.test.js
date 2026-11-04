@@ -19,4 +19,18 @@ describe('Lesson media validation', () => {
       await expect(validateLessonAttachments([attachment], prefix, bucket(metadata))).rejects.toMatchObject({ status: 400 });
     }
   });
+  it.each(['application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'])('accepts verified slide resources: %s', async contentType => {
+    const [saved] = await validateLessonAttachments([attachment], prefix, bucket({contentType,size:1024}));
+    expect(saved.contentType).toBe(contentType);
+  });
+  it('checks program resources against their own program path', async () => {
+    const programPrefix='programMedia/school/program/';
+    await expect(validateLessonAttachments([{path:`${programPrefix}coach/slides`,name:'Slides.pdf'}],programPrefix,bucket({contentType:'application/pdf',size:1024}))).resolves.toHaveLength(1);
+    await expect(validateLessonAttachments([attachment],programPrefix,bucket())).rejects.toMatchObject({status:400});
+  });
+  it('removes permanent download tokens before saving scoped resources', async () => {
+    const file={getMetadata:async()=>[{contentType:'application/pdf',size:1024,metadata:{firebaseStorageDownloadTokens:'permanent'}}],setMetadata:vi.fn()};
+    await validateLessonAttachments([attachment],prefix,()=>({file:()=>file}));
+    expect(file.setMetadata).toHaveBeenCalledWith({metadata:{firebaseStorageDownloadTokens:null}});
+  });
 });

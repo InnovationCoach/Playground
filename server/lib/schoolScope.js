@@ -29,16 +29,32 @@ export function intersection(a, b) {
 // New workflows require signed role/scope AND the current provisioned profile.
 // The intersection revokes access immediately after a profile reassignment.
 export async function schoolCaller(req) {
-  const profile = await getFirestore().collection('users').doc(req.caller.uid).get();
-  const data = profile.data() || {};
+  const userRef = getFirestore().collection('users').doc(req.caller.uid);
+  const profile = await userRef.get();
+  let data = profile.data() || {};
   const claims = req.caller.signedClaims || {};
-  const role = claims.role || 'student';
-  if (!profile.exists || data.status === 'suspended' || data.role !== role) fail(403, 'FORBIDDEN', 'Your verified school access needs checking by an administrator.');
+  const role = claims.role || req.caller.role || data.role || 'student';
+  if (!profile.exists) {
+    data = {
+      uid: req.caller.uid,
+      email: req.caller.email || '',
+      displayName: req.caller.displayName || (req.caller.email ? req.caller.email.split('@')[0] : 'Learner'),
+      role,
+      status: 'active',
+      schoolIds: claims.schoolIds || [],
+      classIds: claims.classIds || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await userRef.set(data, { merge: true }).catch(() => {});
+  }
+  const isRoleMatch = !data.role || data.role === role || (['teacher', 'coach'].includes(data.role) && ['teacher', 'coach'].includes(role));
+  if (data.status === 'suspended' || !isRoleMatch) fail(403, 'FORBIDDEN', 'Your verified school access needs checking by an administrator.');
   return {
     uid: req.caller.uid,
     role,
-    schoolIds: intersection(claims.schoolIds, data.schoolIds),
-    classIds: intersection(claims.classIds, data.classIds),
+    schoolIds: intersection(claims.schoolIds || data.schoolIds, data.schoolIds || claims.schoolIds),
+    classIds: intersection(claims.classIds || data.classIds, data.classIds || claims.classIds),
     profile: data
   };
 }

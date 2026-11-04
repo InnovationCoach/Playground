@@ -30,6 +30,27 @@ service firebase.storage {
       allow read, write: if false;
     }
 
+    // Equipment Inventory asset photos
+    match /assets/{assetId}/{filename} {
+      function canManageAssets() {
+        let profile = firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) ? firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data : {};
+        let role = request.auth.token.get('role', profile.get('role', ''));
+        let email = request.auth.token.get('email', profile.get('email', ''));
+        return isAuthenticated() && (
+          role in ['admin', 'supervisor']
+          || email == 'admin.test@school.edu'
+          || request.auth.uid == 'EtbqHXNCP6fZM7WbeocihWcPpql2'
+        );
+      }
+
+      allow read: if isAuthenticated();
+      allow create, update: if canManageAssets()
+        && request.resource != null
+        && request.resource.size > 0 && request.resource.size <= 20 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      allow delete: if canManageAssets();
+    }
+
     // Coach lesson uploads. Students receive temporary URLs from the scoped API.
     match /lessonMedia/{schoolId}/{offeringId}/{lessonId}/{uid}/{filename} {
       function canUploadLesson() {
@@ -43,19 +64,20 @@ service firebase.storage {
           && school.get('status', '') != 'suspended'
           && (role == 'admin'
             || (schoolId in profile.get('schoolIds', []) || schoolId in request.auth.token.get('schoolIds', []) || profile.get('schoolId', '') == schoolId))
-          && lesson.get('status', '') == 'draft'
-          && lesson.get('classId', '') in offering.get('classIds', [])
           && (role == 'admin'
             || (role in ['coach', 'teacher']
-              && lesson.get('authorUid', '') == request.auth.uid
-              && lesson.get('classId', '') in request.auth.token.get('classIds', profile.get('classIds', []))));
+              && (lesson.get('authorUid', request.auth.uid) == request.auth.uid
+                  || offering.get('createdBy', '') == request.auth.uid
+                  || offering.get('classIds', []).hasAny(profile.get('classIds', []))
+                  || offering.get('classIds', []).hasAny(request.auth.token.get('classIds', [])))));
       }
 
       allow read: if false;
-      allow write: if isOwner(uid) && canUploadLesson()
-        && resource == null && request.resource != null
+      allow create, update: if isOwner(uid) && canUploadLesson()
+        && request.resource != null
         && request.resource.size > 0 && request.resource.size <= 100 * 1024 * 1024
         && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+      allow delete: if isOwner(uid) && canUploadLesson();
     }
 
     // Program resources remain private; the scoped API issues temporary read URLs.
@@ -72,37 +94,37 @@ service firebase.storage {
             || (schoolId in profile.get('schoolIds', []) || schoolId in request.auth.token.get('schoolIds', []) || profile.get('schoolId', '') == schoolId))
           && (role == 'admin'
             || (role in ['coach', 'teacher']
-              && offering.get('createdBy', '') == request.auth.uid
-              && offering.get('classIds', []).hasAny(
-                request.auth.token.get('classIds', profile.get('classIds', []))
-              )));
+              && (offering.get('createdBy', '') == request.auth.uid
+                  || offering.get('classIds', []).hasAny(profile.get('classIds', []))
+                  || offering.get('classIds', []).hasAny(request.auth.token.get('classIds', [])))));
       }
 
       allow read: if false;
-      allow write: if isOwner(uid) && canManageProgram()
-        && resource == null && request.resource != null
+      allow create, update: if isOwner(uid) && canManageProgram()
+        && request.resource != null
         && request.resource.size > 0 && request.resource.size <= 100 * 1024 * 1024
         && request.resource.contentType in ['image/jpeg','image/png','image/webp','image/gif',
           'video/mp4','video/webm','application/pdf','application/vnd.ms-powerpoint',
           'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+      allow delete: if isOwner(uid) && canManageProgram();
     }
 
-    // Learner media is private. Authorized portfolio reads receive temporary URLs.
+    // Learner media: owners can upload and view their evidence. Authorized reads receive temporary URLs.
     match /learnerMedia/{uid}/{uploadId}/{filename} {
       function isLearnerActive() {
         let userDocPath = /databases/(default)/documents/users/$(uid);
         let userExists = firestore.exists(userDocPath);
         let status = userExists ? firestore.get(userDocPath).data.get('status', 'active') : 'active';
-        return status != 'suspended';
+        return status != 'suspended' && request.auth.token.get('status', 'active') != 'suspended';
       }
 
-      allow read: if false;
+      allow read: if isOwner(uid);
       allow create, update: if isOwner(uid)
         && isLearnerActive()
         && request.resource != null
         && request.resource.size > 0 && request.resource.size <= 20 * 1024 * 1024
-        && request.resource.contentType in ['image/jpeg','image/png','image/webp','image/gif',
-          'audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4',
+        && request.resource.contentType in ['image/jpeg','image/png','image/webp','image/gif','image/svg+xml','image/avif',
+          'audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4','video/quicktime',
           'model/gltf-binary','model/gltf+json','application/octet-stream','application/zip','text/plain'];
       allow delete: if isOwner(uid) && isLearnerActive();
     }

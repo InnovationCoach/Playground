@@ -1,3 +1,4 @@
+import { MediaImage, MediaVideo, mediaKind } from '../media/MediaViewer.jsx';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../app/AuthProvider.jsx';
 import { sendMessage, onMessagesChanged, deleteMessage, getConversation, otherParticipantName } from './messagesAPI.js';
@@ -93,10 +94,10 @@ export function ConversationView({ conversationId, onBack }) {
                   {msg.text}
                   {msg.media?.map((m, i) => (
                     <div key={i} style={{ marginTop: '0.5rem' }}>
-                      {m.type === 'image' ? (
-                        <img src={m.url} alt="Attachment" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} />
+                      {mediaKind(m) === 'image' ? (
+                        <MediaImage src={m.url} alt="Attachment" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} />
                       ) : (
-                        <video src={m.url} controls style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} />
+                        <MediaVideo src={m.url} title="Message video" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} />
                       )}
                     </div>
                   ))}

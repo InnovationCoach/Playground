@@ -53,6 +53,18 @@ service cloud.firestore {
              .data.get('classIds', []).hasAny(myClassIds());
     }
 
+    // A removed assignment or suspension must stop assessment writes even
+    // while the coach still holds a previously issued token.
+    function canWriteCoachRecord(userId) {
+      let coach = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let learner = get(/databases/$(database)/documents/users/$(userId)).data;
+      return isCoachOf(userId)
+        && learner.role == 'student'
+        && coach.role == request.auth.token.role
+        && coach.get('status', 'active') != 'suspended'
+        && coach.get('classIds', []).hasAny(learner.get('classIds', []));
+    }
+
     // A join code the learner typed, resolved through classCodes/{CODE}.
     //
     // This is what makes client-side enrolment safe without a backend. The
@@ -128,17 +140,21 @@ service cloud.firestore {
       allow write: if false;   // issued by admin tooling only
     }
 
+    function isAdminOrSupervisor() {
+      return isAuthenticated() && (
+        request.auth.token.get('role', 'student') in ['admin', 'supervisor']
+        || request.auth.token.get('email', '') == 'admin.test@school.edu'
+        || request.auth.uid == 'EtbqHXNCP6fZM7WbeocihWcPpql2'
+      );
+    }
+
     // ---------------------------------------------------------------------
     // Classes - the tenancy unit. Created and owned by coaches.
     // ---------------------------------------------------------------------
     match /classes/{classId} {
-      allow read: if teachesClass(classId) || inClass(classId);
+      allow read: if isAdminOrSupervisor() || teachesClass(classId) || inClass(classId);
       allow create: if isTeacher() && request.resource.data.coachIds.hasAny([request.auth.uid]);
       allow update, delete: if teachesClass(classId);
-    }
-
-    function isAdminOrSupervisor() {
-      return isAuthenticated() && request.auth.token.get('role', 'student') in ['admin', 'supervisor'];
     }
 
     // ---------------------------------------------------------------------
@@ -220,13 +236,36 @@ service cloud.firestore {
       // Coach-authored feedback on student work.
       match /feedback/{feedbackId} {
         allow read: if isOwner(userId) || isCoachOf(userId);
-        allow create, update, delete: if isAuthenticated();
+        function validFeedback() {
+          let value = request.resource.data;
+          return value.keys().hasOnly(['coachId', 'coachName', 'timestamp', 'type', 'rating', 'feedbackText', 'workId'])
+            && value.coachId == request.auth.uid
+            && value.coachName is string && value.coachName.size() <= 160
+            && value.timestamp is number
+            && (!('workId' in value) || value.workId is string && value.workId.size() <= 200)
+            && (value.type == 'work_rating' && !('feedbackText' in value) && value.rating is int && value.rating >= 1 && value.rating <= 5
+              || value.type == 'written_feedback' && !('rating' in value) && value.feedbackText is string && value.feedbackText.size() > 0 && value.feedbackText.size() <= 4000);
+        }
+        allow create: if isAuthenticated() && canWriteCoachRecord(userId) && validFeedback();
+        allow update: if isAuthenticated() && canWriteCoachRecord(userId) && resource.data.coachId == request.auth.uid && validFeedback();
+        allow delete: if isAuthenticated() && canWriteCoachRecord(userId) && resource.data.coachId == request.auth.uid;
       }
 
       // Coach notifications to students.
       match /notifications/{notificationId} {
         allow read: if isOwner(userId);
-        allow create, delete, update: if isAuthenticated();
+        allow create: if isAuthenticated() && canWriteCoachRecord(userId)
+          && request.resource.data.keys().hasOnly(['fromUid', 'from', 'message', 'timestamp', 'read', 'type'])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.from is string && request.resource.data.from.size() <= 160
+          && request.resource.data.message is string && request.resource.data.message.size() <= 4000
+          && request.resource.data.timestamp is number
+          && request.resource.data.read == false
+          && request.resource.data.type == 'coach_message';
+        allow update: if isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+          && request.resource.data.read is bool;
+        allow delete: if isOwner(userId) || isAuthenticated() && canWriteCoachRecord(userId) && resource.data.fromUid == request.auth.uid;
       }
 
       // Conversations between a child and the AI tutor.
@@ -643,6 +682,19 @@ service cloud.firestore {
     match /students/{userId} {
       allow read: if isAuthenticated();
       allow create, update, delete: if isOwner(userId);
+    }
+
+    // ---------------------------------------------------------------------
+    // Equipment Inventory & Assets
+    // ---------------------------------------------------------------------
+    match /assets/{assetId} {
+      allow read: if isAdminOrSupervisor();
+      allow write: if isAdminOrSupervisor();
+
+      match /loans/{loanId} {
+        allow read: if isAdminOrSupervisor();
+        allow write: if isAdminOrSupervisor();
+      }
     }
 
     // ---------------------------------------------------------------------

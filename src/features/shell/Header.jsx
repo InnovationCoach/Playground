@@ -1,20 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Settings, LogOut, Sun, Moon } from 'lucide-react';
-import { useTheme } from '../../app/theme/ThemeProvider.jsx';
+import { ChevronDown, Settings, LogOut, Menu, Compass } from 'lucide-react';
+import { SparkWordmark } from '../spark/SparkMark.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { hrefFor } from '../../app/routes.js';
 import { LOGO_URL } from '../../app/brand.js';
-import { saveThemePreference } from '../../auth.js';
 import { Avatar } from './Avatar.jsx';
+import { NotificationBell } from '../studentProfile/NotificationBell.jsx';
+import { QuickTourButton } from '../../components/Onboarding/StudentOnboardingModal.jsx';
 
 /**
  * Top bar for every signed-in screen: logo on the left, the account menu on
  * the right (name, role, Settings, Sign out). Signed out, it shows the logo only.
  */
-export function Header({ email, displayName, role, uid, onSignOut, onHome }) {
+export function Header({ email, displayName, role, uid, onSignOut, onHome, onMenu, menuOpen = false }) {
   const { t } = useLocale();
-  const { effectiveTheme, setUserTheme } = useTheme();
-  const isDark = effectiveTheme === 'dark';
   const [open, setOpen] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
   const wrapRef = useRef(null);
@@ -31,26 +30,22 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome }) {
 
   return (
     <header className="gh-topbar">
+      {onMenu && (
+        <button type="button" className="gh-menu-btn" onClick={onMenu} aria-controls="gh-sidebar" aria-expanded={menuOpen}
+                aria-label={t(menuOpen ? 'nav.closeMenu' : 'nav.openMenu')}>
+          <Menu size={22} aria-hidden="true" />
+        </button>
+      )}
       <button type="button" className="gh-brand" onClick={onHome} aria-label={`WeLearn ${t('nav.home')}`}>
         {!logoFailed && <img src={LOGO_URL} alt="WeLearn" onError={() => setLogoFailed(true)} />}
         {!logoFailed && <span className="gh-brand-divider" aria-hidden="true" />}
-        <span className="gh-brand-name">{logoFailed ? 'WeLearn Growth Hub' : 'Growth Hub'}</span>
+        <span className="gh-brand-name"><SparkWordmark full={logoFailed} /></span>
       </button>
 
-      <div className="gh-topbar-right" ref={wrapRef}>
-        {/* Quick light/dark switch; Settings keeps the full light/dark/system choice. */}
-        <button type="button" className="gh-user-btn gh-theme-btn" aria-pressed={isDark}
-                aria-label={isDark ? t('settings.themeLight') : t('settings.themeDark')}
-                title={isDark ? t('settings.themeLight') : t('settings.themeDark')}
-                onClick={() => {
-                  const next = isDark ? 'light' : 'dark';
-                  setUserTheme(next);
-                  // Persist like Settings does; a failed save still keeps the choice for this session.
-                  if (uid) saveThemePreference(uid, next).catch((err) => console.warn('[Header] Could not save theme:', err?.message));
-                }}>
-          {isDark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
-        </button>
-        {email && (<>
+      {email && (
+        <div className="gh-topbar-right" ref={wrapRef}>
+          {role === 'student' && <QuickTourButton />}
+          {uid && <NotificationBell uid={uid} />}
           <button type="button" className="gh-user-btn" aria-haspopup="menu" aria-expanded={open}
                   onClick={() => setOpen((o) => !o)}>
             <Avatar name={name} seed={uid || email} size={30} />
@@ -67,6 +62,19 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome }) {
                   {role && <span>{t(`role.${role}`)}</span>}
                 </div>
               </div>
+              {role === 'student' && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="gh-menu-item"
+                  onClick={() => {
+                    setOpen(false);
+                    window.dispatchEvent(new CustomEvent('spark:open-tour'));
+                  }}
+                >
+                  <Compass size={17} aria-hidden="true" />Guided Tour
+                </button>
+              )}
               <a role="menuitem" className="gh-menu-item" href={hrefFor.settings()} onClick={() => setOpen(false)}>
                 <Settings size={17} aria-hidden="true" />{t('common.settings')}
               </a>
@@ -75,8 +83,8 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome }) {
               </button>
             </div>
           )}
-        </>)}
-      </div>
+        </div>
+      )}
     </header>
   );
 }

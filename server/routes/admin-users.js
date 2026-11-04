@@ -13,8 +13,9 @@ const router = Router();
 const ROLES = ['admin', 'supervisor', 'teacher', 'student', 'parent'];
 const STATUSES = ['pending', 'active', 'suspended'];
 const GENDERS = ['female', 'male', 'nonbinary', 'prefer_not_to_say'];
-const AGE_BANDS = ['primary', '13-15', '16-18'];
-const EDITABLE = ['salutation', 'givenNames', 'surname', 'phone', 'gender', 'cohortId', 'ageBand', 'yearLevel', 'dateOfBirth', 'programmeIds', 'locale'];
+const COHORTS = ['primary', 'lower-secondary', 'higher-secondary'];
+const AGE_BANDS = COHORTS;
+const EDITABLE = ['salutation', 'givenNames', 'surname', 'phone', 'gender', 'cohortId', 'cohort', 'ageBand', 'yearLevel', 'dateOfBirth', 'programmeIds', 'locale'];
 const SORTABLE = ['surname', 'givenNames', 'createdAt', 'status', 'publicId', 'email', 'role'];
 
 const E164 = /^\+[1-9]\d{7,14}$/;
@@ -98,9 +99,11 @@ async function buildFullRecord(db, user, callerRole) {
   };
 
   if (user.role === 'student') {
+    const studentCohort = user.cohort || (user.ageBand === '13-15' ? 'lower-secondary' : user.ageBand === '16-18' ? 'higher-secondary' : user.ageBand) || null;
     Object.assign(record, {
       cohortId: user.cohortId || null,
-      ageBand: user.ageBand || null,
+      cohort: studentCohort,
+      ageBand: studentCohort || user.ageBand || null,
       yearLevel: user.yearLevel || null,
       consent: user.consent || null
     });
@@ -129,10 +132,12 @@ function formatListItem(u, activeLinkCountMap) {
   };
 
   if (u.role === 'student') {
+    const studentCohort = u.cohort || (u.ageBand === '13-15' ? 'lower-secondary' : u.ageBand === '16-18' ? 'higher-secondary' : u.ageBand) || null;
     Object.assign(item, {
       cohortId: u.cohortId || null,
+      cohort: studentCohort,
       yearLevel: u.yearLevel || null,
-      ageBand: u.ageBand || null
+      ageBand: studentCohort || u.ageBand || null
     });
   }
 
@@ -263,10 +268,13 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
   if (body.role === 'student') {
     if (!body.cohortId) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
     const cohortSnap = await db.collection('cohorts').doc(body.cohortId).get();
-    if (!cohortSnap.exists) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+    const KNOWN_COHORTS = ['cohort-wls', 'cohort-whs', 'cohort-w2e', 'cohort-wpr', 'cohort-lower-primary', 'cohort-higher-primary', 'cohort-lower-secondary', 'cohort-higher-secondary'];
+    if (!cohortSnap.exists && !KNOWN_COHORTS.includes(body.cohortId)) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
 
-    if (!body.ageBand || !AGE_BANDS.includes(body.ageBand)) {
-      return sendError(res, 400, 'VALIDATION', 'Choose an age band.', 'ageBand');
+    const rawCohort = body.cohort || body.ageBand;
+    const resolvedCohort = rawCohort === '13-15' ? 'lower-secondary' : rawCohort === '16-18' ? 'higher-secondary' : rawCohort;
+    if (!resolvedCohort || !COHORTS.includes(resolvedCohort)) {
+      return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', body.cohort ? 'cohort' : 'ageBand');
     }
   }
 
@@ -284,12 +292,14 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
   }
 
   const displayName = `${givenNames} ${surname}`;
+  const hasPassword = Boolean(body.password && String(body.password).trim().length >= 6);
   let authUser;
   try {
     authUser = await getAuth().createUser({
       email,
       displayName,
-      emailVerified: false
+      emailVerified: hasPassword,
+      ...(hasPassword ? { password: String(body.password).trim() } : {})
     });
   } catch (err) {
     return sendError(res, 500, 'INTERNAL', err.message);
@@ -309,12 +319,13 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
   };
   await getAuth().setCustomUserClaims(uid, claims);
 
-  const isPrimary = body.role === 'student' && body.ageBand === 'primary';
+  const assignedCohort = body.cohort || (body.ageBand === '13-15' ? 'lower-secondary' : body.ageBand === '16-18' ? 'higher-secondary' : body.ageBand);
+  const isPrimary = body.role === 'student' && assignedCohort === 'primary';
   const userDoc = {
     uid,
     publicId,
     role: body.role,
-    status: 'pending',
+    status: hasPassword ? 'active' : 'pending',
     givenNames,
     surname,
     displayName,
@@ -336,10 +347,12 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
   if (body.role === 'student') {
     Object.assign(userDoc, {
       cohortId: body.cohortId,
-      ageBand: body.ageBand,
+      cohort: assignedCohort,
+      ageBand: assignedCohort,
       yearLevel: body.yearLevel || null,
       dateOfBirth: body.dateOfBirth || null,
-      consent: isPrimary ? { status: 'required' } : null
+      // Per Mani (24 Oct 2026): no consent rules for now during testing/presentation
+      consent: null
     });
   }
 
@@ -440,7 +453,11 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
 
   if (user.role === 'student') {
     if ('cohortId' in body && !body.cohortId) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
-    if ('ageBand' in body && !AGE_BANDS.includes(body.ageBand)) return sendError(res, 400, 'VALIDATION', 'Choose an age band.', 'ageBand');
+    if ('cohort' in body && !COHORTS.includes(body.cohort)) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohort');
+    if ('ageBand' in body) {
+      const mapped = body.ageBand === '13-15' ? 'lower-secondary' : body.ageBand === '16-18' ? 'higher-secondary' : body.ageBand;
+      if (!COHORTS.includes(mapped)) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'ageBand');
+    }
   }
 
   const before = {};
@@ -455,6 +472,14 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
       updates[k] = nextVal;
     }
   });
+
+  if (updates.cohort) {
+    updates.ageBand = updates.cohort;
+  } else if (updates.ageBand) {
+    const mapped = updates.ageBand === '13-15' ? 'lower-secondary' : updates.ageBand === '16-18' ? 'higher-secondary' : updates.ageBand;
+    updates.cohort = mapped;
+    updates.ageBand = mapped;
+  }
 
   if (!Object.keys(after).length) {
     const record = await buildFullRecord(db, user, req.caller.role);
@@ -745,6 +770,59 @@ router.post('/:uid/change-email', requireClaims, requireAdmin, async (req, res) 
 
   await sendEmail({ to: newEmail, template: 'change-email', locale: 'en', data: { uid: req.params.uid, newEmail } });
   return res.json({ sent: true });
+});
+
+// POST /api/admin/users/:uid/set-password
+router.post('/:uid/set-password', requireClaims, requireAdmin, async (req, res) => {
+  const { password } = req.body || {};
+  if (!password || String(password).trim().length < 6) {
+    return sendError(res, 400, 'VALIDATION', 'Password must be at least 6 characters.', 'password');
+  }
+
+  const db = getFirestore();
+  const userSnap = await db.collection('users').doc(req.params.uid).get();
+  if (!userSnap.exists) {
+    return sendError(res, 404, 'NOT_FOUND', 'No such account.');
+  }
+
+  const user = userSnap.data();
+  const cleanPassword = String(password).trim();
+
+  try {
+    await getAuth().updateUser(user.uid, { password: cleanPassword, emailVerified: true });
+  } catch (err) {
+    if (err.code === 'auth/user-not-found') {
+      await getAuth().createUser({
+        uid: user.uid,
+        email: user.email,
+        password: cleanPassword,
+        displayName: user.displayName,
+        emailVerified: true
+      });
+      await getAuth().setCustomUserClaims(user.uid, {
+        role: user.role,
+        orgId: user.orgId || 'org-welearn',
+        schoolIds: user.schoolIds || [],
+        classIds: user.classIds || []
+      });
+    } else {
+      return sendError(res, 500, 'INTERNAL', err.message);
+    }
+  }
+
+  await db.collection('users').doc(user.uid).update({
+    status: 'active',
+    updatedAt: new Date().toISOString()
+  });
+
+  await writeAuditLog(db, {
+    caller: req.caller,
+    subjectUid: user.uid,
+    action: 'PASSWORD_RESET',
+    summary: 'Admin set login password'
+  });
+
+  return res.json({ success: true, message: 'Password updated successfully' });
 });
 
 // GET /api/admin/users/:uid/history

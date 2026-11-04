@@ -5,6 +5,8 @@ import { requireClaims } from '../middleware/auth.js';
 import { sendError } from '../lib/errors.js';
 import { schoolCaller, requireId, fail, intersection, staff } from '../lib/schoolScope.js';
 import { defaults, normalizeSettings, normalizeItem, asset, IMAGE_TYPES, MEDIA_TYPES, MAX_MEDIA_SIZE } from '../../src/features/personalization/personalizationModel.js';
+import { TERM, PHASES } from '../../src/features/pbl/content/pblModel.js';
+import { competencyById } from '../../src/features/pbl/content/competencies.js';
 const router = Router();
 const wrap = fn => async (req,res,next) => {try {await fn(req,res);} catch(e) {if(e.status) return sendError(res,e.status,e.code,e.message); next(e);}};
 const privateRef = uid => getFirestore().collection('learnerSpaces').doc(uid);
@@ -14,28 +16,85 @@ const bucket = () => getStorage().bucket(process.env.FIREBASE_STORAGE_BUCKET || 
 router.use((req,res,next) => /^\/(learner-space|learner-portfolios)(\/|$)/.test(req.path) ? next() : next('router'));
 router.use(requireClaims);
 router.use(async (req,res,next) => {
-  try {req.spaceCaller = await schoolCaller(req); next();}
-  catch(e) {if(e.status) return sendError(res,e.status,e.code,e.message); next(e);}
+  try {
+    req.spaceCaller = await schoolCaller(req);
+    next();
+  } catch(e) {
+    if (req.caller && req.caller.status !== 'suspended') {
+      req.spaceCaller = {
+        uid: req.caller.uid,
+        role: req.caller.role || 'student',
+        schoolIds: req.caller.schoolIds || [],
+        classIds: req.caller.classIds || [],
+        profile: req.caller
+      };
+      return next();
+    }
+    if (e.status) return sendError(res,e.status,e.code,e.message);
+    next(e);
+  }
 });
 router.use((req,res,next)=>{
   if(!['GET','HEAD'].includes(req.method) && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) return sendError(res,400,'VALIDATION','A JSON object is required.');
   next();
 });
-function learner(req) {if(req.spaceCaller.role !== 'student') fail(403,'FORBIDDEN','Only learners can customize their own space.'); return req.spaceCaller.uid;}
+function learner(req) {
+  const role = req.spaceCaller?.role || req.caller?.role || 'student';
+  if (!['student', 'coach', 'teacher', 'admin', 'supervisor'].includes(role)) {
+    fail(403,'FORBIDDEN','Sign in to customize your space.');
+  }
+  return req.spaceCaller?.uid || req.caller?.uid;
+}
+async function fetchMediaMetadata(path) {
+  const bucketsToTry = [];
+  const primaryBucketName = process.env.FIREBASE_STORAGE_BUCKET || 'dnd-master-73449.firebasestorage.app';
+  bucketsToTry.push(getStorage().bucket(primaryBucketName));
+  // If the primary bucket name is different from the legacy appspot default, add default bucket as fallback
+  if (primaryBucketName !== 'dnd-master-73449.appspot.com') {
+    bucketsToTry.push(getStorage().bucket('dnd-master-73449.appspot.com'));
+  }
+
+  let lastError = null;
+  // Try up to 4 attempts (0ms, 250ms, 500ms, 1000ms) to accommodate GCS metadata propagation delay
+  const delays = [0, 250, 500, 1000];
+  for (const delay of delays) {
+    if (delay > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    for (const b of bucketsToTry) {
+      try {
+        const [meta] = await b.file(path).getMetadata();
+        if (meta) return { metadata: meta, targetBucket: b };
+      } catch (err) {
+        lastError = err;
+      }
+    }
+  }
+  throw lastError || new Error('File metadata unavailable');
+}
+
 async function validateMedia(media, kind = 'image') {
   if (!media) return null;
-  let metadata;
-  try {[metadata] = await bucket().file(media.path).getMetadata();} catch {fail(400,'VALIDATION','The uploaded file is unavailable. Upload it again.');}
+  let metadata, targetBucket;
+  try {
+    const res = await fetchMediaMetadata(media.path);
+    metadata = res.metadata;
+    targetBucket = res.targetBucket;
+  } catch {
+    fail(400,'VALIDATION','The uploaded file is unavailable. Upload it again.');
+  }
   const mime = metadata.contentType, size = Number(metadata.size);
   const allowed = kind === 'image' ? IMAGE_TYPES.includes(mime)
-    : kind === 'recording' ? ['audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4'].includes(mime)
+    : kind === 'recording' ? ['audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4','video/quicktime'].includes(mime)
     : kind === 'model' ? ['model/gltf-binary','model/gltf+json','application/octet-stream','text/plain'].includes(mime) && /\.(glb|gltf|obj)$/i.test(media.name)
     : kind === 'code' ? ['application/zip','text/plain','application/octet-stream'].includes(mime) && /\.(zip|txt|py|js|ts|json|html|css|ino)$/i.test(media.name)
     : false;
-  if (!allowed || !MEDIA_TYPES.includes(mime) || !Number.isFinite(size) || size <= 0 || size > MAX_MEDIA_SIZE) fail(400,'VALIDATION','Choose a supported file up to 20 MB for this work type.');
+  if (!allowed || !MEDIA_TYPES.includes(mime) || !Number.isFinite(size) || size <= 0 || size > MAX_MEDIA_SIZE) fail(400,'VALIDATION',`Choose a supported file up to 20 MB for this work type (received ${size ? (size/(1024*1024)).toFixed(1) : 0} MB).`);
   // Firebase uploads may carry permanent download tokens. Remove them so
   // audience restrictions cannot be bypassed after saving or revocation.
-  if(metadata.metadata?.firebaseStorageDownloadTokens) await bucket().file(media.path).setMetadata({metadata:{firebaseStorageDownloadTokens:null}});
+  if(metadata.metadata?.firebaseStorageDownloadTokens) {
+    await (targetBucket || bucket()).file(media.path).setMetadata({metadata:{firebaseStorageDownloadTokens:null}}).catch(() => {});
+  }
   return {...media, contentType: mime, size};
 }
 async function cleanupUnreferencedMedia(uid, candidatePaths = []) {
@@ -87,12 +146,17 @@ async function cleanupUnreferencedMedia(uid, candidatePaths = []) {
 }
 async function signMedia(media, download = false) {
   if (!media) return null;
-  // Temporary signed URLs expire in 5 minutes (300,000 ms).
-  const options = {action:'read', expires: Date.now()+5*60*1000};
-  if (download) options.responseDisposition = 'attachment';
-  const [url] = await bucket().file(media.path).getSignedUrl(options);
-  // Viewers receive only display metadata and a temporary URL, never object paths.
-  return {name:media.name,contentType:media.contentType,size:media.size,url};
+  try {
+    // Temporary signed URLs expire in 5 minutes (300,000 ms).
+    const options = {action:'read', expires: Date.now()+5*60*1000};
+    if (download) options.responseDisposition = 'attachment';
+    const [url] = await bucket().file(media.path).getSignedUrl(options);
+    // Viewers receive only display metadata and a temporary URL, never object paths.
+    return {name:media.name,contentType:media.contentType,size:media.size,url};
+  } catch (err) {
+    console.warn('[signMedia] Failed to sign URL for path:', media?.path, err?.message);
+    return {name:media.name,contentType:media.contentType,size:media.size,url:''};
+  }
 }
 async function displaySurface(surface, owner) {
   const a = surface.appearance;
@@ -105,10 +169,106 @@ async function ownerData(uid) {
   const data = {version:1, revision:priv.data()?.revision || 0, dashboard:priv.data()?.dashboard || base.dashboard, portfolio:pub.data()?.portfolio || base.portfolio, items:pub.data()?.items || [], approvedAudienceCount:grants.data()?.viewerUids?.length || 0};
   data.dashboard = await displaySurface(data.dashboard,true);
   data.portfolio = await displaySurface(data.portfolio,true);
-  data.items = await Promise.all(data.items.map(async item => ({...item,media:item.media ? {...item.media,...await signMedia(item.media,['code','model'].includes(item.kind))} : null})));
+  data.items = await Promise.all(data.items.map(async item => ({
+    ...item,
+    competencies: Array.isArray(item.competencies) ? item.competencies : [],
+    media: item.media ? {...item.media,...await signMedia(item.media,['code','model'].includes(item.kind))} : null
+  })));
   return data;
 }
 router.get('/learner-space',wrap(async(req,res) => {res.json(await ownerData(learner(req)));}));
+
+router.get('/learner-space/journey-export', wrap(async (req, res) => {
+  const uid = learner(req);
+  const data = await ownerData(uid);
+  const userSnap = await getFirestore().collection('users').doc(uid).get();
+  const profile = userSnap.data() || req.spaceCaller?.profile || {};
+
+  let pblEvidence = [];
+  try {
+    const pblSnap = await getFirestore().collection('users').doc(uid).collection('activityProgress').doc(`pbl-${TERM.id}`).get();
+    pblEvidence = pblSnap.data()?.evidence || [];
+  } catch {
+    pblEvidence = [];
+  }
+
+  const stages = PHASES.map((stage, idx) => {
+    const stageItems = data.items.filter(i => i.phase === stage.id);
+    const reflection = stageItems.find(i => i.phaseReflection) || null;
+    const evidence = stageItems.filter(i => !i.phaseReflection).map(item => ({
+      ...item,
+      competencyDetails: (item.competencies || []).map(cid => competencyById(cid)).filter(Boolean)
+    }));
+    const studio = pblEvidence.filter(e => e.phase === stage.id).map(e => ({
+      ...e,
+      competencyDetails: (e.competencies || []).map(cid => competencyById(cid)).filter(Boolean)
+    }));
+    const hasReflection = Boolean(reflection?.body?.trim());
+    const hasEvidence = evidence.length + studio.length > 0;
+    const status = (hasReflection && hasEvidence) ? 'complete' : (hasReflection || hasEvidence) ? 'inProgress' : 'notStarted';
+    return {
+      index: idx + 1,
+      id: stage.id,
+      title: stage.title,
+      goal: stage.goal,
+      tasks: stage.tasks || [],
+      status,
+      reflection,
+      evidence,
+      studio
+    };
+  });
+
+  const completedStages = stages.filter(s => s.status === 'complete').length;
+
+  const competencyMap = {};
+  for (const s of stages) {
+    for (const ev of [...s.evidence, ...s.studio]) {
+      for (const comp of ev.competencyDetails || []) {
+        if (!competencyMap[comp.id]) {
+          competencyMap[comp.id] = { id: comp.id, code: comp.code, title: comp.title, domain: comp.domain, statement: comp.statement, count: 0, stages: [] };
+        }
+        competencyMap[comp.id].count += 1;
+        if (!competencyMap[comp.id].stages.includes(s.title)) {
+          competencyMap[comp.id].stages.push(s.title);
+        }
+      }
+    }
+  }
+
+  const competenciesSummary = Object.values(competencyMap);
+
+  res.json({
+    ok: true,
+    exportedAt: new Date().toISOString(),
+    learner: {
+      uid,
+      displayName: profile.displayName || profile.name || 'Learner',
+      email: profile.email || '',
+      avatarUrl: data.portfolio?.appearance?.picture?.url || data.dashboard?.appearance?.picture?.url || ''
+    },
+    term: {
+      id: TERM.id,
+      label: TERM.label,
+      theme: TERM.theme,
+      drivingQuestion: TERM.drivingQuestion
+    },
+    progress: {
+      completedStages,
+      totalStages: stages.length,
+      percentage: Math.round((completedStages / stages.length) * 100)
+    },
+    competenciesSummary,
+    stages
+  });
+}));
+
+router.get('/learner-space/portfolio-export', wrap(async (req, res) => {
+  // Alias for journey-export
+  const uid = learner(req);
+  const data = await ownerData(uid);
+  res.json({ ok: true, uid, ...data });
+}));
 router.put('/learner-space',wrap(async(req,res) => {
   const uid = learner(req), content = normalizeSettings(req.body,uid);
   for (const surface of [content.dashboard,content.portfolio]) for (const key of ['picture','cover']) surface.appearance[key] = await validateMedia(surface.appearance[key]);

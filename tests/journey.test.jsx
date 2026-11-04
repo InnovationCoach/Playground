@@ -14,6 +14,7 @@ vi.mock('../src/features/pbl/engine/usePblProject.js', () => ({
 vi.mock('../src/app/AuthProvider.jsx', () => ({ useAuth: () => ({ user: { uid: 'u1', email: 'akira@welearn.org' }, profile: { displayName: 'Akira', groupName: 'WPR Year 11 Climate' } }) }));
 vi.mock('../src/features/shell/useLearnerAvatar.js', () => ({ useLearnerAvatar: () => null, refreshLearnerAvatar: vi.fn() }));
 vi.mock('../src/features/shell/ActivitySearch.jsx', () => ({ ActivitySearch: () => null }));
+vi.mock('../src/services/api/apiClient.js', () => ({ schoolRequest: vi.fn(async () => ({ ok: true })) }));
 
 import { uploadLearnerFile } from '../src/features/personalization/usePersonalization.js';
 import { LocaleProvider } from '../src/app/i18n/LocaleProvider.jsx';
@@ -82,6 +83,11 @@ describe('journey model', () => {
     expect(normalizeItem({ ...base, phase: 'test' }, 'u1')).toMatchObject({ phase: 'test' });
     expect(normalizeItem(base, 'u1')).not.toHaveProperty('phase');
   });
+  it('accepts and normalizes linked competencies', () => {
+    const base = { kind: 'writing', title: 'Test evidence', body: 'Reflection body', audiences: [], phase: 'explore' };
+    const normalized = normalizeItem({ ...base, competencies: ['sdl-01', 'ctps-01', 'sdl-01', 'invalid!!code'] }, 'u1');
+    expect(normalized.competencies).toEqual(['sdl-01', 'ctps-01']);
+  });
 });
 
 describe('Portfolio maker', () => {
@@ -129,16 +135,62 @@ describe('Portfolio maker', () => {
   });
 
   it('renders a printable document and prints it', async () => {
-    space.current = makeSpace([{ id: 'r', phase: 'explore', kind: 'writing', title: 'R', body: 'My reflection', phaseReflection: true }]);
+    space.current = makeSpace([
+      { id: 'r', phase: 'explore', kind: 'writing', title: 'R', body: 'My reflection', phaseReflection: true },
+      { id: 'e1', phase: 'explore', kind: 'image', title: 'Solar Car Pic', body: 'Built chassis', competencies: ['sdl-01', 'ctps-01'], media: { url: 'https://media.example/car.jpg' } }
+    ]);
     const print = vi.spyOn(window, 'print').mockImplementation(() => {});
     await render(<JourneyPortfolio uid="u1" profile={{ displayName: 'Akira' }} printView />);
     expect(host.querySelector('.jd-cover h1').textContent).toBe('Design journey portfolio');
     expect(host.querySelectorAll('.jd-stage')).toHaveLength(7);
     expect(host.textContent).toContain('My reflection');
-    expect(host.textContent).toContain('No reflection written yet.');
+    expect(host.textContent).toContain('Solar Car Pic');
+    expect(host.textContent).toContain('Competency Profile');
     expect(document.body.classList.contains('jp-printing')).toBe(true);
     await act(async () => { button('Print or save as PDF').click(); });
     expect(print).toHaveBeenCalled();
+  });
+
+  it('allows attaching an image and linking competencies in evidence form', async () => {
+    space.current = makeSpace([]);
+    await render(<JourneyPortfolio uid="u1" profile={{ displayName: 'Akira' }} />);
+    await act(async () => { button('Add a note or link').click(); });
+
+    // Title and body
+    const titleInput = host.querySelector('form.jp-form input[required]');
+    await type(titleInput, 'My Robot Prototype');
+
+    // Attach image
+    const imageInput = host.querySelector('.jp-form-media input[type=file]');
+    const photo = new File(['robot'], 'robot.png', { type: 'image/png' });
+    await act(async () => {
+      Object.defineProperty(imageInput, 'files', { value: [photo], configurable: true });
+      imageInput.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(uploadLearnerFile).toHaveBeenCalledWith('u1', photo, 'image');
+
+    // Toggle a competency
+    const compBtn = host.querySelector('.jp-comp-chip-selectable');
+    expect(compBtn).toBeTruthy();
+    await act(async () => { compBtn.click(); });
+    expect(compBtn.getAttribute('aria-pressed')).toBe('true');
+
+    // Submit form
+    await act(async () => { button('Save').click(); });
+    expect(space.current.saveItem).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'My Robot Prototype',
+      kind: 'image',
+      competencies: expect.arrayContaining([expect.any(String)]),
+      phase: 'explore'
+    }));
+  });
+
+  it('displays linked competency badges on evidence cards', async () => {
+    const item = { id: 'ev1', phase: 'explore', kind: 'image', title: 'Solar Car', body: 'Test run', competencies: ['sdl-01'], media: { url: 'https://media.example/car.jpg' } };
+    space.current = makeSpace([item]);
+    await render(<JourneyPortfolio uid="u1" profile={{ displayName: 'Akira' }} />);
+    expect(host.querySelector('.jp-comp-badge')).toBeTruthy();
+    expect(host.querySelector('.jp-comp-badge').textContent).toContain('1.1.1 Goal Setting');
   });
 });
 

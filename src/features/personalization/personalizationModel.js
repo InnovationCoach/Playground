@@ -14,9 +14,9 @@ export const WIDGETS = {learning: 'School learning', goals: 'Learning goals', no
 export const LAYOUTS = {balanced: ['learning', 'goals', 'notes', 'about'], focus: ['goals', 'learning', 'about', 'notes'], journal: ['about', 'notes', 'learning', 'goals']};
 export const KINDS = {code: 'Code project', model: '3D model', image: 'Image', writing: 'Written reflection', recording: 'Recorded reflection'};
 export const AUDIENCES = {coaches: 'Assigned coaches', classmates: 'Classmates', wider: 'Approved wider audience'};
-export const IMAGE_TYPES = ['image/jpeg','image/png','image/webp','image/gif'];
-export const MEDIA_TYPES = [...IMAGE_TYPES,'audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4','model/gltf-binary','model/gltf+json','application/octet-stream','application/zip','text/plain'];
-export const MAX_MEDIA_SIZE = 20 * 1024 * 1024;
+export const IMAGE_TYPES = ['image/jpeg','image/png','image/webp','image/gif','image/svg+xml','image/avif'];
+export const MEDIA_TYPES = [...IMAGE_TYPES,'audio/webm','audio/ogg','audio/mpeg','audio/mp4','audio/wav','video/webm','video/mp4','video/quicktime','model/gltf-binary','model/gltf+json','application/octet-stream','application/zip','text/plain'];
+export const MAX_MEDIA_SIZE = 20 * 1024 * 1024; // 20 MB max for student media
 export function defaults() {
   const appearance = () => ({accent: 'plum', background: 'paper', picture: null, cover: null});
   return {version: 1, revision: 0, dashboard: {heading: 'My learning space', introduction: '', interests: '', goals: '', layout: 'balanced', widgetOrder: [...LAYOUTS.balanced], appearance: appearance()}, portfolio: {heading: 'My portfolio', introduction: '', interests: '', layout: 'gallery', appearance: appearance()}, items: []};
@@ -61,6 +61,13 @@ export function normalizeItem(value, uid) {
     if (!result.phase || result.kind !== 'writing') invalid('A stage reflection must be written work with a stage.');
     if (!result.body) invalid('Write your reflection before saving.');
     result.phaseReflection = true;
+  }
+  if (Array.isArray(value.competencies)) {
+    result.competencies = [...new Set(
+      value.competencies.filter(c => typeof c === 'string' && /^[a-z0-9_-]{1,40}$/i.test(c))
+    )].slice(0, 12);
+  } else if (value.competencies) {
+    result.competencies = [];
   }
   return result;
 }

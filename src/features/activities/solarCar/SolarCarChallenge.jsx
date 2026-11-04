@@ -1,3 +1,4 @@
+import { MediaImage } from '../../media/MediaViewer.jsx';
 /**
  * Activity 5 - Solar Car Challenge.
  *
@@ -967,7 +968,7 @@ function ReviewStage({ build, setField, report, testReport }) {
 
           {image ? (
             <>
-              <img className="sc-preview" src={image.dataUrl} alt="Your solar car" />
+              <MediaImage className="sc-preview" src={image.dataUrl} alt="Your solar car" />
               <div className="sc-actions">
                 <button className="sc-btn ghost" onClick={() => fileRef.current?.click()}>Choose a different photo</button>
                 <button className="sc-btn ghost" onClick={() => setImage(null)}>Remove</button>

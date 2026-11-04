@@ -3,6 +3,7 @@ import { useAuth } from './AuthProvider.jsx';
 import { useHashRoute } from './useHashRoute.js';
 import { parseRoute, hrefFor, isCoachWorkspaceRoute } from './routes.js';
 import { CONSOLE_ROLES } from './roles.js';
+import { signInDestination } from './landing.js';
 import { LoginPage } from '../features/auth/LoginPage.jsx';
 import { TopNav } from '../features/shell/TopNav.jsx';
 import { Header } from '../features/shell/Header.jsx';
@@ -147,16 +148,17 @@ function AppScreens() {
     import('../integrations/goalSettingIntegration.js').then(({ initializeGoalSettingForUser }) => initializeGoalSettingForUser(user.uid)).catch(() => { /* optional widget */ });
   }, [status, role, user, isPrimary]);
 
-  // Students land on My Courses, the plan's student home. Once per sign-in, and
-  // only when no other screen was asked for, so "Home" and deep links still work.
+  // Each role lands on its dedicated home screen once per sign-in,
+  // and only when no other screen was asked for, so deep links still work.
   const landedRef = useRef(null);
   useEffect(() => {
     if (status === 'signed-out') { landedRef.current = null; return; }
-    if (status !== 'ready' || role !== 'student' || isPrimary || !user) return;
+    if (status !== 'ready' || !user || !role) return;
     if (landedRef.current === user.uid) return;
     landedRef.current = user.uid;
-    if (!parseRoute(window.location.hash) && view === 'home') setHash(hrefFor.courses());
-  }, [status, role, isPrimary, user, view, setHash]);
+    const destination = signInDestination(role, isPrimary, window.location.hash);
+    if (destination) setHash(destination);
+  }, [status, role, isPrimary, user, setHash]);
 
   // Coaches must never land on a student activity view.
   useEffect(() => {

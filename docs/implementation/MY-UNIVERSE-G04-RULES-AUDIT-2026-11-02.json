@@ -1,0 +1,26 @@
+{
+  "score": 1,
+  "summary": "Baseline audit of the inherited Universe-related authority paths at e6e8085, before J02 fixes. This is a local source assessment, not a deployed-system test or a score for the entire application. Existing direct submission reads and profile creation can bypass assumptions about organization/class authority. J02 must close or avoid these paths and provide emulator evidence; a final assessment remains pending.",
+  "scope": "missionSubmissions; users/{uid} authority source; users/{uid}/activityProgress/universe-v1",
+  "base": "e6e8085",
+  "findings": [
+    {
+      "check": "Authority Source / create versus update",
+      "severity": "critical",
+      "issue": "The inherited users/{uid} create rule checks only owner UID and learner/student role. A client can create a profile with arbitrary orgId/classIds, or delete its own profile and recreate it, despite those fields being protected on update. requireClaims uses decoded.orgId || userData.orgId || org-welearn and decoded.classIds || userData.classIds. Merely removing the default does not make a profile-only tenant/class value server-authoritative.",
+      "recommendation": "For Universe, derive explicit organization and current role/class scope from a demonstrably server-controlled authority, not an arbitrary profile fallback. Reject missing/ambiguous authority. Include emulator cases for a newly created or deleted/recreated forged profile and for stale/revoked class scope. Keep changes scoped or return any wider profile-rule dependency as an explicit owner finding."
+    },
+    {
+      "check": "Identity-Level Security / direct-read bypass",
+      "severity": "critical",
+      "issue": "The inherited missionSubmissions read rule permits admin/supervisor reads and teacher class overlap without requiring matching organization. An API response filter alone does not close raw document access.",
+      "recommendation": "Make pilot submissions API-only or enforce equivalent explicit current organization/class scope in direct reads. Prove wrong-organization admin/coach and owner/foreign document cases in emulator rules tests."
+    },
+    {
+      "check": "Storage Abuse / Type Safety / Update Bypass",
+      "severity": "major",
+      "issue": "The inherited generic activityProgress match allows owner create/update without a universe-v1 field whitelist, type checks or nested-map bounds. A separate restrictive match will not override an overlapping permissive allow.",
+      "recommendation": "Restrict universe-v1 in the existing owning match on both create and update to bounded bookmarks/preferences. Keep API-owned mission drafts, approvals, grants and roles out. Test create followed by an invalid update and both directions of cross-owner writes."
+    }
+  ]
+}

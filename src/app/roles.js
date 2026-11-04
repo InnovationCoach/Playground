@@ -27,6 +27,8 @@ export function resolveRole(claims, profile) {
   if (claimRole === 'admin' || claimRole === 'supervisor' || claimRole === 'parent') return claimRole;
 
   const profileRole = profile?.role;
+  if (profileRole === 'admin' || profileRole === 'supervisor' || profileRole === 'parent') return profileRole;
+
   const isTeacher = claimRole === 'teacher' || claimRole === 'coach'
     || profileRole === 'teacher' || profileRole === 'coach';
   return isTeacher ? 'teacher' : 'student';
@@ -39,6 +41,9 @@ export function consolePermissions(role) {
     viewAccounts: isAdmin || role === 'supervisor',
     editAccounts: isAdmin,
     viewHistory: isAdmin || role === 'supervisor',
-    issueParentInvite: isAdmin
+    issueParentInvite: isAdmin,
+    viewInventory: isAdmin || role === 'supervisor',
+    editInventory: isAdmin,
+    loanInventory: isAdmin
   };
 }

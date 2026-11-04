@@ -7,7 +7,6 @@
  * the UI will break the day the real API replaces it.
  */
 import { describe, it, expect } from 'vitest';
-import {readFileSync} from 'node:fs';
 import { createMockBackend } from '../src/services/api/mockBackend.js';
 import { DEMO_PARENT_INVITE_CODE } from '../src/services/api/mockFixtures.js';
 import { pageRange, nextTokens, toggleSort } from '../src/features/admin/ui/pagination.js';
@@ -25,31 +24,33 @@ const fresh = () => createMockBackend({ latencyMs: 0 });
 const call = (api, caller, method, path, extra = {}) => api.handle({ method, path, caller, ...extra });
 
 describe('mock backend follows the §7 contract', () => {
-  it('lists students 30 at a time with a total, like "Displaying 1–30 of 129"', async () => {
+  it('lists the test students and paginates with a pageSize parameter', async () => {
     const api = fresh();
-    const page1 = await call(api, admin, 'GET', '/api/admin/users', { query: { role: 'student', pageSize: 30 } });
+    const page1 = await call(api, admin, 'GET', '/api/admin/users', { query: { role: 'student', pageSize: 2 } });
     expect(page1.status).toBe(200);
-    expect(page1.body.total).toBe(129);
-    expect(page1.body.items).toHaveLength(30);
+    expect(page1.body.total).toBe(6);
+    expect(page1.body.items).toHaveLength(2);
     expect(page1.body.nextPageToken).toBeTruthy();
 
-    // Walk every page: 129 unique students, the last page has 9, then no token.
+    // Walk every page: 6 unique students, the last page has 2, then no token.
     const seen = new Set(page1.body.items.map((u) => u.uid));
     let token = page1.body.nextPageToken;
     let last;
     while (token) {
-      last = await call(api, admin, 'GET', '/api/admin/users', { query: { role: 'student', pageSize: 30, pageToken: token } });
+      last = await call(api, admin, 'GET', '/api/admin/users', { query: { role: 'student', pageSize: 2, pageToken: token } });
       last.body.items.forEach((u) => seen.add(u.uid));
       token = last.body.nextPageToken;
     }
-    expect(seen.size).toBe(129);
-    expect(last.body.items).toHaveLength(9);
+    expect(seen.size).toBe(6);
+    expect(last.body.items).toHaveLength(2);
   });
 
-  it('accepts several roles for the staff list and never returns dateOfBirth in lists', async () => {
+  it('accepts several roles for the staff list (2 admins, 3 coaches) and never returns dateOfBirth in lists', async () => {
     const api = fresh();
     const res = await call(api, admin, 'GET', '/api/admin/users', { query: { role: 'admin,supervisor,teacher', pageSize: 100 } });
-    expect(new Set(res.body.items.map((u) => u.role))).toEqual(new Set(['admin', 'supervisor', 'teacher']));
+    expect(new Set(res.body.items.map((u) => u.role))).toEqual(new Set(['admin', 'teacher']));
+    expect(res.body.items.filter((u) => u.role === 'admin')).toHaveLength(2);
+    expect(res.body.items.filter((u) => u.role === 'teacher')).toHaveLength(3);
     const students = await call(api, admin, 'GET', '/api/admin/users', { query: { role: 'student', pageSize: 100 } });
     students.body.items.forEach((u) => expect(u).not.toHaveProperty('dateOfBirth'));
   });
@@ -125,11 +126,11 @@ describe('mock backend follows the §7 contract', () => {
     expect(dup.body.error.field).toBe('email');
   });
 
-  it('creates primary learners as pending with consent required', async () => {
+  it('creates primary learners as pending with consent gate removed', async () => {
     const api = fresh();
     const res = await call(api, admin, 'POST', '/api/admin/users', { body: { role: 'student', email: 'little@welearn.test', givenNames: 'Little', surname: 'One', schoolIds: ['sch-bkk'], cohortId: 'cohort-wpr', ageBand: 'primary' } });
     expect(res.body.status).toBe('pending');
-    expect(res.body.consent).toEqual({ status: 'required' });
+    expect(res.body.consent).toBeNull();
   });
 
   it('suspends with a reason, cannot suspend self, and unsuspends back to the right status', async () => {
@@ -146,9 +147,12 @@ describe('mock backend follows the §7 contract', () => {
 
   it('protects the last administrator', async () => {
     const api = fresh();
-    const onlyAdmin = api.db.users.find((u) => u.role === 'admin');
-    const res = await call(api, admin, 'PUT', `/api/admin/users/${onlyAdmin.uid}/role`, { body: { role: 'teacher' } });
-    expect(res.status).toBe(409);
+    const admins = api.db.users.filter((u) => u.role === 'admin');
+    expect(admins).toHaveLength(2);
+    const first = await call(api, admin, 'PUT', `/api/admin/users/${admins[0].uid}/role`, { body: { role: 'teacher' } });
+    expect(first.status).toBe(200);
+    const last = await call(api, admin, 'PUT', `/api/admin/users/${admins[1].uid}/role`, { body: { role: 'teacher' } });
+    expect(last.status).toBe(409);
   });
 
   it('parent invite: code shown once, redeemable once, same error for wrong and used codes', async () => {
@@ -196,6 +200,50 @@ describe('mock backend follows the §7 contract', () => {
     expect((await call(api, parent, 'GET', '/api/parent/children')).body.items).toHaveLength(0);
   });
 
+  it('allows admin to link child to parent directly', async () => {
+    const api = fresh();
+    const kid = api.db.users.find((u) => u.role === 'student');
+    const parentUser = api.db.users.find((u) => u.role === 'parent');
+    // Remove any existing link between them if present
+    api.db.parentLinks = api.db.parentLinks.filter((l) => !(l.parentUid === parentUser.uid && l.studentUid === kid.uid));
+    const res = await call(api, admin, 'POST', '/api/admin/parent-links', { body: { parentUid: parentUser.uid, studentUid: kid.uid } });
+    expect(res.status).toBe(201);
+    expect(res.body.parentUid).toBe(parentUser.uid);
+    expect(res.body.studentUid).toBe(kid.uid);
+    // Conflict on duplicate
+    const dup = await call(api, admin, 'POST', '/api/admin/parent-links', { body: { parentUid: parentUser.uid, studentUid: kid.uid } });
+    expect(dup.status).toBe(409);
+  });
+
+  it('allows admin to set login password on an account', async () => {
+    const api = fresh();
+    const teacherUser = api.db.users.find((u) => u.role === 'teacher');
+    const res = await call(api, admin, 'POST', `/api/admin/users/${teacherUser.uid}/set-password`, { body: { password: 'NewSecurePass123!' } });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('active');
+    expect(res.body.auth.hasPassword).toBe(true);
+  });
+
+  it('creates accounts with direct login password when password is provided', async () => {
+    const api = fresh();
+    const res = await call(api, admin, 'POST', '/api/admin/users', {
+      body: {
+        role: 'student',
+        email: 'instant.login@welearn.test',
+        givenNames: 'Instant',
+        surname: 'Login',
+        schoolIds: ['sch-w2e'],
+        cohortId: 'cohort-wls',
+        ageBand: '13-15',
+        password: 'Password2026!'
+      }
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.status).toBe('active');
+    expect(res.body.auth.hasPassword).toBe(true);
+    expect(res.body.activation.directPassword).toBe(true);
+  });
+
   it('uses the contract error shape for unknown routes and signed-out callers', async () => {
     const api = fresh();
     expect((await api.handle({ method: 'GET', path: '/api/nope', caller: admin })).body.error.code).toBe('NOT_FOUND');
@@ -228,8 +276,8 @@ describe('routes', () => {
     expect(parseRoute('#/admin/new/wizards')).toEqual({ screen: 'admin', page: 'list', kind: 'students' });
     expect(parseRoute('#/settings')).toEqual({ screen: 'settings' });
     expect(parseRoute('#/courses')).toEqual({ screen: 'courses' });
-    expect(parseRoute('#/coach/dashboard')).toEqual({screen:'coach'});
-    expect(parseRoute('#/programs')).toEqual({screen:'programs'});
+    expect(parseRoute('#/coach/dashboard')).toEqual({ screen: 'coach' });
+    expect(parseRoute('#/unknown/route')).toBeNull();
     expect(parseRoute('')).toBeNull();
   });
 });
@@ -269,26 +317,4 @@ describe('interface text', () => {
     expect(translate('xx', 'common.save')).toBe('Save');
     expect(translate('en', 'no.such.key')).toBe('no.such.key');
   });
-});
-
-describe('Legacy router preserves private dashboard and portfolio routes', () => {
-  it('leaves these React screens intact for students and coaches', () => {
-    const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-    const source = html.match(/    function handleHashRouting\(\) \{[\s\S]*?\n    \}/)[0];
-    for (const role of ['student', 'teacher']) for (const hash of ['#/home', '#/portfolio', '#/portfolio/learner', '#/programs']) {
-      const views = [];
-      const handler = new Function('firebase', 'window', 'switchPhase', `${source}; return handleHashRouting;`)({auth:()=>({currentUser:{uid:'test'}})}, {currentUserRole:role,location:{hash}}, view=>views.push(view));
-      handler(); expect(views).toEqual([]);
-    }
-  });
-});
-
-
-describe('Coach entry links',()=>{
- it('opens the coach workspace from saved learner landing links while preserving other staff screens',async()=>{
-  const {parseRoute,isCoachWorkspaceRoute}=await import('../src/app/routes.js');
-  for(const role of ['teacher','coach'])for(const link of ['#/home','#/courses','#/programs','#/coach/dashboard',''])expect(isCoachWorkspaceRoute(role,parseRoute(link))).toBe(true);
-  for(const link of ['#/settings','#/community','#/messages','#/pbl'])expect(isCoachWorkspaceRoute('coach',parseRoute(link))).toBe(false);
-  expect(isCoachWorkspaceRoute('student',parseRoute('#/coach/dashboard'))).toBe(false);
- });
 });

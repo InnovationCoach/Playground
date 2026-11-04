@@ -1,0 +1,602 @@
+[
+ {
+  "id": "student",
+  "name": "Student",
+  "sub": "Secondary learner · W2e Studio",
+  "account": "mia@school.edu",
+  "who": "Mia Chen · Year 9 Climate Science",
+  "cover": "student-courses",
+  "steps": [
+   {
+    "t": "Sign in and land on My Courses",
+    "shots": [
+     "login",
+     "student-courses"
+    ],
+    "do": [
+     "Open the platform and sign in as <span class=\"mono\">mia@school.edu</span>.",
+     "Wait for the first screen to load."
+    ],
+    "expect": "You land on <b>My Courses</b> with “Welcome back, Mia” and three PBL programmes. The left menu shows Learn, Create and Connect groups."
+   },
+   {
+    "t": "Choose a PBL programme and its STEAM activities",
+    "shots": [
+     "student-courses"
+    ],
+    "do": [
+     "Look at the three programme cards. Sustainable Futures should show <b>Selected</b>.",
+     "Click <b>Open Studio</b> on a programme, then come back.",
+     "Scroll down to <b>Attached STEAM Activities</b> and read the activity cards."
+    ],
+    "expect": "Each programme shows its driving question and how many STEAM activities are attached. Activity cards have an Open button."
+   },
+   {
+    "t": "Run a STEAM activity (Solar Car)",
+    "shots": [
+     "student-activity-solar"
+    ],
+    "do": [
+     "On My Courses, click <b>Activity 5 · Solar Car</b>.",
+     "In Stage 1 “Weigh It”, type a mass for one part.",
+     "Open <b>Show the maths</b> and check the summary numbers update.",
+     "Try one other activity from the list."
+    ],
+    "expect": "Six stages from Weigh It to Design Review. Totals such as Total mass and Predicted speed change as you enter values."
+   },
+   {
+    "t": "Set goals with the goal wizard",
+    "shots": [
+     "student-goals-modal"
+    ],
+    "do": [
+     "Click <b>Goal setting</b> in the left menu.",
+     "Answer “What would you love to explore?” and move through the wizard.",
+     "Finish, or close it and check nothing breaks."
+    ],
+    "expect": "A friendly step-by-step window opens over the page and walks you from interests to goals."
+   },
+   {
+    "t": "Personalise the private dashboard",
+    "shots": [
+     "student-home"
+    ],
+    "do": [
+     "Click <b>Home</b>.",
+     "Click <b>Personalize dashboard</b>, choose a profile picture and a banner image.",
+     "Check the preview, then try <b>Discard dashboard preview</b>, then do it again and <b>Save dashboard changes</b>.",
+     "Reload the page."
+    ],
+    "expect": "Your picture and banner show after saving and stay after a reload. Discard returns to the previous look."
+   },
+   {
+    "t": "Studio Home: next step and asking a coach",
+    "shots": [
+     "student-home"
+    ],
+    "do": [
+     "Scroll to the <b>Studio Home</b> tab under My learning space.",
+     "Click <b>Mark this step done</b> on the next-step card.",
+     "Click <b>Ask my coach</b>, pick a reason and send a request."
+    ],
+    "expect": "Progress updates when a step is marked done. The coach request confirms that it was sent. (Coach testers can check it arrives.)"
+   },
+   {
+    "t": "Home tabs: programmes, goals and calendar",
+    "shots": [
+     "student-home-programs",
+     "student-home-goals",
+     "student-home-calendar"
+    ],
+    "do": [
+     "Open the <b>PBL Programs</b> tab. Read the semester cards and the class code box.",
+     "Open <b>Learning Goals</b>, then <b>Academic Progress</b>.",
+     "Open <b>School Calendar</b> and switch between Year, Agenda and Month views."
+    ],
+    "expect": "Each tab loads without an error. Empty areas say clearly that nothing is recorded yet, rather than showing a blank space or an error code."
+   },
+   {
+    "t": "PBL Studio: my project",
+    "shots": [
+     "student-pbl"
+    ],
+    "do": [
+     "Click <b>PBL Studio</b> in the left menu.",
+     "Click each of the seven phases from Explore to Showcase.",
+     "Tick a task, choose an interest chip such as Environment, and look at the AI co-pilot panel."
+    ],
+    "expect": "The phase timeline shows weeks. Task counts (for example 1/3 tasks) update as you tick."
+   },
+   {
+    "t": "Evidence portfolio and competencies",
+    "shots": [
+     "student-pbl-evidence",
+     "student-pbl-competencies"
+    ],
+    "do": [
+     "In PBL Studio open <b>Evidence portfolio</b>. Try the Phase and Type filters.",
+     "Open <b>Competencies</b> and read one competency.",
+     "Open <b>Explore: STEAM</b> and <b>Our approach</b>."
+    ],
+    "expect": "Evidence shows the end-of-term readiness count. Competencies list how many have evidence (for example 0/14)."
+   },
+   {
+    "t": "Portfolio maker (design journey)",
+    "shots": [
+     "student-journey"
+    ],
+    "do": [
+     "Click <b>Portfolio maker</b>.",
+     "In stage 1 Explore, add a photo or file as evidence.",
+     "Write a short reflection and click <b>Save reflection</b>.",
+     "Click <b>Export PDF</b>."
+    ],
+    "expect": "The stage counter moves from “0 of 7 stages complete”. The PDF view shows your evidence and reflection."
+   },
+   {
+    "t": "Showcase portfolio",
+    "shots": [
+     "student-portfolio"
+    ],
+    "do": [
+     "Click <b>Showcase portfolio</b>.",
+     "Change the heading, accent colour and layout, then <b>Save personalization</b>.",
+     "Click <b>Add work</b> to add one piece, then <b>Preview portfolio</b>.",
+     "Click <b>Copy portfolio link</b>."
+    ],
+    "expect": "Only the introduction, interests and chosen work appear in the preview. Personal goals stay private."
+   },
+   {
+    "t": "Community and Messages",
+    "shots": [
+     "student-community",
+     "student-messages"
+    ],
+    "do": [
+     "Open <b>Community</b>, write a short test post and click <b>Post</b>.",
+     "Open <b>Messages</b>. If a coach tester has messaged Mia, open it and reply."
+    ],
+    "expect": "Your post appears in the feed. Messages lists conversations started by a coach."
+   },
+   {
+    "t": "Settings: theme and language",
+    "shots": [
+     "student-settings"
+    ],
+    "do": [
+     "Open Settings from your name at the top right.",
+     "Switch Appearance to Dark, reload, then back to Light.",
+     "Switch language to ไทย or 中文 and look around, then back to English.",
+     "Do not change the password."
+    ],
+    "expect": "Theme and language change straight away and are still set after a reload."
+   }
+  ]
+ },
+ {
+  "id": "primary",
+  "name": "Junior Explorers",
+  "sub": "Primary learner, ages 6–11",
+  "account": "primary.student@school.edu",
+  "who": "Penny Primary · Year 3",
+  "cover": "primary-home",
+  "steps": [
+   {
+    "t": "Sign in and see the activity board",
+    "shots": [
+     "primary-home"
+    ],
+    "do": [
+     "Sign in as <span class=\"mono\">primary.student@school.edu</span>.",
+     "Note what you see first. This account is marked “pending consent”."
+    ],
+    "expect": "A bright Junior Explorers board with eight activities, each with a “Let’s go!” button. If you see a consent or waiting screen instead, describe it."
+   },
+   {
+    "t": "Read-aloud, big text and level",
+    "shots": [
+     "primary-home"
+    ],
+    "do": [
+     "Toggle <b>Read to me</b> and <b>Big text</b> on and off.",
+     "Switch between <b>Starter (6–8)</b> and <b>Explorer (9–11)</b>."
+    ],
+    "expect": "Text size changes clearly. Activity wording changes between Starter and Explorer."
+   },
+   {
+    "t": "Open an activity",
+    "shots": [
+     "primary-activity"
+    ],
+    "do": [
+     "Click <b>Hot Spots in Our Playground</b>.",
+     "Press a 🔊 speaker button.",
+     "Click <b>Start</b> on “Get your thermometer ready”, then on Test 1.",
+     "Use <b>All activities</b> to go back."
+    ],
+    "expect": "Short steps with big buttons. The speaker reads the text aloud. Steps are simple enough for a 6–8 year old."
+   },
+   {
+    "t": "School calendar for young learners",
+    "shots": [
+     "primary-home"
+    ],
+    "do": [
+     "Scroll below the activities to the School Calendar.",
+     "Look for upcoming events."
+    ],
+    "expect": "The calendar loads without an error and is easy to read for a primary pupil."
+   }
+  ]
+ },
+ {
+  "id": "coach",
+  "name": "Coach",
+  "sub": "Teacher / course coordinator",
+  "account": "coach.rivera@school.edu",
+  "who": "Sam Rivera · Year 9 Climate Science",
+  "cover": "coach-dashboard",
+  "steps": [
+   {
+    "t": "Coach dashboard overview",
+    "shots": [
+     "coach-dashboard"
+    ],
+    "do": [
+     "Sign in as <span class=\"mono\">coach.rivera@school.edu</span>.",
+     "Read the three counters: learners, PBL project records, evidence entries.",
+     "Change the <b>Class</b> filter to Year 9 Climate Science and back.",
+     "Click <b>Refresh records</b>."
+    ],
+    "expect": "Five learners in the class. Counters match what you see in the tabs. “Loaded” time updates on refresh."
+   },
+   {
+    "t": "Your learners",
+    "shots": [
+     "coach-dashboard"
+    ],
+    "do": [
+     "Scroll to <b>Your learners</b>.",
+     "Search for “Mia”, then select her."
+    ],
+    "expect": "The learner list filters as you type and the side panel shows that learner’s work.",
+    "watch": "Check whether everyone in the list really belongs in Year 9 Climate Science. Note any learner who should not be there."
+   },
+   {
+    "t": "PBL Studio tab",
+    "shots": [
+     "coach-tab-pbl"
+    ],
+    "do": [
+     "Click the <b>PBL Studio</b> tab.",
+     "Read the three semester programmes.",
+     "Click <b>Open existing Sustainable Futures Studio</b>."
+    ],
+    "expect": "The three programmes show. The studio opens the Sustainable Futures project view."
+   },
+   {
+    "t": "STEAM Activities tab",
+    "shots": [
+     "coach-tab-steam"
+    ],
+    "do": [
+     "Click <b>STEAM Activities</b>.",
+     "Click <b>Review</b> on Mia Chen."
+    ],
+    "expect": "A table of learners with activity records and completions. Review shows Mia’s recorded activity work."
+   },
+   {
+    "t": "Academic Progress: record an observation",
+    "shots": [
+     "coach-tab-academic"
+    ],
+    "do": [
+     "Click <b>Academic Progress</b> and choose a learner.",
+     "Use <b>Record a dated academic observation</b> to add a short test note."
+    ],
+    "expect": "The observation saves with today’s date and appears in the list. The page says provider connections are pending, which is expected for now."
+   },
+   {
+    "t": "Learning Goals: assign a goal",
+    "shots": [
+     "coach-tab-goals"
+    ],
+    "do": [
+     "Click <b>Learning Goals</b>. Choose Mia Chen, the class and a learning area.",
+     "Write a measurable goal, set a due date and click <b>Assign goal</b>."
+    ],
+    "expect": "The goal appears under the learner. Student and parent testers should then see it too."
+   },
+   {
+    "t": "School Calendar",
+    "shots": [
+     "coach-tab-calendar"
+    ],
+    "do": [
+     "Click <b>School Calendar</b>. Try Year, Agenda and Month.",
+     "If you can add an event, add one called “Test event” on a future date."
+    ],
+    "expect": "All three views load. A new event shows in the calendar for learners in your class."
+   },
+   {
+    "t": "Posts for students",
+    "shots": [
+     "coach-tab-posts"
+    ],
+    "do": [
+     "Click <b>Posts for students</b>, write a short test post and click <b>Post</b>."
+    ],
+    "expect": "The post appears in the feed and in the student Community page."
+   },
+   {
+    "t": "Management tools",
+    "shots": [
+     "coach-management"
+    ],
+    "do": [
+     "Click <b>Management tools</b> at the top of the dashboard.",
+     "Look at the counters and lists, then use <b>Back to progress overview</b>."
+    ],
+    "expect": "The older management view loads and the back link returns you to the dashboard.",
+    "watch": "This page says its figures may be examples. Note any class names or numbers that do not match your real class."
+   },
+   {
+    "t": "Message a learner",
+    "shots": [
+     "coach-messages-new"
+    ],
+    "do": [
+     "Open <b>Messages</b> and click <b>New</b>.",
+     "Choose Mia Chen, type a short message and click <b>Start</b>."
+    ],
+    "expect": "The conversation opens and the message shows. It reaches Mia’s Messages page."
+   },
+   {
+    "t": "PBL framework",
+    "shots": [
+     "coach-pbl"
+    ],
+    "do": [
+     "Click <b>PBL framework</b> in the left menu.",
+     "Open each tab: Our approach, Project phases, Explore: NGSS rubrics, Competencies."
+    ],
+    "expect": "Clear explanation of the programme that you could share with a new colleague."
+   },
+   {
+    "t": "Primary resources: worksheets and guides",
+    "shots": [
+     "coach-resources",
+     "coach-worksheet"
+    ],
+    "do": [
+     "Click <b>Primary resources</b>.",
+     "Open a <b>Worksheet</b>, switch Starter and Explorer.",
+     "Open the <b>Teacher guide</b> for the same activity and try <b>Print</b>."
+    ],
+    "expect": "Each of the eight activities has a worksheet and a teacher guide that print cleanly on A4."
+   }
+  ]
+ },
+ {
+  "id": "admin",
+  "name": "Admin",
+  "sub": "Administrator and supervisor console",
+  "account": "admin.test@school.edu",
+  "who": "Admin Test · Administrator",
+  "cover": "admin-students",
+  "steps": [
+   {
+    "t": "Students list",
+    "shots": [
+     "admin-students"
+    ],
+    "do": [
+     "Sign in as <span class=\"mono\">admin.test@school.edu</span>.",
+     "Search for “Mia”. Filter by cohort W2E and by status.",
+     "Sort by Name and by Created. Change “Per page”."
+    ],
+    "expect": "Every filter and sort changes the list. The row count at the bottom matches."
+   },
+   {
+    "t": "A student record",
+    "shots": [
+     "admin-student-detail"
+    ],
+    "do": [
+     "Open Mia Chen.",
+     "Read Details, then open <b>Account history</b>.",
+     "Check <b>Linked parents</b> shows Parent Test.",
+     "Click <b>Issue parent invite code</b> and copy the code for the parent tester. Do not press Suspend or Unlink."
+    ],
+    "expect": "All fields are filled where data exists, with dashes for empty ones. An invite code is shown once."
+   },
+   {
+    "t": "Add a student (form check)",
+    "shots": [
+     "admin-new-student"
+    ],
+    "do": [
+     "Go back to Students and click <b>Add student</b>.",
+     "Click <b>Create account</b> with the form empty and read the error messages.",
+     "Fill in a made-up learner with a test email. Only press Create account if the test lead says so, otherwise click Cancel."
+    ],
+    "expect": "Required fields are clearly marked and errors say exactly what to fix. The page explains the learner sets their own password by email."
+   },
+   {
+    "t": "Staff and parents lists",
+    "shots": [
+     "admin-staff",
+     "admin-parents"
+    ],
+    "do": [
+     "Open <b>Staff</b> and filter by Role.",
+     "Open <b>Parents</b> and check the number of children shown for Parent Test."
+    ],
+    "expect": "Coaches show as Course Coordinator. Parent Test shows one linked child."
+   },
+   {
+    "t": "School learning: PBL programmes",
+    "shots": [
+     "admin-learning"
+    ],
+    "do": [
+     "Open <b>School learning &amp; calendar</b>.",
+     "Switch School between Bangkok Campus and Online School.",
+     "Read the three semester offerings and the Create offering form."
+    ],
+    "expect": "Offerings load for each school and the create form is clear."
+   },
+   {
+    "t": "Learning goals, calendar and learner support",
+    "shots": [
+     "admin-learning-goals",
+     "admin-learning-calendar",
+     "admin-learning-support"
+    ],
+    "do": [
+     "Open the <b>Learning Goals</b> tab and choose a learner.",
+     "Open <b>School Calendar</b> and look at <b>Review and import the school’s 2026–2027 calendar</b>. Do not import unless asked.",
+     "Open <b>Learner support</b> and filter by learner."
+    ],
+    "expect": "Each tab loads with the learners of the chosen school. Support requests sent by student testers appear under Open requests."
+   },
+   {
+    "t": "Material requests",
+    "shots": [
+     "admin-materials"
+    ],
+    "do": [
+     "Open <b>Material Requests</b>. Read the four totals at the top.",
+     "Filter by Category and Status.",
+     "Click <b>Submit New Request</b> and add a small test item.",
+     "Approve, reject or fulfil only your own test item."
+    ],
+    "expect": "Totals update when a status changes. The request shows who asked for it and why."
+   },
+   {
+    "t": "Financials and billing",
+    "shots": [
+     "admin-billing"
+    ],
+    "do": [
+     "Open <b>Financials &amp; Billing</b>.",
+     "Filter by Payment Status.",
+     "Click <b>Record Payment</b> for one test learner and enter a small amount."
+    ],
+    "expect": "Collected, outstanding and overdue totals update after a payment.",
+    "watch": "All test learners show as overdue. Tell us if the figures or wording would confuse finance staff."
+   },
+   {
+    "t": "Message audit",
+    "shots": [
+     "admin-messages"
+    ],
+    "do": [
+     "Open <b>Messages</b> from the left menu.",
+     "Open a conversation between a coach and a learner, if there is one."
+    ],
+    "expect": "Administrators can read all conversations for safeguarding but cannot post in them."
+   },
+   {
+    "t": "Settings and school features",
+    "shots": [
+     "admin-settings"
+    ],
+    "do": [
+     "Open <b>Settings</b>.",
+     "Read <b>School features</b>. Do not switch features off unless the test lead asks."
+    ],
+    "expect": "Each school has its own switches, with a clear note about when learners see the change."
+   },
+   {
+    "t": "Supervisor: view-only access",
+    "shots": [
+     "supervisor-students"
+    ],
+    "do": [
+     "In a new private window, sign in as <span class=\"mono\">supervisor.test@school.edu</span>.",
+     "Open Students and a student record.",
+     "Look for any button that changes data."
+    ],
+    "expect": "A note says “You can view accounts. Only administrators can change them.” There is no Add, Edit or Suspend button."
+   }
+  ]
+ },
+ {
+  "id": "parent",
+  "name": "Parent",
+  "sub": "Family view of a child’s learning",
+  "account": "parent.test@school.edu",
+  "who": "Parent Test · parent of Mia Chen",
+  "cover": "parent-portal",
+  "steps": [
+   {
+    "t": "My children",
+    "shots": [
+     "parent-portal"
+    ],
+    "do": [
+     "Sign in as <span class=\"mono\">parent.test@school.edu</span>.",
+     "Read Mia’s card: school, year level and cohort."
+    ],
+    "expect": "Mia Chen shows as Active at Bangkok Campus, Year 9. The page says it is a read-only view."
+   },
+   {
+    "t": "Link a child with an invite code",
+    "shots": [
+     "parent-portal"
+    ],
+    "do": [
+     "Get an invite code from an admin tester (Admin step 2).",
+     "Type it into <b>Invite code</b> and click <b>Link child</b>.",
+     "Also try a made-up code such as ABCD-2345."
+    ],
+    "expect": "A real code links the child once. A wrong code gives a clear message about what went wrong."
+   },
+   {
+    "t": "Family overview and PBL progress",
+    "shots": [
+     "parent-tab-pbl"
+    ],
+    "do": [
+     "Read the <b>Family overview</b> tab.",
+     "Open <b>PBL Progress</b> and choose Mia."
+    ],
+    "expect": "Plain language a parent understands. Empty areas say nothing is recorded yet."
+   },
+   {
+    "t": "Learning goals and badges",
+    "shots": [
+     "parent-tab-goals"
+    ],
+    "do": [
+     "Open <b>Learning Goals</b> and choose Mia.",
+     "Look at the badges and any goal a coach tester assigned."
+    ],
+    "expect": "Badges such as First Evidence and Curious Mind show. Coach-assigned goals appear here."
+   },
+   {
+    "t": "Academic progress and calendar",
+    "shots": [
+     "parent-tab-academic",
+     "parent-tab-calendar"
+    ],
+    "do": [
+     "Open <b>Academic Progress</b>, then <b>School Calendar</b>."
+    ],
+    "expect": "Coach observations show with dates. Upcoming school events are listed."
+   },
+   {
+    "t": "Settings, language and read-only check",
+    "shots": [
+     "parent-settings"
+    ],
+    "do": [
+     "Open Settings and switch language to ไทย, then back.",
+     "Go back through every tab and look for anything a parent could change by mistake."
+    ],
+    "expect": "Language switches cleanly. Parents cannot edit their child’s learning anywhere."
+   }
+  ]
+ }
+]

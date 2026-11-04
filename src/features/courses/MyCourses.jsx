@@ -7,6 +7,7 @@ import { ACTIVITY_NAV } from '../activities/activityHost.js';
 import { ActivityIcon, parseActivityLabel } from '../shell/activityIcons.jsx';
 import { PROGRAM_CATALOGUE } from '../pbl/content/programCatalogue.js';
 import { hrefFor } from '../../app/routes.js';
+import { LiveCourseDiscovery } from './LiveCourseDiscovery.jsx';
 import '../admin/admin.css';
 import '../pbl/pbl.css';
 
@@ -44,6 +45,11 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
     if (!needle) return programActivities;
     return base.filter((c) => `${c.kicker} ${c.title} ${c.description} ${c.keywords}`.toLowerCase().includes(needle));
   }, [q, isPrimary, activeProgram]);
+
+  if (!isPrimary) return <>
+    {uid && classIds.length === 0 && <div className="gh-page"><JoinClassCard uid={uid} onJoined={r => { setJoined(r.message); onJoined?.(r); }} />{joined && <Alert type="success">{joined}</Alert>}</div>}
+    <LiveCourseDiscovery uid={uid} classIds={classIds} name={displayName} onOpenActivity={onOpenActivity} />
+  </>;
 
   return (
     <div className="gh-page">

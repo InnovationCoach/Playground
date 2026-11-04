@@ -733,3 +733,48 @@ describe('Teen Quest records are API-only', () => {
     }
   });
 });
+
+describe('coach feedback and notification integrity', () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore(),'users','coach_a'),{role:'teacher',classIds:[CLASS_A],status:'active'});
+      await setDoc(doc(ctx.firestore(),'users','coach_b'),{role:'teacher',classIds:[CLASS_B],status:'active'});
+    });
+  });
+  const feedback = { coachId:'coach_a', coachName:'Sara', type:'written_feedback', feedbackText:'Review your evidence.', timestamp:1, workId:'pbl-pilot' };
+  it('allows assigned-coach feedback and rejects student forgery or a different class', async () => {
+    const path = ['users','student_a','feedback','review'];
+    await assertSucceeds(setDoc(doc(coachA().firestore(),...path), feedback));
+    await assertFails(setDoc(doc(studentA().firestore(),...path), {...feedback,coachId:'student_a'}));
+    await assertFails(setDoc(doc(coachB().firestore(),...path), {...feedback,coachId:'coach_b'}));
+    await assertFails(setDoc(doc(coachA().firestore(),'users','student_b','feedback','review'), feedback));
+  });
+  it('pins authorship and validates ratings, size and update payloads', async () => {
+    const db = coachA().firestore(), path = ['users','student_a','feedback','review'];
+    await assertFails(setDoc(doc(db,...path), {...feedback,coachId:'someone_else'}));
+    await assertFails(setDoc(doc(db,...path), {...feedback,type:'work_rating',rating:6}));
+    await assertFails(setDoc(doc(db,...path), {...feedback,feedbackText:'x'.repeat(4001)}));
+    await assertSucceeds(setDoc(doc(db,...path), feedback));
+    await assertFails(updateDoc(doc(db,...path), {rating:99,type:'work_rating'}));
+    await assertFails(updateDoc(doc(db,...path), {coachId:'coach_b'}));
+    await assertFails(updateDoc(doc(db,...path), {approved:true}));
+    await assertSucceeds(updateDoc(doc(db,...path), {feedbackText:'Try another run.'}));
+  });
+  it('only permits the recipient to change notification read state', async () => {
+    const path = ['users','student_a','notifications','message'];
+    const notification = {fromUid:'coach_a',from:'Sara',message:'Please review feedback.',timestamp:1,read:false,type:'coach_message'};
+    await assertFails(setDoc(doc(studentA2().firestore(),...path),notification));
+    await assertFails(setDoc(doc(coachB().firestore(),...path),{...notification,fromUid:'coach_b'}));
+    await assertSucceeds(setDoc(doc(coachA().firestore(),...path),notification));
+    await assertSucceeds(updateDoc(doc(studentA().firestore(),...path),{read:true}));
+    await assertFails(updateDoc(doc(studentA().firestore(),...path),{message:'forged'}));
+    await assertFails(updateDoc(doc(studentA2().firestore(),...path),{read:true}));
+  });
+  it('rejects assessment writes after the coach is reassigned or suspended', async () => {
+    const db = coachA().firestore();
+    await testEnv.withSecurityRulesDisabled(async ctx => updateDoc(doc(ctx.firestore(),'users','coach_a'),{classIds:[]}));
+    await assertFails(setDoc(doc(db,'users','student_a','feedback','review'), feedback));
+    await testEnv.withSecurityRulesDisabled(async ctx => updateDoc(doc(ctx.firestore(),'users','coach_a'),{classIds:[CLASS_A],status:'suspended'}));
+    await assertFails(setDoc(doc(db,'users','student_a','feedback','review'), feedback));
+  });
+});

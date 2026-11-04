@@ -1,0 +1,2582 @@
+{
+  "schemaVersion": "1.0.0",
+  "authoringRevision": 2,
+  "releaseId": "pilot-fixture-g03-20261102-v2",
+  "status": "draft",
+  "createdAt": "2026-11-02T10:49:49+07:00",
+  "author": "GPT/Codex",
+  "reviewState": {
+    "technical": "pending-owner-review",
+    "science": "educator-pending",
+    "curriculum": "educator-pending",
+    "publication": "not-authorized"
+  },
+  "compatibility": {
+    "contractRevision": "0.1.1",
+    "apiContractVersion": "1.0.0",
+    "catalogVersion": "1.2.0",
+    "catalogSha256": "44c038cf1e3c6b6fc290a925ebec93083d8137686115397ff3420ff79c3bbe7d",
+    "sourceWorkstationsCommit": "b35f8b2c2f9eca1697c9b7560126edf44b4b73d4",
+    "sourceFrontendCommit": "96684f9b7e9402f249b3b87ad716f4a75761c6c6",
+    "sceneKinds": [
+      "ocean-station",
+      "basalt-fissures"
+    ],
+    "workstationKinds": [
+      "mission",
+      "simulation"
+    ],
+    "artifactPartKinds": [
+      "text",
+      "table",
+      "choice",
+      "diagram"
+    ],
+    "artifactReferenceEnabled": false,
+    "answerFormatNote": "Declarative authoring metadata for the forthcoming shared adapter; not claimed supported by the legacy displayAnswer."
+  },
+  "policy": {
+    "version": "pilot-review-only-0.1.0-draft",
+    "type": "reviewed-only",
+    "grantIds": [],
+    "productionSubmissionsAllowed": false
+  },
+  "sources": [
+    {
+      "id": "eia-capacity",
+      "title": "EIA — Capacity factor glossary",
+      "url": "https://www.eia.gov/tools/glossary/index.php?id=C",
+      "publisher": "EIA",
+      "checkedOn": "2026-11-02",
+      "supports": "Capacity factor compares produced electrical energy with continuous rated output over the same interval.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "doe-turbines",
+      "title": "DOE — How wind turbines work",
+      "url": "https://www.energy.gov/cmei/systems/how-do-wind-turbines-work",
+      "publisher": "DOE",
+      "checkedOn": "2026-11-02",
+      "supports": "Wind drives a rotor and generator; site conditions affect the resource.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "doe-power-curve",
+      "title": "DOE — Wind turbine power curve",
+      "url": "https://www.energy.gov/cmei/wind/articles/how-do-wind-turbines-survive-severe-weather-and-storms",
+      "publisher": "DOE",
+      "checkedOn": "2026-11-02",
+      "supports": "Electrical output has cut-in, rated and cut-out behavior; stronger wind does not mean indefinitely increasing output.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "nasa-rocket",
+      "title": "NASA Glenn — Ideal rocket equation",
+      "url": "https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/ideal-rocket-equation/",
+      "publisher": "NASA Glenn",
+      "checkedOn": "2026-11-02",
+      "supports": "The ideal rocket equation relates velocity change, effective exhaust speed and mass ratio under stated simplifications.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "nasa-isp",
+      "title": "NASA Glenn — Specific impulse",
+      "url": "https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/specific-impulse/",
+      "publisher": "NASA Glenn",
+      "checkedOn": "2026-11-02",
+      "supports": "Specific impulse relates to effective exhaust velocity through the standard-gravity factor.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "nasa-dawn",
+      "title": "NASA — Dawn ion propulsion FAQ",
+      "url": "https://science.nasa.gov/mission/dawn/faq/",
+      "publisher": "NASA",
+      "checkedOn": "2026-11-02",
+      "supports": "Dawn illustrates efficient propellant use with low thrust, rather than a universal ranking of engine travel speeds.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "nasa-sail",
+      "title": "NASA — Advanced Composite Solar Sail System",
+      "url": "https://www.nasa.gov/smallspacecraft/what-is-acs3/",
+      "publisher": "NASA",
+      "checkedOn": "2026-11-02",
+      "supports": "Sunlight pressure can provide sail propulsion without conventional rocket propellant for that propulsion function.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "nasa-solar",
+      "title": "NASA JPL — Calculating solar power in space",
+      "url": "https://www.jpl.nasa.gov/edu/resources/lesson-plan/calculating-solar-power-in-space/",
+      "publisher": "NASA JPL",
+      "checkedOn": "2026-11-02",
+      "supports": "Inverse-square distance scaling can support simplified solar-array calculations; real power systems need further engineering.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "ngss-ms",
+      "title": "NGSS — MS-ETS1-2",
+      "url": "https://www.nextgenscience.org/pe/ms-ets1-2-engineering-design",
+      "publisher": "NGSS",
+      "checkedOn": "2026-11-02",
+      "supports": "Systematic evaluation of competing designs, using agreed criteria; argument from evidence and ETS1.B.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "ngss-ms-evidence",
+      "title": "NGSS — MS-ETS1-2 evidence statements",
+      "url": "https://www.nextgenscience.org/sites/default/files/evidence_statement/black_white/MS-ETS1-2%20Evidence%20Statements%20June%202015%20asterisks.pdf",
+      "publisher": "NGSS",
+      "checkedOn": "2026-11-02",
+      "supports": "Identify designs/evidence, request missing evidence and compare every design against agreed criteria.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "ngss-hs",
+      "title": "NGSS — HS-ETS1-3",
+      "url": "https://www.nextgenscience.org/pe/hs-ets1-3-engineering-design",
+      "publisher": "NGSS",
+      "checkedOn": "2026-11-02",
+      "supports": "Evaluate complex real-world solutions with prioritized constraints and tradeoffs; formula substitution alone is insufficient.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    },
+    {
+      "id": "ngss-hs-evidence",
+      "title": "NGSS — HS-ETS1-3 evidence statements",
+      "url": "https://www.nextgenscience.org/evidence-statement/hs-ets1-3-evidence-statements",
+      "publisher": "NGSS",
+      "checkedOn": "2026-11-02",
+      "supports": "Reviewer reference for the high-school engineering assessment; this pack makes a supports-only claim.",
+      "usage": "Reference link only; no external article, image or measured dataset copied into this pack."
+    }
+  ],
+  "datasets": [
+    {
+      "id": "thalassa-wind-week-02",
+      "version": "0.2.0-draft",
+      "classification": "synthetic-teaching-set",
+      "attribution": "Authored My Universe teaching data; hours and output fractions retained from b35f8b2.",
+      "observationPeriod": "Authored week 1, not a real dated measurement",
+      "units": {
+        "speed": "m/s",
+        "hours": "h",
+        "outputFraction": "dimensionless",
+        "ratedPower": "kW"
+      },
+      "ratedPowerKW": 1000,
+      "records": [
+        {
+          "id": "band-1",
+          "label": "0 to below 3 m/s",
+          "lowerMps": 0,
+          "upperMps": 3,
+          "upperInclusive": false,
+          "hours": 20,
+          "outputFraction": 0
+        },
+        {
+          "id": "band-2",
+          "label": "3 to below 6 m/s",
+          "lowerMps": 3,
+          "upperMps": 6,
+          "upperInclusive": false,
+          "hours": 50,
+          "outputFraction": 0.1
+        },
+        {
+          "id": "band-3",
+          "label": "6 to below 9 m/s",
+          "lowerMps": 6,
+          "upperMps": 9,
+          "upperInclusive": false,
+          "hours": 60,
+          "outputFraction": 0.35
+        },
+        {
+          "id": "band-4",
+          "label": "9 to below 12 m/s",
+          "lowerMps": 9,
+          "upperMps": 12,
+          "upperInclusive": false,
+          "hours": 30,
+          "outputFraction": 0.75
+        },
+        {
+          "id": "band-5",
+          "label": "12 to 20 m/s in this teaching record",
+          "lowerMps": 12,
+          "upperMps": 20,
+          "upperInclusive": true,
+          "hours": 8,
+          "outputFraction": 1
+        }
+      ],
+      "qualityNotes": [
+        "All 168 authored hours belong to exactly one band; no sequence of hourly readings is available.",
+        "The teaching record assumes no speed above 20 m/s; the final band is bounded to avoid implying output at arbitrarily high speeds.",
+        "The five output fractions are a synthetic teaching curve, not a manufacturer curve or measured turbine performance.",
+        "Sensor calibration, hub height, outages, losses and other seasons are not supplied. They cannot be assumed verified."
+      ],
+      "sha256": "1801de66f2a89136553b32655d0f0cb350e8fca9ed7da56f01370b91b0831b81"
+    },
+    {
+      "id": "thalassa-plan-cards-02",
+      "version": "0.2.0-draft",
+      "classification": "synthetic-teaching-set",
+      "attribution": "New authored plan cards, not outputs sampled from Hex-Grid.",
+      "planningCapacityFactor": 0.34,
+      "demandKWhDay": 12000,
+      "constraints": {
+        "maxInstallationMassTonnes": 40,
+        "maxDeckAreaM2": 1000
+      },
+      "plans": [
+        {
+          "id": "plan-a",
+          "name": "Mixed resource plan",
+          "windUnits": 1,
+          "windKWEach": 1000,
+          "solarKWhDay": 6000,
+          "installationMassTonnes": 28,
+          "deckAreaM2": 900,
+          "referenceDailyKWh": 14160.0,
+          "referenceSurplusKWhDay": 2160.0,
+          "stressDailyKWh": 10800.0
+        },
+        {
+          "id": "plan-b",
+          "name": "Two-turbine plan",
+          "windUnits": 2,
+          "windKWEach": 1000,
+          "solarKWhDay": 0,
+          "installationMassTonnes": 36,
+          "deckAreaM2": 600,
+          "referenceDailyKWh": 16320.0,
+          "referenceSurplusKWhDay": 4320.0,
+          "stressDailyKWh": 9600.0
+        }
+      ],
+      "stressCase": {
+        "id": "lower-wind-case",
+        "classification": "fictional-world",
+        "capacityFactor": 0.2,
+        "otherAssumptions": "Keep solar yield and demand unchanged to isolate this wind change. Not a forecast."
+      },
+      "sha256": "ad3498abf12f6e3dfd307862d6b0b305562288c871401014076d404eda834929"
+    },
+    {
+      "id": "journey-constant-rate-02",
+      "version": "0.2.0-draft",
+      "classification": "fictional-world",
+      "distanceKm": 72000000,
+      "crew": 3,
+      "foodKgPersonDay": 1.8,
+      "secondsPerDay": 86400,
+      "arrivalLimitDays": 80,
+      "foodLimitKg": 400,
+      "options": [
+        {
+          "id": "chemical",
+          "name": "Chemical concept",
+          "averageSpeedKmS": 20,
+          "propellantAssumption": "Teaching card assumes relatively high propellant burden; no guided mass quantity is supplied.",
+          "referenceSeconds": 3600000.0,
+          "referenceDays": 41.666666666666664,
+          "provisionDays": 42,
+          "referenceFoodKg": 226.8
+        },
+        {
+          "id": "ion",
+          "name": "Ion concept",
+          "averageSpeedKmS": 12,
+          "propellantAssumption": "Teaching card assumes lower propellant burden; actual thrust/power trajectory is not modeled.",
+          "referenceSeconds": 6000000.0,
+          "referenceDays": 69.44444444444444,
+          "provisionDays": 70,
+          "referenceFoodKg": 378.0
+        },
+        {
+          "id": "sail",
+          "name": "Sail concept",
+          "averageSpeedKmS": 6,
+          "propellantAssumption": "Idealized photon-pressure propulsion; other spacecraft propellant uses are not represented.",
+          "referenceSeconds": 12000000.0,
+          "referenceDays": 138.88888888888889,
+          "provisionDays": 139,
+          "referenceFoodKg": 750.6
+        }
+      ],
+      "limitations": [
+        "Average speeds are authored rate examples, not outputs of propulsion simulation or actual trajectories.",
+        "Food mass, crew and limits are fictional, not recommendations for people.",
+        "A lower food mass does not prove a smaller complete spacecraft or a safer mission."
+      ],
+      "sha256": "868c3cdf7c3a6280187cd2a46c02ba81c197bf18f914fad3a2568784b44e9de9"
+    },
+    {
+      "id": "journey-mass-power-case-02",
+      "version": "0.2.0-draft",
+      "classification": "fictional-world",
+      "dryMassKg": 12000,
+      "deltaVMps": 4200,
+      "standardGravityApproxMps2": 9.81,
+      "chemicalIspSeconds": 450,
+      "ionIspSeconds": 3000,
+      "chemicalDays": 42,
+      "ionDays": 140,
+      "crew": 3,
+      "suppliesKgPersonDay": 5.3,
+      "fluxAtThalassaWm2": 1200,
+      "ignisDistanceRatio": 1.6,
+      "ionPropulsionPowerW": 30000,
+      "panelEfficiency": 0.25,
+      "arrivalLimitDays": 150,
+      "representedAddedMassLimitKg": 21000,
+      "availableIonPanelAreaM2": 260,
+      "limitations": [
+        "Separate teaching case from the guided constant-rate scenario: the 140-day ion duration is an independent input, not the result of 12 km/s.",
+        "Rocket-equation dry mass excludes the later consumables ledger; represented propellant plus supplies is a partial comparison, not a total launch-mass calculation.",
+        "Panel hardware mass, life-support energy, thrust history, acceleration, trajectory, redundancy, radiation shielding and safety margins are not modeled.",
+        "Constant stellar output, a single distance and idealized constant panel efficiency are assumed; no complete electrical-system adequacy claim."
+      ],
+      "referenceResults": {
+        "chemicalPropellantKg": 19072.300884096952,
+        "ionPropellantKg": 1840.7642445419074,
+        "chemicalSuppliesKg": 667.8,
+        "ionSuppliesKg": 2226.0,
+        "extraIonSuppliesKg": 1558.2,
+        "fluxAtIgnisWm2": 468.7499999999999,
+        "panelElectricalWm2": 117.18749999999997,
+        "ionPanelAreaM2": 256.00000000000006,
+        "representedChemicalAddedMassKg": 19740.10088409695,
+        "representedIonAddedMassKg": 4066.7642445419074
+      },
+      "sha256": "817d8410544306277c966ba10dcdbcb55b2c1d5f16e4456746e7c42cbb8d1624"
+    }
+  ],
+  "missions": [
+    {
+      "id": "thalassa-wind-survey",
+      "version": "0.2.0-draft",
+      "status": "draft",
+      "title": "Is the wind worth it?",
+      "planetIds": [
+        "thalassa"
+      ],
+      "locationId": "weather-mast",
+      "drivingQuestion": "What can this wind record tell us about a station energy plan, and what can it not tell us?",
+      "scenario": "Two station teams propose different energy layouts. Both can meet the average-day requirement in the teaching case, but they use mass and deck space differently. You are asked to give an evidence-based provisional recommendation.",
+      "role": "Station energy investigator",
+      "decision": "Recommend plan-a, plan-b or further evidence using agreed criteria; revise after the lower-wind case.",
+      "evidenceRefs": [
+        "thalassa-wind-week-02",
+        "thalassa-plan-cards-02"
+      ],
+      "sourceRefs": [
+        "eia-capacity",
+        "doe-turbines",
+        "doe-power-curve",
+        "ngss-ms",
+        "ngss-ms-evidence"
+      ],
+      "completionPolicyRef": "pilot-review-only-0.1.0-draft",
+      "storyOpening": "A message from the fictional Thalassa station: Before we build, help us understand what these numbers really show.",
+      "routes": [
+        {
+          "id": "guided",
+          "taskId": "wind-capacity-factor",
+          "scenarioIds": [
+            "thalassa-wind-week-02",
+            "thalassa-plan-cards-02"
+          ],
+          "name": "Wind energy estimate",
+          "challengeLevel": 2,
+          "gradeBand": "6-8",
+          "planningMinutes": [
+            45,
+            60
+          ],
+          "supportModes": [
+            "guided",
+            "independent"
+          ],
+          "support": {
+            "guided": [
+              "A worked example for one calculation; pause to complete the next row yourself.",
+              "Unit labels, table starters and sentence/diagram-description starters.",
+              "Use a calculator, large text, keyboard navigation or a spoken explanation transcribed into the same evidence fields."
+            ],
+            "independent": [
+              "Start with the full supplied record and choose a clear comparison method.",
+              "Hints and worked solutions remain available without penalty.",
+              "Switch support without losing answers; extra scaffolding is not a lower grade."
+            ]
+          },
+          "steps": [
+            {
+              "id": "evidence-check",
+              "kind": "reflect",
+              "title": "Inspect the evidence",
+              "prompt": "What is authored, what is calculated, and what measurements are missing? Record one data-quality note.",
+              "hints": [],
+              "evidencePartIds": [
+                "data-quality"
+              ]
+            },
+            {
+              "id": "agree-criteria",
+              "kind": "reflect",
+              "title": "Agree what a good plan must do",
+              "prompt": "Discuss the supplied constraints and choose which priority matters most: lower mass, less deck area or larger daily energy margin. Record the agreed criteria; in solo practice mark them proposed.",
+              "hints": [],
+              "evidencePartIds": [
+                "criteria"
+              ]
+            },
+            {
+              "id": "hours",
+              "kind": "number",
+              "title": "How long was the record?",
+              "prompt": "Add the five hour counts. How many hours are represented?",
+              "answer": 168.0,
+              "unit": "h",
+              "answerFormat": {
+                "decimalPlaces": 0,
+                "roundingMultiple": null,
+                "showGrouping": true
+              },
+              "answerCheck": {
+                "mode": "declared-rounding-equivalent",
+                "absoluteTolerance": 1e-06,
+                "practiceOnly": true,
+                "closeRelativeTolerance": 0.02,
+                "rounding": "decimal-half-away-from-zero",
+                "semantics": "Correct if the parsed value rounded to answerFormat equals the reference rounded to answerFormat, or differs from the full reference by at most absoluteTolerance. Otherwise close if relative error ≤closeRelativeTolerance using max(abs(reference), 1e-9) as denominator; otherwise not yet. All feedback is practice only."
+              },
+              "practiceOnly": true,
+              "hints": [
+                "Sum all five bands, including the zero-output band.",
+                "One authored week should total 7 × 24 hours."
+              ],
+              "feedback": "Check the input, operation and units. Practice feedback does not approve the mission.",
+              "evidencePartIds": [
+                "weighted-results"
+              ],
+              "solution": "20 + 50 + 60 + 30 + 8 = 168 h."
+            },
+            {
+              "id": "full-power",
+              "kind": "number",
+              "title": "Equivalent full-power hours",
+              "prompt": "Multiply each band's hours by its fractional output, then add. How many equivalent full-power hours?",
+              "answer": 56.5,
+              "unit": "h",
+              "answerFormat": {
+                "decimalPlaces": 1,
+                "roundingMultiple": null,
+                "showGrouping": true
+              },
+              "answerCheck": {
+                "mode": "declared-rounding-equivalent",
+                "absoluteTolerance": 1e-06,
+                "practiceOnly": true,
+                "closeRelativeTolerance": 0.02,
+                "rounding": "decimal-half-away-from-zero",
+                "semantics": "Correct if the parsed value rounded to answerFormat equals the reference rounded to answerFormat, or differs from the full reference by at most absoluteTolerance. Otherwise close if relative error ≤closeRelativeTolerance using max(abs(reference), 1e-9) as denominator; otherwise not yet. All feedback is practice only."
+              },
+              "practiceOnly": true,
+              "hints": [
+                "Compute each hours × output product before adding.",
+                "The zero-output 20 hours count in total time but add zero energy."
+              ],
+              "feedback": "Check the input, operation and units. Practice feedback does not approve the mission.",
+              "evidencePartIds": [
+                "weighted-results"
+              ],
+              "solution": "20×0 + 50×0.10 + 60×0.35 + 30×0.75 + 8×1 = 0 + 5 + 21 + 22.5 + 8 = 56.5 full-power h."
+            },
+            {
+              "id": "capacity-factor",
+              "kind": "number",
+              "title": "Capacity factor",
+              "prompt": "Divide full-power hours by all hours. Give the ratio to two decimal places.",
+              "answer": 0.33630952380952384,
+              "unit": "dimensionless",
+              "answerFormat": {
+                "decimalPlaces": 2,
+                "roundingMultiple": null,
+                "showGrouping": true
+              },
+              "answerCheck": {
+                "mode": "declared-rounding-equivalent",
+                "absoluteTolerance": 1e-06,
+                "practiceOnly": true,
+                "closeRelativeTolerance": 0.02,
+                "rounding": "decimal-half-away-from-zero",
+                "semantics": "Correct if the parsed value rounded to answerFormat equals the reference rounded to answerFormat, or differs from the full reference by at most absoluteTolerance. Otherwise close if relative error ≤closeRelativeTolerance using max(abs(reference), 1e-9) as denominator; otherwise not yet. All feedback is practice only."
+              },
+              "practiceOnly": true,
+              "hints": [
+                "Divide full-power hours by all hours, not just generating hours.",
+                "The ratio is dimensionless; 0.34 is 34%, not 0.34%."
+              ],
+              "feedback": "Check the input, operation and units. Practice feedback does not approve the mission.",
+              "evidencePartIds": [
+                "weighted-results"
+              ],
+              "solution": "56.5 h / 168 h = 0.3363095238…; to two decimal places use planning CF 0.34. The raw fraction and planning value have different precision."
+            },
+            {
+              "id": "why-not-average",
+              "kind": "choose",
+              "title": "Why not average speed first?",
+              "prompt": "Why can averaging speed before applying this nonlinear output curve change the energy estimate?",
+              "choices": [
+                {
+                  "id": "nonlinear",
+                  "label": "Different bands contribute different output; applying a nonlinear curve after averaging does not preserve the weighted result."
+                },
+                {
+                  "id": "same",
+                  "label": "It always gives exactly the same result."
+                },
+                {
+                  "id": "direction",
+                  "label": "Only wind direction matters, so speed can be ignored."
+                }
+              ],
+              "answer": "nonlinear",
+              "practiceOnly": true,
+              "hints": [
+                "Compare the contribution of a low-output hour with a high-output hour.",
+                "No exact average speed is supplied inside each band."
+              ],
+              "evidencePartIds": [
+                "limitations-next-measurement"
+              ],
+              "solution": "Select nonlinear. Weighted output uses each band’s output; applying a nonlinear curve to an average speed generally does not preserve that sum."
+            },
+            {
+              "id": "use-it",
+              "kind": "reflect",
+              "title": "Compare the daily plans",
+              "prompt": "Use planning CF = 0.34 in both authored plan cards. Compare daily supply, demand, mass and area. These cards are the assessment basis. The current optional lab is not linked into this task.",
+              "hints": [],
+              "evidencePartIds": [
+                "plan-comparison"
+              ]
+            },
+            {
+              "id": "stress-check",
+              "kind": "reflect",
+              "title": "Try a lower-wind case",
+              "prompt": "Repeat the daily comparison with CF = 0.20 and the other assumptions unchanged. Does your recommendation change? This is an authored test, not a forecast.",
+              "hints": [],
+              "evidencePartIds": [
+                "plan-comparison"
+              ]
+            },
+            {
+              "id": "reflect",
+              "kind": "reflect",
+              "title": "Make a provisional recommendation",
+              "prompt": "Choose a plan or explain why you need more evidence. State your criteria, one numerical comparison, one limit and one next observation.",
+              "hints": [],
+              "evidencePartIds": [
+                "recommendation",
+                "limitations-next-measurement"
+              ]
+            }
+          ],
+          "requiredParts": [
+            {
+              "partId": "criteria",
+              "anyOfKinds": [
+                "text"
+              ],
+              "evidenceCriterion": "State agreed/proposed constraints and priority."
+            },
+            {
+              "partId": "weighted-results",
+              "anyOfKinds": [
+                "table",
+                "text"
+              ],
+              "evidenceCriterion": "Show all bands, total hours, weighted full-power hours and raw/rounded CF with units."
+            },
+            {
+              "partId": "plan-comparison",
+              "anyOfKinds": [
+                "table",
+                "text"
+              ],
+              "evidenceCriterion": "Compare both plans against every constraint and report the lower-wind case."
+            },
+            {
+              "partId": "recommendation",
+              "anyOfKinds": [
+                "choice"
+              ],
+              "evidenceCriterion": "Choose plan-a, plan-b or insufficient-evidence with a reason."
+            },
+            {
+              "partId": "data-quality",
+              "anyOfKinds": [
+                "text"
+              ],
+              "evidenceCriterion": "Separate synthetic record, model assumption and missing observation."
+            },
+            {
+              "partId": "limitations-next-measurement",
+              "anyOfKinds": [
+                "text"
+              ],
+              "evidenceCriterion": "Explain why daily energy does not prove hourly/night reliability and request a useful observation."
+            }
+          ],
+          "choiceOptions": {
+            "recommendation": [
+              "plan-a",
+              "plan-b",
+              "insufficient-evidence"
+            ]
+          },
+          "rubric": [
+            {
+              "id": "evidence",
+              "label": "Evidence and calculation",
+              "descriptors": {
+                "supported": "Units/weighted method are traceable; any rounding is identified.",
+                "developing": "Method is visible but one quantity/rounding/unit needs correction.",
+                "needs-another-look": "A number is asserted without enough working to check it."
+              }
+            },
+            {
+              "id": "evaluation",
+              "label": "Systematic design comparison",
+              "descriptors": {
+                "supported": "Both plans are compared against agreed criteria; the choice reflects a stated priority.",
+                "developing": "Some criteria or one competing plan is missing.",
+                "needs-another-look": "Choice is based on appearance or one unexplained output."
+              }
+            },
+            {
+              "id": "revision",
+              "label": "Limits and revision",
+              "descriptors": {
+                "supported": "Explains the stress result, a model limit and a discriminating next observation.",
+                "developing": "Names a limit but does not connect it to the decision.",
+                "needs-another-look": "Claims constant/night-time reliability from a daily total."
+              }
+            },
+            {
+              "id": "communication",
+              "label": "Communication",
+              "descriptors": {
+                "supported": "An accessible table, explanation or diagram makes evidence and uncertainty understandable.",
+                "developing": "The reasoning is present but labels/order leave ambiguity.",
+                "needs-another-look": "The audience cannot tell which data or conclusion is being presented."
+              }
+            }
+          ],
+          "alignment": [
+            {
+              "pe": "MS-ETS1-2",
+              "gradeBand": "6-8",
+              "claim": "supports",
+              "reviewStatus": "educator-pending",
+              "sourceRefs": [
+                "ngss-ms",
+                "ngss-ms-evidence"
+              ],
+              "sep": "Engaging in argument from evidence",
+              "dci": "ETS1.B — Developing Possible Solutions",
+              "ccc": null,
+              "cccNote": "No CCC is specified in this engineering PE foundation. The listed instructional lenses are additions, not invented required elements.",
+              "instructionalLenses": [
+                "systems",
+                "energy and matter"
+              ],
+              "observableEvidence": [
+                "Identify the two designs and the evidence each uses.",
+                "Compare each plan against all agreed criteria; state a justified relative judgment.",
+                "Request evidence about timing, losses and community/environmental impacts that the supplied model omits."
+              ],
+              "limits": "Arithmetic alone, solitary unagreed criteria and two energy totals do not establish full PE proficiency."
+            }
+          ],
+          "notebookBehavior": {
+            "stepNavigation": "Every step remains navigable; kind reflect never triggers submission.",
+            "evidenceBinding": "A step points to existing notebook parts. Editing it updates that part; no duplicate part is created.",
+            "submitAction": "A separate Review your work screen lists every required part. Send for review is a separate explicit action requiring current service availability.",
+            "supportSwitch": "Preserve every answer and part when support changes. Both support modes keep access to all hints, templates and solutions.",
+            "templateUse": "Prefilled facts are reference givens. Blank editable cells and starters require learner reasoning; do not auto-copy the candidate exemplar.",
+            "rounding": "Keep full precision for later calculations where possible. If you reuse rounded intermediate values, label this; a consistent rounded partial ledger is also reviewable."
+          },
+          "choiceLabels": {
+            "recommendation": [
+              {
+                "id": "plan-a",
+                "label": "Plan A — mixed wind and solar"
+              },
+              {
+                "id": "plan-b",
+                "label": "Plan B — two wind turbines"
+              },
+              {
+                "id": "insufficient-evidence",
+                "label": "I need more evidence before choosing a plan"
+              }
+            ]
+          },
+          "tableTemplates": {
+            "weighted-results": {
+              "caption": "Synthetic week — show weighted output, then label raw and planning CF",
+              "columns": [
+                "Wind band",
+                "Hours h",
+                "Output fraction",
+                "Equivalent full-power h"
+              ],
+              "rows": [
+                {
+                  "id": "band-1",
+                  "cells": [
+                    {
+                      "value": "0 to below 3 m/s",
+                      "editable": false
+                    },
+                    {
+                      "value": "20",
+                      "editable": false
+                    },
+                    {
+                      "value": "0",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                },
+                {
+                  "id": "band-2",
+                  "cells": [
+                    {
+                      "value": "3 to below 6 m/s",
+                      "editable": false
+                    },
+                    {
+                      "value": "50",
+                      "editable": false
+                    },
+                    {
+                      "value": "0.1",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                },
+                {
+                  "id": "band-3",
+                  "cells": [
+                    {
+                      "value": "6 to below 9 m/s",
+                      "editable": false
+                    },
+                    {
+                      "value": "60",
+                      "editable": false
+                    },
+                    {
+                      "value": "0.35",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                },
+                {
+                  "id": "band-4",
+                  "cells": [
+                    {
+                      "value": "9 to below 12 m/s",
+                      "editable": false
+                    },
+                    {
+                      "value": "30",
+                      "editable": false
+                    },
+                    {
+                      "value": "0.75",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                },
+                {
+                  "id": "band-5",
+                  "cells": [
+                    {
+                      "value": "12 to 20 m/s in this teaching record",
+                      "editable": false
+                    },
+                    {
+                      "value": "8",
+                      "editable": false
+                    },
+                    {
+                      "value": "1",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                },
+                {
+                  "id": "total",
+                  "cells": [
+                    {
+                      "value": "Total",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                },
+                {
+                  "id": "capacity-factors",
+                  "cells": [
+                    {
+                      "value": "CF raw / planning",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                }
+              ],
+              "textStarter": "For each band: hours × output fraction = __ full-power h. Total hours = __ h; full-power hours = __ h. Raw CF = __; planning CF rounded to two places = __.",
+              "serialization": "Submit caption, column labels and completed cell strings as the contract table part, or the equivalent text part. Empty starters are not acceptable completed evidence."
+            },
+            "plan-comparison": {
+              "caption": "Plan cards only — base CF 0.34; controlled stress CF 0.20",
+              "columns": [
+                "Plan",
+                "Base supply kWh/day",
+                "Base margin kWh/day",
+                "Mass t",
+                "Deck m²",
+                "Meets all base limits?",
+                "Stress supply kWh/day",
+                "Stress shortfall kWh/day"
+              ],
+              "rows": [
+                {
+                  "id": "plan-a",
+                  "cells": [
+                    {
+                      "value": "Mixed resource plan",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "28",
+                      "editable": false
+                    },
+                    {
+                      "value": "900",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                },
+                {
+                  "id": "plan-b",
+                  "cells": [
+                    {
+                      "value": "Two-turbine plan",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "36",
+                      "editable": false
+                    },
+                    {
+                      "value": "600",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                }
+              ],
+              "textStarter": "At planning CF 0.34, plan A gives __ kWh/day and plan B __. Demand is 12,000 kWh/day, mass limit 40 t and deck limit 1,000 m². At CF 0.20 A gives __ and B __; shortfalls are __ and __. My criterion-by-criterion judgment is __.",
+              "serialization": "Submit caption, column labels and completed cell strings as the contract table part, or the equivalent text part. Empty starters are not acceptable completed evidence."
+            }
+          },
+          "sentenceStarters": {
+            "criteria": "Our agreed criteria are __. In solo practice these are my proposed criteria. The fixed limits are __; I prioritize __ because __.",
+            "recommendation": "I provisionally choose __ / need evidence about __. Compared with the alternative, __. After the lower-wind test, __.",
+            "data-quality": "This record is __, the curve is __, and we do not have observations of __.",
+            "limitations-next-measurement": "A daily total cannot tell us __. I would collect __ over __, because it could distinguish __."
+          },
+          "workedExample": {
+            "title": "One row, then your turn",
+            "steps": [
+              "The supplied 3–6 m/s band contains 50 h at output fraction 0.10.",
+              "Multiply 50×0.10 = 5 equivalent full-power h.",
+              "Now do the 6–9 m/s row: 60 h at fraction 0.35. Show your working before revealing the solution."
+            ],
+            "practiceStepId": "full-power"
+          },
+          "supportPresentation": {
+            "guided": "Show the worked example, notebook templates and sentence starters initially; hints reveal one at a time and solutions open on request.",
+            "independent": "Show full brief and evidence first; the same templates, worked example, starters, hints and solutions remain available on request. No marks or access depend on support/hint use."
+          }
+        }
+      ],
+      "limitations": [
+        "Every place and number is fictional or synthetic; external sources support methods only.",
+        "Teaching band output fractions are not a real turbine power curve; high-speed shutdowns are not modeled.",
+        "No hourly sequence, outages, storage dispatch or grid stability is represented.",
+        "The worksheet raw CF and rounded lab CF produce different daily estimates; state which was used."
+      ],
+      "implementationNotes": [
+        "Preserve original 0.1.0-draft and five core step IDs/order. New prelude/design evidence belongs to 0.2.0-draft.",
+        "Render per-step answerFormat: the existing generic displayAnswer rounds 0.34 to 0.3 and must not be reused unchanged.",
+        "Plan-card mass/area/solar assumptions are authored cards, not claimed Hex-Grid outputs.",
+        "Use actual Hex-Grid daily supply/demand metrics if attached, with exact scenario version/input. Never require nightCoverage or old night/all badges.",
+        "Artifact-reference is disabled; alternatives are text/table/choice in this pack.",
+        "G03 r2 hides the optional Hex-Grid link from the assessed flow until a corrected scenario is reviewed. No current reviewed lab version is asserted."
+      ],
+      "optionalLab": {
+        "workstationId": "hex-grid-thalassa",
+        "scenarioId": "thalassa-station",
+        "reviewedScenarioVersion": null,
+        "enabledInAssessedFlow": false,
+        "reason": "Historical 0.1.0-draft still carries night/all wording and different demand inputs. Keep the assessed link hidden until the scenario is separately corrected, reviewed and versioned.",
+        "futureEvidence": "If enabled later, keep actual lab scenario/version/inputs/metrics separate from authored plan-card evidence."
+      },
+      "contentSha256": "3e228462adc93a8f8ef9dc7fb96525e4a1a64609ea634f2d59737c7a70224e4d"
+    },
+    {
+      "id": "spacecraft-journey",
+      "version": "0.2.0-draft",
+      "status": "draft",
+      "title": "Plan a journey to Ignis",
+      "planetIds": [
+        "thalassa",
+        "ignis"
+      ],
+      "drivingQuestion": "How should a fictional crew deliver its instruments when time, supplies and propulsion choices pull in different directions?",
+      "scenario": "The research station is preparing an instrument delivery to Ignis. You are comparing authored concepts, not operating a spacecraft. Each route has its own clearly labeled teaching case.",
+      "role": "Expedition mission planner",
+      "decision": "Recommend a concept under explicit priorities, or identify the missing evidence that prevents a responsible choice.",
+      "evidenceRefs": [
+        "journey-constant-rate-02",
+        "journey-mass-power-case-02"
+      ],
+      "sourceRefs": [
+        "nasa-rocket",
+        "nasa-isp",
+        "nasa-dawn",
+        "nasa-sail",
+        "nasa-solar",
+        "ngss-ms",
+        "ngss-ms-evidence",
+        "ngss-hs",
+        "ngss-hs-evidence"
+      ],
+      "completionPolicyRef": "pilot-review-only-0.1.0-draft",
+      "storyOpening": "A fictional Ignis team asks for an instrument delivery plan. They need to understand your reasoning as well as your answer.",
+      "routes": [
+        {
+          "id": "guided",
+          "taskId": "journey-rates",
+          "scenarioIds": [
+            "journey-constant-rate-02"
+          ],
+          "name": "Journey timing",
+          "challengeLevel": 2,
+          "gradeBand": "6-8",
+          "planningMinutes": [
+            45,
+            60
+          ],
+          "supportModes": [
+            "guided",
+            "independent"
+          ],
+          "support": {
+            "guided": [
+              "A worked example for one calculation; pause to complete the next row yourself.",
+              "Unit labels, table starters and sentence/diagram-description starters.",
+              "Use a calculator, large text, keyboard navigation or a spoken explanation transcribed into the same evidence fields."
+            ],
+            "independent": [
+              "Start with the full supplied record and choose a clear comparison method.",
+              "Hints and worked solutions remain available without penalty.",
+              "Switch support without losing answers; extra scaffolding is not a lower grade."
+            ]
+          },
+          "steps": [
+            {
+              "id": "agree-criteria",
+              "kind": "reflect",
+              "title": "Agree the mission priorities",
+              "prompt": "Use the 80-day arrival limit and 400 kg food limit. With your coach, decide whether earliest arrival or the stated propellant-burden assumption deserves more attention. In solo mode label priorities proposed.",
+              "hints": [],
+              "evidencePartIds": [
+                "criteria"
+              ]
+            },
+            {
+              "id": "compare",
+              "kind": "choose",
+              "title": "Compare the authored engine concepts",
+              "prompt": "Which has the highest supplied average speed in this rate example?",
+              "choices": [
+                {
+                  "id": "chemical",
+                  "label": "Chemical concept"
+                },
+                {
+                  "id": "ion",
+                  "label": "Ion concept"
+                },
+                {
+                  "id": "sail",
+                  "label": "Sail concept"
+                }
+              ],
+              "answer": "chemical",
+              "practiceOnly": true,
+              "hints": [
+                "Compare the three supplied rate values.",
+                "Greater speed over the same path gives less time in this constant-rate case."
+              ],
+              "evidencePartIds": [
+                "comparison"
+              ],
+              "solution": "Select chemical: 20 km/s exceeds the supplied 12 and 6 km/s. This is a ranking within Scenario G only."
+            },
+            {
+              "id": "seconds",
+              "kind": "number",
+              "title": "Chemical travel time in seconds",
+              "prompt": "Use 72,000,000 km ÷ 20 km/s.",
+              "answer": 3600000.0,
+              "unit": "s",
+              "answerFormat": {
+                "decimalPlaces": 0,
+                "roundingMultiple": null,
+                "showGrouping": true
+              },
+              "answerCheck": {
+                "mode": "declared-rounding-equivalent",
+                "absoluteTolerance": 1e-06,
+                "practiceOnly": true,
+                "closeRelativeTolerance": 0.02,
+                "rounding": "decimal-half-away-from-zero",
+                "semantics": "Correct if the parsed value rounded to answerFormat equals the reference rounded to answerFormat, or differs from the full reference by at most absoluteTolerance. Otherwise close if relative error ≤closeRelativeTolerance using max(abs(reference), 1e-9) as denominator; otherwise not yet. All feedback is practice only."
+              },
+              "practiceOnly": true,
+              "hints": [
+                "Use time = distance / rate.",
+                "Divide 72 million by 20; keep seconds as the resulting unit."
+              ],
+              "feedback": "Check the input, operation and units. Practice feedback does not approve the mission.",
+              "evidencePartIds": [
+                "comparison"
+              ],
+              "solution": "72,000,000 km / (20 km/s) = 3,600,000 s. Kilometres cancel."
+            },
+            {
+              "id": "days",
+              "kind": "number",
+              "title": "Chemical travel time in days",
+              "prompt": "Convert 3,600,000 s using 86,400 s/day; show one decimal place.",
+              "answer": 41.666666666666664,
+              "unit": "days",
+              "answerFormat": {
+                "decimalPlaces": 1,
+                "roundingMultiple": null,
+                "showGrouping": true
+              },
+              "answerCheck": {
+                "mode": "declared-rounding-equivalent",
+                "absoluteTolerance": 1e-06,
+                "practiceOnly": true,
+                "closeRelativeTolerance": 0.02,
+                "rounding": "decimal-half-away-from-zero",
+                "semantics": "Correct if the parsed value rounded to answerFormat equals the reference rounded to answerFormat, or differs from the full reference by at most absoluteTolerance. Otherwise close if relative error ≤closeRelativeTolerance using max(abs(reference), 1e-9) as denominator; otherwise not yet. All feedback is practice only."
+              },
+              "practiceOnly": true,
+              "hints": [
+                "There are 24 × 60 × 60 seconds per day.",
+                "Time for reporting and whole days for provisions have different rounding rules."
+              ],
+              "feedback": "Check the input, operation and units. Practice feedback does not approve the mission.",
+              "evidencePartIds": [
+                "comparison"
+              ],
+              "solution": "3,600,000 s / (86,400 s/day) = 41.6666… days, displayed as 41.7 days. For provision days round upward to 42, not to the nearest whole day."
+            },
+            {
+              "id": "food",
+              "kind": "number",
+              "title": "Chemical food allocation",
+              "prompt": "Provision 42 days. Use 1.8 kg per person per day × 3 people × 42 days.",
+              "answer": 226.8,
+              "unit": "kg",
+              "answerFormat": {
+                "decimalPlaces": 1,
+                "roundingMultiple": null,
+                "showGrouping": true
+              },
+              "answerCheck": {
+                "mode": "declared-rounding-equivalent",
+                "absoluteTolerance": 1e-06,
+                "practiceOnly": true,
+                "closeRelativeTolerance": 0.02,
+                "rounding": "decimal-half-away-from-zero",
+                "semantics": "Correct if the parsed value rounded to answerFormat equals the reference rounded to answerFormat, or differs from the full reference by at most absoluteTolerance. Otherwise close if relative error ≤closeRelativeTolerance using max(abs(reference), 1e-9) as denominator; otherwise not yet. All feedback is practice only."
+              },
+              "practiceOnly": true,
+              "hints": [
+                "Multiply the per-person daily input by people and provision days.",
+                "Use 42 provision days rather than 41.7 travel days."
+              ],
+              "feedback": "Check the input, operation and units. Practice feedback does not approve the mission.",
+              "evidencePartIds": [
+                "comparison"
+              ],
+              "solution": "1.8 kg/person/day × 3 people × 42 days = 226.8 kg. This is the fictional allocation, not real nutrition guidance."
+            },
+            {
+              "id": "compare-options",
+              "kind": "reflect",
+              "title": "Check every option",
+              "prompt": "Complete the supplied comparison table for chemical, ion and sail. Round up provision days; check both limits. Treat the propellant cards as qualitative assumptions, not measured mass.",
+              "hints": [],
+              "evidencePartIds": [
+                "comparison"
+              ]
+            },
+            {
+              "id": "route-plan",
+              "kind": "reflect",
+              "title": "Explain the journey",
+              "prompt": "Make a diagram from station → transit → instrument delivery, or describe the same ordered route in words. Label the scenario and assumptions.",
+              "hints": [],
+              "evidencePartIds": [
+                "route-plan"
+              ]
+            },
+            {
+              "id": "reflect",
+              "kind": "reflect",
+              "title": "Your recommendation",
+              "prompt": "Recommend a feasible concept, or request missing evidence. Use calculated numbers, one tradeoff, one contingency and one model limit.",
+              "hints": [],
+              "evidencePartIds": [
+                "recommendation"
+              ]
+            }
+          ],
+          "requiredParts": [
+            {
+              "partId": "criteria",
+              "anyOfKinds": [
+                "text"
+              ],
+              "evidenceCriterion": "State arrival/food limits and proposed/agreed priority."
+            },
+            {
+              "partId": "comparison",
+              "anyOfKinds": [
+                "table",
+                "text"
+              ],
+              "evidenceCriterion": "Compare options, calculations, feasibility and any unquantified propellant claim."
+            },
+            {
+              "partId": "route-plan",
+              "anyOfKinds": [
+                "diagram",
+                "text"
+              ],
+              "evidenceCriterion": "Show the ordered route and identify the constant-rate scenario."
+            },
+            {
+              "partId": "recommendation",
+              "anyOfKinds": [
+                "text"
+              ],
+              "evidenceCriterion": "Recommend a concept or request evidence, with numbers, tradeoff, contingency and limitation."
+            }
+          ],
+          "rubric": [
+            {
+              "id": "evidence",
+              "label": "Evidence and units",
+              "descriptors": {
+                "supported": "Rate/day/food steps are checkable; scenario labels and units are correct.",
+                "developing": "Reasoning is traceable but a conversion or label needs revision.",
+                "needs-another-look": "Results cannot be traced to supplied inputs."
+              }
+            },
+            {
+              "id": "evaluation",
+              "label": "Design reasoning",
+              "descriptors": {
+                "supported": "Competing options are checked against every agreed limit and the stated priority.",
+                "developing": "Only one option or some limits are considered.",
+                "needs-another-look": "The recommendation ignores a violated constraint."
+              }
+            },
+            {
+              "id": "limits",
+              "label": "Contingency and scope",
+              "descriptors": {
+                "supported": "Names a useful contingency and distinguishes simplified case assumptions from real flight evidence.",
+                "developing": "Names a limitation without a follow-up or contingency.",
+                "needs-another-look": "Treats the given speed as a universal engine property or the food value as a real recommendation."
+              }
+            },
+            {
+              "id": "communication",
+              "label": "Communication",
+              "descriptors": {
+                "supported": "Diagram/text and comparison clearly explain the decision to another reader/listener.",
+                "developing": "Some evidence is present but ordering/labels need work.",
+                "needs-another-look": "The artifact does not identify the decision or its evidence."
+              }
+            }
+          ],
+          "alignment": [
+            {
+              "pe": "MS-ETS1-2",
+              "gradeBand": "6-8",
+              "claim": "supports",
+              "reviewStatus": "educator-pending",
+              "sourceRefs": [
+                "ngss-ms",
+                "ngss-ms-evidence"
+              ],
+              "sep": "Engaging in argument from evidence",
+              "dci": "ETS1.B — Developing Possible Solutions",
+              "ccc": null,
+              "cccNote": "No CCC is specified in this engineering PE foundation. The listed instructional lenses are additions, not invented required elements.",
+              "instructionalLenses": [
+                "systems",
+                "scale and quantity"
+              ],
+              "observableEvidence": [
+                "Compare alternatives systematically against jointly agreed criteria.",
+                "Identify assumptions and missing propellant/engineering evidence.",
+                "Support a feasible conditional recommendation with calculated evidence."
+              ],
+              "limits": "A rate worksheet alone is practice; collaborative criteria and evaluation evidence remain necessary."
+            }
+          ],
+          "notebookBehavior": {
+            "stepNavigation": "Every step remains navigable; kind reflect never triggers submission.",
+            "evidenceBinding": "A step points to existing notebook parts. Editing it updates that part; no duplicate part is created.",
+            "submitAction": "A separate Review your work screen lists every required part. Send for review is a separate explicit action requiring current service availability.",
+            "supportSwitch": "Preserve every answer and part when support changes. Both support modes keep access to all hints, templates and solutions.",
+            "templateUse": "Prefilled facts are reference givens. Blank editable cells and starters require learner reasoning; do not auto-copy the candidate exemplar.",
+            "rounding": "Keep full precision for later calculations where possible. If you reuse rounded intermediate values, label this; a consistent rounded partial ledger is also reviewable."
+          },
+          "tableTemplates": {
+            "comparison": {
+              "caption": "Scenario G — authored constant-rate comparison",
+              "columns": [
+                "Concept",
+                "Speed km/s",
+                "Travel days",
+                "Provision days",
+                "Food kg",
+                "Meets arrival ≤80 d?",
+                "Meets food ≤400 kg?"
+              ],
+              "rows": [
+                {
+                  "id": "chemical",
+                  "cells": [
+                    {
+                      "value": "Chemical concept",
+                      "editable": false
+                    },
+                    {
+                      "value": "20",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                },
+                {
+                  "id": "ion",
+                  "cells": [
+                    {
+                      "value": "Ion concept",
+                      "editable": false
+                    },
+                    {
+                      "value": "12",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                },
+                {
+                  "id": "sail",
+                  "cells": [
+                    {
+                      "value": "Sail concept",
+                      "editable": false
+                    },
+                    {
+                      "value": "6",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    }
+                  ]
+                }
+              ],
+              "textStarter": "Scenario G: chemical __ days, provision __ days, food __ kg; ion __, __, __; sail __, __, __. For each, check ≤80 days and ≤400 kg. Our priority is __. Propellant burden here is qualitative, not measured mass.",
+              "serialization": "Submit caption, column labels and completed cell strings as the contract table part, or the equivalent text part. Empty starters are not acceptable completed evidence."
+            }
+          },
+          "diagramTemplates": {
+            "route-plan": {
+              "caption": "Scenario G — constant-rate example — conceptual order, not a trajectory",
+              "nodeVocabulary": [
+                {
+                  "id": "station",
+                  "label": "Thalassa research station"
+                },
+                {
+                  "id": "transit",
+                  "label": "Authored transit concept"
+                },
+                {
+                  "id": "delivery",
+                  "label": "Ignis instrument delivery"
+                },
+                {
+                  "id": "scenario",
+                  "label": "Scenario G — constant-rate example"
+                }
+              ],
+              "edgeVocabulary": [
+                {
+                  "fromId": "station",
+                  "toId": "transit",
+                  "label": "depart"
+                },
+                {
+                  "fromId": "transit",
+                  "toId": "delivery",
+                  "label": "deliver"
+                },
+                {
+                  "fromId": "scenario",
+                  "toId": "transit",
+                  "label": "case assumption"
+                }
+              ],
+              "initialNodeIds": [
+                "station",
+                "delivery",
+                "scenario"
+              ],
+              "initialEdges": [],
+              "learnerAction": "Add the transit node and select the depart/deliver relationships; connect the scenario label. Explain the chosen concept and its assumptions in the required description.",
+              "wireShape": {
+                "nodeKeys": [
+                  "id",
+                  "label"
+                ],
+                "edgeKeys": [
+                  "fromId",
+                  "toId",
+                  "label"
+                ],
+                "description": "Required plain-text equivalent, 1–2,000 characters. IDs are local to this part; each edge resolves to a node."
+              },
+              "maxNodes": 12,
+              "maxEdges": 20,
+              "autoLayout": "Use code-owned layout; do not submit coordinates or drawing commands.",
+              "textStarter": "Scenario G — constant-rate example: Thalassa station → __ transit concept → instrument delivery at Ignis. The supplied timing/rate assumptions are __. This is an ordered concept, not a modeled orbit."
+            }
+          },
+          "sentenceStarters": {
+            "criteria": "We agree / I propose arrival ≤80 days and food ≤400 kg. Our priority is __ because __.",
+            "recommendation": "Under our stated priority, I provisionally recommend __. The numbers are __. An alternative offers __. If __ changes, I would __. The simplified model cannot establish __."
+          },
+          "workedExample": {
+            "title": "One rate conversion, then your turn",
+            "steps": [
+              "Use an analogous practice path, not the mission data: 8,640,000 km at 10 km/s.",
+              "Time = 864,000 s; divide by 86,400 s/day to get 10 days.",
+              "Now use the mission’s 72,000,000 km and chemical 20 km/s, then compare every option."
+            ],
+            "practiceStepId": "seconds"
+          },
+          "supportPresentation": {
+            "guided": "Show the worked example, notebook templates and sentence starters initially; hints reveal one at a time and solutions open on request.",
+            "independent": "Show full brief and evidence first; the same templates, worked example, starters, hints and solutions remain available on request. No marks or access depend on support/hint use."
+          }
+        },
+        {
+          "id": "advanced",
+          "taskId": "journey-mass-power",
+          "scenarioIds": [
+            "journey-mass-power-case-02"
+          ],
+          "name": "Mass and power tradeoffs",
+          "challengeLevel": 4,
+          "gradeBand": "9-12",
+          "planningMinutes": [
+            80,
+            120
+          ],
+          "supportModes": [
+            "guided",
+            "independent"
+          ],
+          "support": {
+            "guided": [
+              "A worked example for one calculation; pause to complete the next row yourself.",
+              "Unit labels, table starters and sentence/diagram-description starters.",
+              "Use a calculator, large text, keyboard navigation or a spoken explanation transcribed into the same evidence fields."
+            ],
+            "independent": [
+              "Start with the full supplied record and choose a clear comparison method.",
+              "Hints and worked solutions remain available without penalty.",
+              "Switch support without losing answers; extra scaffolding is not a lower grade."
+            ]
+          },
+          "steps": [
+            {
+              "id": "agree-criteria",
+              "kind": "reflect",
+              "title": "Prioritize the design criteria",
+              "prompt": "For this separate case use arrival ≤150 days, represented added mass ≤21,000 kg and ion propulsion-panel area ≤260 m². Prioritize time, represented mass and unknown system risks; justify the priorities.",
+              "hints": [],
+              "evidencePartIds": [
+                "criteria"
+              ]
+            },
+            {
+              "id": "chem-propellant",
+              "kind": "number",
+              "title": "Chemical propellant",
+              "prompt": "Use dry mass 12,000 kg and Δv = 4,200 m/s in m_prop = m_dry × (exp(Δv/(Isp × g0)) − 1), with Isp = 450 s and g0 = 9.81 m/s². Round to nearest 10 kg.",
+              "answer": 19072.300884096952,
+              "unit": "kg",
+              "answerFormat": {
+                "decimalPlaces": 0,
+                "roundingMultiple": 10,
+                "showGrouping": true
+              },
+              "answerCheck": {
+                "mode": "declared-rounding-equivalent",
+                "absoluteTolerance": 1e-06,
+                "practiceOnly": true,
+                "closeRelativeTolerance": 0.02,
+                "rounding": "decimal-half-away-from-zero",
+                "semantics": "Correct if the parsed value rounded to answerFormat equals the reference rounded to answerFormat, or differs from the full reference by at most absoluteTolerance. Otherwise close if relative error ≤closeRelativeTolerance using max(abs(reference), 1e-9) as denominator; otherwise not yet. All feedback is practice only."
+              },
+              "practiceOnly": true,
+              "hints": [
+                "First compute effective exhaust speed Isp × g0 in m/s.",
+                "Use exp(x), subtract one, then multiply by 12,000 kg; do not multiply Δv by Isp."
+              ],
+              "feedback": "Check the input, operation and units. Practice feedback does not approve the mission.",
+              "evidencePartIds": [
+                "comparison"
+              ],
+              "solution": "4200/(450×9.81) ≈ 0.951410. 12,000×[exp(4200/4414.5)−1] ≈ 19,072.300884 kg, or 19,070 kg to nearest 10. This deliberately incomplete model excludes the later supplies from dry mass."
+            },
+            {
+              "id": "ion-propellant",
+              "kind": "number",
+              "title": "Ion propellant",
+              "prompt": "Repeat the same ideal model with Isp = 3,000 s. Round to nearest 10 kg.",
+              "answer": 1840.7642445419074,
+              "unit": "kg",
+              "answerFormat": {
+                "decimalPlaces": 0,
+                "roundingMultiple": 10,
+                "showGrouping": true
+              },
+              "answerCheck": {
+                "mode": "declared-rounding-equivalent",
+                "absoluteTolerance": 1e-06,
+                "practiceOnly": true,
+                "closeRelativeTolerance": 0.02,
+                "rounding": "decimal-half-away-from-zero",
+                "semantics": "Correct if the parsed value rounded to answerFormat equals the reference rounded to answerFormat, or differs from the full reference by at most absoluteTolerance. Otherwise close if relative error ≤closeRelativeTolerance using max(abs(reference), 1e-9) as denominator; otherwise not yet. All feedback is practice only."
+              },
+              "practiceOnly": true,
+              "hints": [
+                "Change Isp to 3,000 s; keep dry mass and Δv the same.",
+                "Apply the exponential before subtracting one and multiplying by dry mass."
+              ],
+              "feedback": "Check the input, operation and units. Practice feedback does not approve the mission.",
+              "evidencePartIds": [
+                "comparison"
+              ],
+              "solution": "3000×9.81 = 29,430 m/s. 12,000×[exp(4200/29,430)−1] ≈ 1,840.764245 kg, or 1,840 kg to nearest 10."
+            },
+            {
+              "id": "supplies",
+              "kind": "number",
+              "title": "Cost of the longer case",
+              "prompt": "Use 5.3 kg per person per day and three people for independently supplied durations 42 and 140 days. How much extra supply mass for the ion case?",
+              "answer": 1558.2,
+              "unit": "kg",
+              "answerFormat": {
+                "decimalPlaces": 1,
+                "roundingMultiple": null,
+                "showGrouping": true
+              },
+              "answerCheck": {
+                "mode": "declared-rounding-equivalent",
+                "absoluteTolerance": 1e-06,
+                "practiceOnly": true,
+                "closeRelativeTolerance": 0.02,
+                "rounding": "decimal-half-away-from-zero",
+                "semantics": "Correct if the parsed value rounded to answerFormat equals the reference rounded to answerFormat, or differs from the full reference by at most absoluteTolerance. Otherwise close if relative error ≤closeRelativeTolerance using max(abs(reference), 1e-9) as denominator; otherwise not yet. All feedback is practice only."
+              },
+              "practiceOnly": true,
+              "hints": [
+                "Calculate each case’s supplies separately.",
+                "Subtract chemical supplies from ion supplies; use the independent 140-day input."
+              ],
+              "feedback": "Check the input, operation and units. Practice feedback does not approve the mission.",
+              "evidencePartIds": [
+                "comparison"
+              ],
+              "solution": "Chemical: 42×3×5.3 = 667.8 kg. Ion: 140×3×5.3 = 2,226 kg. Difference = 1,558.2 kg. These are Scenario A durations."
+            },
+            {
+              "id": "panels",
+              "kind": "number",
+              "title": "Solar array estimate near Ignis",
+              "prompt": "Use flux 1,200/1.6² W/m² and 25% electrical efficiency. What area supplies the assumed 30,000 W propulsion load? Round to nearest m².",
+              "answer": 256.00000000000006,
+              "unit": "m²",
+              "answerFormat": {
+                "decimalPlaces": 0,
+                "roundingMultiple": null,
+                "showGrouping": true
+              },
+              "answerCheck": {
+                "mode": "declared-rounding-equivalent",
+                "absoluteTolerance": 1e-06,
+                "practiceOnly": true,
+                "closeRelativeTolerance": 0.02,
+                "rounding": "decimal-half-away-from-zero",
+                "semantics": "Correct if the parsed value rounded to answerFormat equals the reference rounded to answerFormat, or differs from the full reference by at most absoluteTolerance. Otherwise close if relative error ≤closeRelativeTolerance using max(abs(reference), 1e-9) as denominator; otherwise not yet. All feedback is practice only."
+              },
+              "practiceOnly": true,
+              "hints": [
+                "Convert 30 kW to 30,000 W.",
+                "Divide flux by distance ratio squared, multiply by efficiency, then divide needed power by W/m²."
+              ],
+              "feedback": "Check the input, operation and units. Practice feedback does not approve the mission.",
+              "evidencePartIds": [
+                "comparison"
+              ],
+              "solution": "Flux = 1200/1.6² = 468.75 W/m²; electrical output = 468.75×0.25 = 117.1875 W/m². Area = 30,000/117.1875 = 256 m² for the assumed propulsion load only."
+            },
+            {
+              "id": "compare-solutions",
+              "kind": "reflect",
+              "title": "Compare the represented designs",
+              "prompt": "Add modeled propellant and supplies to form a partial ledger. Check time/mass/panel constraints. Do not call the sum total launch mass; common spacecraft loads/hardware are omitted.",
+              "hints": [],
+              "evidencePartIds": [
+                "comparison"
+              ]
+            },
+            {
+              "id": "earth-transfer",
+              "kind": "reflect",
+              "title": "Compare with real engineering",
+              "prompt": "Read the NASA Dawn and solar-power references. Identify one relevant propulsion/power principle and one reason the fictional case cannot predict an actual crewed mission. Explain how cost, safety, reliability and stakeholder/environmental concerns would change the evidence needed; do not invent their numerical scores.",
+              "hints": [],
+              "evidencePartIds": [
+                "earth-transfer"
+              ]
+            },
+            {
+              "id": "route-plan",
+              "kind": "reflect",
+              "title": "Describe this case",
+              "prompt": "Diagram or describe the advanced mission case and its separate 140-day ion assumption. Do not copy the guided 69.4-day rate result into this case.",
+              "hints": [],
+              "evidencePartIds": [
+                "route-plan"
+              ]
+            },
+            {
+              "id": "reflect",
+              "kind": "reflect",
+              "title": "Make the case",
+              "prompt": "Give a provisional choice under your priorities, a numerical tradeoff, a missing-data condition that could reverse it, and an actionable next check.",
+              "hints": [],
+              "evidencePartIds": [
+                "recommendation"
+              ]
+            }
+          ],
+          "requiredParts": [
+            {
+              "partId": "criteria",
+              "anyOfKinds": [
+                "text"
+              ],
+              "evidenceCriterion": "Prioritize criteria and state all represented constraints."
+            },
+            {
+              "partId": "comparison",
+              "anyOfKinds": [
+                "table",
+                "text"
+              ],
+              "evidenceCriterion": "Propellant, supplies, partial mass ledger, time and panel calculations with units."
+            },
+            {
+              "partId": "route-plan",
+              "anyOfKinds": [
+                "diagram",
+                "text"
+              ],
+              "evidenceCriterion": "Identify the separate advanced case and durations."
+            },
+            {
+              "partId": "recommendation",
+              "anyOfKinds": [
+                "text"
+              ],
+              "evidenceCriterion": "Provisional choice, tradeoff, reversal condition and model limits."
+            },
+            {
+              "partId": "earth-transfer",
+              "anyOfKinds": [
+                "text"
+              ],
+              "evidenceCriterion": "Connect identified NASA principles to missing actual engineering/stakeholder evidence."
+            }
+          ],
+          "rubric": [
+            {
+              "id": "evidence",
+              "label": "Calculation and provenance",
+              "descriptors": {
+                "supported": "Rocket/supply/solar calculations are traceable; inputs are correctly labeled and limitations travel with results.",
+                "developing": "One method/unit/source relationship needs revision.",
+                "needs-another-look": "The artifact presents unsourced or incompatible calculations."
+              }
+            },
+            {
+              "id": "tradeoffs",
+              "label": "Prioritized evaluation",
+              "descriptors": {
+                "supported": "Checks all represented constraints and explains a conditional choice using explicit priorities.",
+                "developing": "Calculations are present but the priority/tradeoff reasoning is incomplete.",
+                "needs-another-look": "Claims one design is universally best from a single metric."
+              }
+            },
+            {
+              "id": "transfer",
+              "label": "Real engineering transfer",
+              "descriptors": {
+                "supported": "Uses identified NASA principles and explains missing safety/reliability/cost/stakeholder evidence without fabricating it.",
+                "developing": "Makes a real-world connection but leaves its scope unclear.",
+                "needs-another-look": "Treats the fictional case as a validated real mission or claims momentum mastery from formula substitution."
+              }
+            },
+            {
+              "id": "revision",
+              "label": "Communication and revision",
+              "descriptors": {
+                "supported": "An accessible artifact states a reversal condition and useful next test/source.",
+                "developing": "Has a recommendation but no discriminating follow-up.",
+                "needs-another-look": "Cannot explain what evidence could change the choice."
+              }
+            }
+          ],
+          "alignment": [
+            {
+              "pe": "HS-ETS1-3",
+              "gradeBand": "9-12",
+              "claim": "supports",
+              "reviewStatus": "educator-pending",
+              "sourceRefs": [
+                "ngss-hs",
+                "ngss-hs-evidence"
+              ],
+              "sep": "Constructing explanations and designing solutions",
+              "dci": "ETS1.B — Developing Possible Solutions",
+              "ccc": null,
+              "cccNote": "No CCC is specified in this engineering PE foundation. The listed instructional lenses are additions, not invented required elements.",
+              "instructionalLenses": [
+                "systems",
+                "energy and matter"
+              ],
+              "observableEvidence": [
+                "Prioritize criteria and evaluate represented constraints/tradeoffs.",
+                "Connect the fictional model to real NASA engineering principles and identify missing stakeholder/safety/reliability evidence.",
+                "Give a conditional judgment and a follow-up that could change it."
+              ],
+              "limits": "Supports only: the simplified fictional task and qualitative transfer do not establish the full complex real-world PE; no claim of HS-PS2-2 mastery or orbital validity."
+            }
+          ],
+          "notebookBehavior": {
+            "stepNavigation": "Every step remains navigable; kind reflect never triggers submission.",
+            "evidenceBinding": "A step points to existing notebook parts. Editing it updates that part; no duplicate part is created.",
+            "submitAction": "A separate Review your work screen lists every required part. Send for review is a separate explicit action requiring current service availability.",
+            "supportSwitch": "Preserve every answer and part when support changes. Both support modes keep access to all hints, templates and solutions.",
+            "templateUse": "Prefilled facts are reference givens. Blank editable cells and starters require learner reasoning; do not auto-copy the candidate exemplar.",
+            "rounding": "Keep full precision for later calculations where possible. If you reuse rounded intermediate values, label this; a consistent rounded partial ledger is also reviewable."
+          },
+          "tableTemplates": {
+            "comparison": {
+              "caption": "Scenario A — partial ledger, not total launch mass",
+              "columns": [
+                "Quantity and unit",
+                "Chemical",
+                "Ion",
+                "Limit or interpretation"
+              ],
+              "rows": [
+                {
+                  "id": "time",
+                  "cells": [
+                    {
+                      "value": "Duration days",
+                      "editable": false
+                    },
+                    {
+                      "value": "42",
+                      "editable": false
+                    },
+                    {
+                      "value": "140",
+                      "editable": false
+                    },
+                    {
+                      "value": "≤150 days",
+                      "editable": false
+                    }
+                  ]
+                },
+                {
+                  "id": "propellant",
+                  "cells": [
+                    {
+                      "value": "Propellant kg, nearest 10",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "Ideal model; label precision",
+                      "editable": false
+                    }
+                  ]
+                },
+                {
+                  "id": "supplies",
+                  "cells": [
+                    {
+                      "value": "Supplies kg",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "Crew × days × 5.3 kg/person/day",
+                      "editable": false
+                    }
+                  ]
+                },
+                {
+                  "id": "partial-mass",
+                  "cells": [
+                    {
+                      "value": "Partial propellant + supplies kg",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "≤21,000 kg; label rounding",
+                      "editable": false
+                    }
+                  ]
+                },
+                {
+                  "id": "panels",
+                  "cells": [
+                    {
+                      "value": "Ion propulsion panel m²",
+                      "editable": false
+                    },
+                    {
+                      "value": "Not specified; not zero",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "Ion ≤260 m²",
+                      "editable": false
+                    }
+                  ]
+                },
+                {
+                  "id": "judgment",
+                  "cells": [
+                    {
+                      "value": "Meets represented limits?",
+                      "editable": false
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "",
+                      "editable": true
+                    },
+                    {
+                      "value": "Full system/safety remain unknown",
+                      "editable": false
+                    }
+                  ]
+                }
+              ],
+              "textStarter": "Scenario A: chemical propellant __ kg, supplies __ kg, partial sum __ kg, time 42 days. Ion propellant __ kg, supplies __ kg, partial sum __ kg, time 140 days, panel __ m². I used full / rounded intermediate values. The constraints are __; missing system evidence is __.",
+              "serialization": "Submit caption, column labels and completed cell strings as the contract table part, or the equivalent text part. Empty starters are not acceptable completed evidence."
+            }
+          },
+          "diagramTemplates": {
+            "route-plan": {
+              "caption": "Scenario A — separate mass/power case — conceptual order, not a trajectory",
+              "nodeVocabulary": [
+                {
+                  "id": "station",
+                  "label": "Thalassa research station"
+                },
+                {
+                  "id": "transit",
+                  "label": "Authored transit concept"
+                },
+                {
+                  "id": "delivery",
+                  "label": "Ignis instrument delivery"
+                },
+                {
+                  "id": "scenario",
+                  "label": "Scenario A — separate mass/power case"
+                }
+              ],
+              "edgeVocabulary": [
+                {
+                  "fromId": "station",
+                  "toId": "transit",
+                  "label": "depart"
+                },
+                {
+                  "fromId": "transit",
+                  "toId": "delivery",
+                  "label": "deliver"
+                },
+                {
+                  "fromId": "scenario",
+                  "toId": "transit",
+                  "label": "case assumption"
+                }
+              ],
+              "initialNodeIds": [
+                "station",
+                "delivery",
+                "scenario"
+              ],
+              "initialEdges": [],
+              "learnerAction": "Add the transit node and select the depart/deliver relationships; connect the scenario label. Explain the chosen concept and its assumptions in the required description.",
+              "wireShape": {
+                "nodeKeys": [
+                  "id",
+                  "label"
+                ],
+                "edgeKeys": [
+                  "fromId",
+                  "toId",
+                  "label"
+                ],
+                "description": "Required plain-text equivalent, 1–2,000 characters. IDs are local to this part; each edge resolves to a node."
+              },
+              "maxNodes": 12,
+              "maxEdges": 20,
+              "autoLayout": "Use code-owned layout; do not submit coordinates or drawing commands.",
+              "textStarter": "Scenario A — separate mass/power case: Thalassa station → __ transit concept → instrument delivery at Ignis. The supplied timing/rate assumptions are __. This is an ordered concept, not a modeled orbit."
+            }
+          },
+          "sentenceStarters": {
+            "criteria": "I prioritize __, then __, because __. The represented limits are __; safety and complete system performance remain unresolved.",
+            "recommendation": "With those priorities I provisionally select __. The represented tradeoff is __. Evidence about __ could reverse this choice; next I would __.",
+            "earth-transfer": "The NASA reference explains __. It relates to this calculation through __. It does not validate __. A real decision also needs __ from __."
+          },
+          "workedExample": {
+            "title": "One panel example, then your turn",
+            "steps": [
+              "Analogous practice case: flux 800 W/m² and efficiency 0.25 give 200 W/m² electrical output.",
+              "A 10,000 W load needs 10,000/200 = 50 m² before omitted margins.",
+              "Now use Scenario A’s distance-scaled flux and 30,000 W propulsion input."
+            ],
+            "practiceStepId": "panels"
+          },
+          "supportPresentation": {
+            "guided": "Show the worked example, notebook templates and sentence starters initially; hints reveal one at a time and solutions open on request.",
+            "independent": "Show full brief and evidence first; the same templates, worked example, starters, hints and solutions remain available on request. No marks or access depend on support/hint use."
+          }
+        }
+      ],
+      "limitations": [
+        "Average speeds are authored rate examples, not outputs of propulsion simulation or actual trajectories.",
+        "Food mass, crew and limits are fictional, not recommendations for people.",
+        "A lower food mass does not prove a smaller complete spacecraft or a safer mission.",
+        "Separate teaching case from the guided constant-rate scenario: the 140-day ion duration is an independent input, not the result of 12 km/s.",
+        "Rocket-equation dry mass excludes the later consumables ledger; represented propellant plus supplies is a partial comparison, not a total launch-mass calculation.",
+        "Panel hardware mass, life-support energy, thrust history, acceleration, trajectory, redundancy, radiation shielding and safety margins are not modeled.",
+        "Constant stellar output, a single distance and idealized constant panel efficiency are assumed; no complete electrical-system adequacy claim."
+      ],
+      "implementationNotes": [
+        "Keep legacy mission ID, guided/advanced route IDs and historical 0.1.0-draft. New 0.2.0-draft introduces explicit scenario separation and evidence tasks.",
+        "The advanced route is a different task/demand, not merely independent support for the guided route.",
+        "Replace displayAnswer threshold rounding with declared per-step answerFormat. Practice checks must distinguish rounded display from full reference precision.",
+        "Neither route grants Boreas access; coach outcome is reviewed-only.",
+        "The artifact is human-reviewed; no automatic competence, crew-safety or real flight approval."
+      ],
+      "contentSha256": "155394d13e0b8a657dbb511d8dfa0fe2467f08f8ff709453b548dde40887d267"
+    }
+  ],
+  "referenceArtifacts": [
+    {
+      "name": "thalassa-wind-survey-guided",
+      "classification": "synthetic-acceptable-artifact-candidate",
+      "educatorApproval": false,
+      "endpoint": "/api/universe/missions/thalassa-wind-survey/submissions",
+      "headers": {
+        "Idempotency-Key": "g03-fixture-thalassa-wind-survey-guided"
+      },
+      "request": {
+        "contractVersion": "1.0.0",
+        "releaseId": "pilot-fixture-g03-20261102-v2",
+        "missionVersion": "0.2.0-draft",
+        "routeId": "guided",
+        "taskId": "wind-capacity-factor",
+        "supportMode": "guided",
+        "policyVersion": "pilot-review-only-0.1.0-draft",
+        "previousSubmissionId": null,
+        "reflection": "Both satisfy the base teaching constraints; A uses 8 t less mass and has the smaller shortfall when only wind changes to CF 0.20. B has a larger base surplus and uses 300 m² less deck area, so a different priority could justify it.",
+        "evidence": [
+          {
+            "partId": "criteria",
+            "kind": "text",
+            "text": "We agreed daily supply must reach 12,000 kWh, installation mass stay at or below 40 t, and area at or below 1,000 m². I prioritize lower mass, while recording the energy margin."
+          },
+          {
+            "partId": "weighted-results",
+            "kind": "table",
+            "caption": "Synthetic week and equivalent full-power hours",
+            "columns": [
+              "Wind band",
+              "Hours",
+              "Output fraction",
+              "Full-power h"
+            ],
+            "rows": [
+              [
+                "0 to below 3 m/s",
+                "20",
+                "0",
+                "0"
+              ],
+              [
+                "3 to below 6 m/s",
+                "50",
+                "0.1",
+                "5"
+              ],
+              [
+                "6 to below 9 m/s",
+                "60",
+                "0.35",
+                "21"
+              ],
+              [
+                "9 to below 12 m/s",
+                "30",
+                "0.75",
+                "22.5"
+              ],
+              [
+                "12 to 20 m/s in this teaching record",
+                "8",
+                "1",
+                "8"
+              ],
+              [
+                "Total",
+                "168",
+                "CF raw ≈0.33631; planning 0.34",
+                "56.5"
+              ]
+            ]
+          },
+          {
+            "partId": "plan-comparison",
+            "kind": "table",
+            "caption": "Authored daily plan estimates using rounded CF 0.34",
+            "columns": [
+              "Plan",
+              "Supply kWh/day",
+              "Surplus kWh/day",
+              "Mass t",
+              "Area m²",
+              "CF 0.20 supply"
+            ],
+            "rows": [
+              [
+                "A",
+                "14160",
+                "2160",
+                "28",
+                "900",
+                "10800"
+              ],
+              [
+                "B",
+                "16320",
+                "4320",
+                "36",
+                "600",
+                "9600"
+              ]
+            ]
+          },
+          {
+            "partId": "recommendation",
+            "kind": "choice",
+            "selectedId": "plan-a",
+            "reason": "Both satisfy the base teaching constraints; A uses 8 t less mass and has the smaller shortfall when only wind changes to CF 0.20. B has a larger base surplus and uses 300 m² less deck area, so a different priority could justify it."
+          },
+          {
+            "partId": "data-quality",
+            "kind": "text",
+            "text": "This is a synthetic aggregated week and a synthetic curve, not measured turbine performance. The record has 168 authored hours but no time order or calibration evidence."
+          },
+          {
+            "partId": "limitations-next-measurement",
+            "kind": "text",
+            "text": "Neither a weekly CF nor a daily total proves supply at night. I would request time-stamped generation and demand over representative periods, with site/turbine and outage information, before claiming reliability."
+          }
+        ]
+      }
+    },
+    {
+      "name": "spacecraft-journey-guided",
+      "classification": "synthetic-acceptable-artifact-candidate",
+      "educatorApproval": false,
+      "endpoint": "/api/universe/missions/spacecraft-journey/submissions",
+      "headers": {
+        "Idempotency-Key": "g03-fixture-spacecraft-journey-guided"
+      },
+      "request": {
+        "contractVersion": "1.0.0",
+        "releaseId": "pilot-fixture-g03-20261102-v2",
+        "missionVersion": "0.2.0-draft",
+        "routeId": "guided",
+        "taskId": "journey-rates",
+        "supportMode": "guided",
+        "policyVersion": "pilot-review-only-0.1.0-draft",
+        "previousSubmissionId": null,
+        "reflection": "I provisionally recommend the chemical concept for our earlier-arrival priority: about 41.7 days and 226.8 kg food. The ion option also fits both limits and has an assumed lower propellant burden. I would recheck propulsion/trajectory and reserve margins if the delivery date changed; these rate examples do not establish real mission safety.",
+        "evidence": [
+          {
+            "partId": "criteria",
+            "kind": "text",
+            "text": "Use arrival at most 80 days and food at most 400 kg. Our agreed priority is earlier arrival; the qualitative propellant burden remains a tradeoff."
+          },
+          {
+            "partId": "comparison",
+            "kind": "table",
+            "caption": "Fictional constant-rate case, not a trajectory model",
+            "columns": [
+              "Concept",
+              "Travel days",
+              "Provision days",
+              "Food kg",
+              "Meets limits?"
+            ],
+            "rows": [
+              [
+                "Chemical",
+                "41.7",
+                "42",
+                "226.8",
+                "Yes"
+              ],
+              [
+                "Ion",
+                "69.4",
+                "70",
+                "378",
+                "Yes"
+              ],
+              [
+                "Sail",
+                "138.9",
+                "139",
+                "750.6",
+                "No"
+              ]
+            ]
+          },
+          {
+            "partId": "route-plan",
+            "kind": "text",
+            "text": "Thalassa station → authored constant-rate transit → delivery at Ignis research site. The selected chemical concept uses 20 km/s over the supplied 72,000,000 km path; this diagram does not model orbital maneuvers."
+          },
+          {
+            "partId": "recommendation",
+            "kind": "text",
+            "text": "I provisionally recommend the chemical concept for our earlier-arrival priority: about 41.7 days and 226.8 kg food. The ion option also fits both limits and has an assumed lower propellant burden. I would recheck propulsion/trajectory and reserve margins if the delivery date changed; these rate examples do not establish real mission safety."
+          }
+        ]
+      }
+    },
+    {
+      "name": "spacecraft-journey-advanced",
+      "classification": "synthetic-acceptable-artifact-candidate",
+      "educatorApproval": false,
+      "endpoint": "/api/universe/missions/spacecraft-journey/submissions",
+      "headers": {
+        "Idempotency-Key": "g03-fixture-spacecraft-journey-advanced"
+      },
+      "request": {
+        "contractVersion": "1.0.0",
+        "releaseId": "pilot-fixture-g03-20261102-v2",
+        "missionVersion": "0.2.0-draft",
+        "routeId": "advanced",
+        "taskId": "journey-mass-power",
+        "supportMode": "guided",
+        "policyVersion": "pilot-review-only-0.1.0-draft",
+        "previousSubmissionId": null,
+        "reflection": "Under the stated represented-mass priority, I provisionally favor ion: the partial ledger is about 4,066.8 kg versus 19,740.1 kg, and 256 m² meets the 260 m² propulsion-panel assumption. Chemical arrives 98 days earlier. A deadline below 140 days, insufficient actual power, or complete life-support/hardware analysis could reverse or prevent this choice.",
+        "evidence": [
+          {
+            "partId": "criteria",
+            "kind": "text",
+            "text": "Under this independent case, require arrival within 150 days, represented added mass at most 21,000 kg and ion propulsion panels at most 260 m². I prioritize represented mass, then time, while treating safety evidence as unresolved."
+          },
+          {
+            "partId": "comparison",
+            "kind": "table",
+            "caption": "Partial modeled mass and power ledger, not total launch mass",
+            "columns": [
+              "Quantity",
+              "Chemical",
+              "Ion"
+            ],
+            "rows": [
+              [
+                "Duration days",
+                "42",
+                "140"
+              ],
+              [
+                "Propellant kg rounded to 10",
+                "19070",
+                "1840"
+              ],
+              [
+                "Supplies kg",
+                "667.8",
+                "2226"
+              ],
+              [
+                "Partial ledger kg, full precision rounded",
+                "19740.1",
+                "4066.8"
+              ],
+              [
+                "Propulsion panel area m²",
+                "Not specified; not zero",
+                "256"
+              ]
+            ]
+          },
+          {
+            "partId": "route-plan",
+            "kind": "text",
+            "text": "Advanced mass/power case: Thalassa → authored transfer concept → Ignis. The ion duration is supplied independently as 140 days and is not computed from the guided route's 12 km/s."
+          },
+          {
+            "partId": "recommendation",
+            "kind": "text",
+            "text": "Under the stated represented-mass priority, I provisionally favor ion: the partial ledger is about 4,066.8 kg versus 19,740.1 kg, and 256 m² meets the 260 m² propulsion-panel assumption. Chemical arrives 98 days earlier. A deadline below 140 days, insufficient actual power, or complete life-support/hardware analysis could reverse or prevent this choice."
+          },
+          {
+            "partId": "earth-transfer",
+            "kind": "text",
+            "text": "NASA Dawn provides a real example of efficient low-thrust ion propulsion, and the JPL solar lesson connects array area with distance. Neither validates this fictional crewed case. I need actual trajectory/thrust, full power and mass budgets, redundancy and safety evidence, plus cost and stakeholder/environmental considerations before evaluating a real system."
+          }
+        ]
+      }
+    },
+    {
+      "name": "thalassa-wind-survey-guided-text-alternative",
+      "classification": "synthetic-acceptable-artifact-candidate",
+      "educatorApproval": false,
+      "endpoint": "/api/universe/missions/thalassa-wind-survey/submissions",
+      "headers": {
+        "Idempotency-Key": "g03-fixture-thalassa-wind-survey-guided-text"
+      },
+      "request": {
+        "contractVersion": "1.0.0",
+        "releaseId": "pilot-fixture-g03-20261102-v2",
+        "missionVersion": "0.2.0-draft",
+        "routeId": "guided",
+        "taskId": "wind-capacity-factor",
+        "supportMode": "guided",
+        "policyVersion": "pilot-review-only-0.1.0-draft",
+        "previousSubmissionId": null,
+        "reflection": "Both satisfy the base teaching constraints; A uses 8 t less mass and has the smaller shortfall when only wind changes to CF 0.20. B has a larger base surplus and uses 300 m² less deck area, so a different priority could justify it.",
+        "evidence": [
+          {
+            "partId": "criteria",
+            "kind": "text",
+            "text": "We agreed daily supply must reach 12,000 kWh, installation mass stay at or below 40 t, and area at or below 1,000 m². I prioritize lower mass, while recording the energy margin."
+          },
+          {
+            "partId": "weighted-results",
+            "kind": "text",
+            "text": "Synthetic band products: 20×0=0 h; 50×0.10=5 h; 60×0.35=21 h; 30×0.75=22.5 h; 8×1=8 h. Total time 168 h; equivalent full-power time 56.5 h. Raw CF 56.5/168≈0.33631; rounded planning input 0.34."
+          },
+          {
+            "partId": "plan-comparison",
+            "kind": "table",
+            "caption": "Authored daily plan estimates using rounded CF 0.34",
+            "columns": [
+              "Plan",
+              "Supply kWh/day",
+              "Surplus kWh/day",
+              "Mass t",
+              "Area m²",
+              "CF 0.20 supply"
+            ],
+            "rows": [
+              [
+                "A",
+                "14160",
+                "2160",
+                "28",
+                "900",
+                "10800"
+              ],
+              [
+                "B",
+                "16320",
+                "4320",
+                "36",
+                "600",
+                "9600"
+              ]
+            ]
+          },
+          {
+            "partId": "recommendation",
+            "kind": "choice",
+            "selectedId": "plan-a",
+            "reason": "Both satisfy the base teaching constraints; A uses 8 t less mass and has the smaller shortfall when only wind changes to CF 0.20. B has a larger base surplus and uses 300 m² less deck area, so a different priority could justify it."
+          },
+          {
+            "partId": "data-quality",
+            "kind": "text",
+            "text": "This is a synthetic aggregated week and a synthetic curve, not measured turbine performance. The record has 168 authored hours but no time order or calibration evidence."
+          },
+          {
+            "partId": "limitations-next-measurement",
+            "kind": "text",
+            "text": "Neither a weekly CF nor a daily total proves supply at night. I would request time-stamped generation and demand over representative periods, with site/turbine and outage information, before claiming reliability."
+          }
+        ]
+      }
+    },
+    {
+      "name": "spacecraft-journey-guided-diagram-alternative",
+      "classification": "synthetic-acceptable-artifact-candidate",
+      "educatorApproval": false,
+      "endpoint": "/api/universe/missions/spacecraft-journey/submissions",
+      "headers": {
+        "Idempotency-Key": "g03-fixture-spacecraft-journey-guided-diagram"
+      },
+      "request": {
+        "contractVersion": "1.0.0",
+        "releaseId": "pilot-fixture-g03-20261102-v2",
+        "missionVersion": "0.2.0-draft",
+        "routeId": "guided",
+        "taskId": "journey-rates",
+        "supportMode": "guided",
+        "policyVersion": "pilot-review-only-0.1.0-draft",
+        "previousSubmissionId": null,
+        "reflection": "I provisionally recommend the chemical concept for our earlier-arrival priority: about 41.7 days and 226.8 kg food. The ion option also fits both limits and has an assumed lower propellant burden. I would recheck propulsion/trajectory and reserve margins if the delivery date changed; these rate examples do not establish real mission safety.",
+        "evidence": [
+          {
+            "partId": "criteria",
+            "kind": "text",
+            "text": "Use arrival at most 80 days and food at most 400 kg. Our agreed priority is earlier arrival; the qualitative propellant burden remains a tradeoff."
+          },
+          {
+            "partId": "comparison",
+            "kind": "table",
+            "caption": "Fictional constant-rate case, not a trajectory model",
+            "columns": [
+              "Concept",
+              "Travel days",
+              "Provision days",
+              "Food kg",
+              "Meets limits?"
+            ],
+            "rows": [
+              [
+                "Chemical",
+                "41.7",
+                "42",
+                "226.8",
+                "Yes"
+              ],
+              [
+                "Ion",
+                "69.4",
+                "70",
+                "378",
+                "Yes"
+              ],
+              [
+                "Sail",
+                "138.9",
+                "139",
+                "750.6",
+                "No"
+              ]
+            ]
+          },
+          {
+            "partId": "route-plan",
+            "kind": "diagram",
+            "nodes": [
+              {
+                "id": "station",
+                "label": "Thalassa research station"
+              },
+              {
+                "id": "transit",
+                "label": "Authored transit concept"
+              },
+              {
+                "id": "delivery",
+                "label": "Ignis instrument delivery"
+              },
+              {
+                "id": "scenario",
+                "label": "Scenario G — constant-rate example"
+              }
+            ],
+            "edges": [
+              {
+                "fromId": "station",
+                "toId": "transit",
+                "label": "depart"
+              },
+              {
+                "fromId": "transit",
+                "toId": "delivery",
+                "label": "deliver"
+              },
+              {
+                "fromId": "scenario",
+                "toId": "transit",
+                "label": "case assumption"
+              }
+            ],
+            "description": "Scenario G: Thalassa station → chemical constant-rate concept → instrument delivery at Ignis. Supplied rate 20 km/s over 72,000,000 km gives about 41.7 days. This selected order is not an orbital trajectory."
+          },
+          {
+            "partId": "recommendation",
+            "kind": "text",
+            "text": "I provisionally recommend the chemical concept for our earlier-arrival priority: about 41.7 days and 226.8 kg food. The ion option also fits both limits and has an assumed lower propellant burden. I would recheck propulsion/trajectory and reserve margins if the delivery date changed; these rate examples do not establish real mission safety."
+          }
+        ]
+      }
+    }
+  ],
+  "validationScope": "Authoring data and fixtures only; not a live catalog, installed schema or educator approval.",
+  "hashEncoding": "sorted-key-json-ecmascript-v1: recursive UTF-16 key sort, array order preserved, JSON.stringify primitive encoding, UTF-8 SHA-256, excluding only own checksum field. Finite JSON only.",
+  "bundleContentSha256": "974d7ad370297bec650701cd9ebfc76a77abbb239281cb32dcf35fb5ec3231a7"
+}

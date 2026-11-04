@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Users, GraduationCap, HeartHandshake, Settings, FlaskConical, ArrowLeft, Printer, CreditCard, PackageCheck } from 'lucide-react';
+import {
+  Users,
+  GraduationCap,
+  HeartHandshake,
+  Settings,
+  FlaskConical,
+  ArrowLeft,
+  Printer,
+  CreditCard,
+  PackageCheck
+} from 'lucide-react';
 import { Avatar } from '../shell/Avatar.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { consolePermissions } from '../../app/roles.js';
@@ -11,10 +21,10 @@ import { AccountForm } from './accounts/AccountForm.jsx';
 import { clearReferenceCache } from './accounts/useReferenceData.js';
 import { StudentBillingOverview } from './billing/StudentBillingOverview.jsx';
 import { MaterialRequestsList } from './materials/MaterialRequestsList.jsx';
+import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 import { SettingsPage } from '../settings/SettingsPage.jsx';
 import './admin.css';
 import { AttendancePanel, LeavePanel, InventoryPanel, PilotHome } from './pilot/PilotOperations.jsx';
-import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 
 const NAV = [
   { kind: 'students', icon: GraduationCap, key: 'nav.students' },
@@ -24,7 +34,7 @@ const NAV = [
 
 /**
  * Admin console for `admin` and `supervisor` claims. Layout, role-aware
- * navigation and the account screens.
+ * navigation, account screens and school operations.
  */
 export function AdminConsole({ route, role, user, profile, navigate }) {
   const { t } = useLocale();
@@ -73,27 +83,27 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
   } else if (route.page === 'create' && perms.editAccounts) {
     body = (
       <div className="gh-narrow" style={{ maxWidth: 820 }}>
-      <a className="gh-crumb" href={hrefFor.list(route.kind)}><ArrowLeft size={16} aria-hidden="true" />{t(`nav.${route.kind}`)}</a>
-      <AccountForm
-        kind={route.kind}
-        onCancel={() => navigate(hrefFor.list(route.kind))}
-        onDone={(created) => {
-          const a = created.activation;
-          setFlash(a?.sent
-            ? { type: 'success', text: `${t('form.created')} ${t('form.activationSent')}` }
-            : { type: 'info', text: t('form.activationNotSent', { reason: t(`errors.${a?.reason}`) }) });
-          navigate(hrefFor.detail(created.uid));
-        }}
-      />
+        <a className="gh-crumb" href={hrefFor.list(route.kind)}><ArrowLeft size={16} aria-hidden="true" />{t(`nav.${route.kind}`)}</a>
+        <AccountForm
+          kind={route.kind}
+          onCancel={() => navigate(hrefFor.list(route.kind))}
+          onDone={(created) => {
+            const a = created.activation;
+            setFlash(a?.sent
+              ? { type: 'success', text: `${t('form.created')} ${t('form.activationSent')}` }
+              : { type: 'info', text: t('form.activationNotSent', { reason: t(`errors.${a?.reason}`) }) });
+            navigate(hrefFor.detail(created.uid));
+          }}
+        />
       </div>
     );
   } else {
     body = (
       <AccountList
-        kind={route.kind}
+        kind={route.kind || 'students'}
         perms={perms}
         onOpen={(uid) => navigate(hrefFor.detail(uid))}
-        onCreate={() => navigate(hrefFor.create(route.kind))}
+        onCreate={() => navigate(hrefFor.create(route.kind || 'students'))}
       />
     );
   }
@@ -103,34 +113,99 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
       <nav className="gh-side" aria-label={t('nav.console')}>
         <div className="gh-side-label">{t('nav.people')}</div>
         {NAV.map((item) => (
-          <a key={item.kind} href={hrefFor.list(item.kind)} className="gh-nav-link"
-             aria-current={route.screen === 'admin' && route.page === 'list' && activeKind === item.kind ? 'page' : undefined}>
-            <item.icon size={18} strokeWidth={2} aria-hidden="true" />{t(item.key)}
+          <a
+            key={item.kind}
+            href={hrefFor.list(item.kind)}
+            className="gh-nav-link"
+            aria-current={route.screen === 'admin' && route.page === 'list' && activeKind === item.kind ? 'page' : undefined}
+          >
+            <item.icon size={18} strokeWidth={2} aria-hidden="true" />
+            {t(item.key)}
           </a>
         ))}
+
         <div className="gh-side-label">{t('nav.operations')}</div>
-        <a href="#/admin" className="gh-nav-link" aria-current={route.screen === 'admin' && route.page === 'pilot' ? 'page' : undefined}><FlaskConical size={18} strokeWidth={2} aria-hidden="true" />Overview</a>
-        <a href="#/admin/staff-attendance" className="gh-nav-link" aria-current={route.screen === 'admin' && route.page === 'staff-attendance' ? 'page' : undefined}><Users size={18} strokeWidth={2} aria-hidden="true" />Staff attendance</a>
-        <a href="#/admin/student-attendance" className="gh-nav-link" aria-current={route.screen === 'admin' && route.page === 'student-attendance' ? 'page' : undefined}><GraduationCap size={18} strokeWidth={2} aria-hidden="true" />Student attendance</a>
-        <a href="#/admin/leave" className="gh-nav-link" aria-current={route.screen === 'admin' && route.page === 'leave' ? 'page' : undefined}><HeartHandshake size={18} strokeWidth={2} aria-hidden="true" />Day-off requests</a>
-        <a href="#/admin/inventory" className="gh-nav-link" aria-current={route.screen === 'admin' && route.page === 'inventory' ? 'page' : undefined}><PackageCheck size={18} strokeWidth={2} aria-hidden="true" />Inventory</a>
-        <a href={hrefFor.billing()} className="gh-nav-link"
-           aria-current={route.screen === 'admin' && route.page === 'billing' ? 'page' : undefined}>
-          <CreditCard size={18} strokeWidth={2} aria-hidden="true" />{t('nav.financials')}
+        <a
+          href="#/admin"
+          className="gh-nav-link"
+          aria-current={route.screen === 'admin' && route.page === 'pilot' ? 'page' : undefined}
+        >
+          <FlaskConical size={18} strokeWidth={2} aria-hidden="true" />
+          Overview
         </a>
-        <a href={hrefFor.materials()} className="gh-nav-link"
-           aria-current={route.screen === 'admin' && route.page === 'materials' ? 'page' : undefined}>
-          <PackageCheck size={18} strokeWidth={2} aria-hidden="true" />{t('nav.materials')}
+        <a
+          href="#/admin/staff-attendance"
+          className="gh-nav-link"
+          aria-current={route.screen === 'admin' && route.page === 'staff-attendance' ? 'page' : undefined}
+        >
+          <Users size={18} strokeWidth={2} aria-hidden="true" />
+          Staff attendance
         </a>
+        <a
+          href="#/admin/student-attendance"
+          className="gh-nav-link"
+          aria-current={route.screen === 'admin' && route.page === 'student-attendance' ? 'page' : undefined}
+        >
+          <GraduationCap size={18} strokeWidth={2} aria-hidden="true" />
+          Student attendance
+        </a>
+        <a
+          href="#/admin/leave"
+          className="gh-nav-link"
+          aria-current={route.screen === 'admin' && route.page === 'leave' ? 'page' : undefined}
+        >
+          <HeartHandshake size={18} strokeWidth={2} aria-hidden="true" />
+          Day-off requests
+        </a>
+        <a
+          href="#/admin/inventory"
+          className="gh-nav-link"
+          aria-current={route.screen === 'admin' && route.page === 'inventory' ? 'page' : undefined}
+        >
+          <PackageCheck size={18} strokeWidth={2} aria-hidden="true" />
+          Inventory
+        </a>
+        <a
+          href={hrefFor.billing()}
+          className="gh-nav-link"
+          aria-current={route.screen === 'admin' && route.page === 'billing' ? 'page' : undefined}
+        >
+          <CreditCard size={18} strokeWidth={2} aria-hidden="true" />
+          {t('nav.financials')}
+        </a>
+        <a
+          href={hrefFor.materials()}
+          className="gh-nav-link"
+          aria-current={route.screen === 'admin' && route.page === 'materials' ? 'page' : undefined}
+        >
+          <PackageCheck size={18} strokeWidth={2} aria-hidden="true" />
+          {t('nav.materials')}
+        </a>
+
         <div className="gh-side-label">{t('nav.teaching')}</div>
-        <a href="#/admin/learning" className="gh-nav-link" aria-current={route.page === 'learning' ? 'page' : undefined}><GraduationCap size={18} aria-hidden="true" />School learning & calendar</a>
+        <a
+          href="#/admin/learning"
+          className="gh-nav-link"
+          aria-current={route.screen === 'admin' && route.page === 'learning' ? 'page' : undefined}
+        >
+          <GraduationCap size={18} aria-hidden="true" />
+          School learning & calendar
+        </a>
         <a href={hrefFor.resources()} className="gh-nav-link">
-          <Printer size={18} strokeWidth={2} aria-hidden="true" />{t('nav.primaryResources')}
+          <Printer size={18} strokeWidth={2} aria-hidden="true" />
+          {t('nav.primaryResources')}
         </a>
+
         <div className="gh-side-label">{t('nav.account')}</div>
-        <a href={hrefFor.settings()} className="gh-nav-link" aria-current={route.screen === 'settings' ? 'page' : undefined}>
-          <Settings size={18} strokeWidth={2} aria-hidden="true" />{t('nav.settings')}
+        <a
+          href={hrefFor.settings()}
+          className="gh-nav-link"
+          aria-current={route.screen === 'settings' ? 'page' : undefined}
+        >
+          <Settings size={18} strokeWidth={2} aria-hidden="true" />
+          {t('nav.settings')}
         </a>
+
         <div className="gh-side-foot">
           <Avatar name={profile?.displayName || user.email} seed={user.uid} size={34} />
           <div style={{ minWidth: 0 }}>
@@ -141,7 +216,12 @@ export function AdminConsole({ route, role, user, profile, navigate }) {
       </nav>
 
       <main className="gh-main" ref={mainRef} tabIndex={-1} style={{ outline: 'none' }}>
-        {isMockApi && <div className="gh-banner" role="note"><FlaskConical size={16} aria-hidden="true" />{t('testData.banner')}</div>}
+        {isMockApi && ['list', 'detail', 'create'].includes(route.page) && (
+          <div className="gh-banner" role="note">
+            <FlaskConical size={16} aria-hidden="true" />
+            {t('testData.banner')}
+          </div>
+        )}
         {body}
       </main>
     </div>

@@ -89,6 +89,145 @@
         "--strictPort"
       ],
       "port": 5177
+    },
+    {
+      "name": "hearisland-web-live-5178",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "VITE_API_MODE=live",
+        "npx",
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5178",
+        "--strictPort"
+      ],
+      "port": 5178
+    },
+    {
+      "name": "ux-learning-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "/Users/admin/Desktop/HearIsland/.claude/worktrees/ux-learning-workspace",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5179",
+        "--strictPort"
+      ],
+      "port": 5179
+    },
+    {
+      "name": "student-dashboard-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "/Users/admin/Desktop/HearIsland/output/student-dashboard-20261030/source",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5181",
+        "--strictPort"
+      ],
+      "port": 5181
+    },
+    {
+      "name": "dashboard-on-live-fixture",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "/private/tmp/claude-501/-Users-admin-Desktop-HearIsland/061f6624-4534-407c-88db-e1c339589b7a/scratchpad/onlive/tests/dashboard-preview/vite.config.js",
+        "--port",
+        "5184",
+        "--strictPort"
+      ],
+      "port": 5184
+    },
+    {
+      "name": "search-discovery-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "/Users/admin/Desktop/HearIsland/output/course-discovery/source",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5186",
+        "--strictPort"
+      ],
+      "port": 5186
+    },
+    {
+      "name": "search-discovery-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "/Users/admin/Desktop/HearIsland/output/course-discovery/source/tests/discovery-preview/vite.config.js"
+      ],
+      "port": 5187
+    },
+    {
+      "name": "discovery-dashboard-fixture",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "/Users/admin/Desktop/HearIsland/output/course-discovery/source/tests/dashboard-preview/vite.config.js",
+        "--port",
+        "5188",
+        "--strictPort"
+      ],
+      "port": 5188
+    },
+    {
+      "name": "universe-3d-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "/Users/admin/Desktop/HearIsland/output/universe-3d/source/tests/universe-preview/vite.config.js"
+      ],
+      "port": 5189
+    },
+    {
+      "name": "thalassa-workstations-preview",
+      "runtimeExecutable": "/Users/admin/Desktop/HearIsland/output/my-universe/thalassa-wt/node_modules/.bin/vite",
+      "runtimeArgs": [
+        "--config",
+        "/Users/admin/Desktop/HearIsland/output/my-universe/thalassa-wt/tests/universe-preview/vite.config.js",
+        "--port",
+        "5193",
+        "--force"
+      ],
+      "port": 5193
+    },
+    {
+      "name": "universe-explorer-spike",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "/Users/admin/Desktop/HearIsland/output/my-universe/source/tests/universe-preview/vite.config.js",
+        "--force"
+      ],
+      "port": 5192
+    },
+    {
+      "name": "progress-gauge-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "/Users/admin/Desktop/HearIsland/.claude/worktrees/progress-gauge/tests/dashboard-preview/vite.config.js",
+        "--port",
+        "5182",
+        "--strictPort"
+      ],
+      "port": 5182
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { MediaImage } from '../media/MediaViewer.jsx';
 /**
  * Junior Explorers - the primary (ages 6-11) section.
  *
@@ -545,7 +546,7 @@ function LabBook({ activity, records, level, onOpen, onDelete, onBack }) {
                         if (!sampleStarted(inv, o, level)) return null;
                         return (
                           <div key={s.id} className="pl-seen">
-                            {o.drawing ? <img src={o.drawing} alt={`Drawing of ${s.label}`} /> : null}
+                            {o.drawing ? <MediaImage src={o.drawing} alt={`Drawing of ${s.label}`} /> : null}
                             <div><b>{s.icon} {s.label}</b><br />{sampleSummary(inv, o, level, summaryLookups)}</div>
                           </div>
                         );

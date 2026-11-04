@@ -55,11 +55,15 @@ export function buildFixtures(seed = 20260925) {
   const organization = { orgId: 'org-welearn', name: 'WeLearn', status: 'active', defaultLocale: 'en' };
 
   const schools = [
+    { schoolId: 'sch-w2e', orgId: organization.orgId, name: 'W2E Campus', timezone: 'Asia/Bangkok', locale: 'en', status: 'active' },
+    { schoolId: 'sch-wpr', orgId: organization.orgId, name: 'WPR International School', timezone: 'Asia/Bangkok', locale: 'en', status: 'active' },
     { schoolId: 'sch-bkk', orgId: organization.orgId, name: 'Bangkok Campus (test)', timezone: 'Asia/Bangkok', locale: 'th', status: 'active' },
     { schoolId: 'sch-online', orgId: organization.orgId, name: 'Online School (test)', timezone: 'Asia/Bangkok', locale: 'en', status: 'active' }
   ];
 
   const cohorts = [
+    { cohortId: 'cohort-wls', code: 'WLS', name: { en: 'WLS (Lower Secondary, 13–15)', zh: 'WLS（初中，13–15岁）', th: 'WLS (มัธยมต้น 13–15 ปี)' }, ageBands: ['13-15'], status: 'active' },
+    { cohortId: 'cohort-whs', code: 'WHS', name: { en: 'WHS (Higher Secondary, 16–18)', zh: 'WHS（高中，16–18岁）', th: 'WHS (มัธยมปลาย 16–18 ปี)' }, ageBands: ['16-18'], status: 'active' },
     { cohortId: 'cohort-w2e', code: 'W2E', name: { en: 'W2E (twice-exceptional, secondary)', zh: 'W2E（双重特殊，中学）', th: 'W2E (ผู้เรียนอัจฉริยภาพสองด้าน มัธยม)' }, ageBands: ['13-15', '16-18'], status: 'active' },
     { cohortId: 'cohort-wpr', code: 'WPR', name: { en: 'WPR (international, primary)', zh: 'WPR（国际，小学）', th: 'WPR (นานาชาติ ประถม)' }, ageBands: ['primary'], status: 'active' }
   ];
@@ -69,12 +73,16 @@ export function buildFixtures(seed = 20260925) {
   ];
 
   const classes = [
-    { classId: 'cls-y7-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-w2e', name: 'Year 7 Explorers', yearLevel: 'Year 7' },
-    { classId: 'cls-y9-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-w2e', name: 'Year 9 Innovators', yearLevel: 'Year 9' },
+    { classId: 'cls-y7-w2e', schoolId: 'sch-w2e', cohortId: 'cohort-w2e', name: 'Year 7 Explorers', yearLevel: 'Year 7' },
+    { classId: 'cls-y9-w2e', schoolId: 'sch-w2e', cohortId: 'cohort-w2e', name: 'Year 9 Innovators', yearLevel: 'Year 9' },
+    { classId: 'cls-wls-y7', schoolId: 'sch-w2e', cohortId: 'cohort-wls', name: 'WLS Year 7 Foundation', yearLevel: 'Year 7' },
+    { classId: 'cls-wls-y8', schoolId: 'sch-w2e', cohortId: 'cohort-wls', name: 'WLS Year 8 Core', yearLevel: 'Year 8' },
+    { classId: 'cls-whs-y10', schoolId: 'sch-w2e', cohortId: 'cohort-whs', name: 'WHS Year 10 Advanced', yearLevel: 'Year 10' },
+    { classId: 'cls-whs-y12', schoolId: 'sch-w2e', cohortId: 'cohort-whs', name: 'WHS Year 12 Diploma', yearLevel: 'Year 12' },
     { classId: 'cls-y11-w2e', schoolId: 'sch-online', cohortId: 'cohort-w2e', name: 'Year 11 Research', yearLevel: 'Year 11' },
-    { classId: 'cls-y3-wpr', schoolId: 'sch-bkk', cohortId: 'cohort-wpr', name: 'Year 3 Discoverers', yearLevel: 'Year 3' },
-    { classId: 'cls-y5-wpr', schoolId: 'sch-bkk', cohortId: 'cohort-wpr', name: 'Year 5 Makers', yearLevel: 'Year 5' },
-    { classId: 'cls-thai-dip', schoolId: 'sch-bkk', programmeId: 'prog-thai-diploma', name: 'Thai Diploma – Thai Language', yearLevel: 'Year 10' }
+    { classId: 'cls-y3-wpr', schoolId: 'sch-wpr', cohortId: 'cohort-wpr', name: 'Year 3 Discoverers', yearLevel: 'Year 3' },
+    { classId: 'cls-y5-wpr', schoolId: 'sch-wpr', cohortId: 'cohort-wpr', name: 'Year 5 Makers', yearLevel: 'Year 5' },
+    { classId: 'cls-thai-dip', schoolId: 'sch-w2e', programmeId: 'prog-thai-diploma', name: 'Thai Diploma – Thai Language', yearLevel: 'Year 10' }
   ].map((c) => ({ ...c, orgId: organization.orgId, status: 'active' }));
 
   const users = [];
@@ -120,50 +128,103 @@ export function buildFixtures(seed = 20260925) {
     return user;
   }
 
-  // Staff
-  const admin = person('admin', { salutation: 'Ms' });
-  person('supervisor', { schoolIds: ['sch-bkk'] });
-  person('supervisor', { schoolIds: ['sch-online'] });
-  const teachers = [];
-  for (let i = 0; i < 8; i += 1) {
-    const t = person('teacher', { schoolIds: [i < 6 ? 'sch-bkk' : 'sch-online'] });
-    teachers.push(t);
-  }
+  // Staff: 2 testing admin accounts and 3 coaches accounts
+  const admin = person('admin', {
+    salutation: 'Ms',
+    givenNames: 'Admin',
+    surname: 'Test',
+    displayName: 'Admin Test',
+    email: 'admin.test@school.edu'
+  });
+  person('admin', {
+    salutation: 'Mr',
+    givenNames: 'WeLearn',
+    surname: 'Admin',
+    displayName: 'WeLearn Admin',
+    email: 'admin@welearn.org'
+  });
+  const teachers = [
+    person('teacher', {
+      givenNames: 'Sam',
+      surname: 'Coach',
+      displayName: 'Coach Sam',
+      email: 'coach.wpr@school.edu',
+      schoolIds: ['sch-bkk']
+    }),
+    person('teacher', {
+      givenNames: 'Alex',
+      surname: 'Coach',
+      displayName: 'Coach Alex',
+      email: 'coach@welearn.org',
+      schoolIds: ['sch-bkk']
+    }),
+    person('teacher', {
+      givenNames: 'Mani',
+      surname: 'Coach',
+      displayName: 'Mani Coach',
+      email: 'mani@welearn.org',
+      schoolIds: ['sch-online']
+    })
+  ];
   classes.forEach((c, i) => { c.coachIds = [teachers[i % teachers.length].uid]; teachers[i % teachers.length].classIds.push(c.classId); });
 
-  // Students: 129, the total the wireframes showed, so "Displaying 1–30 of 129" is exercised.
-  for (let i = 0; i < 129; i += 1) {
-    const primary = i % 3 === 0;
-    const cls = primary ? pick(classes.filter((c) => c.cohortId === 'cohort-wpr')) : pick(classes.filter((c) => c.cohortId === 'cohort-w2e'));
-    const consentVerified = !primary || rand() < 0.8;
-    const s = person('student', {
+  // Students: test student accounts
+  const studentSpecs = [
+    { givenNames: 'Penny', surname: 'Primary', displayName: 'Penny Primary', email: 'primary.student@school.edu', primary: true, cohortId: 'cohort-wpr' },
+    { givenNames: 'Junior', surname: 'Explorer', displayName: 'Junior Explorer', email: 'junior.explorer@school.edu', primary: true, cohortId: 'cohort-wpr' },
+    { givenNames: 'Yuri', surname: 'Na', displayName: 'Yuri Na', email: 'yuri.na@welearn.org', primary: false, cohortId: 'cohort-wls' },
+    { givenNames: 'Lisa', surname: 'Chen', displayName: 'Lisa Chen', email: 'lisa@welearn.org', primary: false, cohortId: 'cohort-whs' },
+    { givenNames: 'Charlie', surname: 'Su', displayName: 'Charlie Su', email: 'charlie.su@welearn.org', primary: false, cohortId: 'cohort-w2e' },
+    { givenNames: 'Ana Isabella', surname: 'Apala', displayName: 'Ana Isabella', email: 'anaisapala23@gmail.com', primary: false, cohortId: 'cohort-whs', yearLevel: 'Grade 10', schoolId: 'sch-w2e', classId: 'cls-whs-y10', ageBand: '16-18', dateOfBirth: '2010-05-15', isFirstTimeUser: true }
+  ];
+  for (let i = 0; i < studentSpecs.length; i += 1) {
+    const spec = studentSpecs[i];
+    const primary = spec.primary;
+    const targetCohort = spec.cohortId || (primary ? 'cohort-wpr' : 'cohort-w2e');
+    const matchedClass = spec.classId ? classes.find((c) => c.classId === spec.classId) : null;
+    const cls = matchedClass || pick(classes.filter((c) => c.cohortId === targetCohort)) || classes[0];
+    person('student', {
+      givenNames: spec.givenNames,
+      surname: spec.surname,
+      displayName: spec.displayName,
+      email: spec.email,
       cohortId: cls.cohortId,
-      ageBand: primary ? 'primary' : (/(7|9)/.test(cls.yearLevel) ? '13-15' : '16-18'),
-      yearLevel: cls.yearLevel,
-      schoolIds: [cls.schoolId],
-      classIds: [cls.classId],
-      programmeIds: rand() < 0.15 ? ['prog-thai-diploma'] : [],
-      dateOfBirth: null,
-      consent: primary ? { status: consentVerified ? 'verified' : 'required', method: consentVerified ? 'school_form' : null } : null
+      ageBand: spec.ageBand || (primary ? 'primary' : (/(7|8|9)/.test(cls.yearLevel) ? '13-15' : '16-18')),
+      yearLevel: spec.yearLevel || cls.yearLevel,
+      schoolIds: spec.schoolId ? [spec.schoolId] : [cls.schoolId],
+      classIds: spec.classId ? [spec.classId] : [cls.classId],
+      programmeIds: [],
+      dateOfBirth: spec.dateOfBirth || null,
+      consent: primary ? { status: 'verified', method: 'school_form' } : null,
+      status: 'active',
+      isFirstTimeUser: spec.isFirstTimeUser || false
     });
-    if (primary && !consentVerified) s.status = 'pending';
-    else if (rand() < 0.05) s.status = 'pending';
-    else if (rand() < 0.04) s.status = 'suspended';
   }
 
-  // Parents, each linked to 1-2 students.
+  // Parents: 5 test parent accounts
   const students = users.filter((u) => u.role === 'student');
+  const parentSpecs = [
+    { givenNames: 'Parent', surname: 'Test One', displayName: 'Parent Test 1', email: 'parent.test@school.edu', childIdx: 1 },
+    { givenNames: 'Parent', surname: 'Test Two', displayName: 'Parent Test 2', email: 'parent@welearn.org', childIdx: 2 },
+    { givenNames: 'Parent', surname: 'Test Three', displayName: 'Parent Test 3', email: 'parent3.test@school.edu', childIdx: 3 },
+    { givenNames: 'Parent', surname: 'Test Four', displayName: 'Parent Test 4', email: 'parent4.test@school.edu', childIdx: 4 },
+    { givenNames: 'Parent', surname: 'Test Five', displayName: 'Parent Test 5', email: 'parent5.test@school.edu', childIdx: 2 }
+  ];
   const parentLinks = [];
   let linkSeq = 0;
-  for (let i = 0; i < 42; i += 1) {
-    const p = person('parent');
-    const n = rand() < 0.3 ? 2 : 1;
-    const kids = new Set();
-    while (kids.size < n) kids.add(pick(students).uid);
-    kids.forEach((studentUid) => {
+  for (let i = 0; i < parentSpecs.length; i += 1) {
+    const spec = parentSpecs[i];
+    const p = person('parent', {
+      givenNames: spec.givenNames,
+      surname: spec.surname,
+      displayName: spec.displayName,
+      email: spec.email
+    });
+    const studentUid = students[spec.childIdx]?.uid;
+    if (studentUid) {
       linkSeq += 1;
       parentLinks.push({ linkId: `link-${String(linkSeq).padStart(3, '0')}`, orgId: organization.orgId, parentUid: p.uid, studentUid, status: 'active', createdAt: p.createdAt, createdVia: `invite-${linkSeq}` });
-    });
+    }
   }
 
   // History consistent with each account's state.

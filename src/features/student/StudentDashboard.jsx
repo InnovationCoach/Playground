@@ -63,7 +63,7 @@ export function StudentDashboard({ profile, uid, onProfileChanged }) {
   return (
     <div className="container">
 
-      <PersonalizedDashboard uid={uid} profile={profile} widgets={{
+      <PersonalizedDashboard uid={uid} profile={profile} onProfileChanged={onProfileChanged} widgets={{
         goals: <div id="goals-dashboard-container" style={{ marginBottom: '2rem' }} />,
         learning: <SchoolLearningPanel initialArea="home" learnerName={profile?.displayName} />,
         notes: (

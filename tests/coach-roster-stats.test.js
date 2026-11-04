@@ -84,6 +84,41 @@ describe('Coach Dashboard Roster, Stats, and Goal Progress', () => {
     expect(goalsHtml).not.toContain('65%');
   });
 
+  it('does not read any roster when signed class access is absent', async () => {
+    getAuthClaims.mockResolvedValueOnce({ role: 'teacher', classIds: [] });
+    const coach = new CoachDashboard({ coachUser: { uid:'coach-1', classIds:['forged-class'], groupName:'Demo class' } });
+    await coach.loadData();
+    expect(getDocs).not.toHaveBeenCalled();
+    expect(coach.students).toEqual([]);
+    expect(coach.loadError).toContain('access is missing');
+  });
+
+  it('renders student names, goals and activity text literally', () => {
+    const payload = '<img src=x onerror="window.pwned=true">';
+    const coach = new CoachDashboard({ coachUser:{ uid:'coach-1' } });
+    const student = { uid:'s1', displayName:payload, email:'anna@pilot.test', groupName:payload, dailyStats:[], goals:[{ title:payload }], activityProgress:{ 'urban-heat':{ notes:payload, cooling:0 } } };
+    const host = document.createElement('div');
+    host.innerHTML = coach.renderStudentModal(student) + coach.renderGoalsTab([student]);
+    expect(host.querySelector('img')).toBeNull();
+    expect(host.textContent).toContain(payload);
+    expect(host.textContent).toContain('Completion not recorded');
+    expect(host.textContent).not.toContain('365 Days');
+  });
+
+  it('restores the previous rating and reports a failed save', async () => {
+    const { setDoc } = await import('../src/firebase.js');
+    setDoc.mockRejectedValueOnce(new Error('permission denied'));
+    const coach = new CoachDashboard({ coachUser:{ uid:'coach-1' } });
+    coach.container.innerHTML = '<label><select class="student-rating" data-uid="s1"><option value="0">Not rated</option><option value="4">4</option></select><small class="rating-status"></small></label>';
+    coach.attachInspectEvents();
+    const select = coach.container.querySelector('select');
+    select.value = '4'; select.dispatchEvent(new Event('change'));
+    await vi.waitFor(() => expect(select.disabled).toBe(false));
+    expect(select.value).toBe('0');
+    expect(coach.container.textContent).toContain('not saved');
+    expect(coach.studentRatings.s1).toBeUndefined();
+  });
+
   it('computes live activity telemetry without adding an estimated 0.5hr duration fallback when missing', () => {
     const coach = new CoachDashboard({ coachUser: { uid: 'coach-1' } });
     coach.students = [

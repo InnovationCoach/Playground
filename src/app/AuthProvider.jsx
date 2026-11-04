@@ -86,7 +86,14 @@ export function AuthProvider({ children, onThemeLoaded }) {
         return;
       }
 
-      const claims = await getAuthClaims();
+      let claims = await getAuthClaims();
+      if (cancelled) return;
+
+      if (profile.role && (!claims.role || claims.role !== profile.role)) {
+        try {
+          claims = await getAuthClaims(true);
+        } catch { /* proceed with cached claims */ }
+      }
       if (cancelled) return;
 
       // A suspended account is refused by the API immediately, but an ID token

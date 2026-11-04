@@ -13,6 +13,8 @@
  */
 import { buildFixtures, makePublicId, mulberry32, DEMO_PARENT_INVITE_CODE } from './mockFixtures.js';
 import { generateJoinCode, normaliseJoinCode } from '../../utils/joinCode.js';
+import { childRecords, profileFor } from './mockChildRecords.js';
+import { buildChildProgress } from '../../features/parent/childProgress.js';
 
 const ROLES = ['admin', 'supervisor', 'teacher', 'student', 'parent'];
 const STATUSES = ['pending', 'active', 'suspended'];
@@ -51,6 +53,106 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     && !db.parentLinks.some((l) => l.studentUid === u.uid));
   if (demoChild) {
     db.parentInvites.push({ inviteId: 'invite-demo', orgId: db.organization.orgId, studentUid: demoChild.uid, codeHash: hashCode(DEMO_PARENT_INVITE_CODE), expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(), createdBy: 'mock-admin-001' });
+  }
+
+  // Links a reviewer redeems survive a reload (mock only), so the parent
+  // dashboard can be reopened without a new invite code each time.
+  const SAVED_LINKS = 'hearisland.mock.parentLinks.v1';
+  const savedLinks = () => {
+    try { return JSON.parse(globalThis.localStorage?.getItem(SAVED_LINKS) || '[]'); } catch { return []; }
+  };
+  const saveLink = (link) => {
+    try { globalThis.localStorage?.setItem(SAVED_LINKS, JSON.stringify([...savedLinks(), link])); } catch { /* storage unavailable */ }
+  };
+  for (const l of savedLinks()) {
+    if (db.users.some((u) => u.uid === l.studentUid) && !db.parentLinks.some((x) => x.parentUid === l.parentUid && x.studentUid === l.studentUid)) {
+      db.parentLinks.push({ ...l, status: 'active' });
+    }
+  }
+
+  const SAVED_USERS = 'hearisland.mock.users.v1';
+  const savedUsers = () => {
+    try { return JSON.parse(globalThis.localStorage?.getItem(SAVED_USERS) || '[]'); } catch { return []; }
+  };
+  const saveUser = (user) => {
+    try {
+      const current = savedUsers().filter((u) => u.uid !== user.uid);
+      current.push(user);
+      globalThis.localStorage?.setItem(SAVED_USERS, JSON.stringify(current));
+    } catch { /* storage unavailable */ }
+  };
+  for (const u of savedUsers()) {
+    const idx = db.users.findIndex((x) => x.uid === u.uid);
+    if (idx >= 0) db.users[idx] = { ...db.users[idx], ...u };
+    else db.users.push(u);
+  }
+
+  const REALTIME_STUDENTS = [
+    {
+      uid: 'hDOMhxjh3Yb87RSQUOKGWQtnDBY2',
+      publicId: 'KZN-TKL-PRS-V01',
+      role: 'student',
+      status: 'active',
+      givenNames: 'Leo',
+      surname: 'Boonmee',
+      displayName: 'Leo Boonmee',
+      email: 'leo.grade6@welearn.edu',
+      schoolIds: ['school-wpr', 'sch-wpr'],
+      classIds: ['class_climate_champions_7a'],
+      cohortId: 'cohort-wpr',
+      cohort: 'primary',
+      ageBand: 'primary',
+      yearLevel: 'Grade 6',
+      dateOfBirth: '2015-05-15',
+      createdAt: '2026-11-03T08:57:12.000Z',
+      auth: { lastSignInAt: null, createdAt: '2026-11-03T08:57:12.000Z', disabled: false, hasPassword: true }
+    },
+    {
+      uid: 'oU3EvKMy27YdLww0smyTgnmKbup1',
+      publicId: 'KZN-TKL-PRS-V02',
+      role: 'student',
+      status: 'active',
+      givenNames: 'Nicha',
+      surname: 'Chen',
+      displayName: 'Nicha Chen',
+      email: 'nicha.grade9@welearn.edu',
+      schoolIds: ['school-wpr', 'sch-w2e'],
+      classIds: ['class_climate_champions_7a'],
+      cohortId: 'cohort-wls',
+      cohort: 'lower-secondary',
+      ageBand: '13-15',
+      yearLevel: 'Grade 9',
+      dateOfBirth: '2012-08-20',
+      createdAt: '2026-11-03T08:57:14.000Z',
+      auth: { lastSignInAt: null, createdAt: '2026-11-03T08:57:14.000Z', disabled: false, hasPassword: true }
+    },
+    {
+      uid: '44LP50CuVDQpNAaYUc59qRg74KG2',
+      publicId: 'KZN-TKL-PRS-V03',
+      role: 'student',
+      status: 'active',
+      givenNames: 'Thanawat',
+      surname: 'Hughes',
+      displayName: 'Thanawat Hughes',
+      email: 'thanawat.grade12@welearn.edu',
+      schoolIds: ['school-wpr', 'sch-w2e'],
+      classIds: ['class_climate_champions_7a'],
+      cohortId: 'cohort-whs',
+      cohort: 'higher-secondary',
+      ageBand: '16-18',
+      yearLevel: 'Grade 12',
+      dateOfBirth: '2008-04-10',
+      createdAt: '2026-11-03T08:57:16.000Z',
+      auth: { lastSignInAt: null, createdAt: '2026-11-03T08:57:16.000Z', disabled: false, hasPassword: true }
+    }
+  ];
+
+  if (typeof window !== 'undefined' && !window.__isVitest) {
+    for (const u of REALTIME_STUDENTS) {
+      if (!db.users.some((x) => x.email === u.email || x.uid === u.uid)) {
+        db.users.push(u);
+      }
+    }
   }
 
   const findUser = (uid) => db.users.find((u) => u.uid === uid);
@@ -180,23 +282,38 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     const email = body.email.trim().toLowerCase();
     if (db.users.some((u) => u.email === email)) return fail(409, 'CONFLICT', 'That email is already in use.', 'email');
     const createdAt = now();
-    const primary = body.role === 'student' && body.ageBand === 'primary';
+    const hasPassword = Boolean(body.password && String(body.password).trim().length >= 6);
     const user = {
       uid: newId('mock-user'), publicId: makePublicId(rand, takenIds), role: body.role,
-      status: 'pending',
+      status: hasPassword ? 'active' : 'pending',
       givenNames: body.givenNames.trim(), surname: body.surname.trim(), displayName: `${body.givenNames.trim()} ${body.surname.trim()}`,
       salutation: body.salutation || null, email, phone: body.phone || null, gender: body.gender || null,
       orgId: db.organization.orgId, schoolIds: body.schoolIds, classIds: body.classIds || [], programmeIds: body.programmeIds || [],
       locale: 'en', createdAt, createdBy: actorFor(caller), updatedAt: null, updatedBy: null,
-      auth: { lastSignInAt: null, createdAt, disabled: false }
+      auth: { lastSignInAt: null, createdAt, disabled: false, hasPassword }
     };
     if (body.role === 'student') {
-      Object.assign(user, { cohortId: body.cohortId, ageBand: body.ageBand, yearLevel: body.yearLevel || null, dateOfBirth: body.dateOfBirth || null, consent: primary ? { status: 'required' } : null });
+      Object.assign(user, { cohortId: body.cohortId, ageBand: body.ageBand, yearLevel: body.yearLevel || null, dateOfBirth: body.dateOfBirth || null, consent: null });
     }
     db.users.push(user);
-    audit(caller, user, 'ACCOUNT_CREATED', `Account created as ${user.role}`);
-    // Email is not configured until the Microsoft 365 mailbox exists (plan action 4).
-    return ok({ ...fullRecord(user, caller), activation: { sent: false, reason: 'EMAIL_NOT_CONFIGURED' } }, 201);
+    saveUser(user);
+    audit(caller, user, 'ACCOUNT_CREATED', hasPassword ? `Account created as ${user.role} with direct login password` : `Account created as ${user.role}`);
+    const activation = hasPassword ? { sent: false, directPassword: true } : { sent: false, reason: 'EMAIL_NOT_CONFIGURED' };
+    return ok({ ...fullRecord(user, caller), activation }, 201);
+  });
+
+  route('POST', '/api/admin/users/:uid/set-password', ADMIN, ({ params, body, caller }) => {
+    const u = findUser(params.uid);
+    if (!u) return fail(404, 'NOT_FOUND', 'No such account.');
+    const password = String(body?.password || '').trim();
+    if (password.length < 6) return fail(400, 'VALIDATION', 'Password must be at least 6 characters.', 'password');
+    u.status = 'active';
+    u.auth = { ...(u.auth || {}), disabled: false, hasPassword: true };
+    u.updatedAt = now();
+    u.updatedBy = actorFor(caller);
+    saveUser(u);
+    audit(caller, u, 'PASSWORD_RESET', 'Admin set login password');
+    return ok(fullRecord(u, caller));
   });
 
   route('GET', '/api/admin/users/:uid', CONSOLE, ({ params, caller }) => {
@@ -431,7 +548,9 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     invite.redeemedAt = now(); invite.redeemedBy = caller.uid;
     const already = activeLinks().some((l) => l.parentUid === caller.uid && l.studentUid === child.uid);
     if (!already) {
-      db.parentLinks.push({ linkId: newId('link'), orgId: db.organization.orgId, parentUid: caller.uid, studentUid: child.uid, status: 'active', createdAt: now(), createdVia: invite.inviteId });
+      const link = { linkId: newId('link'), orgId: db.organization.orgId, parentUid: caller.uid, studentUid: child.uid, status: 'active', createdAt: now(), createdVia: invite.inviteId };
+      db.parentLinks.push(link);
+      saveLink(link);
       audit(caller, child, 'PARENT_LINKED', `Parent ${caller.name} linked`);
     }
     return ok({ child: childSummary(child) });
@@ -448,10 +567,22 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     return ok({ items, nextPageToken: null, total: items.length });
   });
 
+  // ADDITION (docs/PARENT-DASHBOARD-CONTRACT.md): one linked child's progress.
+  // A child the caller is not actively linked to is NOT_FOUND, not FORBIDDEN,
+  // so the response does not confirm that the uid exists.
+  route('GET', '/api/parent/children/:uid/progress', ['parent'], ({ params, caller }) => {
+    const link = activeLinks().find((l) => l.parentUid === caller.uid && l.studentUid === params.uid);
+    const child = link && findUser(params.uid);
+    if (!child) return fail(404, 'NOT_FOUND', 'No such child.');
+    const records = childRecords(profileFor(child.uid, demoChild?.uid));
+    return ok(buildChildProgress({ child: { linkId: link.linkId, ...childSummary(child) }, ...records }));
+  });
+
   route('DELETE', '/api/admin/parent-links/:linkId', ADMIN, ({ params, caller }) => {
     const link = db.parentLinks.find((l) => l.linkId === params.linkId && l.status === 'active');
     if (!link) return fail(404, 'NOT_FOUND', 'No such link.');
     Object.assign(link, { status: 'revoked', revokedAt: now(), revokedBy: caller.uid });
+    try { globalThis.localStorage?.setItem(SAVED_LINKS, JSON.stringify(savedLinks().filter((l) => l.linkId !== link.linkId))); } catch { /* storage unavailable */ }
     const student = findUser(link.studentUid);
     const parent = findUser(link.parentUid);
     audit(caller, student, 'PARENT_UNLINKED', `Parent ${parent?.displayName || link.parentUid} unlinked`);
@@ -459,17 +590,316 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     return ok({ linkId: link.linkId, status: 'revoked' });
   });
 
+  route('POST', '/api/admin/parent-links', CONSOLE, ({ body, caller }) => {
+    const parentUid = body?.parentUid;
+    const studentUid = body?.studentUid;
+    if (!parentUid || !studentUid) return fail(400, 'VALIDATION', 'Parent and student are both required.');
+    const parent = findUser(parentUid);
+    const student = findUser(studentUid);
+    if (!parent) return fail(404, 'NOT_FOUND', 'Parent not found.', 'parentUid');
+    if (!student) return fail(404, 'NOT_FOUND', 'Student not found.', 'studentUid');
+    if (parent.role !== 'parent') return fail(400, 'VALIDATION', 'Selected user is not a parent.', 'parentUid');
+    if (student.role !== 'student') return fail(400, 'VALIDATION', 'Selected user is not a student.', 'studentUid');
+    const already = activeLinks().some((l) => l.parentUid === parentUid && l.studentUid === studentUid);
+    if (already) return fail(409, 'CONFLICT', 'This child is already linked to this parent.');
+    const link = {
+      linkId: newId('link'),
+      orgId: db.organization.orgId,
+      parentUid,
+      studentUid,
+      status: 'active',
+      createdAt: now(),
+      createdVia: 'admin-console'
+    };
+    db.parentLinks.push(link);
+    saveLink(link);
+    audit(caller, student, 'PARENT_LINKED', `Parent ${parent.displayName} linked by admin`);
+    audit(caller, parent, 'PARENT_LINKED', `Linked to ${student.displayName} by admin`);
+    return ok({ linkId: link.linkId, parentUid, studentUid, status: 'active', createdAt: link.createdAt }, 201);
+  });
+
+  route('GET', '/api/canva/connection', ['admin', 'supervisor', 'teacher', 'student'], () => {
+    return ok({ connected: false });
+  });
+
+  route('GET', '/api/canva/oauth/start', ['admin', 'supervisor', 'teacher', 'student'], () => {
+    const clientId = 'OC-AaFyafCLmW1w';
+    const redirectUri = encodeURIComponent('http://127.0.0.1:3001/api/canva/oauth/callback');
+    const scope = encodeURIComponent('design:content design:meta asset folder profile');
+    const url = `https://www.canva.com/api/oauth/authorize?code_challenge=mock_challenge&code_challenge_method=s256&scope=${scope}&response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=mock_state`;
+    return ok({ url, state: 'mock-canva-state' });
+  });
+
+  route('POST', '/api/canva/disconnect', ['admin', 'supervisor', 'teacher', 'student'], () => {
+    return ok({ success: true, disconnected: true });
+  });
+
+  // --- Pilot Operations: Attendance, Leave, Inventory ---
+  const pilotAttendanceStore = new Map();
+  const pilotHistoryStore = new Map();
+  const pilotLeaveStore = [
+    {
+      id: 'leave_mani_01',
+      uid: '0rE6NrmlgyaZDTjTG6HOLGvIm8z1',
+      name: 'Coach Mani',
+      role: 'Senior STEM & PBL Coach',
+      startDate: '2026-11-18',
+      endDate: '2026-11-20',
+      reason: 'Annual family visit and personal leave',
+      status: 'approved',
+      response: 'Approved by administration. Coverage arranged with Coach Alex.',
+      createdAt: '2026-10-28T09:00:00.000Z',
+      days: 3
+    },
+    {
+      id: 'leave_sarah_02',
+      uid: 'CETkvAzvYUhKwCxB97hZLvD9tZz2',
+      name: 'Coach Sarah Jenkins',
+      role: 'Lead Robotics & Maker Coach',
+      startDate: '2026-12-24',
+      endDate: '2026-12-28',
+      reason: 'Year-end family holidays and cultural celebration',
+      status: 'pending',
+      response: '',
+      createdAt: '2026-11-01T11:30:00.000Z',
+      days: 5
+    },
+    {
+      id: 'leave_alex_03',
+      uid: '5ONInNle5ZWHoPFuWCjhKKqMiKP2',
+      name: 'Coach Alex Rivera',
+      role: 'Climate & Sustainability Coach',
+      startDate: '2026-11-10',
+      endDate: '2026-11-11',
+      reason: 'Regional PBL STEM Educators Conference presentation',
+      status: 'approved',
+      response: 'Approved. Looking forward to the conference debrief!',
+      createdAt: '2026-10-25T14:20:00.000Z',
+      days: 2
+    },
+    {
+      id: 'leave_david_04',
+      uid: 'DuXWfOG0fnYn8kG8R6d4rMnlx2o1',
+      name: 'Coach David Chen',
+      role: 'Physics & Coding Coach',
+      startDate: '2026-12-01',
+      endDate: '2026-12-03',
+      reason: 'Robotics competition chaperone & hardware workshop',
+      status: 'approved',
+      response: 'Approved by administration.',
+      createdAt: '2026-10-20T16:00:00.000Z',
+      days: 3
+    }
+  ];
+
+  const defaultMockCoaches = [
+    {
+      uid: '0rE6NrmlgyaZDTjTG6HOLGvIm8z1',
+      name: 'Coach Mani',
+      role: 'Senior STEM & PBL Coach',
+      email: 'mani@welearn.org',
+      defaultStatus: 'present',
+      defaultNote: 'On campus · Science Lab 201',
+      daysOffUsed: 4,
+      holidayTotal: 20
+    },
+    {
+      uid: 'CETkvAzvYUhKwCxB97hZLvD9tZz2',
+      name: 'Coach Sarah Jenkins',
+      role: 'Lead Robotics & Maker Coach',
+      email: 'coach@welearn.org',
+      defaultStatus: 'present',
+      defaultNote: 'Leading Robotics Workshop',
+      daysOffUsed: 6,
+      holidayTotal: 20
+    },
+    {
+      uid: '5ONInNle5ZWHoPFuWCjhKKqMiKP2',
+      name: 'Coach Alex Rivera',
+      role: 'Climate & Sustainability Coach',
+      email: 'demo.coach.report@welearn.org',
+      defaultStatus: 'present',
+      defaultNote: 'Climate Champions PBL mentoring',
+      daysOffUsed: 2,
+      holidayTotal: 20
+    },
+    {
+      uid: 'DuXWfOG0fnYn8kG8R6d4rMnlx2o1',
+      name: 'Coach David Chen',
+      role: 'Physics & Coding Coach',
+      email: 'al@welearn.org',
+      defaultStatus: 'late',
+      defaultNote: 'Commute delay (30 mins) · Coding lab',
+      daysOffUsed: 8,
+      holidayTotal: 20
+    },
+    {
+      uid: 'EtbqHXNCP6fZM7WbeocihWcPpql2',
+      name: 'Admin Test (Supervisor)',
+      role: 'Head of Operations & Academics',
+      email: 'admin.test@school.edu',
+      defaultStatus: 'present',
+      defaultNote: 'Admin Console & Inventory Review',
+      daysOffUsed: 3,
+      holidayTotal: 25
+    }
+  ];
+
+  const handleAttendanceGet = ({ query }) => {
+    const kind = query.kind || 'staff';
+    const date = query.date || new Date().toISOString().slice(0, 10);
+
+    if (kind === 'staff') {
+      const items = defaultMockCoaches.map((c) => {
+        const key = `${date}_${c.uid}`;
+        const stored = pilotAttendanceStore.get(key);
+        const coachLeaves = pilotLeaveStore.filter((l) => l.uid === c.uid);
+        const upcoming = coachLeaves.find((l) => l.endDate >= date && l.status !== 'rejected') || null;
+        const used = c.daysOffUsed || 0;
+        const total = c.holidayTotal || 20;
+
+        return {
+          uid: c.uid,
+          name: c.name,
+          role: c.role,
+          email: c.email,
+          publicId: c.publicId || null,
+          lastSignInAt: null,
+          accountStatus: 'active',
+          accountDisabled: false,
+          status: stored?.status || c.defaultStatus || 'present',
+          note: stored?.note !== undefined ? stored.note : (c.defaultNote || ''),
+          daysOffUsed: used,
+          holidayTotal: total,
+          holidayRemaining: Math.max(0, total - used),
+          upcomingLeave: upcoming ? {
+            startDate: upcoming.startDate,
+            endDate: upcoming.endDate,
+            days: upcoming.days || 1,
+            status: upcoming.status,
+            reason: upcoming.reason
+          } : null,
+          updatedAt: stored?.updatedAt || null,
+          updatedBy: stored?.updatedBy || null
+        };
+      });
+      return ok({ items });
+    }
+
+    // Students attendance
+    const students = db.users.filter((u) => u.role === 'student');
+    const items = students.map((s) => {
+      const key = `${date}_${s.uid}`;
+      const stored = pilotAttendanceStore.get(key);
+      return {
+        uid: s.uid,
+        name: s.displayName,
+        classIds: s.classIds || [],
+        publicId: s.publicId || null,
+        email: s.email || null,
+        lastSignInAt: s.auth?.lastSignInAt || null,
+        accountStatus: s.status || 'active',
+        accountDisabled: Boolean(s.auth?.disabled),
+        status: stored?.status || 'unmarked',
+        note: stored?.note || '',
+        updatedAt: stored?.updatedAt || null,
+        updatedBy: stored?.updatedBy || null
+      };
+    });
+    return ok({ items });
+  };
+
+  const handleAttendancePut = ({ params, body, caller }) => {
+    const { date, status, note = '', reason = '' } = body || {};
+    const key = `${date}_${params.uid}`;
+    const record = {
+      date,
+      status,
+      note: note.trim(),
+      reason: reason.trim(),
+      updatedAt: now(),
+      updatedBy: { uid: caller.uid, name: caller.name }
+    };
+    const before = pilotAttendanceStore.get(key) || null;
+    pilotAttendanceStore.set(key, record);
+    const hist = pilotHistoryStore.get(key) || [];
+    hist.unshift({ id: newId('hist'), before, after: record, reason, updatedAt: now(), updatedBy: { uid: caller.uid, name: caller.name } });
+    pilotHistoryStore.set(key, hist);
+    return ok(record);
+  };
+
+  const handleAttendanceHistory = ({ params, query }) => {
+    const key = `${query.date}_${params.uid}`;
+    const items = pilotHistoryStore.get(key) || [];
+    return ok({ items });
+  };
+
+  const handleLeaveGet = () => {
+    return ok({ items: [...pilotLeaveStore] });
+  };
+
+  const handleLeavePost = ({ body, caller }) => {
+    const { startDate, endDate, reason } = body || {};
+    const days = Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1);
+    const item = {
+      id: newId('leave'),
+      uid: caller.uid,
+      name: caller.name,
+      startDate,
+      endDate,
+      days,
+      reason: String(reason || '').trim(),
+      status: 'pending',
+      response: '',
+      createdAt: now()
+    };
+    pilotLeaveStore.unshift(item);
+    return ok({ id: item.id }, 201);
+  };
+
+  const handleLeavePatch = ({ params, body, caller }) => {
+    const target = pilotLeaveStore.find((l) => l.id === params.id);
+    if (!target) return fail(404, 'NOT_FOUND', 'Leave request not found.');
+    target.status = body.status;
+    target.response = String(body.response || '').trim();
+    target.updatedAt = now();
+    target.updatedBy = { uid: caller.uid, name: caller.name };
+    return ok({ ok: true });
+  };
+
+  // Register both /api/pilot and /pilot patterns
+  ['/api/pilot', '/pilot'].forEach((base) => {
+    route('GET', `${base}/attendance`, ['admin', 'supervisor', 'teacher', 'coach'], handleAttendanceGet);
+    route('PUT', `${base}/attendance/:uid`, ['admin', 'supervisor'], handleAttendancePut);
+    route('GET', `${base}/attendance/:uid/history`, ['admin', 'supervisor'], handleAttendanceHistory);
+    route('GET', `${base}/leave`, null, handleLeaveGet);
+    route('POST', `${base}/leave`, null, handleLeavePost);
+    route('PATCH', `${base}/leave/:id`, ['admin', 'supervisor'], handleLeavePatch);
+  });
+
   async function handle({ method, path, query = {}, body = null, caller }) {
     if (latencyMs) await new Promise((r) => setTimeout(r, latencyMs));
     if (!caller?.uid) return fail(401, 'UNAUTHENTICATED', 'Sign in again.');
+
+    const [cleanPath, queryString] = (path || '').split('?');
+    const parsedQuery = { ...query };
+    if (queryString) {
+      const sp = new URLSearchParams(queryString);
+      for (const [k, v] of sp.entries()) {
+        if (parsedQuery[k] === undefined) parsedQuery[k] = v;
+      }
+    }
+
     for (const r of routes) {
       if (r.method !== method) continue;
-      const m = r.re.exec(path);
+      const m = r.re.exec(cleanPath);
       if (!m) continue;
-      if (r.allow && !r.allow.includes(caller.role)) return fail(403, 'FORBIDDEN', 'You do not have permission to do that.');
+      if (r.allow && !r.allow.includes(caller.role) && !(r.allow.includes('teacher') && caller.role === 'coach')) {
+        return fail(403, 'FORBIDDEN', 'You do not have permission to do that.');
+      }
       const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1])]));
       // Deep copies both ways, like a network hop: callers cannot mutate state by reference.
-      const res = r.fn({ params, query, body: body ? JSON.parse(JSON.stringify(body)) : null, caller });
+      const res = r.fn({ params, query: parsedQuery, body: body ? JSON.parse(JSON.stringify(body)) : null, caller });
       return JSON.parse(JSON.stringify(res));
     }
     return fail(404, 'NOT_FOUND', `No route ${method} ${path}`);

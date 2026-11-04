@@ -1,0 +1,13 @@
+.lp-panel { margin-block: 24px; padding: clamp(16px, 3vw, 28px); border: 1px solid #cbd9df; border-radius: 20px; background: #f7fafb; color: #153649; }
+.lp-panel h3 { font-size: 1.6rem; margin-block: 8px; }
+.lp-panel h4 { font-size: 1.15rem; margin-block: 24px 12px; }
+.lp-panel h5 { font-size: 1.1rem; margin: 0 0 12px; }
+.lp-panel p, .lp-panel li { line-height: 1.6; overflow-wrap: anywhere; }
+.lp-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.lp-panel .sw-card { background: white; min-width: 0; }
+.lp-panel .sw-form label { display: flex; flex-direction: column; gap: 8px; }
+.lp-panel textarea, .lp-panel input, .lp-panel select { max-width: 100%; box-sizing: border-box; font: inherit; padding: 10px; border: 1px solid #829eae; border-radius: 8px; background: white; color: #153649; }
+.lp-panel button, .lp-panel summary { min-height: 44px; }
+.lp-panel .gh-btn { white-space: normal; max-width: 100%; text-align: center; }
+.lp-panel summary { cursor: pointer; padding-block: 10px; }
+.lp-panel :focus-visible { outline: 3px solid #6e3f8b; outline-offset: 3px; }
