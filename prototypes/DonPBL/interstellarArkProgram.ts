@@ -1,17 +1,20 @@
 /**
- * Don's PBL Program: Engineering Humanity's Next Horizon (Interstellar Ark & Exoplanet Civilization)
+ * Don's PBL Program: Project Exodus: Building Our New Home in Space
  * Branch: DonPBL
  * Location: prototypes/DonPBL/interstellarArkProgram.ts
  *
- * Sourced from "Engineering Humanity's Next Horizon" (12 Weeks, 10 Hours/Week, 120 Hours Total).
- * Framework: Design Thinking (Explore -> Empathise -> Define -> Ideate -> Prototype -> Test -> Share)
- * Assessment Standard: WeLearn 7 Future Skills (Mastery Transcript Consortium Aligned)
+ * Sourced from "Project Title: Project Exodus: Building Our New Home in Space"
+ * Total Time: 12 Weeks (10 Hours a Week, 120 Hours Total)
+ * Design Framework: Design Thinking (Empathize, Define, Ideate, Prototype, Test, Showcase — mapped across the 7 prototype phases: explore, empathise, define, ideate, prototype, test, share)
+ * Skills We Are Practicing: WeLearn Future Skills
  *
  * Includes:
- * - 7 Design Thinking Phases across a 12-Week Term (120 contact hours, 24 structured sessions)
- * - Option for Building in a Simulation (Interactive Digital Twin Ark & Closed-Loop ECLSS Simulator + 1,500 THB Low-Fi Physical Model Planner)
- * - Gamification Elements (Mission XP, 7 Colonization Architect Levels, 7 Badges, Stochastic Red-Team & Constitutional Crisis Arena)
- * - Full WeLearn 7 Future Skills MTC Rubric (Emerging, Proficient, Advanced, Project Evidence Required)
+ * - All 12 Weeks (10 Hours/Week, 120 Hours Total, 24 structured 5-hour sessions)
+ * - Part 1: The Space Emergency Game Cards (All 6 Week 9 Testing Activity Cards)
+ * - Part 2: The New Planet Rulebook Worksheet (All 7 Fill-in-the-Blank Sections)
+ * - What You Need to Hand In (1. Hands-On Models, 2. Drawings, Plans, and Rules)
+ * - How You Will Grow: WeLearn Future Skills Guide (Getting Started, Doing Great, Going Above and Beyond across all 7 skills)
+ * - Interactive Simulation & Gamification options (Goldilocks Planet Finder, Spaceship & Recycling Loop Simulator, Space Emergency Game Card Arena, Interactive New Planet Rulebook Builder, Levels & Badges)
  */
 
 import type { PblProgram, ProgramPhase } from './programData';
@@ -50,8 +53,10 @@ export interface ArkPropulsionOption {
 
 export interface ArkCrisisScenario {
   id: string;
+  cardNumber: number;
   title: string;
   category: 'Biosphere & ECLSS' | 'Structural & Mechanical' | 'Societal & Constitutional';
+  emergencyTypeLabel: string;
   weekTrigger: number;
   severity: 'High' | 'Critical' | 'Catastrophic';
   summary: string;
@@ -68,9 +73,9 @@ export interface ArkMtcRubricItem {
   skillNumber: number;
   domainId: 'ct' | 'ctps' | 'ec' | 'lc' | 'sdl' | 'ent' | 'sea';
   skillTitle: string;
-  emerging: string;
-  proficient: string;
-  advanced: string;
+  emerging: string; // Getting Started
+  proficient: string; // Doing Great
+  advanced: string; // Going Above and Beyond
   evidenceRequired: string;
 }
 
@@ -97,338 +102,387 @@ export const EXOPLANET_CANDIDATES: ExoplanetCandidate[] = [
     name: 'TRAPPIST-1e',
     constellation: 'Aquarius',
     distanceLightYears: 39.6,
-    starType: 'M8V Ultra-Cool Red Dwarf',
+    starType: 'Cool Red Dwarf Star (Goldilocks Zone)',
     orbitalPeriodDays: 6.1,
     surfaceGravityG: 0.93,
     stellarFluxEarthRatio: 0.66,
     equilibriumTempC: -22,
     radiationHazardIndex: 6,
     tidalLockingStatus: 'Tidally Locked',
-    terrainAndAtmosphere: 'Rocky iron-core world in the temperate zone; permanent twilight terminator ribbon with liquid water ocean basins and glaciated nightside.',
-    colonizationAdvantage: 'Near-Earth 0.93g gravity prevents long-term colonist bone/muscle atrophy on the surface; rich geothermal gradients along the terminator.',
-    primaryEngineeringChallenge: 'Tidally locked hurricane-force katabatic winds across the terminator boundary and periodic M-dwarf UV/X-ray stellar flares.'
+    terrainAndAtmosphere: 'Rocky world in the Goldilocks Zone with liquid water oceans along a permanent sunset/sunrise twilight band and icy mountains on the dark side.',
+    colonizationAdvantage: 'Comfortable 0.93g gravity (very close to Earth) keeps bones and muscles strong; plenty of ocean water for farming and drinking.',
+    primaryEngineeringChallenge: 'Strong windstorms blowing between the sunny side and dark side, plus occasional bursts of star radiation.'
   },
   {
     id: 'exo-kepler-186f',
     name: 'Kepler-186f',
     constellation: 'Cygnus',
     distanceLightYears: 582,
-    starType: 'M1 Dwarf',
+    starType: 'Calm Orange-Red Dwarf Star (Goldilocks Zone)',
     orbitalPeriodDays: 129.9,
     surfaceGravityG: 1.17,
     stellarFluxEarthRatio: 0.32,
-    equilibriumTempC: -85,
+    equilibriumTempC: -40,
     radiationHazardIndex: 3,
     tidalLockingStatus: 'Near-Earth Rotation',
-    terrainAndAtmosphere: 'Outer-edge habitable zone continental world; requires dense CO2-N2 greenhouse atmosphere and subterranean/geodesic thermal domes.',
-    colonizationAdvantage: 'Quiet stellar environment with low flare radiation hazard and 130-day orbital year avoiding severe tidal-locking wind shear.',
-    primaryEngineeringChallenge: 'Multi-century transit distance and low incident solar flux (32% of Earth) requiring nuclear/fusion surface micro-grids.'
+    terrainAndAtmosphere: 'Cool rocky continent world with wide valleys, frozen lakes, red-leaved plant light, and gentle day-and-night cycles.',
+    colonizationAdvantage: 'Calm star with low radiation danger and normal day/night sunrises so people can sleep on a regular schedule.',
+    primaryEngineeringChallenge: 'Chilly weather and softer, muddy valley soil when ice melts—requires warm greenhouse domes and strong landing pads.'
   },
   {
     id: 'exo-proxima-b',
     name: 'Proxima Centauri b',
     constellation: 'Centaurus',
     distanceLightYears: 4.24,
-    starType: 'M5.5Ve Red Dwarf Flare Star',
+    starType: 'Active Red Dwarf Star (Closest Neighbor)',
     orbitalPeriodDays: 11.2,
     surfaceGravityG: 1.10,
     stellarFluxEarthRatio: 0.65,
     equilibriumTempC: -39,
     radiationHazardIndex: 9,
     tidalLockingStatus: 'Tidally Locked',
-    terrainAndAtmosphere: 'Basaltic canyon basins and subsurface ice aquifers; exposed to frequent superflare coronal mass ejections.',
-    colonizationAdvantage: 'Closest exoplanet to Earth (4.24 ly), allowing single-generation transit (45–85 years) and laser-relay communication with Earth.',
-    primaryEngineeringChallenge: 'Extreme X-ray and proton flare flux (250x Earth) requiring regolith-buried lava-tube habitats and magnetic dipole shielding.'
+    terrainAndAtmosphere: 'Deep rocky canyons and underground water springs; exposed to bright solar flares on the surface.',
+    colonizationAdvantage: 'Closest Goldilocks planet to Earth (only 4.24 light-years away), meaning the shortest space trip for our 500 travelers.',
+    primaryEngineeringChallenge: 'Strong space radiation on the surface—homes and farms need underground lava-tube shelters or thick protective roofs.'
   },
   {
-    id: 'exo-lhs-1140b',
-    name: 'LHS 1140 b',
-    constellation: 'Cetus',
-    distanceLightYears: 48.8,
-    starType: 'M4.5V Quiet Red Dwarf',
-    orbitalPeriodDays: 24.7,
-    surfaceGravityG: 1.48,
-    stellarFluxEarthRatio: 0.43,
-    equilibriumTempC: -47,
-    radiationHazardIndex: 4,
-    tidalLockingStatus: 'Resonant Spin-Orbit',
-    terrainAndAtmosphere: 'Super-Earth water-rich rocky world with secondary nitrogen-carbon dioxide atmosphere and stable substellar warm sea.',
-    colonizationAdvantage: 'Low stellar activity preserves atmospheric retention and abundant surface water for electrolysis and hydroponic loops.',
-    primaryEngineeringChallenge: 'High 1.48g surface gravity requires exoskeleton assistive rigging for construction crews and reinforced landing thrusters.'
+    id: 'exo-kepler-442b',
+    name: 'Kepler-442b',
+    constellation: 'Lyra',
+    distanceLightYears: 1206,
+    starType: 'Steady Orange K-Type Star (Goldilocks Zone)',
+    orbitalPeriodDays: 112.3,
+    surfaceGravityG: 1.30,
+    stellarFluxEarthRatio: 0.70,
+    equilibriumTempC: -18,
+    radiationHazardIndex: 2,
+    tidalLockingStatus: 'Near-Earth Rotation',
+    terrainAndAtmosphere: 'Lush super-Earth in the middle of the Goldilocks Zone with shallow seas, muddy river deltas, and thick air.',
+    colonizationAdvantage: 'Warm sunlight and calm space weather make it great for growing crops and protecting alien nature.',
+    primaryEngineeringChallenge: 'Heavier 1.30g gravity (everything feels 30% heavier) and soft muddy landing ground that needs wide floating pads.'
   }
 ];
 
 export const ARK_PROPULSION_OPTIONS: ArkPropulsionOption[] = [
   {
     id: 'prop-fusion-oneill',
-    name: 'D-He3 Pulsed Fusion Drive + Twin O’Neill Counter-Rotating Cylinders',
-    propulsionType: 'Deuterium-Helium-3 Magnetic Inertial Fusion',
-    gravityMechanism: 'Twin Counter-Rotating O’Neill Cylinders (320m radius)',
+    name: 'Twin Spinning Gravity Rings + Fusion Engines',
+    propulsionType: 'Clean Fusion Rocket Engines',
+    gravityMechanism: 'Two Giant Counter-Spinning Habitat Rings (Fake Gravity)',
     ringRadiusMeters: 320,
     rotationRpm: 1.67,
     simulatedGravityG: 1.0,
     cruiseVelocityPercentC: 8.5,
     estimatedTransitYears: 52,
-    hullShieldingSpec: '3.5m Water-Ice Jacket + Boron-Polyethylene Whipple Bumper',
+    hullShieldingSpec: 'Thick Water-Tank Walls + Double Space-Pebble Shield',
     powerOutputGW: 14.5,
     maintenanceComplexity: 'High'
   },
   {
     id: 'prop-lightsail-torus',
-    name: 'Terawatt Laser-Pushed Light Sail + Dual Stanford Torus Rings',
-    propulsionType: 'Beamed Dielectric Metamaterial Sail + Fusion Deceleration Stage',
-    gravityMechanism: 'Dual Stanford Torus Centrifuge Rings (180m radius)',
+    name: 'Giant Solar Light Sail + Single Spinning Town Ring',
+    propulsionType: 'Giant Mirror Light Sail + Landing Rockets',
+    gravityMechanism: 'Wide Spinning Neighborhood Wheel (0.9g Fake Gravity)',
     ringRadiusMeters: 180,
     rotationRpm: 2.15,
     simulatedGravityG: 0.92,
     cruiseVelocityPercentC: 12.0,
     estimatedTransitYears: 38,
-    hullShieldingSpec: '2.5m Regolith Composite + Active Solenoid Magnetic Deflector',
+    hullShieldingSpec: 'Foam-and-Metal Pebble Bumper + Emergency Safety Doors',
     powerOutputGW: 9.2,
     maintenanceComplexity: 'Moderate'
   },
   {
     id: 'prop-antimatter-tether',
-    name: 'Antimatter-Catalyzed Micro-Fission + Modular Tethered Hab Pods',
-    propulsionType: 'Antiproton-Catalyzed Pulsed Plasma Propulsion',
-    gravityMechanism: '450m Kevlar-Carbon Truss Tethered Habitation Clusters',
+    name: 'Deep-Space Star Cruiser + Connected Habitat Pods',
+    propulsionType: 'High-Speed Plasma Drive',
+    gravityMechanism: 'Spinning Connected Pod Arms (Modular Rooms)',
     ringRadiusMeters: 450,
     rotationRpm: 1.38,
     simulatedGravityG: 0.95,
     cruiseVelocityPercentC: 15.0,
     estimatedTransitYears: 31,
-    hullShieldingSpec: '4.0m Liquid Hydrogen Tank Buffer + Multi-Shock Nextel Blanket',
+    hullShieldingSpec: 'Multi-Layer Armor + Automatic Air-Leak Shutoff Doors',
     powerOutputGW: 22.0,
     maintenanceComplexity: 'Extreme'
   }
 ];
 
+/**
+ * Part 1: The Space Emergency Game Cards (Week 9 Testing Activity)
+ * All 6 official cards from "Project Exodus: Building Our New Home in Space"
+ */
 export const ARK_CRISIS_SCENARIOS: ArkCrisisScenario[] = [
   {
-    id: 'crisis-fusarium-blight',
-    title: 'Biosphere Crisis: Fusarium Pathogen Wipes Out 40% of Primary Hydroponic Crop',
+    id: 'card-1-space-plant-sickness',
+    cardNumber: 1,
+    title: 'Card 1: The Space Plant Sickness (Food and Water Emergency)',
     category: 'Biosphere & ECLSS',
+    emergencyTypeLabel: 'Food and Water Emergency',
     weekTrigger: 9,
     severity: 'Critical',
-    summary: 'During Year 42 of transit, a mutated root-rot fungal pathogen breaches Bay B, destroying 40% of dwarf wheat and soy aeroponic racks within 72 hours.',
-    caloricShockPct: 40,
-    waterLoopPenaltyPct: 12,
+    summary: 'Oh no! A weird space mold got into your main hydroponic farm room. Half of your fruit and vegetable plants have turned brown and cannot be eaten.',
+    caloricShockPct: 50,
+    waterLoopPenaltyPct: 10,
     oxygenPenaltyPct: 18,
-    moraleShockPts: 22,
-    engineeringPrompt: 'How do you isolate Bay B plumbing, sterilize nutrient lines, and scale Spirulina algae photobioreactors to prevent caloric starvation for 500 colonists?',
-    constitutionalPrompt: 'Does your Colonial Charter mandate equal caloric rationing across all crew tiers, or prioritize high-burn maintenance and medical personnel?',
-    recommendedProtocol: 'Seal Bay B airlocks, UV-ozonate greywater manifolds, surge Spirulina bioreactor illumination by +65%, and enact Charter Equal Caloric Solidarity Clause.'
+    moraleShockPts: 20,
+    engineeringPrompt: '1. Point to your physical model and drawings: How will you stop the mold from spreading to the rest of the plants on the ship?',
+    constitutionalPrompt: '2. What backup food will your 500 travelers eat while you clean the farm room and grow new seeds?',
+    recommendedProtocol: '3. Fix Your Design: Add a special clean-up door, a backup seed vault, or a second smaller farm room to your drawings and model.'
   },
   {
-    id: 'crisis-centrifuge-bearing',
-    title: 'Mechanical Crisis: Primary Centrifuge Hub Bearing Seizure & Microgravity Drift',
+    id: 'card-2-space-pebble-shower',
+    cardNumber: 2,
+    title: 'Card 2: The Space Pebble Shower (Ship Repair Emergency)',
     category: 'Structural & Mechanical',
+    emergencyTypeLabel: 'Ship Repair Emergency',
     weekTrigger: 9,
-    severity: 'Catastrophic',
-    summary: 'Thermal fatigue cracks the main magnetic-fluid bearing on Ring A, forcing an emergency spin-down to 0.15g and threatening structural torque shear.',
-    caloricShockPct: 10,
-    waterLoopPenaltyPct: 15,
-    oxygenPenaltyPct: 8,
-    moraleShockPts: 28,
-    engineeringPrompt: 'How do your automated repair drone bays fabricate a replacement bearing segment mid-flight and transfer 250 colonists without unbalancing center-of-mass?',
-    constitutionalPrompt: 'How does your legal code govern temporary high-density billeting when Ring A residents must co-habit Ring B communal zones for 6 weeks?',
-    recommendedProtocol: 'Engage counter-torque attitude thrusters, deploy autonomous sintered-titanium drone welders via Maintenance Corridor C, and activate Shared Quarters Civic Compact.'
-  },
-  {
-    id: 'crisis-engineer-strike',
-    title: 'Constitutional Crisis: Landing Faction Strike & Terrain Allocation Standoff',
-    category: 'Societal & Constitutional',
-    weekTrigger: 10,
     severity: 'Critical',
-    summary: 'Ninety days after exoplanet landing, propulsion and ECLSS engineers go on strike demanding 1.5x caloric/resource rations and prime geothermal valley plots, refusing to hand over power from Transit Mission Law to Planetary Civic Law.',
-    caloricShockPct: 15,
-    waterLoopPenaltyPct: 20,
-    oxygenPenaltyPct: 10,
-    moraleShockPts: 35,
-    engineeringPrompt: 'How are critical water-recovery and agricultural cross-training redundancies designed so no single guild can hold life support hostage?',
-    constitutionalPrompt: 'Does your New World Constitution resolve the strike via Restorative Civic Arbitration and sunsetting Transit Martial Law, or collapse into authoritarianism/anarchy?',
-    recommendedProtocol: 'Trigger automatic 60-day Transit Martial Law Sunset Clause, convene the Restorative Citizen Jury, rotate cross-trained biosphere stewards, and audit hazardous-duty time credits transparently.'
+    summary: 'Your spaceship just flew through a cloud of tiny, super-fast space pebbles! Three pebbles poked small holes in the outside wall near the bedrooms, and air is starting to leak out.',
+    caloricShockPct: 10,
+    waterLoopPenaltyPct: 10,
+    oxygenPenaltyPct: 25,
+    moraleShockPts: 24,
+    engineeringPrompt: '1. Point to your model: Where do the people in those bedrooms go right now to stay safe while the air is leaking?',
+    constitutionalPrompt: '2. How do your repair robots or human engineers reach the outside wall to patch the holes without getting hurt?',
+    recommendedProtocol: '3. Fix Your Design: Draw or build emergency safety doors between rooms and show where the repair tools and robot stations are kept.'
   },
   {
-    id: 'crisis-solar-superflare',
-    title: 'Deep-Space Hazard: Coronal Mass Ejection & Micrometeoroid Hull Puncture',
-    category: 'Structural & Mechanical',
+    id: 'card-3-dirty-water-jam',
+    cardNumber: 3,
+    title: 'Card 3: The Dirty Water Jam (Recycling Emergency)',
+    category: 'Biosphere & ECLSS',
+    emergencyTypeLabel: 'Recycling Emergency',
     weekTrigger: 9,
     severity: 'High',
-    summary: 'A hyper-velocity micrometeoroid swarm punctures outer Whipple Shield Sector 4 just as target star flare monitoring detects an incoming proton storm.',
-    caloricShockPct: 12,
-    waterLoopPenaltyPct: 18,
-    oxygenPenaltyPct: 15,
-    moraleShockPts: 20,
-    engineeringPrompt: 'How quickly can modular hull plug-plates be swapped from internal access corridors while sheltering all 500 colonists inside the central water-shielded storm shelter?',
-    constitutionalPrompt: 'Who holds emergency command authority during a 48-hour radiation shelter lockdown, and how is transparency restored immediately after all-clear?',
-    recommendedProtocol: 'Sound 15-minute Storm Shelter protocol into central water-walled core, dispatch exteriorspider-drones with modular Whipple tiles, and log all emergency decrees for mandatory post-flare Citizen Review.'
+    summary: 'The main machine that cleans dirty sink and shower water just got clogged and stopped working! Your clean drinking water tank only has enough water left for three days.',
+    caloricShockPct: 15,
+    waterLoopPenaltyPct: 35,
+    oxygenPenaltyPct: 10,
+    moraleShockPts: 22,
+    engineeringPrompt: '1. Look at your Recycling Loop Map: How do your engineers open up and fix the water machine? Do you have spare parts or a 3D printer to make new pipes?',
+    constitutionalPrompt: '2. What temporary rule will you announce so people use less water for the next three days without getting upset?',
+    recommendedProtocol: '3. Fix Your Design: Add a backup water tank or a repair workshop right next to the water pipes on your ship map.'
+  },
+  {
+    id: 'card-4-gravity-spinner-glitch',
+    cardNumber: 4,
+    title: 'Card 4: The Gravity Spinner Glitch (Engineering and Health Emergency)',
+    category: 'Structural & Mechanical',
+    emergencyTypeLabel: 'Engineering and Health Emergency',
+    weekTrigger: 9,
+    severity: 'Catastrophic',
+    summary: 'The giant spinning ring on your spaceship that makes fake gravity started squeaking loudly! Engineers have to turn it off for two whole weeks to grease the gears and fix the motor. Everyone on the ship is now floating in zero gravity!',
+    caloricShockPct: 15,
+    waterLoopPenaltyPct: 15,
+    oxygenPenaltyPct: 8,
+    moraleShockPts: 26,
+    engineeringPrompt: '1. Point to your ship rooms: What happens to the kitchens, bathrooms, and farms when water and tools start floating in the air?',
+    constitutionalPrompt: '2. How will you keep people\'s muscles and bones strong during the two weeks without gravity?',
+    recommendedProtocol: '3. Fix Your Design: Show where the exercise machines are located and how Engineers can safely reach the spinning motor to fix it.'
+  },
+  {
+    id: 'card-5-long-trip-grumpies',
+    cardNumber: 5,
+    title: 'Card 5: The Long Trip Grumpies (Feelings and Friendship Emergency)',
+    category: 'Societal & Constitutional',
+    emergencyTypeLabel: 'Feelings and Friendship Emergency',
+    weekTrigger: 9,
+    severity: 'High',
+    summary: 'Your spaceship has been flying through dark space for five years. People are tired of seeing the same walls every day. Some travelers are feeling sad, and two groups of workers are arguing over who gets to use the park area.',
+    caloricShockPct: 5,
+    waterLoopPenaltyPct: 5,
+    oxygenPenaltyPct: 5,
+    moraleShockPts: 35,
+    engineeringPrompt: '1. Point to your living areas: Where can someone go on your ship if they need quiet time alone, or if they want to play games and laugh with friends?',
+    constitutionalPrompt: '2. How does your team\'s Rulebook help solve the argument over the park space peacefully?',
+    recommendedProtocol: '3. Fix Your Design: Upgrade your model or drawings to include a cozy relaxation room, an art or music space, or a fairer schedule for shared rooms.'
+  },
+  {
+    id: 'card-6-muddy-landing-surprise',
+    cardNumber: 6,
+    title: 'Card 6: The Muddy Landing Surprise (New Planet Emergency)',
+    category: 'Structural & Mechanical',
+    emergencyTypeLabel: 'New Planet Emergency',
+    weekTrigger: 9,
+    severity: 'Critical',
+    summary: 'You finally arrived at your Goldilocks planet! But when your landing pods touched down, you discovered the ground is much softer and muddier than your space telescope showed. Heavy buildings might sink, and a big windstorm is blowing in tonight!',
+    caloricShockPct: 20,
+    waterLoopPenaltyPct: 15,
+    oxygenPenaltyPct: 10,
+    moraleShockPts: 25,
+    engineeringPrompt: '1. Look at your planet terrain model: How will you keep your landing pod and first homes from sinking into the mud?',
+    constitutionalPrompt: '2. How will you protect your solar panels or power generators from the strong windstorm?',
+    recommendedProtocol: '3. Fix Your Design: Change your planet model to show strong legs, floating pads, or underground shelters that match the tricky land.'
   }
 ];
 
+/**
+ * How You Will Grow: WeLearn Future Skills Guide
+ * Verbatim progression descriptors from "Project Exodus: Building Our New Home in Space"
+ */
 export const ARK_WELEARN_MTC_RUBRIC: ArkMtcRubricItem[] = [
   {
     skillNumber: 1,
     domainId: 'ct',
-    skillTitle: '1. Creative Thinking & Innovation',
-    emerging: 'Relies on standard sci-fi tropes for spacecraft layout and governance; physical model and drawings show basic effort but lack original problem-solving.',
-    proficient: 'Translates original ideas into a functional low-fi physical prototype and detailed digital/hand drawings; designs novel spatial solutions for crew psychology and food production.',
-    advanced: 'Synthesizes complex biomimicry, modular architecture, and bespoke governance into highly innovative, cohesive physical and digital designs that solve multiple deep-space constraints simultaneously.',
-    evidenceRequired: 'Physical scale model photos, CAD files or technical drawings, spatial zoning ideation sketches.'
+    skillTitle: '1. Creative Thinking and Innovation',
+    emerging: 'Getting Started: You copy ideas from movies or games without changing much, and your model is very basic.',
+    proficient: 'Doing Great: You come up with your own cool ideas for the spaceship rooms, farms, and laws, and you build a neat physical model and clear drawings that show how everything works.',
+    advanced: 'Going Above and Beyond: You invent super smart, original designs that solve tricky space problems, blending nature, technology, and fair rules in ways nobody else thought of.',
+    evidenceRequired: 'Hands-On Physical Spaceship & Planet Terrain Model (with cutaway windows/color coding) + 3D Computer Models or Paper Blueprints.'
   },
   {
     skillNumber: 2,
     domainId: 'ctps',
-    skillTitle: '2. Critical Thinking & Problem Solving',
-    emerging: 'Selects an exoplanet and designs ship systems with superficial research; struggles to defend maintenance or agricultural numbers when questioned during the pitch.',
-    proficient: 'Breaks down planetary terrain data, radiation hazards, and closed-loop food math using scientific logic; successfully defends engineering and political choices during Red-Team testing and Q&A.',
-    advanced: 'Anticipates secondary and tertiary system failures (e.g., mechanical wear vs. social unrest); uses quantitative data to stress-test and iterate both engineering maintenance protocols and constitutional laws.',
-    evidenceRequired: 'Exoplanet Dossier, Closed-Loop ECLSS calculations, Red-Team Failure & Iteration Report.'
+    skillTitle: '2. Critical Thinking and Problem Solving',
+    emerging: 'Getting Started: You pick a planet or design a ship without checking the science facts, and you get stuck when asked how the farms or repairs actually work.',
+    proficient: 'Doing Great: You use real science facts to pick your planet, figure out how much food and water people need, and explain how to fix the ship when emergencies happen.',
+    advanced: 'Going Above and Beyond: You think ahead to stop problems before they even start, testing your ship and your laws against tough emergencies and using math and science to prove your ideas work.',
+    evidenceRequired: 'Goldilocks Planet Fact File, 500-Person Food & Recycling Loop Map, Ship Repair Guide, and Space Emergency Game Card upgrades.'
   },
   {
     skillNumber: 3,
     domainId: 'ec',
     skillTitle: '3. Effective Communication',
-    emerging: 'Pitch covers the planet, ship, and laws as disconnected parts; drawings lack clear labels; struggles to answer panel questions concisely.',
-    proficient: 'Presents a cohesive, persuasive narrative during the Showcase Pitch; technical drawings, physical model, and oral defense clearly convey how the ship and political system function.',
-    advanced: 'Commands the room during the Showcase Pitch; seamlessly integrates the physical model and digital visuals to explain complex engineering and legal concepts to diverse audiences with precision.',
-    evidenceRequired: 'Recorded 15-minute Showcase Pitch, slide deck, annotated blueprint callouts, Q&A defense performance.'
+    emerging: 'Getting Started: Your drawings are missing labels, and during the final pitch it is hard for the audience to understand how your ship, planet, and laws fit together.',
+    proficient: 'Doing Great: Your drawings and model are clearly labeled, and during the showcase pitch you explain your planet, your spaceship, and your new laws clearly and confidently.',
+    advanced: 'Going Above and Beyond: You tell an amazing, exciting story during your pitch, using your physical model and drawings to make big science and government ideas super easy for anyone to understand.',
+    evidenceRequired: 'Labeled Ship & Planet Drawings, 4-Part Slide Presentation or Poster Board, and Live Space Launch Showcase Pitch.'
   },
   {
     skillNumber: 4,
     domainId: 'lc',
-    skillTitle: '4. Leadership & Collaboration',
-    emerging: 'Works in silos or waits for task assignment; friction arises when integrating engineering designs with political or agricultural plans.',
-    proficient: 'Carries the project from kickoff to delivery; demonstrates the ability to lead specific sub-systems (e.g., CAD, model building, legal drafting) while actively supporting teammates\' domains.',
-    advanced: 'Facilitates cross-disciplinary integration across the team; mediates design conflicts constructively and elevates the output quality of peers during high-pressure prototyping and testing sprints.',
-    evidenceRequired: 'Sprint logs, peer review matrices, mentor observation notes on team role execution.'
+    skillTitle: '4. Leadership and Collaboration',
+    emerging: 'Getting Started: You wait for others to tell you what to do, or you argue with teammates instead of finding ways to combine your ideas.',
+    proficient: 'Doing Great: You take charge of your part of the project, help your teammates when they need a hand, and make sure the builders, artists, and law-makers all work together smoothly.',
+    advanced: 'Going Above and Beyond: You help lead the team with kindness, solve group disagreements calmly, and encourage everyone so the whole team does their very best work.',
+    evidenceRequired: 'Official Colony Signatures on the New Planet Rulebook (Builder/Engineer, Planet Scientist, Farm & Life-Support, Law & Community Leader) and Peer Feedback Notes.'
   },
   {
     skillNumber: 5,
     domainId: 'sdl',
-    skillTitle: '5. Self-Directed Learning & Agency',
-    emerging: 'Requires frequent mentor prompting to complete research phases or transition from sketching to building the physical model.',
-    proficient: 'Sets clear weekly milestones across the 120 hours, independently researches complex aerospace/agricultural concepts, and owns the final deliverable quality without micromanagement.',
-    advanced: 'Proactively seeks out advanced technical tools, external expert feedback, or deeper astrophysical data beyond project prompts; iterates prototypes autonomously before scheduled checkpoints.',
-    evidenceRequired: 'Personal project management tracker, self-initiated research logs, version history of designs.'
+    skillTitle: '5. Self-Directed Learning and Agency',
+    emerging: 'Getting Started: You need the coach or teacher to remind you often to finish your research or start building your model.',
+    proficient: 'Doing Great: You keep track of your weekly goals, look up answers when you are curious about space or farming, and finish your drawings and models on time.',
+    advanced: 'Going Above and Beyond: You teach yourself new drawing or computer skills, hunt for extra space facts on your own, and improve your model without waiting to be asked.',
+    evidenceRequired: 'Digital Learning Folder containing photos of the physical model, drawings, planet research, and completed New Planet Rulebook.'
   },
   {
     skillNumber: 6,
     domainId: 'ent',
-    skillTitle: '6. Entrepreneurship & Financial Literacy',
-    emerging: 'Treats spacecraft resources and prototyping materials as infinite; pitch lacks a realistic assessment of mission costs, labor economy, or material constraints.',
-    proficient: 'Manages the physical prototyping budget (in THB) and theoretical ship mass/energy budgets effectively; pitches the colonization plan as a viable, resource-balanced venture.',
-    advanced: 'Designs a sophisticated post-scarcity or frontier economic model within the Colonial Charter; optimizes ship maintenance and agricultural yields for maximum return on mass/energy investment.',
-    evidenceRequired: 'Prototyping budget ledger (THB), spacecraft mass/resource allocation sheet, colonial economic framework.'
+    skillTitle: '6. Entrepreneurship and Financial Literacy',
+    emerging: 'Getting Started: You use up classroom building supplies carelessly or design a spaceship that would be way too heavy and wasteful to ever fly.',
+    proficient: 'Doing Great: You stick to your classroom material budget (in Thai Baht), make smart choices about space supplies, and show that your colony can survive without wasting resources.',
+    advanced: 'Going Above and Beyond: You design a smart system for how people on the new planet will share work, trade goods, and reuse every single drop of water and scrap of metal.',
+    evidenceRequired: 'Classroom Supply Budget in Thai Baht (THB), Spaceship Supply Weight Plan, and Rulebook Section 3 (Sharing Jobs and Resources).'
   },
   {
     skillNumber: 7,
     domainId: 'sea',
-    skillTitle: '7. Social & Emotional Aptitude',
-    emerging: 'Becomes defensive during Red-Team critiques; designs spacecraft living spaces and colonial laws that ignore human psychological needs or neurodiversity.',
-    proficient: 'Manages prototyping setbacks calmly; incorporates deep empathy for human mental health into ship interior spaces and crafts inclusive, rehabilitative laws for the new planet.',
-    advanced: 'Demonstrates exceptional emotional resilience during crisis simulations; designs physical habitats and legal frameworks that actively foster community trauma-recovery, equity, and psychological safety.',
-    evidenceRequired: 'Empathy maps, residential space design rationale, constitutional clauses on human rights and conflict resolution.'
+    skillTitle: '7. Social and Emotional Aptitude',
+    emerging: 'Getting Started: You get upset when people suggest changes to your model, or you design a spaceship and laws that forget about people\'s feelings.',
+    proficient: 'Doing Great: You stay calm when building gets tough, design cozy and welcoming spaces on the ship so travelers stay happy, and write fair laws that protect everyone.',
+    advanced: 'Going Above and Beyond: You show great care for others during team tests, designing special spaces on the ship for mental health and creating kind, peaceful ways to solve problems on the new planet.',
+    evidenceRequired: 'Human Needs Chart (bodies, feelings, friendships), Cozy Relaxation/Park Spaces on Ship Map, and Rulebook Section 6 (Solving Arguments Peacefully).'
   }
 ];
 
 export const ARK_GAMIFICATION_LEVELS: ArkGamificationLevel[] = [
-  { level: 1, title: 'Deep-Space Physiologist', minXp: 0, privilegeUnlocked: 'Unlocked Human Needs Matrix & Confined Habitat Empathy Lab' },
-  { level: 2, title: 'Goldilocks Astrometric Scout', minXp: 500, privilegeUnlocked: 'Unlocked NASA Exoplanet Archive Telemetry & Orbital Dossier Builder' },
-  { level: 3, title: 'Closed-Loop Biosphere Architect', minXp: 1200, privilegeUnlocked: 'Unlocked 500-Colonist ECLSS Mass-Balance & Colonial Charter Drafter' },
-  { level: 4, title: 'Centrifuge & Propulsion Engineer', minXp: 2100, privilegeUnlocked: 'Unlocked O’Neill/Stanford Torus Zoning & Repair Drone Bay Designer' },
-  { level: 5, title: 'Digital Twin & Scale Fabricator', minXp: 3100, privilegeUnlocked: 'Unlocked 3D CAD Cutaway Sandbox & 1,500 THB Physical Model Ledger' },
-  { level: 6, title: 'Red-Team Crisis Commander', minXp: 4300, privilegeUnlocked: 'Unlocked Stochastic Pathogen/Bearing Crisis & Constitutional Trial Simulator' },
-  { level: 7, title: 'Exodus Council Envoy', minXp: 5500, privilegeUnlocked: 'Unlocked 15-Minute United Earth Exodus Council Pitch & MTC Mastery Seal' }
+  { level: 1, title: 'Space Health & Feelings Explorer', minXp: 0, privilegeUnlocked: 'Unlocked Human Needs Chart (Bodies, Feelings & Friendships)' },
+  { level: 2, title: 'Goldilocks Planet Hunter', minXp: 500, privilegeUnlocked: 'Unlocked Goldilocks Zone Telescope & Planet Fact File Builder' },
+  { level: 3, title: 'Space Farmer & Rulebook Writer', minXp: 1200, privilegeUnlocked: 'Unlocked 500-Person Recycling Loop Map & New Planet Rulebook Worksheet' },
+  { level: 4, title: 'Spaceship Neighborhood & Robot Designer', minXp: 2100, privilegeUnlocked: 'Unlocked Fake-Gravity Spinner, Ship Town Layout & Ship Repair Guide' },
+  { level: 5, title: 'Blueprint & Physical Model Builder', minXp: 3100, privilegeUnlocked: 'Unlocked 3D/Paper Blueprints & Cutaway Physical Model Workshop (THB Budget)' },
+  { level: 6, title: 'Space Emergency Game Champion', minXp: 4300, privilegeUnlocked: 'Unlocked All 6 Space Emergency Game Cards & Rulebook Role-Play Test' },
+  { level: 7, title: 'Space Launch Showcase Commander', minXp: 5500, privilegeUnlocked: 'Unlocked 4-Part Big Pitch Stage & Digital Learning Folder Badge' }
 ];
 
 export const ARK_GAMIFICATION_BADGES: ArkGamificationBadge[] = [
   {
     id: 'badge-human-factor-empath',
-    name: 'Confined-Habitat Empath',
-    icon: '🧬',
+    name: 'Human Needs Caretaker',
+    icon: '💛',
     xpAward: 400,
     unlockedAtPhase: 'explore',
-    condition: 'Complete the Human Needs Matrix across physiological, psychological, social, and spatial tiers using Antarctic/Submarine/Biosphere 2 data.',
-    description: 'Protected multi-generational colonists against microgravity bone loss, radiation, and sensory monotony.'
+    condition: 'Complete the Week 1 Human Needs Chart showing everything travelers need for their bodies, their feelings, and their friendships.',
+    description: 'Kept space travelers healthy and happy with gravity exercise, radiation protection, sleep schedules, and anti-loneliness spaces.'
   },
   {
     id: 'badge-goldilocks-scout',
-    name: 'Goldilocks Reconnaissance Navigator',
+    name: 'Goldilocks Planet Scout',
     icon: '🪐',
     xpAward: 450,
     unlockedAtPhase: 'empathise',
-    condition: 'Evaluate 3+ real exoplanet candidates from the NASA Exoplanet Archive and compile a defensive Exoplanet Reconnaissance Dossier.',
-    description: 'Matched planetary surface gravity, stellar flare profiles, and atmospheric chemistry to human survival.'
+    condition: 'Study real exoplanets in the Goldilocks Zone and finish your team’s Week 2 Planet Fact File.',
+    description: 'Checked liquid water temperatures, land, air, weather, and gravity to pick humanity’s safest new home.'
   },
   {
     id: 'badge-eclss-charter-architect',
-    name: 'Closed-Loop & Charter Framer',
+    name: 'Zero-Waste Farmer & Lawmaker',
     icon: '🌱',
     xpAward: 550,
     unlockedAtPhase: 'define',
-    condition: 'Achieve >= 98% water recovery and 100% caloric self-sufficiency for 500 colonists while ratifying the Transit-to-Planetary Civic Law Charter.',
-    description: 'Balanced biological survival math with constitutional justice and a 1,500 THB prototyping ledger.'
+    condition: 'Draw the Week 3 Recycling Loop Map & Thai Baht Budget for 500 people and complete the Week 4 New Planet Rulebook Worksheet.',
+    description: 'Designed hydroponic/aeroponic space farms, water/oxygen recycling loops, and fair colony laws.'
   },
   {
     id: 'badge-centrifuge-zoning-master',
-    name: 'Centrifuge & Drone Bay Master',
+    name: 'Spaceship Town & Repair Inventor',
     icon: '🛸',
     xpAward: 600,
     unlockedAtPhase: 'ideate',
-    condition: 'Design orthographic vessel projections with artificial gravity rings and automated mid-flight spare-part drone fabrication bays.',
-    description: 'Engineered a 100-year self-healing vessel requiring zero external resupply.'
+    condition: 'Draw top-and-side Spaceship Neighborhood Maps in Week 5 and finish the Week 6 Ship Repair Guide.',
+    description: 'Planned spinning fake-gravity rings, welcoming ship neighborhoods, repair robots, 3D spare-part printers, and safety airlocks.'
   },
   {
     id: 'badge-dual-fidelity-builder',
-    name: 'Dual-Fidelity Twin Builder',
+    name: 'Master Blueprint & Cutaway Model Maker',
     icon: '🏗️',
     xpAward: 650,
     unlockedAtPhase: 'prototype',
-    condition: 'Deliver both annotated 3D/isometric subsystem blueprints and a color-coded physical scale model within the 1,500 THB classroom budget.',
-    description: 'Bridged digital CAD precision with tangible physical cutaways of ship and exoplanet terrain.'
+    condition: 'Create labeled Week 7 paper/3D drawings (Tinkercad/FreeCAD/Blender) and build the Week 8 physical spaceship & planet terrain model with cutaway windows.',
+    description: 'Built a real hands-on model using classroom supplies within the team Thai Baht budget.'
   },
   {
     id: 'badge-red-team-survivor',
-    name: 'Red-Team & Constitutional Survivor',
+    name: 'Space Emergency Game Hero',
     icon: '🛡️',
     xpAward: 750,
     unlockedAtPhase: 'test',
-    condition: 'Survive a 40% hydroponic blight or centrifuge bearing failure AND resolve a planetary landing strike without authoritarian collapse.',
-    description: 'Proved engineering redundancy and legal resilience under stochastic deep-space emergencies.'
+    condition: 'Solve the Week 9 Space Emergency Game Cards on your physical model and pass the Week 10 Rulebook argument role-play.',
+    description: 'Upgraded the spaceship model and New Planet Rulebook so everyone stays safe, fed, and included.'
   },
   {
     id: 'badge-exodus-council-laureate',
-    name: 'United Earth Exodus Laureate',
-    icon: '🌟',
+    name: 'Space Launch Showcase Star',
+    icon: '🚀',
     xpAward: 900,
     unlockedAtPhase: 'share',
-    condition: 'Deliver the 4-Pillar 15-Minute Colonization Pitch & Defense before the United Earth Exodus Council and curate the MTC Mastery Portfolio.',
-    description: 'Secured full mission approval across Destination, Vessel, Biosphere, and New Society.'
+    condition: 'Deliver your 4-part Big Pitch in Week 12, present your physical model and rulebook to guests, and save photos into your Digital Learning Folder.',
+    description: 'Celebrated Launch Week and demonstrated growth across all 7 WeLearn Future Skills.'
   }
 ];
 
 export const INTERSTELLAR_ARK_PHASES: ProgramPhase[] = [
   {
     id: 'explore',
-    title: 'Phase 1A: Deep Space Physiology, Psychology & Human Needs',
-    strap: 'Analyzing the biological and psychological limits of multi-generational spaceflight and confined habitats (Week 1 • 10 Hours).',
+    title: 'Phase 1 (Part A): Empathize — Keeping Humans Healthy and Happy in Space',
+    strap: 'Phase Question: What do humans need to stay healthy and happy in deep space, and which new planet is the safest place for us to build a new home? (Week 1 • 10 Hours)',
     weeks: [1, 1],
-    goal: 'Investigate microgravity bone density loss, cosmic radiation shielding, and confined-living psychology to construct a four-tier Human Needs Matrix.',
+    goal: 'Learn what happens to the human body in space without gravity or sunrise/sunset, step into the shoes of space travelers in tight spaces, and make a Human Needs Chart for bodies, feelings, and friendships.',
     tasks: [
-      'Activity 1.1 (3 hrs): Analyze physiological impacts of multi-generational spaceflight (microgravity bone density loss, cosmic radiation shielding, and circadian rhythm disruption).',
-      'Activity 1.2 (4 hrs): Conduct empathy mapping for future colonists by interviewing peers and synthesizing historical data from submarines, Antarctic stations, and Biosphere 2.',
-      'Activity 1.3 (3 hrs): Draft a "Human Needs Matrix" categorizing survival requirements into physiological, psychological, social, and spatial tiers.',
-      'Define baseline daily human survival thresholds per colonist (2,500 kcal, 0.84 kg O2, 3.5 L drinking/hygiene water, and circadian lighting).'
+      'Learn what happens to the human body in space (3 hours): bone and muscle weakness without gravity, space radiation protection, and sleeping normally when there is no sunrise or sunset.',
+      'Step into the shoes of future space travelers (4 hours): talk to classmates and look at how people live in tight spaces like submarines or icy science stations to stop people from feeling lonely or bored.',
+      'Make a Human Needs Chart (3 hours): list everything people need for their bodies, their feelings, and their friendships.'
     ],
     evidence: [
-      'Deep-Space Physiological Hazard Brief (Microgravity, GCR/SPE Radiation & Circadian Countermeasures)',
-      'Confined-Living Empathy Map & 4-Tier Human Needs Matrix (Physiological, Psychological, Social, Spatial)'
+      'Space Body & Sleep Protection Notes (Gravity, Radiation & Sunrise/Sunset Sleep Plan)',
+      'Human Needs Chart (Needs for Bodies, Feelings, and Friendships)'
     ],
     aiPromptStarters: [
-      'Compare psychological stressors documented in Antarctic winter-over crews and Biosphere 2 with a 500-person multi-generational spacecraft.',
-      'What rotational radius and RPM are needed in a centrifuge ring to generate 0.9g–1.0g without causing Coriolis motion sickness?',
-      'Help me critique our 4-tier Human Needs Matrix for neurodiverse and multi-generational crew inclusivity.'
+      'How do astronauts and people in submarines or icy science stations stop feeling lonely or bored in tight spaces?',
+      'What happens to human bones, muscles, and sleep in deep space, and how can our spaceship help?',
+      'Help our team check if our Human Needs Chart covers everything for bodies, feelings, and friendships.'
     ],
     competencies: ['ctps-01', 'sea-01', 'sdl-01'],
     stretchCompetencies: ['ctps-03', 'sea-04'],
@@ -436,794 +490,769 @@ export const INTERSTELLAR_ARK_PHASES: ProgramPhase[] = [
       {
         sessionNumber: 1,
         week: 1,
-        title: 'Activity 1.1: The Human Factor in Deep Space — Physiology & Radiation',
-        durationMin: 180,
-        learningGoal: 'Quantify physiological degradation in deep space including bone demineralization, galactic cosmic ray dose limits, and circadian desynchronization.',
+        title: 'Week 1 (Part 1): What Happens to the Human Body in Space & Tight Spaces',
+        durationMin: 300,
+        learningGoal: 'Understand how zero gravity, space radiation, and no sunrise/sunset affect the human body, and explore how people live in submarines and icy science stations.',
         activities: [
-          'Analyze osteoclastic bone loss (1–1.5% per month in microgravity) and cardiovascular deconditioning across multi-decade transit.',
-          'Calculate radiation shielding mass requirements using water jackets, polyethylene, and active magnetic shielding against GCR and solar proton events.',
-          'Design circadian lighting spectra (480nm blue-enriched dawn vs red-shifted dusk) for windowless habitat decks.'
+          'First, learn what happens to the human body in space (3 hours): investigate why bones and muscles get weak without gravity, how to protect people from space radiation, and how to help travelers sleep normally when there is no sunrise or sunset.',
+          'Begin stepping into the shoes of future space travelers (2 hours): talk to classmates and look at real examples of how people live in tight spaces like submarines or icy Antarctic science stations.'
         ],
         learnerChoices: {
-          question: 'Which physiological countermeasure system will your team prioritize first?',
+          question: 'Which space health challenge will your team investigate first?',
           options: [
-            { id: 'opt-centrifuge', label: 'Continuous Artificial Gravity Centrifuge', description: 'Rotating Stanford torus or O’Neill cylinder maintaining 0.9g–1.0g.' },
-            { id: 'opt-water-shield', label: 'Concentric Water-Wall Storm Shelter', description: 'Routing greywater and potable reserves around residential sleeping quarters.' },
-            { id: 'opt-circadian-biome', label: 'Biophilic Circadian Sky-Dome', description: 'Dynamic solar-spectrum LED vaults synchronized with agricultural plant cycles.' }
-          ]
-        },
-        evidenceToCollect: {
-          kind: 'data',
-          prompt: 'Submit your Deep-Space Physiological Countermeasure Table quantifying gravity, radiation (mSv/yr), and sleep-cycle parameters.',
-          targetCompetencies: ['ctps-01', 'sdl-01']
-        },
-        reflectionPrompt: 'Why is surviving in deep space for 80 years fundamentally different from a 6-month stay aboard the ISS?',
-        teacherTips: 'Prompt learners to convert daily human physiological inputs into annual tonnage for 500 people so they grasp exponential scale early.'
-      },
-      {
-        sessionNumber: 2,
-        week: 1,
-        title: 'Activity 1.2: Empathy Mapping for Isolated & Confined Environments (ICE)',
-        durationMin: 240,
-        learningGoal: 'Synthesize historical lessons from submarines, Antarctic stations, and Biosphere 2 with peer interviews to uncover psychological stressors of confinement.',
-        activities: [
-          'Examine case studies from Biosphere 2 (oxygen drop, caloric scarcity, faction splitting) and McMurdo/Concordia Antarctic winter-over logs.',
-          'Conduct structured peer empathy interviews exploring sensory monotony, privacy deprivation, and intergenerational role expectations.',
-          'Construct a colonist Empathy Map (Says, Thinks, Does, Feels) for both first-generation launch crew and second-generation ship-born youth.'
-        ],
-        learnerChoices: {
-          question: 'Which colonist persona cohort will anchor your team’s Empathy Map?',
-          options: [
-            { id: 'opt-gen1-stewards', label: 'Generation-1 Mission Specialists', description: 'Engineers and agronomists leaving Earth permanently with memories of open skies.' },
-            { id: 'opt-gen2-shipborn', label: 'Generation-2 Ship-Born Youth', description: 'Adolescents born mid-transit who have never experienced a planetary horizon.' },
-            { id: 'opt-landing-vanguard', label: 'Generation-3 Planetary Vanguard', description: 'Young adults trained inside the vessel who must transition to rugged exoplanet surface life.' }
+            { id: 'opt-gravity-gym', label: 'Keeping Bones & Muscles Strong', description: 'Explore spinning fake-gravity rooms and fun daily space exercise games.' },
+            { id: 'opt-radiation-sleep', label: 'Radiation Shields & Sunrise/Sunset Lights', description: 'Explore thick protective walls and smart room lights that copy morning and night.' },
+            { id: 'opt-submarine-empathy', label: 'Happy Life in Tight Spaces', description: 'Study how submarine and polar station crews stay cheerful and connected.' }
           ]
         },
         evidenceToCollect: {
           kind: 'note',
-          prompt: 'Upload your Confined-Environment Empathy Map and synthesis of historical Biosphere 2 / polar station lessons.',
-          targetCompetencies: ['sea-01', 'ec-01']
+          prompt: 'Submit your team notes on keeping bones/muscles strong, blocking radiation, helping people sleep, and lessons from submarines/icy science stations.',
+          targetCompetencies: ['ctps-01', 'sdl-01']
         },
-        reflectionPrompt: 'How do you design for the mental health of a generation born mid-flight who never chose to board the spacecraft?',
-        teacherTips: 'Highlight how Biosphere 2 struggled as much from social factionalism as from CO2/O2 chemistry—setting up Phase 2 governance.'
+        reflectionPrompt: 'What would you miss most about Earth if you lived on a spaceship, and how could we bring that feeling onto the ship?',
+        teacherTips: 'Use relatable visuals of ISS exercise machines, submarine bunks, and Antarctic research stations to spark empathy.'
       },
       {
-        sessionNumber: 3,
+        sessionNumber: 2,
         week: 1,
-        title: 'Activity 1.3: Drafting the 4-Tier Human Needs Matrix',
-        durationMin: 180,
-        learningGoal: 'Categorize multi-generational survival requirements into Physiological, Psychological, Social, and Spatial tiers with measurable design specs.',
+        title: 'Week 1 (Part 2): Stopping Loneliness & Making Our Human Needs Chart',
+        durationMin: 300,
+        learningGoal: 'Understand how to stop people from feeling lonely or bored on a long space trip and create a complete Human Needs Chart.',
         activities: [
-          'Define Tier 1 (Physiological: air, water, 2,500 kcal nutrition, artificial gravity, thermal/radiation safety).',
-          'Define Tier 2 (Psychological: acoustic privacy, nature contact, creative autonomy) and Tier 3 (Social: conflict mediation, cultural rituals, education).',
-          'Define Tier 4 (Spatial: minimum cubic meters per person, sightlines, restorative green sanctuaries) to finalize the Human Needs Matrix.'
+          'Finish stepping into the shoes of future space travelers (2 hours): interview classmates and brainstorm ways to stop people from feeling lonely or bored during a long trip through deep space.',
+          'Make a Human Needs Chart (3 hours): build a clear team chart showing everything people need for their bodies, their feelings, and their friendships.'
         ],
         learnerChoices: {
-          question: 'How will your Human Needs Matrix balance private quarters against communal restorative biomes?',
+          question: 'How will your team organize your Human Needs Chart?',
           options: [
-            { id: 'opt-modular-cabins', label: 'Reconfigurable Acoustic Micro-Cabins + Grand Park', description: 'Compact soundproof sleeping pods paired with expansive botanical commons.' },
-            { id: 'opt-terraced-villages', label: 'Terraced Co-Housing Clusters', description: '25-person neighborhood clusters sharing kitchen-gardens and maker studios.' }
+            { id: 'opt-three-column-chart', label: '3-Column Poster (Bodies, Feelings, Friendships)', description: 'Color-coded chart showing health needs, emotional needs, and community activities.' },
+            { id: 'opt-day-in-the-life', label: '24-Hour Space Traveler Storyboard', description: 'Map a full healthy and happy day on the ship from wake-up to bedtime.' }
           ]
         },
         evidenceToCollect: {
-          kind: 'data',
-          prompt: 'Submit your completed 4-Tier Human Needs Matrix with minimum quantitative thresholds per colonist.',
-          targetCompetencies: ['sea-01', 'ctps-01', 'ct-01']
+          kind: 'note',
+          prompt: 'Upload your completed Human Needs Chart showing everything people need for their bodies, their feelings, and their friendships.',
+          targetCompetencies: ['sea-01', 'ec-01', 'lc-01']
         },
-        reflectionPrompt: 'Which tier in your Human Needs Matrix is most vulnerable to budget or mass cuts, and how will you defend it?',
-        teacherTips: 'Ensure every team locks in their 4-Tier Human Needs Matrix before Week 2 exoplanet selection.'
+        reflectionPrompt: 'Why are feelings and friendships just as important as food and air on a long trip through deep space?',
+        teacherTips: 'Child Safeguarding: For primary learners (ages 9–11), use written sticky notes, drawings, or teacher scribing—never use speech-to-text or audio/video recording.'
       }
     ]
   },
   {
     id: 'empathise',
-    title: 'Phase 1B: Goldilocks Zone Reconnaissance & Exoplanet Selection',
-    strap: 'Evaluating real NASA Exoplanet Archive worlds, stellar radiation profiles, and surface terrains (Week 2 • 10 Hours).',
+    title: 'Phase 1 (Part B): Empathize — Hunting for a Goldilocks Planet',
+    strap: 'Phase Question: What do humans need to stay healthy and happy in deep space, and which new planet is the safest place for us to build a new home? (Week 2 • 10 Hours)',
     weeks: [2, 2],
-    goal: 'Research habitable-zone exoplanet candidates (Kepler-186f, TRAPPIST-1e, Proxima Centauri b, LHS 1140 b) and compile a formal Exoplanet Reconnaissance Dossier.',
+    goal: 'Look at real planets outside our solar system in the Goldilocks Zone, study their land, air, weather, and gravity, and create a Planet Fact File for humanity’s new home.',
     tasks: [
-      'Activity 2.1 (4 hrs): Research real-world exoplanet candidates within habitable zones using NASA Exoplanet Archive telemetry.',
-      'Activity 2.2 (3 hrs): Evaluate planetary terrains, atmospheric compositions, gravitational pulls, and stellar radiation profiles.',
-      'Activity 2.3 (3 hrs): Select a target exoplanet and compile a formal Exoplanet Reconnaissance Dossier justifying why its terrain and orbital mechanics support human colonization.',
-      'Compare trade-offs between transit distance (4.24 ly vs 40–580 ly), tidal locking wind shear, and surface gravity.'
+      'Look at real planets outside our solar system that are in the "Goldilocks Zone"—places that are not too hot and not too cold for liquid water (4 hours).',
+      'Study the land, air, weather, and gravity on these planets to see what dangers might be waiting for us (3 hours).',
+      'Pick one planet to be humanity\'s new home and create a Planet Fact File that explains why your planet is the best choice and what the land looks like (3 hours).'
     ],
     evidence: [
-      'Comparative Candidate Trade-Off Matrix (Kepler-186f, TRAPPIST-1e, Proxima Centauri b, LHS 1140 b)',
-      'Formal Exoplanet Reconnaissance Dossier (Orbital Mechanics, Terrain Profile & Surface Adaptation Strategy)'
+      'Goldilocks Zone Planet Comparison Notes (Land, Air, Weather & Gravity)',
+      'Team Planet Fact File (Why Our Planet Is the Best Choice & What the Land Looks Like)'
     ],
     aiPromptStarters: [
-      'Compare TRAPPIST-1e and Kepler-186f across stellar flare hazard, tidal locking, surface gravity, and transit time.',
-      'How does tidal locking around an M-dwarf star affect atmospheric circulation, terminator habitability, and photosynthesis?',
-      'Help me structure our Exoplanet Reconnaissance Dossier to defend our choice against Red-Team astrophysics questions.'
+      'What makes a planet in the "Goldilocks Zone" not too hot and not too cold for liquid water?',
+      'Compare TRAPPIST-1e, Kepler-186f, and Kepler-442b: what are the land, weather, and gravity dangers on each one?',
+      'Help us check our Planet Fact File to make sure we explained the land, air, weather, and gravity clearly.'
     ],
-    competencies: ['ctps-01', 'ctps-03', 'sdl-02'],
-    stretchCompetencies: ['ec-02', 'ctps-05'],
+    competencies: ['ctps-02', 'ctps-03', 'ec-01'],
+    stretchCompetencies: ['sdl-05', 'ct-01'],
     sessions: [
       {
-        sessionNumber: 4,
+        sessionNumber: 3,
         week: 2,
-        title: 'Activity 2.1: Goldilocks Zone Reconnaissance with NASA Exoplanet Data',
-        durationMin: 240,
-        learningGoal: 'Query and compare real exoplanet parameters (semi-major axis, stellar flux, radius, mass, equilibrium temperature) within circumstellar habitable zones.',
+        title: 'Week 2 (Part 1): Exploring Real Planets in the Goldilocks Zone',
+        durationMin: 300,
+        learningGoal: 'Explore real exoplanets in the Goldilocks Zone where temperatures are not too hot and not too cold for liquid water.',
         activities: [
-          'Compare M-dwarf vs K/G-dwarf habitable zones and calculate equilibrium temperatures from stellar luminosity and orbital distance.',
-          'Analyze NASA Exoplanet Archive records for Kepler-186f, TRAPPIST-1e, Proxima Centauri b, and LHS 1140 b.',
-          'Build a candidate comparison matrix scoring distance, gravity, stellar stability, and water retention potential.'
+          'Look at real planets outside our solar system in the "Goldilocks Zone"—places that are not too hot and not too cold for liquid water (4 hours).',
+          'Begin studying the land, air, weather, and gravity on candidate planets to compare how humans would walk, breathe, and build homes there (1 hour).'
         ],
         learnerChoices: {
-          question: 'Which primary selection criterion will guide your exoplanet shortlist?',
+          question: 'Which Goldilocks planet candidate looks most promising to your team?',
           options: [
-            { id: 'opt-shortest-transit', label: 'Minimum Transit Duration (< 50 light-years)', description: 'Prioritizes Proxima Centauri b or TRAPPIST-1e to minimize multi-century ship wear.' },
-            { id: 'opt-stellar-calm', label: 'Quiet Stellar Radiation Environment', description: 'Prioritizes Kepler-186f or LHS 1140 b to avoid extreme red-dwarf superflares.' },
-            { id: 'opt-gravity-match', label: 'Near-1g Surface Gravity Match', description: 'Prioritizes TRAPPIST-1e (0.93g) for seamless human musculoskeletal adaptation.' }
+            { id: 'opt-planet-trappist1e', label: 'TRAPPIST-1e (Ocean Twilight World)', description: '0.93g Earth-like gravity with liquid water oceans along a permanent sunset band.' },
+            { id: 'opt-planet-kepler186f', label: 'Kepler-186f (Cool Red-Sun Continents)', description: 'Calm star, normal day/night cycle, and wide rocky valleys with frozen lakes.' },
+            { id: 'opt-planet-kepler442b', label: 'Kepler-442b (Warm Super-Earth Delta)', description: 'Steady sunlight, shallow seas, and soft muddy river deltas.' }
           ]
         },
         evidenceToCollect: {
           kind: 'data',
-          prompt: 'Upload your 4-Planet Habitable Zone Comparison Matrix with real astrophysical parameters.',
-          targetCompetencies: ['ctps-01', 'sdl-02']
+          prompt: 'Submit your Goldilocks Planet Comparison Table comparing temperature, water, gravity, and star weather.',
+          targetCompetencies: ['ctps-02', 'sdl-05']
         },
-        reflectionPrompt: 'Why is there no "perfect Earth twin" among nearby exoplanets, and what engineering trade-off did your team accept?',
-        teacherTips: 'Encourage students to test all 4 exoplanets in the Interactive Interstellar Ark Simulator before locking their final choice.'
+        reflectionPrompt: 'Why is the "Goldilocks Zone" so important when hunting for a new planet for humanity?',
+        teacherTips: 'Use the Goldilocks Planet tab in the Project Exodus Simulator so learners can compare gravity, temperatures, and weather dangers side-by-side.'
       },
       {
-        sessionNumber: 5,
+        sessionNumber: 4,
         week: 2,
-        title: 'Activity 2.2: Planetary Terrains, Atmospheres & Stellar Radiation Profiles',
-        durationMin: 180,
-        learningGoal: 'Model surface terrain geology, atmospheric pressure/composition, gravitational pull, and ionizing flare protection for the shortlisted world.',
+        title: 'Week 2 (Part 2): Planet Dangers & Creating Our Planet Fact File',
+        durationMin: 300,
+        learningGoal: 'Analyze the land, air, weather, and gravity dangers on candidate planets, choose humanity’s new home, and create a Planet Fact File.',
         activities: [
-          'Analyze how tidal locking creates a permanent dayside, glaciated nightside, and temperate twilight terminator band.',
-          'Evaluate surface gravity impacts on landing module thrust, structural dome loads, and human locomotion.',
-          'Map photosynthetic active radiation (PAR) in infrared-shifted M-dwarf spectra for surface and greenhouse agriculture.'
+          'Finish studying the land, air, weather, and gravity on the planets to see what dangers might be waiting for us—such as strong winds, cold nights, heavy gravity, or soft muddy landing ground (2 hours).',
+          'Pick one planet to be humanity\'s new home and create a Planet Fact File that explains why your planet is the best choice and what the land looks like (3 hours).'
         ],
         learnerChoices: {
-          question: 'Where on your target exoplanet will your initial landing colony be sited?',
+          question: 'What special feature will you highlight in your Planet Fact File?',
           options: [
-            { id: 'opt-terminator-valley', label: 'Twilight Terminator Geothermal Valley', description: 'Stable temperatures and wind-sheltered canyon walls on a tidally locked world.' },
-            { id: 'opt-lava-tube', label: 'Subsurface Basaltic Lava-Tube Network', description: 'Natural 10m rock radiation shielding against stellar proton flares.' },
-            { id: 'opt-coastal-basin', label: 'Substellar Coastal Archipelago Basin', description: 'Direct liquid water access for electrolysis, aquaculture, and thermal moderation.' }
+            { id: 'opt-factfile-map', label: 'Illustrated Landing Site & Terrain Map', description: 'Show mountains, water sources, wind shelter, and where the ship will land.' },
+            { id: 'opt-factfile-survival', label: 'Danger & Survival Guide', description: 'Explain every weather, air, and gravity danger and how your colony will stay safe.' }
           ]
         },
         evidenceToCollect: {
           kind: 'note',
-          prompt: 'Submit your Planetary Terrain, Atmosphere & Radiation Hazard Analysis for your selected landing zone.',
-          targetCompetencies: ['ctps-03', 'ct-01']
+          prompt: 'Submit your completed Planet Fact File explaining why your chosen Goldilocks planet is the best choice and what its land looks like.',
+          targetCompetencies: ['ctps-03', 'ec-01']
         },
-        reflectionPrompt: 'How does your chosen landing terrain directly shape the architecture of your spacecraft’s detachable landing module?',
-        teacherTips: 'Remind teams that in Week 8 they will construct a physical terrain slice showing how the landing module interfaces with this exact topography.'
-      },
-      {
-        sessionNumber: 6,
-        week: 2,
-        title: 'Activity 2.3: Compiling the Formal Exoplanet Reconnaissance Dossier',
-        durationMin: 180,
-        learningGoal: 'Synthesize astrophysical telemetry, terrain maps, and human adaptation protocols into the Deliverable 1 Exoplanet Reconnaissance Dossier.',
-        activities: [
-          'Write the scientific justification for the chosen Goldilocks planet, citing orbital mechanics, gravity, and atmospheric retention.',
-          'Pair the Exoplanet Reconnaissance Dossier with the Week 1 Human Needs Matrix for Milestone 1 peer review.',
-          'Log the final destination parameters into the Digital Twin Ark Configurator.'
-        ],
-        learnerChoices: {
-          question: 'How will you present the surface adaptation roadmap inside your Exoplanet Dossier?',
-          options: [
-            { id: 'opt-phased-terra', label: '3-Stage Habitat Expansion Plan', description: 'Stage 1 Lander Core -> Stage 2 Regolith Vaults -> Stage 3 Closed Agricultural Domes.' },
-            { id: 'opt-amphibious-ark', label: 'Modular Ark-to-Surface Disassembly', description: 'Spacecraft habitat modules detach and land directly as pre-integrated surface buildings.' }
-          ]
-        },
-        evidenceToCollect: {
-          kind: 'data',
-          prompt: 'Submit your complete Phase 1 Deliverable: Exoplanet Reconnaissance Dossier & Human Needs Matrix.',
-          targetCompetencies: ['ctps-01', 'ec-01', 'sdl-02']
-        },
-        reflectionPrompt: 'What is the single strongest scientific counter-argument against your chosen exoplanet, and how does your dossier answer it?',
-        teacherTips: 'Verify that every team has both deliverables from the PDF table for Weeks 1–2: Exoplanet Dossier & Human Needs Matrix.'
+        reflectionPrompt: 'What is the biggest danger waiting on your chosen planet, and how will your team prepare for it?',
+        teacherTips: 'Have teams share their Planet Fact Files with a partner team to check that every choice is backed by real science facts.'
       }
     ]
   },
   {
     id: 'define',
-    title: 'Phase 2: Closed-Loop Biospheres (ECLSS), Budgets & The Colonial Charter',
-    strap: 'Defining 500-colonist agricultural math, Thai Baht + tonnage budgets, and constitutional governance (Weeks 3–4 • 20 Hours).',
+    title: 'Phase 2: Define — Growing Food, Recycling Everything & Making Fair Rules',
+    strap: 'Phase Question: How will we grow enough food, recycle our water and air, and make fair rules so everyone gets along on the ship and on the new planet? (Weeks 3–4 • 20 Hours)',
     weeks: [3, 4],
-    goal: 'Engineer a closed-loop ECLSS and food production matrix for 500 colonists, build a dual THB/tonnage budget, and ratify the New World Constitution & Legal Code.',
+    goal: 'Calculate daily food and water for 500 people using hydroponics/aeroponics, draw a Recycling Loop Map, plan the Thai Baht classroom supply budget and spaceship weight limit, and write a New Planet Rulebook.',
     tasks: [
-      'Activity 3.1 & 3.2 (7 hrs): Define caloric/nutritional needs for 500 colonists (aeroponics, hydroponics, cellular agriculture, algae photobioreactors) and map closed-loop ECLSS (water recovery, O2 generation, CO2 scrubbing, solid waste composting).',
-      'Activity 3.3 (3 hrs): Build a project budget and material allocation sheet (calculated in Thai Baht within a 1,500 THB classroom cap alongside a theoretical mission resource tonnage budget).',
-      'Activity 4.1 & 4.2 (7 hrs): Analyze historical frontier governance failures, debate resource distribution, labor division, reproductive rights, and conflict resolution, and define the transition from "Transit Mission Law" to "Planetary Civic Law".',
-      'Activity 4.3 (3 hrs): Draft the New World Constitution & Legal Code establishing explicit laws for property, sustainability mandates, justice systems, and leadership selection.'
+      'Week 3 (4 hours): Figure out how much food and water a community of 500 people needs every day, and explore ways to farm without dirt like hydroponics (growing plants in water) or aeroponics (spraying roots with mist).',
+      'Week 3 (3 hours): Draw a Recycling Loop Map showing how dirty water gets cleaned, how plants make fresh oxygen for us to breathe, and how food scraps turn into plant food.',
+      'Week 3 (3 hours): Make a project budget planning how to spend classroom money (in Thai Baht) for model-building supplies, and plan the weight limit for supplies on our real spaceship.',
+      'Week 4 (4 hours): Look at how explorers and communities in history made rules, and talk about how to share food, jobs, and space fairly.',
+      'Week 4 (3 hours): Decide how the rules might change once the spaceship lands on the new planet—who is in charge during an emergency in space, and how people vote for leaders once they land.',
+      'Week 4 (3 hours): Write a New Planet Rulebook explaining the laws for sharing the land, protecting nature, solving arguments peacefully, and choosing leaders.'
     ],
     evidence: [
-      'Closed-Loop Resource & Food Production Matrix for 500 Colonists (Caloric, Water, O2/CO2 & Composting Flow)',
-      'Dual Budget Ledger (1,500 THB Classroom Prototyping Ledger + Spacecraft Mass/Energy Tonnage Allocation)',
-      'The Colonial Charter: New World Constitution & Legal Code (Transit-to-Planetary Law Transition)'
+      '500-Person Food & Water Plan + Recycling Loop Map + Classroom Budget (in Thai Baht) & Spaceship Weight Plan',
+      'Completed New Planet Rulebook (Sharing Land, Protecting Nature, Solving Arguments Peacefully & Choosing Leaders)'
     ],
     aiPromptStarters: [
-      'Help me verify the daily caloric and oxygen math for 500 colonists using dwarf wheat, sweet potatoes, soy aeroponics, and Spirulina photobioreactors.',
-      'What are the biggest failure modes when transitioning from military/mission chain-of-command aboard a ship to democratic civic law on a planet?',
-      'Help me allocate our 1,500 THB classroom prototyping budget across cardboard, EVA foam, PVC pipe, balsa wood, and color-coded cutaway markers.'
+      'How much food, water, and oxygen does a community of 500 people need every day, and how do hydroponics and aeroponics work?',
+      'Help us trace a complete Recycling Loop Map where dirty water, plant oxygen, and food scraps are 100% recycled with zero waste.',
+      'What are fair ways for our New Planet Rulebook to share hard or messy jobs (like cleaning the compost or fixing pipes) and choose leaders?'
     ],
-    competencies: ['ctps-02', 'ent-01', 'lc-01', 'sea-02'],
-    stretchCompetencies: ['ent-03', 'sea-05'],
+    competencies: ['ctps-03', 'ent-01', 'sea-02', 'lc-02'],
+    stretchCompetencies: ['ent-02', 'sea-04'],
     sessions: [
       {
-        sessionNumber: 7,
+        sessionNumber: 5,
         week: 3,
-        title: 'Activity 3.1 & 3.2: 500-Colonist Caloric Math & Closed-Loop ECLSS',
-        durationMin: 420,
-        learningGoal: 'Design a closed-loop agricultural and life-support flow proving caloric (1.25M kcal/day), water (>=98% recovery), and O2/CO2 sustainability for 500 colonists.',
+        title: 'Week 3 (Part 1): Feeding 500 People with Hydroponics & Aeroponics',
+        durationMin: 300,
+        learningGoal: 'Calculate how much food and water a community of 500 people needs every day and explore farming without dirt using hydroponics and aeroponics.',
         activities: [
-          'Calculate daily macronutrient and caloric demand for 500 colonists (~2,500 kcal/person/day = 1,250,000 kcal/day total).',
-          'Balance crop yields across vertical aeroponics (potatoes, dwarf wheat, soybeans), mushroom mycelia, cellular protein bioreactors, and Spirulina algae.',
-          'Diagram the Environmental Control and Life Support System (ECLSS): Sabatier/Bosch CO2 reduction, urine vapor compression distillation, oxygen electrolysis, and thermophilic waste composting.'
+          'Figure out how much food and water a community of 500 people needs every day in deep space where there are no grocery stores and nothing can go to waste (4 hours).',
+          'Explore cool ways to farm without dirt, like growing plants in water (hydroponics) or spraying their roots with mist (aeroponics), and begin sketching your Recycling Loop Map (1 hour).'
         ],
         learnerChoices: {
-          question: 'What primary agricultural mix will power your 500-colonist biosphere?',
+          question: 'Which soil-free space farming method will be the main farm on your ship?',
           options: [
-            { id: 'opt-aeroponic-algae', label: 'High-Density Aeroponics + Spirulina Photobioreactors', description: '95% less water usage with fast-doubling algae buffers for O2 and protein.' },
-            { id: 'opt-aquaponic-mycelia', label: 'Closed-Loop Aquaponics + Mycelium Composting', description: 'Tilapia/shrimp tanks fertilizing hydroponic greens while fungi break down crop stalks.' },
-            { id: 'opt-cellular-hybrid', label: 'Cellular Agriculture + Dwarf Staple Crops', description: 'Bioreactor precision fermentation paired with caloric-dense sweet potato and wheat decks.' }
+            { id: 'opt-hydroponics', label: 'Hydroponic Water-Channel Gardens', description: 'Grow leafy greens, beans, and fruit in flowing nutrient water channels.' },
+            { id: 'opt-aeroponics', label: 'Aeroponic Mist Towers', description: 'Hang plant roots in air and spray them with nutrient mist to save water and weight.' },
+            { id: 'opt-combo-farm', label: 'Combined Hydroponic & Mist Farm Rooms', description: 'Use two separate farm rooms so a plant sickness in one room never ruins all food.' }
           ]
         },
         evidenceToCollect: {
           kind: 'data',
-          prompt: 'Submit your Closed-Loop Resource & Food Production Matrix proving 500-colonist daily kcal, L water, and kg O2 balance.',
-          targetCompetencies: ['ctps-02', 'ent-01']
+          prompt: 'Submit your 500-Person Daily Food & Water Math Sheet and soil-free farming plan.',
+          targetCompetencies: ['ctps-03', 'sdl-02']
         },
-        reflectionPrompt: 'If a single crop disease wipes out 40% of your primary carbohydrate crop, which secondary loop prevents starvation within 48 hours?',
-        teacherTips: 'Have teams test their crop area and water recovery percentages inside Tab 2 of the Interstellar Ark Simulator to verify zero deficit.'
+        reflectionPrompt: 'Why is growing plants in water or mist better for a spaceship than carrying heavy bags of dirt from Earth?',
+        teacherTips: 'Use the Biosphere & Recycling Loop tab in the Simulator so students can test how much farm space feeds 500 people.'
+      },
+      {
+        sessionNumber: 6,
+        week: 3,
+        title: 'Week 3 (Part 2): Drawing Our Recycling Loop Map & Thai Baht Project Budget',
+        durationMin: 300,
+        learningGoal: 'Draw a complete Recycling Loop Map for water, oxygen, and food scraps, and create a project budget in Thai Baht alongside a spaceship weight plan.',
+        activities: [
+          'Finish drawing your Recycling Loop Map showing how dirty water gets cleaned, how plants make fresh oxygen for us to breathe, and how food scraps turn into plant food (2 hours).',
+          'Make a project budget (3 hours): plan how to spend your classroom money (in Thai Baht) for model-building supplies, and also plan the weight limit for supplies on your real spaceship.'
+        ],
+        learnerChoices: {
+          question: 'How will your team keep your classroom model supplies within your Thai Baht budget?',
+          options: [
+            { id: 'opt-upcycled-craft', label: 'Upcycled Bottles, Cardboard & Foam Saver Plan', description: 'Reuse clean plastic bottles and cardboard boxes to save Thai Baht for paint, clay, and wire.' },
+            { id: 'opt-modular-budget', label: 'Room-by-Room THB Supply Budget', description: 'Divide the Thai Baht budget evenly between the spaceship model and the planet terrain model.' }
+          ]
+        },
+        evidenceToCollect: {
+          kind: 'data',
+          prompt: 'Submit your illustrated Recycling Loop Map (water, oxygen, food scraps) and your Project Budget (in Thai Baht + spaceship weight limit).',
+          targetCompetencies: ['ent-01', 'ctps-03']
+        },
+        reflectionPrompt: 'How does recycling every drop of water and every food scrap on a spaceship teach us to care for Earth better?',
+        teacherTips: 'Remind teams to check both parts of their budget: classroom model-building money in Thai Baht AND weight limits on the real spaceship.'
+      },
+      {
+        sessionNumber: 7,
+        week: 4,
+        title: 'Week 4 (Part 1): Fair Rules in History & Sharing Food, Jobs, and Space',
+        durationMin: 300,
+        learningGoal: 'Examine how explorers and communities in history made rules, and discuss how to share food, jobs, and space fairly.',
+        activities: [
+          'Look at how explorers and communities in history made rules, and talk about how to share food, jobs (including hard or messy jobs like cleaning the compost or fixing pipes), and space fairly (4 hours).',
+          'Begin deciding how the rules might change once the spaceship lands on the new planet (1 hour).'
+        ],
+        learnerChoices: {
+          question: 'How will your colony handle hard or messy jobs (like cleaning the compost or fixing pipes) so it is fair?',
+          options: [
+            { id: 'opt-job-rotation', label: 'Everyone Takes Turns (Fair Rotation)', description: 'Every team member rotates through messy jobs so nobody is stuck doing them alone.' },
+            { id: 'opt-bonus-rest-credits', label: 'Extra Rest & Fun Credits', description: 'Volunteers who do hard repair or compost jobs earn extra recreation and park time.' }
+          ]
+        },
+        evidenceToCollect: {
+          kind: 'note',
+          prompt: 'Submit your notes on fair job sharing, resource sharing, and basic rights for every person (body, mind/feelings, and how we treat each other).',
+          targetCompetencies: ['sea-02', 'lc-02']
+        },
+        reflectionPrompt: 'What makes a rule feel fair to everyone in a community, even when supplies are limited?',
+        teacherTips: 'Walk teams through Sections 1, 2, and 3 of Part 2: The New Planet Rulebook Worksheet.'
       },
       {
         sessionNumber: 8,
-        week: 3,
-        title: 'Activity 3.3: Dual-Ledger Budgeting — Thai Baht (THB) & Mission Tonnage',
-        durationMin: 180,
-        learningGoal: 'Build a realistic dual budget managing both classroom physical prototyping materials (<= 1,500 THB) and theoretical spacecraft mass/energy tonnage.',
-        activities: [
-          'Itemize classroom physical build materials in Thai Baht (corrugated cardboard, EVA foam sheets, PVC core pipe, balsa wood trusses, recycled PET domes, acrylic paint/markers) within the 1,500 THB cap.',
-          'Construct the theoretical spacecraft dry-mass and power allocation budget (propulsion mass fraction, radiation shielding water mass, agricultural biomass, and spare parts stock).',
-          'Calculate return on mass/energy investment for every subsystem.'
-        ],
-        learnerChoices: {
-          question: 'How will you allocate your 1,500 THB classroom prototyping budget for maximum structural clarity?',
-          options: [
-            { id: 'opt-pvc-eva', label: 'PVC Spine + EVA Foam Centrifuge Rings (~1,350 THB)', description: 'Rigid central truss with precision-cut foam habitat rings and clear PET domes.' },
-            { id: 'opt-balsa-cardboard', label: 'Balsa Truss + Layered Cardboard Terrain (~1,180 THB)', description: 'Lightweight architectural cutaway frames with topographical contour layers.' }
-          ]
-        },
-        evidenceToCollect: {
-          kind: 'data',
-          prompt: 'Upload your Dual Budget Ledger (THB Classroom Bill of Materials + Spacecraft Mass/Energy Tonnage Sheet).',
-          targetCompetencies: ['ent-01', 'sdl-03']
-        },
-        reflectionPrompt: 'How does a strict 1,500 THB material ceiling force smarter engineering choices, just like launch mass limits in aerospace?',
-        teacherTips: 'Directly connects to WeLearn Future Skill #6 (Entrepreneurship & Financial Literacy) in the MTC rubric.'
-      },
-      {
-        sessionNumber: 9,
         week: 4,
-        title: 'Activity 4.1 & 4.2: Frontier Governance Failures & Power Transition Law',
-        durationMin: 420,
-        learningGoal: 'Analyze historical frontier governance failures and design a constitutional transition from Transit Mission Law to Planetary Civic Law.',
+        title: 'Week 4 (Part 2): Emergency Leaders, Voting & Writing Our New Planet Rulebook',
+        durationMin: 300,
+        learningGoal: 'Decide who leads during a space emergency vs. how people vote on the planet, and complete the 7-part New Planet Rulebook.',
         activities: [
-          'Debate resource distribution models, labor division, reproductive/population equilibrium, and conflict resolution in zero-escape environments.',
-          'Analyze why frontier settlements fail when emergency command powers become permanent oligarchies.',
-          'Design the explicit legal trigger and power-transfer protocol from "Transit Mission Law" aboard the vessel to "Planetary Civic Law" upon exoplanet landing.'
+          'Decide how the rules might change once the spaceship lands on the new planet: who is in charge during an emergency in space, and how do people vote for leaders once they land? (2 hours).',
+          'Write your team\'s New Planet Rulebook (3 hours) using the 7-part Rulebook Worksheet explaining the laws for sharing the land, protecting nature, solving arguments peacefully, and choosing leaders, signed by all 4 team roles.'
         ],
         learnerChoices: {
-          question: 'Which governance architecture will anchor your colony upon planetary landing?',
+          question: 'How will your community choose leaders once the spaceship lands on the new planet?',
           options: [
-            { id: 'opt-polycentric-council', label: 'Bicameral Citizen Assembly + Scientific Stewardship Council', description: 'Popularly elected civic chamber balanced by an ecological/ECLSS boundary veto.' },
-            { id: 'opt-sortition-commons', label: 'Rotated Sortition Citizens’ Jury + Resource Commons', description: 'Randomly selected citizen panels with mandatory cross-guild rotation to prevent elites.' },
-            { id: 'opt-cooperative-syndicate', label: 'Federated Guild & Neighborhood Commonwealth', description: 'Shared representation across biosphere, engineering, health, and education commons.' }
+            { id: 'opt-community-vote', label: 'Every Colonist Votes', description: 'All citizens vote for leaders who serve for a set term and can be replaced if unfair.' },
+            { id: 'opt-team-council', label: '4-Role Community Council', description: 'Builders, Scientists, Farmers, and Peacekeepers elect a shared council together.' }
           ]
         },
         evidenceToCollect: {
           kind: 'note',
-          prompt: 'Submit your Transit-to-Planetary Power Transition Protocol and Frontier Governance Debate Brief.',
-          targetCompetencies: ['lc-01', 'sea-02', 'ctps-02']
+          prompt: 'Submit your completed 7-Part New Planet Rulebook Worksheet signed by your Builder/Engineer, Planet Scientist, Farm & Life-Support Lead, and Law & Community Leader.',
+          targetCompetencies: ['lc-02', 'sea-04', 'ec-02']
         },
-        reflectionPrompt: 'What legal safeguard prevents the spacecraft captain or chief engineer from refusing to step down after landing?',
-        teacherTips: 'Push students to write concrete sunset clauses and check-and-balance mechanisms—they will be tested against a strike in Week 10!'
-      },
-      {
-        sessionNumber: 10,
-        week: 4,
-        title: 'Activity 4.3: Ratifying the New World Constitution & Legal Code',
-        durationMin: 180,
-        learningGoal: 'Draft the formal Colonial Charter establishing explicit laws for property, ecological sustainability mandates, restorative justice, and leadership selection.',
-        activities: [
-          'Draft Article I (Bill of Colonist Rights, Neurodiversity & Psychological Safety) and Article II (Commons Property & Resource Stewardship).',
-          'Draft Article III (Restorative Justice & Conflict Resolution without incarceration bottlenecks) and Article IV (Democratic Leadership & Recall).',
-          'Conduct a team ratification audit ensuring internal logical consistency with the 500-colonist ECLSS budget.'
-        ],
-        learnerChoices: {
-          question: 'How will your legal code handle serious rule violations in a 500-person community where every pair of hands is needed?',
-          options: [
-            { id: 'opt-restorative-service', label: 'Restorative Justice & Supervised Ecological Service', description: 'Focuses on restitution, mediation, and supervised biosphere maintenance rather than punitive lockup.' },
-            { id: 'opt-civic-tribunal', label: 'Three-Panel Peer Tribunal & Graduated Civic Credits', description: 'Transparent due process with graduated privileges and rehabilitation pathways.' }
-          ]
-        },
-        evidenceToCollect: {
-          kind: 'note',
-          prompt: 'Upload your ratified Deliverable 2: The Colonial Charter (New World Constitution & Legal Code).',
-          targetCompetencies: ['ec-01', 'sea-02', 'lc-01']
-        },
-        reflectionPrompt: 'How do your constitutional laws protect minority viewpoints and psychological safety under extreme scarcity?',
-        teacherTips: 'Check that teams have completed both Phase 2 deliverables: Colonial Charter & Closed-Loop Resource Budget.'
+        reflectionPrompt: 'Why do we want to fix problems and help people do better instead of using mean punishments in our Justice System?',
+        teacherTips: 'Ensure every team completes all 7 sections of the New Planet Rulebook Worksheet, including Section 5 (Protecting Our New Planet\'s Nature) and Section 6 (Solving Arguments Peacefully).'
       }
     ]
   },
   {
     id: 'ideate',
-    title: 'Phase 3: Spacecraft Architecture, Spatial Zoning & Maintenance Systems',
-    strap: 'Configuring propulsion, artificial gravity, spatial zoning, and 100-year autonomous maintenance (Weeks 5–6 • 20 Hours).',
+    title: 'Phase 3: Ideate — Designing the Spaceship Rooms, Layout & Repair Guide',
+    strap: 'Phase Question: How should we design the inside of our spaceship so people have places to live, work, and play, and how will we fix the ship if something breaks? (Weeks 5–6 • 20 Hours)',
     weeks: [5, 6],
-    goal: 'Ideate propulsion and artificial gravity geometry, balance spatial zoning across 6 functional sectors, and finalize the 100-Year Engineering & Maintenance Blueprint Package.',
+    goal: 'Explore how the ship moves forward and creates fake gravity by spinning, plan welcoming ship neighborhoods, draw rough top and side maps, and finish a Ship Repair Guide with repair robots, 3D printers, and safety doors.',
     tasks: [
-      'Activity 5.1 (4 hrs): Brainstorm propulsion concepts (fusion drives, solar sails, antimatter) and artificial gravity mechanisms (O’Neill cylinders, Stanford torus centrifuge rings).',
-      'Activity 5.2 & 5.3 (6 hrs): Develop spatial zoning diagrams balancing industrial zones, agricultural biomes, residential quarters, medical bays, and communal restorative spaces; sketch orthographic projections (top, side, cross-section).',
-      'Activity 6.1 & 6.2 (7 hrs): Ideate preventative and emergency maintenance protocols for micro-meteoroid impacts, radiation shielding degradation, and mechanical wear over 100 years; design modular replaceable architecture and automated repair drone bays.',
-      'Activity 6.3 (3 hrs): Finalize the Engineering & Maintenance Blueprint Package detailing how human crews and automated systems maintain the vessel without external resupply.'
+      'Week 5 (4 hours): Explore how the ship moves forward and how spinning parts of the ship can create fake gravity so people can walk normally.',
+      'Week 5 (3 hours): Plan the neighborhoods inside the ship—decide where to put bedrooms, kitchens, hospitals, schools, parks, space farms, and engine rooms so the ship feels like a welcoming town.',
+      'Week 5 (3 hours): Draw first rough maps of the ship from the top and the side, either on paper or on a computer.',
+      'Week 6 (4 hours): Brainstorm all the dangers in deep space, like tiny space rocks hitting the outside wall or machines wearing out over time.',
+      'Week 6 (3 hours): Invent smart ways to fix the ship while it is flying—design repair robots, 3D printers that make spare parts, and rooms that can be closed off safely if there is an air leak.',
+      'Week 6 (3 hours): Finish your Ship Repair Guide, showing how crews and robots will keep the spaceship safe and clean.'
     ],
     evidence: [
-      'Orthographic Vessel Projections (Top, Side, Cross-Section) & 6-Sector Spatial Zoning Diagram',
-      'Engineering & Maintenance Blueprint Package (100-Year Hull Integrity, Modular Swapping & Automated Repair Drone Bays)'
+      'Rough Top-View & Side-View Spaceship Neighborhood Maps (Spinning Gravity Ring, Bedrooms, Kitchens, Hospitals, Schools, Parks, Farms & Engines)',
+      'Completed Ship Repair Guide (Repair Robots, 3D Spare-Part Printers & Air-Leak Safety Doors)'
     ],
     aiPromptStarters: [
-      'Compare the structural mass and rotational stability of a single Stanford Torus vs counter-rotating O’Neill cylinders.',
-      'Where should high-vibration industrial/propulsion zones be placed relative to residential quarters and hydroponic bays?',
-      'Design a preventative maintenance schedule for centrifuge bearings and Whipple shields over a 100-year voyage with zero external resupply.'
+      'How do spinning parts of a spaceship create fake gravity so people can walk normally without floating?',
+      'Where should we place bedrooms, schools, parks, space farms, and engine rooms so our ship feels like a safe, welcoming town?',
+      'What should we include in our Ship Repair Guide so repair robots, 3D printers, and safety doors can fix space pebble holes or broken pipes?'
     ],
-    competencies: ['ct-01', 'ct-02', 'ctps-04'],
-    stretchCompetencies: ['ct-05', 'sdl-04'],
+    competencies: ['ct-01', 'ct-02', 'ctps-04', 'sdl-02'],
+    stretchCompetencies: ['ct-05', 'ctps-05'],
     sessions: [
       {
-        sessionNumber: 11,
+        sessionNumber: 9,
         week: 5,
-        title: 'Activity 5.1: Propulsion Concepts & Artificial Gravity Geometry',
-        durationMin: 240,
-        learningGoal: 'Select and calculate propulsion and centrifuge ring parameters capable of sustaining multi-decade interstellar transit.',
+        title: 'Week 5 (Part 1): How the Ship Moves Forward & Spinning Fake Gravity',
+        durationMin: 300,
+        learningGoal: 'Explore how a giant spaceship moves forward and how spinning rings create fake gravity so people can walk normally.',
         activities: [
-          'Compare D-He3 fusion pulse drives, beamed laser light sails, and antimatter-catalyzed thermal propulsion.',
-          'Calculate centripetal acceleration (a = omega^2 * r) for Stanford torus rings vs O’Neill cylinders to achieve 0.9g–1.0g.',
-          'Design counter-rotating ring pairs or reaction-wheel systems to eliminate gyroscopic precession during attitude maneuvers.'
+          'Explore how the ship moves forward and how spinning parts of the ship can create fake gravity so people can walk normally (4 hours).',
+          'Start planning the neighborhoods inside the ship so noisy engines are kept safely away from bedrooms, schools, and hospitals (1 hour).'
         ],
         learnerChoices: {
-          question: 'Which artificial gravity geometry will form the core of your spacecraft?',
+          question: 'What shape will your spinning fake-gravity spaceship use?',
           options: [
-            { id: 'opt-twin-torus', label: 'Dual Counter-Rotating Stanford Torus Rings', description: 'Two 180m-radius rings connected to a zero-g axial docking, fabrication, and reactor spine.' },
-            { id: 'opt-oneill-drum', label: 'Twin O’Neill Habitat Cylinders', description: 'Wide 320m-radius drums providing open parkland sightlines and deep soil beds.' },
-            { id: 'opt-tethered-clusters', label: 'Modular Truss-Tethered Habitation Clusters', description: 'Redundant habitat pods balanced across a 450m carbon-truss boom for easy module isolation.' }
-          ]
-        },
-        evidenceToCollect: {
-          kind: 'data',
-          prompt: 'Submit your Propulsion & Artificial Gravity Calculation Sheet (radius, RPM, g-force, delta-v, and transit years).',
-          targetCompetencies: ['ctps-04', 'ct-01']
-        },
-        reflectionPrompt: 'Why is a zero-gravity axial spine useful for heavy manufacturing and docking even when colonists live at 1g in the rings?',
-        teacherTips: 'Have students test their ring radius and RPM in Tab 1 of the Interstellar Ark Simulator.'
-      },
-      {
-        sessionNumber: 12,
-        week: 5,
-        title: 'Activity 5.2 & 5.3: Spatial Zoning & Orthographic Blueprints',
-        durationMin: 360,
-        learningGoal: 'Draft top, side, and cross-sectional orthographic projections balancing industrial, agricultural, residential, medical, and restorative zones.',
-        activities: [
-          'Map the 6 core zones: 1. Propulsion/Reactor Spine, 2. Water/ECLSS Treatment, 3. Vertical Agricultural Biomes, 4. Residential Neighborhoods, 5. Medical/Research Bays, 6. Communal Restorative Parks.',
-          'Apply acoustic, thermal, and radiation buffering rules (placing water tanks and agriculture between reactors/hull and sleeping quarters).',
-          'Sketch scaled orthographic projections (Top, Side, and Radial Cross-Section) by hand or using digital drawing tools.'
-        ],
-        learnerChoices: {
-          question: 'How will your spatial zoning protect human psychological well-being across a 100-year voyage?',
-          options: [
-            { id: 'opt-biophilic-spine', label: 'Interwoven Green-Belt Neighborhoods', description: 'Every residential cluster opens directly onto an oxygen-producing agricultural atrium.' },
-            { id: 'opt-acoustic-rings', label: 'Strict Acoustic & Vibration Ring Separation', description: 'Heavy industry and recycling stay in the axial core; rotating rings are 100% quiet human/plant biomes.' }
-          ]
-        },
-        evidenceToCollect: {
-          kind: 'media',
-          prompt: 'Upload your Top, Side, and Cross-Sectional Orthographic Projections with color-coded spatial zoning.',
-          targetCompetencies: ['ct-02', 'ec-02']
-        },
-        reflectionPrompt: 'How does the physical layout of your residential and communal spaces reinforce the democratic values in your Colonial Charter?',
-        teacherTips: 'Check that students label emergency bulkheads so any single sector can be sealed without cutting off access to medical bays.'
-      },
-      {
-        sessionNumber: 13,
-        week: 6,
-        title: 'Activity 6.1: 100-Year Hull Integrity & Preventative Maintenance',
-        durationMin: 240,
-        learningGoal: 'Ideate preventative and emergency maintenance protocols addressing micro-meteoroid impacts, shielding fatigue, and mechanical wear.',
-        activities: [
-          'Analyze multi-layer Whipple bumper shields and sacrificial ice/regolith armor against relativistic dust and micro-meteoroids.',
-          'Map wear rates for seals, pumps, valves, LED arrays, and centrifuge bearings over a 100-year lifecycle.',
-          'Design pressurized interior service crawlways so crews can inspect and repair hull segments without risky deep-space EVAs.'
-        ],
-        learnerChoices: {
-          question: 'What primary hull defense strategy will protect your ark at cruise velocity?',
-          options: [
-            { id: 'opt-whipple-ice', label: 'Layered Whipple Shield + 3m Forward Ice Cone', description: 'Sacrificial forward ice mass absorbs kinetic impacts while doubling as propellant/water reserve.' },
-            { id: 'opt-plasma-bumper', label: 'Electromagnetic Dust Deflector + Modular Tile Armor', description: 'Ionizes and deflects charged interstellar dust ahead of replaceable ceramic-composite hull tiles.' }
+            { id: 'opt-twin-wheel', label: 'Twin Spinning Gravity Wheels', description: 'Two big spinning rings connected to a central spine for homes, parks, and farms.' },
+            { id: 'opt-cylinder-town', label: 'Spinning Cylinder Town', description: 'A wide spinning drum with parks and farms in the middle and bedrooms around the rim.' }
           ]
         },
         evidenceToCollect: {
           kind: 'note',
-          prompt: 'Submit your 100-Year Preventative & Emergency Hull Maintenance Protocol.',
-          targetCompetencies: ['ctps-04', 'sdl-04']
+          prompt: 'Submit your diagram explaining how your spaceship moves forward and how its spinning parts create fake gravity.',
+          targetCompetencies: ['ct-01', 'ctps-04']
         },
-        reflectionPrompt: 'Why must every critical valve, bearing, and filter on an interstellar ark be reachable and replaceable while the system is running?',
-        teacherTips: 'Remind teams that physical maintenance access routes must be visibly shown on their Week 8 cutaway model.'
+        reflectionPrompt: 'What would happen inside the kitchens, bathrooms, and farms if the gravity spinner ever had to stop for repairs?',
+        teacherTips: 'Connect this session directly to Card 4 (The Gravity Spinner Glitch) so students think ahead about where exercise machines and motor access go!'
       },
       {
-        sessionNumber: 14,
-        week: 6,
-        title: 'Activity 6.2 & 6.3: Modular Architecture, Repair Drone Bays & Blueprint Package',
-        durationMin: 360,
-        learningGoal: 'Design standardized modular components and automated repair drone bays so the vessel fabricates its own spare parts mid-flight.',
+        sessionNumber: 10,
+        week: 5,
+        title: 'Week 5 (Part 2): Planning Ship Neighborhoods & Drawing Top/Side Maps',
+        durationMin: 300,
+        learningGoal: 'Plan welcoming ship neighborhoods and draw rough maps of the spaceship from the top and the side.',
         activities: [
-          'Standardize pipe diameters, hatch rings, circuit boards, and structural struts so recycled scrap metal/polymer feedstock can be 3D-sintered aboard.',
-          'Design automated exterior and interior repair drone bays linked to zero-g metallurgical foundries.',
-          'Compile the complete Phase 3 Deliverable: 2D/Digital Blueprints & Engineering Maintenance Protocols Package.'
+          'Plan the neighborhoods inside the ship (2 hours): decide where to put the bedrooms, kitchens, hospitals, schools, parks, space farms, and engine rooms so the ship feels like a welcoming town.',
+          'Draw your first rough maps of the ship from the top and the side, either on paper or on a computer (3 hours).'
         ],
         learnerChoices: {
-          question: 'How will human maintenance crews and autonomous repair drones divide responsibilities?',
+          question: 'How will you make sure travelers don’t get the "Long Trip Grumpies" after five years in space?',
           options: [
-            { id: 'opt-drone-exterior', label: 'Exterior EVA Drones + Human Interior Guilds', description: 'Autonomous spider-drones handle high-radiation exterior hull swaps; human crews manage internal ECLSS.' },
-            { id: 'opt-digital-twin-pred', label: 'Acoustic Sensor Digital Twin + Automated Foundry', description: 'Vibration sensors predict bearing wear 6 months ahead and auto-queue metal 3D printing.' }
+            { id: 'opt-green-park-hub', label: 'Central Nature Park & Cozy Quiet Rooms', description: 'Put a sunny green park, art/music room, and quiet reading nooks near the living quarters.' },
+            { id: 'opt-village-clusters', label: 'Welcoming Neighborhood Villages', description: 'Group bedrooms around small community kitchens, game rooms, and gardens.' }
           ]
         },
         evidenceToCollect: {
-          kind: 'code',
-          prompt: 'Upload your finalized Engineering & Maintenance Blueprint Package and Modular Spare-Part Fabrication Spec.',
-          targetCompetencies: ['ct-01', 'ctps-04', 'lc-02']
+          kind: 'media',
+          prompt: 'Upload your first rough maps of the spaceship from the top view and the side view showing all neighborhoods.',
+          targetCompetencies: ['ct-02', 'sea-02']
         },
-        reflectionPrompt: 'How does standardization of modular parts prevent a minor mechanical breakdown from cascading into mission failure?',
-        teacherTips: 'Confirm every team has completed both Weeks 5–6 deliverables: 2D/Digital Blueprints & Maintenance Protocols.'
+        reflectionPrompt: 'How did your team arrange the bedrooms, kitchens, hospitals, schools, parks, space farms, and engine rooms so the ship feels like a welcoming town?',
+        teacherTips: 'Check that students draw BOTH a top view and a side view, and include quiet/fun spaces for mental health.'
+      },
+      {
+        sessionNumber: 11,
+        week: 6,
+        title: 'Week 6 (Part 1): Deep-Space Dangers & Smart Mid-Flight Repairs',
+        durationMin: 300,
+        learningGoal: 'Brainstorm deep-space dangers like tiny space rocks and worn-out machines, and start inventing smart ways to fix the ship while flying.',
+        activities: [
+          'Brainstorm all the dangers in deep space, like tiny space rocks hitting the outside wall or machines wearing out over time during a long voyage (4 hours).',
+          'Begin inventing smart ways to fix the ship while it is flying—such as repair robots, 3D printers that make spare parts, and rooms that close off safely if there is an air leak (1 hour).'
+        ],
+        learnerChoices: {
+          question: 'What kind of repair helper will your team invent for your spaceship?',
+          options: [
+            { id: 'opt-hull-robots', label: 'Outside Wall Spider-Repair Robots', description: 'Robots that crawl along the outside wall to patch space pebble holes safely.' },
+            { id: 'opt-3d-print-shop', label: '3D Spare-Part Printer Workshop', description: 'Workshops next to the water pipes and engines that print new pipes and gears on demand.' }
+          ]
+        },
+        evidenceToCollect: {
+          kind: 'note',
+          prompt: 'Submit your Deep-Space Dangers List and sketches of your repair robots, 3D printers, and emergency safety doors.',
+          targetCompetencies: ['ctps-04', 'ct-02']
+        },
+        reflectionPrompt: 'Why can’t a spaceship wait for help from Earth when a water pipe clogs or a space pebble pokes a hole in the wall?',
+        teacherTips: 'Encourage students to trace where repair tunnels and emergency safety doors sit between bedrooms and the outside hull.'
+      },
+      {
+        sessionNumber: 12,
+        week: 6,
+        title: 'Week 6 (Part 2): Finishing Our Ship Repair Guide',
+        durationMin: 300,
+        learningGoal: 'Complete the Ship Repair Guide showing how crews and robots keep the spaceship safe, clean, and working.',
+        activities: [
+          'Continue inventing smart ways to fix the ship while it is flying—designing repair robots, 3D printers that make spare parts, and rooms that can be closed off safely if there is an air leak (2 hours).',
+          'Finish your Ship Repair Guide, showing step-by-step how human crews and robots will keep the spaceship safe and clean (3 hours).'
+        ],
+        learnerChoices: {
+          question: 'How will your Ship Repair Guide show where emergency tools and robots are kept?',
+          options: [
+            { id: 'opt-color-repair-map', label: 'Color-Coded Repair Station Map', description: 'Mark every robot dock, 3D printer workshop, and airlock safety door with bright symbols.' },
+            { id: 'opt-emergency-checklist', label: 'Step-by-Step Crew & Robot Action Manual', description: 'Clear playbook for air leaks, water pump clogs, and gravity spinner tune-ups.' }
+          ]
+        },
+        evidenceToCollect: {
+          kind: 'note',
+          prompt: 'Submit your completed Ship Repair Guide showing how crews, repair robots, 3D printers, and safety doors keep the ship working.',
+          targetCompetencies: ['ctps-04', 'ec-01', 'sdl-02']
+        },
+        reflectionPrompt: 'How do human engineers and repair robots work together as a team in your Ship Repair Guide?',
+        teacherTips: 'Have teams verify that their Ship Repair Guide covers hull punctures, water machine clogs, and gravity spinner maintenance.'
       }
     ]
   },
   {
     id: 'prototype',
-    title: 'Phase 4: Digital Schematics, Digital Twin & Low-Fidelity Physical Scale Model',
-    strap: 'Translating conceptual blueprints into 3D CAD / Digital Twin simulations and a 1,500 THB physical scale model (Weeks 7–8 • 20 Hours).',
+    title: 'Phase 4: Prototype — Final Drawings, Digital Designs & Building the Physical Model',
+    strap: 'Phase Question: How can we turn our ideas into clear drawings and build a real, hands-on model of our spaceship and planet? (Weeks 7–8 • 20 Hours)',
     weeks: [7, 8],
-    goal: 'Create detailed digital/hand-drafted technical schematics with labeled subsystems AND construct a low-fidelity physical scale model of the spacecraft and exoplanet landing terrain within 1,500 THB.',
+    goal: 'Create neat, clearly labeled big paper blueprints or computer 3D models (Tinkercad, FreeCAD, or Blender), and build a physical model of the spaceship and planet terrain with color coding or cutaway windows using the team budget.',
     tasks: [
-      'Activity 7.1 (5 hrs): Create detailed architectural layouts and engineering schematics using digital 3D modeling (Blender, FreeCAD, Fusion 360, or Digital Twin Simulator) or precision hand-drafted isometric/cross-sectional blueprints.',
-      'Activity 7.2 (5 hrs): Map internal subsystems directly onto the drawings, labeling hydroponic bays, airlocks, maintenance corridors, centrifuge joints, and command modules.',
-      'Activity 8.1 & 8.2 (7 hrs): Source low-cost prototyping materials (cardboard, EVA foam scraps, PVC pipes, balsa wood, recycled plastics, wire) within 1,500 THB and construct a physical scale model of the spacecraft + target planet landing terrain slice.',
-      'Activity 8.3 (3 hrs): Integrate color-coded physical markers or cutaways on the model to demonstrate internal human spaces, agricultural zones, and engineering maintenance access points.'
+      'Week 7 (5 hours): Choose to either draw big, detailed blueprints on paper or build a 3D model on the computer using programs like Tinkercad, FreeCAD, or Blender.',
+      'Week 7 (5 hours): Label all the important parts on your drawings so anyone looking at your plan can easily spot the farms, living quarters, bedrooms, repair tunnels, and engines.',
+      'Week 8 (2 hours): Gather simple craft and building materials like cardboard, foam, plastic bottles, wood sticks, clay, and wire using your team budget.',
+      'Week 8 (5 hours): Build a small physical model of your spaceship and a piece of your new planet\'s land showing where the ship lands.',
+      'Week 8 (3 hours): Add color coding or open "cutaway" windows on the model so people can peek inside to see the farms, bedrooms, and repair areas.'
     ],
     evidence: [
-      'Digital 3D Models / Isometric Technical Blueprints with Labeled Internal Subsystems (ECLSS, Hydroponics, Centrifuge Joints, Airlocks)',
-      'Low-Fidelity Physical Scale Spacecraft & Exoplanet Terrain Model + Physical Maintenance Cutaway/Diagram (<= 1,500 THB)'
+      'Labeled Paper Blueprints or Computer 3D Models (Farms, Living Quarters, Bedrooms, Repair Tunnels & Engines)',
+      'Physical Model of Spaceship & New Planet Land with Color Coding or Open Cutaway Windows'
     ],
     aiPromptStarters: [
-      'Help me generate a scale bar and subsystem callout checklist for our isometric spacecraft cross-section.',
-      'What structural techniques with PVC pipe, corrugated cardboard ribs, and EVA foam best represent a rotating torus ring and detachable lander?',
-      'Audit our physical cutaway markers: do they clearly show hull repair routes, ECLSS servicing, and modular component swapping?'
+      'What labels and callouts should we include on our paper blueprints or Tinkercad/FreeCAD/Blender 3D model so visitors can spot every room easily?',
+      'How can we use simple craft materials like cardboard, plastic bottles, wood sticks, foam, clay, and wire to build cutaway windows on our spaceship model?',
+      'How should we show where our spaceship lands on our new planet terrain model?'
     ],
-    competencies: ['ct-02', 'ct-05', 'ent-02', 'sdl-05'],
-    stretchCompetencies: ['ct-06', 'lc-03'],
+    competencies: ['ct-04', 'ct-05', 'ent-03', 'sdl-03'],
+    stretchCompetencies: ['ec-05', 'lc-04'],
     sessions: [
       {
-        sessionNumber: 15,
+        sessionNumber: 13,
         week: 7,
-        title: 'Activity 7.1: Digital 3D Modeling, Digital Twin & Isometric Schematics',
+        title: 'Week 7 (Part 1): Final Paper Blueprints or Computer 3D Models',
         durationMin: 300,
-        learningGoal: 'Construct scaled digital 3D models (Blender/FreeCAD/Fusion 360), interactive Digital Twin layouts, or precision isometric blueprints.',
+        learningGoal: 'Create big, detailed blueprints on paper or build a 3D digital model of the spaceship using Tinkercad, FreeCAD, or Blender.',
         activities: [
-          'Establish uniform engineering scale (e.g., 1:500 for full vessel, 1:100 for habitat sector cross-section).',
-          'Model the primary hull spine, centrifuge rings, radiation shielding layers, and detachable exoplanet landing module.',
-          'Configure the Interactive Digital Twin Ark Builder to mirror the team’s exact sector proportions.'
+          'Choose your team\'s design path and build neat, detailed plans (5 hours): either draw big, detailed blueprints on paper OR build a 3D model on the computer using programs like Tinkercad, FreeCAD, or Blender (or the built-in Spaceship Digital Twin).'
         ],
         learnerChoices: {
-          question: 'Which technical drafting track will your team use for your Week 7 schematics?',
+          question: 'Which tool will your team use for your Week 7 final drawings and designs?',
           options: [
-            { id: 'opt-3d-cad', label: '3D CAD / Blender / Fusion 360 + Digital Twin', description: 'Layered 3D digital assembly with exploded cutaway views and simulated telemetry.' },
-            { id: 'opt-isometric-draft', label: 'Precision Hand-Drafted Isometric & Cross-Sectional Plates', description: 'Architectural vellum/grid technical plates with scale callouts and Digital Twin verification.' }
+            { id: 'opt-paper-blueprints', label: 'Big Detailed Paper Blueprints', description: 'Hand-drafted top, side, and cross-section poster blueprints with ruler measurements.' },
+            { id: 'opt-computer-3d', label: 'Computer 3D Model (Tinkercad / FreeCAD / Blender)', description: '3D digital model showing spinning rings, farm domes, and landing pods.' }
+          ]
+        },
+        evidenceToCollect: {
+          kind: 'code',
+          prompt: 'Submit a photo of your big paper blueprints or screenshots/files from your Tinkercad, FreeCAD, or Blender 3D model.',
+          targetCompetencies: ['ct-04', 'sdl-03']
+        },
+        reflectionPrompt: 'Why is it helpful to make neat, clear drawings before you start cutting cardboard and gluing your physical model?',
+        teacherTips: 'Support both paper blueprint drafters and Tinkercad/FreeCAD/Blender builders equally; neatness and clarity matter most.'
+      },
+      {
+        sessionNumber: 14,
+        week: 7,
+        title: 'Week 7 (Part 2): Labeling All Important Spaceship Parts Clearly',
+        durationMin: 300,
+        learningGoal: 'Label every important room and system on the drawings so anyone looking at the plan can easily spot farms, living quarters, bedrooms, repair tunnels, and engines.',
+        activities: [
+          'Label all the important parts on your drawings (5 hours): add clear titles, arrows, and color keys so anyone looking at your plan can easily spot the farms, living quarters, bedrooms, repair tunnels, and engines.'
+        ],
+        learnerChoices: {
+          question: 'How will your team make your labels super easy for visitors to read?',
+          options: [
+            { id: 'opt-color-key-labels', label: 'Color-Coded Room Legend & Numbered Pins', description: 'Green for space farms, blue for water recycling, yellow for bedrooms/parks, red for engines/repairs.' },
+            { id: 'opt-callout-boxes', label: 'Zoom-In Callout Boxes', description: 'Draw close-up boxes explaining how the hydroponic farm, airlocks, and repair tunnels work.' }
           ]
         },
         evidenceToCollect: {
           kind: 'media',
-          prompt: 'Upload your scaled Digital 3D Renders or Isometric Architectural Blueprints.',
-          targetCompetencies: ['ct-02', 'sdl-05']
+          prompt: 'Submit your fully labeled drawings showing the farms, living quarters, bedrooms, repair tunnels, and engines.',
+          targetCompetencies: ['ec-05', 'ct-04']
         },
-        reflectionPrompt: 'What spatial conflicts did you discover only when translating your rough Week 5 sketches into true-to-scale 3D/isometric geometry?',
-        teacherTips: 'Emphasize scale accuracy and layer organization over cosmetic textures—matching the Product Analysis rubric on page 6 of the PDF.'
+        reflectionPrompt: 'Can a classmate from another team find your farms, bedrooms, repair tunnels, and engines in under 10 seconds using your labels?',
+        teacherTips: 'Do a quick 5-minute label check across teams before Week 8 physical building begins.'
+      },
+      {
+        sessionNumber: 15,
+        week: 8,
+        title: 'Week 8 (Part 1): Gathering Craft Supplies & Building Our Physical Model',
+        durationMin: 300,
+        learningGoal: 'Gather simple craft materials within the team Thai Baht budget and build a physical model of the spaceship and a piece of the new planet’s land.',
+        activities: [
+          'Gather simple craft and building materials like cardboard, foam, plastic bottles, wood sticks, clay, and wire using your team budget (2 hours).',
+          'Begin building a small physical model of your spaceship and a piece of your new planet\'s land showing where the ship lands (3 hours). Remember: the model does not need to look like a fancy store-bought toy; what matters is showing how the spaces work together!'
+        ],
+        learnerChoices: {
+          question: 'How will your team divide the physical model building work?',
+          options: [
+            { id: 'opt-split-ship-planet', label: 'Spaceship Hull Crew + Planet Terrain Crew', description: 'Half the team builds the spinning ship while half sculpts the Goldilocks planet landing site.' },
+            { id: 'opt-modular-rooms', label: 'Modular Room Builders', description: 'Each teammate builds one key section (farms, bedrooms/park, engines/repairs, landing pod) and connects them.' }
+          ]
+        },
+        evidenceToCollect: {
+          kind: 'media',
+          prompt: 'Submit a photo of your team’s craft materials, Thai Baht budget sheet, and work-in-progress spaceship and planet terrain model.',
+          targetCompetencies: ['ct-05', 'ent-03', 'lc-04']
+        },
+        reflectionPrompt: 'How did your team make smart choices with cardboard, plastic bottles, foam, wood sticks, clay, and wire to stay within your classroom budget?',
+        teacherTips: 'Workshop safety: supervise scissors, craft knives, wire cutters, and glue guns at all times.'
       },
       {
         sessionNumber: 16,
-        week: 7,
-        title: 'Activity 7.2: Internal Subsystem Mapping & Technical Callouts',
+        week: 8,
+        title: 'Week 8 (Part 2): Adding Color Coding & Open Cutaway Windows',
         durationMin: 300,
-        learningGoal: 'Map and label all critical internal subsystems directly onto the technical drawings: hydroponics, airlocks, maintenance corridors, centrifuge joints, and command modules.',
+        learningGoal: 'Complete the physical model of the spaceship and planet land and add color coding or open cutaway windows so people can peek inside.',
         activities: [
-          'Trace color-coded utility loops (blue = potable/grey water recovery, green = O2/CO2 ventilation & hydroponic nutrients, amber = high-voltage power bus, red = emergency airlock & drone corridors).',
-          'Detail the mechanical rotary joint and pressure seal where the rotating centrifuge ring meets the non-rotating axial spine.',
-          'Verify that every subsystem in the Week 3 ECLSS spreadsheet has a physical home and volume on the drawing.'
+          'Finish building your physical model of the spaceship and the piece of your new planet\'s land showing where the ship lands (2 hours).',
+          'Add color coding or open "cutaway" windows on the model so people can peek inside to see the farms, bedrooms, and repair areas (3 hours).'
         ],
         learnerChoices: {
-          question: 'Which engineering cutaway detail will be your team’s signature technical callout?',
+          question: 'How will visitors peek inside your physical spaceship model?',
           options: [
-            { id: 'opt-rotary-joint', label: 'Centrifuge Rotary Pressure Seal & Bearing Assembly', description: 'Shows magnetic/fluid seals, backup rollers, and pressurized crew transfer tube.' },
-            { id: 'opt-eclss-atrium', label: 'Vertical Aeroponic & Algae Bioreactor Deck Section', description: 'Shows root-mist manifolds, LED light banks, water condensation recovery, and harvesting chutes.' },
-            { id: 'opt-lander-dock', label: 'Detachable Exoplanet Landing Module Interface', description: 'Shows heat-shield separation locks, surface legs, and modular colony core.' }
+            { id: 'opt-clear-bottle-cutaway', label: 'Clear Plastic Bottle Cutaway Windows', description: 'Use clear recycled plastic bottles or open hinged flaps to show the hydroponic farms and bedrooms inside.' },
+            { id: 'opt-open-roof-color', label: 'Lift-Off Roof & Color-Coded Rooms', description: 'Build a removable top section with color-coded rooms and mini labels.' }
           ]
         },
         evidenceToCollect: {
           kind: 'media',
-          prompt: 'Submit your Fully Labeled Subsystem Blueprints (Hydroponics, Airlocks, Maintenance Corridors, Centrifuge Joints, Command).',
-          targetCompetencies: ['ct-05', 'ec-02']
+          prompt: 'Submit photos of your completed physical spaceship model and planet terrain model showing your color coding and cutaway windows.',
+          targetCompetencies: ['ct-05', 'ec-05']
         },
-        reflectionPrompt: 'Can an outside engineer trace how a single drop of water travels from crew quarters through filtration to hydroponics and back on your blueprint?',
-        teacherTips: 'Use the PDF’s exact checklist: hydroponic bays, airlocks, maintenance corridors, centrifuge joints, and command modules.'
-      },
-      {
-        sessionNumber: 17,
-        week: 8,
-        title: 'Activity 8.1 & 8.2: 1,500 THB Material Sourcing & Scale Ark/Terrain Model Build',
-        durationMin: 420,
-        learningGoal: 'Construct a low-fidelity physical scale model of the interstellar spacecraft and a slice of the target exoplanet terrain within the 1,500 THB budget.',
-        activities: [
-          'Audit purchased and upcycled materials against the 1,500 THB ledger (cardboard, EVA foam scraps, PVC pipes, balsa wood, recycled plastics, wire).',
-          'Fabricate the structural spine, rotating habitat ring geometry, and propulsion cone focusing on structural logic and spatial proportions.',
-          'Sculpt a contoured slice of the target exoplanet’s terrain showing how the initial landing module/colony layout interfaces with surface geology.'
-        ],
-        learnerChoices: {
-          question: 'How will your physical model demonstrate the transition from orbital ark to planetary surface colony?',
-          options: [
-            { id: 'opt-detachable-lander', label: 'Detachable Landing Module + Contoured Terrain Base', description: 'A removable nose/bay module physically docks onto the sculpted exoplanet terrain board.' },
-            { id: 'opt-split-diptych', label: 'Dual-Scale Diptych Rig (Orbital Vessel + Surface Dome Cutaway)', description: 'Side-by-side physical rig pairing full-ship geometry with a 1:100 surface habitat cutaway.' }
-          ]
-        },
-        evidenceToCollect: {
-          kind: 'media',
-          prompt: 'Upload photos of your Physical Scale Spacecraft & Exoplanet Terrain Model alongside your finalized 1,500 THB receipt ledger.',
-          targetCompetencies: ['ct-02', 'ent-02', 'lc-02']
-        },
-        reflectionPrompt: 'How did building with physical cardboard, PVC, and EVA foam test structural load assumptions that looked easy on a screen?',
-        teacherTips: 'Remind learners: focus is on structural logic, spatial proportions, and functional zoning rather than hyper-detailed cosmetic finishing.'
-      },
-      {
-        sessionNumber: 18,
-        week: 8,
-        title: 'Activity 8.3: Color-Coded Zoning Markers & Physical Maintenance Cutaways',
-        durationMin: 180,
-        learningGoal: 'Integrate hinged or removable cutaway sections and color-coded markers demonstrating internal human spaces, agricultural zones, and maintenance access.',
-        activities: [
-          'Cut hinged inspection windows into the habitat ring and axial spine to reveal interior deck layers.',
-          'Install color-coded physical markers/pins matching the digital blueprint legend (Residential, Agriculture, ECLSS, Medical, Drone Repair Bays, Maintenance Crawlways).',
-          'Create the Physical Maintenance Cutaway Diagram showing physical access routes for hull repair, life-support servicing, and modular component swapping.'
-        ],
-        learnerChoices: {
-          question: 'How will review panelists inspect the interior of your physical scale model?',
-          options: [
-            { id: 'opt-hinged-hull', label: 'Removable Quarter-Hull Cutaway Shell', description: 'Lifts off to expose multi-tier hydroponic decks, crew quarters, and axial service tunnels.' },
-            { id: 'opt-clear-pet-window', label: 'Transparent Recycled-PET Sector Windows + Color Pins', description: 'See-through structural bays with numbered maintenance access flags.' }
-          ]
-        },
-        evidenceToCollect: {
-          kind: 'media',
-          prompt: 'Submit close-up photos of your Color-Coded Physical Cutaways and Physical Maintenance Cutaway Diagram.',
-          targetCompetencies: ['ct-05', 'ec-02']
-        },
-        reflectionPrompt: 'Does your physical model immediately communicate where people sleep, where food grows, and how a broken bearing gets repaired?',
-        teacherTips: 'Verify both Weeks 7–8 deliverables from the PDF: Physical Scale Model & CAD/Technical Drawings.'
+        reflectionPrompt: 'When someone peeks through your cutaway windows, what is the coolest part of your ship they can see inside?',
+        teacherTips: 'Make sure every team’s model clearly shows the farms, bedrooms, repair areas, and where the ship lands on the planet terrain.'
       }
     ]
   },
   {
     id: 'test',
-    title: 'Phase 5: Red-Team Stress-Testing, Crisis Simulation & Constitutional Trials',
-    strap: 'Subjecting engineering blueprints, closed-loop biospheres, and colonial laws to stochastic emergencies (Weeks 9–10 • 20 Hours).',
+    title: 'Phase 5: Test — The Space Emergency Game & Testing Our Rules and Laws',
+    strap: 'Phase Question: What happens to our spaceship design and our new laws when surprise problems happen, and how can we make our plans even stronger? (Weeks 9–10 • 20 Hours)',
     weeks: [9, 10],
-    goal: 'Conduct Red-Team peer critiques, run stochastic engineering/biosphere crisis simulations, roleplay a planetary landing constitutional crisis, and iterate both physical/digital designs and the Colonial Charter.',
+    goal: 'Swap models and drawings for friendly feedback, play the 6-card Space Emergency Game to upgrade the physical model and drawings, and act out a planet argument to test and improve the New Planet Rulebook.',
     tasks: [
-      'Activity 9.1 & 9.2 (7 hrs): Conduct "Red Team" peer critiques inspecting rival physical models/blueprints for bottlenecks or single-point failures; run a stochastic crisis simulation (e.g., 40% hydroponic pathogen blight or centrifuge bearing seizure) and calculate survival margins.',
-      'Activity 9.3 (3 hrs): Document engineering flaws and physically/digitally modify the spacecraft prototype and blueprints based on test data.',
-      'Activity 10.1 & 10.2 (7 hrs): Roleplay a constitutional crisis upon planetary landing (e.g., engineer faction strike over rations or land allocation dispute) and evaluate whether the legal framework resolves conflict peacefully or descends into authoritarianism/anarchy.',
-      'Activity 10.3 (3 hrs): Amend the Colonial Charter and refine spacecraft interior zoning to address the social and operational vulnerabilities uncovered during testing.'
+      'Week 9 (4 hours): Swap models and drawings with another team to give friendly, helpful feedback, looking for things that might have been forgotten, like missing repair doors or crowded rooms.',
+      'Week 9 (3 hours): Play The Space Emergency Game (Part 1 Cards 1–6: 1. The Space Plant Sickness, 2. The Space Pebble Shower, 3. The Dirty Water Jam, 4. The Gravity Spinner Glitch, 5. The Long Trip Grumpies, 6. The Muddy Landing Surprise). Teams have 15 minutes per card to look at their physical model, drawings, and rulebook to figure out how to solve the problem.',
+      'Week 9 (3 hours): Fix and upgrade your physical model and drawings based on what you learned—change or add one thing for each emergency to prove your ship is now safe.',
+      'Week 10 (4 hours): Act out a problem on the new planet—for example, what if the builders and farmers argue over who gets the best land, or people refuse to follow the recycling rules?',
+      'Week 10 (3 hours): Check if your team\'s laws help solve the argument fairly and peacefully without anyone being treated badly.',
+      'Week 10 (3 hours): Rewrite and improve your New Planet Rulebook and adjust your colony spaces so everyone feels safe and included.'
     ],
     evidence: [
-      'Red-Team Failure Report & Stochastic Crisis Survival Margin Calculations',
-      'Revised Engineering Specs, Prototype Iteration Log & Constitutional Crisis Amendment Record'
+      'Space Emergency Game Card Solutions & Upgraded Physical Model / Drawings Photos',
+      'New Planet Rulebook Role-Play Test Notes & Rewritten/Improved New Planet Rulebook'
     ],
     aiPromptStarters: [
-      'Act as an aerospace Red Team: find 3 single-point failure bottlenecks in our ECLSS loop and centrifuge bearing layout.',
-      'Simulate a 40% hydroponic crop failure for 500 colonists: how many days of reserve calories do we need while Spirulina bioreactors scale up?',
-      'Stress-test our Colonial Charter against a landing strike by propulsion engineers: which clause prevents martial law from becoming permanent dictatorship?'
+      'Quiz our team with one of the 6 Space Emergency Game Cards (like The Space Plant Sickness or The Dirty Water Jam) and check our solution!',
+      'What should we add to our physical model and drawings to survive Card 4 (The Gravity Spinner Glitch) and Card 6 (The Muddy Landing Surprise)?',
+      'What if the builders and farmers argue over who gets the best land on our new planet—how can our Rulebook solve it peacefully without mean punishments?'
     ],
-    competencies: ['ctps-05', 'sea-03', 'lc-04', 'sdl-06'],
-    stretchCompetencies: ['ctps-08', 'sea-06'],
+    competencies: ['ctps-05', 'sea-03', 'lc-03', 'sdl-04'],
+    stretchCompetencies: ['ctps-06', 'sea-04'],
     sessions: [
       {
-        sessionNumber: 19,
+        sessionNumber: 17,
         week: 9,
-        title: 'Activity 9.1 & 9.2: Red-Team Peer Critique & Stochastic Crisis Simulation',
-        durationMin: 420,
-        learningGoal: 'Audit rival physical models for single-point failures and calculate quantitative survival margins under a stochastic engineering/biosphere emergency.',
+        title: 'Week 9 (Part 1): Friendly Model Swap & Starting The Space Emergency Game',
+        durationMin: 300,
+        learningGoal: 'Swap physical models and drawings with classmates to give friendly, helpful feedback and begin playing The Space Emergency Game.',
         activities: [
-          'Conduct structured Red-Team inspections of a rival team’s physical model and blueprints, hunting for unshielded crew zones, dead-end corridors, or single-point ECLSS failures.',
-          'Draw a stochastic crisis card (or trigger in the Interstellar Ark Simulator): e.g., Fusarium pathogen wipes out 40% of primary hydroponic crop, or primary centrifuge bearing seizes.',
-          'Calculate caloric, water, and oxygen survival margins hour-by-hour and execute maintenance protocols to stabilize the vessel.'
+          'Swap models and drawings between teams to give friendly, helpful feedback, looking for things that might have been forgotten, like missing repair doors or crowded rooms (4 hours).',
+          'Learn how to play Part 1: The Space Emergency Game Cards and draw your first surprise emergency cards (1 hour).'
         ],
         learnerChoices: {
-          question: 'Which primary stochastic emergency will your team stress-test first in the simulator?',
+          question: 'Which Space Emergency Game Card will your team test first?',
           options: [
-            { id: 'opt-crop-blight', label: '40% Hydroponic Pathogen Blight (Biosphere Shock)', description: 'Tests bulkhead quarantine, UV sterilization, and algae bioreactor surge capacity.' },
-            { id: 'opt-bearing-seize', label: 'Centrifuge Bearing Seizure (Mechanical/Gravity Shock)', description: 'Tests counter-torque thrusters, autonomous drone welding, and emergency ring evacuation.' },
-            { id: 'opt-cme-breach', label: 'Micrometeoroid Hull Breach + Solar Storm', description: 'Tests modular Whipple plug swapping and central water-core storm shelter capacity.' }
-          ]
-        },
-        evidenceToCollect: {
-          kind: 'data',
-          prompt: 'Submit your Red-Team Failure Report and Stochastic Crisis Survival Margin Calculations.',
-          targetCompetencies: ['ctps-05', 'sea-03']
-        },
-        reflectionPrompt: 'How did your team react emotionally when the Red Team exposed a fatal flaw in your blueprint, and how did you turn critique into data?',
-        teacherTips: 'Directly assesses WeLearn Future Skill #2 (Critical Thinking) and #7 (Social & Emotional Aptitude: managing Red-Team critiques calmly).'
-      },
-      {
-        sessionNumber: 20,
-        week: 9,
-        title: 'Activity 9.3 & 10.1: Prototype Engineering Iteration & Constitutional Crisis Roleplay',
-        durationMin: 420,
-        learningGoal: 'Physically/digitally modify the spacecraft prototype from Red-Team test data and roleplay a high-stakes constitutional crisis upon planetary landing.',
-        activities: [
-          'Modify physical scale models and digital schematics to eliminate single-point failures (adding redundant bypass valves, secondary airlocks, or storm shelter shielding).',
-          'Stage the Week 10 Constitutional Crisis Roleplay: upon planetary landing, an essential faction of engineers goes on strike demanding higher rations or prime terrain allocation.',
-          'Run the live negotiation and legal hearing strictly under the articles written in the team’s Week 4 Colonial Charter.'
-        ],
-        learnerChoices: {
-          question: 'Which constitutional crisis scenario will your colony roleplay and adjudicate?',
-          options: [
-            { id: 'opt-ration-strike', label: 'Essential Engineers’ Ration & Privilege Strike', description: 'Propulsion/ECLSS guild demands 1.5x rations and veto power over surface construction.' },
-            { id: 'opt-land-dispute', label: 'Geothermal Valley Land Allocation Standoff', description: 'First-wave landing vanguard claims exclusive ownership of prime surface water and geothermal vents.' },
-            { id: 'opt-martial-lock', label: 'Transit Commander Refuses Civic Handover', description: 'Bridge command cites surface radiation hazards to indefinitely suspend Planetary Civic Law.' }
+            { id: 'opt-card1-plant-sickness', label: 'Card 1: The Space Plant Sickness', description: 'Weird space mold turns half your hydroponic fruits and vegetables brown!' },
+            { id: 'opt-card2-pebble-shower', label: 'Card 2: The Space Pebble Shower', description: 'Three super-fast space pebbles poke small air-leak holes near the bedrooms!' },
+            { id: 'opt-card3-water-jam', label: 'Card 3: The Dirty Water Jam', description: 'The sink/shower water cleaner clogs and only 3 days of clean drinking water remain!' }
           ]
         },
         evidenceToCollect: {
           kind: 'feedback',
-          prompt: 'Upload your Before/After Engineering Iteration Photos and Constitutional Crisis Roleplay Transcript.',
-          targetCompetencies: ['lc-04', 'sea-03', 'ctps-05']
+          prompt: 'Submit the friendly feedback notes you received from swapping models/drawings and your team’s first Space Emergency Game Card answers.',
+          targetCompetencies: ['lc-03', 'ctps-05']
         },
-        reflectionPrompt: 'Did your original Colonial Charter resolve the landing strike peacefully, or did it leave a loophole for authoritarianism or anarchy?',
-        teacherTips: 'Have rival teams play the striking faction so the legal framework is genuinely stress-tested.'
+        reflectionPrompt: 'What helpful idea did another team spot when they looked at your physical model and drawings?',
+        teacherTips: 'Read one Space Emergency Game Card at a time and set a 15-minute timer for teams to inspect their physical model, drawings, and rulebook.'
       },
       {
-        sessionNumber: 21,
-        week: 10,
-        title: 'Activity 10.2 & 10.3: Legal Framework Audit & Colonial Charter Amendments',
-        durationMin: 360,
-        learningGoal: 'Amend the Colonial Charter and refine interior spacecraft spatial zoning to resolve social and operational vulnerabilities uncovered during testing.',
+        sessionNumber: 18,
+        week: 9,
+        title: 'Week 9 (Part 2): Playing The Space Emergency Game & Upgrading Our Model',
+        durationMin: 300,
+        learningGoal: 'Solve the remaining Space Emergency Game Cards (Cards 4, 5, and 6) and upgrade the physical model and drawings to prove the ship is safe.',
         activities: [
-          'Evaluate the constitutional trial outcome against human rights, equity, and operational survival.',
-          'Draft formal Constitutional Amendments (e.g., mandatory cross-training across guilds, automatic martial-law sunset triggers, neutral Citizens’ Ombudsperson).',
-          'Update interior spatial zoning on the physical model and blueprints to reflect post-crisis communal and safety improvements.'
+          'Play the Space Emergency Game across Cards 1–6 (including Card 4: The Gravity Spinner Glitch, Card 5: The Long Trip Grumpies, and Card 6: The Muddy Landing Surprise) (2 hours).',
+          'Fix and upgrade your physical model and drawings based on what you learned (3 hours): add a clean-up door/seed vault, emergency safety doors, a backup water tank/workshop, exercise machines, a cozy relaxation/art/music room, or strong landing legs/floating pads/underground shelters.'
         ],
         learnerChoices: {
-          question: 'What structural reform will your team ratify in Constitutional Amendment #1?',
+          question: 'Which upgrade did your team add to your physical model and drawings after playing the Space Emergency Game?',
           options: [
-            { id: 'opt-cross-guild', label: 'Universal Cross-Guild Apprenticeship Mandate', description: 'Every colonist is cross-trained in at least two critical life-support domains to prevent guild monopolies.' },
-            { id: 'opt-sunset-tribunal', label: 'Automatic 30-Day Emergency Sunset & Citizen Recall', description: 'Any emergency ration or security decree expires automatically unless re-ratified by a 2/3 citizen assembly.' }
+            { id: 'opt-upgrade-farm-water', label: 'Backup Seed Vault, Second Farm Room & Water Tank', description: 'Protects against Card 1 (Space Plant Sickness) and Card 3 (Dirty Water Jam).' },
+            { id: 'opt-upgrade-doors-gym', label: 'Emergency Safety Doors, Robot Stations & Zero-G Gym', description: 'Protects against Card 2 (Space Pebble Shower) and Card 4 (Gravity Spinner Glitch).' },
+            { id: 'opt-upgrade-cozy-landing', label: 'Cozy Relaxation Room & Mud-Proof Landing Pads', description: 'Protects against Card 5 (Long Trip Grumpies) and Card 6 (Muddy Landing Surprise).' }
+          ]
+        },
+        evidenceToCollect: {
+          kind: 'media',
+          prompt: 'Submit photos of the upgrades you added to your physical model and drawings to solve the Space Emergency Game Cards.',
+          targetCompetencies: ['ctps-05', 'sdl-04', 'ct-05']
+        },
+        reflectionPrompt: 'How did playing the Space Emergency Game make your spaceship and planet landing design much stronger?',
+        teacherTips: 'Verify that every team visibly changed or added at least one feature on their drawings or physical model for each emergency card played.'
+      },
+      {
+        sessionNumber: 19,
+        week: 10,
+        title: 'Week 10 (Part 1): Acting Out Problems on Our New Planet',
+        durationMin: 300,
+        learningGoal: 'Act out realistic community arguments on the new planet and check whether the New Planet Rulebook solves them fairly and peacefully.',
+        activities: [
+          'Act out a problem on the new planet (4 hours): for example, what if the builders and farmers argue over who gets the best land, or people refuse to follow the recycling rules?',
+          'Begin checking if your team\'s laws in the New Planet Rulebook help solve the argument fairly and peacefully without anyone being treated badly (1 hour).'
+        ],
+        learnerChoices: {
+          question: 'Which new planet problem will your team act out and test against your Rulebook?',
+          options: [
+            { id: 'opt-land-argument', label: 'Builders vs. Farmers Best-Land Argument', description: 'Both groups want the sunny, flat river valley—how do your laws share land fairly?' },
+            { id: 'opt-recycling-refusal', label: 'Refusing to Follow the Recycling & Compost Rules', description: 'Someone wastes clean water or skips messy compost duty—how do we help them fix the mistake kindly?' }
           ]
         },
         evidenceToCollect: {
           kind: 'note',
-          prompt: 'Submit your ratified Colonial Charter Amendments and Revised Engineering Specifications (Phase 5 Deliverable).',
-          targetCompetencies: ['sea-03', 'ctps-05', 'sdl-06']
+          prompt: 'Submit your notes from acting out the new planet problem and how your Rulebook handled the argument.',
+          targetCompetencies: ['sea-03', 'lc-03']
         },
-        reflectionPrompt: 'Why is a constitution that can be peacefully amended stronger than a rigid code that claims to be infallible?',
-        teacherTips: 'Confirm every team has both Weeks 9–10 deliverables: Red-Team Failure Report & Revised Engineering Specs.'
+        reflectionPrompt: 'When you acted out the argument, did anyone feel left out or treated unfairly by your old rules?',
+        teacherTips: 'Remind students of Section 6 of the Rulebook Worksheet: "We do not want mean punishments; we want to fix the problem and help people do better."'
+      },
+      {
+        sessionNumber: 20,
+        week: 10,
+        title: 'Week 10 (Part 2): Rewriting & Improving Our New Planet Rulebook',
+        durationMin: 300,
+        learningGoal: 'Evaluate the fairness of the colony’s laws and rewrite and improve the New Planet Rulebook and colony spaces so everyone feels safe and included.',
+        activities: [
+          'Check if your team\'s laws help solve the argument fairly and peacefully without anyone being treated badly (2 hours).',
+          'Rewrite and improve your New Planet Rulebook and adjust your colony spaces so everyone feels safe and included (3 hours).'
+        ],
+        learnerChoices: {
+          question: 'What improvement did your team add to your New Planet Rulebook?',
+          options: [
+            { id: 'opt-peace-circle', label: 'Peaceful Mediation & Calm-Down Space Rule', description: 'Added a favorite way to help angry teammates calm down, listen, and share land fairly.' },
+            { id: 'opt-repair-restitution', label: 'Fix-the-Mistake Kindness Rule', description: 'Instead of mean punishment, anyone who breaks a rule helps the farm or recycling crew fix it.' }
+          ]
+        },
+        evidenceToCollect: {
+          kind: 'reflection',
+          prompt: 'Submit your rewritten, improved New Planet Rulebook and notes on how you adjusted your colony spaces so everyone feels safe and included.',
+          targetCompetencies: ['sea-03', 'sdl-04', 'lc-03']
+        },
+        reflectionPrompt: 'How did rewriting your Rulebook after testing make your new planet a kinder, fairer place to live?',
+        teacherTips: 'Confirm all four team members sign off on Section 7 (Official Colony Signatures) of the improved Rulebook.'
       }
     ]
   },
   {
     id: 'share',
-    title: 'Phase 6: The Exodus Exhibition, 15-Minute Council Pitch & Mastery Portfolio',
-    strap: 'Pitching the 4-Pillar Colonization Plan to the United Earth Exodus Council and curating the MTC Mastery Portfolio (Weeks 11–12 • 20 Hours).',
+    title: 'Phase 6: Showcase and Pitch — Preparing the Big Pitch & The Space Launch Showcase',
+    strap: 'Phase Question: How can we share an exciting presentation that proves our planet, our spaceship, and our laws are ready for launch? (Weeks 11–12 • 20 Hours)',
     weeks: [11, 12],
-    goal: 'Structure and rehearse the 15-minute 4-Pillar Colonization Pitch Deck, defend physical models and charters before the United Earth Exodus Council (10-min pitch + 5-min Q&A), and curate the MTC Mastery Portfolio.',
+    goal: 'Build a 4-part slide presentation or poster board, set up the physical models and drawings for visitors, practice speaking confidently, deliver the live pitch at the Space Launch Showcase, save photos into the digital learning folder, and celebrate together.',
     tasks: [
-      'Activity 11.1 (4 hrs): Structure the formal 15-minute Colonization Pitch Deck weaving together four pillars: 1. The Destination, 2. The Vessel, 3. The Biosphere, and 4. The New Society.',
-      'Activity 11.2 & 11.3 (6 hrs): Finalize physical model presentation boards corresponding to digital renders/schematics and conduct full dress rehearsals with timed feedback loops.',
-      'Activity 12.1 (5 hrs): The Live Showcase Pitch — present physical models, blueprints, and political charters to the "United Earth Exodus Council" (10-minute presentation + 5-minute rigorous Q&A defense).',
-      'Activity 12.2 & 12.3 (5 hrs): Curate CAD files, physical model documentation, engineering logs, and political charters into a digital Mastery Portfolio and complete 120-hour post-mortem peer reflection.'
+      'Week 11 (4 hours): Build a slide presentation or poster board that tells your full story in four parts: 1) Why we chose our Goldilocks planet and how we will live on its land, 2) How our spaceship is built, kept safe, and repaired, 3) How we grow food and recycle water, and 4) How our new laws and government will work on the planet.',
+      'Week 11 (3 hours): Set up your physical models and drawings so they are easy for visitors to see and understand.',
+      'Week 11 (3 hours): Practice speaking out loud in front of classmates, timing your talks, and helping each other feel confident.',
+      'Week 12 (5 hours): Give your live pitch to an audience of teachers, coaches, and guests—show off your physical model, explain your drawings, present your planet and laws, and answer questions from the judges.',
+      'Week 12 (3 hours): Put photos of your model, your drawings, your planet research, and your rulebook into your digital learning folder so you have a record of everything you built.',
+      'Week 12 (2 hours): Celebrate our hard work, share what we learned, and thank our teammates.'
     ],
     evidence: [
-      '4-Pillar 15-Minute Colonization Pitch Deck & Synchronized Physical Model Presentation Boards',
-      'United Earth Exodus Council Live Defense Record (10-Min Pitch + 5-Min Q&A) & Complete MTC Mastery Evidence Folder'
+      '4-Part Slide Presentation or Poster Board + Showcase Display Setup (Hands-On Models + Drawings, Plans, and Rules)',
+      'Digital Learning Folder (Photos of Physical Model, Drawings, Planet Research & Written New Planet Rulebook) + Team Celebration Reflection'
     ],
     aiPromptStarters: [
-      'Review our 15-minute 4-Pillar Pitch outline: does it seamlessly connect Destination, Vessel, Biosphere, and New Society in 10 minutes?',
-      'Generate 5 tough Q&A questions the United Earth Exodus Council might ask about our 500-colonist ECLSS math, 1,500 THB model, or Colonial Charter.',
-      'Help me map our portfolio artifacts against the 7 WeLearn Future Skills (MTC Proficient & Advanced criteria).'
+      'Help our team organize our 4-part Big Pitch so we cover: 1) Our Goldilocks planet, 2) Our spaceship & repairs, 3) Our food & water recycling, and 4) Our new laws!',
+      'What questions might the teachers, coaches, and judges ask us during the Space Launch Showcase, and how can we practice answering confidently?',
+      'Help us check that our Digital Learning Folder has all items from "What You Need to Hand In" and shows our growth across the 7 WeLearn Future Skills.'
     ],
-    competencies: ['ec-01', 'ec-03', 'lc-05', 'sdl-07'],
-    stretchCompetencies: ['ec-05', 'ent-04'],
+    competencies: ['ec-03', 'ec-06', 'lc-05', 'sdl-07'],
+    stretchCompetencies: ['ec-05', 'sea-03'],
     sessions: [
       {
-        sessionNumber: 22,
+        sessionNumber: 21,
         week: 11,
-        title: 'Activity 11.1 & 11.2: 4-Pillar Colonization Pitch Architecture & Presentation Boards',
-        durationMin: 420,
-        learningGoal: 'Synthesize 10 weeks of astrophysical, engineering, agricultural, and legal work into a cohesive 4-Pillar Colonization Pitch Deck and display boards.',
+        title: 'Week 11 (Part 1): Building Our 4-Part Big Pitch Presentation or Poster Board',
+        durationMin: 300,
+        learningGoal: 'Build a slide presentation or poster board that tells the team’s full story across all four required parts.',
         activities: [
-          'Structure the 4 Pillars: Pillar 1 (The Destination: Goldilocks planet & terrain adaptation), Pillar 2 (The Vessel: spacecraft engineering, zoning & 100-year maintenance), Pillar 3 (The Biosphere: closed-loop food/ECLSS math), Pillar 4 (The New Society: political philosophy & constitutional charter).',
-          'Align physical scale model presentation boards so callout numbers on the physical cutaway match slide diagrams 1-to-1.',
-          'Verify that all 7 WeLearn Future Skills evidence requirements are represented.'
+          'Build a slide presentation or poster board that tells your full story in four parts (4 hours): 1) Why we chose our Goldilocks planet and how we will live on its land, 2) How our spaceship is built, kept safe, and repaired, 3) How we grow food and recycle water, and 4) How our new laws and government will work on the planet.',
+          'Begin planning how to arrange your physical models and drawings on your showcase table (1 hour).'
         ],
         learnerChoices: {
-          question: 'How will your team choreograph the physical scale model walkthrough during the 10-minute presentation?',
+          question: 'Which format will your team use to tell your 4-part story?',
           options: [
-            { id: 'opt-live-cutaway', label: 'Live Cutaway Disassembly Demo', description: 'Speakers lift the hull cutaway shell and dock the landing module onto the terrain slice live on stage.' },
-            { id: 'opt-synchronized-twin', label: 'Synchronized Physical Model + Digital Twin Telemetry', description: 'One teammate points to physical cutaway zones while the screen displays live ECLSS & crisis telemetry.' }
+            { id: 'opt-slide-deck', label: '4-Part Slide Presentation', description: 'Visual slides shown alongside your physical spaceship and planet model.' },
+            { id: 'opt-tri-fold-poster', label: 'Illustrated Exhibition Poster Board', description: 'Big tri-fold science and story board framing your physical model display.' }
           ]
         },
         evidenceToCollect: {
-          kind: 'media',
-          prompt: 'Upload your 4-Pillar Colonization Pitch Deck and Physical Model Presentation Board layouts.',
-          targetCompetencies: ['ec-01', 'ec-03', 'ct-02']
+          kind: 'note',
+          prompt: 'Submit your 4-part slide presentation or poster board draft covering Planet, Spaceship/Repairs, Food/Water Recycling, and Laws/Government.',
+          targetCompetencies: ['ec-03', 'ec-06']
         },
-        reflectionPrompt: 'How do your four pillars prove that engineering without just governance—or governance without rigorous physics—would fail in deep space?',
-        teacherTips: 'Ensure teams do not present the 4 pillars as disconnected silos; the narrative must show how planet, ship, biosphere, and constitution interlock.'
+        reflectionPrompt: 'How do the four parts of your presentation fit together to tell one exciting story?',
+        teacherTips: 'Check that every team clearly includes all 4 parts listed in Week 11 of the Project Exodus guide.'
       },
       {
-        sessionNumber: 23,
-        week: 12,
-        title: 'Activity 11.3 & 12.1: Dress Rehearsal & Live Defense before the United Earth Exodus Council',
-        durationMin: 480,
-        learningGoal: 'Deliver a polished 10-minute presentation followed by a 5-minute rigorous Q&A defense before the external review panel.',
+        sessionNumber: 22,
+        week: 11,
+        title: 'Week 11 (Part 2): Setting Up Our Models & Practicing Speaking Out Loud',
+        durationMin: 300,
+        learningGoal: 'Set up the physical models and drawings so visitors can easily understand them, and practice speaking out loud with classmates.',
         activities: [
-          'Conduct timed dress rehearsals (strictly 10 minutes presentation + 5 minutes Q&A) refining vocal clarity, slide transitions, and physical model handling.',
-          'Present live to the "United Earth Exodus Council" (mentors, educators, and industry guests).',
-          'Defend quantitative ECLSS numbers, centrifuge/maintenance physics, THB/tonnage budgets, and constitutional clauses under panel questioning.'
+          'Set up your physical models and drawings so they are easy for visitors to see and understand (2 hours).',
+          'Practice speaking out loud in front of classmates, timing your talks, and helping each other feel confident (3 hours).'
         ],
         learnerChoices: {
-          question: 'How will your team assign Q&A defense roles across the panel’s interdisciplinary questions?',
+          question: 'How will each teammate share the speaking parts during your Big Pitch?',
           options: [
-            { id: 'opt-pillar-captains', label: 'Dedicated 4-Pillar Domain Leads', description: 'Astrophysics/Terrain Lead, Vessel/CAD Lead, Biosphere/ECLSS Lead, and Constitutional/Budget Lead.' },
-            { id: 'opt-relay-defense', label: 'Cross-Disciplinary Relay Defense', description: 'Every answer pairs an engineering metric with its human/constitutional impact.' }
+            { id: 'opt-four-speakers', label: 'One Teammate per Story Part (Parts 1–4)', description: 'Planet Scientist, Builder/Engineer, Farm & Life-Support Lead, and Law & Community Leader each present their part.' },
+            { id: 'opt-guided-tour', label: 'Interactive Model & Rulebook Tour', description: 'Teammates guide the judges through the cutaway windows, Recycling Loop Map, and Rulebook together.' }
           ]
         },
         evidenceToCollect: {
           kind: 'feedback',
-          prompt: 'Submit your Exodus Council Evaluation Scorecard, Q&A Defense Notes, and Pitch Documentation (Note: any audio/video recording requires prior school consent and is never stored by the platform).',
-          targetCompetencies: ['ec-03', 'lc-05', 'ctps-05']
+          prompt: 'Submit your practice pitch rehearsal notes and classmate encouragement feedback.',
+          targetCompetencies: ['ec-06', 'lc-05', 'sea-03']
         },
-        reflectionPrompt: 'Which question from the United Earth Exodus Council challenged your assumptions the most, and how did you defend your design?',
+        reflectionPrompt: 'How did practicing in front of classmates help you and your teammates feel more confident for Launch Week?',
+        teacherTips: 'Encourage warm, supportive peer rehearsals so every student feels proud and ready for visitors.'
+      },
+      {
+        sessionNumber: 23,
+        week: 12,
+        title: 'Week 12 (Part 1): The Space Launch Showcase — Live Pitch to Judges & Guests',
+        durationMin: 300,
+        learningGoal: 'Give a live pitch to an audience of teachers, coaches, and guests, showing off the physical model, drawings, planet, and laws, and answering questions from judges.',
+        activities: [
+          'Welcome to Launch Week! Give your live pitch to an audience of teachers, coaches, and guests (5 hours): show off your physical model, explain your drawings, present your planet and laws, and answer questions from the judges.'
+        ],
+        learnerChoices: {
+          question: 'What part of your project are you most excited to show the judges and guests first?',
+          options: [
+            { id: 'opt-show-cutaway', label: 'Our Spaceship Cutaway Windows & Planet Terrain Model', description: 'Point inside the physical model to show where people live, where food grows, and how repairs work.' },
+            { id: 'opt-show-rulebook-loop', label: 'Our Recycling Loop Map & New Planet Rulebook', description: 'Show how 500 people recycle every drop of water and live by fair, kind laws.' }
+          ]
+        },
+        evidenceToCollect: {
+          kind: 'feedback',
+          prompt: 'Submit your Space Launch Showcase Judge Questions & Feedback Notes (Note: any audio/video recording requires prior school consent and is never stored by the platform).',
+          targetCompetencies: ['ec-03', 'ec-06', 'ctps-05']
+        },
+        reflectionPrompt: 'What was your favorite question from the teachers, coaches, or guests during the Space Launch Showcase?',
         teacherTips: 'Safeguarding reminder: any recording of student pitches requires prior school consent and must never be stored on the platform.'
       },
       {
         sessionNumber: 24,
         week: 12,
-        title: 'Activity 12.2 & 12.3: Mastery Evidence Folder Curation & 120-Hour Post-Mortem',
+        title: 'Week 12 (Part 2): Digital Learning Folder Hand-In & Team Celebration',
         durationMin: 300,
-        learningGoal: 'Compile all physical and digital deliverables into a Mastery Transcript Consortium (MTC)-aligned portfolio and conduct a 120-hour team retrospective.',
+        learningGoal: 'Put photos of the model, drawings, planet research, and rulebook into the digital learning folder, self-assess across the 7 WeLearn Future Skills, and celebrate together.',
         activities: [
-          'Curate the final Evidence Folder: 1. Exoplanet Dossier & Human Needs Matrix, 2. Colonial Charter & Closed-Loop Resource Budget, 3. 2D/3D Blueprints & Maintenance Protocols, 4. Physical Scale Model & Cutaway Photos, 5. Red-Team Failure Report & Revised Specs, 6. Showcase Pitch Deck.',
-          'Self-assess against Emerging, Proficient, and Advanced descriptors across all 7 WeLearn Future Skills.',
-          'Complete the post-mortem reflection and peer evaluation on team dynamics and personal growth across the 120-hour cycle.'
+          'Put photos of your model, your drawings, your planet research, and your rulebook into your digital learning folder so you have a record of everything you built (3 hours): verifying both groups of work in "What You Need to Hand In" (1. Hands-On Models and 2. Drawings, Plans, and Rules).',
+          'In our final hours together, celebrate our hard work, review how we grew across the 7 WeLearn Future Skills (Getting Started, Doing Great, Going Above and Beyond), share what we learned, and thank our teammates (2 hours).'
         ],
         learnerChoices: {
-          question: 'Which WeLearn Future Skill represents your strongest personal growth from Week 1 to Week 12?',
+          question: 'Which of the 7 WeLearn Future Skills did you grow the most in during Project Exodus?',
           options: [
-            { id: 'opt-growth-systems', label: 'Critical Thinking & Quantitative Systems Engineering', description: 'Mastering closed-loop ECLSS math, centrifuge physics, and Red-Team stress testing.' },
-            { id: 'opt-growth-design', label: 'Creative Thinking & Dual-Fidelity Prototyping', description: 'Translating abstract space architecture into 3D schematics and a 1,500 THB physical model.' },
-            { id: 'opt-growth-civic', label: 'Social/Emotional Empathy & Constitutional Leadership', description: 'Designing inclusive habitats, restorative laws, and mediating high-pressure team sprints.' }
+            { id: 'opt-skill-creative-critical', label: 'Creative Thinking & Critical Problem Solving', description: 'Inventing cool spaceship rooms, picking a planet with real science facts, and solving Space Emergency Cards.' },
+            { id: 'opt-skill-comm-collab', label: 'Effective Communication & Kind Leadership', description: 'Labeling drawings clearly, pitching our story, and helping builders, artists, and law-makers work together.' },
+            { id: 'opt-skill-sdl-ent-sea', label: 'Self-Direction, THB Budgeting & Caring for Feelings', description: 'Meeting weekly goals, sticking to our Thai Baht budget, and designing cozy spaces and peaceful laws.' }
           ]
         },
         evidenceToCollect: {
           kind: 'reflection',
-          prompt: 'Submit your Final MTC Evidence Folder Index and 120-Hour Personal & Peer Retrospective.',
-          targetCompetencies: ['sdl-07', 'sea-03', 'lc-05']
+          prompt: 'Submit your Digital Learning Folder checklist (1. Hands-On Models + 2. Drawings, Plans, and Rules) and your WeLearn Future Skills reflection.',
+          targetCompetencies: ['sdl-07', 'lc-05', 'sea-03']
         },
-        reflectionPrompt: 'How has designing a civilization for another star system changed the way you look at ecological closed loops and civic justice here on Earth?',
-        teacherTips: 'Celebrate the completion of the 120-hour journey and review each learner’s MTC Mastery evidence across all 7 domains.'
+        reflectionPrompt: 'What is one thing you want to thank your teammates for as we celebrate finishing Project Exodus?',
+        teacherTips: 'Celebrate every team’s creativity and kindness, and ensure each learner’s Digital Learning Folder has photos of their physical model, drawings, planet research, and New Planet Rulebook.'
       }
     ]
   }
@@ -1231,93 +1260,93 @@ export const INTERSTELLAR_ARK_PHASES: ProgramPhase[] = [
 
 export const INTERSTELLAR_ARK_PROGRAM: PblProgram = {
   id: 'interstellar-ark-horizon-2026',
-  title: "Engineering Humanity's Next Horizon: Interstellar Ark & Exoplanet Civilization",
-  subtitle: 'Designing a self-sustaining multi-generational interstellar ark, closed-loop 500-colonist biosphere, and constitutional exoplanet society across a 120-hour Design Thinking cycle.',
+  title: 'Project Exodus: Building Our New Home in Space',
+  subtitle: 'Designing a giant spaceship that keeps 500 people healthy and happy through deep space, building a hands-on model and recycling loop map, and creating a fair New Planet Rulebook across a 12-week, 120-hour Design Thinking journey.',
   status: 'complete',
-  theme: 'Aerospace Systems, Closed-Loop Biospheres & Exoplanet Governance',
-  drivingQuestion: 'How might we engineer a self-sustaining interstellar ark and establish a just, resilient civilization on an exoplanet to ensure the long-term survival of humanity?',
+  theme: 'Space Habitat Design, Closed-Loop Farming & New Planet Rulebook',
+  drivingQuestion: 'How can we design a giant spaceship that keeps people healthy and happy on a long trip through deep space, and create fair rules for our new home on a distant planet?',
   realProblem: {
     type: 'both',
-    summary: 'Deep-space multi-generational survival and exoplanet colonization require solving tightly coupled physical, biological, and social constraints: microgravity bone loss, cosmic radiation, 100% closed-loop food/water/oxygen recycling for 500 people, 100-year zero-resupply hull maintenance, and a constitutional legal framework that prevents authoritarian or ecological collapse.',
-    peopleImpact: 'Equips learners to design habitats, life-support loops, and restorative constitutional laws that protect human physiological health, neurodiversity, psychological safety, and civic justice under extreme confinement.',
-    environmentalImpact: 'Models a 100% closed-loop biosphere (aeroponics, hydroponics, cellular agriculture, Spirulina photobioreactors, >=98% water recovery, and zero-waste composting) within strict mass, energy, and 1,500 THB classroom material budgets.'
+    summary: 'In deep space, there are no grocery stores, no sunrise or sunset, and no outside rescue if something breaks. Traveling to a distant Goldilocks planet requires keeping 500 people healthy and happy in tight spaces, growing food without dirt, recycling every drop of water and breath of air, repairing the ship mid-flight, and writing fair, peaceful laws for humanity’s new home.',
+    peopleImpact: 'Helps learners step into the shoes of space travelers to design welcoming neighborhoods, cozy mental-health spaces, and a kind, fair New Planet Rulebook where everyone’s body, mind, and feelings are protected.',
+    environmentalImpact: 'Teaches zero-waste closed-loop living through hydroponics, aeroponics, water/oxygen/compost recycling loops, responsible Thai Baht supply budgeting, and laws that protect our new planet’s nature.'
   },
-  targetAgeRange: 'Ages 12–17 (Middle & Upper Secondary; adaptable scaffolds for Ages 9–11)',
+  targetAgeRange: 'Ages 9–17 (Primary through Upper Secondary: 9–11, 12–14, 15–17)',
   durationWeeks: 12,
   totalSessions: 24,
   materialsAndKit: {
     microcontrollers: [
-      'Interactive Digital Twin Ark & Closed-Loop ECLSS Simulator (built-in web simulation sandbox)',
-      'Optional BBC micro:bit V2 or Arduino environmental sensors for live terrarium/greenhouse telemetry demo'
+      'Project Exodus Interactive Spaceship, Recycling Loop & Space Emergency Game Simulator (built-in web simulation)',
+      'Optional computer 3D modeling tools: Tinkercad, FreeCAD, or Blender (or big paper blueprint supplies)'
     ],
     sensorsAndActuators: [
-      'Digital Twin Telemetry: Centrifuge RPM/g-force calculator, 500-colonist kcal/O2/water mass-balance engine, and stochastic crisis simulator',
-      'Optional low-voltage LED strips (circadian lighting demo) and DC micro-motor (centrifuge ring rotation demo)'
+      'Digital Simulation Tools: Goldilocks Planet Finder, 500-Person Food & Water Recycling Calculator, 6 Space Emergency Game Cards, and Interactive New Planet Rulebook Worksheet',
+      'Optional small LED lights or simple craft spinners to show day/night lighting and spinning fake-gravity rings'
     ],
     fabricationMaterials: [
-      'Low-cost classroom prototyping materials within a strict 1,500 THB per team budget: corrugated cardboard, EVA foam scraps, PVC pipes, balsa wood, recycled clear PET plastics, wire',
-      'Color-coded physical markers, pins, and hinged cutaway labels for internal human spaces, agricultural zones, and maintenance access routes'
+      'Simple classroom craft and building materials bought within the team Thai Baht (THB) budget: cardboard, foam, plastic bottles, wood sticks, clay, and wire',
+      'Color-coding markers, labels, and clear plastic or hinged flaps for open "cutaway" windows showing farms, bedrooms, and repair areas'
     ],
     softwareAndTools: [
-      'Digital 3D Modeling (Blender, FreeCAD, or Fusion 360) OR precision hand-drafted isometric and cross-sectional blueprints',
-      'NASA Exoplanet Archive reference telemetry & Closed-Loop ECLSS Spreadsheet / Digital Twin Matrix',
-      'WeLearn 7 Future Skills Rubric (Mastery Transcript Consortium aligned)'
+      'Tinkercad, FreeCAD, or Blender for 3D computer models OR big paper blueprint poster sheets and rulers',
+      'Part 1: The Space Emergency Game Cards (Cards 1–6) & Part 2: The New Planet Rulebook Worksheet (7-Section Fill-in-the-Blank Template)',
+      'How You Will Grow: WeLearn Future Skills Guide (Getting Started, Doing Great, Going Above and Beyond across all 7 skills)'
     ]
   },
   teacherGuidance: {
     safetyProtocol: [
-      'Workshop Cutting & Adhesive Safety: Use cutting mats, safety rulers, and low-VOC glues/hot-glue stands when shaping cardboard, EVA foam, PVC pipe, and balsa wood.',
-      'Budget Discipline: Enforce the 1,500 THB classroom material ceiling per team; encourage upcycled plastics and scrap foam.',
-      'Child Safeguarding & Privacy: Under-13 learners never use voice/video recording; any pitch recording for older learners requires prior school consent and must never be stored by the platform.'
+      'Craft & Model Building Safety: Supervise scissors, craft cutters, wire bending, and low-temperature glue guns when building with cardboard, foam, plastic bottles, wood sticks, clay, and wire.',
+      'Classroom Budget Care: Help teams plan and stick to their classroom money budget (in Thai Baht) and avoid wasting supplies.',
+      'Child Safeguarding & Privacy: Under-13 learners (ages 9–11) never use speech-to-text or audio/video recording; use tap-to-choose, drawing, or teacher scribing instead. Any showcase recording for older learners requires prior school consent and is never stored on the platform.'
     ],
     pedagogicalScaffolding: [
-      'Dual-Fidelity Requirement: Ensure every team submits work across both structural categories defined in the curriculum: (1) Tangible Physical Deliverables (scale model + maintenance cutaway) and (2) Digital/Conceptual Creations (3D/technical blueprints + ECLSS matrix + Colonial Charter).',
-      'Red-Team Psychological Safety: Frame Week 9–10 Red-Team critiques and crisis simulations as collaborative systems-engineering stress tests, never personal attacks.'
+      'What You Need to Hand In (Two Groups of Work): Ensure every team shares (1) Hands-On Models (physical spaceship and planet terrain model showing where people live, where food grows, and how engineers fix broken parts) and (2) Drawings, Plans, and Rules (computer 3D models or paper blueprints, Food and Recycling Loop Map, and written New Planet Rulebook).',
+      'How to Play The Space Emergency Game (Week 9): Cut out or read one card at a time to each team. Give teams 15 minutes to look at their physical spaceship model, drawings, and rulebook to solve the problem, then have them change or add one thing to their drawings or model.'
     ],
     aiEthicsRules: [
-      'AI Co-Pilot may be used to stress-test ECLSS mass-balance equations, brainstorm historical frontier governance parallels, and simulate Red-Team Q&A.',
-      'Prompt Provenance Mandatory: Every AI consultation must log what was asked, what the AI returned, and how the team verified and modified the output.'
+      'Learners may use the AI Co-Pilot to check real science facts about Goldilocks planets, test 500-person food/water math, and practice Space Emergency Game questions.',
+      'Every AI interaction must log what the team asked, what the AI suggested, and how the team used their own ideas.'
     ],
     differentiationNotes: [
-      'Foundational / Emerging Track: Use pre-calculated crop yield tables in the Digital Twin Simulator and focus on clear 2D cross-sectional diagrams and core constitutional articles.',
-      'Advanced / Transferable Track: Model secondary and tertiary cascade failures (e.g., mechanical bearing wear triggering social rationing disputes), multi-layer CAD assemblies, and post-scarcity frontier economics.'
+      'Primary Track (Ages 9–11): Focus on big labeled paper blueprints, hands-on cardboard/bottle cutaway models, the fill-in-the-blank New Planet Rulebook Worksheet, and playing the 6 Space Emergency Game Cards (no speech-to-text or voice recording for under-13s).',
+      'Middle & Upper Secondary Track (Ages 12–17): Combine 3D CAD models (Tinkercad, FreeCAD, or Blender) with quantitative 500-person hydroponic/water-recycling math, Thai Baht + spaceship mass budgets, and full community role-play trials.'
     ]
   },
   measurableImpactCriteria: [
     {
-      id: 'metric-ark-eclss',
-      metric: '500-Colonist Closed-Loop ECLSS & Caloric Balance',
-      target: '100% daily caloric target (1,250,000 kcal/day), >= 98% water loop recovery, and >= 100% O2 regeneration verified across normal and 40%-blight crisis states',
-      verificationMethod: 'Closed-Loop Resource & Food Production Matrix audit + Stochastic Crisis Simulation survival margin test in Week 9'
+      id: 'metric-exodus-models',
+      metric: 'Group 1 Hand-In: Hands-On Physical Spaceship & Planet Terrain Model',
+      target: 'Physical spaceship and planet terrain model built within the team Thai Baht budget, with color coding or open cutaway windows showing where people live, where food grows, and how engineers fix broken parts',
+      verificationMethod: 'Week 8 physical cutaway inspection + Week 9 Space Emergency Game Card upgrades on the physical model'
     },
     {
-      id: 'metric-ark-budget-prototype',
-      metric: 'Dual-Fidelity Prototype & 1,500 THB Budget Compliance',
-      target: 'Scaled physical spacecraft + exoplanet terrain model with color-coded maintenance cutaways built for <= 1,500 THB, paired with labeled 3D/isometric schematics',
-      verificationMethod: 'Itemized THB receipt ledger + physical cutaway inspection (hydroponic bays, airlocks, maintenance corridors, centrifuge joints, command modules)'
+      id: 'metric-exodus-drawings-rules',
+      metric: 'Group 2 Hand-In: Labeled Drawings, Recycling Loop Map & New Planet Rulebook',
+      target: 'Clearly labeled computer 3D models (Tinkercad/FreeCAD/Blender) or paper blueprints + 500-person Food and Recycling Loop Map + completed 7-section New Planet Rulebook signed by all 4 team roles',
+      verificationMethod: 'Week 7 label check + Week 3 Recycling Loop Map review + Week 10 Rulebook argument role-play test'
     },
     {
-      id: 'metric-ark-charter-defense',
-      metric: 'Constitutional Resilience & 15-Minute Exodus Council Defense',
-      target: 'Peaceful legal resolution of the Week 10 landing strike plus cohesive 10-min 4-Pillar Pitch + 5-min Q&A defense across all 7 WeLearn Future Skills',
-      verificationMethod: 'United Earth Exodus Council rubric evaluation (Mastery Transcript Consortium Emerging / Proficient / Advanced descriptors)'
+      id: 'metric-exodus-showcase-skills',
+      metric: '4-Part Space Launch Showcase Pitch & WeLearn Future Skills Growth',
+      target: 'Confident 4-part live pitch to teachers, coaches, and guests + complete Digital Learning Folder demonstrating "Doing Great" or "Going Above and Beyond" across all 7 WeLearn Future Skills',
+      verificationMethod: 'Week 12 Space Launch Showcase presentation + WeLearn Future Skills Guide portfolio review'
     }
   ],
   assumptions: [
     {
       id: 'asmp-ark-schedule',
-      domain: '12-Week / 120-Hour Sprint Schedule',
-      assumption: 'Program runs as six 2-week Design Thinking sprints (10 hours/week = 120 hours total) culminating in the Week 12 United Earth Exodus Council Exhibition.',
-      ownerVerificationNeeded: 'Confirm 10h/week studio block allocation and external panelist invitations for the Week 12 Exodus Council Showcase.',
+      domain: '12-Week / 120-Hour Schedule (10 Hours a Week)',
+      assumption: 'Project Exodus runs for 12 weeks at 10 hours a week (120 hours total) across 6 two-week phases (Empathize, Define, Ideate, Prototype, Test, Showcase).',
+      ownerVerificationNeeded: 'Confirm 10 hours/week studio schedule and guest invitations for the Week 12 Space Launch Showcase.',
       confirmation: {
         status: 'needs_owner_confirmation'
       }
     },
     {
       id: 'asmp-ark-budget',
-      domain: '1,500 THB Classroom Prototyping Cap & CAD Access',
-      assumption: 'Each student team operates within a 1,500 THB classroom material budget for low-fidelity physical models and has access to either Blender/FreeCAD/Fusion 360, the built-in Digital Twin Simulator, or isometric drafting supplies.',
-      ownerVerificationNeeded: 'Confirm 1,500 THB per-team material petty cash or scrap material lab stock with school operations.',
+      domain: 'Classroom Craft Budget (in Thai Baht) & 3D Software Access',
+      assumption: 'Teams receive a classroom supply budget in Thai Baht (up to 1,500 THB) for cardboard, foam, plastic bottles, wood sticks, clay, and wire, and have access to either paper blueprint supplies or Tinkercad, FreeCAD, or Blender.',
+      ownerVerificationNeeded: 'Confirm classroom Thai Baht material budget per team and computer lab availability for Tinkercad/FreeCAD/Blender.',
       confirmation: {
         status: 'needs_owner_confirmation'
       }

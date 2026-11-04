@@ -3,7 +3,7 @@
  * Location: prototypes/DonPBL/programRegistry.ts
  * 
  * Complete 7-program catalog (all fitting a 12-week, 120-hour term):
- * - Program 1: Engineering Humanity's Next Horizon: Interstellar Ark & Exoplanet Civilization (12 Weeks / 120h • 24 Sessions)
+ * - Program 1: Project Exodus: Building Our New Home in Space (12 Weeks / 120h • 24 Sessions)
  * - Program 2: Entrepreneurship: Product Creation (12 Weeks / 120h • 18 Sessions)
  * - Program 3: Project Genesis Engine: Storytelling IP (12 Weeks / 120h • 24 Sessions)
  * - Program 4: The Passion Project Blueprint (12 Weeks / 120h • 24 Sessions)

@@ -403,6 +403,7 @@ async function main() {
       PROGRAM_REGISTRY,
       PROGRAM_LIST,
       CLEAN_STREAM_PROGRAM,
+      ARK_CRISIS_SCENARIOS,
       ARK_WELEARN_MTC_RUBRIC,
       ARK_GAMIFICATION_BADGES,
       EXOPLANET_CANDIDATES
@@ -410,9 +411,15 @@ async function main() {
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
     assert.equal(registryKeys.length, 7, 'Expected 7 complete programs in PROGRAM_REGISTRY');
     assert.ok('interstellar-ark-horizon-2026' in PROGRAM_REGISTRY, 'interstellar-ark-horizon-2026 must be registered');
-    assert.equal(ARK_WELEARN_MTC_RUBRIC.length, 7, 'Expected all 7 WeLearn Future Skills in MTC rubric');
-    assert.equal(ARK_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Interstellar Ark');
-    assert.equal(EXOPLANET_CANDIDATES.length, 4, 'Expected 4 NASA Exoplanet Archive candidates');
+    assert.equal(
+      PROGRAM_REGISTRY['interstellar-ark-horizon-2026'].title,
+      'Project Exodus: Building Our New Home in Space',
+      'Expected Project Exodus title'
+    );
+    assert.equal(ARK_CRISIS_SCENARIOS.length, 6, 'Expected all 6 Space Emergency Game Cards');
+    assert.equal(ARK_WELEARN_MTC_RUBRIC.length, 7, 'Expected all 7 WeLearn Future Skills in rubric');
+    assert.equal(ARK_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Project Exodus');
+    assert.equal(EXOPLANET_CANDIDATES.length, 4, 'Expected 4 Goldilocks Exoplanet candidates');
 
     for (const [key, prog] of Object.entries(PROGRAM_REGISTRY)) {
       assert.equal(prog.id, key, `Registry key ${key} must equal program.id (${prog.id})`);

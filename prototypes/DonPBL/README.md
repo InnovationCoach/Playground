@@ -14,7 +14,7 @@ This directory contains the isolated Project-Based Learning (PBL) prototype buil
 Key architectural properties:
 - **100% Isolated inside `prototypes/DonPBL/`**: No root configuration (`package.json`, `vite.config.*`, `firestore.rules`, `firebase.json`), `src/`, `server/`, `scripts/`, or GitHub workflows are modified.
 - **7 Complete 12-Week (120-Hour) PBL Programs + 1 Explicit Stub**:
-  1. `interstellar-ark-horizon-2026` — **Engineering Humanity's Next Horizon: Interstellar Ark & Exoplanet Civilization** (12 Weeks / 120h • 24 Sessions)
+  1. `interstellar-ark-horizon-2026` — **Project Exodus: Building Our New Home in Space** (12 Weeks / 120h • 24 Sessions)
   2. `entrepreneurship-product-creation-2026` — **PBL: Entrepreneurship: Product Creation** (12 Weeks / 120h • 18 Sessions)
   3. `storytelling-genesis-2026` — **Project "Genesis Engine": Creative IP & Cinematic Narrative** (12 Weeks / 120h • 24 Sessions)
   4. `passion-project-blueprint-2026` — **The Passion Project Blueprint: Discovering Your Next Big Idea** (12 Weeks / 120h • 24 Sessions)

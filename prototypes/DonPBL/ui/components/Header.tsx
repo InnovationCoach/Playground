@@ -156,10 +156,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenArkSimulator}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-700 hover:bg-indigo-800 rounded-md transition-colors shadow-2xs"
-              title="Open Interstellar Ark & Exoplanet Civilization Digital Twin Simulator"
+              title="Open Project Exodus: Spaceship, Recycling Loop, Space Emergency Game Cards & New Planet Rulebook Simulator"
             >
               <Cpu className="w-3.5 h-3.5" />
-              Interstellar Ark Digital Twin &amp; Crisis Hub
+              Project Exodus Simulator &amp; Emergency Cards
             </button>
           ) : activeProgramId === 'entrepreneurship-product-creation-2026' ? (
             <button

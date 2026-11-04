@@ -9,14 +9,13 @@
 
 ## Change Log Entries
 
-### [2026-10-21] - Added "Engineering Humanity's Next Horizon: Interstellar Ark & Exoplanet Civilization" PBL
+### [2026-10-21] - Replaced with "Project Exodus: Building Our New Home in Space" PBL
 - **Program Curriculum (`prototypes/DonPBL/interstellarArkProgram.ts`):**
-  - Authored `INTERSTELLAR_ARK_PROGRAM` (`id: 'interstellar-ark-horizon-2026'`), structured across all 7 Design Thinking phases (`explore`, `empathise`, `define`, `ideate`, `prototype`, `test`, `share`), `durationWeeks: 12` (10h/week, 120h total), and `totalSessions: 24`.
-  - Incorporated all 35 weekly activities from the PDF curriculum (Deep-Space Physiology/Psychology, Goldilocks Exoplanet Reconnaissance, 500-Colonist Closed-Loop ECLSS & THB/Tonnage Budgets, New World Constitution & Legal Code, Centrifuge/Propulsion & 100-Year Maintenance Drone Bays, 3D/Isometric Schematics & 1,500 THB Low-Fidelity Physical Scale Model, Red-Team Stochastic & Constitutional Crisis Trials, and 4-Pillar United Earth Exodus Council Pitch).
-  - Embedded the complete **WeLearn 7 Future Skills Framework Rubric** (Mastery Transcript Consortium aligned: Emerging, Proficient, Advanced, and Project Evidence Required).
-- **Interactive Digital Twin Simulator & Gamification (`prototypes/DonPBL/ui/components/InterstellarArkSimulator.tsx` & `engine.ts`):**
-  - Added `simulateArkBiosphere` in `engine.ts` to deterministically model 500-colonist caloric yield, oxygen regeneration, water loop recovery, crew psychological morale, 1,500 THB physical build budget compliance, and Red-Team crisis survival margins.
-  - Built `InterstellarArkSimulator.tsx` with 4 interactive tabs: (1) Goldilocks Exoplanet & Propulsion Configurator, (2) Digital Twin ECLSS & 1,500 THB Physical Model Planner, (3) Red-Team & Constitutional Crisis Arena, and (4) MTC 7 Future Skills Rubric & 7 Mission Badges (`ARK_GAMIFICATION_BADGES` / `ARK_GAMIFICATION_LEVELS`).
+  - Replaced `Engineering Humanity's Next Horizon` in `INTERSTELLAR_ARK_PROGRAM` (`id: 'interstellar-ark-horizon-2026'`) with **Project Exodus: Building Our New Home in Space**, structured across all 7 Design Thinking phases (`explore`, `empathise`, `define`, `ideate`, `prototype`, `test`, `share`), `durationWeeks: 12` (10h/week, 120h total), and `totalSessions: 24`.
+  - Incorporated all 12 weekly descriptions and exact hour allocations (Week 1 Human Needs Chart, Week 2 Goldilocks Planet Fact File, Week 3 500-Person Food/Water & Recycling Loop Map + Thai Baht Budget, Week 4 New Planet Rulebook, Week 5 Spaceship Rooms & Layout, Week 6 Ship Repair Guide, Week 7 Paper Blueprints / Tinkercad / FreeCAD / Blender 3D Models, Week 8 Physical Model with Color Coding & Cutaway Windows, Week 9 Space Emergency Game, Week 10 Rulebook Testing, Week 11 Preparing the 4-Part Big Pitch, Week 12 Space Launch Showcase & Digital Learning Folder).
+  - Embedded all **6 Space Emergency Game Cards** (Part 1: Cards 1–6), the **7-section New Planet Rulebook Worksheet** (Part 2 Fill-in-the-Blank Template), **What You Need to Hand In**, and the **How You Will Grow: WeLearn Future Skills Guide** (`Getting Started`, `Doing Great`, `Going Above and Beyond` across all 7 skills).
+- **Interactive Simulator & Gamification (`prototypes/DonPBL/ui/components/InterstellarArkSimulator.tsx` & `engine.ts`):**
+  - Updated `InterstellarArkSimulator.tsx` to include interactive tabs for (1) Goldilocks Planet Fact File & Fake-Gravity Spaceship, (2) 500-Person Recycling Loop Map & Physical Model Supply Budget (in Thai Baht), (3) All 6 Space Emergency Game Cards + Interactive 7-Section Fill-in-the-Blank New Planet Rulebook Worksheet, and (4) WeLearn Future Skills Guide, 4-Part Big Pitch Checklist, and 7 Mission Badges.
 
 ### [2026-10-20] - Platform Lead Pre-Migration Audit Remediation
 
