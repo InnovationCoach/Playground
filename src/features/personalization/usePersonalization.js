@@ -61,21 +61,18 @@ export async function uploadLearnerFile(uid,file,kind='image') {
   }
   // Try media-preview endpoint with retries; if the backend verification has transient propagation delays,
   // fall back gracefully so student crop flow never blocks on preview generation.
-  let lastErr;
+  // The file is already in Storage at this point, so no preview error may discard it.
+  // Any failure (not only "unavailable") falls back to a direct download URL; saving
+  // the item later re-validates the stored file on the server.
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 400 * attempt));
       return await schoolRequest('POST','/api/learner-space/media-preview',{body:{media:{path,name},kind}});
     } catch (e) {
-      lastErr = e;
-      if (!e?.message?.includes('unavailable')) throw e;
+      console.warn('[uploadLearnerFile] media preview failed, using direct URL:', e?.code || e?.message);
     }
   }
   // Graceful fallback for local display: get the download URL or generate an object URL
-  try {
-    const downloadUrl = await storage.ref(path).getDownloadURL().catch(() => URL.createObjectURL(file));
-    return { path, name, contentType, size: file.size, url: downloadUrl };
-  } catch {
-    throw lastErr;
-  }
+  const downloadUrl = await storage.ref(path).getDownloadURL().catch(() => URL.createObjectURL(file));
+  return { path, name, contentType, size: file.size, url: downloadUrl };
 }
