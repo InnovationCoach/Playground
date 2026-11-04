@@ -629,8 +629,8 @@ Do NOT give generic advice.`;
       this.setFeedback('Smart hint ready!', 'success');
       this.logInteraction('hint', prompt, hintText);
     } catch (error) {
-      this.addMessage(`Hint: Try evaluating your total chassis weight versus motor output to increase efficiency.`, 'assistant');
-      this.setFeedback('Hint delivered', 'success');
+      this.addMessage('The AI hint is unavailable right now. Please try again.', 'assistant');
+      this.setFeedback('Hint unavailable', 'error');
     }
   }
 
@@ -646,8 +646,8 @@ Do NOT give generic advice.`;
       this.setFeedback('Explanation ready!', 'success');
       this.logInteraction('explain', prompt, explainText);
     } catch (error) {
-      this.addMessage(`Explanation: Efficiency is calculated as Power (W) divided by Weight (kg). Reducing chassis weight gives direct efficiency gains.`, 'assistant');
-      this.setFeedback('Explanation delivered', 'success');
+      this.addMessage('The AI explanation is unavailable right now. Please try again.', 'assistant');
+      this.setFeedback('Explanation unavailable', 'error');
     }
   }
 

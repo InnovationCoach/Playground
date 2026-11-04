@@ -938,6 +938,7 @@ function ReviewStage({ build, setField, report, testReport }) {
     const seq = ++reviewSeq.current;
     setBusy(true);
     setError('');
+    setField('review', null);
     try {
       const result = await requestDesignReview({ report, testReport, image });
       if (seq !== reviewSeq.current) return;   // superseded; drop it
@@ -1024,7 +1025,7 @@ function ReviewStage({ build, setField, report, testReport }) {
           </div>
 
           {review.source === 'local' && (
-            <div className="sc-flag warn">
+            <div className="sc-flag warn" role="alert">
               The AI reviewer could not be reached{review.error ? ` (${review.error})` : ''}, so this review was
               worked out on this device from the measurements you entered. <strong>Nothing here looked at your
               photo.</strong> Everything below still comes from your own numbers.

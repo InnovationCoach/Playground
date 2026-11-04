@@ -60,8 +60,8 @@ describe('Gemini activity adapter', () => {
  });
  it('makes one minimal text call for key testing', async () => {
   vi.stubGlobal('fetch',vi.fn(async()=>response(payload({candidates:[{finishReason:'STOP',content:{parts:[{text:'OK'}]}}]}))));
-  await expect(createAdapter(config).testKey()).resolves.toEqual({ok:true});expect(fetch).toHaveBeenCalledTimes(1);
-  expect(JSON.parse(fetch.mock.calls[0][1].body).generationConfig).toEqual({maxOutputTokens:8});
+  await expect(createAdapter({...config,model:'gemini-3.5-flash'}).testKey()).resolves.toEqual({ok:true});expect(fetch).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(fetch.mock.calls[0][1].body).generationConfig).toEqual({maxOutputTokens:256,thinkingConfig:{thinkingLevel:'minimal'}});
  });
  it('rejects missing keys, model paths and invalid output limits without a request', async () => {
   vi.stubGlobal('fetch',vi.fn());expect(()=>createAdapter({...config,model:'../foreign?key=x'})).toThrow();expect(()=>createAdapter({...config,apiKey:''})).toThrow();

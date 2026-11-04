@@ -11,25 +11,13 @@ import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from './groundingSour
 import { synthesizeGroundedUnit } from './pblSynthesizer.js';
 import { publishAndTransferToStudent, publishProgramToCatalog } from './pblTransferService.js';
 import { LearnerSupervisionView } from '../supervision/LearnerSupervisionView.jsx';
-import { CourseStudioPanel } from './CourseStudioPanel.jsx';
-import { EvaluationDeskView } from '../evaluation/EvaluationDeskView.jsx';
-import { getEvaluations } from '../evaluation/evaluationsStore.js';
 import { EdmentumIntegrationConsole } from '../../edmentum/EdmentumIntegrationConsole.jsx';
 import { hrefFor } from '../../../app/routes.js';
 import { confettiFrom, buzz } from '../../goals/celebrate.js';
 import './coachStudio.css';
 
 export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision' }) {
-  // Top-level Navigation Workspace Tab: 'supervision' | 'evaluation' | 'studio'
-  const [workspaceTab, setWorkspaceTab] = useState(initialTab);
-  const [evalList, setEvalList] = useState(() => getEvaluations());
-  const pendingCount = useMemo(() => evalList.filter((e) => e.status === 'pending').length, [evalList]);
-
-  useEffect(() => {
-    const onEvalsUpdated = () => setEvalList(getEvaluations());
-    window.addEventListener('hearisland-evaluations-updated', onEvalsUpdated);
-    return () => window.removeEventListener('hearisland-evaluations-updated', onEvalsUpdated);
-  }, []);
+  const [workspaceTab, setWorkspaceTab] = useState(initialTab === 'evaluation' ? 'supervision' : initialTab);
 
   // Real Classes & Real Learners from Firestore
   const { classes: coachClasses } = useCoachClasses(coachUser);
@@ -277,18 +265,6 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
 
           <button
             type="button"
-            className={`cp-nav-tab ${workspaceTab === 'evaluation' ? 'active' : ''}`}
-            onClick={() => setWorkspaceTab('evaluation')}
-          >
-            <CheckCircle2 size={16} /> Evaluation Desk
-            <span className="cp-tab-pill pill-amber">
-              {pendingCount > 0 && <span className="cp-tab-pulse-dot" />}
-              {pendingCount} Pending
-            </span>
-          </button>
-
-          <button
-            type="button"
             className={`cp-nav-tab ${workspaceTab === 'studio' ? 'active' : ''}`}
             onClick={() => setWorkspaceTab('studio')}
           >
@@ -317,25 +293,10 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             setSelectedLearnerId(learnerId);
             setWorkspaceTab('studio');
           }}
-          onGoToEvaluation={() => {
-            setWorkspaceTab('evaluation');
-          }}
         />
       )}
 
-      {/* Tab 2: Evaluation Desk */}
-      {workspaceTab === 'evaluation' && (
-        <EvaluationDeskView
-          coachUser={coachUser}
-          onOpenStudioWithLearner={(learnerId) => {
-            setSelectedLearnerId(learnerId);
-            setWorkspaceTab('studio');
-          }}
-        />
-      )}
-
-      {/* Tab 3: Curriculum Studio (NotebookLM 3-Column Studio Grid) */}
-      {workspaceTab === 'studio' && <CourseStudioPanel />}
+      {/* Curriculum Studio */}
       {workspaceTab === 'studio' && (
         <div className="cp-grid">
         {/* =========================================================

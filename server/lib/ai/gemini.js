@@ -54,7 +54,11 @@ export function createAdapter({ apiKey, model } = {}) {
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: prompt.system }] },
           contents: [{ role: 'user', parts: [{ text: prompt.user }, ...(prompt.document ? [{inlineData: prompt.document}] : [])] }],
-          generationConfig: { maxOutputTokens, ...(json ? { responseMimeType: 'application/json' } : {}) }
+          generationConfig: {
+            maxOutputTokens,
+            ...(json ? { responseMimeType: 'application/json' } : {}),
+            ...(/^gemini-3\.[56]-flash(?:$|-)/.test(model) && { thinkingConfig: { thinkingLevel: 'minimal' } })
+          }
         })
       });
       if (!response.ok) throw providerError(response.status);
@@ -96,7 +100,7 @@ export function createAdapter({ apiKey, model } = {}) {
     provider: 'gemini',
     complete: request,
     async testKey() {
-      await request({ system: 'Reply with OK only.', user: 'Connection test.' }, { maxOutputTokens: 8 }, false);
+      await request({ system: 'Reply with OK only.', user: 'Connection test.' }, { maxOutputTokens: 256 }, false);
       return { ok: true };
     }
   };

@@ -42,7 +42,9 @@ import personalizationRouter from './routes/personalization.js';
 import questRouter from './routes/quest.js';
 
 const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-const THINKING_OFF = { thinkingBudget: 0 };
+const THINKING_OFF = /^gemini-3\.[56]-flash(?:$|-)/.test(MODEL_NAME)
+  ? { thinkingLevel: 'minimal' }
+  : { thinkingBudget: 0 };
 
 export function createApp(options = {}) {
   const app = express();
@@ -156,6 +158,9 @@ export function createApp(options = {}) {
 
       const { text, blocked, reason } = extractText(result);
       await logConversation({ uid, prompt, reply: text, blocked, blockReason: reason, endpoint, ageBand: band });
+      if ((reason === 'EMPTY' || !text) && ['explain', 'hint', 'tutor', 'design-review'].includes(endpoint)) {
+        throw new Error('Gemini returned an empty response.');
+      }
       if (blocked) {
         console.warn(`[SAFETY] ${endpoint} blocked for ${uid}: ${reason}`);
         await flagForReview({ uid, reason, prompt, endpoint });
@@ -188,6 +193,9 @@ export function createApp(options = {}) {
 
       const { text, blocked, reason } = extractText(result);
       await logConversation({ uid, prompt, reply: text, blocked, blockReason: reason, endpoint, ageBand: band });
+      if ((reason === 'EMPTY' || !text) && ['explain', 'hint', 'tutor', 'design-review'].includes(endpoint)) {
+        throw new Error('Gemini returned an empty response.');
+      }
       if (blocked) {
         console.warn(`[SAFETY] ${endpoint} blocked for ${uid}: ${reason}`);
         await flagForReview({ uid, reason, prompt, endpoint });
