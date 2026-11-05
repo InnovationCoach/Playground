@@ -11,6 +11,7 @@ import {
 } from '../firebase.js';
 import { WELEARN_DT_FRAMEWORK, LIBRARY_PROGRAMS, generateSearchTokens } from '../features/pbl/programs/libraryProgramsData.js';
 import { numberCourseSessions } from '../features/pbl/programs/sessionNumbering.js';
+import { programById } from '../features/pbl/programs/catalog.js';
 export { needsCourseNumbering } from '../features/pbl/programs/sessionNumbering.js';
 
 // ============================================================================
@@ -192,7 +193,7 @@ export function normaliseContractProgram(raw) {
     identity: raw.identity || {
       icon: 'Compass',
       tone: 'amber',
-      short: title.slice(0, 24)
+      short: raw.identity?.short || (title.length > 24 ? `${title.slice(0, 21)}…` : title)
     },
     issues: Array.isArray(raw.issues) ? raw.issues : []
   };
@@ -207,7 +208,13 @@ export async function getProgram(id) {
     return { status: 'not_found', program: null };
   }
 
-  // 1. Check Firestore pbl_programs collection
+  // 1. Check official library programs first (from catalog.js)
+  const official = programById(id);
+  if (official) {
+    return { status: 'found', program: official };
+  }
+
+  // 2. Check Firestore pbl_programs collection
   try {
     const snap = await getDoc(doc(db, 'pbl_programs', id));
     if (snap && (typeof snap.exists === 'function' ? snap.exists() : snap.exists)) {

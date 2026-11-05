@@ -26,8 +26,8 @@ export function useProgramProgress(uid, program) {
   const programId = program.id;
   const [progress, setProgress] = useState(() => readLocalProgress(uid, program) || hydrateProgress(null, program));
   const [syncState, setSyncState] = useState('idle');
-  const localTimer = useRef(null);
   const cloudTimer = useRef(null);
+  const fadeTimer = useRef(null);
   const docPath = `${uid}/activityProgress/${progressDocId(programId)}`;
 
   // Switching programs must not show the previous program's progress.
@@ -47,7 +47,13 @@ export function useProgramProgress(uid, program) {
         if (cancelled || !exists) return;
         const remote = hydrateProgress(snap.data(), program);
         const local = readLocalProgress(uid, program);
-        if (!local || (remote.updatedAt || 0) > (local.updatedAt || 0)) setProgress(remote);
+        const remoteHasSessions = Object.keys(remote?.sessions || {}).length > 0;
+        const localHasSessions = Object.keys(local?.sessions || {}).length > 0;
+
+        if (!local || (remote.updatedAt || 0) >= (local.updatedAt || 0) || (remoteHasSessions && !localHasSessions)) {
+          setProgress(remote);
+          try { localStorage.setItem(localKey(uid, programId), JSON.stringify(remote)); } catch { /* quota */ }
+        }
       } catch (err) {
         console.warn('[PBL] Could not load program progress:', err?.message);
         setSyncState('local-only');
@@ -59,11 +65,15 @@ export function useProgramProgress(uid, program) {
 
   useEffect(() => {
     if (!progress.updatedAt || progress.programId !== programId) return undefined;
-    clearTimeout(localTimer.current);
-    localTimer.current = setTimeout(() => {
-      try { localStorage.setItem(localKey(uid, programId), JSON.stringify(progress)); } catch { /* quota */ }
-    }, LOCAL_DEBOUNCE_MS);
-    if (!uid) return () => clearTimeout(localTimer.current);
+
+    // Save to localStorage immediately without debounce so navigating away or back never loses work.
+    try {
+      localStorage.setItem(localKey(uid, programId), JSON.stringify(progress));
+    } catch {
+      /* quota */
+    }
+
+    if (!uid) return undefined;
 
     clearTimeout(cloudTimer.current);
     cloudTimer.current = setTimeout(async () => {
@@ -71,14 +81,19 @@ export function useProgramProgress(uid, program) {
       try {
         await setDoc(doc(db, 'users', docPath), { ...progress, activityId: progressDocId(programId) });
         setSyncState('saved');
+        clearTimeout(fadeTimer.current);
+        fadeTimer.current = setTimeout(() => {
+          setSyncState('idle');
+        }, 2200);
       } catch (err) {
         console.warn('[PBL] Cloud save failed, keeping local copy:', err?.message);
         setSyncState('local-only');
       }
     }, CLOUD_DEBOUNCE_MS);
+
     return () => {
-      clearTimeout(localTimer.current);
       clearTimeout(cloudTimer.current);
+      clearTimeout(fadeTimer.current);
     };
   }, [progress, uid, programId, docPath]);
 

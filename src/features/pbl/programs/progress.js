@@ -19,6 +19,13 @@ const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
 
 export const progressDocId = (programId) => `pbl-program-${programId}`;
 
+let programLookup = null;
+
+/** Registry hook so progress can lookup session activities without circular dependencies. */
+export function registerProgramLookup(fn) {
+  programLookup = fn;
+}
+
 /**
  * `sessionKeys: 'course'` marks progress saved under course-wide session
  * numbers. Progress saved earlier for a course that had to be renumbered is
@@ -26,7 +33,7 @@ export const progressDocId = (programId) => `pbl-program-${programId}`;
  * asked to re-check rather than the app guessing.
  */
 export function newProgress(programId) {
-  return { version: 1, programId, sessionKeys: 'course', startedAt: null, sessions: {}, tools: {}, updatedAt: null };
+  return { version: 1, programId, sessionKeys: 'course', startedAt: null, sessions: {}, tools: {}, badges: [], updatedAt: null };
 }
 
 export const needsRecheck = (progress) => progress?.sessionKeys === 'legacy';
@@ -52,6 +59,7 @@ export function hydrateProgress(stored, program) {
       steps: [...new Set(Array.isArray(raw.steps) ? raw.steps.filter((i) => Number.isInteger(i) && i >= 0 && i < s.activities.length) : [])].sort((a, b) => a - b),
       confidence: Number.isInteger(raw.confidence) && raw.confidence >= 1 && raw.confidence <= 5 ? raw.confidence : null
     };
+    Object.defineProperty(entry, 'rawHasSteps', { value: Array.isArray(raw.steps), enumerable: false, writable: true });
     if (raw.submissions && typeof raw.submissions === 'object' && Object.keys(raw.submissions).length > 0) {
       entry.submissions = raw.submissions;
     }
@@ -63,6 +71,7 @@ export function hydrateProgress(stored, program) {
       if (/^[a-z0-9-]{1,40}$/.test(k) && v && typeof v === 'object' && JSON.stringify(v).length <= LIMITS.toolBytes) tools[k] = v;
     }
   }
+  const badges = Array.isArray(stored.badges) ? stored.badges.filter((b) => typeof b === 'string') : [];
   const legacy = stored.sessionKeys !== 'course' && program.renumbered === true && Object.keys(sessions).length > 0;
   return {
     ...base,
@@ -70,6 +79,7 @@ export function hydrateProgress(stored, program) {
     startedAt: Number.isFinite(stored.startedAt) ? stored.startedAt : null,
     sessions,
     tools,
+    badges,
     updatedAt: Number.isFinite(stored.updatedAt) ? stored.updatedAt : null
   };
 }
@@ -90,8 +100,24 @@ function patchSession(progress, n, patch, now) {
   return touch(progress, { sessions, startedAt: progress.startedAt || now }, now);
 }
 
-export function toggleSession(progress, n, now = Date.now()) {
-  return patchSession(progress, n, { done: !progress.sessions[n]?.done }, now);
+export function toggleSession(progress, sessionOrNum, now = Date.now()) {
+  const n = typeof sessionOrNum === 'object' ? sessionOrNum.sessionNumber : sessionOrNum;
+  let session = typeof sessionOrNum === 'object' ? sessionOrNum : null;
+  if (!session && programLookup && progress.programId) {
+    const prog = programLookup(progress.programId);
+    session = prog?.sessions?.find((s) => s.sessionNumber === n) || null;
+  }
+  const cur = progress.sessions[n];
+  const willBeDone = !cur?.done;
+  const patch = { done: willBeDone };
+  if (willBeDone) {
+    if (session?.activities?.length > 0) {
+      patch.steps = session.activities.map((_, i) => i);
+    }
+  } else {
+    patch.steps = [];
+  }
+  return patchSession(progress, n, patch, now);
 }
 
 /** Choosing the option already chosen clears it, like a pill toggle. */
@@ -111,7 +137,10 @@ export function toggleStep(progress, session, index, now = Date.now()) {
   if (!Number.isInteger(index) || index < 0 || index >= session.activities.length) return progress;
   const cur = progress.sessions[session.sessionNumber]?.steps || [];
   const steps = cur.includes(index) ? cur.filter((i) => i !== index) : [...cur, index].sort((a, b) => a - b);
-  return patchSession(progress, session.sessionNumber, { steps }, now);
+  const allStepsDone = session.activities.length > 0 && steps.length === session.activities.length;
+  const hasEvidence = Boolean(progress.sessions[session.sessionNumber]?.submissions && Object.keys(progress.sessions[session.sessionNumber].submissions).length > 0);
+  const done = allStepsDone || hasEvidence;
+  return patchSession(progress, session.sessionNumber, { steps, done }, now);
 }
 
 /** 1 (not yet) to 5 (I could teach it); picking the same value again clears it. */
@@ -126,7 +155,32 @@ export function setSubmission(progress, n, kind, value, now = Date.now()) {
   const prev = progress.sessions[n] || { done: false, choice: null, reflection: '', steps: [], confidence: null, submissions: {} };
   const prevSubmissions = prev.submissions || {};
   const nextSubmissions = { ...prevSubmissions, [kind]: { url: str(value, 500), submittedAt: now } };
-  return patchSession(progress, n, { submissions: nextSubmissions }, now);
+  return patchSession(progress, n, { submissions: nextSubmissions, done: true }, now);
+}
+
+/** Remove one multi-modal submission, recalculating completion status. */
+export function removeSubmission(progress, n, kind, now = Date.now(), session = null) {
+  const prev = progress.sessions[n] || { done: false, choice: null, reflection: '', steps: [], confidence: null, submissions: {} };
+  const prevSubmissions = { ...(prev.submissions || {}) };
+  delete prevSubmissions[kind];
+  let s = session;
+  if (!s && programLookup && progress.programId) {
+    const prog = programLookup(progress.programId);
+    s = prog?.sessions?.find((x) => x.sessionNumber === n) || null;
+  }
+  const totalSteps = s?.activities?.length || 0;
+  const allStepsDone = totalSteps > 0 && (prev.steps || []).length === totalSteps;
+  const hasEvidence = Object.keys(prevSubmissions).length > 0;
+  const done = (allStepsDone || hasEvidence);
+  return patchSession(progress, n, { submissions: prevSubmissions, done }, now);
+}
+
+/** Persistently record an unlocked badge so it is never revoked when tool state changes. */
+export function unlockBadge(progress, badgeId, now = Date.now()) {
+  if (!badgeId || typeof badgeId !== 'string') return progress;
+  const cur = Array.isArray(progress.badges) ? progress.badges : [];
+  if (cur.includes(badgeId)) return progress;
+  return touch(progress, { badges: [...cur, badgeId] }, now);
 }
 
 /** Replace one tool's saved state. The tool cleans its own data before saving. */
@@ -135,15 +189,31 @@ export function setTool(progress, toolId, data, now = Date.now()) {
   return touch(progress, { tools: { ...progress.tools, [toolId]: data }, startedAt: progress.startedAt || now }, now);
 }
 
+/**
+ * A session counts as done only when its steps or evidence are done.
+ */
+export function isSessionDone(entry, session) {
+  if (!entry?.done) return false;
+  const totalSteps = session?.activities?.length || 0;
+  if (totalSteps === 0) return true;
+  const hasEvidence = Boolean(entry.submissions && Object.keys(entry.submissions).length > 0);
+  if (hasEvidence) return true;
+  if (entry.rawHasSteps === true && Array.isArray(entry.steps) && entry.steps.length === 0) {
+    return false;
+  }
+  return true;
+}
+
 /** Summary for meters and the "next up" pointer. */
 export function programProgress(progress, program) {
   const total = program.sessions.length;
-  const done = program.sessions.filter((s) => progress.sessions[s.sessionNumber]?.done).length;
-  const next = program.sessions.find((s) => !progress.sessions[s.sessionNumber]?.done) || null;
+  const isDone = (s) => isSessionDone(progress.sessions[s.sessionNumber], s);
+  const done = program.sessions.filter(isDone).length;
+  const next = program.sessions.find((s) => !isDone(s)) || null;
   const byPhase = Object.fromEntries(program.phases.map((ph) => {
     const n = ph.sessions.length;
-    const d = ph.sessions.filter((s) => progress.sessions[s.sessionNumber]?.done).length;
-    return [ph.id, { done: d, total: n, complete: n > 0 && d === n }];
+    const d = ph.sessions.filter(isDone).length;
+    return [ph.id || ph.phaseId, { done: d, total: n, complete: n > 0 && d === n }];
   }));
   return { done, total, pct: total ? Math.round((done / total) * 100) : 0, next, byPhase };
 }

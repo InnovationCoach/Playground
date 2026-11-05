@@ -3,7 +3,8 @@ import { Plus, Trash2, Play, Pause, RotateCcw, Square, SkipForward, Volume2, Cro
 import {
   BADGES, PRESETS, FRICTION_MAX, cleanFriction, isCompleteFriction, frictionScore, topFrictions,
   CRAZY8_PANELS, CRAZY8_SECONDS, cleanCrazy8, crazy8Done, presetEconomics, cleanEconomics, unitEconomics, COST_ITEMS_MAX,
-  PITCH_BLOCKS, PITCH_SECONDS, QA_SECONDS, QA_QUESTIONS, cleanPitch, runOnTime, earnedBadges, founderXp, founderLevel, autoBadge
+  PITCH_BLOCKS, PITCH_SECONDS, QA_SECONDS, QA_QUESTIONS, cleanPitch, runOnTime, earnedBadges, founderXp, founderLevel, autoBadge,
+  cleanInterviews, isCompleteInterview, INTERVIEW_MAX
 } from './entrepreneurship.js';
 import { confettiFrom, buzz } from '../../../goals/celebrate.js';
 import { beep } from './sound.js';
@@ -31,11 +32,17 @@ function useClock(running) {
     return () => clearInterval(id);
   }, [running]); // eslint-disable-line react-hooks/exhaustive-deps
   const reset = () => { base.current = 0; start.current = running ? performance.now() : null; setElapsed(0); };
-  return [elapsed, reset];
+  const advanceTo = (sec) => {
+    base.current = sec;
+    start.current = running ? performance.now() : null;
+    setElapsed(sec);
+  };
+  return [elapsed, reset, advanceTo];
 }
 
 export function ToolFor({ id, data, save }) {
   if (id === 'friction-log') return <FrictionLogger data={data} save={save} />;
+  if (id === 'unbiased-listener') return <UnbiasedListener data={data} save={save} />;
   if (id === 'crazy-8s') return <Crazy8s data={data} save={save} />;
   if (id === 'unit-economics') return <UnitEconomicsLab data={data} save={save} />;
   if (id === 'pitch-timer') return <PitchArena data={data} save={save} />;
@@ -138,11 +145,109 @@ function FrictionMatrix({ entries, top }) {
         })}
       </svg>
       <figcaption>
-        <strong>Your top 2</strong>
+        <strong>{top.length === 1 ? 'Your top 1' : 'Your top 2'}</strong>
         <ol>{top.map((id) => { const e = entries.find((x) => x.id === id); return <li key={id}>{e.context} <small>score {frictionScore(e)}</small></li>; })}</ol>
+        {entries.length === 1 && <p className="pt-hint">Log at least 1 more complete friction to rank your top 2 candidates.</p>}
         <small>Score = how annoying × how often. These go into your empathy interviews.</small>
       </figcaption>
     </figure>
+  );
+}
+
+/* ------------------------------------------- Customer Empathy Interviews (Mom Test) */
+
+function UnbiasedListener({ data, save }) {
+  const d = cleanInterviews(data);
+  const complete = d.entries.filter(isCompleteInterview).length;
+  const set = (entries) => save({ entries });
+  const patch = (id, p) => set(d.entries.map((e) => (e.id === id ? { ...e, ...p } : e)));
+  const add = () => set([...d.entries, {
+    id: `int_${Date.now().toString(36)}`,
+    interviewee: '',
+    pastBehavior: '',
+    workaround: '',
+    quote: '',
+    painScore: 3
+  }]);
+
+  return (
+    <div className="pt-tool">
+      <div className="pt-tool-head">
+        <span className="pt-badge-progress">🎙️ {Math.min(complete, 5)} of 5 complete interviews for <strong>The Unbiased Listener</strong></span>
+        <span className="pb-meter pt-meter" aria-hidden="true"><span style={{ width: `${Math.min(100, complete * 20)}%` }} /></span>
+      </div>
+
+      <div className="pt-momtest-box" style={{ background: 'var(--gh-subtle)', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.82rem', border: '1px solid var(--gh-border)' }}>
+        <strong style={{ color: 'var(--gh-heading)', display: 'block', marginBottom: '0.25rem' }}>The Mom Test Golden Rules:</strong>
+        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--gh-text-2)' }}>
+          <li>Talk about their life and past behavior, not your opinions or idea.</li>
+          <li>Ask about specific instances in the past (&ldquo;Tell me about the last time that happened...&rdquo;).</li>
+          <li>Look for existing workarounds &amp; effort. If they haven&apos;t tried to fix it, it&apos;s not a real problem.</li>
+        </ul>
+      </div>
+
+      {d.entries.length === 0 && (
+        <p className="pt-empty">No interviews logged yet. Interview 5 target users affected by the problem to validate real-world pain.</p>
+      )}
+
+      <div className="pt-interview-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {d.entries.map((e, i) => (
+          <div key={e.id} className="pt-interview-card" style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--gh-border)', background: 'var(--gh-surface)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <strong style={{ fontSize: '0.85rem' }}>Interview {i + 1} {isCompleteInterview(e) && <span style={{ color: 'var(--gh-green-text)', fontSize: '0.78rem' }}>✓ Complete</span>}</strong>
+              <button type="button" className="gh-btn gh-btn-ghost gh-btn-sm pt-icon" aria-label={`Remove interview ${i + 1}`} onClick={() => set(d.entries.filter((x) => x.id !== e.id))}>
+                <Trash2 size={15} aria-hidden="true" />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.5rem' }}>
+              <input
+                className="gh-input"
+                value={e.interviewee}
+                maxLength={80}
+                placeholder="Interviewee (e.g. Somchai, Grade 10 commuter)"
+                aria-label={`Interview ${i + 1}: Interviewee`}
+                onChange={(ev) => patch(e.id, { interviewee: ev.target.value })}
+              />
+              <Scale label="Pain intensity?" value={e.painScore} faces={PAIN} onChange={(v) => patch(e.id, { painScore: v })} />
+            </div>
+
+            <input
+              className="gh-input"
+              value={e.pastBehavior}
+              maxLength={200}
+              placeholder="When was the last time this problem occurred? What happened?"
+              aria-label={`Interview ${i + 1}: Past behavior story`}
+              onChange={(ev) => patch(e.id, { pastBehavior: ev.target.value })}
+            />
+
+            <input
+              className="gh-input"
+              value={e.workaround}
+              maxLength={200}
+              placeholder="What current workaround or fix did they try?"
+              aria-label={`Interview ${i + 1}: Current workaround`}
+              onChange={(ev) => patch(e.id, { workaround: ev.target.value })}
+            />
+
+            <input
+              className="gh-input"
+              value={e.quote}
+              maxLength={200}
+              placeholder="Direct memorable quote (&ldquo;...&rdquo;)"
+              aria-label={`Interview ${i + 1}: Direct quote`}
+              onChange={(ev) => patch(e.id, { quote: ev.target.value })}
+            />
+          </div>
+        ))}
+      </div>
+
+      {d.entries.length < INTERVIEW_MAX && (
+        <button type="button" className="gh-btn gh-btn-sm" onClick={add} style={{ alignSelf: 'flex-start' }}>
+          <Plus size={15} aria-hidden="true" />Log an interview
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -209,9 +314,37 @@ function Crazy8s({ data, save }) {
 function UnitEconomicsLab({ data, save }) {
   const d = cleanEconomics(data);
   const r = unitEconomics(d);
+  const [costError, setCostError] = useState(null);
   const set = (p) => save({ ...d, ...p });
   const setItem = (i, p) => set({ items: d.items.map((it, j) => (j === i ? { ...it, ...p } : it)) });
   const [lo, hi] = r.band;
+
+  const handleCostChange = (i, rawVal) => {
+    if (rawVal.includes('-') || Number(rawVal) < 0) {
+      setCostError('Costs cannot be negative.');
+      return;
+    }
+    setCostError(null);
+    setItem(i, { cost: rawVal });
+  };
+
+  const handleFixedCostChange = (rawVal) => {
+    if (rawVal.includes('-') || Number(rawVal) < 0) {
+      setCostError('Startup costs cannot be negative.');
+      return;
+    }
+    setCostError(null);
+    set({ fixedTHB: rawVal });
+  };
+
+  const handleCashChange = (rawVal) => {
+    if (rawVal.includes('-') || Number(rawVal) < 0) {
+      setCostError('Starting cash cannot be negative.');
+      return;
+    }
+    setCostError(null);
+    set({ cashTHB: rawVal });
+  };
 
   return (
     <div className="pt-tool">
@@ -239,12 +372,13 @@ function UnitEconomicsLab({ data, save }) {
 
           <fieldset className="pt-fieldset">
             <legend>1. Cost of one unit (COGS)</legend>
+            {costError && <p className="pt-warn" role="alert" style={{ margin: '0.2rem 0' }}>{costError}</p>}
             {d.items.map((it, i) => (
               <div key={i} className="pt-cost-row">
                 <input className="gh-input" value={it.name} maxLength={60} placeholder="Item, e.g. zipper" aria-label={`Cost item ${i + 1}`}
                        onChange={(e) => setItem(i, { name: e.target.value })} />
                 <label className="pt-num"><input className="gh-input" type="number" min="0" step="0.5" value={it.cost} aria-label={`Cost of item ${i + 1} in baht`}
-                       onChange={(e) => setItem(i, { cost: e.target.value })} /><span>THB</span></label>
+                       onChange={(e) => handleCostChange(i, e.target.value)} /><span>THB</span></label>
                 <button type="button" className="gh-btn gh-btn-ghost gh-btn-sm pt-icon" aria-label={`Remove cost item ${i + 1}`}
                         onClick={() => set({ items: d.items.filter((_, j) => j !== i) })}><Trash2 size={14} aria-hidden="true" /></button>
               </div>
@@ -270,9 +404,9 @@ function UnitEconomicsLab({ data, save }) {
           <fieldset className="pt-fieldset pt-grid2">
             <legend>3. Startup and market</legend>
             <label className="pt-field"><span>One-time startup costs</span>
-              <span className="pt-num"><input className="gh-input" type="number" min="0" value={d.fixedTHB} onChange={(e) => set({ fixedTHB: e.target.value })} /><span>THB</span></span></label>
+              <span className="pt-num"><input className="gh-input" type="number" min="0" value={d.fixedTHB} onChange={(e) => handleFixedCostChange(e.target.value)} /><span>THB</span></span></label>
             <label className="pt-field"><span>Starting cash</span>
-              <span className="pt-num"><input className="gh-input" type="number" min="0" value={d.cashTHB} onChange={(e) => set({ cashTHB: e.target.value })} /><span>THB</span></span></label>
+              <span className="pt-num"><input className="gh-input" type="number" min="0" value={d.cashTHB} onChange={(e) => handleCashChange(e.target.value)} /><span>THB</span></span></label>
             <label className="pt-field pt-span2"><span>Sales per week: {d.demandWeekly}</span>
               <input type="range" min="0" max="100" value={d.demandWeekly} onChange={(e) => set({ demandWeekly: Number(e.target.value) })} /></label>
           </fieldset>
@@ -308,22 +442,24 @@ function Tile({ label, value, strong }) {
 }
 
 function CashChart({ cash }) {
-  const W = 320; const H = 150; const pad = 26;
+  const W = 320; const H = 150; const pad = 34;
   const min = Math.min(0, ...cash); const max = Math.max(1, ...cash);
   const x = (i) => pad + (i / (cash.length - 1)) * (W - pad - 22);
-  const y = (v) => 8 + (1 - (v - min) / (max - min || 1)) * (H - pad - 8);
+  const y = (v) => 10 + (1 - (v - min) / (max - min || 1)) * (H - pad - 10);
   const line = cash.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
   return (
     <figure className="pt-chart">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Cash over the 12-week term: starts at ${baht(cash[0])}, ends at ${baht(cash.at(-1))}.`}>
+        <text x={pad - 4} y={14} textAnchor="end" className="pt-axis">{Math.round(max).toLocaleString()}</text>
         <line x1={pad} x2={W - 22} y1={y(0)} y2={y(0)} className="pt-zero" />
         <text x={pad - 4} y={y(0) + 4} textAnchor="end" className="pt-axis">0</text>
+        {min < 0 && <text x={pad - 4} y={H - pad + 6} textAnchor="end" className="pt-axis">{Math.round(min).toLocaleString()}</text>}
         <path d={`${line} L${x(cash.length - 1)},${y(0)} L${x(0)},${y(0)} Z`} className="pt-area" />
         <path d={line} className="pt-line" />
         {cash.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r={2.5} className={v >= 0 ? 'pt-pt' : 'pt-pt is-neg'} />)}
         {[0, 4, 8, 12].map((w) => <text key={w} x={x(w)} y={H - 6} textAnchor="middle" className="pt-axis">wk {w}</text>)}
       </svg>
-      <figcaption>Cash in hand each week, after paying startup costs in week 0.</figcaption>
+      <figcaption>Cash in hand each week, after paying startup costs in week 0 (THB).</figcaption>
     </figure>
   );
 }
@@ -335,7 +471,7 @@ const canSpeak = () => typeof window !== 'undefined' && 'speechSynthesis' in win
 function PitchArena({ data, save }) {
   const d = cleanPitch(data);
   const [running, setRunning] = useState(false);
-  const [elapsed, reset] = useClock(running);
+  const [elapsed, reset, advanceTo] = useClock(running);
   const [block, setBlock] = useState(0);
   const [block2At, setBlock2At] = useState(null);
   const [last, setLast] = useState(null);
@@ -348,7 +484,13 @@ function PitchArena({ data, save }) {
   function next() {
     if (block < PITCH_BLOCKS.length - 1) {
       if (block === 0) setBlock2At(Math.round(elapsed));
-      setBlock(block + 1); beep(660, 0.12);
+      const nextBlock = block + 1;
+      const nextBlockStart = cum[block];
+      if (elapsed < nextBlockStart) {
+        advanceTo(nextBlockStart);
+      }
+      setBlock(nextBlock);
+      beep(660, 0.12);
     } else stop();
   }
   function stop() {
@@ -415,7 +557,7 @@ function QaDrill({ d, save }) {
   const [q, setQ] = useState(null);
   const [running, setRunning] = useState(false);
   const [elapsed, reset] = useClock(running);
-  const [voice, setVoice] = useState(true);
+  const [voice, setVoice] = useState(false);
   const avg = d.answers.length ? Math.round(d.answers.reduce((s, a) => s + a, 0) / d.answers.length) : null;
 
   useEffect(() => { if (running && elapsed >= QA_SECONDS) { beep(330, 0.3); } }, [running, elapsed >= QA_SECONDS]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -283,3 +283,29 @@ button.pg-choice:hover { border-color: var(--gh-purple); }
 /* Missions carry tools, so they get the room; the phase cards move below on smaller screens. */
 .pg-detail .pb-phase-grid { grid-template-columns: minmax(0, 1.8fr) minmax(240px, 1fr); }
 @media (max-width: 1180px) { .pg-detail .pb-phase-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Styled save status pill indicator */
+.pb-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--gh-green-50, rgba(46, 160, 67, 0.15));
+  color: var(--gh-green-text, #3fb950);
+  border: 1px solid var(--gh-green, rgba(46, 160, 67, 0.3));
+  margin: 0.5rem 0;
+  transition: opacity 0.3s ease;
+}
+.pb-sync-pill.is-warn {
+  background: var(--gh-amber-50, rgba(210, 153, 34, 0.15));
+  color: var(--gh-amber-text, #d29922);
+  border-color: var(--gh-amber, rgba(210, 153, 34, 0.3));
+}
+
+.pb-term-strip-btn:hover span {
+  text-decoration: underline;
+}
+

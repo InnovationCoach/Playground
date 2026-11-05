@@ -76,10 +76,11 @@ export const MARGIN_BANDS = { physical: [50, 65], digital: [70, 85] };
 export const COST_ITEMS_MAX = 10;
 
 export function presetEconomics(preset) {
+  const shortName = (preset.name || 'Product').replace(/\s*\(.*\)$/, '').trim();
   return {
     presetId: preset.id,
     track: preset.track,
-    items: [{ name: 'Materials for one unit', cost: preset.unitFloorCostTHB }],
+    items: [{ name: `${shortName} materials`, cost: preset.unitFloorCostTHB }],
     marginPct: preset.targetGrossMarginPct,
     fixedTHB: preset.fixedStartupExpenseTHB,
     cashTHB: preset.starterCashTHB,
@@ -167,6 +168,25 @@ export function cleanPitch(d) {
 /** A run is "on time" within 10 seconds of 3:00, with the demo starting by 0:45. */
 export const runOnTime = (r) => Math.abs(r.totalSec - PITCH_SECONDS) <= 10 && r.block2AtSec != null && r.block2AtSec <= 45;
 
+/* --------------------------------------------------- Customer empathy interviews */
+
+export const INTERVIEW_MAX = 10;
+
+export function cleanInterviews(d) {
+  const entries = (Array.isArray(d?.entries) ? d.entries : []).slice(0, INTERVIEW_MAX).map((e, i) => ({
+    id: str(e?.id, 30) || `int_${i}`,
+    interviewee: str(e?.interviewee, 80),
+    pastBehavior: str(e?.pastBehavior, 200),
+    workaround: str(e?.workaround, 200),
+    quote: str(e?.quote, 200),
+    painScore: int(e?.painScore, 1, 5)
+  }));
+  return { entries };
+}
+
+export const isCompleteInterview = (e) =>
+  Boolean(e.interviewee?.trim() && e.pastBehavior?.trim() && e.quote?.trim() && e.painScore);
+
 /* ----------------------------------------------------------------- Badges */
 
 /** Badges a tool can verify, and how. The rest are awarded by a coach. */
@@ -184,7 +204,13 @@ export const autoBadge = (id) => id in AUTO;
 
 export function earnedBadges(progress) {
   const tools = progress?.tools || {};
-  return BADGES.filter((b) => AUTO[b.id]?.(tools)).map((b) => b.id);
+  const persisted = new Set(Array.isArray(progress?.badges) ? progress.badges : []);
+  for (const b of BADGES) {
+    if (AUTO[b.id]?.(tools)) {
+      persisted.add(b.id);
+    }
+  }
+  return [...persisted];
 }
 
 export function founderXp(progress, program) {
@@ -201,11 +227,23 @@ export function founderLevel(xp) {
 }
 
 /** Which tool belongs in which session. */
-export const SESSION_TOOLS = { 1: 'friction-log', 2: 'friction-log', 7: 'crazy-8s', 13: 'unit-economics', 14: 'unit-economics', 16: 'pitch-timer', 17: 'pitch-timer' };
+export const SESSION_TOOLS = {
+  1: 'friction-log',
+  2: 'unbiased-listener',
+  3: 'unbiased-listener',
+  4: 'unbiased-listener',
+  7: 'crazy-8s',
+  8: 'crazy-8s',
+  13: 'unit-economics',
+  14: 'unit-economics',
+  16: 'pitch-timer',
+  17: 'pitch-timer'
+};
 
 export const TOOLS = [
-  { id: 'friction-log', emoji: '🔍', title: 'Friction Logger', blurb: 'Log everyday annoyances, then let the matrix show your top 2.', sessions: [1, 2] },
-  { id: 'crazy-8s', emoji: '⚡', title: 'Crazy 8s Sprint', blurb: '8 ideas in 8 minutes, with a timer that keeps you moving.', sessions: [7] },
+  { id: 'friction-log', emoji: '🔍', title: 'Friction Logger', blurb: 'Log everyday annoyances, then let the matrix show your top 2.', sessions: [1] },
+  { id: 'unbiased-listener', emoji: '🎙️', title: 'The Unbiased Listener', blurb: 'Mom Test customer empathy interviews: past behavior, real quotes, zero leading questions.', sessions: [2, 3, 4] },
+  { id: 'crazy-8s', emoji: '⚡', title: 'Crazy 8s Sprint', blurb: '8 ideas in 8 minutes, with a timer that keeps you moving.', sessions: [7, 8] },
   { id: 'unit-economics', emoji: '📊', title: 'Unit Economics Lab', blurb: 'Cost, price, margin and break-even in Thai Baht, live.', sessions: [13, 14] },
   { id: 'pitch-timer', emoji: '🎤', title: 'Pitch Arena', blurb: 'A 3-minute, 4-block pitch timer and a 20-second Q&A drill.', sessions: [16, 17] }
 ];
