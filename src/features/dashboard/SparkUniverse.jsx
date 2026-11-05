@@ -3,6 +3,7 @@ import { lazy, Suspense, useState } from 'react';
 import { hrefFor } from '../../app/routes.js';
 import { splitGoals } from './slideModel.js';
 import { PUBLISHED_PILOT_RELEASES } from '../universe/pilot/publishedRegistry.js';
+const FirstContactJourney = lazy(() => import('../universe/firstContact/FirstContactJourney.jsx'));
 const MyUniverseExplorer = lazy(() => import('../universe/explore/MyUniverseExplorer.jsx').then(m => ({ default: m.MyUniverseExplorer })));
 
 const EXPEDITIONS = [
@@ -22,10 +23,19 @@ const STARS = (() => {
 // The earlier SVG island prototype stays in src/features/universe/ (preview: tests/universe-preview/index.html)
 // but is not offered to learners: the approved vision replaced the island with the deep-space explorer.
 export function SparkUniverse({ prefs, plan, uid, orgId, onPersonalise, active = true, onOpenActivity }) {
+  const [journeyOpen, setJourneyOpen] = useState(false);
   const [explorerOpen, setExplorerOpen] = useState(false);
   const [arrival, setArrival] = useState(null);
   const achieved = splitGoals(plan).completed.slice(0, 6);
   return <>
+    {journeyOpen && <Suspense fallback={<p role="status">Preparing your expedition…</p>}><FirstContactJourney key={`${uid||'guest'}|${orgId||''}`} onClose={()=>setJourneyOpen(false)}/></Suspense>}
+    <section className="ig-plate" style={{marginBottom:20}} aria-label="Ship and base expeditions">
+      <span className="sd-eyebrow">My Universe · Grades 6–12</span>
+      <h3>Build your ship. Establish your base.</h3>
+      <p>Meet the Tidekeepers, assemble a 3D spacecraft, and land on worlds with different terrain, atmospheres and gravity. Use scientific evidence to unlock your base.</p>
+      <button type="button" className="sd-primary" onClick={()=>setJourneyOpen(true)}>Start ship & base expedition <ArrowRight size={17}/></button>
+      <p className="sd-caption">Practice missions with NGSS learning targets. Progress and rewards last for this visit; they do not change assessed course results.</p>
+    </section>
     {explorerOpen && <Suspense fallback={<p role="status">Opening My Universe…</p>}>
       <MyUniverseExplorer
         preview={true}
@@ -92,7 +102,7 @@ export function SparkUniverse({ prefs, plan, uid, orgId, onPersonalise, active =
     <section className="ig-bays" aria-label="Future optional features (not active)">
       <div className="ig-bay"><Gamepad2 size={22} aria-hidden="true" /><div><strong>Optional games</strong><span>Not active · planned</span></div></div>
       <div className="ig-bay"><Bot size={22} aria-hidden="true" /><div><strong>AI companion</strong><span>Not active · planned</span></div></div>
-      <p className="sd-caption">No XP, rewards, unlocks or companion features are active. If optional extras arrive, your learning tools always stay available.</p>
+      <p className="sd-caption">Ship and base expeditions offer visit-only practice rewards. These future features remain inactive; your learning tools stay available.</p>
     </section>
     <a className="sd-link" href={hrefFor.goals()}>Mark a goal achieved in Goal Setting <ArrowRight size={16} /></a>
   </>;
