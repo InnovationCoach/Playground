@@ -107,14 +107,31 @@ export function useClassLearners(classId, { includeTest = false, fallbackClassId
         if (STAFF_ROLES.has(role)) return;
         if (role && role !== 'learner' && role !== 'student') return;
 
+        // Status check: must be active
+        if (data.status && data.status !== 'active') return;
+
         // Filter out test accounts unless explicitly enabled
-        if (!includeTest && (data.isTest === true || data.email?.includes('test@school.edu') || data.email?.includes('test.'))) {
+        const isTestAccount = Boolean(
+          data.isTest === true ||
+          data.status === 'archived' ||
+          data.email?.includes('test@school.edu') ||
+          data.email?.includes('test.') ||
+          data.email?.includes('@hearisland-test.org')
+        );
+
+        if (!includeTest && isTestAccount) {
           return;
         }
 
-        const rawTraits = Array.isArray(data.diagnosisTraits) ? data.diagnosisTraits : (data.diagnosisTraits ? [data.diagnosisTraits] : ['Gifted Inquiry', 'Kinesthetic Prototyper']);
-        const rawHurdles = Array.isArray(data.executiveFunctionHurdles) ? data.executiveFunctionHurdles : (data.executiveFunctionHurdles ? [data.executiveFunctionHurdles] : ['Task initiation on unstructured prompts']);
-        const rawPassions = Array.isArray(data.consumingPassions) ? data.consumingPassions.join(', ') : (data.consumingPassions || 'Hands-on Making, Robotics');
+        const rawTraits = Array.isArray(data.diagnosisTraits)
+          ? data.diagnosisTraits
+          : (data.diagnosisTraits ? [data.diagnosisTraits] : []);
+        const rawHurdles = Array.isArray(data.executiveFunctionHurdles)
+          ? data.executiveFunctionHurdles
+          : (data.executiveFunctionHurdles ? [data.executiveFunctionHurdles] : []);
+        const rawPassions = Array.isArray(data.consumingPassions)
+          ? data.consumingPassions.join(', ')
+          : (data.consumingPassions || data.interests || '');
 
         list.push({
           id: docSnap.id,
@@ -129,16 +146,14 @@ export function useClassLearners(classId, { includeTest = false, fallbackClassId
           cohort: data.cohortId || data.cohort || 'cohort-w2e',
           cohortId: data.cohortId || data.cohort || 'cohort-w2e',
           ageBand: data.ageBand || '11-16',
-          isTest: Boolean(data.isTest),
-          // Synthetic / seed traits for 2e scaffolding compatibility
+          isTest: isTestAccount,
+          status: data.status || 'active',
           diagnosisTraits: rawTraits,
           traitBadges: Array.isArray(data.traitBadges) && data.traitBadges.length > 0 ? data.traitBadges : rawTraits,
           consumingPassions: rawPassions,
           executiveFunctionHurdles: rawHurdles,
           hurdleBadges: Array.isArray(data.hurdleBadges) && data.hurdleBadges.length > 0 ? data.hurdleBadges : rawHurdles,
-          appliedAccommodations: Array.isArray(data.appliedAccommodations) && data.appliedAccommodations.length > 0
-            ? data.appliedAccommodations
-            : ['Micro-deadlines with visible 15-minute countdown timers', 'Multi-modal deliverables (GitHub & 60s demo videos instead of essays)']
+          appliedAccommodations: Array.isArray(data.appliedAccommodations) ? data.appliedAccommodations : []
         });
       });
 

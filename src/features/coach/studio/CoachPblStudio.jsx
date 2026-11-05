@@ -5,7 +5,7 @@ import {
   Layers, Video, GitBranch, Box, RefreshCw, Eye, Check, Clock, ShieldCheck, Link2,
   Globe, Search, Sun, Moon
 } from 'lucide-react';
-import { STUDENT_2E_PROFILES, UNIVERSAL_LEARNER, getLearnerById } from './learnerProfiles.js';
+import { UNIVERSAL_LEARNER } from './learnerProfiles.js';
 import { useCoachClasses, useClassLearners } from './useCoachStudioData.js';
 import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from './groundingSources.js';
 import { synthesizeGroundedUnit } from './pblSynthesizer.js';
@@ -13,7 +13,7 @@ import { publishAndTransferToStudent, publishProgramToCatalog } from './pblTrans
 import { LearnerSupervisionView } from '../supervision/LearnerSupervisionView.jsx';
 import { CourseStudioPanel } from './CourseStudioPanel.jsx';
 import { EvaluationDeskView } from '../evaluation/EvaluationDeskView.jsx';
-import { getEvaluations } from '../evaluation/evaluationsStore.js';
+import { fetchSubmissions } from '../evaluation/evaluationsStore.js';
 import { EdmentumIntegrationConsole } from '../../edmentum/EdmentumIntegrationConsole.jsx';
 import { hrefFor } from '../../../app/routes.js';
 import { confettiFrom, buzz } from '../../goals/celebrate.js';
@@ -25,14 +25,23 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const { effectiveTheme, setUserTheme } = useTheme();
   // Top-level Navigation Workspace Tab: 'supervision' | 'evaluation' | 'studio'
   const [workspaceTab, setWorkspaceTab] = useState(initialTab);
-  const [evalList, setEvalList] = useState(() => getEvaluations());
+  const [evalList, setEvalList] = useState([]);
   const pendingCount = useMemo(() => evalList.filter((e) => e.status === 'pending').length, [evalList]);
 
   useEffect(() => {
-    const onEvalsUpdated = () => setEvalList(getEvaluations());
-    window.addEventListener('hearisland-evaluations-updated', onEvalsUpdated);
-    return () => window.removeEventListener('hearisland-evaluations-updated', onEvalsUpdated);
-  }, []);
+    let isMounted = true;
+    const loadEvals = async () => {
+      const classIds = Array.isArray(coachUser?.classIds) ? coachUser.classIds : [];
+      const list = await fetchSubmissions({ classIds });
+      if (isMounted) setEvalList(list);
+    };
+    loadEvals();
+    window.addEventListener('hearisland-evaluations-updated', loadEvals);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('hearisland-evaluations-updated', loadEvals);
+    };
+  }, [coachUser?.classIds]);
 
   // Real Classes & Real Learners from Firestore
   const { classes: coachClasses } = useCoachClasses(coachUser);
@@ -41,8 +50,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const { learners: realLearners } = useClassLearners(selectedClassId, { includeTest: showTestLearners });
 
   const availableLearners = useMemo(() => {
-    if (realLearners.length > 0) return [UNIVERSAL_LEARNER, ...realLearners];
-    return STUDENT_2E_PROFILES;
+    return [UNIVERSAL_LEARNER, ...realLearners];
   }, [realLearners]);
 
   // Column 1 State
@@ -62,7 +70,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const learner = useMemo(() => {
     const found = availableLearners.find((l) => (l.id === selectedLearnerId || l.uid === selectedLearnerId));
     if (found) return found;
-    return availableLearners[0] || getLearnerById('student-liam-chen');
+    return availableLearners[0] || UNIVERSAL_LEARNER;
   }, [availableLearners, selectedLearnerId]);
 
   const traitBadges = useMemo(() => {
@@ -329,7 +337,8 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
       {/* Tab 1: Learner Supervision */}
       {workspaceTab === 'supervision' && (
         <LearnerSupervisionView
-          learners={availableLearners}
+          learners={realLearners}
+          submissions={evalList}
           onSelectLearnerForStudio={(learnerId) => {
             setSelectedLearnerId(learnerId);
             setWorkspaceTab('studio');

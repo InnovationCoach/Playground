@@ -112,14 +112,14 @@ export function EdmentumIntegrationConsole({ coachUser }) {
 
   const handleSimulatePassback = (course) => {
     const scoreVal = Math.floor(Math.random() * 11) + 88; // 88 - 98
-    const studentUid = 'student-liam-chen';
+    const studentUid = 'learner-simulated';
     recordAgsScore(studentUid, {
       courseId: course.id,
       title: `${course.title}: Unit Mastery Test`,
       scoreGiven: scoreVal,
       scoreMaximum: 100
     });
-    setPassbackStatus(`✅ Simulated AGS score passback: ${scoreVal}/100 recorded for Liam Chen in "${course.title}"!`);
+    setPassbackStatus(`✅ Simulated AGS score passback: ${scoreVal}/100 recorded for learner in "${course.title}"!`);
     buzz([20, 40]);
     setTimeout(() => setPassbackStatus(null), 5000);
   };

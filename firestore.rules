@@ -1119,6 +1119,39 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // Submissions: Learner work and coach evaluations
+    // ---------------------------------------------------------------------
+    match /submissions/{submissionId} {
+      allow read: if (isAuthenticated() && resource.data.studentId == request.auth.uid)
+        || (isTeacher() && myClassIds().hasAny([resource.data.classId]))
+        || isAdminOrSupervisor();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.studentId == request.auth.uid
+        && inClass(request.resource.data.classId)
+        && request.resource.data.get('status', 'pending') == 'pending'
+        && request.resource.data.get('xpAwarded', 0) == 0
+        && request.resource.data.get('coachFeedback', '') == ''
+        && request.resource.data.get('evaluatedBy', null) == null
+        && request.resource.data.get('evaluatedAt', null) == null
+        && request.resource.data.activityId is string
+        && request.resource.data.createdAt is number;
+
+      allow update: if isTeacher()
+        && myClassIds().hasAny([resource.data.classId])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'coachFeedback', 'xpAwarded', 'evaluatedBy', 'evaluatedAt'])
+        && request.resource.data.status in ['pending', 'approved', 'revision_requested']
+        && request.resource.data.evaluatedBy == request.auth.uid
+        && request.resource.data.xpAwarded is int
+        && request.resource.data.coachFeedback is string;
+
+      allow delete: if isAdminOrSupervisor()
+        || (isAuthenticated()
+            && resource.data.studentId == request.auth.uid
+            && resource.data.status == 'pending');
+    }
+
+    // ---------------------------------------------------------------------
     // My Universe Mission Submissions & Service-Only Collections (Contract 0.1.1 §7)
     // Server-written only. Client write access strictly forbidden.
     // ---------------------------------------------------------------------
