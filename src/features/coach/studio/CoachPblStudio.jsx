@@ -3,7 +3,7 @@ import {
   Sparkles, BookOpen, Award, Wrench, Leaf, Upload, FileText, CheckCircle2,
   AlertTriangle, Users, Bot, ArrowRight, ExternalLink, Send, ChevronDown, ChevronRight,
   Layers, Video, GitBranch, Box, RefreshCw, Eye, Check, Clock, ShieldCheck, Link2,
-  Globe, Search
+  Globe, Search, Sun, Moon
 } from 'lucide-react';
 import { STUDENT_2E_PROFILES, UNIVERSAL_LEARNER, getLearnerById } from './learnerProfiles.js';
 import { useCoachClasses, useClassLearners } from './useCoachStudioData.js';
@@ -17,9 +17,12 @@ import { getEvaluations } from '../evaluation/evaluationsStore.js';
 import { EdmentumIntegrationConsole } from '../../edmentum/EdmentumIntegrationConsole.jsx';
 import { hrefFor } from '../../../app/routes.js';
 import { confettiFrom, buzz } from '../../goals/celebrate.js';
+import { useTheme } from '../../../app/theme/ThemeProvider.jsx';
+import { saveThemePreference } from '../../../auth.js';
 import './coachStudio.css';
 
 export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision' }) {
+  const { effectiveTheme, setUserTheme } = useTheme();
   // Top-level Navigation Workspace Tab: 'supervision' | 'evaluation' | 'studio'
   const [workspaceTab, setWorkspaceTab] = useState(initialTab);
   const [evalList, setEvalList] = useState(() => getEvaluations());
@@ -254,6 +257,20 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
         </div>
 
         <div className="cp-header-actions">
+          <button
+            type="button"
+            className="cp-btn-switch cp-btn-theme"
+            onClick={() => {
+              const next = effectiveTheme === 'dark' ? 'light' : 'dark';
+              setUserTheme(next);
+              if (coachUser?.uid) saveThemePreference(coachUser.uid, next).catch(() => {});
+            }}
+            aria-label={`Switch to ${effectiveTheme === 'dark' ? 'Light' : 'Dark'} mode`}
+            title={`Switch to ${effectiveTheme === 'dark' ? 'Light' : 'Dark'} mode`}
+          >
+            {effectiveTheme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            <span>{effectiveTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
           <a href="#/coach/dashboard" className="cp-btn-switch">
             <Users size={15} /> Learner Roster
           </a>
