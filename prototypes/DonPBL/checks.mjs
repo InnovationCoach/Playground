@@ -534,10 +534,25 @@ async function main() {
       BIOMIMETIC_TRACKS,
       BIOMECHANICS_60_DAY_SCHEDULE,
       BIOMECHANICS_OLDER_STUDENT_PILLARS,
-      BIOMECHANICS_GAMIFICATION_BADGES
+      BIOMECHANICS_GAMIFICATION_BADGES,
+      ENTREPRENEURSHIP_PDF_ACTIVITIES,
+      ENTREPRENEURSHIP_BADGES,
+      ENTREPRENEURSHIP_LEVELS,
+      ENTREPRENEURSHIP_SIMULATION_PRESETS
     } = pbl;
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
     assert.equal(registryKeys.length, 9, 'Expected 9 complete programs in PROGRAM_REGISTRY');
+    assert.ok('entrepreneurship-product-creation-2026' in PROGRAM_REGISTRY, 'entrepreneurship-product-creation-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['entrepreneurship-product-creation-2026'].title,
+      'Entrepreneurship: Creating a Product',
+      'Expected Entrepreneurship: Creating a Product title'
+    );
+    assert.equal(ENTREPRENEURSHIP_PDF_ACTIVITIES.length, 11, 'Expected all 11 activities across Phases 1–5 from Entrepreneurship: Creating a Product PDF');
+    assert.equal(ENTREPRENEURSHIP_BADGES.length, 7, 'Expected 7 gamification badges for Entrepreneurship: Creating a Product');
+    assert.equal(ENTREPRENEURSHIP_LEVELS.length, 7, 'Expected 7 gamification levels for Entrepreneurship: Creating a Product');
+    assert.equal(ENTREPRENEURSHIP_SIMULATION_PRESETS.length, 4, 'Expected 4 simulation presets for Entrepreneurship: Creating a Product');
+
     assert.ok('biomechanics-robotics-2026' in PROGRAM_REGISTRY, 'biomechanics-robotics-2026 must be registered');
     assert.equal(BIOMIMETIC_TRACKS.length, 3, 'Expected 3 Day-26 Biomimetic Engineering Projects');
     assert.equal(BIOMECHANICS_60_DAY_SCHEDULE.length, 12, 'Expected 12 weeks in BIOMECHANICS_60_DAY_SCHEDULE');

@@ -58,13 +58,15 @@ import {
   ENTREPRENEURSHIP_PROGRAM,
   ENTREPRENEURSHIP_BADGES,
   ENTREPRENEURSHIP_LEVELS,
-  ENTREPRENEURSHIP_SIMULATION_PRESETS
+  ENTREPRENEURSHIP_SIMULATION_PRESETS,
+  ENTREPRENEURSHIP_PDF_ACTIVITIES
 } from './entrepreneurshipProgram';
 import type {
   StartupBadge,
   MarketSimulationState,
   GamificationLevel,
-  SimulationPreset
+  SimulationPreset,
+  EntrepreneurshipPhaseActivity
 } from './entrepreneurshipProgram';
 import {
   INTERSTELLAR_ARK_PROGRAM,
@@ -158,13 +160,15 @@ export {
   ENTREPRENEURSHIP_PROGRAM,
   ENTREPRENEURSHIP_BADGES,
   ENTREPRENEURSHIP_LEVELS,
-  ENTREPRENEURSHIP_SIMULATION_PRESETS
+  ENTREPRENEURSHIP_SIMULATION_PRESETS,
+  ENTREPRENEURSHIP_PDF_ACTIVITIES
 };
 export type {
   StartupBadge,
   MarketSimulationState,
   GamificationLevel,
-  SimulationPreset
+  SimulationPreset,
+  EntrepreneurshipPhaseActivity
 };
 
 export {

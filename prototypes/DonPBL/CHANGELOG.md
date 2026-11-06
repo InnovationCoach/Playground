@@ -9,6 +9,17 @@
 
 ## Change Log Entries
 
+### [2026-10-21] - Replaced "Entrepreneurship: Product Creation" with "Entrepreneurship: Creating a Product" (5 Phases / 11 Activities)
+- **Program Curriculum (`prototypes/DonPBL/entrepreneurshipProgram.ts`):**
+  - Replaced `ENTREPRENEURSHIP_PROGRAM` (`id: 'entrepreneurship-product-creation-2026'`) with **Entrepreneurship: Creating a Product**, structured across all 7 Design Thinking phases (`explore` [1, 2], `empathise` [3, 4], `define` [5, 5], `ideate` [6, 6], `prototype` [7, 8], `test` [9, 10], `share` [11, 12]; 12 weeks, 18 sessions) and exported `ENTREPRENEURSHIP_PDF_ACTIVITIES` covering all 5 Phases and 11 Activities from the attached document:
+    - **Phase 1: Finding a Problem and Checking if People Care** (`Activity 1: The Problem Diary (Friction Log)`, `Activity 2: Talking to Real Users (Customer Interviews)`, `Activity 3: Writing the Problem Statement` with `[Specific Group of People]`, `[Do a Specific Action]`, `[Specific Reason]`, and the brass musicians sentence).
+    - **Phase 2: Brainstorming Ideas and Choosing a Path** (`Activity 1: "Crazy 8s" Fast Brainstorming` Boxes 1–2, 3–4, 5–6, 7–8; `Activity 2: Choosing Your Best Idea` Physical vs. Digital + 1–5 scoring in Feasibility, Desirability, Durability).
+    - **Phase 3: Building a Test Model (Prototyping)** (`Activity 1: Building a Quick, Cheap Model` Option A Physical 1:1 with red marker vs. Option B Digital 4-screen paper cards in $\le 3$ taps; `Activity 2: Testing with Users and Making Improvements` with 3 classmates under **The Silent Rule** and **Build Version 1.1**).
+    - **Phase 4: Calculating Costs and Prices** (`Activity 1: Cost to Make One Item (COGS)` with pack division: 100 THB roll / 5 bags = 20 THB per bag, 350 THB monthly website fee / 50 users = 7 THB per user; `Activity 2: Setting the Price and Break-Even Point` with $\text{SellingPrice} = \frac{\text{UnitCost}}{1 - \text{DesiredProfitMargin}}$, $\text{Break-EvenUnits} = \frac{\text{One-TimeStartupCosts}}{\text{SellingPrice} - \text{UnitCost}}$, and the Final 4 Numbers).
+    - **Phase 5: Selling and Presenting Your Product** (`Activity 1: Finding Customers and Launching` for first 25 customers + 1-sentence `"Unlike..."` Catchphrase; `Activity 2: The 3-Minute Sales Pitch` in 4 timed parts: `0:00–0:45`, `0:45–1:45`, `1:45–2:30`, `2:30–3:00` + `<20s` Q&A).
+- **Interactive Simulator (`prototypes/DonPBL/ui/components/EntrepreneurshipSimulator.tsx`):**
+  - Updated with interactive Phase 1–5 Worksheets (Who-What-Why Problem Statement Builder, Crazy 8s Feasibility/Desirability/Durability 1–5 Scorer, Final 4 Numbers THB Calculator, and `"Unlike..."` Catchphrase & 3-Minute Sales Pitch Builder).
+
 ### [2026-10-21] - Updated "Quantitative Biomechanics & Bio-Inspired Robotics" with Full 60-Day / 12-Week / 120-Hour Curriculum
 - **Program Curriculum (`prototypes/DonPBL/biomechanicsProgram.ts`):**
   - Updated `BIOMECHANICS_PROGRAM` (`id: 'biomechanics-robotics-2026'`) to incorporate all 60 daily hands-on lessons (Days 1–60 | Weeks 1–12 | Hours 1–120) from the Biomechanics curriculum document across the 7 Design Thinking phases (`explore` [1, 2], `empathise` [3, 4], `define` [5, 5], `ideate` [6, 7], `prototype` [8, 9], `test` [10, 11], `share` [12, 12]).
