@@ -343,7 +343,7 @@ export class CoachDashboard {
             <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
               <select id="coach-group-select" style="background: #0f172a; color: white; border: 1px solid #475569; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600;">
                 <option value="all">🌐 All Classes & Groups</option>
-                <option value="Climate Champions 7A">Climate Champions 7A</option>
+                <option value="WLS">WLS</option>
                 <option value="Eco-Designers 8B">Eco-Designers 8B</option>
                 <option value="Green Tech 9C">Green Tech 9C</option>
               </select>
@@ -521,7 +521,7 @@ export class CoachDashboard {
                   <tr style="border-bottom: 1px solid #334155;">
                     <td style="padding: 0.75rem 1rem; font-weight: 700; color: white;">${escapeHtml(c.displayName || c.email?.split('@')[0] || 'Coach')}</td>
                     <td style="padding: 0.75rem 1rem; color: #cbd5e1;">${escapeHtml(c.email)}</td>
-                    <td style="padding: 0.75rem 1rem; color: #38bdf8;">${escapeHtml(c.groupName || 'Climate Champions 7A')}</td>
+                    <td style="padding: 0.75rem 1rem; color: #38bdf8;">${escapeHtml(c.groupName || 'WLS')}</td>
                     <td style="padding: 0.75rem 1rem;"><span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">Coach / Teacher</span></td>
                     <td style="padding: 0.75rem 1rem;"><span style="color: #34d399; font-weight: 700;">Active ✓</span></td>
                   </tr>
