@@ -33,8 +33,19 @@ import type {
 } from './programData';
 import { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS } from './hexCityProgram';
 import type { HexCityRole, CrisisScenario } from './hexCityProgram';
-import { BIOMECHANICS_PROGRAM, BIOMIMETIC_TRACKS } from './biomechanicsProgram';
-import type { BiomimeticTrack } from './biomechanicsProgram';
+import {
+  BIOMECHANICS_PROGRAM,
+  BIOMIMETIC_TRACKS,
+  BIOMECHANICS_60_DAY_SCHEDULE,
+  BIOMECHANICS_OLDER_STUDENT_PILLARS,
+  BIOMECHANICS_GAMIFICATION_BADGES
+} from './biomechanicsProgram';
+import type {
+  BiomimeticTrack,
+  BiomechanicsWeekSchedule,
+  BiomechanicsSpecialPillar,
+  BiomechanicsBadge
+} from './biomechanicsProgram';
 import { PASSION_BLUEPRINT_PROGRAM, FRICTION_STRATEGIES } from './passionBlueprintProgram';
 import type { FrictionStrategy } from './passionBlueprintProgram';
 import { 
@@ -123,8 +134,19 @@ export type {
 export { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS };
 export type { HexCityRole, CrisisScenario };
 
-export { BIOMECHANICS_PROGRAM, BIOMIMETIC_TRACKS };
-export type { BiomimeticTrack };
+export {
+  BIOMECHANICS_PROGRAM,
+  BIOMIMETIC_TRACKS,
+  BIOMECHANICS_60_DAY_SCHEDULE,
+  BIOMECHANICS_OLDER_STUDENT_PILLARS,
+  BIOMECHANICS_GAMIFICATION_BADGES
+};
+export type {
+  BiomimeticTrack,
+  BiomechanicsWeekSchedule,
+  BiomechanicsSpecialPillar,
+  BiomechanicsBadge
+};
 
 export { PASSION_BLUEPRINT_PROGRAM, FRICTION_STRATEGIES };
 export type { FrictionStrategy };

@@ -530,10 +530,22 @@ async function main() {
       VITAL_FLOW_VASCULAR_PATHWAYS,
       VITAL_FLOW_DELIVERABLES,
       VITAL_FLOW_WELEARN_SKILLS_TABLE,
-      VITAL_FLOW_GAMIFICATION_BADGES
+      VITAL_FLOW_GAMIFICATION_BADGES,
+      BIOMIMETIC_TRACKS,
+      BIOMECHANICS_60_DAY_SCHEDULE,
+      BIOMECHANICS_OLDER_STUDENT_PILLARS,
+      BIOMECHANICS_GAMIFICATION_BADGES
     } = pbl;
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
     assert.equal(registryKeys.length, 9, 'Expected 9 complete programs in PROGRAM_REGISTRY');
+    assert.ok('biomechanics-robotics-2026' in PROGRAM_REGISTRY, 'biomechanics-robotics-2026 must be registered');
+    assert.equal(BIOMIMETIC_TRACKS.length, 3, 'Expected 3 Day-26 Biomimetic Engineering Projects');
+    assert.equal(BIOMECHANICS_60_DAY_SCHEDULE.length, 12, 'Expected 12 weeks in BIOMECHANICS_60_DAY_SCHEDULE');
+    const totalBiomechDays = BIOMECHANICS_60_DAY_SCHEDULE.reduce((acc, w) => acc + w.days.length, 0);
+    assert.equal(totalBiomechDays, 60, 'Expected 60 daily studio activities (Days 1–60) in BIOMECHANICS_60_DAY_SCHEDULE');
+    assert.equal(BIOMECHANICS_OLDER_STUDENT_PILLARS.length, 4, 'Expected 4 Older-Student Special Pillars');
+    assert.equal(BIOMECHANICS_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Biomechanics');
+
     assert.ok('project-vital-flow-2026' in PROGRAM_REGISTRY, 'project-vital-flow-2026 must be registered');
     assert.equal(
       PROGRAM_REGISTRY['project-vital-flow-2026'].title,

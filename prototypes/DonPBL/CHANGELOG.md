@@ -9,6 +9,13 @@
 
 ## Change Log Entries
 
+### [2026-10-21] - Updated "Quantitative Biomechanics & Bio-Inspired Robotics" with Full 60-Day / 12-Week / 120-Hour Curriculum
+- **Program Curriculum (`prototypes/DonPBL/biomechanicsProgram.ts`):**
+  - Updated `BIOMECHANICS_PROGRAM` (`id: 'biomechanics-robotics-2026'`) to incorporate all 60 daily hands-on lessons (Days 1–60 | Weeks 1–12 | Hours 1–120) from the Biomechanics curriculum document across the 7 Design Thinking phases (`explore` [1, 2], `empathise` [3, 4], `define` [5, 5], `ideate` [6, 7], `prototype` [8, 9], `test` [10, 11], `share` [12, 12]).
+  - Added `BIOMECHANICS_60_DAY_SCHEDULE` (all 12 weeks / 60 days verbatim), the 3 Day-26 Engineering Projects (`1. Underground / Rough-Ground Rescue Robot`, `2. Ocean Plastic Cleaner`, `3. Gentle Fruit-Picking Gripper`), `BIOMECHANICS_OLDER_STUDENT_PILLARS` (`Advanced Mechanics`, `Real Electronics`, `Text Coding in C/C++`, `Professional Engineering Habits`), and `BIOMECHANICS_GAMIFICATION_BADGES`.
+- **Interactive Simulator (`prototypes/DonPBL/ui/components/BiomechanicsSimulator.tsx`):**
+  - Added interactive tabs for (1) 4-Bar Linkage, Planetary/Worm Gearbox & C++ IMU Lab, (2) 60-Day Schedule & 3 Day-26 Robot Projects Browser, (3) Phase 5 FMEA, Steel-Rod Upgrades & Test Runs 1–10 Benchmark, and (4) Older-Student Special Pillars & 7 Studio Badges.
+
 ### [2026-10-21] - Added "Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics" PBL
 - **Program Curriculum (`prototypes/DonPBL/vitalFlowProgram.ts`):**
   - Added `VITAL_FLOW_PROGRAM` (`id: 'project-vital-flow-2026'`), a 12-week, 120-hour, 24-session curriculum structured across all 7 Design Thinking phases (`explore` [1, 1], `empathise` [2, 2], `define` [3, 4], `ideate` [5, 6], `prototype` [7, 9], `test` [10, 11], `share` [12, 12]).

@@ -122,7 +122,7 @@ Because no external citation record with person, ISO date, and message source is
 | `entrepreneurship-product-creation-2026` | PBL: Entrepreneurship: Product Creation | 12 Weeks | 120h | **18 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
 | `storytelling-genesis-2026` | Project "Genesis Engine": Creative IP & Cinematic Narrative | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
 | `passion-project-blueprint-2026` | The Passion Project Blueprint: Discovering Your Next Big Idea | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
-| `biomechanics-robotics-2026` | Quantitative Biomechanics & Bio-Inspired Robotics | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
+| `biomechanics-robotics-2026` | Quantitative Biomechanics & Bio-Inspired Robotics | 12 Weeks | 120h | **24 Sessions (Days 1–60)** | `[1,2], [3,4], [5,5], [6,7], [8,9], [10,11], [12,12]` |
 | `hex-city-thailand-2026` | Hex-City Thailand: Modular Resilient Floating City | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
 | `ecocool-smart-garden-2026` | EcoCool: Smart Urban Heat & Community Garden Monitor | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
 | `cleanstream-stormwater-2026` *(Stub)* | CleanStream: Smart Urban Stormwater & Micro-Filter Sentinel | 12 Weeks | — | **0 (Stub)** | Excluded from `PROGRAM_REGISTRY` (`status: 'stub'`) |
