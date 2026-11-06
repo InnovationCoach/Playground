@@ -9,6 +9,13 @@
 
 ## Change Log Entries
 
+### [2026-10-21] - Added "Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting" PBL
+- **Program Curriculum (`prototypes/DonPBL/kineticEnergyProgram.ts`):**
+  - Added `KINETIC_ENERGY_PROGRAM` (`id: 'kinetic-smart-energy-2026'`), a 12-week, 120-hour, 24-session curriculum structured across all 7 Design Thinking phases (`explore` [1, 1], `empathise` [2, 2], `define` [3, 4], `ideate` [5, 6], `prototype` [7, 9], `test` [10, 11], `share` [12, 12]).
+  - Incorporated the Weekly Studio Rhythm (Monday–Friday, 2 hrs/day), 3-student multidisciplinary engineering pod roles (`Mechanical & CAD Lead`, `Electrical & Power Conditioning Lead`, `Urban Systems & Telemetry Lead`), and all hands-on activities (`Activity 1.1: The "Human Watt" Challenge`, `Activity 1.2: Thermal Gradient Harvesting`, `Activity 1.3: Kinetic & Thermal Heatmap Safari`, `Activity 2.1: DIY IoT Footstep & Thermal Counter`, `Activity 2.2: The "Lossless" Rectifier Lab`, `Activity 3.1: 60-Minute Cardboard Kinematics`, `Activity 3.2: Digital Twin Retrofit Studio`, `Activity 4.1: Piezo/Hybrid Array Matrix Soldering`, `Activity 4.2: Smart Tile Telemetry Build`, `Activity 4.3: Full-Sheet Engineering Blueprint Production`, `Activity 5.1: The 1,000-Footstep Stress Test`, `Activity 5.2: The "Honest ROI" Financial Simulator`, `Activity 5.3: Interactive Civic Pitch & Live Watt-Meter Demo`).
+- **Interactive Simulator & Gamification (`prototypes/DonPBL/ui/components/KineticEnergySimulator.tsx` & `engine.ts`):**
+  - Added `simulateKineticHarvesting` in `engine.ts` and `KineticEnergySimulator.tsx` featuring a 1N5819 Schottky vs. 1N4007 Silicon full-wave bridge rectifier bench (`1000µF` 50-step capacitor charge test), `<5.0mm` ADA trip-free deflection check, 3-Panel A1/Arch D Architectural & Electrical Blueprint checklist, 1,000-Footstep Stress Test & Honest ROI Financial Simulator (comparing grid kWh payback vs. batteryless IoT footfall sensor co-benefits across 1 / 100 / 10,000 units), WeLearn 7 Future Skills table, and 7 claimable gamification badges.
+
 ### [2026-10-21] - Replaced with "Project Exodus: Building Our New Home in Space" PBL
 - **Program Curriculum (`prototypes/DonPBL/interstellarArkProgram.ts`):**
   - Replaced `Engineering Humanity's Next Horizon` in `INTERSTELLAR_ARK_PROGRAM` (`id: 'interstellar-ark-horizon-2026'`) with **Project Exodus: Building Our New Home in Space**, structured across all 7 Design Thinking phases (`explore`, `empathise`, `define`, `ideate`, `prototype`, `test`, `share`), `durationWeeks: 12` (10h/week, 120h total), and `totalSessions: 24`.

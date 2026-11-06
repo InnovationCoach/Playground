@@ -395,6 +395,62 @@ async function main() {
     });
     assert.equal(badArk.withinThbBudget, false);
     assert.equal(badArk.isSelfSustaining, false);
+
+    // Also test simulateKineticHarvesting deterministic rectifier, 50-step capacitor & Honest ROI math
+    const { simulateKineticHarvesting } = pbl;
+    const schottkyKinetic = simulateKineticHarvesting({
+      joulesPerStepRaw: 3.2,
+      dailyFootstepsPerTile: 4800,
+      tileCount: 16,
+      surfaceTempDeltaC: 5,
+      diodeType: 'schottky-1n5819',
+      capacitorMicrofarads: 1000,
+      verticalDeflectionMm: 4.0,
+      unitCostUSD: 41,
+      deploymentScale: 'pilot-100',
+      includeSmartSensorCoBenefit: true
+    });
+    const siliconKinetic = simulateKineticHarvesting({
+      joulesPerStepRaw: 3.2,
+      dailyFootstepsPerTile: 4800,
+      tileCount: 16,
+      surfaceTempDeltaC: 5,
+      diodeType: 'silicon-1n4007',
+      capacitorMicrofarads: 1000,
+      verticalDeflectionMm: 4.0,
+      unitCostUSD: 41,
+      deploymentScale: 'pilot-100',
+      includeSmartSensorCoBenefit: true
+    });
+    assert.ok(
+      schottkyKinetic.netJoulesPerStep > siliconKinetic.netJoulesPerStep,
+      '1N5819 Schottky bridge must harvest more net Joules/step than 1N4007 Silicon bridge'
+    );
+    assert.ok(
+      schottkyKinetic.capacitorVoltage50Steps > siliconKinetic.capacitorVoltage50Steps,
+      '1N5819 Schottky bridge must reach a higher 50-step 1000uF capacitor voltage than 1N4007 Silicon'
+    );
+    assert.equal(schottkyKinetic.adaTripFreeSafe, true);
+    assert.ok(schottkyKinetic.estimatedPaybackYears < 5);
+
+    const unsafeKinetic = simulateKineticHarvesting({
+      joulesPerStepRaw: Number.NaN,
+      dailyFootstepsPerTile: Number.POSITIVE_INFINITY,
+      tileCount: -5,
+      surfaceTempDeltaC: -10,
+      diodeType: 'schottky-1n5819',
+      capacitorMicrofarads: 1000,
+      verticalDeflectionMm: 6.5,
+      unitCostUSD: 50,
+      deploymentScale: 'prototype-1',
+      includeSmartSensorCoBenefit: false
+    });
+    assert.equal(unsafeKinetic.adaTripFreeSafe, false);
+    for (const val of Object.values(unsafeKinetic)) {
+      if (typeof val === 'number') {
+        assert.ok(Number.isFinite(val), `Expected finite number from simulateKineticHarvesting, got ${val}`);
+      }
+    }
   });
 
   // 8. Test PROGRAM_REGISTRY and PROGRAM_LIST alignment
@@ -406,10 +462,27 @@ async function main() {
       ARK_CRISIS_SCENARIOS,
       ARK_WELEARN_MTC_RUBRIC,
       ARK_GAMIFICATION_BADGES,
-      EXOPLANET_CANDIDATES
+      EXOPLANET_CANDIDATES,
+      KINETIC_TRANSDUCER_OPTIONS,
+      KINETIC_SITE_BOTTLENECKS,
+      KINETIC_DELIVERABLES,
+      KINETIC_WELEARN_SKILLS_TABLE,
+      KINETIC_GAMIFICATION_BADGES
     } = pbl;
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
-    assert.equal(registryKeys.length, 7, 'Expected 7 complete programs in PROGRAM_REGISTRY');
+    assert.equal(registryKeys.length, 8, 'Expected 8 complete programs in PROGRAM_REGISTRY');
+    assert.ok('kinetic-smart-energy-2026' in PROGRAM_REGISTRY, 'kinetic-smart-energy-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['kinetic-smart-energy-2026'].title,
+      'Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting',
+      'Expected Kinetic and Smart Energy Harvesting title'
+    );
+    assert.equal(KINETIC_TRANSDUCER_OPTIONS.length, 4, 'Expected 4 kinetic/thermal transducer options');
+    assert.equal(KINETIC_SITE_BOTTLENECKS.length, 3, 'Expected 3 site bottleneck options');
+    assert.equal(KINETIC_DELIVERABLES.length, 3, 'Expected 3 core deliverables for Kinetic Energy');
+    assert.equal(KINETIC_WELEARN_SKILLS_TABLE.length, 7, 'Expected 7 WeLearn Future Skills for Kinetic Energy');
+    assert.equal(KINETIC_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Kinetic Energy');
+
     assert.ok('interstellar-ark-horizon-2026' in PROGRAM_REGISTRY, 'interstellar-ark-horizon-2026 must be registered');
     assert.equal(
       PROGRAM_REGISTRY['interstellar-ark-horizon-2026'].title,

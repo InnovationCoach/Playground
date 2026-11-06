@@ -578,3 +578,82 @@ export function simulateArkBiosphere(params: {
   };
 }
 
+/**
+ * Pure deterministic calculator for Smart Cities & Adaptive Infrastructure: Kinetic & Smart Energy Harvesting.
+ * Models:
+ * - Activity 2.2 ("Lossless" Rectifier Lab): 1N5819 Schottky (0.25V drop/diode) vs. 1N4007 Silicon (0.7V drop/diode) charging a capacitor over 50 footsteps
+ * - Activity 2.1 & 5.1: Daily Joules, Daily Wh, and Annual kWh across a multi-tile bottleneck installation
+ * - Activity 4.2 & Week 8: ADA/Universal Design <5.0mm vertical deflection trip-free safety check
+ * - Activity 5.2 ("Honest ROI" Financial Simulator): BOM scaling (1 vs. 100 vs. 10,000 units), LCOE, and Smart-Sensor Co-Benefit payback
+ */
+export function simulateKineticHarvesting(params: {
+  joulesPerStepRaw: number;
+  dailyFootstepsPerTile: number;
+  tileCount: number;
+  surfaceTempDeltaC: number;
+  diodeType: 'schottky-1n5819' | 'silicon-1n4007';
+  capacitorMicrofarads: number;
+  verticalDeflectionMm: number;
+  unitCostUSD: number;
+  deploymentScale: 'prototype-1' | 'pilot-100' | 'city-10000';
+  includeSmartSensorCoBenefit?: boolean;
+}) {
+  const rawJoules = Number.isFinite(params.joulesPerStepRaw) ? Math.max(0, params.joulesPerStepRaw) : 0;
+  const footsteps = Number.isFinite(params.dailyFootstepsPerTile) ? Math.max(0, Math.floor(params.dailyFootstepsPerTile)) : 0;
+  const tiles = Number.isFinite(params.tileCount) ? Math.max(1, Math.floor(params.tileCount)) : 1;
+  const tempDelta = Number.isFinite(params.surfaceTempDeltaC) ? Math.max(0, params.surfaceTempDeltaC) : 0;
+  const capUf = Number.isFinite(params.capacitorMicrofarads) ? Math.max(100, params.capacitorMicrofarads) : 1000;
+  const deflectionMm = Number.isFinite(params.verticalDeflectionMm) ? Math.max(0, params.verticalDeflectionMm) : 0;
+  const unitCost = Number.isFinite(params.unitCostUSD) ? Math.max(1, params.unitCostUSD) : 40;
+
+  // Full-wave bridge rectifier efficiency: 1N5819 Schottky retains ~88% vs 1N4007 Silicon ~68% on low-voltage spikes
+  const rectifierEfficiency = params.diodeType === 'schottky-1n5819' ? 0.88 : 0.68;
+  const netJoulesPerStep = Math.round(rawJoules * rectifierEfficiency * 1000) / 1000;
+
+  // Activity 2.2: 50-footstep capacitor charge test (E = 0.5 * C * V^2 -> V = sqrt(2*E / C))
+  const energy50StepsJoules = Math.round(netJoulesPerStep * 50 * 0.0015 * 10000) / 10000;
+  const capFarads = capUf / 1_000_000;
+  const capacitorVoltage50Steps = capFarads > 0
+    ? Math.min(25, Math.round(Math.sqrt((2 * energy50StepsJoules) / capFarads) * 100) / 100)
+    : 0;
+
+  // Thermal Seebeck bonus per tile per day (Joules) when ΔT > 0
+  const thermalDailyJoulesPerTile = Math.round(tempDelta * 145 * rectifierEfficiency);
+  const dailyJoulesPerTile = Math.round(footsteps * netJoulesPerStep + thermalDailyJoulesPerTile);
+  const totalDailyJoules = dailyJoulesPerTile * tiles;
+  const totalDailyWattHours = Math.round((totalDailyJoules / 3600) * 100) / 100;
+  const annualKwh = Math.round(((totalDailyWattHours * 365) / 1000) * 1000) / 1000;
+
+  // Safety & ADA Universal Design check (< 5.0mm vertical deflection)
+  const adaTripFreeSafe = deflectionMm < 5.0;
+
+  // Activity 5.2 Honest ROI & BOM scaling
+  const totalHardwareCapexUSD = Math.round(unitCost * tiles * 100) / 100;
+  // Direct electricity offset ($0.18/kWh) + optional batteryless IoT foot-traffic sensor & avoided wiring co-benefit ($18/tile/yr)
+  const annualDirectEnergySavingsUSD = Math.round(annualKwh * 0.18 * 100) / 100;
+  const annualSensorCoBenefitUSD = params.includeSmartSensorCoBenefit ? tiles * 18 : 0;
+  const totalAnnualValueUSD = Math.round((annualDirectEnergySavingsUSD + annualSensorCoBenefitUSD) * 100) / 100;
+
+  const estimatedPaybackYears = totalAnnualValueUSD > 0
+    ? Math.round((totalHardwareCapexUSD / totalAnnualValueUSD) * 10) / 10
+    : 999;
+
+  return {
+    rectifierEfficiencyPct: Math.round(rectifierEfficiency * 100),
+    netJoulesPerStep,
+    energy50StepsJoules,
+    capacitorVoltage50Steps,
+    dailyJoulesPerTile,
+    totalDailyJoules,
+    totalDailyWattHours,
+    annualKwh,
+    adaTripFreeSafe,
+    totalHardwareCapexUSD,
+    annualDirectEnergySavingsUSD,
+    annualSensorCoBenefitUSD,
+    totalAnnualValueUSD,
+    estimatedPaybackYears
+  };
+}
+
+

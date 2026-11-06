@@ -16,14 +16,10 @@ export {
 } from '../programData';
 
 export type {
-  ConfirmationStatus,
   ConfirmationRecord,
   PblProgram,
   ProgramPhase,
   PhaseSession,
-  LearnerChoiceOption,
-  MeasurableImpactCriterion,
-  AssumptionNote,
   SchoolScheduleConfig,
   AgeTierTrack,
   LearnerAgeConfig,
@@ -55,7 +51,13 @@ export {
   ARK_CRISIS_SCENARIOS,
   ARK_WELEARN_MTC_RUBRIC,
   ARK_GAMIFICATION_LEVELS,
-  ARK_GAMIFICATION_BADGES
+  ARK_GAMIFICATION_BADGES,
+  KINETIC_ENERGY_PROGRAM,
+  KINETIC_TRANSDUCER_OPTIONS,
+  KINETIC_SITE_BOTTLENECKS,
+  KINETIC_DELIVERABLES,
+  KINETIC_WELEARN_SKILLS_TABLE,
+  KINETIC_GAMIFICATION_BADGES
 } from '../programRegistry';
 
 export type {
@@ -74,7 +76,12 @@ export type {
   ArkCrisisScenario,
   ArkMtcRubricItem,
   ArkGamificationBadge,
-  ArkGamificationLevel
+  ArkGamificationLevel,
+  KineticTransducerOption,
+  KineticSiteBottleneck,
+  KineticSkillPracticeItem,
+  KineticDeliverableSpec,
+  KineticGamificationBadge
 } from '../programRegistry';
 
 export {
@@ -110,13 +117,14 @@ export {
   generateMockCopilotReply,
   calculateUnitEconomics,
   simulateMarketStep,
-  simulateArkBiosphere
+  simulateArkBiosphere,
+  simulateKineticHarvesting
 } from '../engine';
 
 export type {
   PhaseId,
   EvidenceKind,
-  ReadinessCheckResult
+  ReadinessResult
 } from '../engine';
 
 export {

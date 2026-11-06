@@ -28,6 +28,7 @@ interface HeaderProps {
   onOpenStorySimulator?: () => void;
   onOpenEntrepreneurshipSimulator?: () => void;
   onOpenArkSimulator?: () => void;
+  onOpenKineticSimulator?: () => void;
   onOpenCopilot: () => void;
   onOpenIntegration: () => void;
   onOpenAssumptions: () => void;
@@ -52,6 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenStorySimulator,
   onOpenEntrepreneurshipSimulator,
   onOpenArkSimulator,
+  onOpenKineticSimulator,
   onOpenCopilot,
   onOpenIntegration,
   onOpenAssumptions,
@@ -152,7 +154,16 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Action Controls & Role Switcher */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Quick interactive tools */}
-          {activeProgramId === 'interstellar-ark-horizon-2026' ? (
+          {activeProgramId === 'kinetic-smart-energy-2026' ? (
+            <button
+              onClick={onOpenKineticSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors shadow-2xs"
+              title="Open Kinetic & Smart Energy Harvesting Lab: Lossless Rectifier, 3-Panel A1 Blueprint & Honest ROI Simulator"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Kinetic Tile &amp; Honest ROI Lab
+            </button>
+          ) : activeProgramId === 'interstellar-ark-horizon-2026' ? (
             <button
               onClick={onOpenArkSimulator}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-700 hover:bg-indigo-800 rounded-md transition-colors shadow-2xs"

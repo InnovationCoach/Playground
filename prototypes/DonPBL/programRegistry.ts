@@ -72,6 +72,21 @@ import type {
   ArkGamificationBadge,
   ArkGamificationLevel
 } from './interstellarArkProgram';
+import {
+  KINETIC_ENERGY_PROGRAM,
+  KINETIC_TRANSDUCER_OPTIONS,
+  KINETIC_SITE_BOTTLENECKS,
+  KINETIC_DELIVERABLES,
+  KINETIC_WELEARN_SKILLS_TABLE,
+  KINETIC_GAMIFICATION_BADGES
+} from './kineticEnergyProgram';
+import type {
+  KineticTransducerOption,
+  KineticSiteBottleneck,
+  KineticSkillPracticeItem,
+  KineticDeliverableSpec,
+  KineticGamificationBadge
+} from './kineticEnergyProgram';
 
 export { 
   SCHOOL_SCHEDULE_CONFIG, 
@@ -129,6 +144,22 @@ export type {
   ArkMtcRubricItem,
   ArkGamificationBadge,
   ArkGamificationLevel
+};
+
+export {
+  KINETIC_ENERGY_PROGRAM,
+  KINETIC_TRANSDUCER_OPTIONS,
+  KINETIC_SITE_BOTTLENECKS,
+  KINETIC_DELIVERABLES,
+  KINETIC_WELEARN_SKILLS_TABLE,
+  KINETIC_GAMIFICATION_BADGES
+};
+export type {
+  KineticTransducerOption,
+  KineticSiteBottleneck,
+  KineticSkillPracticeItem,
+  KineticDeliverableSpec,
+  KineticGamificationBadge
 };
 
 /**
@@ -220,6 +251,7 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
 };
 
 export const PROGRAM_REGISTRY: Record<string, PblProgram> = {
+  'kinetic-smart-energy-2026': KINETIC_ENERGY_PROGRAM,
   'interstellar-ark-horizon-2026': INTERSTELLAR_ARK_PROGRAM,
   'entrepreneurship-product-creation-2026': ENTREPRENEURSHIP_PROGRAM,
   'storytelling-genesis-2026': STORYTELLING_PROGRAM,

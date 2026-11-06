@@ -1262,7 +1262,7 @@ export const INTERSTELLAR_ARK_PROGRAM: PblProgram = {
   id: 'interstellar-ark-horizon-2026',
   title: 'Project Exodus: Building Our New Home in Space',
   subtitle: 'Designing a giant spaceship that keeps 500 people healthy and happy through deep space, building a hands-on model and recycling loop map, and creating a fair New Planet Rulebook across a 12-week, 120-hour Design Thinking journey.',
-  status: 'complete',
+  status: 'provisional_prototype',
   theme: 'Space Habitat Design, Closed-Loop Farming & New Planet Rulebook',
   drivingQuestion: 'How can we design a giant spaceship that keeps people healthy and happy on a long trip through deep space, and create fair rules for our new home on a distant planet?',
   realProblem: {
