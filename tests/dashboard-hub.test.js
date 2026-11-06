@@ -22,7 +22,8 @@ const services = (overrides = {}) => ({
 describe('student landing and role boundaries', () => {
   it('lands students on their dashboard and preserves other role defaults', () => {
     expect(signInDestination('student', false, '')).toBe(hrefFor.dashboard());
-    for (const role of ['coach', 'teacher', 'parent', 'admin', 'supervisor']) expect(signInDestination(role, false, '')).toBe(hrefFor.spark());
+    for (const role of ['coach', 'teacher']) expect(signInDestination(role, false, '')).toBe(hrefFor.coach());
+    for (const role of ['parent', 'admin', 'supervisor']) expect(signInDestination(role, false, '')).toBe(hrefFor.spark());
     expect(signInDestination('student', true, '')).toBeNull();
   });
   it('preserves requested deep links including student courses and staff pages', () => {

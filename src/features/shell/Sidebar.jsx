@@ -71,8 +71,9 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
     ];
   }
   if (role === 'teacher' || role === 'coach') {
+    const coachProgramMaker = { key: 'spark', icon: Sparkles, label: 'nav.coachProgramMaker', href: hrefFor.spark() };
     return [
-      { items: [home, { key: 'coach', icon: LayoutDashboard, label: 'nav.coachDashboard', onClick: () => onNavigate('coach') }] },
+      { items: [coachProgramMaker, { key: 'coach', icon: LayoutDashboard, label: 'nav.coachDashboard', href: hrefFor.coach(), onClick: () => onNavigate('coach') }] },
       { label: 'nav.teaching', items: [
         { key: 'pbl', icon: Rocket, label: 'nav.pblFramework', href: hrefFor.pbl() },
         { key: 'canva', icon: Palette, label: 'nav.canva', href: hrefFor.canva() },

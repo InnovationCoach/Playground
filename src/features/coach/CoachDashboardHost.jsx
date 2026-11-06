@@ -127,7 +127,7 @@ export function CoachDashboardHost({ coachUser, orgId = null }) {
               className="gh-btn gh-btn-primary"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
             >
-              <Sparkles size={15} /> AI PBL Studio
+              <Sparkles size={15} /> Personalized Program Maker
             </a>
             <a
               href={hrefFor.pbl('programs')}

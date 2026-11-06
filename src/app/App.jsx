@@ -210,10 +210,10 @@ export function App() {
     role,
     uid: user?.uid,
     onSignOut: signOut,
-    // The logo returns students to their dashboard; other roles keep their home.
+    // The logo returns students to their dashboard; coaches to coach dashboard; other roles keep their home.
     onHome: () => {
       if (isPrimary) navigate('home');
-      else setHash(role === 'student' ? hrefFor.dashboard() : hrefFor.spark());
+      else setHash(role === 'student' ? hrefFor.dashboard() : isCoachRole ? hrefFor.coach() : hrefFor.spark());
     }
   };
 
