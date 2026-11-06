@@ -9,6 +9,13 @@
 
 ## Change Log Entries
 
+### [2026-10-21] - Added "Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics" PBL
+- **Program Curriculum (`prototypes/DonPBL/vitalFlowProgram.ts`):**
+  - Added `VITAL_FLOW_PROGRAM` (`id: 'project-vital-flow-2026'`), a 12-week, 120-hour, 24-session curriculum structured across all 7 Design Thinking phases (`explore` [1, 1], `empathise` [2, 2], `define` [3, 4], `ideate` [5, 6], `prototype` [7, 9], `test` [10, 11], `share` [12, 12]).
+  - Incorporated the Weekly Studio Rhythm (Monday–Friday, 2 hrs/day), the 3 Core Deliverables (`1. Working Circulatory Prototype`, `2. Biomedical Engineering Blueprint`, `3. Clinical Evaluation & Cost-Benefit Report`), all hands-on activities (`Activity 1.1: The "Why Don't We Explode?" Inquiry`, `Activity 1.2: Fluid Mechanics Discovery Lab`, `Activity 1.3: The "Gravity Challenge" & Extremity Survey`, `Activity 2.1: The Vascular Bottleneck Audit`, `Activity 2.2: The One-Way Valve Lab`, `Activity 3.1: 60-Minute Rapid Syringe-and-Tube Sketching`, `Activity 3.2: Full-Scale Anatomical Blueprint Studio`, `Activity 4.1: Constructing the Dual-Chamber Pump & Lung Loop`, `Activity 4.2: Extremity Branching & Capillary Network Build`, `Activity 4.3: Finalizing the Biomedical Engineering Blueprint`, `Activity 5.1: The 60-Second Continuous Perfusion Stress Test`, `Activity 5.2: Clinical Data Analysis & Cost-Benefit Report`, `Activity 6.1: Preparing the Medical Device Pitch`, `Activity 6.2: The Biomedical Engineering Symposium`), and the Circulatory System anatomical reference pathways (Common Carotid, Subclavian, Aorta, Vena Cava, Pulmonary Artery/Veins, Brachial, Radial, Ulnar, Digital, Iliac, Femoral, Great/Small Saphenous, Tibial, Peroneal, Arcuate, Dorsal Digital).
+- **Interactive Simulator & Gamification (`prototypes/DonPBL/ui/components/VitalFlowSimulator.tsx` & `engine.ts`):**
+  - Added `simulateVitalFlowCirculation` in `engine.ts` and `VitalFlowSimulator.tsx` featuring an interactive Closed-Loop Pump & One-Way Valve Lab, 5-Zone Anatomical Vascular Blueprint & Extremity Branching Inspector, 60-Second Continuous Perfusion Stress Test & V1.0 vs. V2.0 Clinical Data Table, and WeLearn 7 Future Skills & 7 Gamification Badges.
+
 ### [2026-10-21] - Added "Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting" PBL
 - **Program Curriculum (`prototypes/DonPBL/kineticEnergyProgram.ts`):**
   - Added `KINETIC_ENERGY_PROGRAM` (`id: 'kinetic-smart-energy-2026'`), a 12-week, 120-hour, 24-session curriculum structured across all 7 Design Thinking phases (`explore` [1, 1], `empathise` [2, 2], `define` [3, 4], `ideate` [5, 6], `prototype` [7, 9], `test` [10, 11], `share` [12, 12]).

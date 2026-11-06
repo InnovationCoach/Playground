@@ -15,7 +15,8 @@ This document provides the pre-migration handover for `prototypes/DonPBL/` follo
 1. **Builds Cleanly with `esbuild`**: `prototypes/DonPBL/ui/pbl.ts` provides explicit named re-exports (`export { ... }` and `export type { ... }`) for `PblStudioApp.tsx` and all `ui/components/*.tsx` files.
 2. **Self-Contained Demo on Port 5180**: `prototypes/DonPBL/demo/` mounts `PblStudioApp` using the root's Vite binary (`node_modules/.bin/vite --config prototypes/DonPBL/demo/vite.config.mjs`) and pinned Tailwind Play CDN (`3.4.17`).
 3. **Real Automated Tests (`prototypes/DonPBL/checks.mjs`)**: Bundles the actual TypeScript modules via `esbuild` and tests `engine.ts`, `programRegistry.ts`, `mockFixtures.ts`, and `store.ts`.
-4. **8 Complete 12-Week (120-Hour) PBL Programs + 1 Stub**:
+4. **9 Complete 12-Week (120-Hour) PBL Programs + 1 Stub**:
+   - `project-vital-flow-2026` — **Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics** (12 Weeks / 120h • 24 Sessions)
    - `kinetic-smart-energy-2026` — **Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting** (12 Weeks / 120h • 24 Sessions)
    - `interstellar-ark-horizon-2026` — **Project Exodus: Building Our New Home in Space** (12 Weeks / 120h • 24 Sessions)
    - `entrepreneurship-product-creation-2026` (12 Weeks / 120h • 18 Sessions)

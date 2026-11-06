@@ -87,6 +87,23 @@ import type {
   KineticDeliverableSpec,
   KineticGamificationBadge
 } from './kineticEnergyProgram';
+import {
+  VITAL_FLOW_PROGRAM,
+  VITAL_FLOW_PUMP_OPTIONS,
+  VITAL_FLOW_VALVE_OPTIONS,
+  VITAL_FLOW_VASCULAR_PATHWAYS,
+  VITAL_FLOW_DELIVERABLES,
+  VITAL_FLOW_WELEARN_SKILLS_TABLE,
+  VITAL_FLOW_GAMIFICATION_BADGES
+} from './vitalFlowProgram';
+import type {
+  VitalFlowPumpOption,
+  VitalFlowValveOption,
+  VitalFlowVascularZone,
+  VitalFlowDeliverableSpec,
+  VitalFlowSkillPracticeItem,
+  VitalFlowGamificationBadge
+} from './vitalFlowProgram';
 
 export { 
   SCHOOL_SCHEDULE_CONFIG, 
@@ -160,6 +177,24 @@ export type {
   KineticSkillPracticeItem,
   KineticDeliverableSpec,
   KineticGamificationBadge
+};
+
+export {
+  VITAL_FLOW_PROGRAM,
+  VITAL_FLOW_PUMP_OPTIONS,
+  VITAL_FLOW_VALVE_OPTIONS,
+  VITAL_FLOW_VASCULAR_PATHWAYS,
+  VITAL_FLOW_DELIVERABLES,
+  VITAL_FLOW_WELEARN_SKILLS_TABLE,
+  VITAL_FLOW_GAMIFICATION_BADGES
+};
+export type {
+  VitalFlowPumpOption,
+  VitalFlowValveOption,
+  VitalFlowVascularZone,
+  VitalFlowDeliverableSpec,
+  VitalFlowSkillPracticeItem,
+  VitalFlowGamificationBadge
 };
 
 /**
@@ -251,6 +286,7 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
 };
 
 export const PROGRAM_REGISTRY: Record<string, PblProgram> = {
+  'project-vital-flow-2026': VITAL_FLOW_PROGRAM,
   'kinetic-smart-energy-2026': KINETIC_ENERGY_PROGRAM,
   'interstellar-ark-horizon-2026': INTERSTELLAR_ARK_PROGRAM,
   'entrepreneurship-product-creation-2026': ENTREPRENEURSHIP_PROGRAM,

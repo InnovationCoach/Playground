@@ -17,6 +17,7 @@ import { StorytellingSimulator } from './components/StorytellingSimulator';
 import { EntrepreneurshipSimulator } from './components/EntrepreneurshipSimulator';
 import { InterstellarArkSimulator } from './components/InterstellarArkSimulator';
 import { KineticEnergySimulator } from './components/KineticEnergySimulator';
+import { VitalFlowSimulator } from './components/VitalFlowSimulator';
 import { AiCopilotModal } from './components/AiCopilotModal';
 import { EvidenceModal } from './components/EvidenceModal';
 import { IntegrationDrawer } from './components/IntegrationDrawer';
@@ -62,6 +63,7 @@ export default function App() {
   const [isEntrepreneurshipSimulatorOpen, setIsEntrepreneurshipSimulatorOpen] = useState(false);
   const [isArkSimulatorOpen, setIsArkSimulatorOpen] = useState(false);
   const [isKineticSimulatorOpen, setIsKineticSimulatorOpen] = useState(false);
+  const [isVitalFlowSimulatorOpen, setIsVitalFlowSimulatorOpen] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [evidenceModalPhase, setEvidenceModalPhase] = useState<string>('prototype');
@@ -172,6 +174,7 @@ export default function App() {
         onOpenEntrepreneurshipSimulator={() => setIsEntrepreneurshipSimulatorOpen(true)}
         onOpenArkSimulator={() => setIsArkSimulatorOpen(true)}
         onOpenKineticSimulator={() => setIsKineticSimulatorOpen(true)}
+        onOpenVitalFlowSimulator={() => setIsVitalFlowSimulatorOpen(true)}
         onOpenCopilot={() => handleOpenCopilot()}
         onOpenIntegration={() => setIsIntegrationDrawerOpen(true)}
         onOpenAssumptions={() => setIsIntegrationDrawerOpen(true)}
@@ -334,6 +337,24 @@ export default function App() {
             handleUpdateProject(res.updatedProject);
           }
           setIsKineticSimulatorOpen(false);
+        }}
+      />
+
+      <VitalFlowSimulator
+        isOpen={isVitalFlowSimulatorOpen}
+        onClose={() => setIsVitalFlowSimulatorOpen(false)}
+        onSaveToPortfolio={(title, summary) => {
+          const res = validateAndAddEvidence(activeProject, {
+            title,
+            phase: 'test',
+            kind: 'data',
+            body: summary,
+            competencies: ['ctps-05', 'ct-01', 'sea-01', 'ec-05']
+          });
+          if (res.success && res.updatedProject) {
+            handleUpdateProject(res.updatedProject);
+          }
+          setIsVitalFlowSimulatorOpen(false);
         }}
       />
 

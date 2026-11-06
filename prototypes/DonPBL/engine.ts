@@ -656,4 +656,109 @@ export function simulateKineticHarvesting(params: {
   };
 }
 
+/**
+ * Pure deterministic calculator for Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics.
+ * Models:
+ * - Activity 2.3 & 3.1: Pump stroke volume (mL/stroke), pumping cadence (BPM), and theoretical vs. net cardiac output (mL/min)
+ * - Activity 3.2 & 5.3: One-way check-valve backflow prevention (%) vs. retrograde regurgitation loss
+ * - Activity 4.1, 5.1 & 5.4: Tubing geometry (sharp 90-degree bends vs. sweeping curves), capillary straw branching, and distal extremity reach (% of 20 digits perfused + time-to-reach toes in seconds)
+ * - Activity 4.2 & 5.2: Joint seal reinforcement vs. peak systolic pressure (mmHg) -> structural "aneurysm" leak count
+ */
+export function simulateVitalFlowCirculation(params: {
+  strokeVolumeMl: number;
+  pumpCadenceBpm: number;
+  peakSystolicMmHg: number;
+  valveBackflowPreventionPct: number;
+  valveForwardDropMmHg: number;
+  totalNetworkVolumeMl: number;
+  lungStationConnected: boolean;
+  sharp90DegreeBendCount: number;
+  jointSealQualityPct: number;
+  prototypeVersion: 'v1_baseline' | 'v2_upgraded';
+}) {
+  const strokeMl = Number.isFinite(params.strokeVolumeMl) ? Math.max(5, Math.min(120, params.strokeVolumeMl)) : 45;
+  const bpm = Number.isFinite(params.pumpCadenceBpm) ? Math.max(10, Math.min(140, Math.floor(params.pumpCadenceBpm))) : 60;
+  const peakMmHg = Number.isFinite(params.peakSystolicMmHg) ? Math.max(20, Math.min(220, params.peakSystolicMmHg)) : 110;
+  const valveEffPct = Number.isFinite(params.valveBackflowPreventionPct) ? Math.max(0, Math.min(100, params.valveBackflowPreventionPct)) : 88;
+  const valveDrop = Number.isFinite(params.valveForwardDropMmHg) ? Math.max(0, Math.min(40, params.valveForwardDropMmHg)) : 8;
+  const networkVolMl = Number.isFinite(params.totalNetworkVolumeMl) ? Math.max(100, Math.min(2000, params.totalNetworkVolumeMl)) : 420;
+  const bends = Number.isFinite(params.sharp90DegreeBendCount) ? Math.max(0, Math.min(30, Math.floor(params.sharp90DegreeBendCount))) : 4;
+  const sealQuality = Number.isFinite(params.jointSealQualityPct) ? Math.max(20, Math.min(100, params.jointSealQualityPct)) : 85;
+  const isV2 = params.prototypeVersion === 'v2_upgraded';
+
+  // At very high BPM (>95), manual ventricle has incomplete diastolic refill
+  const diastolicRefillFactor = bpm <= 85 ? 1.0 : Math.max(0.55, 1.0 - (bpm - 85) * 0.008);
+  const valveForwardFactor = 0.35 + 0.65 * (valveEffPct / 100);
+  const v2EfficiencyBoost = isV2 ? 1.12 : 1.0;
+
+  // Effective forward mL per stroke
+  const effectiveStrokeMl = Math.round(strokeMl * diastolicRefillFactor * valveForwardFactor * v2EfficiencyBoost * 10) / 10;
+  const grossCardiacOutputMlPerMin = Math.round(strokeMl * bpm);
+  const netForwardFlowMlPerMin = Math.round(effectiveStrokeMl * bpm);
+
+  // Pressure drop across lung reservoir (12 mmHg), check valves, and sharp 90-degree tubing bends (3.5 mmHg per bend)
+  const lungPressureDropMmHg = params.lungStationConnected ? 12 : 0;
+  const bendResistanceLossMmHg = Math.round(bends * (isV2 ? 2.0 : 3.5) * 10) / 10;
+
+  // Joint seal threshold: if peak systolic pressure exceeds seal rating, "aneurysm" leaks occur and bleed pressure
+  const sealPressureCapacityMmHg = Math.round(55 + (sealQuality / 100) * (isV2 ? 105 : 85));
+  const overPressureMmHg = Math.max(0, peakMmHg - sealPressureCapacityMmHg);
+  const aneurysmLeakCount = overPressureMmHg > 0
+    ? Math.max(1, Math.ceil(overPressureMmHg / 12)) + (sealQuality < 70 ? 2 : 0)
+    : sealQuality < 65
+    ? 1
+    : 0;
+  const leakPressureLossMmHg = aneurysmLeakCount * 9;
+
+  // Distal perfusion pressure reaching the 135cm lower-extremity toe straw beds (needs >= 45 mmHg for 100% toe reach)
+  const distalToePerfusionMmHg = Math.max(
+    0,
+    Math.round((peakMmHg - valveDrop - lungPressureDropMmHg - bendResistanceLossMmHg - leakPressureLossMmHg) * 10) / 10
+  );
+
+  // Extremity reach (% of 20 digits: 10 fingers + 10 toes perfused)
+  const extremityReachPct = distalToePerfusionMmHg >= 45
+    ? 100
+    : Math.max(0, Math.min(100, Math.round((distalToePerfusionMmHg / 45) * 100)));
+  const perfusedDigitsCount = Math.round((extremityReachPct / 100) * 20);
+
+  // Ideal strokes to circulate total network volume vs actual time-to-reach toes (seconds)
+  const idealStrokesPerCycle = Math.max(1, Math.ceil(networkVolMl / Math.max(1, strokeMl)));
+  const actualStrokesPerCycle = Math.max(1, Math.ceil(networkVolMl / Math.max(1, effectiveStrokeMl)));
+  const timeToReachToesSeconds = netForwardFlowMlPerMin > 0 && distalToePerfusionMmHg > 10
+    ? Math.round(((networkVolMl * 0.65) / (netForwardFlowMlPerMin / 60)) * (1 + bends * 0.04) * 10) / 10
+    : 999;
+
+  // Backflow contamination %
+  const backflowMixingPct = Math.max(0, Math.round((100 - valveEffPct) * (1 + bends * 0.02)));
+
+  const clinicalVerdict: 'viable_extremity_perfusion' | 'partial_ischemia_warning' | 'critical_hypoperfusion_or_leak' =
+    params.lungStationConnected &&
+    extremityReachPct === 100 &&
+    aneurysmLeakCount === 0 &&
+    backflowMixingPct <= 15 &&
+    timeToReachToesSeconds <= 30
+      ? 'viable_extremity_perfusion'
+      : extremityReachPct >= 75 && aneurysmLeakCount <= 1 && params.lungStationConnected
+      ? 'partial_ischemia_warning'
+      : 'critical_hypoperfusion_or_leak';
+
+  return {
+    effectiveStrokeMl,
+    grossCardiacOutputMlPerMin,
+    netForwardFlowMlPerMin,
+    sealPressureCapacityMmHg,
+    aneurysmLeakCount,
+    distalToePerfusionMmHg,
+    extremityReachPct,
+    perfusedDigitsCount,
+    idealStrokesPerCycle,
+    actualStrokesPerCycle,
+    timeToReachToesSeconds,
+    backflowMixingPct,
+    clinicalVerdict
+  };
+}
+
+
 

@@ -451,6 +451,63 @@ async function main() {
         assert.ok(Number.isFinite(val), `Expected finite number from simulateKineticHarvesting, got ${val}`);
       }
     }
+
+    // Also test simulateVitalFlowCirculation deterministic closed-loop fluid dynamics & V1.0 vs V2.0 hemodynamic math
+    const { simulateVitalFlowCirculation } = pbl;
+    const v2Circulation = simulateVitalFlowCirculation({
+      strokeVolumeMl: 48,
+      pumpCadenceBpm: 72,
+      peakSystolicMmHg: 115,
+      valveBackflowPreventionPct: 92,
+      valveForwardDropMmHg: 6,
+      totalNetworkVolumeMl: 420,
+      lungStationConnected: true,
+      sharp90DegreeBendCount: 2,
+      jointSealQualityPct: 95,
+      prototypeVersion: 'v2_upgraded'
+    });
+    const v1Circulation = simulateVitalFlowCirculation({
+      strokeVolumeMl: 40,
+      pumpCadenceBpm: 60,
+      peakSystolicMmHg: 115,
+      valveBackflowPreventionPct: 28,
+      valveForwardDropMmHg: 2,
+      totalNetworkVolumeMl: 420,
+      lungStationConnected: true,
+      sharp90DegreeBendCount: 12,
+      jointSealQualityPct: 55,
+      prototypeVersion: 'v1_baseline'
+    });
+    assert.ok(
+      v2Circulation.netForwardFlowMlPerMin > v1Circulation.netForwardFlowMlPerMin,
+      'V2.0 with check-valves must deliver higher net forward flow than unvalved V1.0'
+    );
+    assert.ok(
+      v2Circulation.distalToePerfusionMmHg > v1Circulation.distalToePerfusionMmHg,
+      'V2.0 with fewer sharp 90-degree bends and reinforced seals must deliver higher distal toe pressure than V1.0'
+    );
+    assert.equal(v2Circulation.perfusedDigitsCount, 20);
+    assert.equal(v2Circulation.aneurysmLeakCount, 0);
+    assert.equal(v2Circulation.clinicalVerdict, 'viable_extremity_perfusion');
+    assert.equal(v1Circulation.clinicalVerdict, 'critical_hypoperfusion_or_leak');
+
+    const badCirculation = simulateVitalFlowCirculation({
+      strokeVolumeMl: Number.NaN,
+      pumpCadenceBpm: Number.POSITIVE_INFINITY,
+      peakSystolicMmHg: Number.NaN,
+      valveBackflowPreventionPct: -50,
+      valveForwardDropMmHg: -10,
+      totalNetworkVolumeMl: 0,
+      lungStationConnected: false,
+      sharp90DegreeBendCount: -4,
+      jointSealQualityPct: 200,
+      prototypeVersion: 'v1_baseline'
+    });
+    for (const val of Object.values(badCirculation)) {
+      if (typeof val === 'number') {
+        assert.ok(Number.isFinite(val), `Expected finite number from simulateVitalFlowCirculation, got ${val}`);
+      }
+    }
   });
 
   // 8. Test PROGRAM_REGISTRY and PROGRAM_LIST alignment
@@ -467,10 +524,29 @@ async function main() {
       KINETIC_SITE_BOTTLENECKS,
       KINETIC_DELIVERABLES,
       KINETIC_WELEARN_SKILLS_TABLE,
-      KINETIC_GAMIFICATION_BADGES
+      KINETIC_GAMIFICATION_BADGES,
+      VITAL_FLOW_PUMP_OPTIONS,
+      VITAL_FLOW_VALVE_OPTIONS,
+      VITAL_FLOW_VASCULAR_PATHWAYS,
+      VITAL_FLOW_DELIVERABLES,
+      VITAL_FLOW_WELEARN_SKILLS_TABLE,
+      VITAL_FLOW_GAMIFICATION_BADGES
     } = pbl;
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
-    assert.equal(registryKeys.length, 8, 'Expected 8 complete programs in PROGRAM_REGISTRY');
+    assert.equal(registryKeys.length, 9, 'Expected 9 complete programs in PROGRAM_REGISTRY');
+    assert.ok('project-vital-flow-2026' in PROGRAM_REGISTRY, 'project-vital-flow-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['project-vital-flow-2026'].title,
+      'Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics',
+      'Expected Project Vital Flow title'
+    );
+    assert.equal(VITAL_FLOW_PUMP_OPTIONS.length, 4, 'Expected 4 manual pump options for Project Vital Flow');
+    assert.equal(VITAL_FLOW_VALVE_OPTIONS.length, 4, 'Expected 4 valve options for Project Vital Flow');
+    assert.equal(VITAL_FLOW_VASCULAR_PATHWAYS.length, 5, 'Expected 5 anatomical vascular pathways for Project Vital Flow');
+    assert.equal(VITAL_FLOW_DELIVERABLES.length, 3, 'Expected 3 core deliverables for Project Vital Flow');
+    assert.equal(VITAL_FLOW_WELEARN_SKILLS_TABLE.length, 7, 'Expected 7 WeLearn Future Skills for Project Vital Flow');
+    assert.equal(VITAL_FLOW_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Project Vital Flow');
+
     assert.ok('kinetic-smart-energy-2026' in PROGRAM_REGISTRY, 'kinetic-smart-energy-2026 must be registered');
     assert.equal(
       PROGRAM_REGISTRY['kinetic-smart-energy-2026'].title,

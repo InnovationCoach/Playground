@@ -29,6 +29,7 @@ interface HeaderProps {
   onOpenEntrepreneurshipSimulator?: () => void;
   onOpenArkSimulator?: () => void;
   onOpenKineticSimulator?: () => void;
+  onOpenVitalFlowSimulator?: () => void;
   onOpenCopilot: () => void;
   onOpenIntegration: () => void;
   onOpenAssumptions: () => void;
@@ -54,6 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenEntrepreneurshipSimulator,
   onOpenArkSimulator,
   onOpenKineticSimulator,
+  onOpenVitalFlowSimulator,
   onOpenCopilot,
   onOpenIntegration,
   onOpenAssumptions,
@@ -154,7 +156,16 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Action Controls & Role Switcher */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Quick interactive tools */}
-          {activeProgramId === 'kinetic-smart-energy-2026' ? (
+          {activeProgramId === 'project-vital-flow-2026' ? (
+            <button
+              onClick={onOpenVitalFlowSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 rounded-md transition-colors shadow-2xs"
+              title="Open Project Vital Flow Simulator: Heart Pump, Check-Valves, Vascular Blueprint & Extremity Reach Audit"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Vital Flow Circulatory &amp; Leak Audit Lab
+            </button>
+          ) : activeProgramId === 'kinetic-smart-energy-2026' ? (
             <button
               onClick={onOpenKineticSimulator}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors shadow-2xs"

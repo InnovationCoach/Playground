@@ -57,7 +57,14 @@ export {
   KINETIC_SITE_BOTTLENECKS,
   KINETIC_DELIVERABLES,
   KINETIC_WELEARN_SKILLS_TABLE,
-  KINETIC_GAMIFICATION_BADGES
+  KINETIC_GAMIFICATION_BADGES,
+  VITAL_FLOW_PROGRAM,
+  VITAL_FLOW_PUMP_OPTIONS,
+  VITAL_FLOW_VALVE_OPTIONS,
+  VITAL_FLOW_VASCULAR_PATHWAYS,
+  VITAL_FLOW_DELIVERABLES,
+  VITAL_FLOW_WELEARN_SKILLS_TABLE,
+  VITAL_FLOW_GAMIFICATION_BADGES
 } from '../programRegistry';
 
 export type {
@@ -81,7 +88,13 @@ export type {
   KineticSiteBottleneck,
   KineticSkillPracticeItem,
   KineticDeliverableSpec,
-  KineticGamificationBadge
+  KineticGamificationBadge,
+  VitalFlowPumpOption,
+  VitalFlowValveOption,
+  VitalFlowVascularZone,
+  VitalFlowDeliverableSpec,
+  VitalFlowSkillPracticeItem,
+  VitalFlowGamificationBadge
 } from '../programRegistry';
 
 export {
@@ -118,7 +131,8 @@ export {
   calculateUnitEconomics,
   simulateMarketStep,
   simulateArkBiosphere,
-  simulateKineticHarvesting
+  simulateKineticHarvesting,
+  simulateVitalFlowCirculation
 } from '../engine';
 
 export type {
