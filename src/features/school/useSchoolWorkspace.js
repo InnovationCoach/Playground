@@ -5,17 +5,23 @@ export function useSchoolResource(path, poll = false) {
       path,
       data: null,
       error: null,
-      loading: !!path
+      loading: !!path,
+      refreshing: false
     }),
     [version, setVersion] = useState(0);
   useEffect(() => {
     let active = true,
       timer;
-    setState({
+    // Reloading the same path keeps the data on screen; only a new path starts blank.
+    setState(old => old.path === path && old.data ? {
+      ...old,
+      refreshing: true
+    } : {
       path,
       data: null,
       error: null,
-      loading: !!path
+      loading: !!path,
+      refreshing: false
     });
     async function load() {
       try {
@@ -24,14 +30,16 @@ export function useSchoolResource(path, poll = false) {
           path,
           data,
           error: null,
-          loading: false
+          loading: false,
+          refreshing: false
         });
       } catch (error) {
         if (active) setState(old => ({
           ...old,
           data: [401,403].includes(error.status) ? null : old.data,
           error,
-          loading: false
+          loading: false,
+          refreshing: false
         }));
       } finally {
         if (active && poll) timer = setTimeout(load, 30000);
@@ -51,6 +59,7 @@ export function useSchoolResource(path, poll = false) {
     data: null,
     error: null,
     loading: !!path,
+    refreshing: false,
     reload
   };
 }

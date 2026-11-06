@@ -12,7 +12,8 @@
  *   #/pbl/programs/<programId>/<section>                 one program in the PBL library
  *   #/journey  #/journey/print                           design-thinking portfolio maker (+ PDF view)
  *   #/courses/discover                                   Course discovery (secondary learners)
- *   #/space  #/programs  #/portfolio[/<uid>]             My space, school programs, shareable portfolio
+ *   #/space  #/portfolio[/<uid>]                         My space, shareable portfolio
+ *   #/programs                                           school programs; learners are sent to #/pbl/programs
  *   #/community                                          community posts
  *   #/messages  #/messages/<convId>                      private messages
  *   #/goals                                              goal setting (secondary learners)
@@ -73,6 +74,14 @@ export function parseRoute(hash) {
   if (head === 'canva') return { screen: 'canva' };
   if (head === 'edmentum') return { screen: 'edmentum' };
   return null;
+}
+
+/**
+ * Where a route must go instead for this viewer, or null. Learners have one
+ * Programs page, in PBL Studio. Primary learners have no PBL Studio.
+ */
+export function redirectFor(route, role, isPrimary) {
+  return route?.screen === 'programs' && role === 'student' && !isPrimary ? hrefFor.pbl('programs') : null;
 }
 
 export const hrefFor = {

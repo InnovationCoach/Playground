@@ -8,6 +8,8 @@ import { CompetencyFramework } from './CompetencyFramework.jsx';
 import { Approach } from './Approach.jsx';
 import { ProgramLibrary } from './programs/ProgramLibrary.jsx';
 import { ProgramDetail } from './programs/ProgramDetail.jsx';
+import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
+import { ErrorBoundary } from '../shell/ErrorBoundary.jsx';
 import { hrefFor } from '../../app/routes.js';
 import '../admin/admin.css';
 import './pbl.css';
@@ -49,7 +51,9 @@ export function PblStudio({ uid, role, tab, programId, section, classIds, onOpen
   if (active === 'programs' && programId) {
     return (
       <div className="gh-page pb-page">
-        <ProgramDetail programId={programId} section={section} uid={uid} isCoach={!isStudent} classIds={classIds} />
+        <ErrorBoundary name="program" key={programId}>
+          <ProgramDetail programId={programId} section={section} uid={uid} isCoach={!isStudent} classIds={classIds} />
+        </ErrorBoundary>
       </div>
     );
   }
@@ -84,7 +88,17 @@ export function PblStudio({ uid, role, tab, programId, section, classIds, onOpen
       </div>
 
       {active === 'programs' ? (
-        <ProgramLibrary uid={uid} isCoach={!isStudent} classIds={classIds} />
+        <>
+          {/* Learners' class-code joining, lessons and evidence live here too, so a crash in one leaves the other. */}
+          {isStudent && (
+            <ErrorBoundary name="school programs">
+              <SchoolLearningPanel initialArea="programs" hideTabs />
+            </ErrorBoundary>
+          )}
+          <ErrorBoundary name="program library">
+            <ProgramLibrary uid={uid} isCoach={!isStudent} classIds={classIds} />
+          </ErrorBoundary>
+        </>
       ) : isStudent ? (
         <StudentTabs uid={uid} active={active} onOpenActivity={onOpenActivity} displayName={displayName} />
       ) : (

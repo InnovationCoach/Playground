@@ -22,6 +22,16 @@ function readLocal(uid, termId) {
   }
 }
 
+/**
+ * Whether a learner already has saved work for a term. Portfolios from before
+ * class codes have no enrolment record, so this is what enrols them. Read-only.
+ */
+export async function hasSavedProject(uid, termId) {
+  if (readLocal(uid, termId)?.updatedAt) return true;
+  const snap = await getDoc(doc(db, 'users', `${uid}/activityProgress/pbl-${termId}`));
+  return typeof snap.exists === 'function' ? snap.exists() : !!snap.exists;
+}
+
 export function usePblProject(uid, termId) {
   const [project, setProject] = useState(() => readLocal(uid, termId) || hydrateProject(null, termId));
   const [syncState, setSyncState] = useState('idle');

@@ -209,6 +209,14 @@ export const PLATFORM_NOTES = [
 export const COACH_PLATFORM_NOTES = PLATFORM_NOTES.filter((n) => !n.internal);
 PLATFORM_NOTES.filter((n) => n.internal).forEach((n) => console.info('[pbl] internal note:', n.text));
 
+/** A program's look, with defaults so a stored program missing any of it still renders. */
+export const programIdentity = (p) => ({
+  ...p?.identity,
+  icon: p?.identity?.icon || 'Compass',
+  tone: p?.identity?.tone || 'purple',
+  short: p?.identity?.short || p?.title || 'Program'
+});
+
 export const programById = (id) => {
   if (!id) return null;
   const custom = getCustomProgramById(id);

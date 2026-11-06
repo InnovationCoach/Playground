@@ -12,9 +12,10 @@ import { LearnerLessonView } from './lessons/LearnerLessonView.jsx';
 import { emptyLesson, normalizeLesson } from './lessons/lessonModel.js';
 import { useEffect, useState } from 'react';
 import { auth, storage } from '../../firebase.js';
-import { BookOpen, CalendarDays, Target, GraduationCap, RefreshCw, Sparkles, HeartHandshake } from 'lucide-react';
+import { BookOpen, CalendarDays, Target, GraduationCap, Loader2, RefreshCw, Sparkles, HeartHandshake } from 'lucide-react';
 import { PROGRAM_CATALOGUE, programById } from '../pbl/content/programCatalogue.js';
 import { useSchoolResource, schoolPath, mutateSchool, serviceMessage } from './useSchoolWorkspace.js';
+import { useLegacyEnrolment } from './useLegacyEnrolment.js';
 import { QuestArea } from '../quest/QuestHome.jsx';
 import { QuestSummary } from '../quest/QuestSummary.jsx';
 import { LearnerPathway } from '../quest/LearnerPathway.jsx';
@@ -96,9 +97,10 @@ export function SchoolLearningPanel({
   const schools = context.data?.schools || [],
     school = schools.find(s => s.id === schoolId) || schools[0];
   const classes = (context.data?.classes || []).filter(c => c.schoolId === school?.id && (classScope === 'all' || c.id === classScope)),
-    role = context.data?.role;
+    role = context.data?.role,
+    checking = context.loading || context.refreshing;
   return <section className="sw-panel gh-app" aria-label="School learning workspace">
-    <header className="sw-heading"><div><span className="sw-kicker">WELEARN · SCHOOL LEARNING</span><h2>{areaLabel(area, role)}</h2></div><div className="sw-actions">{schools.length > 1 && <Field label="School"><select value={school?.id || ''} onChange={e => setSchoolId(e.target.value)}>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}<button className="gh-btn gh-btn-ghost" onClick={context.reload}><RefreshCw size={16} />Check access</button></div></header>
+    <header className="sw-heading"><div><span className="sw-kicker">WELEARN · SCHOOL LEARNING</span><h2>{areaLabel(area, role)}</h2></div><div className="sw-actions">{schools.length > 1 && <Field label="School"><select value={school?.id || ''} onChange={e => setSchoolId(e.target.value)}>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}<button className="gh-btn gh-btn-ghost" onClick={context.reload} disabled={checking} aria-busy={checking}>{checking ? <Loader2 size={16} className="sw-spin" aria-hidden="true" /> : <RefreshCw size={16} aria-hidden="true" />}Check access</button></div></header>
     {!hideTabs && <nav className="sw-tabs" aria-label="School learning sections">{areas.map(([id, , Icon]) => <button key={id} aria-current={area === id ? 'page' : undefined} onClick={() => setArea(id)}><Icon size={16} />{areaLabel(id, role)}</button>)}</nav>}
     {context.loading && <p role="status">Checking your school access…</p>}{message(context.error)}
     {!context.loading && !context.error && !school && <p>Your verified school membership needs checking. Ask the administrator to assign your school and classes.</p>}
@@ -135,6 +137,9 @@ function Programs({
     list = [...(offerings.data?.items || []),...(justCreated&&!offerings.error&&!(offerings.data?.items||[]).some(o=>o.id===justCreated.id)?[justCreated]:[])].filter(o => o.classIds.some(id => classes.some(c => c.id === id)));
   const options = list.filter(o => o.programId === selected),
     offering = options.find(o => o.id === offeringId) || options[0];
+  const legacy = useLegacyEnrolment(role === 'student' ? auth.currentUser?.uid : null, template.legacyTermId),
+    enrolmentKnown = !offerings.loading && !legacy.loading,
+    enrolled = !!offering || legacy.enrolled;
   useEffect(()=>setPublishReviewed(false),[offering?.id,offering?.revision]);
   const isStaff = ['teacher', 'coach', 'admin'].includes(role);
   return <div>
@@ -149,8 +154,8 @@ function Programs({
     {template.rubric.length > 0 && <details><summary>Assessment criteria</summary><ul>{template.rubric.map(r => <li key={r.title}>{r.title} · {r.weight}% · {r.standard}</li>)}</ul></details>}
     {selected === 'sustainable-futures' && <p><a href="#/pbl">Open existing Sustainable Futures Studio →</a><small className="sw-muted sw-block">Existing portfolios keep their original term identifier.</small></p>}
     {options.length > 1 && <Field label="School year offering"><select value={offering?.id || ''} onChange={e => setOfferingId(e.target.value)}>{options.map(o => <option key={o.id} value={o.id}>{o.yearId}</option>)}</select></Field>}
-    {!offerings.loading && !offerings.error && !offering && <p className="sw-notice">{role === 'student' ? 'You have not joined this program. Ask your coach for its class code.' : 'No offering is assigned in this view. Create an offering for your assigned class to start adding lessons.'}</p>}
-    {role === 'student' && <form className="sw-inline-form" onSubmit={async e => {
+    {enrolmentKnown && !offerings.error && !enrolled && <p className="sw-notice">{role === 'student' ? 'You have not joined this program. Ask your coach for its class code.' : 'No offering is assigned in this view. Create an offering for your assigned class to start adding lessons.'}</p>}
+    {role === 'student' && enrolmentKnown && !enrolled && <form className="sw-inline-form" onSubmit={async e => {
       e.preventDefault();
       const result = await run(() => mutateSchool('POST', '/api/program-enrollments/join', {
         code

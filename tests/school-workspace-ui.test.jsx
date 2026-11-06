@@ -3,7 +3,7 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../src/app/i18n/LocaleProvider.jsx',()=>({useLocale:()=>({locale:'en'})}));
-vi.mock('../src/firebase.js', () => ({ auth: { currentUser: { uid: 'coach' } }, storage: { ref: vi.fn() } }));
+vi.mock('../src/firebase.js', () => ({ auth: { currentUser: { uid: 'coach' } }, storage: { ref: vi.fn() }, db: {}, doc: vi.fn(), getDoc: vi.fn(), setDoc: vi.fn() }));
 vi.mock('../src/services/api/apiClient.js',()=>({schoolRequest:vi.fn()}));
 import { schoolRequest } from '../src/services/api/apiClient.js';
 import { SchoolLearningPanel } from '../src/features/school/SchoolLearningPanel.jsx';
