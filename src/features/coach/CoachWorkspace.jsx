@@ -8,7 +8,7 @@ import { auth, db, collection, getDocs, getDoc, doc, query, where } from '../../
 import { TERM, PHASES } from '../pbl/content/pblModel.js';
 import { safeLink } from '../pbl/engine/pblProject.js';
 import { activityProgress, dateLabel, projectProgress, STEAM_ACTIVITIES } from './progressModel.js';
-import { isRosterLearner } from './learners/rosterFilter.js';
+import { isRosterLearner, isLearnerInScope } from './learners/rosterFilter.js';
 import '../admin/admin.css';
 import './coachWorkspace.css';
 import { CommunityFeed } from '../community/CommunityFeed.jsx';
@@ -55,7 +55,7 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
           try {
             const snap = await getDoc(doc(db, 'classes', id));
             const exists = typeof snap?.exists === 'function' ? snap.exists() : !!snap?.exists;
-            return { id, name: exists ? snap.data().name || id : id };
+            return { id, name: exists ? snap.data().name || id : id, cohortId: exists ? snap.data().cohortId || null : null };
           } catch {
             return { id, name: id };
           }
@@ -88,8 +88,8 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
     return () => { cancelled = true; };
   }, [coachUser?.uid, coachUser?.role, coachUser?.classIds, reload, rosterVersion]);
 
-  const scope = data.classes.some(c => c.id === classId) ? classId : 'all';
-  const classLearners = data.learners.filter(l => scope === 'all' || (scope.startsWith('cohort:') ? l.cohortId === scope.slice(7) : l.classIds?.includes(scope)));
+  const scope = classId.startsWith('cohort:') || data.classes.some(c => c.id === classId) ? classId : 'all';
+  const classLearners = data.learners.filter(l => isLearnerInScope(l, scope, data.classes));
   const learners = classLearners.filter(l => `${l.displayName || ''} ${l.email || ''}`.toLowerCase().includes(search.trim().toLowerCase()));
   const selected = learners.find(l => l.uid === selectedId);
   const projects = classLearners.map(l => !l.recordError && projectProgress(l.records)).filter(Boolean);

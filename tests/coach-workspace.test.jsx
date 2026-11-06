@@ -51,6 +51,32 @@ describe('coach workspace pilot fixes', () => {
     expect(host.textContent).toContain('Learners loaded (incomplete)');
     expect(host.textContent).toContain('Some class rosters could not be loaded');
   });
+  it('filters the roster by the WLS and WHS options in the class picker', async () => {
+    getDoc.mockResolvedValue({exists:()=>true,data:()=>({name:'Lower Secondary A',cohortId:'cohort-wls'})});
+    getDocs.mockImplementation(async ref => ref?.filter ? snapshot([
+      ['wls-own',{role:'student',displayName:'Wren Own',email:'wren@school.edu',classIds:['class-1'],cohortId:'cohort-wls'}],
+      ['wls-class',{role:'student',displayName:'Ivy Invited',email:'ivy@school.edu',classIds:['class-1'],status:'pending'}],
+      ['whs-own',{role:'student',displayName:'Hugo Higher',email:'hugo@school.edu',classIds:['class-1'],cohortId:'cohort-whs'}]
+    ]) : snapshot([]));
+    const onClassChange = vi.fn();
+    await render(<CoachWorkspace coachUser={{uid:'coach-1'}} onClassChange={onClassChange} />);
+    const select = host.querySelector('#cw-class');
+    const pick = value => act(async()=>{
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,value);
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+    expect(['Wren Own','Ivy Invited','Hugo Higher'].every(name => host.textContent.includes(name))).toBe(true);
+    await pick('cohort:cohort-wls');
+    expect(select.value).toBe('cohort:cohort-wls');
+    expect(onClassChange).toHaveBeenLastCalledWith('cohort:cohort-wls');
+    expect(host.textContent).toContain('Wren Own');
+    expect(host.textContent).toContain('Ivy Invited');
+    expect(host.textContent).not.toContain('Hugo Higher');
+    await pick('cohort:cohort-whs');
+    expect(host.textContent).toContain('Hugo Higher');
+    expect(host.textContent).not.toContain('Wren Own');
+    expect(host.textContent).not.toContain('Ivy Invited');
+  });
   it('does not query with class assignments supplied only by the UI profile', async () => {
     auth.currentUser.getIdTokenResult.mockResolvedValue({claims:{role:'teacher',classIds:[]}});
     await render(<CoachWorkspace coachUser={{uid:'coach-1',classIds:['forged']}} />);
