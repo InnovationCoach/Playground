@@ -111,7 +111,7 @@ describe('mock backend follows the §7 contract', () => {
 
   it('validates creates field by field and rejects a duplicate email with CONFLICT', async () => {
     const api = fresh();
-    const base = { role: 'student', email: 'new.kid@welearn.test', givenNames: 'New', surname: 'Kid', schoolIds: ['sch-bkk'], cohortId: 'cohort-lower-secondary', ageBand: '13-15' };
+    const base = { role: 'student', email: 'new.kid@welearn.test', givenNames: 'New', surname: 'Kid', schoolIds: ['sch-bkk'], cohortId: 'cohort-wls', ageBand: '13-15' };
     expect((await call(api, admin, 'POST', '/api/admin/users', { body: { ...base, phone: '0812345678' } })).body.error.field).toBe('phone');
     expect((await call(api, admin, 'POST', '/api/admin/users', { body: { ...base, cohortId: undefined } })).body.error.field).toBe('cohortId');
     const created = await call(api, admin, 'POST', '/api/admin/users', { body: base });
@@ -186,7 +186,7 @@ describe('mock backend follows the §7 contract', () => {
         givenNames: 'Instant',
         surname: 'Login',
         schoolIds: ['sch-bkk'],
-        cohortId: 'cohort-lower-secondary',
+        cohortId: 'cohort-wls',
         ageBand: '13-15',
         password: 'Password2026!'
       }

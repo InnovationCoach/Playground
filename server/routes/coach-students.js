@@ -38,11 +38,25 @@ router.get('/classes', route(async (req, res, caller) => {
 
 router.post('/', route(async (req, res, caller) => {
   const body = req.body;
-  if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(key => !['displayName', 'email', 'classId', 'ageBand'].includes(key))) fail(400, 'VALIDATION', 'Provide a student name, email, class, and age band only.');
+  if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(key => !['displayName', 'email', 'classId', 'ageBand', 'gradeLevel', 'cohortId'].includes(key))) fail(400, 'VALIDATION', 'Provide a student name, email, class, and age band only.');
   const displayName = requireText(body.displayName, 'Student name', 160);
   const email = requireText(body.email, 'Email', 254).toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail(400, 'VALIDATION', 'Enter a valid email address.');
   if (!['primary', '13-15', '16-18'].includes(body.ageBand)) fail(400, 'VALIDATION', 'Choose a learning age band.');
+  let gradeLevel = null;
+  let cohortId = null;
+  if (body.gradeLevel !== undefined && body.gradeLevel !== null && body.gradeLevel !== '') {
+    const g = typeof body.gradeLevel === 'string' ? Number(body.gradeLevel.trim()) : Number(body.gradeLevel);
+    if (!Number.isInteger(g) || g < 6 || g > 12) fail(400, 'VALIDATION', 'Grade level must be between 6 and 12.');
+    const derivedCohort = g <= 8 ? 'cohort-wls' : 'cohort-whs';
+    if (body.cohortId && body.cohortId !== derivedCohort) {
+      fail(400, 'VALIDATION', `Cohort ${body.cohortId} does not match grade level ${g}. Expected ${derivedCohort}.`);
+    }
+    gradeLevel = g;
+    cohortId = derivedCohort;
+  } else if (body.cohortId) {
+    cohortId = body.cohortId;
+  }
   const classId = requireId(body.classId);
   const db = getFirestore(), auth = getAuth();
   const clsSnap = await db.collection('classes').doc(classId).get();
@@ -59,12 +73,21 @@ router.post('/', route(async (req, res, caller) => {
     // No shared or coach-chosen password. The student chooses it using the
     // private Firebase setup link. Never persist or log this bearer link.
     created = await auth.createUser({ email, displayName, emailVerified: false });
-    await auth.setCustomUserClaims(created.uid, { role: 'student', orgId, schoolIds: [schoolId], classIds: [classId] });
+    await auth.setCustomUserClaims(created.uid, {
+      role: 'student',
+      orgId,
+      schoolIds: [schoolId],
+      classIds: [classId],
+      ...(cohortId ? { cohortIds: [cohortId], cohortId } : {})
+    });
     const setupLink = await auth.generatePasswordResetLink(email);
     const student = {
       uid: created.uid, role: 'student', status: 'pending', displayName, email,
       orgId, schoolIds: [schoolId], classIds: [classId], groupName: cls.name || classId,
-      ageBand: body.ageBand, createdAt: new Date().toISOString(), createdBy: { uid: caller.uid }
+      ageBand: body.ageBand,
+      ...(gradeLevel !== null ? { gradeLevel } : {}),
+      ...(cohortId ? { cohortId, cohortIds: [cohortId] } : {}),
+      createdAt: new Date().toISOString(), createdBy: { uid: caller.uid }
     };
     await db.runTransaction(async tx => {
       // Recheck current access after provisioning, including reassignment or
@@ -109,8 +132,10 @@ router.post('/:uid/setup-link', route(async (req, res, caller) => {
   if (!schoolId) fail(403, 'FORBIDDEN', 'This student is outside your school.');
   await schoolAccess(caller, schoolId);
   const classId = student.classIds?.find(id => caller.role === 'admin' || caller.classIds.includes(id));
-  if (!classId) fail(403, 'FORBIDDEN', 'This student is outside your assigned classes.');
-  await assignedClass(caller, schoolId, classId);
+  const sharesCohort = (student.cohortId && caller.cohortIds?.includes(student.cohortId))
+    || student.cohortIds?.some(id => caller.cohortIds?.includes(id));
+  if (!classId && !sharesCohort && caller.role !== 'admin') fail(403, 'FORBIDDEN', 'This student is outside your assigned classes.');
+  if (classId) await assignedClass(caller, schoolId, classId);
   const account = await getAuth().getUser(uid);
   if (account.disabled || account.providerData.some(provider => provider.providerId === 'password')) fail(409, 'CONFLICT', 'This account has already been used or disabled. Use the normal password reset flow.');
   const setupLink = await getAuth().generatePasswordResetLink(student.email);
