@@ -49,7 +49,7 @@ import { showGoalsPanel } from '../integrations/goalSettingIntegration.js';
 const KNOWN_VIEWS = new Set(ACTIVITY_NAV.map((a) => a.id));
 
 export function App() {
-  const { status, user, profile, role, classIds, orgId, error, signOut, refreshProfile } = useAuth();
+  const { status, user, profile, role, classIds, cohortIds, orgId, error, signOut, refreshProfile } = useAuth();
   const { effectiveTheme } = useTheme();
   const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
@@ -508,6 +508,7 @@ export function App() {
               email: user.email,
               displayName: profile?.displayName || user.email?.split('@')[0] || 'Coach',
               classIds: classIds || profile?.classIds || [],
+              cohortIds: (cohortIds && cohortIds.length > 0) ? cohortIds : (profile?.cohortIds && profile.cohortIds.length > 0 ? profile.cohortIds : ['cohort-wls', 'cohort-whs']),
               role: profile?.role || role
             }}
             orgId={orgId}

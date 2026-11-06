@@ -47,6 +47,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
     profile: null,
     role: null,
     classIds: [],
+    cohortIds: [],
     orgId: null,
     error: null,
     themePreference: 'light'
@@ -70,6 +71,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
     const scopeOf = (claims, profile) => ({
       role: resolveRole(claims, profile),
       classIds: (Array.isArray(claims.classIds) && claims.classIds.length > 0) ? claims.classIds : (Array.isArray(profile?.classIds) ? profile.classIds : []),
+      cohortIds: (Array.isArray(claims.cohortIds) && claims.cohortIds.length > 0) ? claims.cohortIds : (Array.isArray(profile?.cohortIds) ? profile.cohortIds : []),
       orgId: typeof claims.orgId === 'string' && claims.orgId ? claims.orgId : null
     });
 
@@ -88,7 +90,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
         await logoutUser();
         if (!live(gen)) return;
         setState({
-          status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null,
+          status: 'signed-out', user: null, profile: null, role: null, classIds: [], cohortIds: [], orgId: null,
           error: 'Could not load your profile. Please sign in again.'
         });
         return;
@@ -104,7 +106,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
         await logoutUser();
         if (!live(gen)) return;
         setState({
-          status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null,
+          status: 'signed-out', user: null, profile: null, role: null, classIds: [], cohortIds: [], orgId: null,
           error: 'This account is suspended. Please contact the school.'
         });
         return;
@@ -112,7 +114,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
 
       const claimRole = claims.role;
       const profileRole = profile.role;
-      const { role, classIds, orgId } = scopeOf(claims, profile);
+      const { role, classIds, cohortIds, orgId } = scopeOf(claims, profile);
 
       if (role === 'teacher' && profileRole && claimRole && profileRole !== claimRole) {
         console.warn(
@@ -150,6 +152,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
         profile,
         role,
         classIds,
+        cohortIds,
         orgId,
         themePreference,
         error: null
@@ -167,8 +170,9 @@ export function AuthProvider({ children, onThemeLoaded }) {
       if (now.status !== 'ready' || now.user?.uid !== user.uid) return;
       if (next.role !== now.role) { identity.current = { ...identity.current, ready: false }; await signedIn(user, gen); return; }
       const sameClasses = next.classIds.length === now.classIds.length && next.classIds.every((c, i) => c === now.classIds[i]);
-      if (next.orgId === now.orgId && sameClasses) return;
-      setState((s) => (s.status === 'ready' && s.user?.uid === user.uid ? { ...s, orgId: next.orgId, classIds: next.classIds } : s));
+      const sameCohorts = next.cohortIds.length === now.cohortIds.length && next.cohortIds.every((c, i) => c === now.cohortIds[i]);
+      if (next.orgId === now.orgId && sameClasses && sameCohorts) return;
+      setState((s) => (s.status === 'ready' && s.user?.uid === user.uid ? { ...s, orgId: next.orgId, classIds: next.classIds, cohortIds: next.cohortIds } : s));
     }
 
     const unsubscribe = subscribeToAuth((user) => {
@@ -179,7 +183,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
         identity.current = { uid: null, ready: false, profile: null, seq: identity.current.seq + 1 };
         stopTimeTracking();
         clearImperativeOverlays();
-        setState({ status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null, error: null });
+        setState({ status: 'signed-out', user: null, profile: null, role: null, classIds: [], cohortIds: [], orgId: null, error: null });
         return;
       }
 
