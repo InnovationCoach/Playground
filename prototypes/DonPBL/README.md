@@ -18,7 +18,7 @@ Key architectural properties:
   2. `kinetic-smart-energy-2026` — **Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting** (12 Weeks / 120h • 24 Sessions)
   3. `interstellar-ark-horizon-2026` — **Project Exodus: Building Our New Home in Space** (12 Weeks / 120h • 24 Sessions)
   4. `entrepreneurship-product-creation-2026` — **Entrepreneurship: Creating a Product** (12 Weeks / 120h • 18 Sessions)
-  5. `storytelling-genesis-2026` — **Project "Genesis Engine": Creative IP & Cinematic Narrative** (12 Weeks / 120h • 24 Sessions)
+  5. `storytelling-genesis-2026` — **Project "Genesis Engine": Build Your Own Movie Universe!** (12 Weeks / 120h • 24 Sessions)
   6. `passion-project-blueprint-2026` — **The Passion Project Blueprint: Discovering Your Next Big Idea** (12 Weeks / 120h • 24 Sessions)
   7. `biomechanics-robotics-2026` — **Quantitative Biomechanics & Bio-Inspired Robotics** (12 Weeks / 120h • 24 Sessions)
   8. `hex-city-thailand-2026` — **Hex-City Thailand: Modular Resilient Floating City** (12 Weeks / 120h • 24 Sessions)
@@ -120,7 +120,7 @@ Because no external citation record with person, ISO date, and message source is
 | `kinetic-smart-energy-2026` | Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting | 12 Weeks | 120h | **24 Sessions** | `[1,1], [2,2], [3,4], [5,6], [7,9], [10,11], [12,12]` |
 | `interstellar-ark-horizon-2026` | Project Exodus: Building Our New Home in Space | 12 Weeks | 120h | **24 Sessions** | `[1,1], [2,2], [3,4], [5,6], [7,8], [9,10], [11,12]` |
 | `entrepreneurship-product-creation-2026` | Entrepreneurship: Creating a Product | 12 Weeks | 120h | **18 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
-| `storytelling-genesis-2026` | Project "Genesis Engine": Creative IP & Cinematic Narrative | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
+| `storytelling-genesis-2026` | Project "Genesis Engine": Build Your Own Movie Universe! | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,3], [4,4], [5,6], [7,9], [10,11], [12,12]` |
 | `passion-project-blueprint-2026` | The Passion Project Blueprint: Discovering Your Next Big Idea | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |
 | `biomechanics-robotics-2026` | Quantitative Biomechanics & Bio-Inspired Robotics | 12 Weeks | 120h | **24 Sessions (Days 1–60)** | `[1,2], [3,4], [5,5], [6,7], [8,9], [10,11], [12,12]` |
 | `hex-city-thailand-2026` | Hex-City Thailand: Modular Resilient Floating City | 12 Weeks | 120h | **24 Sessions** | `[1,2], [3,4], [5,5], [6,6], [7,8], [9,10], [11,12]` |

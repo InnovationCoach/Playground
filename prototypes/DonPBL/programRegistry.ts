@@ -51,9 +51,21 @@ import type { FrictionStrategy } from './passionBlueprintProgram';
 import { 
   STORYTELLING_PROGRAM, 
   GENESIS_CHARACTERS_FIXTURE, 
-  GENESIS_WORLD_RULES_FIXTURE
+  GENESIS_WORLD_RULES_FIXTURE,
+  GENESIS_DELIVERABLES,
+  GENESIS_12_WEEK_ROADMAP,
+  GENESIS_SUCCESS_CHECKLIST,
+  GENESIS_GAMIFICATION_BADGES
 } from './storytellingProgram';
-import type { CharacterProfile, WorldRule } from './storytellingProgram';
+import type {
+  CharacterProfile,
+  WorldRule,
+  StoryBeat,
+  GenesisDeliverableSpec,
+  GenesisWeekSchedule,
+  GenesisSuccessCriterion,
+  GenesisGamificationBadge
+} from './storytellingProgram';
 import {
   ENTREPRENEURSHIP_PROGRAM,
   ENTREPRENEURSHIP_BADGES,
@@ -153,8 +165,24 @@ export type {
 export { PASSION_BLUEPRINT_PROGRAM, FRICTION_STRATEGIES };
 export type { FrictionStrategy };
 
-export { STORYTELLING_PROGRAM, GENESIS_CHARACTERS_FIXTURE, GENESIS_WORLD_RULES_FIXTURE };
-export type { CharacterProfile, WorldRule };
+export {
+  STORYTELLING_PROGRAM,
+  GENESIS_CHARACTERS_FIXTURE,
+  GENESIS_WORLD_RULES_FIXTURE,
+  GENESIS_DELIVERABLES,
+  GENESIS_12_WEEK_ROADMAP,
+  GENESIS_SUCCESS_CHECKLIST,
+  GENESIS_GAMIFICATION_BADGES
+};
+export type {
+  CharacterProfile,
+  WorldRule,
+  StoryBeat,
+  GenesisDeliverableSpec,
+  GenesisWeekSchedule,
+  GenesisSuccessCriterion,
+  GenesisGamificationBadge
+};
 
 export {
   ENTREPRENEURSHIP_PROGRAM,

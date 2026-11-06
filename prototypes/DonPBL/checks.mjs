@@ -538,10 +538,25 @@ async function main() {
       ENTREPRENEURSHIP_PDF_ACTIVITIES,
       ENTREPRENEURSHIP_BADGES,
       ENTREPRENEURSHIP_LEVELS,
-      ENTREPRENEURSHIP_SIMULATION_PRESETS
+      ENTREPRENEURSHIP_SIMULATION_PRESETS,
+      GENESIS_DELIVERABLES,
+      GENESIS_12_WEEK_ROADMAP,
+      GENESIS_SUCCESS_CHECKLIST,
+      GENESIS_GAMIFICATION_BADGES
     } = pbl;
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
     assert.equal(registryKeys.length, 9, 'Expected 9 complete programs in PROGRAM_REGISTRY');
+    assert.ok('storytelling-genesis-2026' in PROGRAM_REGISTRY, 'storytelling-genesis-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['storytelling-genesis-2026'].title,
+      'Project "Genesis Engine": Build Your Own Movie Universe!',
+      'Expected Project "Genesis Engine": Build Your Own Movie Universe! title'
+    );
+    assert.equal(GENESIS_DELIVERABLES.length, 3, 'Expected 3 Final Deliverables for Project Genesis Engine');
+    assert.equal(GENESIS_12_WEEK_ROADMAP.length, 12, 'Expected 12 weeks in GENESIS_12_WEEK_ROADMAP');
+    assert.equal(GENESIS_SUCCESS_CHECKLIST.length, 4, 'Expected 4 scoring criteria in GENESIS_SUCCESS_CHECKLIST');
+    assert.equal(GENESIS_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Project Genesis Engine');
+
     assert.ok('entrepreneurship-product-creation-2026' in PROGRAM_REGISTRY, 'entrepreneurship-product-creation-2026 must be registered');
     assert.equal(
       PROGRAM_REGISTRY['entrepreneurship-product-creation-2026'].title,
