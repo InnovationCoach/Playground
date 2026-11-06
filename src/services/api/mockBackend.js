@@ -584,10 +584,10 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
       days: 3
     },
     {
-      id: 'leave_sarah_02',
-      uid: 'CETkvAzvYUhKwCxB97hZLvD9tZz2',
-      name: 'Coach Sarah Jenkins',
-      role: 'Lead Robotics & Maker Coach',
+      id: 'leave_sara_02',
+      uid: 'tVWjvJbkurX85KJvAfhYLYjmXnj2',
+      name: 'Coach Sara',
+      role: 'Lead PBL Coach',
       startDate: '2026-12-24',
       endDate: '2026-12-28',
       reason: 'Year-end family holidays and cultural celebration',
@@ -597,23 +597,10 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
       days: 5
     },
     {
-      id: 'leave_alex_03',
-      uid: '5ONInNle5ZWHoPFuWCjhKKqMiKP2',
-      name: 'Coach Alex Rivera',
-      role: 'Climate & Sustainability Coach',
-      startDate: '2026-11-10',
-      endDate: '2026-11-11',
-      reason: 'Regional PBL STEM Educators Conference presentation',
-      status: 'approved',
-      response: 'Approved. Looking forward to the conference debrief!',
-      createdAt: '2026-10-25T14:20:00.000Z',
-      days: 2
-    },
-    {
-      id: 'leave_david_04',
-      uid: 'DuXWfOG0fnYn8kG8R6d4rMnlx2o1',
-      name: 'Coach David Chen',
-      role: 'Physics & Coding Coach',
+      id: 'leave_don_03',
+      uid: 'r0Ya2VeXlhN2xJZEkm0G3Nn8Zei1',
+      name: 'Coach Don',
+      role: 'PBL Director & Coach',
       startDate: '2026-12-01',
       endDate: '2026-12-03',
       reason: 'Robotics competition chaperone & hardware workshop',
@@ -636,33 +623,23 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
       holidayTotal: 20
     },
     {
-      uid: 'CETkvAzvYUhKwCxB97hZLvD9tZz2',
-      name: 'Coach Sarah Jenkins',
-      role: 'Lead Robotics & Maker Coach',
-      email: 'coach@welearn.org',
+      uid: 'tVWjvJbkurX85KJvAfhYLYjmXnj2',
+      name: 'Coach Sara',
+      role: 'Lead PBL Coach',
+      email: 'sara@welearn.org',
       defaultStatus: 'present',
-      defaultNote: 'Leading Robotics Workshop',
+      defaultNote: 'Leading PBL Workshop',
       daysOffUsed: 6,
       holidayTotal: 20
     },
     {
-      uid: '5ONInNle5ZWHoPFuWCjhKKqMiKP2',
-      name: 'Coach Alex Rivera',
-      role: 'Climate & Sustainability Coach',
-      email: 'demo.coach.report@welearn.org',
+      uid: 'r0Ya2VeXlhN2xJZEkm0G3Nn8Zei1',
+      name: 'Coach Don',
+      role: 'PBL Director & Coach',
+      email: 'don@welearn.org',
       defaultStatus: 'present',
-      defaultNote: 'Climate Champions PBL mentoring',
-      daysOffUsed: 2,
-      holidayTotal: 20
-    },
-    {
-      uid: 'DuXWfOG0fnYn8kG8R6d4rMnlx2o1',
-      name: 'Coach David Chen',
-      role: 'Physics & Coding Coach',
-      email: 'al@welearn.org',
-      defaultStatus: 'late',
-      defaultNote: 'Commute delay (30 mins) · Coding lab',
-      daysOffUsed: 8,
+      defaultNote: 'PBL mentoring & coaching',
+      daysOffUsed: 4,
       holidayTotal: 20
     },
     {

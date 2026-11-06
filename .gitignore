@@ -12,3 +12,4 @@ build/
 scripts/firebase-admin-key.json
 tmp/
 output/
+backups/

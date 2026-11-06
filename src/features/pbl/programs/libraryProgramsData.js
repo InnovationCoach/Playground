@@ -368,6 +368,42 @@ export const LIBRARY_PROGRAMS = [
         coachCue: 'Coach learners to speak with grounded conviction backed by their test metrics.'
       }
     ],
+    materialsAndKit: {
+      microcontrollers: [
+        'Digital Twin Market Simulator Sandbox (Browser-based transaction, margin & demand testing)',
+        'Optional BBC micro:bit V2 / Arduino UNO / ESP32 (for smart physical products with telemetry or timers)'
+      ],
+      sensorsAndActuators: [
+        'Digital calipers (0.01mm precision for CAD tolerancing)',
+        'Digital scales (for prototype weight and material measurement)',
+        'Stopwatches and live pitch rehearsal timers',
+        'Optional micro servo / push buttons / LED indicators for active smart prototypes'
+      ],
+      fabricationMaterials: [
+        'Recycled PLA / PETG filament spools for 3D printing',
+        'Cardboard, corrugated plastic, dense foam board, scrap tarpaulin/fabrics',
+        'Self-healing cutting mats, utility knives with safety guards, hot glue guns',
+        'Duct tape, eyelets, Velcro strips, snap buckles, heavy webbing straps',
+        'Fasteners, M3 screws and nuts, index cards, presentation boards'
+      ],
+      softwareAndTools: [
+        'Autodesk Fusion 360 / Blender (Parametric 3D CAD modeling)',
+        'Bambu Studio / PrusaSlicer (3D print slicing software)',
+        'PBL Studio Entrepreneurship Digital Twin Simulator & Margin Calculator',
+        'PBL Studio AI Co-Pilot (Past-behavior interview coach, Socratic pricing auditor & pitch timer)',
+        'Google Sheets / Excel for Unit Economics, COGS and Break-Even Modeling',
+        'Figma / Canva / Web browser for wireframing and slide pitch visuals'
+      ]
+    },
+    teacherGuidance: {
+      safetyProtocol: [
+        'Cutting Tool Protocol: Precision utility knives, rotary cutters, and hot glue guns must be operated on self-healing cutting mats with safety guards and eye protection.',
+        'CAD & 3D Printing Safety: Operate Bambu 3D printers in designated ventilated zones; never touch heated print nozzles (200°C+) or heated beds; verify clearance along moving axes before initiating print jobs.',
+        'MakerSpace Fabrication Protocol: Wear safety goggles when sanding, drilling, cutting acrylic/board, or assembling mechanical fasteners; keep work areas clean of loose cables.',
+        'Silent Rule Discipline: Ensure designers stay quiet during peer testing; intervene gently if a student tries to guide a tester.',
+        'Low-Risk Seed Capital: Keep all startup capital budgets low (max 1,500 THB) to focus learning on scrappiness and unit economics.'
+      ]
+    },
     searchTokens: [],
     createdAt: 1729000000000,
     updatedAt: 1729000000000,

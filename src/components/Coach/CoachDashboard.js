@@ -129,7 +129,15 @@ export class CoachDashboard {
           snap.docs.forEach((d) => {
             if (seen.has(d.id)) return;
             seen.add(d.id);
-            if (d.data().role === 'student') {
+            const dData = d.data();
+            const isTestAccount = Boolean(
+              dData.isTest === true ||
+              dData.status === 'archived' ||
+              dData.email?.includes('test@school.edu') ||
+              dData.email?.includes('test.') ||
+              dData.email?.includes('@hearisland-test.org')
+            );
+            if (dData.role === 'student' && dData.status === 'active' && !isTestAccount) {
               studentDocs.push(d);
             }
           });

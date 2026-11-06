@@ -8,9 +8,12 @@ import {
 import { programById, COACH_PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges, isSourcedConfirmation } from './catalog.js';
 import { getProgram, addToMyCourse } from '../../../services/pblService.js';
 import {
-  programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, LIMITS,
+  programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, removeSubmission, isSessionDone, unlockBadge, LIMITS,
   needsRecheck, confirmRecheck
 } from './progress.js';
+import { addEvidence, hydrateProject } from '../engine/pblProject.js';
+import { TERM } from '../content/pblModel.js';
+import { db, doc, setDoc } from '../../../firebase.js';
 import { subscribeToPblTransfers } from '../../coach/studio/pblTransferService.js';
 import { toolkitFor } from './tools/index.js';
 import { ToolFor, FounderPanel } from './tools/EntrepreneurshipTools.jsx';
@@ -116,20 +119,90 @@ function LearnerDetail({ program, section, uid, cover }) {
   return <DetailView program={program} section={section} cover={cover} progress={progress} apply={apply} syncState={syncState} uid={uid} />;
 }
 
+const SECTION_ALIASES = {
+  toolkit: 'tools',
+  safety: 'kit',
+  curriculum: 'plan',
+  syllabus: 'plan'
+};
+
+function saveToPortfolio(uid, evidenceItem) {
+  try {
+    const termId = TERM.id;
+    const key = `hearisland.pbl.v1:${uid || 'signed-out'}:${termId}`;
+    const raw = localStorage.getItem(key);
+    const proj = raw ? hydrateProject(JSON.parse(raw), termId) : hydrateProject(null, termId);
+    const res = addEvidence(proj, evidenceItem);
+    if (!res.error && res.project) {
+      localStorage.setItem(key, JSON.stringify(res.project));
+      if (uid) {
+        setDoc(doc(db, 'users', `${uid}/activityProgress/pbl-${termId}`), res.project).catch(() => {});
+      }
+    }
+  } catch (err) {
+    console.warn('[PBL] Portfolio save failed:', err);
+  }
+}
+
 function DetailView({ program: p, section, cover, isCoach = false, progress = null, apply = null, syncState, uid = null }) {
   const kit = toolkitFor(p.id);
   const sections = SECTIONS.filter((s) => (!s.coach || isCoach) && (!s.kit || kit));
-  const active = sections.some((s) => s.id === section) ? section : 'overview';
+  const resolvedSection = SECTION_ALIASES[section] || section;
+  const isKnown = sections.some((s) => s.id === resolvedSection);
+  const active = isKnown ? resolvedSection : 'overview';
+  const unknownSection = Boolean(section && !isKnown);
+
+  const [selectedPhase, setSelectedPhase] = useState(null);
+  const [selectedSessionNum, setSelectedSessionNum] = useState(null);
+
   const summary = progress ? programProgress(progress, p) : null;
   const [toast, say] = useToast();
   // Coaches can try the tools; their changes stay in memory and are never saved.
   const [demo, setDemo] = useState({});
   const tools = {
     data: (id) => (progress ? progress.tools?.[id] : demo[id]),
-    save: (id, data) => (apply ? apply((x) => setTool(x, id, data)) : setDemo((d) => ({ ...d, [id]: data }))),
+    save: (id, data) => {
+      if (apply) {
+        apply((prevProg) => {
+          let next = setTool(prevProg, id, data);
+          if (kit) {
+            const newlyEarned = kit.earnedBadges(next);
+            const curBadges = new Set(Array.isArray(next.badges) ? next.badges : []);
+            for (const bId of newlyEarned) {
+              curBadges.add(bId);
+            }
+            next = { ...next, badges: [...curBadges] };
+          }
+          return next;
+        });
+      } else {
+        setDemo((d) => ({ ...d, [id]: data }));
+      }
+    },
     readOnly: !apply
   };
   useBadgeCheer(kit, progress, say);
+
+  const handleSelectSession = (session) => {
+    setSelectedPhase(session.phaseId);
+    setSelectedSessionNum(session.sessionNumber);
+    if (active !== 'plan') {
+      window.location.hash = hrefFor.program(p.id, 'plan');
+    }
+    setTimeout(() => {
+      const el = document.getElementById(`pg-session-${session.sessionNumber}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+  };
+
+  const handleSelectPhase = (phaseId) => {
+    setSelectedPhase(phaseId);
+    if (active !== 'plan') {
+      window.location.hash = hrefFor.program(p.id, 'plan');
+    }
+  };
 
   return (
     <div className="pg-detail">
@@ -159,19 +232,32 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
             return (
               <li key={phId} style={{ flexGrow: Math.max(1, wRange) }}
                   data-done={summary?.byPhase?.[phId]?.complete || undefined}>
-                <span title={ph.title}>{stripLabel(ph.title)}</span>
-                <small>{weekLabel(ph.weeks)}</small>
+                <button
+                  type="button"
+                  onClick={() => handleSelectPhase(phId)}
+                  className="pb-term-strip-btn"
+                  style={{ background: 'none', border: 'none', color: 'inherit', padding: 0, font: 'inherit', textAlign: 'inherit', width: '100%', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
+                >
+                  <span title={ph.title}>{stripLabel(ph.title)}</span>
+                  <small>{weekLabel(ph.weeks)}</small>
+                </button>
               </li>
             );
           })}
         </ol>
-        {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} uid={uid} />}
+        {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} uid={uid} onSelectSession={handleSelectSession} />}
         {kit && progress?.startedAt && <FounderPanel program={p} progress={progress} />}
         </div>
         <div className="pg-hero-aside"><ProgramPoster program={p} cover={cover} size="hero" /></div>
       </section>
 
       {syncState && <SyncNote state={syncState} />}
+      {unknownSection && (
+        <div className="pb-sync pb-sync-warn" role="alert" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <TriangleAlert size={16} aria-hidden="true" />
+          <span>Section &ldquo;<strong>{section}</strong>&rdquo; was not found in this program. Showing Overview.</span>
+        </div>
+      )}
       {apply && needsRecheck(progress) && <div className="pb-sync pb-sync-warn pb-recheck" role="status">
         <TriangleAlert size={16} aria-hidden="true" /> This course’s session numbers were corrected after you saved progress, so some ticks may now sit on the wrong session. Please re-check which sessions you’ve completed, then confirm.
         <button type="button" className="gh-btn gh-btn-secondary" onClick={() => apply((p) => confirmRecheck(p))}>I’ve re-checked my sessions</button>
@@ -194,7 +280,7 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
           <Overview program={p} />
         </>
       )}
-      {active === 'plan' && <TermPlan program={p} isCoach={isCoach} progress={progress} apply={apply} kit={kit} tools={tools} say={say} />}
+      {active === 'plan' && <TermPlan program={p} isCoach={isCoach} progress={progress} apply={apply} kit={kit} tools={tools} say={say} selectedPhase={selectedPhase} selectedSessionNum={selectedSessionNum} uid={uid} />}
       {active === 'tools' && kit && <Toolkit program={p} kit={kit} tools={tools} />}
       {active === 'kit' && <KitAndSafety program={p} />}
       {active === 'guide' && <TeachingGuide program={p} />}
@@ -257,7 +343,7 @@ function Toolkit({ program: p, kit, tools }) {
   );
 }
 
-function LearnerBar({ program: p, progress, summary, apply, uid = null }) {
+function LearnerBar({ program: p, progress, summary, apply, uid = null, onSelectSession = null }) {
   if (!progress.startedAt) {
     return (
       <div className="pg-learner-bar">
@@ -278,9 +364,19 @@ function LearnerBar({ program: p, progress, summary, apply, uid = null }) {
         <span>{summary.done} of {summary.total} sessions done</span>
       </div>
       {summary.next ? (
-        <a className="gh-btn gh-btn-primary" href={`${hrefFor.program(p.id, 'plan')}`}>
+        <button
+          type="button"
+          className="gh-btn gh-btn-primary"
+          onClick={() => {
+            if (onSelectSession) {
+              onSelectSession(summary.next);
+            } else {
+              window.location.hash = hrefFor.program(p.id, 'plan');
+            }
+          }}
+        >
           Next: session {summary.next.sessionNumber}<ArrowRight size={16} aria-hidden="true" />
-        </a>
+        </button>
       ) : (
         <span className="gh-badge gh-badge-active">Program complete</span>
       )}
@@ -364,13 +460,18 @@ function Overview({ program: p }) {
 
 /* ----------------------------------------------------------------- Term plan */
 
-function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say }) {
+function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say, selectedPhase, selectedSessionNum, uid }) {
   const summary = progress ? programProgress(progress, p) : null;
   const phases = Array.isArray(p.phases) && p.phases.length > 0
     ? p.phases
     : [{ id: 'phase-1', phaseId: 'phase-1', title: 'Phase 1', weeks: [1, 1], sessions: [], tasks: [], evidence: [], competencies: [], stretchCompetencies: [] }];
   const startPhase = summary?.next?.phaseId || phases[0]?.id || phases[0]?.phaseId || 'phase-1';
-  const [open, setOpen] = useState(startPhase);
+  const [open, setOpen] = useState(selectedPhase || startPhase);
+
+  useEffect(() => {
+    if (selectedPhase) setOpen(selectedPhase);
+  }, [selectedPhase]);
+
   const phase = phases.find((ph) => (ph.id || ph.phaseId) === open) || phases[0] || {
     id: 'phase-1',
     phaseId: 'phase-1',
@@ -419,8 +520,8 @@ function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say }) {
             {(phase.sessions || []).length === 0 && <p className="pb-empty">No sessions are written for this phase yet.</p>}
             {(phase.sessions || []).map((s) => (
               <SessionCard key={s.sessionNumber || s.title} program={p} session={s} isCoach={isCoach} progress={progress} apply={apply}
-                           kit={kit} tools={tools} say={say}
-                           defaultOpen={summary ? summary.next?.sessionNumber === s.sessionNumber : false} />
+                           kit={kit} tools={tools} say={say} uid={uid}
+                           defaultOpen={selectedSessionNum ? selectedSessionNum === s.sessionNumber : (summary ? summary.next?.sessionNumber === s.sessionNumber : false)} />
             ))}
           </div>
           <div className="pb-col">
@@ -459,19 +560,43 @@ const CONFIDENCE = [
   { n: 1, face: '😵', label: 'Lost' }, { n: 2, face: '🤔', label: 'Getting there' }, { n: 3, face: '🙂', label: 'Okay' },
   { n: 4, face: '😎', label: 'Confident' }, { n: 5, face: '🧑‍🏫', label: 'I could teach it' }
 ];
-const TOOL_EMOJI = { 'friction-log': '🔍', 'crazy-8s': '⚡', 'unit-economics': '📊', 'pitch-timer': '🎤' };
+const TOOL_EMOJI = { 'friction-log': '🔍', 'unbiased-listener': '🎙️', 'crazy-8s': '⚡', 'unit-economics': '📊', 'pitch-timer': '🎤' };
 
 function MultiModalSubmissions({ session: s, progress, apply, say }) {
   const submissions = progress?.sessions[s.sessionNumber]?.submissions || {};
   const [activeType, setActiveType] = useState('video');
   const [val, setVal] = useState('');
+  const [err, setErr] = useState('');
 
   const submit = (type, inputVal) => {
-    if (!inputVal || !inputVal.trim()) return;
-    apply((p) => setSubmission(p, s.sessionNumber, type, inputVal.trim()));
+    const trimmed = (inputVal || '').trim();
+    if (!trimmed) {
+      setErr('Please enter a submission URL or ID.');
+      return;
+    }
+    if (type === 'github') {
+      const isGh = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/i.test(trimmed);
+      if (!isGh) {
+        setErr('Please enter a valid GitHub repository URL (e.g. https://github.com/org/repo).');
+        return;
+      }
+    } else if (type === 'video') {
+      const isUrl = /^https?:\/\/[^\s$.?#].[^\s]*$/i.test(trimmed);
+      if (!isUrl) {
+        setErr('Please enter a valid video URL (e.g. YouTube, Loom, or Drive link).');
+        return;
+      }
+    }
+    setErr('');
+    apply((p) => setSubmission(p, s.sessionNumber, type, trimmed));
     buzz([20, 40]);
     say?.(`${type === 'video' ? '📹 Video demo' : type === 'github' ? '💻 GitHub repo' : '🛠️ Prototype'} submitted!`);
     setVal('');
+  };
+
+  const remove = (type) => {
+    apply((p) => removeSubmission(p, s.sessionNumber, type, Date.now(), s));
+    say?.(`Removed ${type === 'video' ? 'video demo' : type === 'github' ? 'GitHub repo' : 'prototype tag'}.`);
   };
 
   return (
@@ -481,13 +606,13 @@ function MultiModalSubmissions({ session: s, progress, apply, say }) {
           Multi-Modal Submissions
         </span>
         <div style={{ display: 'flex', gap: '0.35rem' }}>
-          <button type="button" className={`gh-btn gh-btn-sm ${activeType === 'video' ? 'gh-btn-primary' : 'gh-btn-ghost'}`} onClick={() => { setActiveType('video'); setVal(''); }}>
+          <button type="button" className={`gh-btn gh-btn-sm ${activeType === 'video' ? 'gh-btn-primary' : 'gh-btn-ghost'}`} onClick={() => { setActiveType('video'); setVal(''); setErr(''); }}>
             <Video size={13} style={{ marginRight: '0.25rem' }} /> Video Link
           </button>
-          <button type="button" className={`gh-btn gh-btn-sm ${activeType === 'github' ? 'gh-btn-primary' : 'gh-btn-ghost'}`} onClick={() => { setActiveType('github'); setVal(''); }}>
+          <button type="button" className={`gh-btn gh-btn-sm ${activeType === 'github' ? 'gh-btn-primary' : 'gh-btn-ghost'}`} onClick={() => { setActiveType('github'); setVal(''); setErr(''); }}>
             <GitBranch size={13} style={{ marginRight: '0.25rem' }} /> GitHub Repo
           </button>
-          <button type="button" className={`gh-btn gh-btn-sm ${activeType === 'prototype' ? 'gh-btn-primary' : 'gh-btn-ghost'}`} onClick={() => { setActiveType('prototype'); setVal(''); }}>
+          <button type="button" className={`gh-btn gh-btn-sm ${activeType === 'prototype' ? 'gh-btn-primary' : 'gh-btn-ghost'}`} onClick={() => { setActiveType('prototype'); setVal(''); setErr(''); }}>
             <Box size={13} style={{ marginRight: '0.25rem' }} /> Prototype
           </button>
         </div>
@@ -500,7 +625,7 @@ function MultiModalSubmissions({ session: s, progress, apply, say }) {
           style={{ fontSize: '0.82rem', padding: '0.45rem 0.65rem' }}
           placeholder={activeType === 'video' ? 'Paste YouTube, Loom, or Drive video URL...' : activeType === 'github' ? 'Paste GitHub repo URL (e.g. https://github.com/org/repo)...' : 'MakerSpace Bench #, Box Tag, or Photo Link...'}
           value={val}
-          onChange={(e) => setVal(e.target.value)}
+          onChange={(e) => { setVal(e.target.value); setErr(''); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(activeType, val); } }}
         />
         <button type="button" className="gh-btn gh-btn-primary gh-btn-sm" onClick={() => submit(activeType, val)}>
@@ -508,21 +633,54 @@ function MultiModalSubmissions({ session: s, progress, apply, say }) {
         </button>
       </div>
 
+      {err && (
+        <p className="pt-warn" role="alert" style={{ margin: '0.35rem 0 0', fontSize: '0.8rem' }}>
+          {err}
+        </p>
+      )}
+
       {Object.keys(submissions).length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginTop: '0.65rem' }}>
           {submissions.video && (
-            <span className="gh-badge gh-badge-active" style={{ fontSize: '0.74rem' }}>
-              <Video size={12} style={{ marginRight: '0.3rem' }} /> Video Demo: {submissions.video.url.slice(0, 32)}... ✓
+            <span className="gh-badge gh-badge-active" style={{ fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+              <Video size={12} />
+              <span>Video Demo: {submissions.video.url.slice(0, 32)}{submissions.video.url.length > 32 ? '…' : ''} ✓</span>
+              <button
+                type="button"
+                onClick={() => remove('video')}
+                aria-label="Remove video demo submission"
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 'bold' }}
+              >
+                ×
+              </button>
             </span>
           )}
           {submissions.github && (
-            <span className="gh-badge gh-badge-active" style={{ fontSize: '0.74rem' }}>
-              <GitBranch size={12} style={{ marginRight: '0.3rem' }} /> GitHub: {submissions.github.url.slice(0, 32)}... ✓
+            <span className="gh-badge gh-badge-active" style={{ fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+              <GitBranch size={12} />
+              <span>GitHub: {submissions.github.url.slice(0, 32)}{submissions.github.url.length > 32 ? '…' : ''} ✓</span>
+              <button
+                type="button"
+                onClick={() => remove('github')}
+                aria-label="Remove GitHub repo submission"
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 'bold' }}
+              >
+                ×
+              </button>
             </span>
           )}
           {submissions.prototype && (
-            <span className="gh-badge gh-badge-active" style={{ fontSize: '0.74rem' }}>
-              <Box size={12} style={{ marginRight: '0.3rem' }} /> Prototype Tag: {submissions.prototype.url.slice(0, 32)}... ✓
+            <span className="gh-badge gh-badge-active" style={{ fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+              <Box size={12} />
+              <span>Prototype Tag: {submissions.prototype.url.slice(0, 32)}{submissions.prototype.url.length > 32 ? '…' : ''} ✓</span>
+              <button
+                type="button"
+                onClick={() => remove('prototype')}
+                aria-label="Remove prototype tag submission"
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 'bold' }}
+              >
+                ×
+              </button>
             </span>
           )}
         </div>
@@ -545,33 +703,58 @@ function Stage({ icon, title, children }) {
  * (if the program has one), evidence and a reflection with sentence starters
  * and a confidence check. Coaches see the same mission read-only.
  */
-function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpen, kit, tools, say }) {
+function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpen, kit, tools, say, uid }) {
   const [expanded, setExpanded] = useState(defaultOpen);
   const entry = progress?.sessions[s.sessionNumber];
-  const done = !!entry?.done;
+  const done = isSessionDone(entry, s);
   const steps = entry?.steps || [];
   const toolId = kit?.sessionTools[s.sessionNumber];
   const bodyId = `pg-session-${s.sessionNumber}`;
   const reflectRef = useRef(null);
   const xp = kit?.sessionXp;
 
+  // Pre-filled Portfolio Evidence form state
+  const [showPortfolioForm, setShowPortfolioForm] = useState(false);
+  const [portTitle, setPortTitle] = useState(() => `Mission ${s.sessionNumber}: ${s.title}`);
+  const [portKind, setPortKind] = useState(() => s.evidenceToCollect?.kind || 'note');
+  const [portBody, setPortBody] = useState(() => s.evidenceToCollect?.prompt || '');
+  const [portLink, setPortLink] = useState('');
+  const [portComps, setPortComps] = useState(() => s.evidenceToCollect?.targetCompetencies || []);
+
   function complete(e) {
     const el = e.currentTarget;
-    apply((x) => toggleSession(x, s.sessionNumber));
+    apply((x) => toggleSession(x, s));
     if (!done) { confettiFrom(el, { big: true }); buzz([20, 40, 20]); say?.(`Mission ${s.sessionNumber} complete!${xp ? ` +${xp} XP` : ''}`); }
   }
   function addStarter(text) {
     const cur = entry?.reflection || '';
-    const next = `${cur}${cur && !/\s$/.test(cur) ? ' ' : ''}${text}`.slice(0, LIMITS.reflection);
+    const next = `${cur}${cur ? (cur.endsWith('\n') ? '' : '\n') : ''}${text}`.slice(0, LIMITS.reflection);
     apply((x) => setReflection(x, s.sessionNumber, next));
     requestAnimationFrame(() => { const t = reflectRef.current; if (t) { t.focus(); t.setSelectionRange(next.length, next.length); } });
   }
 
+  const submitPortfolioEvidence = (e) => {
+    e.preventDefault();
+    const evItem = {
+      title: portTitle,
+      kind: portKind,
+      body: portBody,
+      link: portLink,
+      competencies: portComps,
+      phase: s.phaseId
+    };
+    saveToPortfolio(uid, evItem);
+    apply((p) => setSubmission(p, s.sessionNumber, 'evidence', portLink || portTitle));
+    buzz([20, 40]);
+    say?.(`Evidence saved to your portfolio! 🎉`);
+    setShowPortfolioForm(false);
+  };
+
   return (
-    <article className="gh-card pg-session pg-mission" data-done={done || undefined}>
+    <article className="gh-card pg-session pg-mission" id={`pg-session-${s.sessionNumber}`} data-done={done || undefined}>
       <div className="pg-session-head">
         {progress ? (
-          <button type="button" className="pg-done" aria-pressed={done} onClick={() => apply((x) => toggleSession(x, s.sessionNumber))}
+          <button type="button" className="pg-done" aria-pressed={done} onClick={() => apply((x) => toggleSession(x, s))}
                   aria-label={done ? `Mark session ${s.sessionNumber} not done` : `Mark session ${s.sessionNumber} done`}>
             {done ? <CircleCheck size={22} aria-hidden="true" /> : <Circle size={22} aria-hidden="true" />}
           </button>
@@ -645,9 +828,55 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
               <p>{s.evidenceToCollect?.prompt || ''}</p>
               <CompetencyChips ids={s.evidenceToCollect?.targetCompetencies || []} />
               {progress && (
-                <a className="gh-btn gh-btn-sm pg-evidence-go" href={hrefFor.pbl('portfolio')}>
-                  <NotebookPen size={15} aria-hidden="true" />Add it to my portfolio
-                </a>
+                <div style={{ marginTop: '0.6rem' }}>
+                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="gh-btn gh-btn-sm pg-evidence-go"
+                      onClick={() => setShowPortfolioForm((v) => !v)}
+                    >
+                      <NotebookPen size={15} aria-hidden="true" />
+                      {showPortfolioForm ? 'Cancel evidence form' : 'Add it to my portfolio'}
+                    </button>
+                    <a className="pb-link" href={hrefFor.pbl('portfolio')} style={{ fontSize: '0.8rem' }}>
+                      View portfolio <ArrowRight size={13} aria-hidden="true" />
+                    </a>
+                  </div>
+
+                  {showPortfolioForm && (
+                    <form onSubmit={submitPortfolioEvidence} className="pb-form" style={{ marginTop: '0.75rem', padding: '0.85rem', background: 'var(--gh-surface-2, #1b212c)', borderRadius: '8px', border: '1px solid var(--gh-border)' }}>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.88rem', color: 'var(--gh-heading)' }}>
+                        Add Evidence to Portfolio · Mission {s.sessionNumber}
+                      </h4>
+                      <div className="pb-form-row">
+                        <div className="pb-field">
+                          <label className="gh-label" htmlFor={`ev-kind-${s.sessionNumber}`}>Type</label>
+                          <select id={`ev-kind-${s.sessionNumber}`} className="gh-select" value={portKind} onChange={(e) => setPortKind(e.target.value)}>
+                            {['note', 'media', 'code', 'data', 'feedback', 'ai', 'reflection'].map((k) => (
+                              <option key={k} value={k}>{EVIDENCE_LABEL[k] || k}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="pb-field pb-grow">
+                          <label className="gh-label" htmlFor={`ev-title-${s.sessionNumber}`}>Title</label>
+                          <input id={`ev-title-${s.sessionNumber}`} className="gh-input" value={portTitle} onChange={(e) => setPortTitle(e.target.value)} required />
+                        </div>
+                      </div>
+                      <div className="pb-field" style={{ marginTop: '0.4rem' }}>
+                        <label className="gh-label" htmlFor={`ev-body-${s.sessionNumber}`}>Notes / Reflection</label>
+                        <textarea id={`ev-body-${s.sessionNumber}`} className="gh-input pb-textarea" rows={2} value={portBody} onChange={(e) => setPortBody(e.target.value)} />
+                      </div>
+                      <div className="pb-field" style={{ marginTop: '0.4rem' }}>
+                        <label className="gh-label" htmlFor={`ev-link-${s.sessionNumber}`}>Link (Google Drive, photo, repo, demo URL)</label>
+                        <input id={`ev-link-${s.sessionNumber}`} type="url" className="gh-input" placeholder="https://" value={portLink} onChange={(e) => setPortLink(e.target.value)} />
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                        <button type="submit" className="gh-btn gh-btn-primary gh-btn-sm">Save to Portfolio</button>
+                        <button type="button" className="gh-btn gh-btn-ghost gh-btn-sm" onClick={() => setShowPortfolioForm(false)}>Cancel</button>
+                      </div>
+                    </form>
+                  )}
+                </div>
               )}
             </div>
             {progress && (
@@ -689,7 +918,7 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
               {done ? (
                 <>
                   <span className="pg-mission-done"><CircleCheck size={18} aria-hidden="true" />Mission complete</span>
-                  <button type="button" className="gh-btn gh-btn-ghost gh-btn-sm" onClick={() => apply((x) => toggleSession(x, s.sessionNumber))}>
+                  <button type="button" className="gh-btn gh-btn-ghost gh-btn-sm" onClick={() => apply((x) => toggleSession(x, s))}>
                     <Undo2 size={14} aria-hidden="true" />Not finished yet
                   </button>
                 </>
@@ -868,7 +1097,18 @@ function IssueList({ issues }) {
 }
 
 function SyncNote({ state }) {
-  const text = { saving: 'Saving…', saved: 'Saved', 'local-only': 'Saved on this device only - it will sync when you are back online' }[state];
+  if (!state || state === 'idle') return null;
+  const isWarn = state === 'local-only';
+  const text = {
+    saving: 'Saving…',
+    saved: 'Saved ✓',
+    'local-only': 'Saved on this device only — syncs when back online'
+  }[state];
   if (!text) return null;
-  return <p className={`pb-sync${state === 'local-only' ? ' pb-sync-warn' : ''}`} role="status">{text}</p>;
+  return (
+    <div className={`pb-sync-pill ${isWarn ? 'is-warn' : ''}`} role="status" aria-live="polite">
+      <span>{text}</span>
+    </div>
+  );
 }
+

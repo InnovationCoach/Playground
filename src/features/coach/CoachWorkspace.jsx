@@ -70,7 +70,17 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
         snapshots.forEach(snap => {
           if (!snap) return;
           snap.docs.forEach(d => {
-            if (d.data().role === 'student') unique.set(d.id, { ...d.data(), uid: d.id });
+            const dData = d.data();
+            const isTestAccount = Boolean(
+              dData.isTest === true ||
+              dData.status === 'archived' ||
+              dData.email?.includes('test@school.edu') ||
+              dData.email?.includes('test.') ||
+              dData.email?.includes('@hearisland-test.org')
+            );
+            if (dData.role === 'student' && dData.status === 'active' && !isTestAccount) {
+              unique.set(d.id, { ...dData, uid: d.id });
+            }
           });
         });
         const learners = await Promise.all([...unique.values()].map(async learner => {

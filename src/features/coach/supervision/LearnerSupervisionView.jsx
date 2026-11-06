@@ -3,8 +3,6 @@ import {
   Users, CheckCircle2, Clock, AlertTriangle, ArrowRight, Sparkles,
   Award, Shield, ExternalLink, Activity, BookOpen, Wrench, Eye
 } from 'lucide-react';
-import { STUDENT_2E_PROFILES } from '../studio/learnerProfiles.js';
-import { getEvaluations } from '../evaluation/evaluationsStore.js';
 import { hrefFor } from '../../../app/routes.js';
 
 const WELEARN_8_STAGES = [
@@ -12,18 +10,24 @@ const WELEARN_8_STAGES = [
   'Testing', 'Iteration', 'Polish', 'Showcase'
 ];
 
-export function LearnerSupervisionView({ learners: providedLearners, onSelectLearnerForStudio, onGoToEvaluation }) {
+export function LearnerSupervisionView({
+  learners: providedLearners,
+  submissions = [],
+  onSelectLearnerForStudio,
+  onGoToEvaluation
+}) {
   const [selectedCohort, setSelectedCohort] = useState('all');
 
-  const learners = (providedLearners && providedLearners.length > 0)
-    ? providedLearners
-    : STUDENT_2E_PROFILES;
-  const activeCount = learners.length;
-  const allEvals = getEvaluations();
-  const pendingEvals = allEvals.filter(e => e.status === 'pending').length;
+  const learners = Array.isArray(providedLearners) ? providedLearners : [];
+  const activeCount = learners.filter(l => !l.isTest).length;
+  const pendingEvals = (submissions || []).filter(e => e.status === 'pending').length;
+
   const onTrackPercent = learners.length > 0
     ? Math.round((learners.filter(l => l.status !== 'needs_support' && l.status !== 'behind').length / learners.length) * 100)
     : 100;
+
+  const accomCount = learners.filter(l => Array.isArray(l.appliedAccommodations) && l.appliedAccommodations.length > 0).length;
+  const accomPercent = learners.length > 0 ? Math.round((accomCount / learners.length) * 100) : 0;
 
   return (
     <div className="cp-supervision-view">
@@ -69,7 +73,7 @@ export function LearnerSupervisionView({ learners: providedLearners, onSelectLea
             <Sparkles size={20} />
           </div>
           <div className="cp-metric-info">
-            <span className="cp-metric-val">100%</span>
+            <span className="cp-metric-val">{accomPercent}%</span>
             <span className="cp-metric-lbl">2e Grounded Accommodations</span>
           </div>
         </div>
@@ -86,94 +90,111 @@ export function LearnerSupervisionView({ learners: providedLearners, onSelectLea
           </div>
         </div>
 
-        <div className="cp-learner-grid">
-          {learners.map((learner, idx) => {
-            const learnerId = learner.id || learner.uid;
-            // Representative stage positions
-            const currentStageIndex = idx === 0 ? 3 : idx === 1 ? 2 : idx === 2 ? 4 : 1;
-            const currentStage = WELEARN_8_STAGES[currentStageIndex];
-            const pct = Math.round(((currentStageIndex + 1) / 8) * 100);
+        {learners.length === 0 ? (
+          <div className="cp-eval-empty">
+            <Users size={32} />
+            <p>No active students enrolled in this class.</p>
+          </div>
+        ) : (
+          <div className="cp-learner-grid">
+            {learners.map((learner) => {
+              const learnerId = learner.id || learner.uid;
+              const currentStageIndex = Math.max(0, Math.min(7, typeof learner.currentStageIndex === 'number' ? learner.currentStageIndex : 0));
+              const currentStage = WELEARN_8_STAGES[currentStageIndex];
+              const pct = Math.round(((currentStageIndex + 1) / 8) * 100);
 
-            const diagnosisSummary = Array.isArray(learner.diagnosisTraits)
-              ? learner.diagnosisTraits.join(', ')
-              : String(learner.diagnosisTraits || '').split('(')[0];
+              const diagnosisSummary = Array.isArray(learner.diagnosisTraits) && learner.diagnosisTraits.length > 0
+                ? learner.diagnosisTraits.join(', ')
+                : (learner.diagnosisTraits || 'General inquiry');
 
-            const hurdleBadge = (learner.hurdleBadges && learner.hurdleBadges[0])
-              || (Array.isArray(learner.executiveFunctionHurdles) ? learner.executiveFunctionHurdles[0] : String(learner.executiveFunctionHurdles || 'Task initiation'));
+              const hurdleBadge = (learner.hurdleBadges && learner.hurdleBadges[0])
+                || (Array.isArray(learner.executiveFunctionHurdles) ? learner.executiveFunctionHurdles[0] : learner.executiveFunctionHurdles)
+                || (learner.appliedAccommodations && learner.appliedAccommodations[0])
+                || 'None recorded';
 
-            const passions = Array.isArray(learner.consumingPassions)
-              ? learner.consumingPassions.join(', ')
-              : (learner.consumingPassions || 'Robotics');
+              const passions = Array.isArray(learner.consumingPassions) && learner.consumingPassions.length > 0
+                ? learner.consumingPassions.join(', ')
+                : (learner.consumingPassions || learner.interests || 'Inquiry & Prototyping');
 
-            return (
-              <div key={learnerId} className="cp-learner-card">
-                <div className="cp-learner-head">
-                  <div className="cp-avatar-badge">{learner.avatar || '👤'}</div>
-                  <div className="cp-learner-name-block">
-                    <h3 className="cp-learner-name">{learner.name || learner.displayName}</h3>
-                    <span className="cp-learner-grade">{[learner.grade || learner.yearLevel, diagnosisSummary].filter(Boolean).join(' • ')}</span>
-                  </div>
-                  <span className={`cp-status-pill ${idx < 2 ? 'status-pending' : 'status-active'}`}>
-                    {idx < 2 ? 'Submission Pending' : 'Prototyping'}
-                  </span>
-                </div>
+              const hasPending = (submissions || []).some(s => s.studentId === learnerId && s.status === 'pending');
 
-                {/* Consuming Passion & Hurdle Highlights */}
-                <div className="cp-learner-tags">
-                  <div className="cp-tag-row">
-                    <span className="cp-tag-label">Consuming Passion:</span>
-                    <span className="cp-tag-value">{passions}</span>
-                  </div>
-                  <div className="cp-tag-row">
-                    <span className="cp-tag-label">EF Accommodation:</span>
-                    <span className="cp-tag-hurdle">{hurdleBadge} (Applied)</span>
-                  </div>
-                </div>
-
-                {/* 8-Stage PBL Progress Visualizer */}
-                <div className="cp-progress-section">
-                  <div className="cp-progress-header">
-                    <span className="cp-progress-title">
-                      Stage {currentStageIndex + 1}/8: <strong>{currentStage}</strong>
+              return (
+                <div key={learnerId} className="cp-learner-card">
+                  <div className="cp-learner-head">
+                    <div className="cp-avatar-badge">{learner.avatar || '👤'}</div>
+                    <div className="cp-learner-name-block">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <h3 className="cp-learner-name">{learner.name || learner.displayName}</h3>
+                        {learner.isTest && (
+                          <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4 }}>
+                            TEST
+                          </span>
+                        )}
+                      </div>
+                      <span className="cp-learner-grade">{[learner.grade || learner.yearLevel, diagnosisSummary].filter(Boolean).join(' • ')}</span>
+                    </div>
+                    <span className={`cp-status-pill ${hasPending ? 'status-pending' : 'status-active'}`}>
+                      {hasPending ? 'Submission Pending' : 'Active'}
                     </span>
-                    <span className="cp-progress-pct">{pct}% Complete</span>
                   </div>
 
-                  <div className="cp-stage-track">
-                    {WELEARN_8_STAGES.map((stg, i) => {
-                      const isDone = i < currentStageIndex;
-                      const isCurrent = i === currentStageIndex;
-                      return (
-                        <div
-                          key={stg}
-                          className={`cp-stage-bar ${isDone ? 'done' : ''} ${isCurrent ? 'current' : ''}`}
-                          title={`Stage ${i + 1}: ${stg}`}
-                        />
-                      );
-                    })}
+                  {/* Consuming Passion & Hurdle Highlights */}
+                  <div className="cp-learner-tags">
+                    <div className="cp-tag-row">
+                      <span className="cp-tag-label">Consuming Passion:</span>
+                      <span className="cp-tag-value">{passions}</span>
+                    </div>
+                    <div className="cp-tag-row">
+                      <span className="cp-tag-label">EF Accommodation:</span>
+                      <span className="cp-tag-hurdle">{hurdleBadge}</span>
+                    </div>
+                  </div>
+
+                  {/* 8-Stage PBL Progress Visualizer */}
+                  <div className="cp-progress-section">
+                    <div className="cp-progress-header">
+                      <span className="cp-progress-title">
+                        Stage {currentStageIndex + 1}/8: <strong>{currentStage}</strong>
+                      </span>
+                      <span className="cp-progress-pct">{pct}% Complete</span>
+                    </div>
+
+                    <div className="cp-stage-track">
+                      {WELEARN_8_STAGES.map((stg, i) => {
+                        const isDone = i < currentStageIndex;
+                        const isCurrent = i === currentStageIndex;
+                        return (
+                          <div
+                            key={stg}
+                            className={`cp-stage-bar ${isDone ? 'done' : ''} ${isCurrent ? 'current' : ''}`}
+                            title={`Stage ${i + 1}: ${stg}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Action Footer */}
+                  <div className="cp-card-footer">
+                    <button
+                      className="cp-btn-secondary"
+                      onClick={() => onSelectLearnerForStudio?.(learnerId)}
+                    >
+                      <Sparkles size={14} /> Open in Studio
+                    </button>
+
+                    <button
+                      className="cp-btn-primary"
+                      onClick={() => onGoToEvaluation?.(learnerId)}
+                    >
+                      <CheckCircle2 size={14} /> Evaluate Work
+                    </button>
                   </div>
                 </div>
-
-                {/* Action Footer */}
-                <div className="cp-card-footer">
-                  <button
-                    className="cp-btn-secondary"
-                    onClick={() => onSelectLearnerForStudio?.(learnerId)}
-                  >
-                    <Sparkles size={14} /> Open in Studio
-                  </button>
-
-                  <button
-                    className="cp-btn-primary"
-                    onClick={() => onGoToEvaluation?.(learnerId)}
-                  >
-                    <CheckCircle2 size={14} /> Evaluate Work
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthProvider.jsx';
+import { useTheme } from './theme/ThemeProvider.jsx';
 import { useHashRoute } from './useHashRoute.js';
 import { parseRoute, hrefFor } from './routes.js';
 import { signInDestination } from './landing.js';
@@ -49,6 +50,7 @@ const KNOWN_VIEWS = new Set(ACTIVITY_NAV.map((a) => a.id));
 
 export function App() {
   const { status, user, profile, role, classIds, orgId, error, signOut, refreshProfile } = useAuth();
+  const { effectiveTheme } = useTheme();
   const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
   const [activityScenario, setActivityScenario] = useState(null);
@@ -180,13 +182,27 @@ export function App() {
     if (status === 'ready' && role === 'student' && view === 'coach') setView('home');
   }, [status, role, view]);
 
-  // The new Growth Hub screens are light; the legacy activity pages are still
-  // dark. The body colour follows, so overscroll and short pages match.
-  const lightSurface = status !== 'ready' || CONSOLE_ROLES.includes(role) || role === 'parent'
-    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard', 'spark', 'space', 'programs', 'journey', 'portfolio'].includes(route?.screen);
+  // Growth Hub and Coach screens follow effectiveTheme; legacy activity scenes
+  // (solar, so2, plants, hexgrid) remain dark.
+  const isLegacyDarkScene = role === 'student' && !isPrimary && !route?.screen && ['solar', 'so2', 'plants', 'hexgrid'].includes(view);
+  const isCoachScreen = role === 'teacher' || role === 'coach';
+  const isLightCapableScreen = !isLegacyDarkScene && (
+    status !== 'ready'
+    || CONSOLE_ROLES.includes(role)
+    || role === 'parent'
+    || isCoachScreen
+    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard', 'spark', 'space', 'programs', 'journey', 'portfolio', 'coach'].includes(route?.screen)
+  );
+
   useEffect(() => {
-    document.body.dataset.surface = lightSurface ? 'light' : 'dark';
-  }, [lightSurface]);
+    if (isLegacyDarkScene) {
+      document.body.dataset.surface = 'dark';
+    } else if (isLightCapableScreen) {
+      document.body.dataset.surface = effectiveTheme === 'dark' ? 'dark' : 'light';
+    } else {
+      document.body.dataset.surface = 'dark';
+    }
+  }, [isLegacyDarkScene, isLightCapableScreen, effectiveTheme]);
 
   const headerProps = {
     email: user?.email,
@@ -194,10 +210,10 @@ export function App() {
     role,
     uid: user?.uid,
     onSignOut: signOut,
-    // The logo returns students to their dashboard; other roles keep their home.
+    // The logo returns students to their dashboard; coaches to coach dashboard; other roles keep their home.
     onHome: () => {
       if (isPrimary) navigate('home');
-      else setHash(role === 'student' ? hrefFor.dashboard() : hrefFor.spark());
+      else setHash(role === 'student' ? hrefFor.dashboard() : isCoachRole ? hrefFor.coach() : hrefFor.spark());
     }
   };
 
@@ -224,16 +240,18 @@ export function App() {
 
   const isCoachRole = role === 'teacher' || role === 'coach';
   const spark = isCoachRole ? (
-    <CoachPblStudio
-      coachUser={{
-        uid: user?.uid,
-        email: user?.email,
-        displayName: profile?.displayName || user?.email?.split('@')[0] || 'Coach',
-        classIds: classIds || profile?.classIds || [],
-        role
-      }}
-      navigate={setHash}
-    />
+    <div className="gh-app" style={{ minHeight: 'calc(100vh - 64px)' }}>
+      <CoachPblStudio
+        coachUser={{
+          uid: user?.uid,
+          email: user?.email,
+          displayName: profile?.displayName || user?.email?.split('@')[0] || 'Coach',
+          classIds: classIds || profile?.classIds || [],
+          role
+        }}
+        navigate={setHash}
+      />
+    </div>
   ) : (
     <div className="gh-app">
       <SparkHome role={role} uid={user?.uid} displayName={profile?.displayName || user?.email?.split('@')[0] || ''}
@@ -483,16 +501,18 @@ export function App() {
           <CanvaPage uid={user?.uid} role={role} profile={profile} />
         </div>
       ) : (role === 'teacher' || role === 'coach') && (route?.screen === 'coach' || !route?.screen) ? (
-        <CoachDashboardHost
-          coachUser={{
-            uid: user.uid,
-            email: user.email,
-            displayName: profile?.displayName || user.email?.split('@')[0] || 'Coach',
-            classIds: classIds || profile?.classIds || [],
-            role: profile?.role || role
-          }}
-          orgId={orgId}
-        />
+        <div className="gh-app" style={{ minHeight: 'calc(100vh - 64px)' }}>
+          <CoachDashboardHost
+            coachUser={{
+              uid: user.uid,
+              email: user.email,
+              displayName: profile?.displayName || user.email?.split('@')[0] || 'Coach',
+              classIds: classIds || profile?.classIds || [],
+              role: profile?.role || role
+            }}
+            orgId={orgId}
+          />
+        </div>
       ) : (
         <>
           {role === 'student' && view === 'home' && (

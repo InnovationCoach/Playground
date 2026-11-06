@@ -20,6 +20,7 @@ import { competencyById } from '../content/competencies.js';
 import { getCustomProgramById } from '../../coach/programs/customProgramsStore.js';
 import { LIBRARY_PROGRAMS } from './libraryProgramsData.js';
 import { numberCourseSessions } from './sessionNumbering.js';
+import { registerProgramLookup } from './progress.js';
 
 export const TERM_WEEKS = SCHOOL_SCHEDULE_CONFIG.weeksPerTerm;
 export const AGE_TRACKS = LEARNER_AGE_CONFIG.tracks;
@@ -218,6 +219,8 @@ export const programById = (id) => {
   if (lib) return normaliseProgram(lib) || lib;
   return null;
 };
+
+registerProgramLookup(programById);
 
 /** Every phase-level and session-level competency in a program, in framework order. */
 export function programCompetencies(program) {
