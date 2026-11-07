@@ -31,9 +31,9 @@ import './sidebar.css';
  * items carry live badges: steps left today (Goal setting) and the focus
  * timer (My Dashboard).
  *
- * Items are links (href) where a route exists; the two legacy views (Coach
- * dashboard, Goal setting for primary) use onClick. `active` is the key of
- * the current screen, worked out by App.jsx.
+ * Items are links (href). A few also carry onClick, which then decides the
+ * navigation while the href keeps the link real for new tabs and assistive
+ * tech. `active` is the key of the current screen, worked out by App.jsx.
  */
 const SEARCHABLE = ACTIVITY_NAV.filter((a) => a.id !== 'home');
 const COLLAPSED_KEY = 'hearisland.sidebar.collapsed.v1';
@@ -89,11 +89,11 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
       { key: 'homeSearch', icon: Search, label: 'nav.searchPrograms', href: hrefFor.homeSearch() }
     ] },
     { label: 'nav.learning', items: [
-      { key: 'courses', icon: BookOpen, label: 'nav.myCourses', onClick: onOpenCourses },
+      { key: 'courses', icon: BookOpen, label: 'nav.myCourses', href: hrefFor.courses(), onClick: onOpenCourses },
       { key: 'pbl', icon: Rocket, label: 'nav.pbl', href: hrefFor.pbl() },
       { key: 'competencies', icon: Award, label: 'nav.myCompetencies', href: hrefFor.pbl('competencies') },
       { key: 'canva', icon: Palette, label: 'nav.canva', href: hrefFor.canva() },
-      { key: 'goals', icon: Target, label: 'nav.goals', onClick: onOpenGoals },
+      { key: 'goals', icon: Target, label: 'nav.goals', href: hrefFor.goals(), onClick: onOpenGoals },
       { key: 'futureSkills', icon: Sparkles, label: 'nav.futureSkills', href: hrefFor.futureSkills() }
     ] },
     { label: 'nav.groupCreate', items: [

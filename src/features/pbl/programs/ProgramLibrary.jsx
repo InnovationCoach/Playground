@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Search, CalendarDays, Layers, Users, TriangleAlert, ArrowRight, School } from 'lucide-react';
-import { PROGRAMS, COACH_PLATFORM_NOTES, SCHEDULE, shortAges } from './catalog.js';
+import { PROGRAMS, COACH_PLATFORM_NOTES, SCHEDULE, shortAges, programIdentity } from './catalog.js';
 import { programProgress } from './progress.js';
 import { readLocalProgress } from './useProgramProgress.js';
 import { ProgramIcon } from './ProgramIcon.jsx';
@@ -45,10 +45,11 @@ export function ProgramLibrary({ uid, isCoach, classIds = [] }) {
       {!isCoach && assigned.length > 0 && (
         <section className="pg-assigned" aria-label="Your class program">
           {assigned.map((c) => {
-            const p = PROGRAMS.find((x) => x.id === c.programId);
+            const p = c.program;
+            const identity = programIdentity(p);
             return (
-              <a key={c.id} className="pg-assigned-card" data-tone={p.identity.tone} href={hrefFor.program(p.id)}>
-                <span className="pg-card-icon"><ProgramIcon name={p.identity.icon} size={24} /></span>
+              <a key={c.id} className="pg-assigned-card" data-tone={identity.tone} href={hrefFor.program(p.id)}>
+                <span className="pg-card-icon"><ProgramIcon name={identity.icon} size={24} /></span>
                 <span className="pb-grow">
                   <span className="pg-assigned-kicker"><School size={14} aria-hidden="true" />{c.name} is doing</span>
                   <strong>{p.title}</strong>
@@ -87,7 +88,7 @@ function ProgramCard({ program: p, uid, isCoach, classNames, cover }) {
   const blocking = p.issues.filter((i) => i.level === 'block').length;
 
   return (
-    <a className="pg-card" data-tone={p.identity.tone} data-assigned={classNames ? true : undefined} href={hrefFor.program(p.id)}>
+    <a className="pg-card" data-tone={programIdentity(p).tone} data-assigned={classNames ? true : undefined} href={hrefFor.program(p.id)}>
       <div className="pg-card-cover">
         <ProgramPoster program={p} cover={cover} />
         {p.sharesPhasesWith && <span className="pg-outline-tag">Outline only</span>}
