@@ -138,7 +138,7 @@ export function App() {
     // daily goals notification (DailyGoalsNotice) and the #/goals page instead.
   }, [status, role, user, isPrimary]);
 
-  // Everyone except primary learners lands on SPARK Home (#/spark), once per
+  // Learners land on My Dashboard (#/dashboard), other roles on SPARK Home (#/spark), once per
   // sign-in, unless the address they opened asked for a screen. The address is
   // read as it was when the page loaded or the user signed out: the legacy
   // router rewrites a coach's empty hash to #/coach/dashboard before this runs.
@@ -149,16 +149,16 @@ export function App() {
     if (status !== 'ready' || !role || isPrimary || !user) return;
     if (landedRef.current === user.uid) return;
     landedRef.current = user.uid;
-    if (!parseRoute(openedHashRef.current)) setHash(hrefFor.spark());
+    if (!parseRoute(openedHashRef.current)) setHash(role === 'student' ? hrefFor.dashboard() : hrefFor.spark());
   }, [status, role, isPrimary, user, setHash]);
 
   // A secondary learner with no screen in the address (the logo, or the legacy
-  // switchPhase('home')) goes back to SPARK Home. Activities keep their view.
+  // switchPhase('home')) goes back to My Dashboard. Activities keep their view.
   useEffect(() => {
     if (status !== 'ready' || role !== 'student' || isPrimary || hashScreen || view !== 'home') return;
     if (landedRef.current !== user?.uid) return; // let the sign-in landing run first
     if (parseRoute(window.location.hash)) return;
-    setHash(hrefFor.spark());
+    setHash(hrefFor.dashboard());
   }, [status, role, isPrimary, hashScreen, view, user, setHash]);
 
   // "My Dashboard" keeps its goals panel (secondary learners only, as before).
@@ -189,9 +189,10 @@ export function App() {
     role,
     uid: user?.uid,
     onSignOut: signOut,
-    // The logo is the persistent Home: SPARK Home for everyone but primary learners.
+    // The logo is the persistent Home: My Dashboard for students, SPARK Home for others.
     onHome: () => {
       if (isPrimary) navigate('home');
+      else if (role === 'student') setHash(hrefFor.dashboard());
       else setHash(hrefFor.spark());
     }
   };
