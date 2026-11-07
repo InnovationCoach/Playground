@@ -58,7 +58,33 @@ export function continueCourse(courses = []) {
   return { id: course.program.id, title: course.program.title, next: course.summary.next.title, href: hrefFor.program(course.program.id, 'plan'), status: courseStatus(course) };
 }
 
-const AUDIENCE_SHORT = { coaches: 'Coaches', classmates: 'Classmates', wider: 'Approved audience' };
+export const taskText = (value) => (typeof value === 'string' ? value : value?.text || value?.title || '');
+
+/**
+ * The dashboard hero: an active course first, then the server's quest for the
+ * term project, then the same guidance as My Dashboard's "Start here". Both
+ * destinations are exact: a course's plan opens at its next unfinished session,
+ * and the term project opens at its current phase.
+ */
+export function heroAction({ courses, quest, progress, fallback }) {
+  if (courses.state === 'loading' || progress.state === 'loading') return { loading: true, title: 'Finding your next step…', body: 'Loading your quests and projects.' };
+  const course = continueCourse(courses.courses);
+  if (course) return { kind: 'course', source: 'Continue your quest', title: course.title, body: `Next: ${course.next}`, href: course.href, action: 'Continue quest', step: course.status.label };
+  const step = quest?.todaysQuest;
+  if (step) return { kind: 'quest', source: 'Today’s quest', title: taskText(step.task), body: `${step.phaseTitle} · your term project`, href: hrefFor.pbl('project'), action: 'Continue quest', step: `${step.done} of ${step.total} steps done` };
+  return { kind: 'guidance', ...fallback };
+}
+
+/** What the hero didn't have room for, so an active quest or goal step is never hidden. */
+export function alsoToday({ hero, quest, fallback }) {
+  if (hero.loading) return [];
+  const rows = [];
+  if (hero.kind === 'course' && quest?.todaysQuest) rows.push({ id: 'quest', label: 'Today’s quest', text: taskText(quest.todaysQuest.task), href: hrefFor.pbl('project') });
+  if (hero.kind !== 'guidance' && fallback.source === 'Your learning plan' && !fallback.loading) rows.push({ id: 'goal', label: 'From your plan', text: fallback.title, href: fallback.href });
+  return rows;
+}
+
+const AUDIENCE_SHORT ={ coaches: 'Coaches', classmates: 'Classmates', wider: 'Approved audience' };
 export const audienceLabel = (audiences = []) => (audiences.length ? audiences.map((id) => AUDIENCE_SHORT[id] || id).join(', ') : 'Private');
 
 /** A reflection always starts private: the audience controls live on the existing editor. */

@@ -4,28 +4,33 @@ import { JoinClassPanel } from '../enrolment/JoinClassPanel.jsx';
 import '../enrolment/joinPanel.css';
 import { checkedToday, todayItems } from '../goals/goalPlan.js';
 import { programJourney, startHere } from '../dashboard/learningGuidance.js';
-import { courseStatus, sectionHref, WORLDS } from './lowerSecondaryModel.js';
+import { alsoToday, heroAction, sectionHref, WORLDS } from './lowerSecondaryModel.js';
 import { ArrowLink, Badge, Failure, Loading, PageTitle } from './common.jsx';
 import { DesignIsland, DiscoveryArt, ReflectArt, ScienceIsland, SparkStar, TechnologyIsland } from './illustrations.jsx';
 
 const ISLANDS = { science: ScienceIsland, design: DesignIsland, technology: TechnologyIsland };
 
-/** The learner's real next action. The first choice is always the same one as My Dashboard's "Start here". */
-function Hero({ goals, courses, project }) {
+/** The learner's real next action, and anything active that it pushed out of the hero. */
+function Hero({ goals, courses, project, quest, progress }) {
   const today = todayItems(goals.plan), checked = checkedToday(goals.plan);
-  const next = startHere({ data: courses, today, checked, goalsLoaded: goals.loaded, hasGoals: goals.plan.goals.length > 0, termProject: project });
-  const course = courses.courses.find((item) => next.href === hrefFor.program(item.program.id, 'plan'));
-  const status = course ? courseStatus(course) : null;
-  return <section className="ls-card ls-hero" aria-labelledby="ls-hero-title" aria-busy={!!next.loading}>
-    <div className="ls-hero-copy">
-      {next.source && <span className="ls-chip ls-chip-lilac"><Rocket size={15} aria-hidden="true" />{next.source}</span>}
-      <h2 id="ls-hero-title">{next.title}</h2>
-      <p>{next.body}</p>
-      {next.href && <div className="ls-hero-actions"><ArrowLink className="ls-primary" href={next.href}>{next.action}</ArrowLink>
-        {status?.kind === 'counted' && <span className="ls-hero-step">{status.label}</span>}</div>}
-    </div>
-    <div className="ls-hero-art"><DiscoveryArt /></div>
-  </section>;
+  const fallback = startHere({ data: courses, today, checked, goalsLoaded: goals.loaded, hasGoals: goals.plan.goals.length > 0, termProject: project });
+  const next = heroAction({ courses, quest, progress, fallback });
+  const also = alsoToday({ hero: next, quest, fallback });
+  return <>
+    <section className="ls-card ls-hero" aria-labelledby="ls-hero-title" aria-busy={!!next.loading}>
+      <div className="ls-hero-copy">
+        {next.source && <span className="ls-chip ls-chip-lilac"><Rocket size={15} aria-hidden="true" />{next.source}</span>}
+        <h2 id="ls-hero-title">{next.title}</h2>
+        <p>{next.body}</p>
+        {next.href && <div className="ls-hero-actions"><ArrowLink className="ls-primary" href={next.href}>{next.action}</ArrowLink>
+          {next.step && <span className="ls-hero-step">{next.step}</span>}</div>}
+      </div>
+      <div className="ls-hero-art"><DiscoveryArt /></div>
+    </section>
+    {also.length > 0 && <ul className="ls-also" aria-label="Also today">{also.map((row) => <li key={row.id}><a className="ls-card ls-also-row" href={row.href}>
+      <span className="ls-chip ls-chip-mint">{row.label}</span><span className="ls-also-text">{row.text}</span><ArrowRight size={18} aria-hidden="true" />
+    </a></li>)}</ul>}
+  </>;
 }
 
 function NextSteps({ courses }) {
@@ -79,12 +84,12 @@ function UniverseStrip() {
   </section>;
 }
 
-export function DashboardPage({ uid, name, classIds, onJoined, goals, courses, project, progress, retryProgress }) {
+export function DashboardPage({ uid, name, classIds, onJoined, goals, courses, project, quest, progress, retryProgress }) {
   return <div className="ls-page ls-dash">
     <div className="ls-dash-main">
       <PageTitle title="Ready for your next discovery?" subtitle={`${name ? `Hi, ${name}. ` : ''}Small steps. Big possibilities.`} />
       {uid && classIds.length === 0 && <JoinClassPanel uid={uid} classIds={classIds} onJoined={onJoined} />}
-      <Hero goals={goals} courses={courses} project={project} />
+      <Hero goals={goals} courses={courses} project={project} quest={quest} progress={progress} />
       <NextSteps courses={courses} />
     </div>
     <div className="ls-dash-side"><ProgressCard progress={progress} onRetry={retryProgress} /><HelpCard /></div>

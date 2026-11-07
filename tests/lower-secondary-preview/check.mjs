@@ -51,7 +51,7 @@ try {
       await page.setViewport({ width, height, isMobile: size === 'mobile', hasTouch: size === 'mobile' });
       for (const [section, hash] of Object.entries(SECTIONS)) {
         await open('', hash);
-        await page.waitForSelector(`.ls-nav a[aria-current=page][href="${hash}"]`);
+        await page.waitForSelector('.ls-shell h1');
         await noOverflow(`${section} ${size}`);
         assert.deepEqual(await smallTargets(), [], `${section} ${size}: touch targets under 40px`);
         // Grow the window rather than use fullPage, so fixed bars sit where a learner sees them.
@@ -65,7 +65,7 @@ try {
   });
 
   await check('selection matrix: only eligible accounts get the shell', async () => {
-    const expected = { age11: 'eligible', age14: 'eligible', age11primary: 'eligible', overrideOn: 'override-lower-secondary', age15: 'older', older: 'older', under11: 'outside-rollout', missing: 'missing', invalid: 'invalid', ambiguous: 'ambiguous', unverified: 'missing', overrideOff: 'override-existing', overrideUnder: 'outside-rollout' };
+    const expected = { age11: 'eligible', age14: 'eligible', age11primary: 'eligible', overrideOn: 'override-lower-secondary', age15: 'older', older: 'older', under11: 'outside-rollout', missing: 'missing', invalid: 'invalid', ambiguous: 'ambiguous', unverified: 'missing', unsupported: 'missing', disagree: 'invalid', absent: 'missing', overrideOff: 'override-existing', overrideUnder: 'outside-rollout' };
     for (const [learner, reason] of Object.entries(expected)) {
       await open(`learner=${learner}`);
       assert((await selection()).includes(`(${reason})`), `${learner}: ${await selection()}`);
@@ -104,14 +104,73 @@ try {
     assert(await page.evaluate(() => document.activeElement.classList.contains('ls-disclosure-button')));
   });
 
-  await check('mobile bottom bar and More menu fit', async () => {
-    await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+  await check('phones get a top menu with keyboard access, large controls and no bottom bar', async () => {
+    for (const width of [390, 320]) {
+      await page.setViewport({ width, height: 700, isMobile: true, hasTouch: true });
+      await open();
+      const visible = (selector) => page.$eval(selector, (el) => getComputedStyle(el).display !== 'none');
+      assert.equal(await visible('.ls-nav'), false, 'inline nav hidden');
+      assert.equal(await page.$$eval('.ls-shell *', (els) => els.filter((el) => getComputedStyle(el).position === 'fixed').length), 0, 'nothing is fixed to the screen');
+      const button = '.ls-phone-menu .ls-disclosure-button';
+      // Measured from the header, because the fixture label above it isn't part of the shell.
+      const box = await page.$eval(button, (el) => { const b = el.getBoundingClientRect(); return { fromHeader: b.top - el.closest('.ls-top').getBoundingClientRect().top, height: b.height, headerBefore: el.compareDocumentPosition(document.querySelector('.ls-main')) === Node.DOCUMENT_POSITION_FOLLOWING }; });
+      assert(box.fromHeader < 80 && box.height >= 48 && box.headerBefore, `menu button at the top and large: ${JSON.stringify(box)}`);
+      await page.focus(button);
+      assert.notEqual(await page.$eval(button, (el) => getComputedStyle(el).outlineStyle), undefined);
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('#ls-menu');
+      assert.equal(await page.$eval(button, (el) => el.getAttribute('aria-expanded')), 'true');
+      assert.deepEqual((await page.$$eval('#ls-menu nav > a', (els) => els.map((el) => el.getAttribute('href')))), ['#/dashboard', '#/dashboard/learning', '#/dashboard/universe', '#/dashboard/portfolio']);
+      assert.equal(await page.$eval('#ls-menu a[aria-current=page]', (el) => el.getAttribute('href')), '#/dashboard');
+      assert((await page.$$eval('#ls-menu li a', (els) => els.length)) >= 10, 'every More item is in the menu');
+      assert.deepEqual(await page.$$eval('#ls-menu a', (els) => els.filter((el) => el.getBoundingClientRect().height < 48).map((el) => el.textContent)), [], 'large menu rows');
+      await noOverflow(`menu open ${width}`);
+      assert(await page.$eval('#ls-menu', (el) => el.getBoundingClientRect().bottom <= innerHeight + 1 && el.scrollHeight >= el.clientHeight), 'menu fits the window and scrolls');
+      await page.keyboard.press('Tab');
+      assert(await page.evaluate(() => !!document.activeElement.closest('#ls-menu')), 'Tab moves into the menu');
+      assert.notEqual(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle), 'none', 'visible focus');
+      if (width === 390) await page.screenshot({ path: path.join(out, 'menu-open-mobile.png') });
+      await page.keyboard.press('Escape');
+      assert.equal(await page.$('#ls-menu'), null, 'Escape closes');
+      assert(await page.evaluate(() => document.activeElement.closest('.ls-phone-menu') !== null), 'focus returns to the menu button');
+      await page.tap(button);
+      await page.waitForSelector('#ls-menu');
+      await page.tap('#ls-menu a[href="#/dashboard/universe"]');
+      await page.waitForFunction(() => document.querySelector('h1')?.textContent === 'My Universe');
+      assert.equal(await page.$('#ls-menu'), null, 'choosing a page closes the menu');
+      assert(await hasText('.ls-phone-current', 'My Universe'), 'the button names the current page');
+      await page.tap(button);
+      await page.waitForSelector('#ls-menu');
+      await page.tap('.ls-main h1');
+      await page.waitForFunction(() => !document.querySelector('#ls-menu'));
+    }
+    await page.setViewport({ width: 390, height: 360, isMobile: true, hasTouch: true });
     await open();
-    await page.tap('.ls-more button');
-    await page.waitForSelector('#ls-more');
-    await noOverflow('more mobile');
-    await page.screenshot({ path: path.join(out, 'more-menu-mobile.png') });
+    assert.equal(await page.$eval('.ls-top', (el) => getComputedStyle(el).position), 'static', 'a short window keeps the page on screen');
     await page.setViewport({ width: 1440, height: 1024 });
+    assert.equal(await page.$eval('.ls-phone-menu', (el) => getComputedStyle(el).display), 'none', 'desktop has no phone menu');
+  });
+
+  await check('tablet keeps the inline top nav', async () => {
+    await page.setViewport({ width: 768, height: 1024 });
+    await open();
+    assert.equal(await page.$eval('.ls-phone-menu', (el) => getComputedStyle(el).display), 'none');
+    assert.equal((await page.$$eval('.ls-nav > a', (els) => els.filter((el) => el.getBoundingClientRect().height >= 44).length)), 4);
+    await page.setViewport({ width: 1440, height: 1024 });
+  });
+
+  await check('dashboard shows the active quest and Continue goes to that course', async () => {
+    await open();
+    await page.waitForFunction(() => document.querySelector('.ls-hero')?.textContent.includes('Continue your quest'));
+    assert(await hasText('.ls-hero', 'River study'));
+    assert.equal(await page.$eval('.ls-hero a', (el) => el.getAttribute('href')), '#/pbl/programs/fixture-river-study/plan');
+    assert.deepEqual(await page.$$eval('.ls-also a', (els) => els.map((el) => el.getAttribute('href'))), ['#/pbl/project', '#/goals'], 'the term quest and goal step stay visible');
+    await open('state=empty');
+    await page.waitForFunction(() => document.querySelector('.ls-hero')?.textContent.includes('Today’s quest'));
+    assert.equal(await page.$eval('.ls-hero a', (el) => el.getAttribute('href')), '#/pbl/project');
+    await open('state=empty&quest=off');
+    await page.waitForFunction(() => document.querySelector('.ls-hero')?.textContent.includes('Your learning plan'));
+    assert.equal(await page.$eval('.ls-hero a', (el) => el.getAttribute('href')), '#/goals');
   });
 
   await check('Calm mode stops motion, reduces density, and is per account', async () => {
@@ -177,7 +236,6 @@ try {
   });
 
   await check('continuation links use the real course id', async () => {
-    await open('state=empty');
     await open('', SECTIONS.universe);
     assert.equal(await page.$eval('.ls-continue-item', (el) => el.getAttribute('href')), '#/pbl/programs/fixture-river-study/plan');
   });
@@ -215,6 +273,7 @@ try {
     await open('learner=age11primary');
     assert.equal(await page.evaluate(() => (window.__fixtureCalls || []).some((c) => c === 'courses' || c.includes('/api/quest'))), false);
     await page.click('.ls-more button');
+    await page.waitForSelector('#ls-more');
     assert.deepEqual(await page.$$eval('#ls-more a', (els) => els.map((el) => el.getAttribute('href'))), ['#/primary-resources', '#/settings']);
     await page.keyboard.press('Escape');
     await page.click('.ls-nav a[href="#/dashboard/universe"]');

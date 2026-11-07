@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('../src/firebase.js', () => ({ auth: {}, db: {}, storage: {} }));
-import { LAYOUTS, readLayoutContract, selectLayout, shellSection } from '../src/features/lowerSecondary/layoutSelector.js';
-import { continueCourse, courseStatus, moreMenuItems, progressView, reflectionItem, WORLDS } from '../src/features/lowerSecondary/lowerSecondaryModel.js';
+import { LAYOUTS, selectLayout, shellSection } from '../src/features/lowerSecondary/layoutSelector.js';
+import { alsoToday, continueCourse, courseStatus, heroAction, moreMenuItems, progressView, reflectionItem, WORLDS } from '../src/features/lowerSecondary/lowerSecondaryModel.js';
 import { hrefFor, parseRoute } from '../src/app/routes.js';
 import { signInDestination } from '../src/app/landing.js';
 import { menuFor } from '../src/features/shell/Sidebar.jsx';
@@ -51,12 +51,6 @@ describe('layout selection', () => {
     expect(pick(verified({ age: 'x', override: 'lowerSecondary' })).reason).toBe('invalid');
     expect(pick(verified({ age: 12, override: 'junior' })).reason).toBe('invalid');
   });
-  it('is off for every account until the verified contract ships, including spoofed profiles', () => {
-    for (const profile of [{ ageBand: '13-15' }, { ageBand: 'primary', dateOfBirth: '2014-01-01', yearLevel: 7 }, { layoutOverride: 'lowerSecondary', age: 12, verified: true }, { layout: { verified: true, age: 12 } }]) {
-      expect(readLayoutContract(profile)).toBeNull();
-      expect(selectLayout({ role: 'student', contract: readLayoutContract(profile) }).layout).toBe(LAYOUTS.EXISTING);
-    }
-  });
 });
 
 describe('routes and landing', () => {
@@ -77,6 +71,8 @@ describe('routes and landing', () => {
     expect(shellSection({ layout: on, route: { screen: 'dashboard', section: 'learning' }, isPrimary: false })).toBe('learning');
     expect(shellSection({ layout: on, route: { screen: 'dashboard' }, isPrimary: false })).toBe('dashboard');
     for (const screen of ['courses', 'goals', 'pbl', 'settings', 'admin']) expect(shellSection({ layout: on, route: { screen }, isPrimary: true })).toBeNull();
+    // Course and project routes keep their own screens, so Continue opens the exact session.
+    for (const hash of ['#/courses', '#/pbl', '#/pbl/project', '#/pbl/programs', '#/pbl/programs/river/plan']) expect(shellSection({ layout: on, route: parseRoute(hash), isPrimary: false })).toBeNull();
     // A secondary learner with no hash may be in an activity view: that stays.
     expect(shellSection({ layout: on, route: null, isPrimary: false })).toBeNull();
     expect(shellSection({ layout: on, route: null, isPrimary: true })).toBe('dashboard');
@@ -117,6 +113,33 @@ describe('page model', () => {
     const next = { title: 'Step' };
     expect(continueCourse([{ program: { id: 'a' }, needsRecheck: true, summary: { next } }, { program: { id: 'b' }, summary: null }])).toBeNull();
     expect(continueCourse([{ program: { id: 'a b', title: 'T' }, summary: { next, done: 1, total: 2, pct: 50 } }]).href).toBe(hrefFor.program('a b', 'plan'));
+  });
+  describe('dashboard hero', () => {
+    const ready = { state: 'ready', courses: [], warnings: [] }, progress = { state: 'ready' };
+    const course = { program: { id: 'river', title: 'River study' }, summary: { next: { title: 'Plan samples' }, done: 2, total: 6, pct: 33 } };
+    const quest = { todaysQuest: { task: 'Name who is affected', phaseTitle: 'Define', done: 1, total: 4 } };
+    const goal = { source: 'Your learning plan', title: 'Sketch a map', href: hrefFor.goals(), action: 'Open my goal' };
+    it('puts an active course ahead of a goal step, at its exact destination, and keeps the rest visible', () => {
+      const hero = heroAction({ courses: { ...ready, courses: [course] }, quest, progress, fallback: goal });
+      expect(hero).toMatchObject({ kind: 'course', title: 'River study', href: '#/pbl/programs/river/plan', step: '2 of 6 sessions marked complete' });
+      expect(alsoToday({ hero, quest, fallback: goal }).map((row) => row.href)).toEqual(['#/pbl/project', hrefFor.goals()]);
+    });
+    it('shows the server quest when no course is active', () => {
+      const hero = heroAction({ courses: ready, quest, progress, fallback: goal });
+      expect(hero).toMatchObject({ kind: 'quest', title: 'Name who is affected', href: '#/pbl/project', step: '1 of 4 steps done' });
+      expect(alsoToday({ hero, quest, fallback: goal }).map((row) => row.id)).toEqual(['goal']);
+    });
+    it('never offers to continue a course whose progress cannot be counted', () => {
+      const courses = { ...ready, courses: [{ ...course, needsRecheck: true }, { ...course, progressUnavailable: true }] };
+      expect(heroAction({ courses, quest: null, progress, fallback: goal }).kind).toBe('guidance');
+    });
+    it('falls back to the existing guidance with no quest, and waits rather than flashing a wrong action', () => {
+      const hero = heroAction({ courses: ready, quest: null, progress: { state: 'off' }, fallback: goal });
+      expect(hero).toMatchObject({ kind: 'guidance', title: 'Sketch a map' });
+      expect(alsoToday({ hero, quest: null, fallback: goal })).toEqual([]);
+      expect(heroAction({ courses: { ...ready, state: 'loading' }, quest, progress, fallback: goal }).loading).toBe(true);
+      expect(heroAction({ courses: ready, quest: null, progress: { state: 'loading' }, fallback: goal }).loading).toBe(true);
+    });
   });
   it('starts reflections private', () => {
     expect(reflectionItem(' proud ')).toEqual({ title: 'What I’m proud of', kind: 'writing', body: 'proud', link: '', media: null, audiences: [] });

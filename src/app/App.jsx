@@ -39,7 +39,8 @@ import { PblStudio } from '../features/pbl/PblStudio.jsx';
 import { CommunityFeed } from '../features/community/CommunityFeed.jsx';
 import { MessagesScreen } from '../features/messages/MessagesScreen.jsx';
 import { AdminAuditView } from '../features/messages/AdminAuditView.jsx';
-import { readLayoutContract, selectLayout, shellSection } from '../features/lowerSecondary/layoutSelector.js';
+import { shellSection } from '../features/lowerSecondary/layoutSelector.js';
+import { useLayoutSelection } from '../features/lowerSecondary/layoutContract.js';
 import { isPrimaryProfile } from '../auth.js';
 import { API_BASE } from '../services/apiBase.js';
 import { initializeSENGlobally } from '../integrations/senIntegration.js';
@@ -54,6 +55,7 @@ const KNOWN_VIEWS = new Set(ACTIVITY_NAV.map((a) => a.id));
 export function App() {
   const { status, user, profile, role, classIds, orgId, error, signOut, refreshProfile } = useAuth();
   const { effectiveTheme } = useTheme();
+  const layoutChoice = useLayoutSelection({ uid: status === 'ready' ? user?.uid : null, role });
   const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
   const [activityScenario, setActivityScenario] = useState(null);
@@ -440,8 +442,12 @@ export function App() {
   }
 
   // The lower-secondary layout replaces My Dashboard only, after the guarded
-  // screens above. Off for every account until the verified contract ships.
-  const lowerSecondary = shellSection({ layout: selectLayout({ role, contract: readLayoutContract() }).layout, route, isPrimary });
+  // screens above. Off for every account until the verified contract is cleared
+  // (layoutContract.js); while it is off this is never pending or selected.
+  if (layoutChoice.pending && (route?.screen === 'dashboard' || (isPrimary && !route))) {
+    return <><Header {...headerProps} /><div className="gh-app" role="status" aria-label="Loading" /></>;
+  }
+  const lowerSecondary = shellSection({ layout: layoutChoice.layout, route, isPrimary });
   if (lowerSecondary) {
     return (
       <>

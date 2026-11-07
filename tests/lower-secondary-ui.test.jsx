@@ -10,12 +10,14 @@ vi.mock('../src/firebase.js', () => ({
   setDoc: vi.fn(async () => {}), deleteDoc: vi.fn(async () => {}), getDoc: vi.fn(async () => ({ exists: false, data: () => ({}) })), getDocs: vi.fn(async () => ({ forEach() {} }))
 }));
 vi.mock('../src/features/dashboard/dashboardCourses.js', () => ({ loadDashboardCourses: vi.fn() }));
+vi.mock('../src/services/pblService.js', () => ({ addToMyCourse: vi.fn(async () => ({ success: true })), getProgram: vi.fn() }));
 vi.mock('../src/features/primary/JuniorExplorers.jsx', () => ({ JuniorExplorers: () => <div data-testid="junior">Junior Explorers content</div> }));
 vi.mock('../src/features/school/SchoolLearningPanel.jsx', () => ({ SchoolLearningPanel: () => <div data-testid="school-panel" /> }));
 vi.mock('../src/features/universe/explore/MyUniverseExplorer.jsx', () => ({ MyUniverseExplorer: (props) => <div data-testid="explorer" data-preview={String(props.preview)} data-arrival={props.initialArrival?.planetId || ''} /> }));
 import { schoolRequest } from '../src/services/api/apiClient.js';
 import { loadDashboardCourses } from '../src/features/dashboard/dashboardCourses.js';
 import { setDoc } from '../src/firebase.js';
+import { addToMyCourse } from '../src/services/pblService.js';
 import { LowerSecondaryShell } from '../src/features/lowerSecondary/LowerSecondaryShell.jsx';
 import { badgeProgress, emptyQuest, levelFor, nextBadge } from '../src/features/quest/questModel.js';
 
@@ -67,6 +69,21 @@ describe('shell', () => {
     expect(more.getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(more);
   });
+  it('gives phones one top menu with the same sections and features, which Escape closes', async () => {
+    await render({ section: 'universe' });
+    const button = host.querySelector('.ls-phone-menu button');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(button.textContent).toContain('My Universe');
+    await act(async () => button.click());
+    const menu = host.querySelector('#ls-menu');
+    expect(button.getAttribute('aria-controls')).toBe('ls-menu');
+    expect([...menu.querySelectorAll('nav > a')].map((a) => a.getAttribute('href'))).toEqual(['#/dashboard', '#/dashboard/learning', '#/dashboard/universe', '#/dashboard/portfolio']);
+    expect(menu.querySelector('a[aria-current=page]').getAttribute('href')).toBe('#/dashboard/universe');
+    expect(menu.textContent).toContain('nav.community');
+    await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(host.querySelector('#ls-menu')).toBeNull();
+    expect(document.activeElement).toBe(button);
+  });
   it('saves Calm mode per account through the existing dashboard preferences', async () => {
     await render();
     const toggle = host.querySelector('[role=switch]');
@@ -99,6 +116,19 @@ describe('dashboard', () => {
     await render({ section: 'learning' });
     expect(text()).toContain('2 of 6 sessions marked complete');
     expect(loadDashboardCourses).toHaveBeenCalledTimes(1);
+  });
+  it('shows the active quest on the dashboard even with no course', async () => {
+    loadDashboardCourses.mockResolvedValue({ courses: [], warnings: [] });
+    await render();
+    expect(host.querySelector('.ls-hero').textContent).toContain('Name who is affected');
+    expect(host.querySelector('.ls-hero').textContent).toContain('1 of 4 steps done');
+    expect(host.querySelector('.ls-hero a').getAttribute('href')).toBe('#/pbl/project');
+  });
+  it('keeps the term quest visible below a course hero', async () => {
+    await render();
+    expect(host.querySelector('.ls-hero').textContent).toContain('River study');
+    expect(host.querySelector('.ls-also a').getAttribute('href')).toBe('#/pbl/project');
+    expect(host.querySelector('.ls-also').textContent).toContain('Name who is affected');
   });
   it('does not request or show XP when the school has it off', async () => {
     api({ questMode: false });
@@ -152,6 +182,87 @@ describe('learning', () => {
     await render({ section: 'learning' });
     expect(host.querySelector('.ls-quest').textContent).toContain('Name who is affected');
     expect(host.querySelector('.ls-courses').textContent).not.toContain('Name who is affected');
+  });
+  it('renders the 8-stage structure and interactive checklist, and persists ticked stage tasks', async () => {
+    await render({ section: 'learning' });
+    const stageTiles = host.querySelectorAll('.ls-eight-stages .ls-stage-tile-btn');
+    expect(stageTiles).toHaveLength(8);
+    expect(stageTiles[0].getAttribute('aria-current')).toBe('step');
+    const firstCheck = host.querySelector('.ls-eight-stages .ls-stage-checks button[role=checkbox]');
+    expect(firstCheck.getAttribute('aria-checked')).toBe('false');
+    await act(async () => firstCheck.click());
+    expect(firstCheck.getAttribute('aria-checked')).toBe('true');
+    // Switch to Stage 8 (Reflect & Iterate) and tick its first item
+    await act(async () => stageTiles[7].click());
+    expect(stageTiles[7].getAttribute('aria-current')).toBe('step');
+    expect(host.querySelector('.ls-eight-stages .ls-stage-detail').textContent).toContain('Reflect & Iterate');
+    const stage8Check = host.querySelector('.ls-eight-stages .ls-stage-checks button[role=checkbox]');
+    await act(async () => stage8Check.click());
+    expect(stage8Check.getAttribute('aria-checked')).toBe('true');
+  });
+});
+
+describe('learning: approved 8-stage UI', () => {
+  const session = (sessionNumber, extra = {}) => ({ sessionNumber, title: `Session ${sessionNumber} title`, activities: ['Real task A', 'Real task B'], ...extra });
+  const phases = [{ id: 'p1', title: 'Explore', sessions: [session(1), session(2)] }, { id: 'p2', title: 'Define', sessions: [{ sessionNumber: 3 }] }];
+  const real = { program: { id: 'course-real', title: 'Real course', phases, sessions: phases.flatMap((p) => p.sessions) }, summary: { done: 0, total: 3, pct: 0, next: session(1), byPhase: {} } };
+  it('never fills a session gap with template tasks', async () => {
+    loadDashboardCourses.mockResolvedValue({ courses: [real], warnings: [] });
+    await render({ section: 'learning' });
+    await act(async () => [...host.querySelectorAll('.ls-course-stage-tab')][1].click());
+    const panel = host.querySelector('.ls-course-phase-panel');
+    expect(panel.textContent).toContain('Session 3');
+    expect(panel.querySelector('.ls-mission-checks')).toBeNull();
+    expect(panel.textContent).not.toMatch(/mission 1\b.*Explore mission|Complete at least two hands-on/);
+  });
+  it('keeps the card count on the same record when a mission is ticked, and re-reads on leaving', async () => {
+    loadDashboardCourses.mockResolvedValue({ courses: [real], warnings: [] });
+    await render({ section: 'learning' });
+    expect(host.querySelector('.ls-course').textContent).toContain('0 of 3 sessions marked complete');
+    await act(async () => host.querySelector('.ls-mission-done-btn').click());
+    await flush();
+    expect(host.querySelector('.ls-course').textContent).toContain('1 of 3 sessions marked complete');
+    expect(loadDashboardCourses).toHaveBeenCalledTimes(1);
+    await render({ section: 'dashboard' });
+    expect(loadDashboardCourses).toHaveBeenCalledTimes(2);
+  });
+  it('says Stage 8 ticks stay on this device', async () => {
+    await render({ section: 'learning' });
+    const tiles = host.querySelectorAll('.ls-eight-stages .ls-stage-tile-btn');
+    expect(host.querySelector('.ls-stage-detail').textContent).not.toContain('this device only');
+    await act(async () => tiles[7].click());
+    expect(host.querySelector('.ls-stage-detail').textContent).toContain('this device only');
+  });
+  it('adds a catalog course through the existing enrolment, and shows a failure instead of claiming success', async () => {
+    await render({ section: 'learning' });
+    const add = host.querySelector('.ls-catalog-card button');
+    await act(async () => add.click());
+    await flush();
+    expect(addToMyCourse).toHaveBeenCalledTimes(1);
+    expect(addToMyCourse.mock.calls[0][1]).toBe('learner-1');
+    expect(localStorage.getItem('learningPath_learner-1')).toBeNull();
+    addToMyCourse.mockRejectedValueOnce(new Error('denied'));
+    const reads = loadDashboardCourses.mock.calls.length;
+    await flush();
+    await act(async () => host.querySelector('.ls-catalog-card button').click());
+    await flush();
+    expect(host.querySelector('.ls-catalog-drawer [role=alert]').textContent).toContain('couldn’t be added');
+    expect(loadDashboardCourses.mock.calls.length).toBe(reads);
+  });
+});
+
+describe('learning: catalog on a stuck connection', () => {
+  it('stops waiting and says so when the save never completes', async () => {
+    await render({ section: 'learning' });
+    vi.useFakeTimers();
+    try {
+      addToMyCourse.mockReturnValueOnce(new Promise(() => {}));
+      await act(async () => host.querySelector('.ls-catalog-card button').click());
+      expect(host.querySelector('.ls-catalog-card button').textContent).toContain('Adding course');
+      await act(async () => { await vi.advanceTimersByTimeAsync(12000); });
+      expect(host.querySelector('.ls-catalog-drawer [role=alert]').textContent).toContain('Check your connection');
+      expect(host.querySelector('.ls-catalog-card button').disabled).toBe(false);
+    } finally { vi.useRealTimers(); }
   });
 });
 
@@ -228,6 +339,7 @@ describe('primary account in the shell', () => {
     expect(links).toEqual(['#/primary-resources', '#/settings']);
     await render({ isPrimary: true, section: 'learning' });
     expect(host.querySelector('[data-testid=junior]')).not.toBeNull();
+    expect(host.querySelector('.ls-eight-stages, .ls-catalog-drawer')).toBeNull();
     await render({ isPrimary: true, section: 'universe' });
     expect(host.querySelector('.ls-world')).toBeNull();
     expect(text()).toContain('Your explorations are in My Learning');

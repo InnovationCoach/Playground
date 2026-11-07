@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LocaleProvider } from '../../src/app/i18n/LocaleProvider.jsx';
 import { parseRoute } from '../../src/app/routes.js';
-import { selectLayout, shellSection } from '../../src/features/lowerSecondary/layoutSelector.js';
+import { shellSection } from '../../src/features/lowerSecondary/layoutSelector.js';
+import { resolveLayout } from '../../src/features/lowerSecondary/layoutContract.js';
 import { LowerSecondaryShell } from '../../src/features/lowerSecondary/LowerSecondaryShell.jsx';
 import { auth } from './fixtureFirebase.js';
 import { SCENARIOS, scenarioId } from './scenarios.js';
@@ -20,7 +21,8 @@ function Preview() {
   const id = scenarioId();
   const scenario = SCENARIOS[id];
   auth.currentUser = { uid: id };
-  const choice = selectLayout({ role: scenario.role || 'student', contract: scenario.contract });
+  // The adapter's real parsing, fed a fixture shaped like GET /api/me. The production hook stays off.
+  const choice = resolveLayout({ me: { uid: id, role: 'student', layoutSelection: scenario.layoutSelection }, uid: id, role: 'student' });
   const route = parseRoute(hash);
   const section = shellSection({ layout: choice.layout, route: route || (scenario.primary ? null : { screen: 'dashboard' }), isPrimary: !!scenario.primary });
   const pick = (next) => { params.set('learner', next); location.search = params.toString(); };

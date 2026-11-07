@@ -472,6 +472,15 @@ function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say, selec
     if (selectedPhase) setOpen(selectedPhase);
   }, [selectedPhase]);
 
+  // Saved progress can arrive from the account after the first render: open at the real
+  // next session, until the learner has chosen a phase or done anything in this plan.
+  const chosePhase = useRef(false);
+  const applyAndStay = apply && ((fn) => { chosePhase.current = true; apply(fn); });
+  const nextPhaseId = summary?.next?.phaseId;
+  useEffect(() => {
+    if (nextPhaseId && !chosePhase.current && !selectedPhase) setOpen(nextPhaseId);
+  }, [nextPhaseId, selectedPhase]);
+
   const phase = phases.find((ph) => (ph.id || ph.phaseId) === open) || phases[0] || {
     id: 'phase-1',
     phaseId: 'phase-1',
@@ -494,7 +503,7 @@ function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say, selec
           const sessionCount = Array.isArray(ph.sessions) ? ph.sessions.length : 0;
           return (
             <li key={phId}>
-              <button type="button" className="pb-step" aria-current={phId === open ? 'step' : undefined} onClick={() => setOpen(phId)}>
+              <button type="button" className="pb-step" aria-current={phId === open ? 'step' : undefined} onClick={() => { chosePhase.current = true; setOpen(phId); }}>
                 <span className="pb-step-num" data-done={pp?.complete || undefined}>
                   {pp?.complete ? <CircleCheck size={18} aria-label="complete" /> : i + 1}
                 </span>
@@ -519,7 +528,7 @@ function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say, selec
           <div className="pb-col">
             {(phase.sessions || []).length === 0 && <p className="pb-empty">No sessions are written for this phase yet.</p>}
             {(phase.sessions || []).map((s) => (
-              <SessionCard key={s.sessionNumber || s.title} program={p} session={s} isCoach={isCoach} progress={progress} apply={apply}
+              <SessionCard key={s.sessionNumber || s.title} program={p} session={s} isCoach={isCoach} progress={progress} apply={applyAndStay}
                            kit={kit} tools={tools} say={say} uid={uid}
                            defaultOpen={selectedSessionNum ? selectedSessionNum === s.sessionNumber : (summary ? summary.next?.sessionNumber === s.sessionNumber : false)} />
             ))}
@@ -705,6 +714,7 @@ function Stage({ icon, title, children }) {
  */
 function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpen, kit, tools, say, uid }) {
   const [expanded, setExpanded] = useState(defaultOpen);
+  useEffect(() => { if (defaultOpen) setExpanded(true); }, [defaultOpen]);
   const entry = progress?.sessions[s.sessionNumber];
   const done = isSessionDone(entry, s);
   const steps = entry?.steps || [];

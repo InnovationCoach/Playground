@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Briefcase, ChevronDown, Flower2, House, LogOut, Menu, Orbit, Settings } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
@@ -17,16 +17,20 @@ import { PortfolioPage } from './PortfolioPage.jsx';
 import './lowerSecondary.css';
 
 const NAV = [
-  { id: 'dashboard', label: 'My Dashboard', short: 'Dashboard', Icon: House },
-  { id: 'learning', label: 'My Learning', short: 'Learning', Icon: BookOpen },
-  { id: 'universe', label: 'My Universe', short: 'Universe', Icon: Orbit },
-  { id: 'portfolio', label: 'My Portfolio', short: 'Portfolio', Icon: Briefcase }
+  { id: 'dashboard', label: 'My Dashboard', Icon: House },
+  { id: 'learning', label: 'My Learning', Icon: BookOpen },
+  { id: 'universe', label: 'My Universe', Icon: Orbit },
+  { id: 'portfolio', label: 'My Portfolio', Icon: Briefcase }
 ];
 
 /** A disclosure menu: Escape or a click outside closes it, and focus returns to its button. */
 function Disclosure({ id, className = '', button, label, children }) {
   const [open, setOpen] = useState(false);
-  const root = useRef(null), trigger = useRef(null);
+  const root = useRef(null), trigger = useRef(null), panel = useRef(null);
+  // Keep every item reachable: the menu scrolls within whatever room is left below it.
+  useLayoutEffect(() => {
+    if (open) panel.current.style.maxHeight = `${Math.max(200, window.innerHeight - panel.current.getBoundingClientRect().top - 12)}px`;
+  }, [open]);
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') { setOpen(false); trigger.current?.focus(); } };
@@ -38,9 +42,15 @@ function Disclosure({ id, className = '', button, label, children }) {
   const onBlur = (e) => { if (e.relatedTarget && !root.current?.contains(e.relatedTarget)) setOpen(false); };
   return <div className={`ls-disclosure ${className}`} ref={root} onBlur={onBlur}>
     <button type="button" ref={trigger} className="ls-disclosure-button" aria-expanded={open} aria-controls={id} aria-label={label} onClick={() => setOpen((v) => !v)}>{button}</button>
-    {open && <div id={id} className="ls-menu" onClick={(e) => { if (e.target.closest('a, button')) setOpen(false); }}>{children}</div>}
+    {open && <div id={id} ref={panel} className="ls-menu" onClick={(e) => { if (e.target.closest('a, button')) setOpen(false); }}>{children}</div>}
   </div>;
 }
+
+const SectionLinks = ({ section }) => NAV.map(({ id, label, Icon }) => <a key={id} href={sectionHref(id)} aria-current={section === id ? 'page' : undefined}>
+  <Icon size={20} aria-hidden="true" /><span>{label}</span>
+</a>);
+
+const MoreLinks = ({ items, t }) => <ul>{items.map((item) => <li key={item.key}><a href={item.href || '#'} onClick={item.onClick ? (e) => { e.preventDefault(); item.onClick(); } : undefined}>{t(item.label)}</a></li>)}</ul>;
 
 function Avatar({ url, name, size = 40 }) {
   const [broken, setBroken] = useState(false);
@@ -74,11 +84,9 @@ function Shell({ uid, orgId = null, profile, classIds = [], isPrimary = false, s
     <header className="ls-top">
       <a className="ls-brand" href={sectionHref('dashboard')}><SparkGlyph size={26} /><span>WeLearn <b>Spark</b></span></a>
       <nav className="ls-nav" aria-label="Main">
-        {NAV.map(({ id, label, short, Icon }) => <a key={id} href={sectionHref(id)} aria-current={section === id ? 'page' : undefined}>
-          <Icon size={20} aria-hidden="true" /><span className="ls-nav-long">{label}</span><span className="ls-nav-short">{short}</span>
-        </a>)}
+        <SectionLinks section={section} />
         <Disclosure id="ls-more" className="ls-more" label="More" button={<><Menu size={20} aria-hidden="true" /><span>More</span><ChevronDown className="ls-chev" size={16} aria-hidden="true" /></>}>
-          <ul>{more.map((item) => <li key={item.key}><a href={item.href || '#'} onClick={item.onClick ? (e) => { e.preventDefault(); item.onClick(); } : undefined}>{t(item.label)}</a></li>)}</ul>
+          <MoreLinks items={more} t={t} />
         </Disclosure>
       </nav>
       <div className="ls-tools">
@@ -94,6 +102,14 @@ function Shell({ uid, orgId = null, profile, classIds = [], isPrimary = false, s
           </ul>
         </Disclosure>
       </div>
+      {/* Phones: everything collapses into one top menu. Only one of the two Main navs is ever displayed. */}
+      <Disclosure id="ls-menu" className="ls-phone-menu" button={<><Menu size={22} aria-hidden="true" /><span>Menu</span><span className="ls-phone-current">{NAV.find((item) => item.id === section)?.label}</span><ChevronDown className="ls-chev" size={20} aria-hidden="true" /></>}>
+        <nav aria-label="Main">
+          <SectionLinks section={section} />
+          <h2 className="ls-menu-heading">More</h2>
+          <MoreLinks items={more} t={t} />
+        </nav>
+      </Disclosure>
     </header>
     <main id="ls-main" className="ls-main" tabIndex={-1} ref={heading}>
       {isPrimary
@@ -117,8 +133,13 @@ function SecondaryBody({ uid, orgId, name, profile, classIds, section, calm, ava
   const quest = useQuest(questEnabled);
   const progress = progressView({ questEnabled, schoolLoading: context.loading, schoolError: context.error, quest });
   const retryProgress = useCallback(() => { if (context.error) context.reload(); else quest.reload(); }, [context, quest]);
+  // Ticks on My Learning save to the same record: re-read it on leaving so every section agrees.
+  const progressChanged = useRef(false);
+  useEffect(() => {
+    if (section !== 'learning' && progressChanged.current) { progressChanged.current = false; courses.retry(); }
+  }, [section]); // eslint-disable-line react-hooks/exhaustive-deps
   const shared = { uid, name, profile, goals, courses, project, progress, retryProgress, quest: quest.data };
-  if (section === 'learning') return <LearningPage {...shared} />;
+  if (section === 'learning') return <LearningPage {...shared} onProgressChanged={() => { progressChanged.current = true; }} />;
   if (section === 'universe') return <UniversePage uid={uid} orgId={orgId} courses={courses} calm={calm} onOpenActivity={onOpenActivity} />;
   if (section === 'portfolio') return <PortfolioPage uid={uid} name={name} profile={profile} avatar={avatar} progress={progress} retryProgress={retryProgress} Avatar={Avatar} />;
   return <DashboardPage {...shared} classIds={classIds} onJoined={onJoined} />;

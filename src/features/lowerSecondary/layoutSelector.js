@@ -2,11 +2,8 @@
  * Which student layout a signed-in account gets. Pure, unit-tested in
  * tests/lower-secondary-selector.test.js.
  *
- * The selector only trusts a verified server contract, and that contract does
- * not exist yet: the backend owner has still to establish which age, cohort and
- * override fields are staff-controlled (firestore.rules lets a learner write
- * their own age band, date of birth and cohort today). Until it ships,
- * readLayoutContract returns null and every account keeps the existing layout.
+ * The selector only trusts a verified server contract, supplied by
+ * layoutContract.js, which stays off until the backend contract is cleared.
  *
  * Never select from ageBand (a missing band reads back as '13-15'), date of
  * birth, year level or email, and never from a query parameter or localStorage.
@@ -19,13 +16,6 @@ export const REASONS = Object.freeze({
 export const ROLLOUT_MIN_AGE = 11;
 export const ROLLOUT_MAX_AGE = 14;
 export const SECTIONS = Object.freeze(['dashboard', 'learning', 'universe', 'portfolio']);
-
-/**
- * The verified contract from the server. Deliberately ignores the profile until
- * a protected field exists: the profile document is learner-writable, so reading
- * a layout or age field from it here would let a learner choose their own layout.
- */
-export function readLayoutContract() { return null; }
 
 const isAge = (value) => Number.isInteger(value) && value >= 0 && value <= 120;
 

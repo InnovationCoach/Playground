@@ -11,6 +11,7 @@ const uid = scenarioId();
 const isNew = uid === 'age12new';
 export class ApiError extends Error { constructor({ code, message, status }) { super(message); this.code = code; this.status = status; } }
 export const request = (...args) => schoolRequest(...args);
+export const apiRequest = (...args) => schoolRequest(...args);
 
 const space = { ...defaults(), revision: 2, items: isNew || params.get('space') === 'empty' ? [] : [
   { id: 'w1', revision: 1, kind: 'writing', title: 'Why the riverbank smells', body: 'I noticed the smell was worse after rain, so I want to compare samples from two days.', link: '', media: null, audiences: ['coaches'] },
