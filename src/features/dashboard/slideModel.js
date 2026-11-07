@@ -1,15 +1,15 @@
 /** Presentation preferences only. Learning records remain in their existing stores. */
 export const SLIDES = [
-  { id: 'daily', title: 'My Quests', short: 'My Quests', eyebrow: 'YOUR SPACE. YOUR PACE.' },
-  { id: 'find', title: 'Find a Quest', short: 'Find a Quest', eyebrow: 'WHAT DO YOU WANT TO LEARN?' },
-  { id: 'progress', title: 'My Learning Progress', short: 'Progress', eyebrow: 'SEE WHAT YOU’RE BUILDING.' },
-  { id: 'creative', title: 'My Creative Space', short: 'Creative space', eyebrow: 'A PLACE FOR UNFINISHED IDEAS.' },
-  { id: 'universe', title: 'My Spark Universe', short: 'Universe', eyebrow: 'MAKE THIS FEEL LIKE YOU.' }
+  { id: 'daily', title: 'My Quests', short: 'My Quests', eyebrow: 'WHAT TO DO NEXT' },
+  { id: 'find', title: 'Find a Quest', short: 'Find a Quest', eyebrow: 'SOMETHING NEW TO TRY' },
+  { id: 'progress', title: 'My Progress', short: 'My Progress', eyebrow: 'WHAT YOU HAVE DONE SO FAR' },
+  { id: 'creative', title: 'My Creative Space', short: 'Creative space', eyebrow: 'A PLACE FOR UNFINISHED IDEAS' },
+  { id: 'universe', title: 'My Universe', short: 'My Universe', eyebrow: 'PICK A MISSION' }
 ];
 export const SLIDE_IDS = SLIDES.map((slide) => slide.id);
-export const TOOL_SLIDES = { focus: 'creative', notes: 'creative', checkin: 'creative', badges: 'universe', picked: 'universe', skill: 'universe', readiness: 'progress' };
+export const TOOL_SLIDES = { focus: 'creative', notes: 'creative', checkin: 'creative', badges: 'progress', picked: 'creative', skill: 'progress', readiness: 'progress' };
 /** Former default titles: a saved copy of one of these is not a learner's own name. */
-const RETIRED_TITLES = { daily: ['My Daily Learning Plan'] };
+const RETIRED_TITLES = { daily: ['My Daily Learning Plan'], progress: ['My Learning Progress'], universe: ['My Spark Universe'] };
 export function hydrateSlides(stored = {}) {
   // Retired slides (e.g. the old Goals slide, now part of Progress) drop out;
   // new slides join next to the slide they follow in the template.

@@ -14,15 +14,21 @@
 .pb-error { color: var(--gh-red); font-size: 0.87rem; }
 
 /* Hero */
-.pb-hero { display: grid; gap: 1.25rem; padding: 1.5rem; border-radius: 16px; color: #fff; background: linear-gradient(135deg, #003c69 0%, #3b2a6b 60%, #8250a0 100%); }
-.pb-hero h1 { color: #fff; font-size: clamp(1.5rem, 3.4vw, 2.1rem); margin: 0.35rem 0 0.3rem; }
-.pb-hero .pb-kicker { color: #ceaaee; }
-.pb-dq { margin: 0; font-size: 1.02rem; color: #e6ecf7; max-width: 62ch; }
+.pb-hero { display: grid; gap: 1.25rem; padding: 1.5rem; border-radius: 16px; color: var(--gh-text); background: linear-gradient(135deg, var(--gh-purple-50), var(--gh-surface)); border: 1px solid var(--gh-border); }
+[data-theme="dark"] .pb-hero { color: #fff; border-color: transparent; background: linear-gradient(135deg, #003c69 0%, #3b2a6b 60%, #8250a0 100%); }
+.pb-hero h1 { color: var(--gh-heading); font-size: clamp(1.5rem, 3.4vw, 2.1rem); margin: 0.35rem 0 0.3rem; }
+[data-theme="dark"] .pb-hero h1 { color: #fff; }
+.pb-hero .pb-kicker { color: var(--gh-purple-text); }
+[data-theme="dark"] .pb-hero .pb-kicker { color: #ceaaee; }
+.pb-dq { margin: 0; font-size: 1.02rem; color: var(--gh-text-2); max-width: 62ch; }
+[data-theme="dark"] .pb-dq { color: #e6ecf7; }
 .pb-term-strip { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
-.pb-term-strip li { flex-basis: 0; min-width: 0; background: rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 0.45rem 0.55rem; }
+.pb-term-strip li { flex-basis: 0; min-width: 0; background: var(--gh-surface); border: 1px solid var(--gh-border); border-radius: 8px; padding: 0.45rem 0.55rem; }
+[data-theme="dark"] .pb-term-strip li { background: rgba(255, 255, 255, 0.12); border-color: transparent; }
 .pb-term-strip li:first-child { background: rgba(150, 215, 0, 0.28); }
 .pb-term-strip span { display: block; font-size: 0.78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pb-term-strip small { font-size: 0.7rem; color: #c9d3e6; }
+.pb-term-strip small { font-size: 0.75rem; color: var(--gh-text-2); }
+[data-theme="dark"] .pb-term-strip small { color: #c9d3e6; }
 .pb-tabs { overflow-x: auto; scrollbar-width: none; }
 .pb-tabs .gh-tab { text-decoration: none; white-space: nowrap; }
 .pb-sync { font-size: 0.8rem; color: var(--gh-text-3); margin: -0.5rem 0 0.75rem; }
@@ -55,7 +61,7 @@
 .pb-chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--gh-purple-50); color: var(--gh-purple-text); font-size: 0.78rem; font-weight: 600; cursor: help; }
 .pb-chip-adv { background: #fbeaf2; color: #9a1f5e; }
 .pb-chips-sm .pb-chip { font-size: 0.72rem; }
-.pb-code { font-family: ui-monospace, Menlo, monospace; font-size: 0.72rem; opacity: 0.75; }
+.pb-code { font-family: ui-monospace, Menlo, monospace; font-size: 0.72rem; }
 .pb-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .pb-pill { border: 1px solid var(--gh-border-strong); background: var(--gh-surface); color: var(--gh-text-2); border-radius: 999px; padding: 0.35rem 0.8rem; font: 500 0.84rem var(--gh-font); cursor: pointer; min-height: 34px; }
 .pb-pill[aria-pressed="true"] { background: var(--gh-purple-50); border-color: var(--gh-purple); color: var(--gh-purple-text); font-weight: 600; }
@@ -245,7 +251,8 @@
 .pb-impact small { font-size: 0.76rem; color: var(--gh-text-3); }
 
 /* Link from the term hero to the Future Skills page. */
-.pb-fs-link { display: inline-block; margin-top: 0.6rem; color: #c4ef5e; font-weight: 600; font-size: 0.9rem; text-decoration: none; }
+.pb-fs-link { display: inline-block; margin-top: 0.6rem; color: var(--gh-purple-text); font-weight: 600; font-size: 0.9rem; text-decoration: none; }
+[data-theme="dark"] .pb-fs-link { color: #c4ef5e; }
 .pb-fs-link:hover { text-decoration: underline; }
 
 /* Showcase: Canva slot (placeholder until the Canva connection exists) */

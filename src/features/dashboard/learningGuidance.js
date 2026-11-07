@@ -1,5 +1,5 @@
 import { hrefFor } from '../../app/routes.js';
-import { gaugeReading } from './instrumentModel.js';
+import { completionReading } from './instrumentModel.js';
 
 const textOf = (value) => typeof value === 'string' ? value.trim()
   : value && typeof value === 'object' ? textOf(value.prompt || value.text || value.title) : '';
@@ -9,35 +9,31 @@ export const nextGoalStep = (goal) => goal.done ? null : goal.steps.find((step) 
 export function startHere({ data, today, checked, goalsLoaded, hasGoals, termProject = null }) {
   if (!goalsLoaded) return { loading: true, title: 'Finding your next step…', body: 'Loading your saved learning plan.' };
   const task = today.find((item) => item.kind === 'step' && !checked.has(item.id));
-  if (task) return { title: task.text, body: `A step towards ${task.goal}`, href: hrefFor.goals(), action: 'Open my goal', source: 'Your learning plan' };
+  if (task) return { title: task.text, body: `A step towards your goal: ${task.goal}`, href: hrefFor.goals(), action: 'Open my goal', source: 'Your goal', item: task };
   const recheck = data.courses.find((item) => item.needsRecheck);
   if (recheck) return { title: 'Re-check your completed sessions', body: `${recheck.program.title}’s session numbers were corrected. Confirm which sessions you’ve finished.`, href: hrefFor.program(recheck.program.id, 'plan'), action: 'Open project', source: 'Your current project' };
   const course = data.courses.find((item) => !item.progressUnavailable && item.summary?.next);
   if (course) return { title: course.summary.next.title, body: course.program.title, href: hrefFor.program(course.program.id, 'plan'), action: 'Continue project', source: 'Your current project' };
   const personal = today.find((item) => !checked.has(item.id));
-  if (personal) return { title: personal.text, body: 'A small action from your own learning plan.', href: hrefFor.goals(), action: 'Open my plan', source: 'Your learning plan' };
+  if (personal) return { title: personal.text, body: 'A small thing you chose to do today.', href: hrefFor.goals(), action: 'Open my plan', source: 'Your plan', item: personal };
   if (data.state === 'loading') return { loading: true, title: 'Finding your next project step…', body: 'Your personal checklist has no remaining items. Loading your project records.' };
   if (data.state === 'error' || data.warnings.length || data.courses.some((item) => item.progressUnavailable)) return { title: 'Check your current learning', body: 'Some project records are unavailable. Open your courses to check the next step.', href: hrefFor.courses(), action: 'Open My Courses', source: 'Course records unavailable' };
   const unstarted = data.courses.find((item) => !item.summary);
   if (unstarted) return { title: `Start ${unstarted.program.title}`, body: 'Open your assigned project to choose your first step.', href: hrefFor.program(unstarted.program.id, 'plan'), action: 'Open project', source: 'Your current project' };
   const term = termStep(termProject);
   if (term) return term;
-  if (!hasGoals) return { title: 'Choose something to work towards', body: 'Set a goal and a small first step in Goal Setting.', href: hrefFor.goals(), action: 'Set my first goal', source: 'Your learning plan' };
+  if (!hasGoals) return { title: 'Choose something to work towards', body: 'It only takes a minute: answer a few short questions and pick one small first step.', href: hrefFor.goals(), action: 'Set my first goal', source: 'Your plan' };
   return { title: 'Look back at what you’ve made', body: 'Your checklist has no remaining items. Review your evidence or plan another step.', href: hrefFor.pbl('portfolio'), action: 'Open my portfolio', source: 'A moment to reflect' };
 }
 
 /**
- * Small, honest status for each slide in the dock (replaces the old tile bar's
- * numbers). Only real records: nothing when a value can't be verified, and
- * never a combined "progress" percentage.
+ * Small, honest status for a slide in the dock. Only real records: nothing when
+ * a value can't be verified, and never a combined "progress" percentage. My
+ * Quests stays out: it only answers "what do I do next".
  */
-export function dockStats({ data, today, ticked, plan, goalsLoaded, focus = null, playing = false }) {
+export function dockStats({ data, focus = null, playing = false }) {
   const stats = {};
-  if (goalsLoaded && today.length) {
-    const n = today.filter((item) => ticked.has(item.id)).length;
-    stats.daily = { text: `${n}/${today.length}`, label: `${n} of ${today.length} done today` };
-  }
-  const course = data.courses.find((item) => !item.progressUnavailable && !item.needsRecheck && item.summary && gaugeReading(item.summary.done, item.summary.total));
+  const course = data.courses.find((item) => !item.progressUnavailable && !item.needsRecheck && item.summary && completionReading(item.summary.done, item.summary.total));
   if (course) stats.progress = { text: `${course.summary.done}/${course.summary.total}`, label: `${course.summary.done} of ${course.summary.total} sessions marked complete` };
   if (focus) stats.creative = { text: focus, label: `focus timer ${focus} left` };
   else if (playing) stats.creative = { text: '♪', label: 'focus sounds playing' };

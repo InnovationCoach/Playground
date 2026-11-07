@@ -146,15 +146,14 @@ export function TodayWidget({ items, checked, onToggle, onOpenGoals }) {
   if (!items.length) {
     return (
       <div>
-        <p className="md-muted">Your checklist builds itself from your daily habit, the next step of each big goal and your recharge break.</p>
-        <button type="button" className="md-btn" onClick={onOpenGoals}><Target size={16} aria-hidden="true" /> Set it up</button>
+        <p className="md-muted">Nothing here yet. Set a goal and its next step shows up here.</p>
+        <button type="button" className="md-btn" onClick={onOpenGoals}><Target size={16} aria-hidden="true" /> Set a goal</button>
       </div>
     );
   }
   const done = items.filter((i) => checked.has(i.id)).length;
   return (
     <div>
-      <Meter label="Done today" percent={Math.round((100 * done) / items.length)} detail={`${done} of ${items.length}`} />
       <ul className="md-today">
         {items.map((it) => {
           const on = checked.has(it.id);
@@ -163,7 +162,7 @@ export function TodayWidget({ items, checked, onToggle, onOpenGoals }) {
               <button type="button" className="md-today-item" aria-pressed={on} onClick={() => onToggle(it)}>
                 {on ? <CircleCheck size={18} aria-hidden="true" /> : <Circle size={18} aria-hidden="true" />}
                 <span className="md-today-text-wrap" style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', gap: 2 }}>
-                  {it.goal && <span className="md-today-goal-badge" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--sp-magenta-text, #ae266c)' }}>{it.goal}</span>}
+                  {it.goal && <span className="md-today-goal-badge" style={{ fontSize: '11px', fontWeight: 700, color: 'var(--sp-magenta-text, #ae266c)' }}>{it.goal}</span>}
                   <span>{it.text}</span>
                 </span>
               </button>
@@ -171,7 +170,7 @@ export function TodayWidget({ items, checked, onToggle, onOpenGoals }) {
           );
         })}
       </ul>
-      {done === items.length && <p className="md-tip">All done for today. Nice work.</p>}
+      {done === items.length && <p className="md-tip">That’s everything for today. Nice work.</p>}
     </div>
   );
 }

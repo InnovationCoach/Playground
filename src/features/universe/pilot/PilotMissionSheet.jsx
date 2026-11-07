@@ -78,7 +78,7 @@ export function outcomeText(item) {
  * sheet, signing out or switching account/organization discards it (the parent
  * re-keys this component), and late responses from a closed sheet are ignored.
  */
-export function PilotMissionSheet({ entry, registry, client, preview = false, onClose, initial = null, allowInReview = false }) {
+export function PilotMissionSheet({ entry, registry, client, preview = false, onClose, initial = null, allowInReview = false, plan = null }) {
   const { bundle, mission } = entry;
   const [routeId, setRouteId] = useState(null);
   const [view, setView] = useState('work');
@@ -146,7 +146,7 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
     const id = identityFor(bundle, mission, r), k = identityKey(id);
     setRouteId(r.id); setView('work'); setSend({ state: 'idle' });
     if (seed) { edited.current[k] = true; setWorks((all) => ({ ...all, [k]: seed })); setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), state: 'not-saved' } })); }
-    else if (!revising) setWorks((all) => (all[k] ? all : { ...all, [k]: emptyWork(r, { supportMode: Object.values(all)[0]?.supportMode }) }));
+    else if (!revising) setWorks((all) => (all[k] ? all : { ...all, [k]: emptyWork(r, { supportMode: (plan?.missionId === mission.id && plan.routeId === r.id && plan.supportMode) || Object.values(all)[0]?.supportMode }) }));
     checkAvailability(id, k);
     if (saves[k]?.loaded && !revising) return;
     setSaves((all) => ({ ...all, [k]: { ...(all[k] || {}), state: all[k]?.state || 'not-saved', loading: true, loadError: null } }));
@@ -302,6 +302,8 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
   const routeLabel = route ? scenarioLabel(bundle, mission, route, design) : '';
 
   const draftLabel = bundle.status !== 'published';
+  // AI Creator overlay: shown beside the reviewed mission, which it can't change.
+  const myPlan = plan?.missionId === mission.id && (!route || plan.routeId === route.id) ? plan : null;
   return <div className="mx-mission-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) requestClose(); }}>
     <section className="mx-mission px-sheet is-focus" role="dialog" aria-modal="true" aria-labelledby="px-title" onKeyDown={onKeyDown} ref={sheetRef}>
       <header className="mx-mission-top">
@@ -320,6 +322,8 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
         <button type="button" onClick={() => { setRouteId(null); setSend({ state: 'idle' }); }}><ChevronLeft size={15} aria-hidden="true" />Routes</button>
       </nav>}
       <div className="mx-mission-body" ref={body}>
+        {myPlan && !closing && <details className="px-optional px-my-plan" open={!route}><summary>My plan</summary><p>{myPlan.hook}</p>
+          <ol>{myPlan.sittings.map((s) => <li key={s.number}><strong>About {s.minutes} minutes:</strong> {s.stepTitles.join(', ')}</li>)}</ol></details>}
         {closing && <ClosePanel names={unsavedKeys.map(routeNameOf)} otherTask={unsavedKeys.some((k) => k !== key)} canSave={!!route && open && !save?.loadError && save?.state !== 'saving' && unsavedKeys.length === 1 && unsavedKeys[0] === key}
           onKeep={() => setClosing(false)} onSave={saveAndClose} onDiscard={onClose} saving={save?.state === 'saving'} />}
         {!closing && !route && <Briefing bundle={bundle} mission={mission} onChoose={(r) => chooseRoute(r)} history={history} onHistory={() => { setRouteId(mission.routes[0].id); chooseRoute(mission.routes[0]); setView('history'); }} />}

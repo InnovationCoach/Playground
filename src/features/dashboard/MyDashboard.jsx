@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowRight, Sparkles, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, X } from 'lucide-react';
 import { INTERESTS } from '../pbl/content/pblModel.js';
 import { readiness } from '../pbl/engine/pblProject.js';
 import { hrefFor } from '../../app/routes.js';
@@ -57,7 +57,7 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
   }, [signals, project, plan]);
   const focusState = useFocus();
   const focusText = focusState.timer.phase !== 'idle' ? fmt(remainingMs(focusState.timer, focusState.now)) : null;
-  const stats = dockStats({ data, today: model.today, ticked: model.ticked, plan, goalsLoaded, focus: focusText, playing: focusState.playing });
+  const stats = dockStats({ data, focus: focusText, playing: focusState.playing });
   const cover = COVERS.find((c) => c.id === prefs.cover) || COVERS[0];
   const accent = (ACCENTS.find((a) => a.id === prefs.accent) || ACCENTS[0]).value;
   function openTarget(target) {
@@ -104,22 +104,14 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
   }
 
   function renderSlide(id) {
-    if (id === 'daily') return <>
-      {uid && classIds.length === 0 && <JoinClassPanel uid={uid} classIds={classIds} onJoined={onJoined} />}
-      <DailyLearningSlide data={data} model={model} plan={plan} project={project} firstName={profile?.displayName?.split(' ')[0]} goalsLoaded={goalsLoaded} goalSync={goalSync}
-        onToggle={(item) => updatePlan((state) => toggleToday(state, item, signals.today))} onOpenActivity={onOpenActivity} />
-    </>;
-    if (id === 'find') return <FindQuestSlide uid={uid} data={data} plan={plan} onOpenActivity={onOpenActivity} />;
+    if (id === 'daily') return <DailyLearningSlide data={data} model={model} plan={plan} project={project} firstName={profile?.displayName?.split(' ')[0]} goalsLoaded={goalsLoaded} goalSync={goalSync}
+      onToggle={(item) => updatePlan((state) => toggleToday(state, item, signals.today))} onOpenActivity={onOpenActivity}
+      joinPanel={uid && classIds.length === 0 ? <JoinClassPanel uid={uid} classIds={classIds} onJoined={onJoined} /> : null} />;
+    if (id === 'find') return <FindQuestSlide uid={uid} data={data} plan={plan} interests={prefs.interests} started={signals.started} onOpenActivity={onOpenActivity} />;
     if (id === 'progress') return <ProgressLearningSlide data={data} project={project} plan={plan} goalsLoaded={goalsLoaded} goalSync={goalSync}
       renderReadiness={() => <WorkspaceTools prefs={prefs} slide="progress" renderWidget={renderWidget} />} />;
     if (id === 'creative') return <PersonalSpace prefs={prefs} update={update} renderWidget={renderWidget} />;
-    return <>
-      <SparkUniverse prefs={prefs} plan={plan} uid={uid} orgId={orgId} active={activeSlide === 'universe'} onPersonalise={() => setPanelOpen(true)} onOpenActivity={onOpenActivity} />
-      <div className="sd-section-line"><h3>Personal milestones & inspiration</h3><button type="button" className="sd-text-button" onClick={() => setActiveSlide('creative')}>Arrange optional tools <ArrowRight size={16} /></button></div>
-      <p className="sd-caption">These existing milestones reflect self-reported actions. They are not verified mastery, XP or unlock evidence.</p>
-      <WorkspaceTools prefs={prefs} slide="universe" renderWidget={renderWidget} />
-      <a className="sd-link" href={hrefFor.homeSearch()}>Discover a future course <ArrowRight size={16} /></a>
-    </>;
+    return <SparkUniverse prefs={prefs} uid={uid} orgId={orgId} active={activeSlide === 'universe'} onOpenActivity={onOpenActivity} />;
   }
   return <div className={`gh-app md-root sd-root${prefs.calm ? ' md-calm' : ''}`}
     data-theme={prefs.theme === 'inherit' ? undefined : prefs.theme} data-dial={prefs.dialFinish}
@@ -141,23 +133,23 @@ function CustomisePanel({ prefs, update, syncState, onClose }) {
     onCancel={(event) => { event.preventDefault(); onClose(); }}
     onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <div className="sd-dialog-content"><div className="sd-section-line"><h2 id="sd-settings-title">Make it your space</h2><button type="button" className="sd-button" aria-label="Close personalisation" onClick={onClose}><X size={20} /></button></div>
-      <p className="sd-caption">Changes save to your existing dashboard preferences. All five learning slides stay available.</p>
-      <fieldset><legend>Slides</legend><ol className="sd-slide-arrangement">{prefs.slideOrder.map((id, index) => <li key={id}>
+      <p className="sd-caption">Your changes save automatically. All five pages stay available.</p>
+      <fieldset><legend>Pages</legend><ol className="sd-slide-arrangement">{prefs.slideOrder.map((id, index) => <li key={id}>
         <label><span>{SLIDES.find((slide) => slide.id === id).title}</span><input aria-label={`Rename ${SLIDES.find((slide) => slide.id === id).title}`} maxLength={40} value={prefs.slideTitles[id]} onChange={(event) => update((state) => ({ ...state, slideTitles: { ...state.slideTitles, [id]: event.target.value } }))} /></label>
         <div><button type="button" className="sd-button" disabled={index === 0} aria-label={`Move ${SLIDES.find((s) => s.id === id).title} earlier`} onClick={() => update((state) => moveSlide(state, id, -1))}><ArrowUp size={16} /></button><button type="button" className="sd-button" disabled={index === 4} aria-label={`Move ${SLIDES.find((s) => s.id === id).title} later`} onClick={() => update((state) => moveSlide(state, id, 1))}><ArrowDown size={16} /></button></div>
       </li>)}</ol></fieldset>
       <fieldset><legend>Appearance</legend><div className="sd-style-controls">
         <label>Font<select value={prefs.font} onChange={(event) => update((state) => ({ ...state, font: event.target.value }))}>{Object.keys(FONTS).map((font) => <option value={font} key={font}>{FONT_LABELS[font] || font}</option>)}</select></label>
         <label>Background<select value={prefs.background} onChange={(event) => update((state) => ({ ...state, background: event.target.value }))}>{Object.keys(BACKGROUNDS).map((background) => <option key={background}>{background}</option>)}</select></label>
-        <label>Theme<select value={prefs.theme} onChange={(event) => update((state) => ({ ...state, theme: event.target.value }))}>{THEMES.map((theme) => <option value={theme.id} key={theme.id}>{theme.label}</option>)}</select></label>
+        <label>Theme<select value={prefs.theme} onChange={(event) => update((state) => ({ ...state, theme: event.target.value, themeChosen: true }))}>{THEMES.map((theme) => <option value={theme.id} key={theme.id}>{theme.label}</option>)}</select></label>
         <label>Accent colour<select value={prefs.accent} onChange={(event) => update((state) => ({ ...state, accent: event.target.value }))}>{ACCENTS.map((colour) => <option value={colour.id} key={colour.id}>{colour.label}</option>)}</select></label>
-        <label>Instrument finish<select value={prefs.dialFinish} onChange={(event) => update((state) => ({ ...state, dialFinish: event.target.value }))}>{DIAL_FINISHES.map((finish) => <option value={finish.id} key={finish.id}>{finish.label}</option>)}</select></label>
+        <label>Chart colours<select value={prefs.dialFinish} onChange={(event) => update((state) => ({ ...state, dialFinish: event.target.value }))}>{DIAL_FINISHES.map((finish) => <option value={finish.id} key={finish.id}>{finish.label}</option>)}</select></label>
         <label>Slide atmosphere<select value={prefs.cover} onChange={(event) => update((state) => ({ ...state, cover: event.target.value }))}>{COVERS.map((cover) => <option value={cover.id} key={cover.id}>{cover.label}</option>)}</select></label>
-      </div><label className="sd-check"><input type="checkbox" checked={prefs.calm} onChange={(event) => update((state) => ({ ...state, calm: event.target.checked }))} /> Calm view · no needle movement, animated transitions or decorative effects</label></fieldset>
+      </div><label className="sd-check"><input type="checkbox" checked={prefs.calm} onChange={(event) => update((state) => ({ ...state, calm: event.target.checked }))} /> Calm view · no animations or decorative effects</label></fieldset>
       <fieldset><legend>Your words & interests</legend><label className="sd-tagline">Personal tagline<input maxLength={MAX_TAGLINE} value={prefs.tagline} onChange={(event) => update((state) => ({ ...state, tagline: event.target.value }))} /></label>
-        <p className="sd-caption">Choose up to {MAX_INTERESTS} interests for existing activity suggestions.</p><div className="md-chips">{INTERESTS.map((interest) => <button type="button" key={interest} className="sd-button" aria-pressed={prefs.interests.includes(interest)} disabled={!prefs.interests.includes(interest) && prefs.interests.length >= MAX_INTERESTS} onClick={() => update((state) => ({ ...state, interests: state.interests.includes(interest) ? state.interests.filter((item) => item !== interest) : [...state.interests, interest] }))}>{interest}</button>)}</div>
+        <p className="sd-caption">Choose up to {MAX_INTERESTS} interests. We use them to suggest quests and fit missions to you.</p><div className="md-chips">{INTERESTS.map((interest) => <button type="button" key={interest} className="sd-button" aria-pressed={prefs.interests.includes(interest)} disabled={!prefs.interests.includes(interest) && prefs.interests.length >= MAX_INTERESTS} onClick={() => update((state) => ({ ...state, interests: state.interests.includes(interest) ? state.interests.filter((item) => item !== interest) : [...state.interests, interest] }))}>{interest}</button>)}</div>
       </fieldset>
-      <p className="sd-caption">Arrange optional tools and your saved personal spaces inside Creative Space. No existing space is removed by changing slide order.</p>
+      <p className="sd-caption">Arrange your tools and saved spaces in Creative Space.</p>
       <div className="sd-section-line"><span role="status" className="sd-caption">{syncState === 'saved' ? 'Appearance saved to your account' : syncState === 'local-only' ? 'Saved on this device · account sync unavailable' : syncState === 'saving' ? 'Saving…' : 'Changes save automatically'}</span><button className="sd-primary" type="button" onClick={onClose}>Done</button></div>
     </div>
   </dialog>;

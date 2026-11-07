@@ -1,0 +1,56 @@
+# AI Creator: backend contract (for Gemini)
+
+**Status:** proposed. Nothing here is implemented or deployed. `server/` is Gemini's area under `AGENTS.md`, so the front end ships without this endpoint and works without it.
+
+## What exists today
+
+The AI Creator in My Universe (`src/features/universe/creator/`) builds a plan from a reviewed mission:
+
+| Part of the plan | Where it comes from |
+| --- | --- |
+| Hook (connects the mission to the learner's interest) | Written templates, one per interest. **This is the only part AI would replace.** |
+| Time plan | The route's own steps and `planningMinutes`, split into sittings |
+| Help level | The route's own `supportModes` (`guided`, `independent`) |
+
+The mission sheet keeps rendering the reviewed bundle, so the driving question, steps, answers, rubric and evidence requirements can't change. That guarantee is in the design, and the model doesn't need to behave for it to hold.
+
+Until this endpoint exists, the name "AI Creator" is ahead of the implementation: no model is called.
+
+## Proposed endpoint
+
+`POST /api/universe/creator/hook` (`requireAuth`, same pattern as `/api/explain`)
+
+Request. Every field comes from a fixed list, so no free text reaches the model:
+
+```json
+{ "missionId": "thalassa-wind-survey", "routeId": "guided", "interest": "Music", "minutes": 30, "support": "more" }
+```
+
+Response:
+
+```json
+{ "hook": "One or two plain sentences, up to 240 characters." }
+```
+
+Server requirements:
+
+1. Check `missionId` and `routeId` against a release that is published and educator-approved. Otherwise return 404.
+2. Check `interest`, `minutes` and `support` against the same lists as `missionCreator.js`. Otherwise return 400.
+3. Don't send the learner's name, uid, class, goals or work to the model.
+4. Don't send the model any answers, rubrics, worked examples or hints. The mission title and driving question are enough.
+5. Tell the model to write for ages 11 to 17 in plain language, connect the interest to the mission, and include no facts, numbers or method hints.
+6. Apply the usual per-user rate limit. Log failures without learner identifiers.
+
+The client also checks every reply (`acceptableHook`): it rejects markup, links, digits and anything over 240 characters, and ignores every field except `hook`. Any failure keeps the written template, and the learner sees no error.
+
+## Turning it on
+
+1. Gemini ships the endpoint, tested against the emulators.
+2. Pass `requestHook` to `MissionCreator` in `SparkUniverse.jsx`, calling the endpoint through the existing API client.
+3. Set `VITE_UNIVERSE_CREATOR_AI=true` in the build.
+
+Deploying any of this needs Mani's written go for that exact step.
+
+## Open question for Mani
+
+`src/features/universe/pilot/publishedRegistry.js` marks the pilot bundle as `published` and `educator-approved`. The bundle's own data says otherwise: `status: "draft"`, and its route alignments are `reviewStatus: "educator-pending"`. The Creator trusts the registry, so it currently treats these missions as reviewed. Please confirm the educator review really happened. If it hasn't, change the registry, and the Creator will stop offering those missions automatically.
