@@ -8,12 +8,13 @@ import { auth, db, collection, getDocs, getDoc, doc, query, where } from '../../
 import { TERM, PHASES } from '../pbl/content/pblModel.js';
 import { safeLink } from '../pbl/engine/pblProject.js';
 import { activityProgress, dateLabel, projectProgress, STEAM_ACTIVITIES } from './progressModel.js';
+import { isRosterLearner, isLearnerInScope } from './learners/rosterFilter.js';
 import '../admin/admin.css';
 import './coachWorkspace.css';
 import { CommunityFeed } from '../community/CommunityFeed.jsx';
 import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 
-const SECTIONS = [['overview', 'Overview', LayoutDashboard], ['pbl', 'PBL Studio', BookOpen], ['steam', 'STEAM Activities', FlaskConical], ['academic', 'Academic Progress', GraduationCap], ['goals', 'Learning Goals', FileText], ['calendar', 'School Calendar', LayoutDashboard], ['community', 'Posts for students', FileText]];
+const SECTIONS = [['overview', 'Overview', LayoutDashboard], ['pbl', 'PBL programs', BookOpen], ['steam', 'STEAM Activities', FlaskConical], ['academic', 'Academic Progress', GraduationCap], ['goals', 'Learning Goals', FileText], ['calendar', 'School Calendar', LayoutDashboard], ['community', 'Posts for students', FileText]];
 const describeError = err => err?.code === 'permission-denied'
   ? 'Your account could not read this class. Ask your administrator to check your coach claims and learner class assignments.'
   : 'Learning records could not be loaded. Check your connection and try again.';
@@ -54,7 +55,7 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
           try {
             const snap = await getDoc(doc(db, 'classes', id));
             const exists = typeof snap?.exists === 'function' ? snap.exists() : !!snap?.exists;
-            return { id, name: exists ? snap.data().name || id : id };
+            return { id, name: exists ? snap.data().name || id : id, cohortId: exists ? snap.data().cohortId || null : null };
           } catch {
             return { id, name: id };
           }
@@ -71,16 +72,7 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
           if (!snap) return;
           snap.docs.forEach(d => {
             const dData = d.data();
-            const isTestAccount = Boolean(
-              dData.isTest === true ||
-              dData.status === 'archived' ||
-              dData.email?.includes('test@school.edu') ||
-              dData.email?.includes('test.') ||
-              dData.email?.includes('@hearisland-test.org')
-            );
-            if (dData.role === 'student' && dData.status === 'active' && !isTestAccount) {
-              unique.set(d.id, { ...dData, uid: d.id });
-            }
+            if (isRosterLearner(dData)) unique.set(d.id, { ...dData, uid: d.id });
           });
         });
         const learners = await Promise.all([...unique.values()].map(async learner => {
@@ -96,15 +88,15 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
     return () => { cancelled = true; };
   }, [coachUser?.uid, coachUser?.role, coachUser?.classIds, reload, rosterVersion]);
 
-  const scope = data.classes.some(c => c.id === classId) ? classId : 'all';
-  const classLearners = data.learners.filter(l => scope === 'all' || (scope.startsWith('cohort:') ? l.cohortId === scope.slice(7) : l.classIds?.includes(scope)));
+  const scope = classId.startsWith('cohort:') || data.classes.some(c => c.id === classId) ? classId : 'all';
+  const classLearners = data.learners.filter(l => isLearnerInScope(l, scope, data.classes));
   const learners = classLearners.filter(l => `${l.displayName || ''} ${l.email || ''}`.toLowerCase().includes(search.trim().toLowerCase()));
   const selected = learners.find(l => l.uid === selectedId);
   const projects = classLearners.map(l => !l.recordError && projectProgress(l.records)).filter(Boolean);
   const unavailable = classLearners.filter(l => l.recordError).length;
 
   return <main className="gh-app cw-app"><div className="cw-page">
-    <div className="cw-heading"><div><span className="cw-eyebrow">YOUR COACHING WORKSPACE</span><h1>See the learning. Guide the next step.</h1><p>PBL projects, STEAM investigations and academic learning, in one place.</p></div><div className="cw-tools">{onAddStudent && <button className="gh-btn gh-btn-primary" onClick={onAddStudent}>Add a student</button>}<button className="gh-btn gh-btn-primary" onClick={()=>setSection('pbl')}>{t('openPrograms')}</button><button className="gh-btn gh-btn-ghost" onClick={onManagement}>Management tools</button><button className="gh-btn gh-btn-ghost" disabled={data.state === 'loading'} onClick={() => setReload(n => n + 1)}><RefreshCw size={16} /> Refresh records</button></div></div>
+    <div className="cw-heading"><div><span className="cw-eyebrow">YOUR COACHING WORKSPACE</span><h2>See the learning. Guide the next step.</h2><p>PBL projects, STEAM investigations and academic learning, in one place.</p></div><div className="cw-tools">{onAddStudent && <button className="gh-btn gh-btn-primary" onClick={onAddStudent}>Add a student</button>}<button className="gh-btn gh-btn-ghost" onClick={()=>setSection('pbl')}>{t('openPrograms')}</button><button className="gh-btn gh-btn-ghost" onClick={onManagement}>Management tools</button><button className="gh-btn gh-btn-ghost" disabled={data.state === 'loading'} onClick={() => setReload(n => n + 1)}><RefreshCw size={16} /> Refresh records</button></div></div>
     <div className="cw-context"><div className="cw-class"><label htmlFor="cw-class">Class</label><select id="cw-class" className="gh-select" value={scope} onChange={e => { setClassId(e.target.value); onClassChange?.(e.target.value); setSelectedId(null); }}><option value="all">All · WLS · WHS</option><option value="cohort:cohort-wls">WLS · Grade 6–8</option><option value="cohort:cohort-whs">WHS · Grade 9–12</option>{data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div><strong>Legacy portfolio: {TERM.label}</strong><span className="cw-muted">{` · ${TERM.theme}`}</span></div><span className="cw-updated">{data.updatedAt ? `Loaded ${dateLabel(data.updatedAt)}` : 'Cloud records'}</span></div>
     <nav className="cw-sections" aria-label="Coach progress sections">{SECTIONS.map(([id, label, Icon]) => <button key={id} aria-current={section === id ? 'page' : undefined} onClick={() => { setSection(id); setSelectedId(null); }}><Icon size={18} />{label}</button>)}</nav>
     {data.state === 'loading' && <Empty title="Loading your classes" text="Checking access and retrieving learner records." />}
@@ -114,12 +106,12 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
     {section === 'community' && <CommunityFeed />}
     {['pbl','academic','goals','calendar'].includes(section) && <SchoolLearningPanel classScope={scope} hideTabs initialArea={section === 'pbl' ? 'programs' : section} />}
     {data.state === 'ready' && ['overview','pbl','steam'].includes(section) && <>
-      {section === 'overview' && <><div className="cw-summary"><Stat icon={Users} label={data.failedClassIds?.length ? "Learners loaded (incomplete)" : "Learners in this view"} value={classLearners.length} caption="Assigned class roster" /><Stat icon={BookOpen} label="PBL project records" value={projects.length} caption="Current-term cloud records" emptyHint="None yet. Records appear once learners start in PBL Studio." /><Stat icon={FileText} label="Evidence entries" value={projects.reduce((n, p) => n + p.project.evidence.length, 0)} caption="Recorded evidence, not an approval count" emptyHint="None yet. Evidence appears here as learners add it." /></div><div className="cw-domain-grid">{[['pbl', BookOpen, 'Follow the project journey', 'Understand each learner’s phase, task checks and evidence.', 'Open PBL Studio'], ['steam', FlaskConical, 'Look inside STEAM work', 'Review recorded investigations and hands-on activity work.', 'Open STEAM Activities'], ['academic', GraduationCap, 'Academic learning', 'Review connected course and assessment records.', 'Open Academic Progress']].map(([id, Icon, title, text, action]) => <button key={id} onClick={() => setSection(id)}><span className={`cw-domain-icon cw-${id}`}><Icon size={22} /></span><strong>{title}</strong><p>{text}</p><span>{action}<ArrowUpRight size={16} /></span></button>)}</div></>}
+      {section === 'overview' && <><div className="cw-summary"><Stat icon={Users} label={data.failedClassIds?.length ? "Learners loaded (incomplete)" : "Learners in this view"} value={classLearners.length} caption="Assigned class roster" /><Stat icon={BookOpen} label="PBL project records" value={projects.length} caption="Current-term cloud records" emptyHint="None yet. Records appear once learners start in PBL Studio." /><Stat icon={FileText} label="Evidence entries" value={projects.reduce((n, p) => n + p.project.evidence.length, 0)} caption="Recorded evidence, not an approval count" emptyHint="None yet. Evidence appears here as learners add it." /></div><div className="cw-domain-grid">{[['pbl', BookOpen, 'Follow the project journey', 'Understand each learner’s phase, task checks and evidence.', 'Open PBL programs'], ['steam', FlaskConical, 'Look inside STEAM work', 'Review recorded investigations and hands-on activity work.', 'Open STEAM Activities'], ['academic', GraduationCap, 'Academic learning', 'Review connected course and assessment records.', 'Open Academic Progress']].map(([id, Icon, title, text, action]) => <button key={id} onClick={() => setSection(id)}><span className={`cw-domain-icon cw-${id}`}><Icon size={22} /></span><strong>{title}</strong><p>{text}</p><span>{action}<ArrowUpRight size={16} /></span></button>)}</div></>}
       {unavailable > 0 && <p className="cw-warning" role="status">{unavailable} learner record sets could not be read. PBL summaries include only available records.</p>}
       <div className="cw-workspace"><section className="cw-roster"><div className="cw-roster-heading"><div><h2>{section === 'overview' ? 'Your learners' : section === 'pbl' ? 'Existing Sustainable Futures portfolios' : 'STEAM activity progress'}</h2><p>{learners.length} of {classLearners.length} learners · Select a learner to inspect work</p></div><label className="cw-search"><Search size={16} /><span className="cw-sr">Search learners</span><input type="search" placeholder="Search learners" value={search} onChange={e => setSearch(e.target.value)} /></label></div>
         {!classLearners.length ? <Empty title={data.failedClassIds?.length ? 'Class roster is incomplete' : 'No learners found in this class scope'} text="If learners should already be here, ask your administrator to verify their class membership." /> : !learners.length ? <Empty title="No matching learners" text="Try another name or clear your search."><button className="gh-btn gh-btn-ghost" onClick={() => setSearch('')}>Clear search</button></Empty> : <div className="cw-table-scroll"><table><caption className="cw-sr">Learner progress for {TERM.label}</caption><thead><tr><th>Learner</th><th>{section === 'steam' ? 'STEAM records' : 'PBL phase'}</th><th>{section === 'steam' ? 'Recorded completion' : 'Evidence'}</th><th>Action</th></tr></thead><tbody>{learners.map(l => {
           const pbl = projectProgress(l.records), activities = STEAM_ACTIVITIES.filter(([id]) => l.records[id]);
-          return <tr key={l.uid} className={selectedId === l.uid ? 'cw-selected' : ''}><td><strong>{l.displayName || l.email || 'Learner'}</strong><small>{l.groupName || data.classes.filter(c => l.classIds?.includes(c.id)).map(c => c.name).join(', ')}</small></td><td>{l.recordError ? 'Unavailable' : section === 'steam' ? `${activities.length} activity records` : pbl ? PHASES.find(p => p.id === pbl.project.currentPhase)?.title : <span className="cw-muted">No current-term record</span>}</td><td>{l.recordError ? '—' : section === 'steam' ? `${activities.filter(([id]) => l.records[id].completed === true).length} marked complete` : pbl ? `${pbl.project.evidence.length} ${pbl.project.evidence.length === 1 ? "entry" : "entries"}` : '—'}</td><td><button className="cw-review" aria-label={`Review ${l.displayName || l.email || 'learner'}`} onClick={() => setSelectedId(l.uid)}>Review <ChevronRight size={15} /></button></td></tr>;
+          return <tr key={l.uid} className={selectedId === l.uid ? 'cw-selected' : ''}><td><strong>{l.displayName || l.email || 'Learner'}</strong>{l.status === 'pending' && <span className="cw-pill">Setup pending</span>}<small>{l.groupName || data.classes.filter(c => l.classIds?.includes(c.id)).map(c => c.name).join(', ')}</small></td><td>{l.recordError ? 'Unavailable' : section === 'steam' ? `${activities.length} activity records` : pbl ? PHASES.find(p => p.id === pbl.project.currentPhase)?.title : <span className="cw-muted">No current-term record</span>}</td><td>{l.recordError ? '—' : section === 'steam' ? `${activities.filter(([id]) => l.records[id].completed === true).length} marked complete` : pbl ? `${pbl.project.evidence.length} ${pbl.project.evidence.length === 1 ? "entry" : "entries"}` : '—'}</td><td><button className="cw-review" aria-label={`Review ${l.displayName || l.email || 'learner'}`} onClick={() => setSelectedId(l.uid)}>Review <ChevronRight size={15} /></button></td></tr>;
         })}</tbody></table></div>}
       </section><aside className="cw-inspector" aria-label="Learner work review">{selected ? <LearnerReview key={`${selected.uid}-${section}`} learner={selected} section={section} onClose={() => setSelectedId(null)} /> : <div className="cw-inspector-empty"><BookOpen size={28} /><h3>Start with a learner</h3><p>Select Review to see evidence alongside the class roster.</p><small>Progress checks describe recorded work. They do not replace your assessment.</small></div>}</aside></div>
     </>}

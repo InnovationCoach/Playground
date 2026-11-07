@@ -136,7 +136,7 @@ function ClassRow({ cls, uid, availablePrograms = PROGRAMS, onChange, onPresent 
   const revoke = () => run('code', async () => { await revokeCode(cls); onChange({ joinCode: null }); },
     'Code revoked. Nobody can join until you issue a new one.');
   const chooseProgram = (id) => run('program', async () => { await setClassProgram(cls, id); onChange({ programId: id || null }); },
-    id ? `${cls.name} now runs ${(availablePrograms.find((p) => p.id === id) || programById(id))?.identity?.short || 'this program'}.` : 'Program removed from this class.');
+    id ? `${cls.name} now runs ${(availablePrograms.find((p) => p.id === id) || programById(id))?.title || 'this program'}.` : 'Program removed from this class.');
 
   async function copy() {
     try {

@@ -1,6 +1,6 @@
 import { LeavePanel } from '../admin/pilot/PilotOperations.jsx';
 import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Eye, Sun, Moon } from 'lucide-react';
+import { Sparkles, Eye, Sun, Moon, Users, KeyRound, Compass, CalendarOff } from 'lucide-react';
 import { StudentInviteDialog } from './StudentInviteDialog.jsx';
 import { CoachWorkspace } from './CoachWorkspace.jsx';
 import CoachDashboard from '../../components/Coach/CoachDashboard.js';
@@ -67,8 +67,16 @@ function ManagementTools({ coachUser, onAddStudent, classId, onClassChange }) {
   return <div id="coach-dashboard-card" ref={containerRef} style={{ minHeight: '600px', width: '100%' }} />;
 }
 
+const HOST_TABS = [
+  ['learners', 'Learners', Users],
+  ['classes', 'Classes & join codes', KeyRound],
+  ['reviews', 'Mission reviews', Compass],
+  ['leave', 'Day-off requests', CalendarOff]
+];
+
 export function CoachDashboardHost({ coachUser, orgId = null }) {
   const { effectiveTheme, setUserTheme } = useTheme();
+  const [tab, setTab] = useState('learners');
   const [management, setManagement] = useState(false);
   const [invite, setInvite] = useState(false);
   const [classId, setClassId] = useState('all');
@@ -103,7 +111,7 @@ export function CoachDashboardHost({ coachUser, orgId = null }) {
               <Sparkles size={14} /> Coach Mentorship Hub
             </span>
             <h1 style={{ margin: '0.2rem 0 0', fontSize: '1.25rem', fontWeight: 800, color: 'var(--gh-heading)' }}>
-              Class Roster, Programs & Submissions
+              Coach dashboard
             </h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
@@ -140,32 +148,36 @@ export function CoachDashboardHost({ coachUser, orgId = null }) {
         </div>
       </div>
 
-      <div style={{ padding: '0 20px', maxWidth: 1400, margin: '0 auto' }}>
-        <details className="gh-card" style={{ margin: '16px auto', padding: '1rem 1.25rem', maxWidth: 1360 }}>
-          <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', color: 'var(--gh-heading)' }}>
-            Day-off requests · request leave and track responses
-          </summary>
-          <div style={{ marginTop: '1rem' }}>
-            <LeavePanel />
-          </div>
-        </details>
-      </div>
+      <nav className="cw-sections" aria-label="Coach dashboard areas" style={{ maxWidth: 1360, margin: '12px auto 0', padding: '0 20px', flexWrap: 'wrap' }}>
+        {HOST_TABS.map(([id, label, Icon]) => (
+          <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
+            <Icon size={18} aria-hidden="true" />{label}
+          </button>
+        ))}
+      </nav>
 
-      {/* Class programs and My Universe submissions (main line) stay above the workspace. */}
-      <ClassProgramsPanel coachUser={coachUser} />
-      <CoachUniverseSubmissions coachUser={coachUser} orgId={orgId} />
-      {invite && <StudentInviteDialog initialClassId={classId} onClose={() => setInvite(false)} onCreated={() => setRosterVersion(n => n + 1)} />}
-      {management ? (
-        <>
-          <div className="cw-management" style={{ maxWidth: 1400, margin: '0 auto', padding: '20px 2rem' }}>
-            <button className="gh-btn gh-btn-ghost" onClick={() => setManagement(false)}>← Back to progress overview</button>
-            <p role="status">Class management tools. Select one assigned class before adding a task or assignment. Unavailable records are marked explicitly.</p>
-          </div>
-          <ManagementTools classId={classId} onClassChange={setClassId} key={rosterVersion} coachUser={coachUser} onAddStudent={() => setInvite(true)} />
-        </>
-      ) : (
-        <CoachWorkspace initialClassId={classId} onClassChange={setClassId} coachUser={coachUser} rosterVersion={rosterVersion} onAddStudent={() => setInvite(true)} onManagement={() => setManagement(true)} />
+      {tab === 'classes' && <ClassProgramsPanel coachUser={coachUser} />}
+      {tab === 'reviews' && <CoachUniverseSubmissions coachUser={coachUser} orgId={orgId} />}
+      {tab === 'leave' && (
+        <div className="gh-card" style={{ margin: '16px auto', padding: '1rem 1.25rem', maxWidth: 1360 }}>
+          <LeavePanel />
+        </div>
       )}
+      {invite && <StudentInviteDialog initialClassId={classId} onClose={() => setInvite(false)} onCreated={() => setRosterVersion(n => n + 1)} />}
+      {/* Stays mounted when hidden, so changing tabs does not refetch every learner. */}
+      <div hidden={tab !== 'learners'}>
+        {management ? (
+          <>
+            <div className="cw-management" style={{ maxWidth: 1400, margin: '0 auto', padding: '20px 2rem' }}>
+              <button className="gh-btn gh-btn-ghost" onClick={() => setManagement(false)}>← Back to progress overview</button>
+              <p role="status">Class management tools. Select one assigned class before adding a task or assignment. Unavailable records are marked explicitly.</p>
+            </div>
+            <ManagementTools classId={classId} onClassChange={setClassId} key={rosterVersion} coachUser={coachUser} onAddStudent={() => setInvite(true)} />
+          </>
+        ) : (
+          <CoachWorkspace initialClassId={classId} onClassChange={setClassId} coachUser={coachUser} rosterVersion={rosterVersion} onAddStudent={() => setInvite(true)} onManagement={() => setManagement(true)} />
+        )}
+      </div>
     </div>
   );
 }
