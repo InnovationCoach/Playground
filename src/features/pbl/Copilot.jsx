@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Bot, Send, NotebookPen, Copy, FileCode2, Info } from 'lucide-react';
 import { geminiApi } from '../../services/geminiApi.js';
 import { AI_PRINCIPLES, CODE_LANGUAGES, IMPACT } from './content/pblModel.js';
 import { copilotContext, copilotRequest, updateProject, LIMITS } from './engine/pblProject.js';
+import { copilotMode, starterPrompts } from './content/copilotModes.js';
 
 /**
- * The AI co-pilot for the open phase. It WRITES code for the learner's
- * project - commented, for the kit the school has - and the learner tests it,
- * changes it, and explains it back.
+ * The AI co-pilot for the open phase. Its job follows the phase (content/
+ * copilotModes.js). In the build phases it WRITES code for the learner's project -
+ * commented, for the kit the school has - and the learner tests it, changes it,
+ * and explains it back.
  *
  * It calls /api/pbl-copilot. Until that endpoint is deployed (a 404), it falls
  * back to /api/tutor, whose rules forbid handing over code, and says so - a
@@ -23,6 +25,9 @@ export function Copilot({ phase, project, apply, onLog, onSaveCode }) {
   const [error, setError] = useState(null);
   const [fallback, setFallback] = useState(false);
   const impact = IMPACT.find((i) => i.id === project.impact);
+  const mode = copilotMode(phase.id);
+  const input = useRef(null);
+  const useStarter = (starter) => { setText(starter); input.current?.focus(); };
 
   async function ask(e) {
     e?.preventDefault();
@@ -53,28 +58,30 @@ export function Copilot({ phase, project, apply, onLog, onSaveCode }) {
 
   return (
     <div className="gh-card pb-copilot">
-      <h3 className="pb-h3"><Bot size={18} aria-hidden="true" />AI co-pilot</h3>
+      <h3 className="pb-h3"><Bot size={18} aria-hidden="true" />AI co-pilot<span className="pb-mode">{mode.label}</span></h3>
       <p className="pb-sub">
-        Ask it to plan, research, and write the code for your prototype. You test it on the real device, change it, and explain it back.
+        {mode.about}
         {impact && <> Your project helps: <strong>{impact.label.toLowerCase()}</strong>.</>}
       </p>
 
-      <label className="gh-label" htmlFor="pb-lang" style={{ marginTop: '0.75rem' }}>Code for</label>
-      <select id="pb-lang" className="gh-select" value={project.codeLanguage}
-              onChange={(e) => apply((p) => updateProject(p, { codeLanguage: e.target.value }))}>
-        {CODE_LANGUAGES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
-      </select>
+      {mode.usesCode && <>
+        <label className="gh-label" htmlFor="pb-lang" style={{ marginTop: '0.75rem' }}>Code for</label>
+        <select id="pb-lang" className="gh-select" value={project.codeLanguage}
+                onChange={(e) => apply((p) => updateProject(p, { codeLanguage: e.target.value }))}>
+          {CODE_LANGUAGES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+        </select>
+      </>}
 
       <p className="pb-sub" style={{ marginTop: '0.75rem' }}>Try asking:</p>
       <ul className="pb-starters">
-        {phase.ai.map((a) => (
-          <li key={a}><button type="button" className="pb-starter" onClick={() => setText(a)}>{a}</button></li>
+        {starterPrompts(phase.id, project).map((starter) => (
+          <li key={starter}><button type="button" className="pb-starter" onClick={() => useStarter(starter)}>{starter}</button></li>
         ))}
       </ul>
 
       <form onSubmit={ask} className="pb-ask">
-        <label className="gh-label" htmlFor="pb-ask">Your question <span className="gh-opt">(replace anything in [brackets])</span></label>
-        <textarea id="pb-ask" className="gh-input pb-textarea" rows={4} maxLength={2000} value={text}
+        <label className="gh-label" htmlFor="pb-ask">Your question</label>
+        <textarea id="pb-ask" ref={input} className="gh-input pb-textarea" rows={4} maxLength={2000} value={text}
                   onChange={(e) => setText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) ask(e); }} />
         <div className="gh-btn-row">

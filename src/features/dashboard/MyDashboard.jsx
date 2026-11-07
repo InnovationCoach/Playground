@@ -5,7 +5,8 @@ import { readiness } from '../pbl/engine/pblProject.js';
 import { hrefFor } from '../../app/routes.js';
 import { JoinClassPanel } from '../enrolment/JoinClassPanel.jsx';
 import { useGoalPlan } from '../goals/useGoalPlan.js';
-import { todayItems, checkedToday, toggleToday } from '../goals/goalPlan.js';
+import { todayItems, checkedToday, toggleToday, hasPlan } from '../goals/goalPlan.js';
+import { GoalsInviteBanner } from '../goals/GoalsInviteBanner.jsx';
 import { NotesWidget } from './NotesWidget.jsx';
 import { FocusWidget } from '../focus/FocusWidget.jsx';
 import { useFocus } from '../focus/focusStore.js';
@@ -106,7 +107,10 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
   function renderSlide(id) {
     if (id === 'daily') return <DailyLearningSlide data={data} model={model} plan={plan} project={project} firstName={profile?.displayName?.split(' ')[0]} goalsLoaded={goalsLoaded} goalSync={goalSync}
       onToggle={(item) => updatePlan((state) => toggleToday(state, item, signals.today))} onOpenActivity={onOpenActivity}
-      joinPanel={uid && classIds.length === 0 ? <JoinClassPanel uid={uid} classIds={classIds} onJoined={onJoined} /> : null} />;
+      joinPanel={<>
+        {uid && classIds.length === 0 && <JoinClassPanel uid={uid} classIds={classIds} onJoined={onJoined} />}
+        {uid && goalsLoaded && !hasPlan(plan) && <GoalsInviteBanner uid={uid} />}
+      </>} />;
     if (id === 'find') return <FindQuestSlide uid={uid} data={data} plan={plan} interests={prefs.interests} started={signals.started} onOpenActivity={onOpenActivity} />;
     if (id === 'progress') return <ProgressLearningSlide data={data} project={project} plan={plan} goalsLoaded={goalsLoaded} goalSync={goalSync}
       renderReadiness={() => <WorkspaceTools prefs={prefs} slide="progress" renderWidget={renderWidget} />} />;

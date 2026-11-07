@@ -6,6 +6,7 @@ import { addEvidence, removeEvidence, LIMITS } from './engine/pblProject.js';
 import { Alert } from '../admin/ui/bits.jsx';
 import { MediaEmbed } from './MediaEmbed.jsx';
 import { embedFor } from './engine/mediaEmbed.js';
+import { CompetencyIcon } from './CompetencyIcon.jsx';
 
 const kindLabel = (id) => EVIDENCE_KINDS.find((k) => k.id === id)?.label || id;
 
@@ -107,7 +108,7 @@ export function EvidenceForm({ project, phase, initial = {}, apply, onDone }) {
           {COMPETENCY_DOMAINS.map((dom) => (
             <optgroup key={dom.id} label={dom.title}>
               {COMPETENCIES.filter((c) => c.domain === dom.id && !suggested.includes(c.id) && !extra.includes(c.id)).map((c) => (
-                <option key={c.id} value={c.id}>{c.code} {c.title}{c.level === 'advanced' ? ' (advanced)' : ''}</option>
+                <option key={c.id} value={c.id}>{c.statement}{c.level === 'advanced' ? ' (advanced)' : ''}</option>
               ))}
             </optgroup>
           ))}
@@ -161,7 +162,7 @@ export function EvidenceList({ project, apply, phaseId, kind, empty }) {
             <ul className="pb-chips pb-chips-sm">
               {e.competencies.map((id) => {
                 const c = competencyById(id);
-                return c && <li key={id} className="pb-chip" title={c.statement}><span className="pb-code">{c.code}</span>{c.title}</li>;
+                return c && <li key={id} className="pb-chip pb-can"><CompetencyIcon domain={c.domain} size={15} />{c.statement}</li>;
               })}
             </ul>
           )}

@@ -13,7 +13,6 @@ import { GoalsPage } from '../features/goals/GoalsPage.jsx';
 import { FutureSkillsPage } from '../features/futureSkills/FutureSkillsPage.jsx';
 import { MyDashboard } from '../features/dashboard/MyDashboard.jsx';
 import { SparkHome } from '../features/spark/SparkHome.jsx';
-import { DailyGoalsNotice } from '../features/goals/DailyGoalsNotice.jsx';
 import { ParentPortal } from '../features/parent/ParentPortal.jsx';
 import { Worksheet, TeacherGuide, PrimaryResources } from '../features/primary/print/PrintSheets.jsx';
 import { LoginPage } from '../features/auth/LoginPage.jsx';
@@ -142,7 +141,7 @@ export function App() {
 
     try { renderSENToggle('sen-preference-toggle'); } catch { /* optional widget */ }
     // Goal setting no longer opens itself here: secondary learners get the
-    // daily goals notification (DailyGoalsNotice) and the #/goals page instead.
+    // goals invitation on My Dashboard (GoalsInviteBanner) and the #/goals page instead.
   }, [status, role, user, isPrimary]);
 
   // Students land on My Dashboard; other roles keep SPARK Home, once per
@@ -453,9 +452,6 @@ export function App() {
       {role === 'student' && user && !isPrimary && (
         <StudentOnboardingModal user={user} profile={profile} />
       )}
-
-      {/* Not on Goal setting or My Dashboard: both show today's checklist, and two copies of the plan on one screen would overwrite each other. */}
-      {role === 'student' && !isPrimary && user && !['goals', 'dashboard', 'spark'].includes(route?.screen) && <DailyGoalsNotice uid={user.uid} />}
 
       {route?.screen === 'spark' ? spark
       : route?.screen === 'dashboard' && role === 'student' && !isPrimary ? (

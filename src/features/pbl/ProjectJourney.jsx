@@ -8,6 +8,7 @@ import { parseActivityLabel } from '../shell/activityIcons.jsx';
 import { phaseProgress, toggleTask, updateProject, readiness, LIMITS } from './engine/pblProject.js';
 import { EvidenceForm, EvidenceList } from './Evidence.jsx';
 import { Copilot } from './Copilot.jsx';
+import { CompetencyIcon } from './CompetencyIcon.jsx';
 
 /**
  * The Design Thinking journey: a phase stepper and the open phase.
@@ -37,7 +38,7 @@ export function ProjectJourney({ project, apply, onOpenActivity, readOnly = fals
                 </span>
                 <span className="pb-step-text">
                   <strong>{p.title}</strong>
-                  <small>{prog ? `${prog.tasksDone}/${prog.tasksTotal} tasks · ${prog.evidenceCount} evidence` : p.strap}</small>
+                  <small>{prog ? `${prog.tasksDone} of ${prog.tasksTotal} tasks · ${prog.evidenceCount} evidence` : p.strap}</small>
                 </span>
               </button>
             </li>
@@ -48,7 +49,7 @@ export function ProjectJourney({ project, apply, onOpenActivity, readOnly = fals
       <section className="pb-phase" aria-labelledby="pb-phase-title">
         <div className="pb-phase-head">
           <div>
-            <span className="pb-kicker">Weeks {phase.weeks[0]}–{phase.weeks[1]} · {phase.strap}</span>
+            <span className="pb-kicker">{readOnly && `Weeks ${phase.weeks[0]}–${phase.weeks[1]} · `}{phase.strap}</span>
             <h2 id="pb-phase-title">{phase.title}</h2>
             <p>{phase.goal}</p>
           </div>
@@ -85,10 +86,10 @@ export function ProjectJourney({ project, apply, onOpenActivity, readOnly = fals
               <h3 className="pb-h3"><Lightbulb size={17} aria-hidden="true" />Evidence to collect</h3>
               <ul className="pb-bullets">{phase.evidence.map((e) => <li key={e}>{e}</li>)}</ul>
               <p className="pb-sub">Competencies your coach looks for in this phase:</p>
-              <CompetencyChips ids={phase.competencies} />
+              <CompetencyChips ids={phase.competencies} showCodes={readOnly} />
               {phase.stretch.length > 0 && <>
                 <p className="pb-sub">Stretch (advanced):</p>
-                <CompetencyChips ids={phase.stretch} advanced />
+                <CompetencyChips ids={phase.stretch} advanced showCodes={readOnly} />
               </>}
             </div>
 
@@ -125,15 +126,16 @@ export function ProjectJourney({ project, apply, onOpenActivity, readOnly = fals
   );
 }
 
-export function CompetencyChips({ ids, advanced = false }) {
+/** Learners read the "I can" statement. Coaches also get the framework's title and code. */
+export function CompetencyChips({ ids, advanced = false, showCodes = false }) {
   return (
     <ul className="pb-chips">
       {ids.map((id) => {
         const c = competencyById(id);
         if (!c) return null;
         return (
-          <li key={id} className={`pb-chip${advanced ? ' pb-chip-adv' : ''}`} title={c.statement}>
-            <span className="pb-code">{c.code}</span>{c.title}
+          <li key={id} className={`pb-chip pb-can${advanced ? ' pb-chip-adv' : ''}`} title={showCodes ? c.statement : undefined}>
+            {showCodes ? <><span className="pb-code">{c.code}</span>{c.title}</> : <><CompetencyIcon domain={c.domain} size={15} />{c.statement}</>}
           </li>
         );
       })}
