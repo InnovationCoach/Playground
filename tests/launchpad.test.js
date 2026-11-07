@@ -44,6 +44,7 @@ describe('commands', () => {
 
   it('goes to other pages', () => {
     expect(hit('take me to PBL')).toBe('page:pbl');
+    expect(hit('portfolio maker')).toBe('page:journey');
     expect(hit('set a goal')).toBe('page:goal-setting');
     expect(hit('my goals')).toBe('section:goals');
     expect(hit('open settings')).toBe('page:settings');

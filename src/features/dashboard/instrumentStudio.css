@@ -35,10 +35,12 @@
 .ig-plate { background:var(--gh-surface);border:1px solid var(--gh-border);border-radius:20px;padding:20px 22px; }
 .sd-root .sd-academic>.ig-plate-quiet { background:var(--gh-surface);border-style:dashed; }
 .sd-root .sd-academic .ig-plate-quiet h4 { font-size:24px; }
+.ig-status-pill { display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px dashed var(--gh-text-2);border-radius:999px;font:600 11px/1.2 var(--ig-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--gh-text-2); }
 .sd-root .sd-project { background:var(--gh-surface);color:var(--gh-text);border:1px solid var(--gh-border);box-shadow:inset 5px 0 0 var(--ig-value);border-radius:20px;padding:20px 22px 22px 26px; }
 .sd-root .sd-project h4,.sd-root .sd-project p { color:var(--gh-heading); }
 .sd-root .sd-project .sd-eyebrow,.sd-root .sd-project .sd-caption { color:var(--gh-text-2); }
 .sd-root .sd-project .sd-primary { background:var(--gh-heading);color:var(--gh-surface); }
+.ig-project-head { display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap; }
 .sd-root .sd-course-journey { border-top-color:var(--gh-border); }
 .sd-root .sd-course-journey li { border-color:var(--gh-border);font-size:11px;min-height:28px; }
 .sd-root .sd-course-journey li[data-state=current] { background:var(--gh-heading);color:var(--gh-surface); }
@@ -56,13 +58,35 @@
 .ig-dial-plate .sd-notice { background:transparent;border:1px dashed var(--ig-muted);color:var(--ig-ink); }
 .ig-plate-head h4 { margin:4px 0 6px!important; }
 .ig-dial-row { display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:22px;align-items:center; }
+.ig-gauge { position:relative;width:100%;max-width:300px;margin:0 auto; }
+.ig-gauge svg { display:block;width:100%;height:auto;overflow:visible; }
+.ig-track,.ig-value,.ig-hatch { fill:none;stroke-width:12; }
+.ig-track { stroke:var(--ig-track); }
+.ig-value { stroke:var(--ig-value); }
 .ig-tick { stroke:var(--ig-tick);stroke-width:1.4; }
+.ig-milestone line { stroke:var(--ig-ink);stroke-width:2.5; }
+.ig-milestone circle { fill:var(--ig-face);stroke:var(--ig-ink);stroke-width:1.5; }
+.ig-milestone text { font:700 10px var(--ig-mono);text-anchor:middle;fill:var(--ig-ink); }
+.ig-milestone[data-complete] circle { fill:var(--ig-ink); }
+.ig-milestone[data-complete] text { fill:var(--ig-face); }
+.ig-needle line { stroke:var(--ig-needle);stroke-width:3.5;stroke-linecap:round; }
+.ig-needle { transform-box:view-box;transition:transform .7s cubic-bezier(.3,.7,.2,1); }
+.ig-pivot { fill:var(--ig-needle); }
+.ig-unavailable pattern line { stroke:var(--ig-tick);stroke-width:2.5; }
+.ig-readout { position:absolute;left:0;right:0;top:70%;text-align:center;color:var(--ig-ink);line-height:1.15; }
+.ig-readout strong { display:block;font:700 clamp(24px,2.6vw,32px)/1.1 var(--ig-mono);letter-spacing:-.03em; }
+.ig-readout strong span { font-size:.55em;font-weight:500;color:var(--ig-muted); }
+.ig-readout small { display:block;font:500 11px/1.3 var(--ig-mono);color:var(--ig-muted);margin-top:4px; }
+.ig-unavailable .ig-readout { top:42%; }
+.ig-unavailable .ig-status { font-size:clamp(17px,1.8vw,21px);font-family:inherit;letter-spacing:-.02em; }
 .ig-dial-key { min-width:0; }
 .sd-root .ig-milestones li { display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;border-top:1px solid var(--ig-track);padding:11px 0;color:var(--ig-ink); }
 .ig-mark { display:grid;place-items:center;width:24px;height:24px;border:1.5px solid var(--ig-ink);border-radius:50%;font:700 11px var(--ig-mono); }
 .ig-milestones li[data-complete] .ig-mark { background:var(--ig-ink);color:var(--ig-face); }
 .ig-milestones em { display:block;font:normal 500 11px var(--ig-mono);color:var(--ig-muted);margin-top:2px; }
 .sd-root .ig-milestones small { color:var(--ig-muted);font-family:var(--ig-mono); }
+.ig-academic .ig-gauge { --ig-face:var(--gh-surface);--ig-ink:var(--gh-heading);--ig-muted:var(--gh-text-2);--ig-tick:#a8a399;max-width:230px; }
+[data-theme="dark"] .ig-academic .ig-gauge,.sd-root[data-theme="dark"] .ig-academic .ig-gauge { --ig-tick:#6d7488; }
 .ig-goal-readout strong { font:700 38px/1 var(--ig-mono);letter-spacing:-.04em;color:var(--gh-heading); }
 .ig-goal-readout small { display:block;font:500 11px/1.3 var(--ig-mono);color:var(--gh-text-2);margin-top:4px; }
 .ig-steps { display:flex;gap:4px;height:12px;margin:12px 0 8px;border-radius:4px;overflow:hidden; }
@@ -83,12 +107,37 @@
 .sd-root .sd-workspace-tools .sd-tool>h3 { font:600 11px/1.3 var(--ig-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gh-text-2);padding-bottom:12px;border-bottom:1px dashed var(--gh-border); }
 .sd-root .sd-creative-links a,.sd-root .sd-creative-links a:nth-child(2) { background:var(--gh-surface);box-shadow:inset 5px 0 0 var(--md-accent);padding-left:26px; }
 
+/* Universe: a still star plate. */
+.ig-universe { position:relative;overflow:hidden;border-radius:26px;background:#141731;color:#f2f0ea;padding:30px;margin-top:8px; }
+.ig-starfield { position:absolute;top:0;right:0;bottom:0;width:48%;height:100%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 35%);mask-image:linear-gradient(90deg,transparent,#000 35%); }
+.ig-starfield circle { fill:#fff;opacity:.5; }
+.ig-universe>div { position:relative; }
+.ig-universe .sd-eyebrow { color:#c9cce0; }
+.sd-root .ig-universe h3 { color:#fff;font-size:clamp(24px,2.6vw,34px);letter-spacing:-.04em;max-width:24ch;margin:8px 0 18px; }
+.sd-root .ig-universe .sd-primary { background:#c2ec78;color:#18240b; }
+.ig-universe-lists { display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:26px;padding-top:20px;border-top:1px solid #ffffff2e; }
+.sd-root .ig-universe h4 { font:600 11px/1.3 var(--ig-mono);letter-spacing:.12em;text-transform:uppercase;color:#c9cce0;margin:0 0 10px; }
+.ig-themes { list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px; }
+.ig-themes li { display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #ffffff59;border-radius:999px;font-size:13px; }
+.ig-universe .sd-caption,.ig-note { color:#c9cce0; }
+.ig-note { display:block;font-size:11px;margin-top:10px; }
+.ig-bays { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0 10px; }
+.ig-bay { display:flex;align-items:center;gap:14px;padding:18px 20px;border:2px dashed var(--gh-border);border-radius:18px;color:var(--gh-text-2); }
+.ig-bay strong { display:block;color:var(--gh-heading);font-size:15px; }
+.ig-bay span { display:block;font:500 11px/1.4 var(--ig-mono);text-transform:uppercase;letter-spacing:.08em;margin-top:3px; }
+.ig-bays>.sd-caption { grid-column:1/-1;margin:0; }
+
+/* Calm and reduced motion: still needle, no star plate. */
+.sd-root.md-calm .ig-needle { transition:none; }
+.sd-root.md-calm .ig-starfield { display:none; }
+@media(prefers-reduced-motion:reduce) { .sd-root .ig-needle { transition:none; } }
+
 .sd-grid-mode .ig-cluster { grid-template-columns:1fr; }
 @media(max-width:1100px) { .ig-dial-row { grid-template-columns:minmax(200px,260px) minmax(0,1fr); } }
 @media(max-width:900px) { .ig-cluster { grid-template-columns:1fr; } .ig-side { grid-template-columns:1fr 1fr; } }
 @media(max-width:620px) {
-  .ig-side,
-.ig-dial-row{ grid-template-columns:1fr; }
+  .ig-side,.ig-universe-lists,.ig-bays,.ig-dial-row { grid-template-columns:1fr; }
+  .ig-universe { padding:22px; }
   .sd-root .sd-goal { grid-template-columns:64px minmax(0,1fr); }
   .sd-root .sd-goal .ig-goal-readout { padding-right:12px; }
   .sd-root .sd-goal .ig-goal-readout strong { font-size:32px; }
@@ -102,11 +151,20 @@
   .sd-root .sd-goal { grid-template-columns:1fr;gap:10px; }
   .sd-root .sd-goal .ig-goal-readout { display:flex;align-items:baseline;gap:8px;text-align:left;border-right:0;padding:0; }
 }
+@media(max-width:620px) { .ig-starfield { width:100%;height:42%;bottom:auto;opacity:.6; } }
 
 /* Long stage lists keep the dial at the top of its plate, in view. */
 .ig-dial-row { align-items:start; }
+.ig-dial-row>.ig-gauge { position:sticky;top:0; }
 .sd-root .ig-milestones li { padding:8px 0; }
 .ig-milestones li>span:nth-child(2) { font-size:13px;line-height:1.35; }
+
+/* Daily plan: a compact completion dial beside the current project. */
+.ig-project-main { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:start; }
+.ig-mini .ig-gauge { width:150px;max-width:150px; }
+.ig-mini .ig-readout strong { font-size:21px; }
+.ig-mini .ig-readout small { font-size:9.5px; }
+@media(max-width:560px) { .ig-project-main { grid-template-columns:1fr; } .ig-mini .ig-gauge { margin:0; } }
 .ig-greeting { color:var(--gh-heading);font-weight:700; }
 
 /* Term project plate: Design Thinking tasks ticked in PBL Studio. */
@@ -118,17 +176,3 @@
 .ig-term-phases li[data-state=current]>span { font-weight:700; }
 .ig-term-phases .ig-steps { grid-column:1/-1;margin:2px 0 0;height:8px; }
 .ig-term-phases small { font:500 11px var(--ig-mono);color:var(--gh-text-2); }
-
-/* My Progress: a plain circle chart, with the count written in words. */
-.ig-ring { position:relative;width:100%;max-width:210px;margin:0 auto; }
-.ig-ring svg { display:block;width:100%;height:auto; }
-.ig-ring circle { fill:none;stroke-width:10; }
-.ig-ring-track { stroke:var(--ig-track); }
-.ig-ring-value { stroke:var(--ig-value);stroke-linecap:round; }
-.ig-ring-empty .ig-ring-track { stroke:var(--ig-muted);stroke-width:2;stroke-dasharray:4 6; }
-.ig-readout { position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 22%;text-align:center;color:var(--ig-ink); }
-.sd-root .ig-readout strong { display:block;font:800 22px/1.15 var(--gh-font-display,inherit);color:var(--ig-ink); }
-.ig-readout small { display:block;margin-top:2px;font-size:13px;color:var(--ig-muted); }
-.ig-readout em { display:block;margin-top:2px;font-style:normal;font-size:13px;font-weight:650;color:var(--ig-muted); }
-.sd-root .ig-ring-empty .ig-readout strong { font-size:15px;font-weight:700;color:var(--sp-sky-text); }
-.ig-academic .ig-ring { max-width:170px; }

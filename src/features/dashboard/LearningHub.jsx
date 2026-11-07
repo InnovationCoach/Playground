@@ -10,8 +10,8 @@ import { TodayWidget } from './DashboardWidgets.jsx';
 import { startHere, nextGoalStep, programJourney } from './learningGuidance.js';
 import { splitGoals } from './slideModel.js';
 import { loadDashboardCourses } from './dashboardCourses.js';
-import { SessionRing, NotConnectedRing, StepMeter, Spark } from './Instruments.jsx';
-import { phaseStages, goalSteps, completionReading } from './instrumentModel.js';
+import { SessionGauge, UnavailableDial, StepMeter, Spark } from './Instruments.jsx';
+import { phaseMilestones, phaseStages, goalSteps, gaugeReading } from './instrumentModel.js';
 import { COMPETENCY_DOMAINS } from '../pbl/content/competencies.js';
 import './learningHub.css';
 
@@ -209,12 +209,21 @@ function FullPlan({ data, model, plan, onToggle, goalsLoaded, goalSync, onOpenAc
         <CourseStatus data={data} />
         {data.courses.map(({ program, summary, progressUnavailable, enrolment, needsRecheck }) => (
           <article className="sd-project lh-project" key={program.id}>
-            <h4>{program.title}</h4>
-            {period === 'completed' ? (
-              <p>{needsRecheck ? RECHECK : progressUnavailable ? 'We can’t load your progress right now.' : summary ? `You’ve marked ${summary.done} of ${summary.total} sessions as done.` : 'No sessions marked as done yet.'}</p>
-            ) : (
-              <p>{program.drivingQuestion || (summary?.pct === 100 ? 'You’ve marked every session as done. Open your project to look back at your work.' : 'Open your project to find your next step.')}</p>
-            )}
+            <div className="ig-project-main">
+              <div className="ig-project-text">
+                <h4>{program.title}</h4>
+                {period === 'completed' ? (
+                  <p>{needsRecheck ? RECHECK : progressUnavailable ? 'We can’t load your progress right now.' : summary ? `You’ve marked ${summary.done} of ${summary.total} sessions as done.` : 'No sessions marked as done yet.'}</p>
+                ) : (
+                  <p>{program.drivingQuestion || (summary?.pct === 100 ? 'You’ve marked every session as done. Open your project to look back at your work.' : 'Open your project to find your next step.')}</p>
+                )}
+              </div>
+              {!needsRecheck && summary && !progressUnavailable && gaugeReading(summary.done, summary.total) && (
+                <div className="ig-mini">
+                  <SessionGauge label={`${program.title}: project sessions`} done={summary.done} total={summary.total} />
+                </div>
+              )}
+            </div>
             {period !== 'completed' && <ProjectJourney course={{ program, summary, progressUnavailable, enrolment, needsRecheck }} />}
             <a className="sd-primary" href={hrefFor.program(program.id, 'plan')}>
               {period === 'completed' ? 'Look back at this project' : summary ? 'Continue project' : 'Open project'} <ArrowRight size={16} />
@@ -370,17 +379,19 @@ export function ProgressLearningSlide({ data, project, plan, goalsLoaded, goalSy
     <div className="ig-cluster">
       <section className="ig-pbl" aria-labelledby="ig-pbl-title"><h3 id="ig-pbl-title" className="ig-lane-title">My projects</h3><CourseStatus data={data} />
         {data.courses.map(({ program, summary, progressUnavailable, needsRecheck }) => {
-          const reading = summary && !progressUnavailable ? completionReading(summary.done, summary.total) : null;
+          const reading = summary && !progressUnavailable ? gaugeReading(summary.done, summary.total) : null;
           const stages = summary ? phaseStages(program.phases, summary) : [];
+          const milestones = reading ? phaseMilestones(program.phases, summary).map((mark) => ({ ...mark, complete: stages.find((stage) => stage.id === mark.id)?.complete })) : [];
           return <article className="sd-record ig-plate ig-dial-plate" key={program.id}>
             <div className="ig-plate-head"><span className="sd-eyebrow">Project</span><h4>{program.title}</h4></div>
             {needsRecheck ? <p className="sd-notice">{RECHECK}</p> : progressUnavailable ? <p className="sd-notice">We can’t load your progress for this course right now.</p> : !summary ? <p className="sd-caption">Nothing marked as done yet. Open your project to begin.</p>
               : !reading ? <p className="sd-notice">This project doesn’t list any sessions yet. Open the project or ask your coach.</p> : <div className="ig-dial-row">
-              <SessionRing label={`${program.title}: project sessions`} done={summary.done} total={summary.total} />
+              <SessionGauge label={`${program.title}: project sessions`} done={summary.done} total={summary.total} milestones={milestones} />
               <div className="ig-dial-key"><p className="sd-caption">You mark these as done yourself. Your coach hasn’t checked them, and they aren’t a grade.</p>
                 {stages.length > 0 && <ol className="sd-milestones ig-milestones" aria-label="Project stages">{stages.map((stage) => <li key={stage.id} data-complete={stage.complete || undefined}>
                   <span className="ig-mark" aria-hidden="true">{stage.index + 1}</span><span>{stage.title}<em>{stage.total === 0 ? 'No sessions in this stage' : stage.complete ? 'Done' : stage.done > 0 ? 'Started' : 'Not started'}</em></span><small>{stage.done} of {stage.total} sessions</small>
                 </li>)}</ol>}
+                {stages.length > 0 && !milestones.length && <p className="sd-caption">The stage markers aren’t on the dial because the stage session counts don’t add up to the project total.</p>}
               </div>
             </div>}
             <a className="sd-link" href={hrefFor.program(program.id, 'plan')}>See this project in detail <ArrowRight size={16} /></a>
@@ -389,8 +400,8 @@ export function ProgressLearningSlide({ data, project, plan, goalsLoaded, goalSy
       </section>
       <div className="ig-side">
         <section className="ig-plate ig-academic" aria-labelledby="ig-academic-title"><h3 id="ig-academic-title" className="ig-lane-title">School courses</h3>
-          <NotConnectedRing label="School courses" status="Not connected yet" detail="This doesn’t mean zero." />
-          <p className="sd-caption">This doesn’t mean zero. Your school courses and grades will show here once your school connects them.</p>
+          <UnavailableDial label="School courses" status="Not connected" detail="This doesn’t mean zero" />
+          <p className="sd-caption">Your school courses and grades will show here once your school connects them.</p>
           <a className="sd-link" href={hrefFor.courses()}>Open My Courses <ArrowRight size={16} /></a></section>
         <section className="ig-plate ig-goal-plate" aria-labelledby="ig-goal-title"><h3 id="ig-goal-title" className="ig-lane-title">My goal steps</h3>
           {!goalsLoaded ? <p role="status" className="sd-caption">Loading your goals…</p> : steps.total ? <>

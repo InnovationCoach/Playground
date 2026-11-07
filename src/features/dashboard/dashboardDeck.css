@@ -171,6 +171,7 @@
   .sd-menu { padding:8px 0; }
   .sd-grid-mode .sd-menu { position:static; }
   .sd-tools-button { padding:0 12px; }
+  .sd-portfolio-link { display:none; } /* One tap away in All tools; here it would push content down. */
 }
 
 /* All tools */

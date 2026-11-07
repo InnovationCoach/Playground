@@ -12,7 +12,8 @@
  *   #/pbl/programs/<programId>/<section>                 one program in the PBL library
  *   #/journey  #/journey/print                           design-thinking portfolio maker (+ PDF view)
  *   #/courses/discover                                   Course discovery (secondary learners)
- *   #/space  #/programs  #/portfolio[/<uid>]             My space, school programs, shareable portfolio
+ *   #/space  #/portfolio[/<uid>]                         My space, shareable portfolio
+ *   #/programs                                           old link: the Programs tab of PBL Studio
  *   #/community                                          community posts
  *   #/messages  #/messages/<convId>                      private messages
  *   #/goals                                              goal setting (secondary learners)
@@ -56,7 +57,7 @@ export function parseRoute(hash) {
   if (head === 'primary-resources') return { screen: 'resources' };
   if (head === 'worksheet' && a) return { screen: 'worksheet', activityId: a };
   if (head === 'guide' && a) return { screen: 'guide', activityId: a };
-  if (head === 'programs') return { screen: 'programs' };
+  if (head === 'programs') return { screen: 'pbl', tab: 'programs' };
   if (head === 'courses' && a === 'discover') return { screen: 'courses', discover: true };
   if (head === 'courses') return { screen: 'courses' };
   if (head === 'pbl' && a === 'programs' && b) return { screen: 'pbl', tab: 'programs', programId: b, section: c || null };
@@ -93,7 +94,7 @@ export const hrefFor = {
   settings: () => '#/settings',
   courses: () => '#/courses',
   courseDiscovery: () => '#/courses/discover',
-  programs: () => '#/programs',
+  programs: () => '#/pbl/programs',
   space: () => '#/space',
   journey: () => '#/journey',
   portfolio: () => '#/portfolio',

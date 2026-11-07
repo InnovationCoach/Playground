@@ -378,7 +378,7 @@ describe('phase 1 closure: wording, focus, context and retained drafts', () => {
     const spark = (orgId) => <SparkUniverse prefs={{ interests: [], calm: true }} plan={{ goals: [] }} uid="learner-1" orgId={orgId} onPersonalise={() => {}} />;
     for (const orgId of [null, 'org-north']) {
       await act(async () => root.render(spark(orgId))); await settle();
-      await click(button('Or explore the whole universe')); await settle();
+      await click(button('Enter My Universe')); await settle();
       await act(async () => root.render(null));
     }
     vi.doUnmock('../src/features/universe/explore/MyUniverseExplorer.jsx');

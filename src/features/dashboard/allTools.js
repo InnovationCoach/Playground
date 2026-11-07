@@ -7,7 +7,7 @@ import { menuFor } from '../shell/Sidebar.jsx';
  * doesn't. Only the grouping and plain explanations live here.
  */
 const GROUPS = [
-  { id: 'learning', label: 'Learning', keys: ['courses', 'programs', 'pbl', 'homeSearch'] },
+  { id: 'learning', label: 'Learning', keys: ['courses', 'pbl', 'homeSearch'] },
   { id: 'skills', label: 'Goals and skills', keys: ['goals', 'competencies', 'futureSkills'] },
   { id: 'creating', label: 'Creating', keys: ['canva', 'space', 'journey'] },
   { id: 'more', label: 'People and settings', keys: ['community', 'spark', 'settings'] }
@@ -15,8 +15,7 @@ const GROUPS = [
 
 const ABOUT = {
   courses: 'See the courses you’ve joined or added.',
-  programs: 'Projects and programs your coach has set up.',
-  pbl: 'Work on a big project, step by step.',
+  pbl: 'Work on a big project, step by step, and browse programs.',
   homeSearch: 'Search every quest and course.',
   goals: 'Set a goal and choose small steps.',
   competencies: 'See the skills you’re building and the work that shows them.',

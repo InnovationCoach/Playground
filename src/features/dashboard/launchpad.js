@@ -29,6 +29,7 @@ export const PAGES = [
   { id: 'goal-setting', label: 'Goal setting', emoji: '🎯', href: () => hrefFor.goals(), words: ['goal setting', 'set a goal', 'new goal', 'goals page'] },
   { id: 'pbl', label: 'PBL Studio', emoji: '🛠️', href: () => hrefFor.pbl(), words: ['pbl', 'p b l', 'pbl studio', 'studio', 'project', 'my project'] },
   { id: 'programs', label: 'PBL programs', emoji: '📚', href: () => hrefFor.pbl('programs'), words: ['programs', 'program', 'program library'] },
+  { id: 'journey', label: 'Portfolio maker', emoji: '🗺️', href: () => hrefFor.journey(), words: ['portfolio maker', 'journey', 'design journey', 'make portfolio'] },
   { id: 'portfolio', label: 'Evidence portfolio', emoji: '🗂️', href: () => hrefFor.pbl('portfolio'), words: ['portfolio', 'evidence'] },
   { id: 'courses', label: 'My Courses', emoji: '📖', href: () => hrefFor.courses(), words: ['courses', 'course', 'my courses', 'lessons'] },
   { id: 'future-skills', label: 'Future Skills', emoji: '🌱', href: () => hrefFor.futureSkills(), words: ['future skills', 'skills page'] },

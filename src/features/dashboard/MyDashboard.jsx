@@ -111,7 +111,7 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
     if (id === 'progress') return <ProgressLearningSlide data={data} project={project} plan={plan} goalsLoaded={goalsLoaded} goalSync={goalSync}
       renderReadiness={() => <WorkspaceTools prefs={prefs} slide="progress" renderWidget={renderWidget} />} />;
     if (id === 'creative') return <PersonalSpace prefs={prefs} update={update} renderWidget={renderWidget} />;
-    return <SparkUniverse prefs={prefs} uid={uid} orgId={orgId} active={activeSlide === 'universe'} onOpenActivity={onOpenActivity} />;
+    return <SparkUniverse prefs={prefs} plan={plan} uid={uid} orgId={orgId} active={activeSlide === 'universe'} onPersonalise={() => setPanelOpen(true)} onOpenActivity={onOpenActivity} />;
   }
   return <div className={`gh-app md-root sd-root${prefs.calm ? ' md-calm' : ''}`}
     data-theme={prefs.theme === 'inherit' ? undefined : prefs.theme} data-dial={prefs.dialFinish}
@@ -143,9 +143,9 @@ function CustomisePanel({ prefs, update, syncState, onClose }) {
         <label>Background<select value={prefs.background} onChange={(event) => update((state) => ({ ...state, background: event.target.value }))}>{Object.keys(BACKGROUNDS).map((background) => <option key={background}>{background}</option>)}</select></label>
         <label>Theme<select value={prefs.theme} onChange={(event) => update((state) => ({ ...state, theme: event.target.value, themeChosen: true }))}>{THEMES.map((theme) => <option value={theme.id} key={theme.id}>{theme.label}</option>)}</select></label>
         <label>Accent colour<select value={prefs.accent} onChange={(event) => update((state) => ({ ...state, accent: event.target.value }))}>{ACCENTS.map((colour) => <option value={colour.id} key={colour.id}>{colour.label}</option>)}</select></label>
-        <label>Chart colours<select value={prefs.dialFinish} onChange={(event) => update((state) => ({ ...state, dialFinish: event.target.value }))}>{DIAL_FINISHES.map((finish) => <option value={finish.id} key={finish.id}>{finish.label}</option>)}</select></label>
+        <label>Dial finish<select value={prefs.dialFinish} onChange={(event) => update((state) => ({ ...state, dialFinish: event.target.value }))}>{DIAL_FINISHES.map((finish) => <option value={finish.id} key={finish.id}>{finish.label}</option>)}</select></label>
         <label>Slide atmosphere<select value={prefs.cover} onChange={(event) => update((state) => ({ ...state, cover: event.target.value }))}>{COVERS.map((cover) => <option value={cover.id} key={cover.id}>{cover.label}</option>)}</select></label>
-      </div><label className="sd-check"><input type="checkbox" checked={prefs.calm} onChange={(event) => update((state) => ({ ...state, calm: event.target.checked }))} /> Calm view · no animations or decorative effects</label></fieldset>
+      </div><label className="sd-check"><input type="checkbox" checked={prefs.calm} onChange={(event) => update((state) => ({ ...state, calm: event.target.checked }))} /> Calm view · no needle movement, animations or decorative effects</label></fieldset>
       <fieldset><legend>Your words & interests</legend><label className="sd-tagline">Personal tagline<input maxLength={MAX_TAGLINE} value={prefs.tagline} onChange={(event) => update((state) => ({ ...state, tagline: event.target.value }))} /></label>
         <p className="sd-caption">Choose up to {MAX_INTERESTS} interests. We use them to suggest quests and fit missions to you.</p><div className="md-chips">{INTERESTS.map((interest) => <button type="button" key={interest} className="sd-button" aria-pressed={prefs.interests.includes(interest)} disabled={!prefs.interests.includes(interest) && prefs.interests.length >= MAX_INTERESTS} onClick={() => update((state) => ({ ...state, interests: state.interests.includes(interest) ? state.interests.filter((item) => item !== interest) : [...state.interests, interest] }))}>{interest}</button>)}</div>
       </fieldset>

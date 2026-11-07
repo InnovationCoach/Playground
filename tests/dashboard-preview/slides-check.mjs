@@ -79,10 +79,10 @@ try {
   await page.mouse.wheel({ deltaX: wheelBox.width, deltaY: 0 });
   await page.waitForFunction(() => document.querySelector('.sd-nav-item[aria-current=page]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
   await go('progress');
-  assert.deepEqual(await page.$eval('.sd-record .ig-ring', (el) => [el.getAttribute('aria-valuenow'), el.getAttribute('aria-valuemax'), el.getAttribute('aria-valuetext')]), ['6', '24', '6 of 24 sessions marked complete by you']);
+  assert.deepEqual(await page.$eval('.sd-record .sd-gauge', (el) => [el.getAttribute('aria-valuenow'), el.getAttribute('aria-valuemax'), el.getAttribute('aria-valuetext')]), ['6', '24', '6 of 24 sessions marked complete by you']);
   assert((await page.$eval('#dashboard-slide-progress', (el) => el.innerText)).includes('Not connected'));
-  assert.equal(await page.$$eval('.ig-needle', (els) => els.length), 0, 'No gauges or needles anywhere');
-  assert((await page.$eval('.sd-record .ig-readout', (el) => el.innerText)).includes('6 of 24'));
+  assert.equal(await page.$eval('.sd-record .ig-needle', (el) => el.style.transform), 'rotate(-60deg)', 'Needle sits at 6/24 of the 240° sweep');
+  assert.equal(await page.$$eval('.ig-academic .ig-needle', (els) => els.length), 0, 'Unconnected academic dial has no needle');
   await page.screenshot({ path: '/private/tmp/spark-slides-progress.png' });
   await go('creative');
   await page.type('#md-note-title', 'My unfinished idea');
@@ -92,7 +92,8 @@ try {
   await click('.fs-controls button', 'Start focus');
   await go('universe');
   assert.equal(await page.$$eval('.uv-mission', (els) => els.length > 0 && els.every((el) => el.querySelectorAll('button, a').length === 1)), true, 'One start button per preview');
-  assert.equal(await page.$$eval('#dashboard-slide-universe .sd-tool', (els) => els.length), 0, 'My Universe is not a second dashboard');
+  assert.equal(await page.$$eval('#dashboard-slide-universe .ig-universe .ig-starfield', (els) => els.length), 1, 'The star plate is kept');
+  assert((await page.$eval('#dashboard-slide-universe', (el) => el.textContent)).includes('Enter My Universe'));
   await go('creative');
   assert.equal(await page.$eval('#md-note-title', (el) => el.value), 'My unfinished idea');
   assert((await page.$eval('.fs-controls', (el) => el.innerText)).includes('Pause'));
@@ -149,7 +150,7 @@ try {
   }
   await page.goto(`${base}/?state=stale`, { waitUntil: 'networkidle0' });
   await go('progress');
-  assert.equal(await page.$$eval('.sd-record .ig-ring', (els) => els.length), 0, 'Unverified account progress has no chart');
+  assert.equal(await page.$$eval('.sd-record .sd-gauge', (els) => els.length), 0, 'Unverified account progress has no gauge');
   assert((await page.$eval('.sd-record', (el) => el.innerText)).includes('can’t load your progress'));
   await page.goto(`${base}/?learner=another-student`, { waitUntil: 'networkidle0' });
   assert.equal(await page.$eval('.md-root', (el) => el.dataset.theme), undefined, 'Another learner follows the app theme, not this learner\'s choice');

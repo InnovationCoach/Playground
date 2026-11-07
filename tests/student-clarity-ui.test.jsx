@@ -137,8 +137,10 @@ describe('Goal setting flow', () => {
 
 describe('My Universe', () => {
   const REVIEWED = [{ ...PILOT_RELEASES[0], status: 'published', reviewState: { science: 'educator-approved', curriculum: 'educator-approved', publication: 'authorized' } }];
-  const universe = (registry) => mount(<SparkUniverse prefs={{ calm: false, interests: ['Music'] }} uid="u1" orgId="o1" registry={registry} />);
-  it('gives each mission preview exactly one start button and isn’t a second dashboard', () => {
+  const onPersonalise = vi.fn();
+  afterEach(() => onPersonalise.mockClear());
+  const universe = (registry) => mount(<SparkUniverse prefs={{ calm: false, interests: ['Music'], tagline: 'Mia’s corner of space' }} plan={{ goals: [{ id: 'g', explore: 'Finished goal', done: true, steps: [] }] }} uid="u1" orgId="o1" onPersonalise={onPersonalise} registry={registry} />);
+  it('gives each mission preview exactly one start button', () => {
     universe();
     const cards = host.querySelectorAll('.uv-mission');
     expect(cards.length).toBe(3);
@@ -146,7 +148,15 @@ describe('My Universe', () => {
       expect(card.querySelectorAll('button, a')).toHaveLength(1);
       expect(card.querySelector('button').textContent).toMatch(/Start/);
     }
-    expect(host.textContent).not.toMatch(/milestones|Not active|My themes|Choose my atmosphere/i);
+  });
+  it('keeps the entry, star plate, themes, milestones and atmosphere choice', () => {
+    universe();
+    expect(buttonIn(host, /Enter My Universe/)).toBeTruthy();
+    expect(host.querySelector('.ig-universe .ig-starfield circle')).toBeTruthy();
+    const plate = host.querySelector('.ig-universe');
+    for (const text of ['Mia’s corner of space', 'My themes', 'Music', 'My milestones', 'Finished goal']) expect(plate.textContent).toContain(text);
+    press(/Choose my atmosphere/);
+    expect(onPersonalise).toHaveBeenCalledOnce();
   });
   it('walks through Mission Builder one question at a time, then offers one start', async () => {
     universe(REVIEWED);
@@ -227,7 +237,7 @@ describe('dashboard menu', () => {
     const dialog = host.querySelector('dialog.sd-tools');
     expect(dialog.getAttribute('aria-labelledby')).toBe('sd-tools-title');
     expect([...dialog.querySelectorAll('h3')].map((h) => h.textContent)).toEqual(['Learning', 'Goals and skills', 'Creating', 'People and settings']);
-    expect(dialog.querySelectorAll('a').length).toBe(13);
+    expect(dialog.querySelectorAll('a').length).toBe(12);
     act(() => dialog.querySelector('button[aria-label="Close All tools"]').click());
     expect(host.querySelector('dialog.sd-tools')).toBeNull();
   });
@@ -238,6 +248,10 @@ describe('All tools matches the sidebar', () => {
   const tools = toolGroups().flatMap((g) => g.tools);
   it('reaches every student sidebar destination except the dashboard you are already on', () => {
     expect(tools.map((t) => t.key).sort()).toEqual(sidebar.map((i) => i.key).filter((k) => k !== 'dashboard').sort());
+  });
+  it('matches the live student menu, in order, with no Coach programs', () => {
+    expect(sidebar.map((i) => i.label)).toEqual(['nav.myDashboard', 'nav.searchPrograms', 'nav.myCourses', 'nav.pbl', 'nav.myCompetencies', 'nav.canva', 'nav.goals', 'nav.futureSkills', 'nav.mySpace', 'nav.portfolioMaker', 'nav.home', 'nav.community', 'nav.settings']);
+    expect(tools.some((t) => t.key === 'programs')).toBe(false);
   });
   it('explains every tool and opens the same route as the sidebar, and that route exists', () => {
     for (const tool of tools) {

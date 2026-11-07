@@ -2,23 +2,39 @@ import React, { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
 import { ProgressLearningSlide } from '../src/features/dashboard/LearningHub.jsx';
-import { completionReading, phaseStages, goalSteps, hydrateDialFinish } from '../src/features/dashboard/instrumentModel.js';
+import { GAUGE, gaugeReading, phaseMilestones, phaseStages, goalSteps, hydrateDialFinish, arcPath } from '../src/features/dashboard/instrumentModel.js';
 import { hydrateWorkspace } from '../src/features/dashboard/workspaceModel.js';
 
 const phases = [{ id: 'explore', title: 'Explore' }, { id: 'define', title: 'Define' }, { id: 'make', title: 'Make & test' }];
 const summary = { done: 6, total: 24, byPhase: { explore: { done: 4, total: 4, complete: true }, define: { done: 2, total: 4 }, make: { done: 0, total: 16 } } };
 
 describe('dashboard instruments', () => {
-  it('fills the circle in exact proportion to the recorded count', () => {
-    expect(completionReading(6, 24).fraction).toBe(0.25);
-    expect(completionReading(0, 24).fraction).toBe(0);
-    expect(completionReading(24, 24).fraction).toBe(1);
+  it('places the needle in exact proportion to the recorded count', () => {
+    const r = gaugeReading(6, 24);
+    expect(r.fraction).toBe(0.25);
+    expect(r.angle).toBe(GAUGE.start + GAUGE.sweep * 0.25);
+    expect(gaugeReading(0, 24).angle).toBe(GAUGE.start);
+    expect(gaugeReading(24, 24).angle).toBe(GAUGE.start + GAUGE.sweep);
   });
   it('refuses readings it cannot verify instead of showing zero', () => {
-    for (const [d, t] of [[0, 0], [5, 4], [-1, 4], [1.5, 4], [undefined, 4], [2, null]]) expect(completionReading(d, t)).toBeNull();
+    for (const [d, t] of [[0, 0], [5, 4], [-1, 4], [1.5, 4], [undefined, 4], [2, null]]) expect(gaugeReading(d, t)).toBeNull();
   });
-  it('lists every reported stage', () => {
+  it('derives milestone notches from course phase session counts', () => {
+    const marks = phaseMilestones(phases, summary);
+    expect(marks.map((m) => m.at)).toEqual([4, 8, 24]);
     expect(phaseStages(phases, summary)[0].complete).toBe(true);
+    expect(marks[2].angle).toBe(GAUGE.start + GAUGE.sweep);
+  });
+  it('draws no milestones when phase counts do not match the recorded total', () => {
+    expect(phaseMilestones(phases, { ...summary, total: 30 })).toEqual([]);
+    expect(phaseMilestones(phases, { ...summary, byPhase: { explore: summary.byPhase.explore } })).toEqual([]);
+    expect(phaseMilestones([], summary)).toEqual([]);
+  });
+  it('skips a zero-session stage instead of dropping every notch', () => {
+    const marks = phaseMilestones([...phases, { id: 'extra', title: 'Extra' }], { ...summary, byPhase: { ...summary.byPhase, extra: { done: 0, total: 0 } } });
+    expect(marks.map((m) => [m.id, m.index, m.at])).toEqual([['explore', 0, 4], ['define', 1, 8], ['make', 2, 24]]);
+  });
+  it('lists every reported stage even when it cannot be placed on the dial', () => {
     expect(phaseStages(phases, { ...summary, total: 30 }).map((s) => s.title)).toEqual(['Explore', 'Define', 'Make & test']);
   });
   it('counts only checked personal steps, even on goals marked achieved', () => {
@@ -37,6 +53,9 @@ describe('dashboard instruments', () => {
     expect(hydrateWorkspace({ theme: 'dark', themeChosen: true })).toMatchObject({ theme: 'dark', themeChosen: true });
     expect(hydrateWorkspace({ theme: 'light' }).theme).toBe('light');
     expect(hydrateWorkspace({ theme: 'inherit' }).theme).toBe('inherit');
+  });
+  it('draws no arc for an empty reading', () => {
+    expect(arcPath(0, 0, 10, GAUGE.start, GAUGE.start)).toBe('');
   });
 });
 
@@ -66,8 +85,9 @@ describe('progress slide record states', () => {
   it('keeps the stage list when stage counts do not add up, and says why there are no markers', () => {
     const html = slide({ done: 1, total: 6, byPhase: { a: { done: 1, total: 2 }, b: { done: 0, total: 2 } } });
     expect(html).toContain('role="progressbar"');
-    expect(html).not.toContain('ig-needle');
+    expect(html).not.toContain('class="ig-milestone"');
     expect(html).toContain('Alpha'); expect(html).toContain('Beta');
+    expect(html).toContain('don’t add up');
   });
   it('hides the visible readout from screen readers so the value is announced once', () => {
     expect(slide({ done: 1, total: 4, byPhase: { a: { done: 1, total: 2 }, b: { done: 0, total: 2 } } })).toContain('class="ig-readout" aria-hidden="true"');
