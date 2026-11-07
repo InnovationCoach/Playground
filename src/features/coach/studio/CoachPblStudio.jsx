@@ -10,8 +10,10 @@ import { useCoachClasses, useClassLearners } from './useCoachStudioData.js';
 import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from './groundingSources.js';
 import { synthesizeGroundedUnit } from './pblSynthesizer.js';
 import { publishAndTransferToStudent, publishProgramToCatalog } from './pblTransferService.js';
+import { APPROVED_NGS_CATALOG, ngsById } from './pblUnitSchema.js';
+import { ProgramCompetencyPicker } from '../../school/programs/ProgramCompetencyPicker.jsx';
+import { competencyById } from '../../pbl/content/competencies.js';
 import { LearnerSupervisionView } from '../supervision/LearnerSupervisionView.jsx';
-import { CourseStudioPanel } from './CourseStudioPanel.jsx';
 import { EvaluationDeskView } from '../evaluation/EvaluationDeskView.jsx';
 import { fetchSubmissions } from '../evaluation/evaluationsStore.js';
 import { EdmentumIntegrationConsole } from '../../edmentum/EdmentumIntegrationConsole.jsx';
@@ -53,12 +55,40 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
     return [UNIVERSAL_LEARNER, ...realLearners];
   }, [realLearners]);
 
-  // Column 1 State
+  // Column 1 & Guided Setup State
   const [sources, setSources] = useState(DEFAULT_GROUNDING_SOURCES);
   const [selectedLearnerId, setSelectedLearnerId] = useState('universal-all');
   const [customFocus, setCustomFocus] = useState('');
+  const [programme, setProgramme] = useState('WLS');
+  const [unitType, setUnitType] = useState('pbl_unit');
+  const [duration, setDuration] = useState('8 stages');
+  const [language, setLanguage] = useState('en-GB');
+  const [selectedWeLearnIds, setSelectedWeLearnIds] = useState([]);
+  const [selectedNgsIds, setSelectedNgsIds] = useState([]);
+  const [ngsSearch, setNgsSearch] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
+
+  const selectedCompetencies = useMemo(() => [
+    ...selectedWeLearnIds.map((id) => ({ framework: 'welearn', id })),
+    ...selectedNgsIds.map((id) => ({ framework: 'ngs', id }))
+  ], [selectedWeLearnIds, selectedNgsIds]);
+
+  const filteredNgsCatalog = useMemo(() => {
+    const q = ngsSearch.trim().toLowerCase();
+    if (!q) return APPROVED_NGS_CATALOG;
+    return APPROVED_NGS_CATALOG.filter((item) =>
+      `${item.id} ${item.title}`.toLowerCase().includes(q)
+    );
+  }, [ngsSearch]);
+
+  const toggleNgsId = (id) => {
+    setSelectedNgsIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((item) => item !== id)
+        : (selectedWeLearnIds.length + prev.length >= 20 ? prev : [...prev, id])
+    );
+  };
 
   // Synchronize selected learner when availableLearners changes
   useEffect(() => {
@@ -116,30 +146,6 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const [transferredInfo, setTransferredInfo] = useState(null);
   const [transferError, setTransferError] = useState(null);
 
-  // Auto-synthesize initial grounded unit on mount for selected learner
-  useEffect(() => {
-    let cancelled = false;
-    async function loadInitial() {
-      setSynthesizing(true);
-      setSynthesisError(null);
-      try {
-        const initialUnit = await synthesizeGroundedUnit({
-          learner,
-          sources,
-          customFocus: ''
-        });
-        if (!cancelled) setUnit(initialUnit);
-      } catch (err) {
-        console.error('Failed synthesizing initial unit:', err);
-        if (!cancelled) setSynthesisError(err?.message || 'Synthesis failed. Please review grounding sources.');
-      } finally {
-        if (!cancelled) setSynthesizing(false);
-      }
-    }
-    loadInitial();
-    return () => { cancelled = true; };
-  }, [selectedLearnerId]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Source toggle
   const toggleSource = (sourceId) => {
     setSources((prev) =>
@@ -179,7 +185,13 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
       const result = await synthesizeGroundedUnit({
         learner,
         sources,
-        customFocus
+        customFocus,
+        programme,
+        unitType,
+        duration,
+        language,
+        step: 'full',
+        competencies: selectedCompetencies
       });
       setUnit(result);
       buzz(15);
@@ -361,7 +373,6 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
       )}
 
       {/* Tab 3: Curriculum Studio (NotebookLM 3-Column Studio Grid) */}
-      {workspaceTab === 'studio' && <CourseStudioPanel />}
       {workspaceTab === 'studio' && (
         <div className="cp-grid">
         {/* =========================================================
@@ -546,11 +557,186 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             COLUMN 2: Grounded AI Generator & In-line Editor
            ========================================================= */}
         <section className="cp-col cp-col-editor" aria-label="Grounded AI Generator and In-line Editor">
+          {/* Guided Synthesis Setup: Coach Prompt, Structure Controls & Approved Competencies */}
+          <div className="cp-card" style={{ marginBottom: '0.75rem' }}>
+            <div className="cp-card-header">
+              <h3 className="cp-card-title">
+                <Bot size={16} /> Guided Unit Setup
+              </h3>
+              <span className="cp-badge-pill">Structure & Competencies</span>
+            </div>
+
+            {/* 1. Short Coach Prompt */}
+            <div className="cp-input-group" style={{ marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label htmlFor="cp-coach-prompt" className="cp-label">Coach Prompt / Custom Focus</label>
+                <span style={{ fontSize: '0.72rem', color: customFocus.length > 500 ? '#f85149' : '#8b949e' }}>
+                  {customFocus.length}/500
+                </span>
+              </div>
+              <textarea
+                id="cp-coach-prompt"
+                className="cp-input"
+                rows={2}
+                maxLength={500}
+                value={customFocus}
+                onChange={(e) => setCustomFocus(e.target.value)}
+                placeholder="Describe the real-world problem, theme, or MakerSpace challenge focus (max 500 chars)..."
+              />
+            </div>
+
+            {/* 2. Structure Controls (Cohort, Unit Type, Duration, Language) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.65rem', marginBottom: '0.75rem' }}>
+              <div className="cp-input-group">
+                <label htmlFor="cp-programme" className="cp-label">Cohort / Programme</label>
+                <select
+                  id="cp-programme"
+                  className="cp-learner-select"
+                  value={programme}
+                  onChange={(e) => setProgramme(e.target.value)}
+                >
+                  <option value="WLS">WeLearn Lower Secondary (Ages 11–14)</option>
+                  <option value="WHS">WeLearn Higher Secondary (Ages 15–18)</option>
+                  <option value="primary">Primary (Ages 6–11)</option>
+                </select>
+              </div>
+
+              <div className="cp-input-group">
+                <label htmlFor="cp-unit-type" className="cp-label">Unit Type</label>
+                <select
+                  id="cp-unit-type"
+                  className="cp-learner-select"
+                  value={unitType}
+                  onChange={(e) => setUnitType(e.target.value)}
+                >
+                  <option value="pbl_unit">8-Stage PBL Unit</option>
+                  <option value="steam_activity">STEAM Activity</option>
+                  <option value="milestones">Milestone Series</option>
+                  <option value="quiz">Formative Quiz</option>
+                </select>
+              </div>
+
+              <div className="cp-input-group">
+                <label htmlFor="cp-duration" className="cp-label">Duration</label>
+                <select
+                  id="cp-duration"
+                  className="cp-learner-select"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                >
+                  <option value="4 sessions">4 sessions</option>
+                  <option value="6 weeks">6 weeks</option>
+                  <option value="8 stages">8 stages</option>
+                  <option value="12 weeks">12 weeks</option>
+                </select>
+              </div>
+
+              <div className="cp-input-group">
+                <label htmlFor="cp-language" className="cp-label">Language</label>
+                <select
+                  id="cp-language"
+                  className="cp-learner-select"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                >
+                  <option value="en-GB">English (en-GB)</option>
+                  <option value="th">Thai (ภาษาไทย)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 3. Approved Competency Catalogs (WeLearn + Approved NGS) */}
+            <div style={{ marginBottom: '0.75rem' }}>
+              <ProgramCompetencyPicker
+                value={selectedWeLearnIds}
+                onChange={(nextIds) => {
+                  const maxAllowed = Math.max(0, 20 - selectedNgsIds.length);
+                  setSelectedWeLearnIds(nextIds.slice(0, maxAllowed));
+                }}
+              />
+            </div>
+
+            <fieldset className="sw-field" style={{ border: '1px solid #30363d', borderRadius: 8, padding: '0.65rem', marginBottom: '0.75rem' }}>
+              <legend style={{ fontSize: '0.78rem', fontWeight: 700, padding: '0 0.35rem' }}>
+                Approved NGS / NGSS Standards ({selectedNgsIds.length} selected)
+              </legend>
+              <label className="cp-label" htmlFor="cp-ngs-search" style={{ display: 'block', marginBottom: '0.35rem' }}>
+                Search approved NGS standards
+              </label>
+              <input
+                id="cp-ngs-search"
+                type="search"
+                className="cp-input"
+                value={ngsSearch}
+                onChange={(e) => setNgsSearch(e.target.value)}
+                placeholder="Search by code (e.g. MS-ETS1-1) or standard statement..."
+                style={{ marginBottom: '0.5rem' }}
+              />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxHeight: '7.5rem', overflowY: 'auto' }}>
+                {filteredNgsCatalog.map((item) => {
+                  const active = selectedNgsIds.includes(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => toggleNgsId(item.id)}
+                      aria-pressed={active}
+                      className={`cp-chip ${active ? 'cp-chip-accom' : 'cp-chip-trait'}`}
+                      style={{
+                        cursor: 'pointer',
+                        border: active ? '1px solid #3fb950' : '1px solid rgba(148,163,184,0.3)',
+                        background: active ? 'rgba(63,185,80,0.18)' : 'transparent',
+                        textAlign: 'left'
+                      }}
+                      title={item.title}
+                    >
+                      {active ? '✓ ' : '+ '}{item.id} · {item.title.slice(0, 42)}{item.title.length > 42 ? '…' : ''}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            {/* 4. Pre-Generation Selection Summary */}
+            <div
+              aria-label="Synthesis selection summary"
+              style={{
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.28)',
+                borderRadius: 8,
+                padding: '0.65rem 0.8rem',
+                fontSize: '0.78rem',
+                lineHeight: 1.45
+              }}
+            >
+              <div style={{ fontWeight: 700, marginBottom: '0.25rem', color: '#7dd3fc' }}>
+                Ready to Generate — Selection Summary
+              </div>
+              <div>
+                <strong>Target:</strong> {learner.name || learner.displayName} • <strong>Cohort:</strong> {programme} • <strong>Type:</strong> {unitType} • <strong>Duration:</strong> {duration} • <strong>Language:</strong> {language} • <strong>Sources:</strong> {activeSourcesCount} active
+              </div>
+              {customFocus.trim() && (
+                <div>
+                  <strong>Focus:</strong> {customFocus.trim()}
+                </div>
+              )}
+              <div>
+                <strong>Competencies ({selectedCompetencies.length}):</strong>{' '}
+                {selectedCompetencies.length === 0
+                  ? 'Default WeLearn inquiry & problem-solving scaffold'
+                  : selectedCompetencies.map((c) => {
+                      const info = c.framework === 'welearn' ? competencyById(c.id) : ngsById(c.id);
+                      return `${c.framework.toUpperCase()}:${c.id}${info?.title ? ` (${info.title})` : ''}`;
+                    }).join(', ')}
+              </div>
+            </div>
+          </div>
+
           {/* Synthesizer Control Strip */}
           <div className="cp-synthesize-strip">
             <div className="cp-synthesize-text">
               <h3>Gemini 2e PBL Unit Synthesizer</h3>
-              <p>Generates structured Driving Question, 8-stage milestones, MakerSpace specs & Coach cues.</p>
+              <p>Generates structured Driving Question, milestones, competency mappings, MakerSpace specs & Coach cues.</p>
             </div>
             <button
               type="button"
