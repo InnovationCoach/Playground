@@ -940,15 +940,28 @@ Generate milestones that strictly respect this duration:
     }
   });
 
-  // Archive course endpoint (Coaches & Admins only)
+  // Archive course endpoint (Coaches & Admins only; library-managed programs require creator or admin)
   app.post('/api/pbl/programs/:programId/archive', requireAuth, requireCoachOrAdmin, async (req, res) => {
     try {
       const { programId } = req.params;
       if (!programId) return res.status(400).json({ error: 'Program ID required' });
       const db = getFirestore();
       const progRef = db.collection('pbl_programs').doc(programId);
-      const snap = await progRef.get();
+      const libRef = db.collection('program_library').doc(programId);
+      const [snap, libSnap] = await Promise.all([progRef.get(), libRef.get()]);
       if (!snap.exists) return res.status(404).json({ error: 'Program not found' });
+
+      const progData = snap.data() || {};
+      const libData = libSnap.exists ? (libSnap.data() || {}) : null;
+      const isLibraryManaged = Boolean(libSnap.exists || progData.libraryManaged === true);
+
+      if (isLibraryManaged && req.user.role !== 'admin') {
+        const ownerUid = libData?.creatorUid || progData.authorId || null;
+        if (ownerUid !== req.user.uid) {
+          return res.status(403).json({ error: 'Only the program creator or an administrator can archive this program.' });
+        }
+      }
+
       await progRef.update({
         status: 'archived',
         archivedAt: Date.now(),

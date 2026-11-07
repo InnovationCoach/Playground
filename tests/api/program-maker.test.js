@@ -65,4 +65,13 @@ describe('Coach program maker API',()=>{
   const offerings=await request('GET',`${base}/program-offerings`,'student');expect(offerings.body.items[0].programDefinition.overview).toBe('Updated overview');
   const lessons=await request('GET',`${base}/program-offerings/${id}/lessons`,'student');expect(lessons.body.items).toHaveLength(2);expect(lessons.body.items.filter(l=>l.simulation)).toHaveLength(1);expect(lessons.body.items.every(l=>l.status==='published')).toBe(true);
  });
+ it('restricts archiving library-managed pbl_programs to the creator or an admin',async()=>{
+  const progId='lib-prog-archive-test';
+  await env.db.collection('program_library').doc(progId).set({programId:progId,creatorUid:'program-maker-coach',status:'published'});
+  await env.db.collection('pbl_programs').doc(progId).set({id:progId,authorId:'program-maker-coach',libraryManaged:true,status:'published'});
+  expect((await request('POST',`/api/pbl/programs/${progId}/archive`,'other',{})).status).toBe(403);
+  const ok=await request('POST',`/api/pbl/programs/${progId}/archive`,'coach',{});
+  expect(ok.status).toBe(200);
+  expect((await env.db.collection('pbl_programs').doc(progId).get()).data().status).toBe('archived');
+ });
 });

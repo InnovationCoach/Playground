@@ -21,23 +21,45 @@ export { needsCourseNumbering } from '../features/pbl/programs/sessionNumbering.
 
 export const PblSessionContractSchema = z.object({
   sessionNumber: z.number().nullable().optional(),
+  week: z.number().optional(),
   title: z.string().default(''),
   minutes: z.number().default(90),
+  durationMin: z.number().optional(),
+  learningGoal: z.string().default(''),
   activities: z.array(z.string()).default([]),
+  makerSpaceTools: z.array(z.string()).default([]),
+  allowedSubmissions: z.array(z.string()).optional(),
+  learnerChoices: z.object({
+    question: z.string().default(''),
+    options: z.array(z.object({
+      id: z.string(),
+      label: z.string(),
+      description: z.string().default('')
+    })).default([])
+  }).optional(),
   evidenceToCollect: z.object({
     kind: z.string().default('note'),
     prompt: z.string().default(''),
     targetCompetencies: z.array(z.string()).default([])
-  }).optional()
+  }).optional(),
+  reflectionPrompt: z.string().optional(),
+  teacherTips: z.string().default('')
 });
 
 export const PblPhaseContractSchema = z.object({
+  id: z.string().optional(),
   phaseId: z.string(),
   title: z.string().default(''),
+  strap: z.string().default(''),
+  weeks: z.array(z.number()).optional(),
   learningGoal: z.string().default(''),
+  goal: z.string().optional(),
   sessions: z.array(PblSessionContractSchema).default([]),
   tools: z.array(z.string()).default([]),
   deliverables: z.array(z.string()).default([]),
+  tasks: z.array(z.string()).default([]),
+  evidence: z.array(z.string()).default([]),
+  aiPromptStarters: z.array(z.string()).default([]),
   competencies: z.array(z.string()).default([]),
   stretchCompetencies: z.array(z.string()).default([]),
   coachCue: z.string().optional().default('')
@@ -46,6 +68,7 @@ export const PblPhaseContractSchema = z.object({
 export const PblProgramContractSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(1, 'Title is required'),
+  subtitle: z.string().default(''),
   slug: z.string().min(1, 'Slug is required'),
   drivingQuestion: z.string().min(1, 'Driving question is required'),
   theme: z.string().min(1, 'Theme is required'),
@@ -53,6 +76,33 @@ export const PblProgramContractSchema = z.object({
     people: z.string().default(''),
     environment: z.string().default('')
   }).default({ people: '', environment: '' }),
+  realProblem: z.object({
+    summary: z.string().default(''),
+    peopleImpact: z.string().default(''),
+    environmentalImpact: z.string().default('')
+  }).optional(),
+  measurableImpactCriteria: z.array(z.string()).default([]),
+  teacherGuidance: z.object({
+    safetyProtocol: z.array(z.string()).default([]),
+    pedagogicalScaffolding: z.array(z.string()).default([]),
+    aiEthicsRules: z.array(z.string()).default([]),
+    differentiationNotes: z.array(z.string()).default([])
+  }).optional(),
+  materialsAndKit: z.object({
+    microcontrollers: z.array(z.string()).default([]),
+    sensorsAndActuators: z.array(z.string()).default([]),
+    fabricationMaterials: z.array(z.string()).default([]),
+    softwareAndTools: z.array(z.string()).default([])
+  }).optional(),
+  coachCues: z.any().optional(),
+  assumptions: z.array(z.string()).default([]),
+  identity: z.object({
+    icon: z.string().default('Compass'),
+    tone: z.string().default('amber'),
+    short: z.string().default('')
+  }).optional(),
+  targetLearner: z.any().optional(),
+  makerSpaceSpecs: z.array(z.any()).optional(),
   frameworkId: z.literal('welearn-dt').default('welearn-dt'),
   frameworkVersion: z.number().default(1),
   competencies: z.array(z.object({
@@ -64,6 +114,7 @@ export const PblProgramContractSchema = z.object({
   })).default([]),
   phases: z.array(PblPhaseContractSchema).default([]),
   ageBand: z.string().default('11-16'),
+  targetAgeRange: z.string().optional(),
   durationWeeks: z.number().default(12),
   authorId: z.string().default('coach'),
   source: z.enum(['studio', 'library']).default('studio'),
@@ -73,6 +124,7 @@ export const PblProgramContractSchema = z.object({
   tags: z.array(z.string()).default([]),
   createdAt: z.number().default(() => Date.now()),
   updatedAt: z.number().default(() => Date.now()),
+  publishedAt: z.number().optional(),
 });
 
 export function validateProgramContract(program) {
@@ -100,7 +152,14 @@ export function normaliseContractProgram(raw) {
           sessions: [{
             title: m.title || m.stageName || '',
             minutes: m.durationMin || 90,
-            activities: Array.isArray(m.activities) ? m.activities : []
+            durationMin: m.durationMin || 90,
+            learningGoal: m.learningGoal || '',
+            activities: Array.isArray(m.activities) ? m.activities : [],
+            makerSpaceTools: Array.isArray(m.makerSpaceTools) ? m.makerSpaceTools : [],
+            ...(Array.isArray(m.allowedSubmissions) ? { allowedSubmissions: m.allowedSubmissions } : {}),
+            ...(m.learnerChoices ? { learnerChoices: m.learnerChoices } : {}),
+            ...(m.reflectionPrompt ? { reflectionPrompt: m.reflectionPrompt } : {}),
+            teacherTips: m.coachCue || m.teacherTips || ''
           }],
           tools: Array.isArray(m.makerSpaceTools) ? m.makerSpaceTools : [],
           deliverables: Array.isArray(m.allowedSubmissions) ? m.allowedSubmissions : (m.evidencePrompt ? [m.evidencePrompt] : []),
@@ -130,6 +189,10 @@ export function normaliseContractProgram(raw) {
         week: s.week || pWeeks[0] || idx + 1,
         learningGoal: s.learningGoal || '',
         activities: Array.isArray(s.activities) ? s.activities : [],
+        makerSpaceTools: Array.isArray(s.makerSpaceTools) ? s.makerSpaceTools : [],
+        ...(Array.isArray(s.allowedSubmissions) ? { allowedSubmissions: s.allowedSubmissions } : {}),
+        ...(s.learnerChoices ? { learnerChoices: s.learnerChoices } : {}),
+        ...(typeof s.reflectionPrompt === 'string' ? { reflectionPrompt: s.reflectionPrompt } : {}),
         evidenceToCollect: s.evidenceToCollect || { kind: 'note', prompt: '', targetCompetencies: [] },
         teacherTips: s.teacherTips || ''
       })) : [],
@@ -161,6 +224,9 @@ export function normaliseContractProgram(raw) {
     ? raw.sessions
     : phases.flatMap((ph) => ph.sessions);
 
+  const peopleImpact = raw.impact?.people || raw.realProblem?.peopleImpact || '';
+  const environmentalImpact = raw.impact?.environment || raw.realProblem?.environmentalImpact || '';
+
   return {
     id: raw.id || raw.slug,
     slug: raw.slug || raw.id,
@@ -169,8 +235,8 @@ export function normaliseContractProgram(raw) {
     drivingQuestion,
     theme,
     impact: {
-      people: raw.impact?.people || '',
-      environment: raw.impact?.environment || ''
+      people: peopleImpact,
+      environment: environmentalImpact
     },
     frameworkId: raw.frameworkId || 'welearn-dt',
     frameworkVersion: raw.frameworkVersion || 1,
@@ -191,28 +257,35 @@ export function normaliseContractProgram(raw) {
     updatedAt: raw.updatedAt || Date.now(),
     publishedAt: raw.publishedAt || raw.transferredAt || raw.createdAt || Date.now(),
     // Presentation helper properties for backward compatibility with UI components
-    realProblem: raw.realProblem || {
+    realProblem: raw.realProblem ? {
+      summary: raw.realProblem.summary || drivingQuestion,
+      peopleImpact: raw.realProblem.peopleImpact || peopleImpact || 'Community impact',
+      environmentalImpact: raw.realProblem.environmentalImpact || environmentalImpact || 'Sustainable design'
+    } : {
       summary: drivingQuestion,
-      peopleImpact: raw.impact?.people || 'Community impact',
-      environmentalImpact: raw.impact?.environment || 'Sustainable design'
+      peopleImpact: peopleImpact || 'Community impact',
+      environmentalImpact: environmentalImpact || 'Sustainable design'
     },
     measurableImpactCriteria: Array.isArray(raw.measurableImpactCriteria) ? raw.measurableImpactCriteria : [],
-    teacherGuidance: raw.teacherGuidance || {
-      safetyProtocol: [],
-      pedagogicalScaffolding: [],
-      aiEthicsRules: [],
-      differentiationNotes: []
+    teacherGuidance: {
+      safetyProtocol: Array.isArray(raw.teacherGuidance?.safetyProtocol) ? raw.teacherGuidance.safetyProtocol : [],
+      pedagogicalScaffolding: Array.isArray(raw.teacherGuidance?.pedagogicalScaffolding) ? raw.teacherGuidance.pedagogicalScaffolding : [],
+      aiEthicsRules: Array.isArray(raw.teacherGuidance?.aiEthicsRules) ? raw.teacherGuidance.aiEthicsRules : [],
+      differentiationNotes: Array.isArray(raw.teacherGuidance?.differentiationNotes) ? raw.teacherGuidance.differentiationNotes : []
     },
-    materialsAndKit: raw.materialsAndKit || {
-      microcontrollers: [],
-      sensorsAndActuators: [],
-      fabricationMaterials: [],
-      softwareAndTools: []
+    materialsAndKit: {
+      microcontrollers: Array.isArray(raw.materialsAndKit?.microcontrollers) ? raw.materialsAndKit.microcontrollers : [],
+      sensorsAndActuators: Array.isArray(raw.materialsAndKit?.sensorsAndActuators) ? raw.materialsAndKit.sensorsAndActuators : [],
+      fabricationMaterials: Array.isArray(raw.materialsAndKit?.fabricationMaterials) ? raw.materialsAndKit.fabricationMaterials : [],
+      softwareAndTools: Array.isArray(raw.materialsAndKit?.softwareAndTools) ? raw.materialsAndKit.softwareAndTools : []
     },
+    ...(raw.coachCues !== undefined ? { coachCues: raw.coachCues } : {}),
+    ...(raw.targetLearner !== undefined ? { targetLearner: raw.targetLearner } : {}),
+    ...(Array.isArray(raw.makerSpaceSpecs) ? { makerSpaceSpecs: raw.makerSpaceSpecs } : {}),
     assumptions: Array.isArray(raw.assumptions) ? raw.assumptions : [],
-    identity: raw.identity || {
-      icon: 'Compass',
-      tone: 'amber',
+    identity: {
+      icon: raw.identity?.icon || 'Compass',
+      tone: raw.identity?.tone || 'amber',
       short: raw.identity?.short || (title.length > 24 ? `${title.slice(0, 21)}…` : title)
     },
     issues: Array.isArray(raw.issues) ? raw.issues : []

@@ -202,12 +202,40 @@ describe('Publish', () => {
 });
 
 describe('Model', () => {
-  it('previews through the same conversion a publish stores', () => {
+  it('previews through the same conversion a publish stores, retaining rich course content', () => {
     const { data, view } = programFromUnit(unit(), 'coach-a');
     expect(view.phases).toHaveLength(8);
     expect(view.sessions).toHaveLength(8);
     expect(view.phases.map((p) => p.title)).toEqual(data.phases.map((p) => p.title));
     expect(view.identity?.tone).toBeTruthy();
+
+    // Rich content retained on stored contract data and preview view
+    expect(data.realProblem).toEqual({
+      summary: 'The courtyard floods.',
+      peopleImpact: 'Safer paths',
+      environmentalImpact: 'Less mains water'
+    });
+    expect(view.realProblem).toEqual(data.realProblem);
+    expect(data.impact).toEqual({ people: 'Safer paths', environment: 'Less mains water' });
+    expect(data.subtitle).toContain('Water');
+    expect(view.subtitle).toBe(data.subtitle);
+    expect(data.materialsAndKit?.microcontrollers).toContain('micro:bit');
+    expect(view.materialsAndKit?.microcontrollers).toContain('micro:bit');
+    expect(data.teacherGuidance?.safetyProtocol).toContain('Stay dry');
+    expect(view.teacherGuidance?.safetyProtocol).toContain('Stay dry');
+    expect(data.coachCues).toEqual({ leadCoach: 'Lead' });
+    expect(data.phases[0].sessions[0]).toMatchObject({
+      learningGoal: 'Goal',
+      teacherTips: 'Cue',
+      makerSpaceTools: ['Bench'],
+      allowedSubmissions: ['video']
+    });
+    expect(view.phases[0].sessions[0]).toMatchObject({
+      learningGoal: 'Goal',
+      teacherTips: 'Cue',
+      makerSpaceTools: ['Bench'],
+      allowedSubmissions: ['video']
+    });
   });
 
   it('detects stage changes but not wording changes', () => {
