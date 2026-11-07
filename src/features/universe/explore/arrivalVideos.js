@@ -18,6 +18,11 @@ export function cloudinaryPoster(url, second = 15) {
   return isCloudinaryVideo(url) ? url.replace('/video/upload/', `/video/upload/so_${second},w_1280/`).replace(/\.(mp4|webm|mov)(\?.*)?$/i, '.jpg') : null;
 }
 
+/** One frame as artwork: cropped to the bottom right of the screen, which leaves out the app's bars and panels. */
+export function cloudinarySceneFrame(url, second, width = 720) {
+  return isCloudinaryVideo(url) ? url.replace('/video/upload/', `/video/upload/so_${second},c_crop,g_south_east,w_0.68,h_0.8/w_${width}/`).replace(/\.(mp4|webm|mov)(\?.*)?$/, '.jpg') : '';
+}
+
 export const ARRIVAL_VIDEOS = Object.freeze({
   'thalassa-wind-survey|guided': Object.freeze({
     title: 'How this mission works',

@@ -30,6 +30,7 @@ import './myDashboard.css';
 import './dashboardStudio.css';
 import './instrumentStudio.css';
 import './sparkBrand.css';
+import './dashboardScenes.css';
 
 export function MyDashboard(props) { return <StudentDashboard key={props.uid || 'signed-out'} {...props} />; }
 

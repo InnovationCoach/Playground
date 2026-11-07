@@ -76,6 +76,13 @@ export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, r
     return () => element.removeEventListener('wheel', wheel);
   }, [grid, orderKey, scrollToSlide, onActive]);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  // Fit-to-window view: the legacy body padding would otherwise let the page scroll and tuck the header under the top bar.
+  useEffect(() => {
+    if (grid) return undefined;
+    document.body.classList.add('sd-fit-page');
+    window.scrollTo(0, 0);
+    return () => document.body.classList.remove('sd-fit-page');
+  }, [grid]);
   // The button can't take focus until the modal panel is gone, so this waits for it to close.
   const toolsWereOpen = useRef(false);
   useEffect(() => {
@@ -115,7 +122,7 @@ export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, r
         <ul>{prefs.slideOrder.map((id) => {
           const Icon = SLIDE_ICONS[id];
           return <li key={id}><button type="button" className="sd-nav-item" onClick={() => go(id)} aria-current={active === id ? 'page' : undefined} aria-controls={`dashboard-slide-${id}`}>
-            <Icon size={22} strokeWidth={1.8} aria-hidden="true" />
+            <span className="sd-nav-icon"><Icon size={21} strokeWidth={1.9} aria-hidden="true" /></span>
             <span className="sd-nav-text"><strong>{labelFor(id)}</strong><small>{SLIDES.find((slide) => slide.id === id).about}</small></span>
             {stats[id] && <span className="sd-nav-stat" aria-label={stats[id].label}>{stats[id].text}</span>}
           </button></li>;

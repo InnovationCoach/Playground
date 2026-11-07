@@ -9,6 +9,7 @@ import { buildCatalog } from '../courses/catalog.js';
 import { useAddedCourses } from '../courses/useAddedCourses.js';
 import { newQuests, questReason, plainTitle, courseCompetencies, availability } from '../home/discoveryModel.js';
 import { CourseDetails } from '../home/Discovery.jsx';
+import { ProgramIcon } from '../pbl/programs/ProgramIcon.jsx';
 import { matchActivities } from './dashboardModel.js';
 import { splitGoals } from './slideModel.js';
 import '../courses/courses.css';
@@ -17,6 +18,17 @@ import '../home/discovery.css';
 
 const TOPICS = ['Robots', 'The environment', 'Space', 'Coding', 'Making things'];
 const TOPIC_SEARCH = { Robots: 'Robotics', 'The environment': 'Environmental', Space: 'Space Missions', Coding: 'Microcontroller', 'Making things': 'MakerSpace' };
+
+const TONES = ['purple', 'sky', 'green', 'amber', 'magenta', 'navy'];
+const toneOf = (key) => TONES[[...key].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % TONES.length];
+
+/** A quest's cover: its program colours and icon, or the emoji its activity already uses. Decorative. */
+function QuestCover({ item }) {
+  const emoji = item.source === 'activity' ? ACTIVITY_NAV.find((a) => a.id === item.id)?.label.match(/\p{Extended_Pictographic}/u)?.[0] : null;
+  return <div className="fq-art" data-tone={item.tone || toneOf(item.key)} aria-hidden="true">
+    {emoji ? <span className="fq-art-emoji">{emoji}</span> : <ProgramIcon name={item.icon} size={46} />}
+  </div>;
+}
 
 /**
  * "Find a Quest" on My Dashboard: only quests the learner hasn't begun, each with
@@ -43,9 +55,12 @@ export function FindQuestSlide({ uid, data, plan, interests = [], started = [], 
     <p className="sd-intro">Looking for something new? Here are some quests you haven’t started.</p>
     {list.length > 0 && <ul className="fq-list">
       {list.map(({ item, reason }) => <li key={item.key} className="fq-card">
-        <h3>{plainTitle(item)}</h3>
-        <p className="fq-why"><strong>Why it fits:</strong> {questReason(reason)}</p>
-        <button type="button" className="sd-primary" onClick={() => setDetail(item)}>Take a look <ArrowRight size={16} aria-hidden="true" /></button>
+        <QuestCover item={item} />
+        <div className="fq-card-body">
+          <h3>{plainTitle(item)}</h3>
+          <p className="fq-why"><strong>Why it fits:</strong> {questReason(reason)}</p>
+          <button type="button" className="sd-primary" onClick={() => setDetail(item)}>Take a look <ArrowRight size={16} aria-hidden="true" /></button>
+        </div>
       </li>)}
     </ul>}
     <form className="hs-box fq-box" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) go(q); }}>

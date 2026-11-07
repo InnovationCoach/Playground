@@ -3,14 +3,15 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { hrefFor } from '../../app/routes.js';
 import { splitGoals } from './slideModel.js';
 import { PILOT_RELEASES } from '../universe/pilot/pilotRegistry.js';
+import { ARRIVAL_VIDEOS, cloudinarySceneFrame } from '../universe/explore/arrivalVideos.js';
 import { MissionBuilder } from '../universe/builder/MissionBuilder.jsx';
 import { reviewedRoutes, allRoutes, routeTime, isReviewedRelease } from '../universe/builder/missionBuilder.js';
 const MyUniverseExplorer = lazy(() => import('../universe/explore/MyUniverseExplorer.jsx').then(m => ({ default: m.MyUniverseExplorer })));
 
 const PREVIEWS = [
-  { id: 'wind', planetId: 'thalassa', missionId: 'thalassa-wind-survey', routeId: 'guided', title: 'Is the wind worth it?', where: 'Thalassa', description: 'Help the station choose a power plan using a week of wind records.', grades: '6–8', challenge: 2 },
-  { id: 'journey-guided', planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided', title: 'Plan a journey to Ignis', where: 'Thalassa departure station', description: 'Compare travel time and supplies, then recommend a plan.', grades: '6–8', challenge: 2 },
-  { id: 'journey-advanced', planetId: 'ignis', missionId: 'spacecraft-journey', routeId: 'advanced', title: 'Plan a journey to Ignis: harder version', where: 'Ignis', description: 'Weigh up the mass, time and power of a spacecraft design.', grades: '9–12', challenge: 4 }
+  { id: 'wind', planetId: 'thalassa', missionId: 'thalassa-wind-survey', routeId: 'guided', frame: 3, title: 'Is the wind worth it?', where: 'Thalassa', description: 'Help the station choose a power plan using a week of wind records.', grades: '6–8', challenge: 2 },
+  { id: 'journey-guided', planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided', frame: 20, title: 'Plan a journey to Ignis', where: 'Thalassa departure station', description: 'Compare travel time and supplies, then recommend a plan.', grades: '6–8', challenge: 2 },
+  { id: 'journey-advanced', planetId: 'ignis', missionId: 'spacecraft-journey', routeId: 'advanced', frame: 3, title: 'Plan a journey to Ignis: harder version', where: 'Ignis', description: 'Weigh up the mass, time and power of a spacecraft design.', grades: '9–12', challenge: 4 }
 ];
 
 // Fixed, decorative star positions: still, never animated, never meaningful.
@@ -54,6 +55,9 @@ export function SparkUniverse({ prefs, plan, uid, orgId, onPersonalise, active =
       />
     </Suspense>}
     <section className="ig-plate uv-enter" aria-labelledby="uv-enter-title">
+      <svg className="uv-enter-art" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+        {STARS.map((star, i) => <circle key={i} cx={star.x} cy={star.y} r={star.r} />)}
+      </svg>
       <div>
         <h3 id="uv-enter-title">Explore My Universe</h3>
         <p className="sd-caption">Travel through deep space to Lyra Prime. Survey ocean winds on Thalassa, work out journey times, and balance weight and power for Ignis.</p>
@@ -62,15 +66,21 @@ export function SparkUniverse({ prefs, plan, uid, orgId, onPersonalise, active =
     </section>
     {pending && <p className="sd-notice" role="note">Teachers are still checking these missions. You can try them, but they may change.</p>}
     <ul className="uv-missions" aria-label="Missions">
-      {PREVIEWS.map((x) => <li key={x.id} className="uv-mission">
-        <h3>{x.title}</h3>
-        <p className="uv-where"><MapPin size={14} aria-hidden="true" /> {x.where}</p>
-        <p>{x.description}</p>
-        <p className="uv-facts">Grades {x.grades} · Challenge {x.challenge} of 5{timeFor(x) ? ` · ${timeFor(x)}` : ''}</p>
-        <button type="button" className="sd-primary" aria-label={`Start mission: ${x.title}`} onClick={() => open({ planetId: x.planetId, missionId: x.missionId, routeId: x.routeId })}>
-          Start <ArrowRight size={16} aria-hidden="true" />
-        </button>
-      </li>)}
+      {PREVIEWS.map((x) => {
+        const video = ARRIVAL_VIDEOS[`${x.missionId}|${x.routeId}`];
+        return <li key={x.id} className="uv-mission">
+          {video?.src && <div className="uv-mission-figure"><img className="uv-mission-img" src={cloudinarySceneFrame(video.src, x.frame)} alt="" loading="lazy" onError={(event) => { event.currentTarget.parentElement.hidden = true; }} /></div>}
+          <div className="uv-mission-body">
+            <h3>{x.title}</h3>
+            <p className="uv-where"><MapPin size={14} aria-hidden="true" /> {x.where}</p>
+            <p>{x.description}</p>
+            <p className="uv-facts">Grades {x.grades} · Challenge {x.challenge} of 5{timeFor(x) ? ` · ${timeFor(x)}` : ''}</p>
+            <button type="button" className="sd-primary" aria-label={`Start mission: ${x.title}`} onClick={() => open({ planetId: x.planetId, missionId: x.missionId, routeId: x.routeId })}>
+              Start <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          </div>
+        </li>;
+      })}
     </ul>
     <MissionBuilder routes={routes} uid={uid} interests={prefs.interests}
       onStart={(p) => open({ planetId: p.planetId, missionId: p.missionId, routeId: p.routeId }, p)} />
