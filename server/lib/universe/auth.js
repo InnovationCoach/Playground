@@ -281,14 +281,56 @@ export async function requireUniverseAuth(req, res, next) {
     }
   }
 
-  // Class-scoped roles (student, learner, teacher, coach) require at least one active verified class (B1/B2).
-  if (CLASS_SCOPED_ROLES.includes(authoritativeRole) && verifiedClassIds.length === 0) {
+  // 3b. Verify candidate cohortIds for coaches/teachers
+  let candidateCohortIds = [];
+  if (Array.isArray(liveClaims.cohortIds)) {
+    candidateCohortIds = liveClaims.cohortIds.filter(isSafeId);
+  }
+  if (userData && Array.isArray(userData.cohortIds)) {
+    const profileCohortSet = new Set(userData.cohortIds.filter(isSafeId));
+    candidateCohortIds = candidateCohortIds.filter(cid => profileCohortSet.has(cid));
+  }
+  candidateCohortIds = Array.from(new Set(candidateCohortIds));
+
+  const verifiedCohortIds = [];
+  if (candidateCohortIds.length > 0) {
+    try {
+      const cohortSnaps = await Promise.all(
+        candidateCohortIds.map(cid => db.collection('cohorts').doc(cid).get())
+      );
+      for (let i = 0; i < candidateCohortIds.length; i++) {
+        const snap = cohortSnaps[i];
+        if (snap.exists) {
+          const cData = snap.data() || {};
+          if (cData.status === 'active' || cData.status === undefined) {
+            verifiedCohortIds.push(candidateCohortIds[i]);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Universe Auth Cohort Lookup Error]:', err);
+    }
+  }
+
+  // Learners require at least one active verified class in their organization (B1/B2).
+  if (LEARNER_ROLES.includes(authoritativeRole) && verifiedClassIds.length === 0) {
     return sendUniverseError(
       req,
       res,
       403,
       'FORBIDDEN',
       'Active verified class membership in your organization is required.'
+    );
+  }
+
+  // Teachers/coaches require active verified classes or cohorts in their organization.
+  if (TEACHER_ROLES.includes(authoritativeRole) && verifiedClassIds.length === 0 && verifiedCohortIds.length === 0) {
+    return sendUniverseError(
+      req,
+      res,
+      403,
+      'FORBIDDEN',
+      'Active verified class or cohort membership in your organization is required.'
     );
   }
 
@@ -303,6 +345,7 @@ export async function requireUniverseAuth(req, res, next) {
     role: authoritativeRole,
     orgId: authoritativeOrgId,
     classIds: verifiedClassIds,
+    cohortIds: verifiedCohortIds,
     classDocsById,
     displayName,
     publicId: userData?.publicId || null
