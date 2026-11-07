@@ -78,17 +78,10 @@ import { dockStats, termStep, startHere } from '../src/features/dashboard/learni
 describe('dock status and term-project guidance', () => {
   const plan = { goals: [{ id: 'g', explore: 'Garden', done: false, steps: [{ id: 's', text: 'Sketch', done: false }] }] };
   const course = (summary, extra = {}) => ({ program: { id: 'p', title: 'P', phases: [] }, summary, progressUnavailable: false, ...extra });
-  it('shows only verified counts and never a combined percentage', () => {
-    const stats = dockStats({ data: { courses: [course({ done: 1, total: 9 })] }, today: [{ id: 'a' }, { id: 'b' }], ticked: new Set(['a']), plan, goalsLoaded: true, focus: '12:04' });
-    expect(stats).toEqual({
-      progress: { text: '1/9', label: '1 of 9 sessions marked complete' }, creative: { text: '12:04', label: 'focus timer 12:04 left' }
-    });
-    expect(JSON.stringify(stats)).not.toContain('%');
-  });
-  it('omits progress that is unavailable, needs a re-check or has no sessions', () => {
-    for (const c of [course({ done: 1, total: 9 }, { progressUnavailable: true }), course(null, { needsRecheck: true }), course({ done: 0, total: 0 })]) {
-      expect(dockStats({ data: { courses: [c] }, today: [], ticked: new Set(), plan: { goals: [] }, goalsLoaded: true })).toEqual({});
-    }
+  it('keeps counts out of the menu and shows only a running timer or sounds', () => {
+    expect(dockStats({ focus: '12:04' })).toEqual({ creative: { text: '12:04', label: 'focus timer 12:04 left' } });
+    expect(dockStats({ playing: true }).creative.text).toBe('♪');
+    expect(dockStats({})).toEqual({});
   });
   it('suggests term-project steps only for a learner who has started a term project', () => {
     expect(termStep(null)).toBeNull();

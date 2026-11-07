@@ -57,7 +57,7 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
   }, [signals, project, plan]);
   const focusState = useFocus();
   const focusText = focusState.timer.phase !== 'idle' ? fmt(remainingMs(focusState.timer, focusState.now)) : null;
-  const stats = dockStats({ data, focus: focusText, playing: focusState.playing });
+  const stats = dockStats({ focus: focusText, playing: focusState.playing });
   const cover = COVERS.find((c) => c.id === prefs.cover) || COVERS[0];
   const accent = (ACCENTS.find((a) => a.id === prefs.accent) || ACCENTS[0]).value;
   function openTarget(target) {
@@ -76,7 +76,7 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
       case 'skill':
         return <SkillWidget skill={model.skill} onOpenSkills={() => { window.location.hash = hrefFor.futureSkills(); }} />;
       case 'notes':
-        return <NotesWidget />;
+        return <NotesWidget uid={uid} />;
       case 'checkin':
         return (
           <CheckinWidget

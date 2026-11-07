@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Lock, Sparkles } from 'lucide-react';
 import { INTERESTS } from '../../pbl/content/pblModel.js';
-import { TIME_OPTIONS, SUPPORT_LEVELS, adaptMission, withAiHook, restorePlan } from './missionCreator.js';
-import './missionCreator.css';
+import { TIME_OPTIONS, SUPPORT_LEVELS, adaptMission, withAiHook, restorePlan } from './missionBuilder.js';
+import './missionBuilder.css';
 
-const storageKey = (uid) => `spark.universe.creatorPlan.${uid || 'guest'}`;
+const storageKey = (uid) => `spark.universe.builderPlan.${uid || 'guest'}`;
 function readSaved(uid) {
   try { return JSON.parse(window.localStorage.getItem(storageKey(uid))); } catch { return null; }
 }
@@ -27,7 +27,7 @@ const TITLES = {
  * Inside My Universe: one question at a time, then a plan. The mission's question,
  * steps and answers come straight from the reviewed mission and never change.
  */
-export function MissionCreator({ routes, uid, interests = [], requestHook, onStart }) {
+export function MissionBuilder({ routes, uid, interests = [], requestHook, onStart }) {
   const [plan, setPlan] = useState(() => restorePlan(readSaved(uid), routes));
   const [creating, setCreating] = useState(false);
   const [at, setAt] = useState(0);
@@ -38,7 +38,14 @@ export function MissionCreator({ routes, uid, interests = [], requestHook, onSta
   useEffect(() => { if (moved.current) heading.current?.focus(); }, [at, creating, plan]);
 
   const interestList = useMemo(() => [...interests, ...INTERESTS.filter((i) => !interests.includes(i))], [interests]);
-  if (!routes.length) return null;
+  // Nothing reviewed yet: say so plainly rather than building on unreviewed missions.
+  if (!routes.length) {
+    return <section className="mc-card" aria-labelledby="mc-title">
+      <span className="sd-eyebrow"><Sparkles size={13} aria-hidden="true" /> Mission Builder · Waiting for teacher review</span>
+      <h3 id="mc-title">Make a mission fit you</h3>
+      <p>Once teachers have checked these missions, you’ll be able to fit one around what you like, your time and the help you want.</p>
+    </section>;
+  }
 
   const question = QUESTIONS[at];
   const set = (key, value) => setAnswers((all) => ({ ...all, [key]: value }));
@@ -64,9 +71,10 @@ export function MissionCreator({ routes, uid, interests = [], requestHook, onSta
 
   if (plan) {
     return <section className="mc-card" aria-labelledby="mc-plan-title">
-      <span className="sd-eyebrow"><Sparkles size={13} aria-hidden="true" /> AI Creator · Your plan</span>
+      <span className="sd-eyebrow"><Sparkles size={13} aria-hidden="true" /> Mission Builder · Your plan</span>
       <h3 id="mc-plan-title" ref={heading} tabIndex={-1}>{plan.title}</h3>
       <p className="mc-hook">{plan.hook}</p>
+      {plan.hookSource === 'ai' && <p className="mc-source">This sentence was written by AI. The mission itself wasn’t changed.</p>}
       <h4>Your time plan</h4>
       <ol className="mc-sittings">{plan.sittings.map((s) => <li key={s.number}>
         <strong>{plan.sittings.length === 1 ? `One sitting, about ${s.minutes} minutes` : `Sitting ${s.number}, about ${s.minutes} minutes`}</strong>
@@ -84,7 +92,7 @@ export function MissionCreator({ routes, uid, interests = [], requestHook, onSta
 
   if (!creating) {
     return <section className="mc-card mc-intro" aria-labelledby="mc-title">
-      <div><span className="sd-eyebrow"><Sparkles size={13} aria-hidden="true" /> AI Creator</span>
+      <div><span className="sd-eyebrow"><Sparkles size={13} aria-hidden="true" /> Mission Builder</span>
         <h3 id="mc-title" ref={heading} tabIndex={-1}>Make a mission fit you</h3>
         <p>Answer four quick questions. We’ll fit a mission around what you like, your time and the help you want. What you learn stays the same.</p></div>
       <button type="button" className="sd-button" onClick={() => { moved.current = true; setCreating(true); }}>Make my plan</button>
@@ -93,7 +101,7 @@ export function MissionCreator({ routes, uid, interests = [], requestHook, onSta
 
   const answered = answers[question] !== null;
   return <section className="mc-card" aria-labelledby="mc-question">
-    <span className="sd-eyebrow"><Sparkles size={13} aria-hidden="true" /> AI Creator · Question {at + 1} of {QUESTIONS.length}</span>
+    <span className="sd-eyebrow"><Sparkles size={13} aria-hidden="true" /> Mission Builder · Question {at + 1} of {QUESTIONS.length}</span>
     <h3 id="mc-question" ref={heading} tabIndex={-1}>{TITLES[question]}</h3>
     <div className="mc-options" role="group" aria-labelledby="mc-question">
       {question === 'mission' && routes.map((r) => <Option key={r.key} on={answers.mission === r.key} onClick={() => set('mission', r.key)} label={r.mission.title} detail={r.route.name} />)}

@@ -135,13 +135,6 @@
 .sd-root .sd-tool[data-tool="notes"] { background:var(--gh-surface); }
 .sd-root .sd-tool[data-tool="notes"]>h3::before { background:var(--sp-purple-fill);border-color:var(--sp-purple-fill); }
 
-/* ---------- Dock: purple selection, lime counts ---------- */
-.sd-root .sd-indicators { background:var(--gh-surface);border-color:var(--gh-border); }
-.sd-root .sd-indicator { color:var(--gh-text-2); }
-.sd-root .sd-indicator[aria-current=step] { background:var(--sp-purple-fill);color:#fff; }
-.sd-indicator-stat { color:var(--sp-lime-text);border-color:currentColor; }
-.sd-root .sd-indicator[aria-current=step] .sd-indicator-stat { color:#fff; }
-
 /* ---------- Calm and reduced motion: no glows ---------- */
 .sd-root.md-calm .sd-start-here,.sd-root.md-calm .sd-record.ig-dial-plate { background:var(--ig-face); }
 .sd-root.md-calm .sd-primary { box-shadow:none; }
@@ -192,10 +185,14 @@
 .sd-root .sd-slide-content>h2 { background:var(--sp-h2-ink);-webkit-background-clip:text;background-clip:text;color:transparent; }
 @media (forced-colors:active) { .sd-root .sd-slide-content>h2 { color:CanvasText;background:none; } }
 
-/* Paper cards: depth instead of hard borders. */
-.sd-root .ig-plate,.sd-root .sd-record.ig-dial-plate,.sd-root .sd-workspace-tools .sd-tool,
-.sd-root .sd-personal-tasks,.sd-root .sd-academic>.ig-plate-quiet,.sd-root .sd-indicators,
-.sd-root .sd-plan-tabs,.sd-root .sd-plan-tabs.lh-tabs,.sd-root .sd-button { border-color:var(--sp-card-border);box-shadow:var(--sp-card-shadow); }
+.sd-root .ig-plate,
+.sd-root .sd-record.ig-dial-plate,
+.sd-root .sd-workspace-tools .sd-tool,
+.sd-root .sd-personal-tasks,
+.sd-root .sd-academic>.ig-plate-quiet,
+.sd-root .sd-plan-tabs,
+.sd-root .sd-plan-tabs.lh-tabs,
+.sd-root .sd-button{ border-color:var(--sp-card-border);box-shadow:var(--sp-card-shadow); }
 .sd-root .sd-project { border-color:var(--sp-card-border);box-shadow:inset 6px 0 0 var(--brand-lime),var(--sp-card-shadow-hi); }
 .sd-root .sd-goal { border-color:var(--sp-card-border);box-shadow:inset 4px 0 0 var(--sp-magenta-fill),var(--sp-card-shadow); }
 .sd-root .sd-creative-links a { border-color:var(--sp-card-border);box-shadow:inset 6px 0 0 var(--sp-purple-fill),var(--sp-card-shadow); }

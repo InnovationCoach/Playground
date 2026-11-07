@@ -1,6 +1,8 @@
 /**
- * AI Creator: fits a reviewed mission around one learner, without touching what
- * the mission teaches. Pure and unit-tested in tests/universe-creator.test.js.
+ * Mission Builder: fits a reviewed mission around one learner, without touching
+ * what the mission teaches. Pure and unit-tested in tests/universe-builder.test.js.
+ * Hooks are written templates until a generation endpoint is connected, so nothing
+ * here is presented as AI-generated unless it really came from that endpoint.
  *
  * The adaptation is an overlay, never a copy of the mission. It only ever holds
  * a short hook, a time plan built from the route's own steps, and one of the
@@ -39,17 +41,17 @@ const HOOKS = {
   'My community': 'Think of a choice your community has to make together: you’d want good reasons you can explain to everyone.'
 };
 
-/** Only missions whose release carries educator approval and authorised publication. */
+/** Only missions whose release records educator approval and authorised publication. */
 export function isReviewedRelease(bundle) {
   const r = bundle?.reviewState;
   return bundle?.status === 'published' && r?.science === 'educator-approved' && r?.curriculum === 'educator-approved' && r?.publication === 'authorized';
 }
 
-export function reviewedRoutes(registry = []) {
-  return registry.filter(isReviewedRelease).flatMap((bundle) => bundle.missions.flatMap((mission) => mission.routes.map((route) => ({
-    key: `${mission.id}:${route.id}`, mission, route, planetId: mission.planetIds[0], label: `${mission.title}: ${route.name}`
-  }))));
-}
+const routesOf = (bundle) => bundle.missions.flatMap((mission) => mission.routes.map((route) => ({
+  key: `${mission.id}:${route.id}`, mission, route, planetId: mission.planetIds[0], label: `${mission.title}: ${route.name}`
+})));
+export const reviewedRoutes = (registry = []) => registry.filter(isReviewedRelease).flatMap(routesOf);
+export const allRoutes = (registry = []) => registry.flatMap(routesOf);
 
 /** A route's planning time as words, for example "45 to 60 minutes". */
 export function routeTime(route) {
@@ -94,12 +96,12 @@ export function acceptableHook(text) {
 }
 
 /**
- * Real AI wording, once the backend exists (docs/AI-CREATOR-BACKEND-CONTRACT.md).
- * It can only replace the hook. Off until VITE_UNIVERSE_CREATOR_AI is set, and any
+ * Real AI wording, once the backend exists (docs/MISSION-BUILDER-AI-CONTRACT.md).
+ * It can only replace the hook. Off until VITE_MISSION_BUILDER_AI is set, and any
  * failure or unacceptable reply keeps the reviewed template. No free text or
  * learner identity goes in the request body: only ids and choices from fixed lists.
  */
-export async function withAiHook(plan, { enabled = import.meta.env?.VITE_UNIVERSE_CREATOR_AI === 'true', request } = {}) {
+export async function withAiHook(plan, { enabled = import.meta.env?.VITE_MISSION_BUILDER_AI === 'true', request } = {}) {
   if (!enabled || !plan || !request) return plan;
   try {
     const reply = await request({ missionId: plan.missionId, routeId: plan.routeId, interest: plan.interest, minutes: plan.minutes, support: plan.support });

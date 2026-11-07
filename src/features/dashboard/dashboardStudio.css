@@ -60,21 +60,15 @@
 .sd-root .sd-universe-intro { grid-template-columns:1fr .9fr;min-height:230px;gap:28px; }
 .sd-root .sd-future { background:var(--studio-lilac);border:1px solid var(--studio-outline);border-radius:20px; }
 .sd-root .sd-future .sd-eyebrow { display:inline-flex;border-radius:999px;padding:5px 9px;background:var(--gh-surface);color:var(--studio-ink); }
-.sd-root .sd-indicators { padding:5px;background:var(--gh-surface);border:1px solid var(--gh-border);border-radius:16px;gap:4px; }
-.sd-root .sd-indicator { font-size:12px;gap:8px;padding:10px 13px;min-height:43px;border-radius:11px; }
-.sd-root .sd-indicator[aria-current=step] { background:var(--studio-lilac);color:var(--studio-ink);box-shadow:none; }
-.sd-root .sd-dock { padding-top:13px; }
-.sd-root .sd-indicator-index { display:none; }
-.sd-root .sd-page-number { font-size:12px; }
 .sd-root .sd-save { padding-top:8px; }
 .sd-root .sd-grid-mode .sd-slide-content>h2 { font-size:30px; }
 [data-theme="dark"] .gh-app.md-root.sd-root:not([data-theme="light"]),.gh-app.md-root.sd-root[data-theme="dark"] { --studio-lilac:#2c263c;--studio-paper:#29271f;--studio-mint:#293a2c;--studio-deep:#d4eac8;--studio-outline:#44374f;--studio-ink:#e1cbee;--studio-soft:#20242b;--gh-bg:#14171e;--gh-surface:#1e232b; }
 .sd-root.md-calm .sd-slide::before { display:none; }
 @media(prefers-reduced-motion:reduce) { .sd-root .sd-goal { transition:none; } .sd-root .sd-goal:hover { transform:none; } }
-@media(max-width:1100px) { .sd-root .sd-slide-content { padding:0 8px; } .sd-root .sd-indicator { padding:9px 10px;font-size:11px;gap:6px; } .sd-root .sd-academic>.sd-empty,.sd-root .sd-project { padding:20px; } }
-@media(max-width:800px) { .sd-root .sd-indicators { flex:1; } .sd-root .sd-indicator { flex-direction:column;flex:1;gap:5px;max-width:none;padding:8px 5px;font-size:11px; } .sd-root .sd-arrows { gap:4px; } .sd-root .sd-arrows .sd-button { padding:8px; } .studio-avatar { display:none; } .sd-root .sd-personal-tasks { padding:18px; } }
+@media(max-width:1100px) { .sd-root .sd-slide-content { padding:0 8px; } .sd-root .sd-academic>.sd-empty,.sd-root .sd-project { padding:20px; } }
+@media(max-width:800px) { .studio-avatar { display:none; } .sd-root .sd-personal-tasks { padding:18px; } }
 @media(max-width:720px) { .sd-root .sd-learning-columns.lh-columns,.sd-root .sd-record-columns { grid-template-columns:1fr;gap:23px; } .sd-root .sd-universe-intro { grid-template-columns:1fr;gap:0; } .sd-root .sd-learning-lane>h3 { margin-bottom:11px; } .sd-root .sd-slide-content>h2 { font-size:32px; } .sd-root .sd-project h4 { max-width:330px; } .sd-root .sd-creative-links { grid-template-columns:1fr; } }
-@media(max-width:600px) { .sd-root .sd-slide-content { padding:0 3px; } .sd-root .sd-top { padding:10px 0; } .sd-root .sd-top h1 { font-size:12px; } .sd-root .sd-brand { font-size:10px; } .sd-root .sd-brand>svg { width:13px; } .sd-root .sd-indicators { flex:auto;justify-content:space-around;padding:4px; } .sd-root .sd-indicator { font-size:10px;gap:4px;padding:8px 3px; } .sd-root .sd-indicator>svg { width:16px; } .sd-root .sd-dock { gap:7px; } .sd-root .sd-slide-content>h2 { font-size:29px; } .sd-root .sd-goal { padding:18px;gap:15px; } .sd-root .sd-goal h3 { font-size:21px; } .sd-root .sd-workspace-tools .sd-tool { padding:19px; } }
+@media(max-width:600px) { .sd-root .sd-slide-content { padding:0 3px; } .sd-root .sd-top { padding:10px 0; } .sd-root .sd-top h1 { font-size:12px; } .sd-root .sd-brand { font-size:10px; } .sd-root .sd-brand>svg { width:13px; } .sd-root .sd-slide-content>h2 { font-size:29px; } .sd-root .sd-goal { padding:18px;gap:15px; } .sd-root .sd-goal h3 { font-size:21px; } .sd-root .sd-workspace-tools .sd-tool { padding:19px; } }
 /* Guidance stays compact and precedes the decorative course panels. */
 .sd-start-here { display:flex;align-items:center;gap:17px;padding:18px 21px;margin:18px 0 7px;background:var(--studio-lilac);border:1px solid var(--studio-outline);border-radius:17px; }
 .sd-start-icon { display:grid;place-items:center;flex-shrink:0;width:45px;height:45px;border-radius:50%;color:var(--studio-ink);background:var(--gh-surface); }

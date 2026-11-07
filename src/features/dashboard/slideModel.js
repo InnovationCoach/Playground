@@ -1,10 +1,10 @@
 /** Presentation preferences only. Learning records remain in their existing stores. */
 export const SLIDES = [
-  { id: 'daily', title: 'My Quests', short: 'My Quests', eyebrow: 'WHAT TO DO NEXT' },
-  { id: 'find', title: 'Find a Quest', short: 'Find a Quest', eyebrow: 'SOMETHING NEW TO TRY' },
-  { id: 'progress', title: 'My Progress', short: 'My Progress', eyebrow: 'WHAT YOU HAVE DONE SO FAR' },
-  { id: 'creative', title: 'My Creative Space', short: 'Creative space', eyebrow: 'A PLACE FOR UNFINISHED IDEAS' },
-  { id: 'universe', title: 'My Universe', short: 'My Universe', eyebrow: 'PICK A MISSION' }
+  { id: 'daily', title: 'My Quests', short: 'My Quests', about: 'Continue my learning', eyebrow: 'WHAT TO DO NEXT' },
+  { id: 'find', title: 'Find a Quest', short: 'Find a Quest', about: 'Try something new', eyebrow: 'SOMETHING NEW TO TRY' },
+  { id: 'progress', title: 'My Progress', short: 'My Progress', about: 'See what I’ve done', eyebrow: 'WHAT YOU HAVE DONE SO FAR' },
+  { id: 'creative', title: 'My Creative Space', short: 'Creative Space', about: 'Make and save ideas', eyebrow: 'A PLACE FOR UNFINISHED IDEAS' },
+  { id: 'universe', title: 'My Universe', short: 'My Universe', about: 'Explore missions', eyebrow: 'PICK A MISSION' }
 ];
 export const SLIDE_IDS = SLIDES.map((slide) => slide.id);
 export const TOOL_SLIDES = { focus: 'creative', notes: 'creative', checkin: 'creative', badges: 'progress', picked: 'creative', skill: 'progress', readiness: 'progress' };

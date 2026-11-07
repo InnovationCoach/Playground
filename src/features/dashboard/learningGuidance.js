@@ -1,5 +1,4 @@
 import { hrefFor } from '../../app/routes.js';
-import { completionReading } from './instrumentModel.js';
 
 const textOf = (value) => typeof value === 'string' ? value.trim()
   : value && typeof value === 'object' ? textOf(value.prompt || value.text || value.title) : '';
@@ -27,14 +26,12 @@ export function startHere({ data, today, checked, goalsLoaded, hasGoals, termPro
 }
 
 /**
- * Small, honest status for a slide in the dock. Only real records: nothing when
- * a value can't be verified, and never a combined "progress" percentage. My
- * Quests stays out: it only answers "what do I do next".
+ * Live status beside a section in the menu: only a running focus timer or sounds,
+ * so a learner can see them from other sections. Counts belong in My Progress,
+ * where their meaning is explained.
  */
-export function dockStats({ data, focus = null, playing = false }) {
+export function dockStats({ focus = null, playing = false }) {
   const stats = {};
-  const course = data.courses.find((item) => !item.progressUnavailable && !item.needsRecheck && item.summary && completionReading(item.summary.done, item.summary.total));
-  if (course) stats.progress = { text: `${course.summary.done}/${course.summary.total}`, label: `${course.summary.done} of ${course.summary.total} sessions marked complete` };
   if (focus) stats.creative = { text: focus, label: `focus timer ${focus} left` };
   else if (playing) stats.creative = { text: '♪', label: 'focus sounds playing' };
   return stats;

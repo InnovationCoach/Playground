@@ -10,8 +10,9 @@ page.on('request', (request) => {
   else request.continue();
 });
 const go = async (id) => {
-  await page.click(`[aria-controls="dashboard-slide-${id}"]`);
-  await page.waitForFunction((id) => document.querySelector(`[aria-controls="dashboard-slide-${id}"]`)?.getAttribute('aria-current') === 'step' && !document.querySelector(`[data-slide="${id}"]`)?.hasAttribute('inert'), {}, id);
+  if (await page.$eval('.sd-nav', (el) => getComputedStyle(el).display === 'none')) await page.select('.sd-nav-chooser select', id);
+  else await page.click(`[aria-controls="dashboard-slide-${id}"]`);
+  await page.waitForFunction((id) => document.querySelector(`.sd-nav-item[aria-controls="dashboard-slide-${id}"]`)?.getAttribute('aria-current') === 'page' && !document.querySelector(`[data-slide="${id}"]`)?.hasAttribute('inert'), {}, id);
   await page.waitForFunction((id) => {
     const track = document.querySelector('.sd-track'), panel = document.querySelector(`[data-slide="${id}"]`);
     return document.querySelector('.sd-grid-mode') || Math.abs(panel.getBoundingClientRect().left - track.getBoundingClientRect().left) < 3;
@@ -21,7 +22,7 @@ const click = async (selector, text) => {
   const found = await page.evaluate((selector, text) => { const el = [...document.querySelectorAll(selector)].find((e) => e.textContent.trim() === text); el?.click(); return !!el; }, selector, text);
   assert(found, `Missing control: ${text}`);
 };
-const active = () => page.$eval('.sd-indicator[aria-current=step]', (el) => el.getAttribute('aria-controls').replace('dashboard-slide-', ''));
+const active = () => page.$eval('.sd-nav-item[aria-current=page]', (el) => el.getAttribute('aria-controls').replace('dashboard-slide-', ''));
 const choose = async (label, value) => {
   const found = await page.evaluate((label, value) => { const el = [...document.querySelectorAll('label')].find((e) => e.textContent.startsWith(label))?.querySelector('select'); if (!el) return false; el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); return true; }, label, value);
   assert(found, `Missing select: ${label}`);
@@ -76,7 +77,7 @@ try {
   const wheelBox = await page.$eval('.sd-track', (el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + 80, width: r.width }; });
   await page.mouse.move(wheelBox.x, wheelBox.y);
   await page.mouse.wheel({ deltaX: wheelBox.width, deltaY: 0 });
-  await page.waitForFunction(() => document.querySelector('.sd-indicator[aria-current=step]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
+  await page.waitForFunction(() => document.querySelector('.sd-nav-item[aria-current=page]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
   await go('progress');
   assert.deepEqual(await page.$eval('.sd-record .ig-ring', (el) => [el.getAttribute('aria-valuenow'), el.getAttribute('aria-valuemax'), el.getAttribute('aria-valuetext')]), ['6', '24', '6 of 24 sessions marked complete by you']);
   assert((await page.$eval('#dashboard-slide-progress', (el) => el.innerText)).includes('Not connected'));
@@ -119,7 +120,7 @@ try {
   await page.reload({ waitUntil: 'networkidle0' });
   assert.equal(await active(), 'daily', 'Every new dashboard session opens the daily plan');
   assert.equal(await page.$eval('.md-root', (el) => el.dataset.theme), 'light');
-  assert.equal(await page.$eval('.sd-indicators button:nth-child(2)', (el) => el.getAttribute('aria-controls')), 'dashboard-slide-creative');
+  assert.equal(await page.$eval('.sd-nav li:nth-child(2) button', (el) => el.getAttribute('aria-controls')), 'dashboard-slide-creative');
   await page.click('[aria-label="Switch to grid view"]');
   assert.equal(await page.$$eval('.sd-slide[inert]', (els) => els.length), 0);
   await page.click('[aria-label="Switch to slide view"]');
@@ -138,7 +139,7 @@ try {
   await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: startX, y }] });
   for (let n = 1; n <= 10; n++) { await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: startX + (endX - startX) * n / 10, y }] }); await new Promise((resolve) => setTimeout(resolve, 20)); }
   await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await page.waitForFunction(() => document.querySelector('.sd-indicator[aria-current=step]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
+  await page.waitForFunction(() => document.querySelector('.sd-nav-item[aria-current=page]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await go('universe');
   assert.equal(await page.$eval('.sd-track', (el) => getComputedStyle(el).scrollBehavior), 'auto');

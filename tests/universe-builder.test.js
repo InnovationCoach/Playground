@@ -1,19 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { PUBLISHED_PILOT_RELEASES } from '../src/features/universe/pilot/publishedRegistry.js';
+import { PILOT_RELEASES } from '../src/features/universe/pilot/pilotRegistry.js';
 import { INTERESTS } from '../src/features/pbl/content/pblModel.js';
-import { TIME_OPTIONS, SUPPORT_LEVELS, MAX_HOOK, reviewedRoutes, isReviewedRelease, buildSittings, adaptMission, acceptableHook, withAiHook, restorePlan, routeTime } from '../src/features/universe/creator/missionCreator.js';
+import { TIME_OPTIONS, SUPPORT_LEVELS, MAX_HOOK, reviewedRoutes, isReviewedRelease, buildSittings, adaptMission, acceptableHook, withAiHook, restorePlan, routeTime } from '../src/features/universe/builder/missionBuilder.js';
 
-const routes = reviewedRoutes(PUBLISHED_PILOT_RELEASES);
+// The real pilot bundle is still awaiting review, so these tests use a copy marked as reviewed.
+const REVIEWED = [{ ...PILOT_RELEASES[0], status: 'published', reviewState: { technical: 'accepted', science: 'educator-approved', curriculum: 'educator-approved', publication: 'authorized' } }];
+const routes = reviewedRoutes(REVIEWED);
 const entry = routes[0];
 const choices = { entry, interest: 'Music', minutes: 15, support: 'more' };
 
-describe('AI Creator keeps what the mission teaches', () => {
+describe('review state', () => {
+  it('keeps the bundle’s own pending state and never asserts approval', () => {
+    expect(PILOT_RELEASES[0].status).toBe('draft');
+    expect(PILOT_RELEASES[0].reviewState).toMatchObject({ science: 'educator-pending', curriculum: 'educator-pending', publication: 'not-authorized' });
+    expect(reviewedRoutes(PILOT_RELEASES)).toEqual([]);
+  });
+});
+
+describe('Mission Builder keeps what the mission teaches', () => {
   it('offers only routes from a release with educator approval', () => {
     expect(routes.length).toBeGreaterThan(0);
-    const unreviewed = { ...PUBLISHED_PILOT_RELEASES[0], reviewState: { science: 'pending', curriculum: 'educator-approved', publication: 'authorized' } };
+    const unreviewed = { ...REVIEWED[0], reviewState: { science: 'pending', curriculum: 'educator-approved', publication: 'authorized' } };
     expect(isReviewedRelease(unreviewed)).toBe(false);
     expect(reviewedRoutes([unreviewed])).toEqual([]);
-    expect(reviewedRoutes([{ ...PUBLISHED_PILOT_RELEASES[0], status: 'draft' }])).toEqual([]);
+    expect(reviewedRoutes([{ ...REVIEWED[0], status: 'draft' }])).toEqual([]);
   });
   it('holds no answers, rubric or editable copy of the mission', () => {
     const plan = adaptMission(choices);

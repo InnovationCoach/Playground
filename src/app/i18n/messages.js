@@ -77,7 +77,7 @@ export const messages = {
     'courses.discoverCta': 'Discover courses',
     'nav.children': 'My children',
     'nav.console': 'Admin console',
-    'nav.goals': 'Goal setting',
+    'nav.goals': 'My Goals',
     'nav.primaryResources': 'Primary resources',
     'nav.teaching': 'Teaching',
     'nav.coachDashboard': 'Coach dashboard',

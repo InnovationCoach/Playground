@@ -1,8 +1,8 @@
 import { ArrowRight, MapPin } from 'lucide-react';
 import { lazy, Suspense, useMemo, useState } from 'react';
-import { PUBLISHED_PILOT_RELEASES } from '../universe/pilot/publishedRegistry.js';
-import { MissionCreator } from '../universe/creator/MissionCreator.jsx';
-import { reviewedRoutes, routeTime } from '../universe/creator/missionCreator.js';
+import { PILOT_RELEASES } from '../universe/pilot/pilotRegistry.js';
+import { MissionBuilder } from '../universe/builder/MissionBuilder.jsx';
+import { reviewedRoutes, allRoutes, routeTime, isReviewedRelease } from '../universe/builder/missionBuilder.js';
 const MyUniverseExplorer = lazy(() => import('../universe/explore/MyUniverseExplorer.jsx').then(m => ({ default: m.MyUniverseExplorer })));
 
 const PREVIEWS = [
@@ -13,25 +13,27 @@ const PREVIEWS = [
 
 /**
  * My Universe is a place to enter, not a second dashboard: each mission preview
- * has one start button, the AI Creator fits a mission to the learner, and goals,
+ * has one start button, Mission Builder fits a mission to the learner, and goals,
  * badges and stats stay in My Quests and My Progress.
  */
 // The earlier SVG island prototype stays in src/features/universe/ (preview: tests/universe-preview/index.html)
 // but is not offered to learners: the approved vision replaced the island with the deep-space explorer.
-export function SparkUniverse({ prefs, uid, orgId, active = true, onOpenActivity }) {
+export function SparkUniverse({ prefs, uid, orgId, active = true, onOpenActivity, registry = PILOT_RELEASES }) {
   const [explorerOpen, setExplorerOpen] = useState(false);
   const [arrival, setArrival] = useState(null);
   const [plan, setPlan] = useState(null);
-  const routes = useMemo(() => reviewedRoutes(PUBLISHED_PILOT_RELEASES), []);
+  const routes = useMemo(() => reviewedRoutes(registry), [registry]);
+  const everyRoute = useMemo(() => allRoutes(registry), [registry]);
+  const pending = !registry.every(isReviewedRelease);
   const open = (next, nextPlan = null) => { setArrival(next); setPlan(nextPlan); setExplorerOpen(true); };
   const close = () => { setExplorerOpen(false); setArrival(null); setPlan(null); };
-  const timeFor = (x) => routeTime(routes.find((r) => r.mission.id === x.missionId && r.route.id === x.routeId)?.route);
+  const timeFor = (x) => routeTime(everyRoute.find((r) => r.mission.id === x.missionId && r.route.id === x.routeId)?.route);
   return <>
     {explorerOpen && <Suspense fallback={<p role="status">Opening My Universe…</p>}>
       <MyUniverseExplorer
         preview={true}
         allowInReviewMissions={true}
-        missionRegistry={PUBLISHED_PILOT_RELEASES}
+        missionRegistry={registry}
         initialArrival={arrival}
         missionPlan={plan}
         viewer={uid && orgId ? { uid, orgId } : null}
@@ -42,6 +44,7 @@ export function SparkUniverse({ prefs, uid, orgId, active = true, onOpenActivity
       />
     </Suspense>}
     <p className="sd-intro">Pick a mission and start. You’ll travel to the planet and work on a real problem.</p>
+    {pending && <p className="sd-notice" role="note">Teachers are still checking these missions. You can try them, but they may change.</p>}
     <ul className="uv-missions" aria-label="Missions">
       {PREVIEWS.map((x) => <li key={x.id} className="uv-mission">
         <h3>{x.title}</h3>
@@ -53,7 +56,7 @@ export function SparkUniverse({ prefs, uid, orgId, active = true, onOpenActivity
         </button>
       </li>)}
     </ul>
-    <MissionCreator routes={routes} uid={uid} interests={prefs.interests}
+    <MissionBuilder routes={routes} uid={uid} interests={prefs.interests}
       onStart={(p) => open({ planetId: p.planetId, missionId: p.missionId, routeId: p.routeId }, p)} />
     <button type="button" className="sd-text-button uv-explore" onClick={() => open(null)}>Or explore the whole universe <ArrowRight size={16} aria-hidden="true" /></button>
   </>;

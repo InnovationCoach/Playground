@@ -302,7 +302,7 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
   const routeLabel = route ? scenarioLabel(bundle, mission, route, design) : '';
 
   const draftLabel = bundle.status !== 'published';
-  // AI Creator overlay: shown beside the reviewed mission, which it can't change.
+  // Mission Builder overlay: shown beside the reviewed mission, which it can't change.
   const myPlan = plan?.missionId === mission.id && (!route || plan.routeId === route.id) ? plan : null;
   return <div className="mx-mission-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) requestClose(); }}>
     <section className="mx-mission px-sheet is-focus" role="dialog" aria-modal="true" aria-labelledby="px-title" onKeyDown={onKeyDown} ref={sheetRef}>
