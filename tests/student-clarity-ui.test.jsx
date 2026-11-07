@@ -10,6 +10,7 @@ import { newQuests, questReason, plainTitle } from '../src/features/home/discove
 import { PILOT_RELEASES } from '../src/features/universe/pilot/pilotRegistry.js';
 import { DashboardDeck } from '../src/features/dashboard/DashboardDeck.jsx';
 import { toolGroups } from '../src/features/dashboard/allTools.js';
+import { buildSky, SKY } from '../src/features/dashboard/skyModel.js';
 import { menuFor } from '../src/features/shell/Sidebar.jsx';
 import { hydrateSlides, SLIDES } from '../src/features/dashboard/slideModel.js';
 import { parseRoute } from '../src/app/routes.js';
@@ -60,6 +61,49 @@ describe('My Quests', () => {
     for (const label of ['Today', 'Coming up', 'Done']) expect(buttonIn(details, label)).toBeTruthy();
     expect(details.querySelector('#lh-pbl-title').textContent).toBe('My projects');
     expect(details.querySelector('#lh-academic-title').textContent).toBe('School courses');
+  });
+});
+
+describe('My Quests for 2e learners', () => {
+  const goal = (id, steps, done = false) => ({ id, explore: `Goal ${id}`, done, steps });
+  const step = (id, done = false) => ({ id, text: `Step ${id}`, done });
+  it('lights a star only for a real finished step, and keeps each sky’s shape', () => {
+    const goals = [goal('a', [step('1', true), step('2')]), goal('b', [step('3')], true), goal('c', [])];
+    const sky = buildSky(goals);
+    expect(sky.stars).toHaveLength(4);
+    expect(sky.lit.map((s) => s.text)).toEqual(['Step 1', 'Step 3']);
+    expect(sky.links.filter((l) => l.lit)).toHaveLength(0);
+    expect(buildSky(goals)).toEqual(sky);
+    for (const s of sky.stars) { expect(s.x).toBeGreaterThanOrEqual(0); expect(s.x).toBeLessThanOrEqual(SKY.width); expect(s.y).toBeLessThanOrEqual(SKY.height); }
+    expect(buildSky([])).toEqual({ stars: [], links: [], lit: [] });
+  });
+  it('says what the sky shows in words, with no points or levels', () => {
+    mount(<DailyLearningSlide {...quests({ ...newPlan(), goals: [goal('a', [step('1', true), step('2')])] })} />);
+    const sky = host.querySelector('.qb-sky');
+    expect(sky.textContent).toContain('Every star is a step you finished');
+    expect(sky.textContent).toContain('Step 1');
+    expect(sky.querySelectorAll('svg .qb-star[data-lit]')).toHaveLength(1);
+    expect(host.textContent).not.toMatch(/\bXP\b|\blevel\b|\bpoints\b/i);
+  });
+  it('invites a learner to name their strengths, then shows them', () => {
+    mount(<DailyLearningSlide {...quests(newPlan())} />);
+    expect(host.querySelector('.qb-strengths').textContent).toContain('Choose my strengths');
+    act(() => root.unmount()); host.remove();
+    mount(<DailyLearningSlide {...quests({ ...newPlan(), strengths: ['building'] })} />);
+    expect(host.querySelector('.qb-strengths').textContent).toContain('Building and making things');
+  });
+  it('offers a way out when stuck: another step, a smaller one, or a coach', () => {
+    const today = [{ id: 'step:a:1', kind: 'step', text: 'First step', goal: 'Goal a' }, { id: 'step:b:2', kind: 'step', text: 'Second step', goal: 'Goal b' }];
+    const props = quests({ ...newPlan(), goals: [goal('a', [step('1')]), goal('b', [step('2')])] }, today);
+    mount(<DailyLearningSlide {...props} />);
+    expect(host.querySelector('.qb-hero h3').textContent).toBe('First step');
+    const stuck = host.querySelector('.qb-stuck');
+    expect([...stuck.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['#/goals', '#/messages']);
+    press(/Do this instead/, stuck);
+    expect(host.querySelector('.qb-hero h3').textContent).toBe('Second step');
+    press(/I’ve done this/);
+    expect(props.onToggle).toHaveBeenCalledWith(today[1]);
+    expect(host.querySelector('.qb-done').textContent).toContain('sky');
   });
 });
 

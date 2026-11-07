@@ -4,17 +4,23 @@ const textOf = (value) => typeof value === 'string' ? value.trim()
   : value && typeof value === 'object' ? textOf(value.prompt || value.text || value.title) : '';
 export const nextGoalStep = (goal) => goal.done ? null : goal.steps.find((step) => !step.done && step.text?.trim()) || null;
 
+/** One of today's items, offered as the next step. */
+export function questFromItem(item) {
+  if (item.kind === 'step') return { title: item.text, body: `A step towards your goal: ${item.goal}`, href: hrefFor.goals(), action: 'Open my goal', source: 'Your goal', item };
+  return { title: item.text, body: 'A small thing you chose to do today.', href: hrefFor.goals(), action: 'Open my plan', source: 'Your plan', item };
+}
+
 /** Suggest from existing records, never manufacture deadlines or completion. */
 export function startHere({ data, today, checked, goalsLoaded, hasGoals, termProject = null }) {
   if (!goalsLoaded) return { loading: true, title: 'Finding your next step…', body: 'Loading your saved learning plan.' };
   const task = today.find((item) => item.kind === 'step' && !checked.has(item.id));
-  if (task) return { title: task.text, body: `A step towards your goal: ${task.goal}`, href: hrefFor.goals(), action: 'Open my goal', source: 'Your goal', item: task };
+  if (task) return questFromItem(task);
   const recheck = data.courses.find((item) => item.needsRecheck);
   if (recheck) return { title: 'Re-check your completed sessions', body: `${recheck.program.title}’s session numbers were corrected. Confirm which sessions you’ve finished.`, href: hrefFor.program(recheck.program.id, 'plan'), action: 'Open project', source: 'Your current project' };
   const course = data.courses.find((item) => !item.progressUnavailable && item.summary?.next);
   if (course) return { title: course.summary.next.title, body: course.program.title, href: hrefFor.program(course.program.id, 'plan'), action: 'Continue project', source: 'Your current project' };
   const personal = today.find((item) => !checked.has(item.id));
-  if (personal) return { title: personal.text, body: 'A small thing you chose to do today.', href: hrefFor.goals(), action: 'Open my plan', source: 'Your plan', item: personal };
+  if (personal) return questFromItem(personal);
   if (data.state === 'loading') return { loading: true, title: 'Finding your next project step…', body: 'Your personal checklist has no remaining items. Loading your project records.' };
   if (data.state === 'error' || data.warnings.length || data.courses.some((item) => item.progressUnavailable)) return { title: 'Check your current learning', body: 'Some project records are unavailable. Open your courses to check the next step.', href: hrefFor.courses(), action: 'Open My Courses', source: 'Course records unavailable' };
   const unstarted = data.courses.find((item) => !item.summary);

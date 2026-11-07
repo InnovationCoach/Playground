@@ -7,7 +7,9 @@ import { PHASES } from '../pbl/content/pblModel.js';
 import { phaseProgress } from '../pbl/engine/pblProject.js';
 import { hrefFor } from '../../app/routes.js';
 import { TodayWidget } from './DashboardWidgets.jsx';
-import { startHere, nextGoalStep, programJourney } from './learningGuidance.js';
+import { startHere, questFromItem, nextGoalStep, programJourney } from './learningGuidance.js';
+import { QuestScene, YourSky } from './DashboardScenes.jsx';
+import { STRENGTHS } from '../goals/goalPlan.js';
 import { splitGoals } from './slideModel.js';
 import { loadDashboardCourses } from './dashboardCourses.js';
 import { SessionGauge, UnavailableDial, StepMeter, Spark } from './Instruments.jsx';
@@ -93,21 +95,54 @@ function AcademicLearning() {
 }
 
 /**
- * My Quests answers one question: what do I do next? One action sits on the
- * page; the rest of the plan is a tap away, with its numbers in My Progress.
+ * My Quests answers one question: what do I do next? For 2e learners it also keeps
+ * three things close: real progress they can see (Your sky), what they're good at,
+ * and a choice when a step feels too big. Everything here comes from their records.
  */
 export function DailyLearningSlide({ data, model, plan, project, firstName, onToggle, goalsLoaded, goalSync, onOpenActivity, joinPanel = null }) {
-  const guidance = startHere({ data, today: model.today, checked: model.ticked, goalsLoaded, hasGoals: plan.goals.length > 0, termProject: project });
+  const [chosenId, setChosenId] = useState(null);
+  const [justDone, setJustDone] = useState(false);
+  const open = model.today.filter((item) => !model.ticked.has(item.id));
+  const chosen = open.find((item) => item.id === chosenId);
+  const guidance = chosen ? questFromItem(chosen) : startHere({ data, today: model.today, checked: model.ticked, goalsLoaded, hasGoals: plan.goals.length > 0, termProject: project });
+  const others = open.filter((item) => item.id !== guidance.item?.id);
+  const strengths = (plan.strengths || []).map((id) => STRENGTHS.find((item) => item.id === id)?.label).filter(Boolean).slice(0, 4);
+  function done() {
+    onToggle(guidance.item);
+    setChosenId(null);
+    setJustDone(true);
+  }
   return <>
     <p className="sd-intro">{firstName ? <><strong className="ig-greeting">Hi, {firstName}.</strong> </> : null}Here’s what to do next.</p>
-    <section className="sd-start-here" aria-label="Your next step" aria-live="polite">
-      <span className="sd-start-icon" aria-hidden="true"><Spark size={24} /><b>NEXT</b></span>
-      <div><span className="sd-eyebrow">{guidance.source || 'Your next step'}</span><h3>{guidance.title}</h3><p>{guidance.body}</p></div>
-      <div className="lh-next-actions">
-        {guidance.href && <a className="sd-primary" href={guidance.href}>{guidance.action}<ArrowRight size={16} /></a>}
-        {guidance.item && <button type="button" className="sd-text-button" onClick={() => onToggle(guidance.item)}><Check size={15} aria-hidden="true" /> I’ve done this</button>}
+    <div className="qb-board">
+      <div className="qb-main">
+        <section className="sd-start-here qb-hero" aria-label="Your next step" aria-live="polite">
+          <QuestScene />
+          <div className="qb-hero-text"><span className="sd-eyebrow"><Spark size={13} /> {guidance.source || 'Your next step'}</span><h3>{guidance.title}</h3><p>{guidance.body}</p></div>
+          <div className="qb-hero-actions">
+            {guidance.href && <a className="sd-primary" href={guidance.href}>{guidance.action}<ArrowRight size={16} /></a>}
+            {guidance.item && <button type="button" className="sd-text-button" onClick={done}><Check size={15} aria-hidden="true" /> I’ve done this</button>}
+          </div>
+        </section>
+        {justDone && <p className="qb-done" role="status">Nice work. Your sky just got brighter.</p>}
+        <details className="qb-stuck">
+          <summary>Stuck, or not feeling this one?</summary>
+          <div className="qb-stuck-list">
+            {others.slice(0, 2).map((item) => <button type="button" key={item.id} className="qb-choice" onClick={() => setChosenId(item.id)}><strong>Do this instead</strong>{item.text}</button>)}
+            <a className="qb-choice" href={hrefFor.goals()}><strong>Make it smaller</strong>Change this into a tiny step you can start now.</a>
+            <a className="qb-choice" href={hrefFor.messages()}><strong>Ask my coach</strong>Send a message. Asking early is a good move.</a>
+          </div>
+        </details>
       </div>
-    </section>
+      <div className="qb-side">
+        <YourSky goals={plan.goals} />
+        <section className="qb-strengths" aria-labelledby="qb-strengths-title">
+          <h3 id="qb-strengths-title">What you’re great at</h3>
+          {strengths.length ? <ul>{strengths.map((label) => <li key={label}>{label}</li>)}</ul> : <p>Everyone has things they’re brilliant at. What are yours?</p>}
+          <a href={hrefFor.goals()}>{strengths.length ? 'Change these' : 'Choose my strengths'} <ArrowRight size={14} aria-hidden="true" /></a>
+        </section>
+      </div>
+    </div>
     {joinPanel}
     <details className="lh-full-plan">
       <summary>See my whole plan</summary>
