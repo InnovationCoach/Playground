@@ -11,7 +11,7 @@ import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebas
 import fs from 'fs';
 import { collection, doc, getDoc, getDocs, query, runTransaction, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
 
-const RULES_FILE = process.env.PROGRAMS_RULES_FILE || 'docs/implementation/programs-library/firestore.rules.proposed';
+const RULES_FILE = process.env.PROGRAMS_RULES_FILE || 'firestore.rules';
 const host = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8288';
 const projectId = process.env.GCLOUD_PROJECT || 'demo-hearisland-rules';
 if (!/^(127\.0\.0\.1|localhost):\d+$/.test(host) || !/^demo-[a-z0-9-]+$/.test(projectId)) {
