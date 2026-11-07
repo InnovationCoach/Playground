@@ -6,7 +6,8 @@ const page = await browser.newPage(), errors = [], external = [];
 page.on('pageerror', (error) => errors.push(error.stack));
 await page.setRequestInterception(true);
 page.on('request', (request) => {
-  if (!request.url().startsWith(base) && !request.url().startsWith('data:')) { external.push(request.url()); request.abort(); }
+  if (request.url().startsWith('https://res.cloudinary.com/dkplz6vbx/') && request.resourceType() === 'image') request.continue(); // the mission video frames
+  else if (!request.url().startsWith(base) && !request.url().startsWith('data:')) { external.push(request.url()); request.abort(); }
   else request.continue();
 });
 const go = async (id) => {

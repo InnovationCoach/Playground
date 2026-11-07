@@ -1,0 +1,142 @@
+/*
+ * Character for My Dashboard, loaded last. Built around what keeps 2e learners
+ * engaged: real progress they can see, strengths next to challenges, choice, and
+ * a way out when stuck. Colour and drawing do the work; motion is slow, small and
+ * off in Calm view and for reduced motion. Nothing flashes or plays by itself.
+ */
+
+/* Fit-to-window view: the sections scroll inside, so the page itself must not. */
+@media(min-height:520px) { body.sd-fit-page { overflow:hidden;padding-bottom:0; } body.sd-fit-page>.container { margin:0; } }
+
+/* ---------- Section menu: each destination has its own colour ---------- */
+.sd-nav-item[aria-controls="dashboard-slide-daily"] { --tone:#7a4fa0;--tone-soft:#f1e8f8; }
+.sd-nav-item[aria-controls="dashboard-slide-find"] { --tone:#1d6fb0;--tone-soft:#e3f1fc; }
+.sd-nav-item[aria-controls="dashboard-slide-progress"] { --tone:#4f7f00;--tone-soft:#eef7d8; }
+.sd-nav-item[aria-controls="dashboard-slide-creative"] { --tone:#ae266c;--tone-soft:#fbe6f0; }
+.sd-nav-item[aria-controls="dashboard-slide-universe"] { --tone:#16356b;--tone-soft:#e2e8f6; }
+[data-theme="dark"] .sd-nav-item { --tone-soft:rgba(255,255,255,.1); }
+[data-theme="dark"] .sd-nav-item[aria-controls="dashboard-slide-daily"] { --tone:#c79be6; }
+[data-theme="dark"] .sd-nav-item[aria-controls="dashboard-slide-find"] { --tone:#9bd2ff; }
+[data-theme="dark"] .sd-nav-item[aria-controls="dashboard-slide-progress"] { --tone:#b4ec3a; }
+[data-theme="dark"] .sd-nav-item[aria-controls="dashboard-slide-creative"] { --tone:#f39bc6; }
+[data-theme="dark"] .sd-nav-item[aria-controls="dashboard-slide-universe"] { --tone:#c9d6f2; }
+.sd-root .sd-nav-item svg { color:var(--tone); }
+.sd-nav-icon { display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:11px;background:var(--tone-soft); }
+.sd-root .sd-nav-item[aria-current="page"] { border-color:var(--tone);background:var(--tone-soft);box-shadow:inset 0 -4px 0 var(--tone); }
+.sd-root .sd-nav-item[aria-current="page"] svg { color:var(--tone); }
+.sd-root .sd-nav-item[aria-current="page"] .sd-nav-icon { background:var(--gh-surface); }
+@media(max-width:820px) { .sd-nav-icon { width:32px;height:32px; } }
+
+/* ---------- Quieter section titles, so the content leads ---------- */
+.sd-root .sd-slide-content>h2 { font-size:clamp(24px,2.4vw,32px);margin:6px 0 6px; }
+.sd-root .sd-intro { font-size:15px; }
+.sd-root .ig-greeting { font-size:1.05em; }
+
+/* ---------- My Quests ---------- */
+.qb-board { display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:16px;margin-top:14px;align-items:stretch; }
+.qb-main { display:flex;flex-direction:column;gap:12px;min-width:0; }
+.qb-side { display:flex;flex-direction:column;gap:12px;min-width:0; }
+@media(max-width:900px) { .qb-board { grid-template-columns:1fr; } }
+
+.sd-root section.qb-hero { position:relative;display:flex;flex-direction:column;flex:1;align-items:flex-start;justify-content:center;gap:10px;min-height:270px;margin:0;padding:26px 28px;overflow:hidden;border:0;border-radius:22px;
+  background:linear-gradient(115deg,#f6efff 0%,#e7f1ff 52%,#f2fadf 100%);color:#10284a;box-shadow:0 10px 30px rgba(50,40,110,.1); }
+[data-theme="dark"] .sd-root section.qb-hero { background:linear-gradient(115deg,#1a1440 0%,#0f2b52 60%,#123a3a 100%);color:#f2f6fc;box-shadow:none; }
+.sd-root .qb-hero .qb-hero-text { position:relative;z-index:1;flex:none;width:58%;min-width:0; }
+.sd-root .qb-hero .sd-eyebrow { display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.75);color:#5a2f7c; }
+[data-theme="dark"] .sd-root .qb-hero .sd-eyebrow { background:rgba(255,255,255,.12);color:#dcc3f5; }
+.sd-root .qb-hero h3 { margin:12px 0 6px;font:800 clamp(24px,2.6vw,34px)/1.14 var(--gh-font-display,inherit);letter-spacing:-.02em;color:inherit; }
+.sd-root .qb-hero p { margin:0;font-size:15px;line-height:1.5;color:inherit;opacity:.9; }
+.qb-hero-actions { position:relative;z-index:1;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin-top:8px; }
+.sd-root .qb-hero .sd-primary { font-size:15px;padding:12px 20px; }
+.sd-root .qb-hero .sd-text-button { display:inline-flex;align-items:center;gap:6px;color:inherit;font-weight:700; }
+.qb-scene { position:absolute;top:0;right:-4%;width:46%;height:100%; }
+@media(max-width:640px) { .sd-root .qb-hero .qb-hero-text { width:100%; } .qb-scene { opacity:.28;width:100%;right:0; } .sd-root section.qb-hero { padding:20px;min-height:0; } }
+
+.qb-p1 { stop-color:#ffd9a8; } .qb-p2 { stop-color:#e86fa8; } .qb-p3 { stop-color:#6a3fb0; }
+.qb-tail-a { stop-color:#7a4fa0; }
+.qb-dust circle { fill:#7a4fa0;opacity:.34; }
+.qb-orbit { fill:none;stroke:#7a4fa0;stroke-opacity:.35;stroke-width:1.5;stroke-dasharray:3 7; }
+.qb-band { fill:none;stroke:#fff;stroke-opacity:.26;stroke-width:9;stroke-linecap:round; }
+.qb-ring { fill:none;stroke:#10284a;stroke-opacity:.5;stroke-width:5;stroke-linecap:round; }
+.qb-moon { fill:#96d700; }
+.qb-comet circle { fill:#7a4fa0; }
+[data-theme="dark"] .qb-dust circle { fill:#fff;opacity:.6; }
+[data-theme="dark"] .qb-orbit { stroke:#fff;stroke-opacity:.3; }
+[data-theme="dark"] .qb-ring { stroke:#fff;stroke-opacity:.55; }
+[data-theme="dark"] .qb-comet circle { fill:#fff; }
+[data-theme="dark"] .qb-tail-a { stop-color:#fff; }
+.qb-float { transform-box:fill-box;transform-origin:center;animation:qb-float 9s ease-in-out infinite alternate; }
+.qb-comet { animation:qb-comet 14s ease-in-out infinite alternate; }
+@keyframes qb-float { to { transform:translateY(-7px); } }
+@keyframes qb-comet { to { transform:translate(26px,-9px); } }
+
+.qb-done { margin:0;padding:10px 14px;border-radius:12px;background:var(--gh-green-50,#f2fadf);color:var(--gh-green-text,#4a6a00);font-weight:700;font-size:14px; }
+
+/* Stuck, or not feeling it: choices, never a telling-off. */
+.qb-stuck { border:1px solid var(--gh-border);border-radius:16px;background:var(--gh-surface); }
+.qb-stuck>summary { display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;font-weight:700;color:var(--gh-heading);list-style-position:inside; }
+.qb-stuck>summary:focus-visible { outline:3px solid var(--gh-heading);outline-offset:2px;border-radius:16px; }
+.qb-stuck-list { display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;padding:0 14px 14px; }
+.sd-root .qb-choice { display:block;width:100%;padding:11px 13px;border:1px solid var(--gh-border);border-radius:12px;background:var(--gh-subtle);color:var(--gh-text);font:inherit;font-size:13.5px;line-height:1.35;text-align:left;text-decoration:none;cursor:pointer; }
+.sd-root .qb-choice:hover { border-color:var(--gh-border-strong); }
+.sd-root .qb-choice:focus-visible { outline:3px solid var(--gh-heading);outline-offset:2px; }
+.sd-root .qb-choice strong { display:block;color:var(--gh-heading);font-size:14px; }
+
+/* Your sky: a small window onto space, the same in both themes. */
+.qb-sky { position:relative;flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-height:236px;overflow:hidden;border-radius:22px;background:radial-gradient(90% 90% at 80% 0%,#3a2a78 0%,#142a56 55%,#0b1a38 100%);color:#f2f6fc; }
+.qb-sky-art { position:absolute;inset:0;width:100%;height:100%; }
+.qb-sky-dust circle { fill:#fff;opacity:.5; }
+.qb-sky-art line { stroke:#fff;stroke-opacity:.42;stroke-width:1.5;stroke-dasharray:2 6; }
+.qb-sky-art line[data-lit] { stroke:#c9f06a;stroke-opacity:.85;stroke-dasharray:none;stroke-width:2; }
+.qb-star circle { fill:#c6d3ea; }
+.qb-star[data-lit] circle { fill:#e8ffb0; }
+.qb-star .qb-star-glow { fill:#b4ec3a;opacity:.26;transform-box:fill-box;transform-origin:center;animation:qb-glow 5s ease-in-out infinite alternate; }
+@keyframes qb-glow { to { opacity:.42;transform:scale(1.14); } }
+.qb-sky-text { position:relative;padding:14px 18px 16px;background:linear-gradient(to top,rgba(9,20,44,.94) 55%,rgba(9,20,44,0)); }
+.sd-root .qb-sky-text h3 { margin:0 0 2px;font-size:17px;color:#fff; }
+.qb-sky-text p { margin:0;font-size:13.5px;line-height:1.4;color:#d5def0; }
+.qb-sky-text ul { margin:6px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.4;color:#f2f6fc; }
+.qb-sky-text li::before { content:'✦';margin-right:6px;color:#c9f06a; }
+
+/* What you're great at */
+.qb-strengths { padding:14px 16px;border-radius:18px;background:linear-gradient(120deg,#fff5e2,#fdeef5);color:#42281a; }
+[data-theme="dark"] .qb-strengths { background:linear-gradient(120deg,#3a2a18,#351a30);color:#fbeee0; }
+.sd-root .qb-strengths h3 { margin:0 0 8px;font-size:15px;color:inherit; }
+.qb-strengths p { margin:0 0 8px;font-size:13.5px;line-height:1.4; }
+.qb-strengths ul { display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px;padding:0;list-style:none; }
+.qb-strengths li { padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.75);font-size:13px;font-weight:650; }
+[data-theme="dark"] .qb-strengths li { background:rgba(255,255,255,.12); }
+.sd-root .qb-strengths a { color:inherit;font-size:13.5px;font-weight:700; }
+
+/* ---------- Find a Quest: every quest gets a cover ---------- */
+.sd-root .fq-card { padding:0;overflow:hidden; }
+.fq-card-body { display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:8px;padding:14px 18px 18px; }
+.fq-art { position:relative;display:grid;place-items:center;width:100%;height:112px;overflow:hidden;color:#fff;background:linear-gradient(120deg,#6a3fb0,#b0417f); }
+.fq-art[data-tone="sky"] { background:linear-gradient(120deg,#135d97,#2ea3b8); }
+.fq-art[data-tone="green"] { background:linear-gradient(120deg,#2f7a3c,#8fb51f); }
+.fq-art[data-tone="amber"] { background:linear-gradient(120deg,#b4531a,#e6a11c); }
+.fq-art[data-tone="magenta"] { background:linear-gradient(120deg,#8e1f62,#e0568f); }
+.fq-art[data-tone="navy"] { background:linear-gradient(120deg,#10284a,#3f4fa0); }
+.fq-art::before,.fq-art::after { content:'';position:absolute;border-radius:50%;background:rgba(255,255,255,.14); }
+.fq-art::before { width:150px;height:150px;right:-40px;top:-60px; }
+.fq-art::after { width:80px;height:80px;left:-20px;bottom:-30px; }
+.fq-art-emoji { position:relative;font-size:44px;line-height:1; }
+.fq-art svg { position:relative; }
+
+.sd-root .fq-list { grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+
+/* ---------- My Universe ---------- */
+.sd-root .ig-plate.uv-enter { position:relative;min-height:170px;overflow:hidden;border:0;border-radius:22px;padding:26px 28px;background:radial-gradient(70% 120% at 85% 10%,#4a2d8c 0%,#142a56 55%,#081733 100%);color:#fff;box-shadow:none; }
+.uv-enter-art { position:absolute;inset:0;width:100%;height:100%; }
+.uv-enter-art circle { fill:#fff;opacity:.7; }
+.uv-enter>div,.uv-enter>button { position:relative; }
+.sd-root .uv-enter h3 { color:#fff;font-size:clamp(22px,2.4vw,30px); }
+.sd-root .uv-enter .sd-caption { color:#d5def0;font-size:14.5px; }
+.sd-root .uv-mission { padding:0;overflow:hidden; }
+.uv-mission-figure { width:100%;aspect-ratio:16/9;overflow:hidden;background:#10284a; }
+.uv-mission-img { display:block;width:100%;height:100%;object-fit:cover; }
+.uv-mission-body { display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:6px;padding:14px 18px 18px; }
+
+/* ---------- Calm view and reduced motion: everything holds still ---------- */
+.md-calm .qb-float,.md-calm .qb-comet,.md-calm .qb-star-glow { animation:none; }
+@media(prefers-reduced-motion:reduce) { .qb-float,.qb-comet,.qb-star-glow { animation:none; } }
