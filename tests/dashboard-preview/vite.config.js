@@ -7,6 +7,7 @@ const root = path.resolve(here, '../..');
 const replacements = new Map([
   [path.join(root, 'src/firebase.js'), path.join(here, 'fixtureFirebase.js')],
   [path.join(root, 'src/auth.js'), path.join(here, 'fixtureAuth.js')],
+  [path.join(root, 'src/app/AuthProvider.jsx'), path.join(here, 'fixtureAuthProvider.jsx')],
   [path.join(root, 'src/features/dashboard/dashboardCourses.js'), path.join(here, 'fixtureCourses.js')]
 ]);
 export default defineConfig({

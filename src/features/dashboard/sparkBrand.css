@@ -153,13 +153,6 @@
 .ig-bay { border-color:color-mix(in srgb,var(--sp-sky-line) 40%,var(--gh-border)); }
 .ig-bay svg { color:var(--sp-sky-text); }
 
-/* ---------- Dock: purple selection, lime counts ---------- */
-.sd-root .sd-indicators { background:var(--gh-surface);border-color:var(--gh-border); }
-.sd-root .sd-indicator { color:var(--gh-text-2); }
-.sd-root .sd-indicator[aria-current=step] { background:var(--sp-purple-fill);color:#fff; }
-.sd-indicator-stat { color:var(--sp-lime-text);border-color:currentColor; }
-.sd-root .sd-indicator[aria-current=step] .sd-indicator-stat { color:#fff; }
-
 /* ---------- Calm and reduced motion: no glows ---------- */
 .sd-root.md-calm .sd-start-here,.sd-root.md-calm .sd-record.ig-dial-plate { background:var(--ig-face); }
 .sd-root.md-calm .sd-primary { box-shadow:none; }
@@ -214,10 +207,14 @@
 .sd-root .sd-slide-content>h2 { background:var(--sp-h2-ink);-webkit-background-clip:text;background-clip:text;color:transparent; }
 @media (forced-colors:active) { .sd-root .sd-slide-content>h2 { color:CanvasText;background:none; } }
 
-/* Paper cards: depth instead of hard borders. */
-.sd-root .ig-plate,.sd-root .sd-record.ig-dial-plate,.sd-root .sd-workspace-tools .sd-tool,
-.sd-root .sd-personal-tasks,.sd-root .sd-academic>.ig-plate-quiet,.sd-root .sd-indicators,
-.sd-root .sd-plan-tabs,.sd-root .sd-plan-tabs.lh-tabs,.sd-root .sd-button { border-color:var(--sp-card-border);box-shadow:var(--sp-card-shadow); }
+.sd-root .ig-plate,
+.sd-root .sd-record.ig-dial-plate,
+.sd-root .sd-workspace-tools .sd-tool,
+.sd-root .sd-personal-tasks,
+.sd-root .sd-academic>.ig-plate-quiet,
+.sd-root .sd-plan-tabs,
+.sd-root .sd-plan-tabs.lh-tabs,
+.sd-root .sd-button{ border-color:var(--sp-card-border);box-shadow:var(--sp-card-shadow); }
 .sd-root .sd-project { border-color:var(--sp-card-border);box-shadow:inset 6px 0 0 var(--brand-lime),var(--sp-card-shadow-hi); }
 .sd-root .sd-goal { border-color:var(--sp-card-border);box-shadow:inset 4px 0 0 var(--sp-magenta-fill),var(--sp-card-shadow); }
 .sd-root .sd-creative-links a { border-color:var(--sp-card-border);box-shadow:inset 6px 0 0 var(--sp-purple-fill),var(--sp-card-shadow); }
@@ -332,19 +329,26 @@
   box-shadow: 0 8px 24px -4px rgba(130,80,160,0.35);
 }
 
-/* ---------- Momentum tracker card ---------- */
-.sd-root .sd-momentum-bar,
-.sd-root .sd-momentum-banner {
-  box-shadow: var(--sp-card-shadow);
-  border: 1px solid var(--gh-border);
-}
-[data-theme="dark"] .sd-root .sd-momentum-bar,
-[data-theme="dark"] .sd-root .sd-momentum-banner {
-  background: linear-gradient(95deg, rgba(130,80,160,0.18) 0%, rgba(13,35,64,0.95) 100%) !important;
-  border-color: var(--gh-border-strong) !important;
-}
-.gh-app.md-root.sd-root:not([data-theme="dark"]) .sd-momentum-bar,
-.gh-app.md-root.sd-root:not([data-theme="dark"]) .sd-momentum-banner {
-  background: linear-gradient(95deg, rgba(150,215,0,0.12) 0%, rgba(255,255,255,0.95) 100%) !important;
-  border-color: var(--gh-border) !important;
-}
+/* Find a Quest: new quests, one reason each. */
+.fq-list { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin:0 0 20px;padding:0;list-style:none; }
+.fq-card { display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:18px;border:1px solid var(--gh-border);border-radius:16px;background:var(--gh-surface); }
+.sd-root .fq-card h3 { margin:0;font-size:17px;line-height:1.3;color:var(--gh-heading); }
+.fq-card p { margin:0;font-size:14px;line-height:1.45;color:var(--gh-text-2); }
+.sd-root .fq-card .fq-why { color:var(--gh-text); }
+.sd-root .fq-card .fq-why strong { color:var(--gh-heading); }
+.sd-root .fq-card .fq-why { flex:1; }
+.fq-card .sd-primary { margin-top:6px; }
+
+/* My Universe: the deep-space panel stays; each preview is one way in, with one button. */
+.uv-missions { display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:0;padding:0;list-style:none; }
+.uv-mission { display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:18px;border:1px solid var(--gh-border);border-radius:16px;background:var(--gh-surface); }
+.sd-root .uv-mission h3 { margin:0;font-size:17px;line-height:1.3;color:var(--gh-heading); }
+.uv-mission p { margin:0;font-size:14px;line-height:1.45;color:var(--gh-text-2); }
+.uv-mission .uv-where { display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:650;color:var(--sp-purple-text); }
+.uv-mission .uv-facts { flex:1;font-size:13px;color:var(--gh-text-3); }
+.uv-mission .sd-primary { margin-top:8px; }
+.uv-enter { display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px; }
+.sd-root .uv-enter h3 { margin:0;font-size:18px;color:var(--gh-heading); }
+.uv-enter p { margin:4px 0 0;max-width:62ch; }
+.uv-link { display:inline-flex;align-items:center;gap:6px;margin-top:14px; }
+.uv-sky { margin-top:20px; }
