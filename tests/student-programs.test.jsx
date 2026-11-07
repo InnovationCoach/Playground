@@ -22,7 +22,7 @@ import { programIdentity } from '../src/features/pbl/programs/catalog.js';
 import { saveCustomProgram } from '../src/features/coach/programs/customProgramsStore.js';
 import { SchoolLearningPanel } from '../src/features/school/SchoolLearningPanel.jsx';
 import { ErrorBoundary } from '../src/features/shell/ErrorBoundary.jsx';
-import { hrefFor, parseRoute, redirectFor } from '../src/app/routes.js';
+import { hrefFor, parseRoute } from '../src/app/routes.js';
 import { TERM } from '../src/features/pbl/content/pblModel.js';
 
 let host, root;
@@ -106,17 +106,10 @@ describe('error boundary', () => {
   });
 });
 
-describe('#/programs redirect', () => {
-  const programs = parseRoute('#/programs');
-  it('sends secondary learners to the PBL Programs tab', () => {
-    expect(redirectFor(programs, 'student', false)).toBe('#/pbl/programs');
-    expect(parseRoute(redirectFor(programs, 'student', false))).toEqual({ screen: 'pbl', tab: 'programs' });
-  });
-  it('leaves staff, primary learners and every other route alone', () => {
-    for (const role of ['teacher', 'coach', 'admin', 'supervisor', 'parent', null]) expect(redirectFor(programs, role, false)).toBeNull();
-    expect(redirectFor(programs, 'student', true)).toBeNull();
-    expect(redirectFor(parseRoute('#/pbl/programs'), 'student', false)).toBeNull();
-    expect(redirectFor(null, 'student', false)).toBeNull();
+describe('#/programs', () => {
+  it('opens the PBL Programs tab, the same page as the sidebar route', () => {
+    expect(parseRoute('#/programs')).toEqual({ screen: 'pbl', tab: 'programs' });
+    expect(parseRoute(hrefFor.programs())).toEqual({ screen: 'pbl', tab: 'programs' });
   });
 });
 

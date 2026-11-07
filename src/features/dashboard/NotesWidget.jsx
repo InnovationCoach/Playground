@@ -8,12 +8,24 @@ import { createNote, fetchNotes, deleteNote } from '../../auth.js';
  * learner wrote there is lost. Newest first, the five most recent shown.
  */
 const SHOWN = 5;
+const EMPTY = { title: '', content: '' };
+const draftKey = (uid) => `spark.notes.draft.${uid || 'guest'}`;
+// This tab only, so a half-written note survives leaving the dashboard but not a shared computer's next session.
+function readDraft(uid) {
+  try { const d = JSON.parse(sessionStorage.getItem(draftKey(uid))); return { title: String(d?.title ?? ''), content: String(d?.content ?? '') }; } catch { return EMPTY; }
+}
+function writeDraft(uid, draft) {
+  try {
+    if (draft.title || draft.content) sessionStorage.setItem(draftKey(uid), JSON.stringify(draft));
+    else sessionStorage.removeItem(draftKey(uid));
+  } catch { /* Storage can be blocked; the draft still lasts while the dashboard is open. */ }
+}
 
-export function NotesWidget() {
+export function NotesWidget({ uid }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [draft, setDraft] = useState({ title: '', content: '' });
+  const [draft, setDraft] = useState(() => readDraft(uid));
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(null);
 
@@ -31,6 +43,7 @@ export function NotesWidget() {
   }
 
   useEffect(() => { reload(); }, []);
+  useEffect(() => { writeDraft(uid, draft); }, [uid, draft]);
 
   async function onAdd(e) {
     e.preventDefault();
@@ -38,7 +51,7 @@ export function NotesWidget() {
     setSaving(true);
     try {
       await createNote(draft.title.trim(), draft.content.trim());
-      setDraft({ title: '', content: '' });
+      setDraft(EMPTY);
       await reload();
     } catch (err) {
       setError(err.message);

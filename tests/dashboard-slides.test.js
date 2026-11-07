@@ -26,6 +26,7 @@ describe('five-slide dashboard preferences', () => {
     expect(saved.slideOrder).toEqual(['daily', 'find', 'creative', 'progress', 'universe']);
     expect(saved.slideTitles.daily).toBe('My Quests');
     expect(saved.slideTitles.creative).toBe('Studio');
+    expect(hydrateSlides({ slideTitles: { progress: 'My Learning Progress', universe: 'My Spark Universe' } }).slideTitles).toMatchObject({ progress: 'My Progress', universe: 'My Universe' });
     expect(saved.slideTitles).not.toHaveProperty('goals');
     expect(hydrateSlides({ slideTitles: { daily: 'Today for me' } }).slideTitles.daily).toBe('Today for me');
   });
@@ -42,7 +43,7 @@ describe('five-slide dashboard preferences', () => {
   it('gives every existing optional tool one primary slide', () => {
     expect(Object.keys(TOOL_SLIDES)).toHaveLength(7);
     expect(TOOL_SLIDES.notes).toBe('creative'); expect(TOOL_SLIDES.focus).toBe('creative');
-    expect(TOOL_SLIDES.badges).toBe('universe'); expect(TOOL_SLIDES.readiness).toBe('progress');
+    expect(TOOL_SLIDES.badges).toBe('progress'); expect(TOOL_SLIDES.readiness).toBe('progress');
   });
   it('keeps achieved goals without inventing completion for a goal with no steps', () => {
     const empty = { id: 'empty', done: false, steps: [] }, checked = { id: 'checked', done: false, steps: [{ done: true }] }, explicit = { id: 'explicit', done: true, steps: [{ done: false }] };

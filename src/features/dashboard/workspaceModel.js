@@ -1,6 +1,6 @@
 import { hydrateSlides } from './slideModel.js';
 import { hydrateDialFinish } from './instrumentModel.js';
-export const THEMES = [{ id: 'dark', label: 'Dark' }, { id: 'light', label: 'Light' }, { id: 'inherit', label: 'Follow app theme' }];
+export const THEMES = [{ id: 'inherit', label: 'Same as the rest of SPARK' }, { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }];
 export const TOOL_IDS = ['focus', 'notes', 'checkin', 'picked', 'badges', 'readiness', 'skill'];
 // 'brand' is WeLearn's Inter text with Plus Jakarta Sans headings (see DISPLAY_FONTS); it is the default.
 export const FONTS = { brand: "'Inter', system-ui, sans-serif", system: 'system-ui, sans-serif', rounded: 'ui-rounded, system-ui, sans-serif', serif: 'Georgia, serif' };
@@ -17,8 +17,13 @@ export function hydrateWorkspace(s = {}) {
   const pages = (Array.isArray(s.pages) && s.pages.length ? s.pages : [{ name: 'My space', order: s.order, hidden: s.hidden }]).slice(0, 5).map(page);
   return { ...hydrateSlides(s), pages, activePage: Math.max(0, Math.min(pages.length - 1, Number.isInteger(s.activePage) ? s.activePage : 0)),
     font: Object.hasOwn(FONTS, s.font) ? s.font : 'brand', background: Object.hasOwn(BACKGROUNDS, s.background) ? s.background : 'plain',
-    // Dark is the default look; light and following the app theme are options.
-    theme: THEMES.some((t) => t.id === s.theme) ? s.theme : 'dark', dialFinish: hydrateDialFinish(s.dialFinish) };
+    // The dashboard follows the app theme, so Light means light on every page. Dark used to be
+    // saved as the default, so a stored 'dark' only counts once the learner has picked it here.
+    theme: hydrateTheme(s), themeChosen: s.themeChosen === true, dialFinish: hydrateDialFinish(s.dialFinish) };
+}
+function hydrateTheme({ theme, themeChosen }) {
+  if (theme === 'dark') return themeChosen === true ? 'dark' : 'inherit';
+  return THEMES.some((t) => t.id === theme) ? theme : 'inherit';
 }
 export function changePage(prefs, fn) {
   return { ...prefs, pages: prefs.pages.map((p, i) => i === prefs.activePage ? fn(p) : p) };

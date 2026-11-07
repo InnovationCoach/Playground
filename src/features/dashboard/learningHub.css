@@ -92,3 +92,15 @@
 .lh-root button:hover:not(:disabled),.lh-root a:hover { filter: brightness(.98); }
 @media(max-width:1000px) { .lh-columns { gap: 18px; } .lh-panel { padding: 20px; } .lh-plan-layout { gap: 18px; } .lh-activities { grid-template-columns: 1fr; } .lh-activities button { display: grid; grid-template-columns: 28px 1fr 18px; align-items: center; gap: 4px 10px; } .lh-activities button>span { grid-row: span 2; } .lh-activities button>svg { grid-column: 3; grid-row: 1 / 3; } .lh-activities button>small { grid-column: 2; } }
 @media(max-width:720px) { .lh-root .md-page { padding: 16px 14px 30px; } .lh-root .md-hero { padding: 22px; border-radius: 19px; } .lh-root .md-avatar { display: none; } .lh-root .md-hero-text { min-width: 0; } .lh-plan-layout,.lh-columns,.lh-secondary,.lh-tools-grid { grid-template-columns: 1fr; } .lh-columns { gap: 28px; } .lh-shortcuts { gap: 7px; margin-bottom: 20px; } .lh-shortcuts a { padding: 9px 11px; font-size: 11px; } .lh-shortcuts a>svg:last-child { display: none; } .lh-section-top { align-items: flex-start; flex-wrap: wrap; } .lh-plan { padding: 20px; } .lh-tabs button { padding: 8px 10px; } .lh-academic-empty h3 { max-width: none; font-size: 23px; } .lh-root .md-hero h1 { font-size: 29px; } .lh-column-heading h2 { font-size: 19px; } .lh-secondary { gap: 12px; } }
+
+/* My Quests: one next step, with the whole plan a tap away. */
+.lh-next-actions { display:flex;flex-direction:column;align-items:center;gap:8px; }
+.lh-next-actions .sd-text-button { display:inline-flex;align-items:center;gap:6px; }
+.lh-full-plan { margin-top:20px;padding:14px 18px;border:1px solid var(--gh-border);border-radius:14px;background:var(--gh-surface); }
+.lh-full-plan>summary { cursor:pointer;font-weight:700;color:var(--gh-heading); }
+.lh-full-plan[open]>summary { margin-bottom:14px; }
+.lh-goal-list { display:grid;gap:12px;margin-top:10px; }
+.lh-goal { padding:14px 18px;border:1px solid var(--gh-border);border-radius:14px;background:var(--gh-surface); }
+.lh-goal .sd-eyebrow { display:inline-flex;align-items:center;gap:6px;color:var(--sp-magenta-text); }
+.lh-goal[data-done] .sd-eyebrow { color:var(--sp-lime-text); }
+.sd-root .lh-goal h4 { margin:4px 0 8px;font-size:16px;color:var(--gh-heading); }

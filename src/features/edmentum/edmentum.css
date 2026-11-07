@@ -349,8 +349,8 @@
 }
 
 .mc-edmentum-card {
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--gh-surface);
+  border: 1px solid var(--gh-border);
   border-radius: 12px;
   padding: 1.25rem;
   display: flex;
@@ -361,7 +361,7 @@
 }
 
 .mc-edmentum-card:hover {
-  border-color: #58a6ff;
+  border-color: var(--gh-purple-text);
 }
 
 .mc-ed-badge {
@@ -370,7 +370,7 @@
   gap: 0.35rem;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #79c0ff;
+  color: var(--gh-text);
   background: rgba(56, 139, 253, 0.15);
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
@@ -387,7 +387,7 @@
 .mc-ed-desc {
   margin: 0;
   font-size: 0.8rem;
-  color: #8b949e;
+  color: var(--gh-text-2);
   line-height: 1.45;
 }
 
@@ -395,7 +395,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #0d1117;
+  background: var(--gh-subtle);
   padding: 0.65rem 0.85rem;
   border-radius: 8px;
   font-size: 0.8rem;
@@ -409,12 +409,12 @@
 .mc-ed-stat-val {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--gh-heading);
 }
 
 .mc-ed-stat-lbl {
   font-size: 0.7rem;
-  color: #8b949e;
+  color: var(--gh-text-2);
 }
 
 .mc-ed-launch-btn {

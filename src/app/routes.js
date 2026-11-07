@@ -13,7 +13,7 @@
  *   #/journey  #/journey/print                           design-thinking portfolio maker (+ PDF view)
  *   #/courses/discover                                   Course discovery (secondary learners)
  *   #/space  #/portfolio[/<uid>]                         My space, shareable portfolio
- *   #/programs                                           school programs; learners are sent to #/pbl/programs
+ *   #/programs                                           old link: the Programs tab of PBL Studio
  *   #/community                                          community posts
  *   #/messages  #/messages/<convId>                      private messages
  *   #/goals                                              goal setting (secondary learners)
@@ -57,7 +57,7 @@ export function parseRoute(hash) {
   if (head === 'primary-resources') return { screen: 'resources' };
   if (head === 'worksheet' && a) return { screen: 'worksheet', activityId: a };
   if (head === 'guide' && a) return { screen: 'guide', activityId: a };
-  if (head === 'programs') return { screen: 'programs' };
+  if (head === 'programs') return { screen: 'pbl', tab: 'programs' };
   if (head === 'courses' && a === 'discover') return { screen: 'courses', discover: true };
   if (head === 'courses') return { screen: 'courses' };
   if (head === 'pbl' && a === 'programs' && b) return { screen: 'pbl', tab: 'programs', programId: b, section: c || null };
@@ -74,14 +74,6 @@ export function parseRoute(hash) {
   if (head === 'canva') return { screen: 'canva' };
   if (head === 'edmentum') return { screen: 'edmentum' };
   return null;
-}
-
-/**
- * Where a route must go instead for this viewer, or null. Learners have one
- * Programs page, in PBL Studio. Primary learners have no PBL Studio.
- */
-export function redirectFor(route, role, isPrimary) {
-  return route?.screen === 'programs' && role === 'student' && !isPrimary ? hrefFor.pbl('programs') : null;
 }
 
 export const hrefFor = {
@@ -102,7 +94,7 @@ export const hrefFor = {
   settings: () => '#/settings',
   courses: () => '#/courses',
   courseDiscovery: () => '#/courses/discover',
-  programs: () => '#/programs',
+  programs: () => '#/pbl/programs',
   space: () => '#/space',
   journey: () => '#/journey',
   portfolio: () => '#/portfolio',

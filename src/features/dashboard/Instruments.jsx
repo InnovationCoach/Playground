@@ -26,7 +26,7 @@ export function SessionGauge({ label, done, total, milestones = [], unit = COMPL
   })) : [];
   const nextMark = milestones.find((mark) => !mark.complete);
   const left = reading.total - reading.done;
-  const status = left === 0 ? 'All sessions marked' : reading.done === 0 ? 'Ready to start' : `${left} to go`;
+  const status = left === 0 ? 'All sessions done' : reading.done === 0 ? 'Ready to start' : `${left} to go`;
   const text = `${reading.done} of ${reading.total} ${unit} by you`;
   const tip = polar(CX, CY, R, reading.angle);
   return <div className="ig-gauge sd-gauge" role="progressbar" aria-label={label} aria-valuemin={0}
@@ -66,7 +66,7 @@ export function SessionGauge({ label, done, total, milestones = [], unit = COMPL
     </svg>
     <div className="ig-readout" aria-hidden="true">
       <strong><b>{reading.done}</b><span> / {reading.total}</span></strong>
-      <small>{unit}</small>
+      <small>sessions done</small>
       <em className="ig-chip">{status}</em>
     </div>
   </div>;

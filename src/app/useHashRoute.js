@@ -8,8 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
  * `clearHash` leaves a hash screen (My Courses, Settings) WITHOUT firing
  * hashchange. Setting `#/` instead woke index.html's legacy router, whose
  * default for an unknown hash is switchPhase('home') - so opening an activity
- * from My Courses landed on Home. `replaceHash` swaps the address the same way,
- * so a redirect leaves no history entry for the Back button to bounce off.
+ * from My Courses landed on Home.
  */
 export function useHashRoute() {
   const [hash, setHashState] = useState(() => window.location.hash || '');
@@ -26,10 +25,5 @@ export function useHashRoute() {
     setHashState('');
   }, []);
 
-  const replaceHash = useCallback((next) => {
-    window.history.replaceState(null, '', window.location.pathname + window.location.search + next);
-    setHashState(next);
-  }, []);
-
-  return [hash, setHash, clearHash, replaceHash];
+  return [hash, setHash, clearHash];
 }

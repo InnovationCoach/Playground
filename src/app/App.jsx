@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthProvider.jsx';
 import { useTheme } from './theme/ThemeProvider.jsx';
 import { useHashRoute } from './useHashRoute.js';
-import { parseRoute, hrefFor, redirectFor } from './routes.js';
+import { parseRoute, hrefFor } from './routes.js';
 import { signInDestination } from './landing.js';
 import { CONSOLE_ROLES } from './roles.js';
 import { AdminConsole } from '../features/admin/AdminConsole.jsx';
@@ -51,7 +51,7 @@ const KNOWN_VIEWS = new Set(ACTIVITY_NAV.map((a) => a.id));
 export function App() {
   const { status, user, profile, role, classIds, orgId, error, signOut, refreshProfile } = useAuth();
   const { effectiveTheme } = useTheme();
-  const [hash, setHash, clearHash, replaceHash] = useHashRoute();
+  const [hash, setHash, clearHash] = useHashRoute();
   const [view, setView] = useState('home');
   const [activityScenario, setActivityScenario] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -60,10 +60,7 @@ export function App() {
   // chatbot and no goal-setting popup (see the 2026-09-25 primary plan).
   const isPrimary = role === 'student' && isPrimaryProfile(profile);
 
-  const requestedRoute = parseRoute(hash);
-  const redirect = redirectFor(requestedRoute, role, isPrimary);
-  const route = redirect ? parseRoute(redirect) : requestedRoute;
-  useEffect(() => { if (redirect) replaceHash(redirect); }, [redirect, replaceHash]);
+  const route = parseRoute(hash);
   useEffect(() => { setMenuOpen(false); }, [hash, view]);
   const hashScreen = route?.screen || null;
 
@@ -295,7 +292,8 @@ export function App() {
   }
 
   // Learner spaces: My space (personal dashboard with cover and profile
-  // images) and the portfolio maker are secondary learners' own screens. A shared portfolio link opens read-only for permitted viewers.
+  // images) and the portfolio maker are secondary learners'
+  // own screens. A shared portfolio link opens read-only for permitted viewers.
   if (role === 'student' && !isPrimary && ['space', 'journey'].includes(route?.screen)) {
     return (
       <>
