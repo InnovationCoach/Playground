@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Bot, Send, NotebookPen, Copy, FileCode2, Info } from 'lucide-react';
 import { geminiApi } from '../../services/geminiApi.js';
 import { AI_PRINCIPLES, CODE_LANGUAGES, IMPACT } from './content/pblModel.js';
@@ -18,7 +18,7 @@ import { copilotMode, starterPrompts } from './content/copilotModes.js';
  * Every answer can be saved as an AI log, and every code block as code
  * evidence: using AI well becomes evidence, not something learners hide.
  */
-export function Copilot({ phase, project, apply, onLog, onSaveCode }) {
+export function Copilot({ phase, project, apply, onLog, onSaveCode, prefill = null }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [turns, setTurns] = useState([]);
@@ -28,6 +28,19 @@ export function Copilot({ phase, project, apply, onLog, onSaveCode }) {
   const mode = copilotMode(phase.id);
   const input = useRef(null);
   const useStarter = (starter) => { setText(starter); input.current?.focus(); };
+  // A question written for one phase doesn't belong in the next.
+  const firstPhase = useRef(phase.id);
+  useEffect(() => {
+    if (firstPhase.current !== phase.id) setText('');
+    firstPhase.current = phase.id;
+  }, [phase.id]);
+  // "Stuck? Ask AI": bring the learner here with the question ready, never sent for them.
+  useEffect(() => {
+    if (!prefill) return;
+    setText(prefill.text);
+    input.current?.scrollIntoView({ block: 'center' });
+    input.current?.focus({ preventScroll: true });
+  }, [prefill]);
 
   async function ask(e) {
     e?.preventDefault();

@@ -67,6 +67,8 @@ function cleanEvidence(e) {
     competencies: Array.isArray(e.competencies) ? [...new Set(e.competencies.filter((id) => competencyById(id)))].slice(0, 8) : [],
     createdAt: Number.isFinite(e.createdAt) ? e.createdAt : 0
   };
+  // Which task this proves, when it came from a task row. Older entries have none.
+  if (Number.isInteger(e.task) && e.task >= 0) item.task = e.task;
   if (kind === 'ai') {
     const ai = e.ai || {};
     item.ai = { asked: str(ai.asked, LIMITS.field), gave: str(ai.gave, LIMITS.body), kept: str(ai.kept, LIMITS.field) };
@@ -141,6 +143,42 @@ export function phaseProgress(project, phaseId) {
   const tasksDone = (project.tasksDone[phaseId] || []).length;
   const evidenceCount = project.evidence.filter((e) => e.phase === phaseId).length;
   return { tasksDone, tasksTotal, evidenceCount, complete: tasksTotal > 0 && tasksDone === tasksTotal && evidenceCount > 0 };
+}
+
+/**
+ * One task's state for the learner. Only what they see: phaseProgress, and so
+ * every count and badge from it, still works from ticks and phase evidence alone.
+ */
+export function taskState(project, phaseId, index) {
+  if (!(project.tasksDone[phaseId] || []).includes(index)) return 'todo';
+  return project.evidence.some((e) => e.phase === phaseId && e.task === index) ? 'complete' : 'needs-proof';
+}
+
+/** The phase's next step: the first task not done, then the first done task still without proof. */
+export function nextStep(project, phaseId) {
+  const phase = PHASES.find((p) => p.id === phaseId);
+  const states = (phase?.tasks || []).map((_, index) => taskState(project, phaseId, index));
+  const todo = states.indexOf('todo');
+  if (todo >= 0) return { type: 'task', index: todo, tick: (p) => ((p.tasksDone[phaseId] || []).includes(todo) ? p : toggleTask(p, phaseId, todo)) };
+  const proof = states.indexOf('needs-proof');
+  if (proof >= 0) return { type: 'proof', index: proof };
+  return { type: 'done' };
+}
+
+/** Save proof for one task, as ordinary evidence in the phase. Proving a task also marks it done. */
+export function addProof(project, phaseId, index, { how, text = '', link = '' }, now = Date.now()) {
+  const phase = PHASES.find((p) => p.id === phaseId);
+  const task = phase?.tasks[index];
+  if (!task) return { error: 'That task could not be found.' };
+  if (how === 'link' && !link.trim()) return { error: 'Paste a link to your work.' };
+  if (how !== 'link' && !text.trim()) return { error: 'Write a short sentence about what you did.' };
+  const result = addEvidence(project, {
+    phase: phaseId, task: index, kind: how === 'link' ? 'media' : 'note', title: task.slice(0, LIMITS.title),
+    body: how === 'link' ? '' : text.trim(), link: how === 'link' ? link.trim() : '', competencies: []
+  }, now);
+  if (result.error) return result;
+  const done = (result.project.tasksDone[phaseId] || []).includes(index);
+  return { project: done ? result.project : toggleTask(result.project, phaseId, index, now) };
 }
 
 /** Evidence count per competency id. A competency with no evidence is absent. */
