@@ -21,6 +21,7 @@ separate endpoint with its own rules.
   "phase": "prototype",            // explore|empathise|define|ideate|prototype|test|share
   "impact": "environment",         // people|environment|both|null
   "language": "micropython",       // micropython|makecode|python|arduino|lego
+  "mode": "code",                  // explain|interview|problem|ideas|code|pitch: what the co-pilot is for in this phase. Only write code in "code".
   "problem": { "hmw": "", "who": "", "criteria": "", "constraints": "", "impactMeasure": "" },
   "ageBand": "13-15"
 }

@@ -2,7 +2,7 @@ import { CODE_LANGUAGES } from './pblModel.js';
 
 /**
  * What the AI co-pilot is for in each Design Thinking phase, and the starter
- * prompts it offers. Pure, unit-tested in tests/pbl-studio-p0.test.jsx. Starters
+ * prompts it offers. Pure, unit-tested in tests/pbl-studio-learner.test.jsx. Starters
  * are ready to send: they use the learner's own words where there are any, and
  * never ask them to fill in a blank.
  */

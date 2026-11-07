@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { CircleCheck, Circle, ArrowRight, Lightbulb, ListChecks, Presentation, Rocket } from 'lucide-react';
-import { PHASES, INTERESTS, IMPACT, phaseById } from './content/pblModel.js';
+import { Circle, ArrowRight, Lightbulb, ListChecks, Presentation, Rocket } from 'lucide-react';
+import { PHASES, IMPACT, phaseById } from './content/pblModel.js';
 import { competencyById } from './content/competencies.js';
 import { STEAM_NGSS } from './content/steamNgss.js';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';
@@ -9,42 +9,39 @@ import { phaseProgress, toggleTask, updateProject, readiness, LIMITS } from './e
 import { EvidenceForm, EvidenceList } from './Evidence.jsx';
 import { Copilot } from './Copilot.jsx';
 import { CompetencyIcon } from './CompetencyIcon.jsx';
+import { JourneyPath, NextStepCard, PhaseCelebration, TaskList, InterestPicker } from './PhaseGuide.jsx';
+import { matchActivities } from '../dashboard/dashboardModel.js';
 
 /**
- * The Design Thinking journey: a phase stepper and the open phase.
+ * The Design Thinking journey: one path through the phases and the open phase.
+ * For a learner, each phase leads with one next step; the rest is a tap away.
  * `readOnly` is the coach view - the same content, no project behind it.
  */
-export function ProjectJourney({ project, apply, onOpenActivity, readOnly = false }) {
+export function ProjectJourney({ project, apply: applyProject, onOpenActivity, readOnly = false }) {
   const [open, setOpen] = useState(project?.currentPhase || PHASES[0].id);
   const phase = phaseById(open) || PHASES[0];
   const [draft, setDraft] = useState(null);
+  const [celebrating, setCelebrating] = useState(null);
+  const [prefill, setPrefill] = useState(null);
+
+  // Only a learner's own action celebrates: a project arriving from the cloud never does.
+  function apply(change) {
+    const next = change(project);
+    const finished = PHASES.find((p) => !phaseProgress(project, p.id).complete && phaseProgress(next, p.id).complete);
+    if (finished) setCelebrating(finished.id);
+    applyProject(change);
+  }
 
   function selectPhase(id) {
     setOpen(id);
     setDraft(null);
-    if (!readOnly) apply((p) => (p.currentPhase === id ? p : updateProject(p, { currentPhase: id })));
+    setCelebrating(null);
+    if (!readOnly) applyProject((p) => (p.currentPhase === id ? p : updateProject(p, { currentPhase: id })));
   }
 
   return (
     <div className="pb-journey">
-      <ol className="pb-steps" aria-label="Design Thinking phases">
-        {PHASES.map((p, i) => {
-          const prog = readOnly ? null : phaseProgress(project, p.id);
-          return (
-            <li key={p.id}>
-              <button type="button" className="pb-step" aria-current={p.id === open ? 'step' : undefined} onClick={() => selectPhase(p.id)}>
-                <span className="pb-step-num" data-done={prog?.complete || undefined}>
-                  {prog?.complete ? <CircleCheck size={18} aria-label="complete" /> : i + 1}
-                </span>
-                <span className="pb-step-text">
-                  <strong>{p.title}</strong>
-                  <small>{prog ? `${prog.tasksDone} of ${prog.tasksTotal} tasks · ${prog.evidenceCount} evidence` : p.strap}</small>
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+      <JourneyPath project={project} open={open} onSelect={selectPhase} readOnly={readOnly} />
 
       <section className="pb-phase" aria-labelledby="pb-phase-title">
         <div className="pb-phase-head">
@@ -55,28 +52,24 @@ export function ProjectJourney({ project, apply, onOpenActivity, readOnly = fals
           </div>
         </div>
 
+        {!readOnly && celebrating && <PhaseCelebration phaseId={celebrating} onClose={() => setCelebrating(null)} />}
+        {!readOnly && <NextStepCard project={project} phase={phase} apply={apply} onNextPhase={selectPhase}
+          onAskAi={(text) => setPrefill({ text, seq: Date.now() })} />}
+
         <div className="pb-phase-grid">
           <div className="pb-col">
-            <div className="gh-card">
-              <h3 className="pb-h3"><ListChecks size={17} aria-hidden="true" />Tasks</h3>
-              <ul className="pb-tasks">
-                {phase.tasks.map((task, i) => {
-                  const done = !readOnly && (project.tasksDone[phase.id] || []).includes(i);
-                  return (
-                    <li key={i}>
-                      {readOnly ? (
-                        <span className="pb-task"><Circle size={16} aria-hidden="true" />{task}</span>
-                      ) : (
-                        <label className="pb-task">
-                          <input type="checkbox" checked={done} onChange={() => apply((p) => toggleTask(p, phase.id, i))} />
-                          <span>{task}</span>
-                        </label>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+            {!readOnly && phase.id === 'explore' && <InterestPicker project={project} apply={apply} />}
+
+            {readOnly ? (
+              <div className="gh-card">
+                <h3 className="pb-h3"><ListChecks size={17} aria-hidden="true" />Tasks</h3>
+                <ul className="pb-tasks">
+                  {phase.tasks.map((task, i) => <li key={i}><span className="pb-task"><Circle size={16} aria-hidden="true" />{task}</span></li>)}
+                </ul>
+              </div>
+            ) : (
+              <TaskList project={project} phase={phase} apply={apply} onToggle={(i) => apply((p) => toggleTask(p, phase.id, i))} />
+            )}
 
             {!readOnly && phase.id === 'explore' && <ExploreStart project={project} apply={apply} onOpenActivity={onOpenActivity} />}
             {!readOnly && phase.id === 'define' && <ProblemFields project={project} apply={apply} />}
@@ -85,10 +78,10 @@ export function ProjectJourney({ project, apply, onOpenActivity, readOnly = fals
             <div className="gh-card">
               <h3 className="pb-h3"><Lightbulb size={17} aria-hidden="true" />Evidence to collect</h3>
               <ul className="pb-bullets">{phase.evidence.map((e) => <li key={e}>{e}</li>)}</ul>
-              <p className="pb-sub">Competencies your coach looks for in this phase:</p>
+              <p className="pb-sub">{readOnly ? 'Competencies your coach looks for in this phase:' : 'What you can show in this phase:'}</p>
               <CompetencyChips ids={phase.competencies} showCodes={readOnly} />
               {phase.stretch.length > 0 && <>
-                <p className="pb-sub">Stretch (advanced):</p>
+                <p className="pb-sub">{readOnly ? 'Stretch (advanced):' : 'A stretch, if you want one:'}</p>
                 <CompetencyChips ids={phase.stretch} advanced showCodes={readOnly} />
               </>}
             </div>
@@ -112,7 +105,7 @@ export function ProjectJourney({ project, apply, onOpenActivity, readOnly = fals
                 <ul className="pb-bullets">{phase.ai.map((a) => <li key={a}>{a}</li>)}</ul>
               </div>
             ) : (
-              <Copilot phase={phase} project={project} apply={apply}
+              <Copilot phase={phase} project={project} apply={apply} prefill={prefill}
                        onLog={(log) => setDraft({ kind: 'ai', title: `AI: ${log.asked.slice(0, 60)}`, ai: log, _seq: Date.now() })}
                        onSaveCode={({ code, asked }) => setDraft({
                          kind: 'code', title: `Code (AI co-pilot): ${asked.slice(0, 50)}`, body: code,
@@ -145,36 +138,30 @@ export function CompetencyChips({ ids, advanced = false, showCodes = false }) {
 
 const STEAM_IDS = Object.keys(STEAM_NGSS);
 
+/** Explore activities, the ones matching the learner's interests first. Pure, unit-tested. */
+export function rankedActivities(interests = []) {
+  const matches = new Map(matchActivities(interests).map((match) => [match.id, match.because[0]]));
+  const items = STEAM_IDS.map((id) => ACTIVITY_NAV.find((a) => a.id === id)).filter(Boolean)
+    .map((nav) => ({ id: nav.id, title: parseActivityLabel(nav.label).title, because: matches.get(nav.id) || null }));
+  return [...items.filter((item) => item.because), ...items.filter((item) => !item.because)];
+}
+
 function ExploreStart({ project, apply, onOpenActivity }) {
-  const toggleInterest = (i) => apply((p) => updateProject(p, {
-    interests: p.interests.includes(i) ? p.interests.filter((x) => x !== i) : [...p.interests, i].slice(0, 6)
-  }));
   return (
     <div className="gh-card">
-      <h3 className="pb-h3">What are you into?</h3>
-      <p className="pb-sub">Pick up to six. Your project problem will come from here.</p>
-      <div className="pb-pills" role="group" aria-label="Interests">
-        {INTERESTS.map((i) => (
-          <button key={i} type="button" className="pb-pill" aria-pressed={project.interests.includes(i)} onClick={() => toggleInterest(i)}>{i}</button>
-        ))}
-      </div>
-      <label className="gh-label" htmlFor="pb-sparks" style={{ marginTop: '1rem' }}>My sparks - things that surprised me or I want to know more about</label>
+      <label className="gh-label" htmlFor="pb-sparks">My sparks - things that surprised me or I want to know more about</label>
       <textarea id="pb-sparks" className="gh-input pb-textarea" rows={4} maxLength={LIMITS.sparks} value={project.sparks}
                 onChange={(e) => apply((p) => updateProject(p, { sparks: e.target.value }))} />
       <p className="pb-sub" style={{ marginTop: '1rem' }}>Explore activities:</p>
       <ul className="pb-mini-list">
-        {STEAM_IDS.map((id) => {
-          const nav = ACTIVITY_NAV.find((a) => a.id === id);
-          if (!nav) return null;
-          const { title } = parseActivityLabel(nav.label);
-          return (
-            <li key={id}>
-              <button type="button" className="pb-link" onClick={() => onOpenActivity(id)}>
-                {title}<ArrowRight size={14} aria-hidden="true" />
-              </button>
-            </li>
-          );
-        })}
+        {rankedActivities(project.interests).map(({ id, title, because }) => (
+          <li key={id}>
+            <button type="button" className="pb-link" onClick={() => onOpenActivity(id)}>
+              {title}<ArrowRight size={14} aria-hidden="true" />
+            </button>
+            {because && <small className="pb-because">Because you like {because === 'My community' ? 'your community' : because.toLowerCase()}</small>}
+          </li>
+        ))}
       </ul>
     </div>
   );

@@ -56,7 +56,7 @@ export function PblStudio({ uid, role, tab, programId, section, classIds, onOpen
 
   return (
     <div className="gh-page pb-page">
-      <div className="pb-hero">
+      <div className={`pb-hero${isStudent && active === 'project' ? ' pb-hero-compact' : ''}`}>
         <div className="pb-hero-text">
           <span className="pb-kicker">
             PBL Studio · {TERM.label}
