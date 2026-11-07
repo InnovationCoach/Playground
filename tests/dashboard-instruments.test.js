@@ -46,9 +46,11 @@ describe('dashboard instruments', () => {
     expect(hydrateWorkspace({}).dialFinish).toBe('theme');
     expect(hydrateWorkspace({ dialFinish: 'mint' }).dialFinish).toBe('mint');
   });
-  it('defaults to dark and keeps light or app-theme choices', () => {
-    expect(hydrateWorkspace({}).theme).toBe('dark');
-    expect(hydrateWorkspace({ theme: 'neon' }).theme).toBe('dark');
+  it('follows the app theme by default and keeps a choice the learner made', () => {
+    expect(hydrateWorkspace({}).theme).toBe('inherit');
+    expect(hydrateWorkspace({ theme: 'neon' }).theme).toBe('inherit');
+    expect(hydrateWorkspace({ theme: 'dark' }).theme).toBe('inherit'); // the old saved default, not a choice
+    expect(hydrateWorkspace({ theme: 'dark', themeChosen: true })).toMatchObject({ theme: 'dark', themeChosen: true });
     expect(hydrateWorkspace({ theme: 'light' }).theme).toBe('light');
     expect(hydrateWorkspace({ theme: 'inherit' }).theme).toBe('inherit');
   });
@@ -67,7 +69,7 @@ describe('progress slide record states', () => {
   it('shows a complete record as full, with learner-marked wording', () => {
     const html = slide({ done: 4, total: 4, byPhase: { a: { done: 2, total: 2, complete: true }, b: { done: 2, total: 2, complete: true } } });
     expect(html).toContain('aria-valuetext="4 of 4 sessions marked complete by you"');
-    expect(html).toContain('not coach-verified');
+    expect(html).toContain('Your coach hasn’t checked them');
     expect(html).not.toContain('sessions recorded');
   });
   it('links to My Competencies', () => {
@@ -96,18 +98,10 @@ import { dockStats, termStep, startHere } from '../src/features/dashboard/learni
 describe('dock status and term-project guidance', () => {
   const plan = { goals: [{ id: 'g', explore: 'Garden', done: false, steps: [{ id: 's', text: 'Sketch', done: false }] }] };
   const course = (summary, extra = {}) => ({ program: { id: 'p', title: 'P', phases: [] }, summary, progressUnavailable: false, ...extra });
-  it('shows only verified counts and never a combined percentage', () => {
-    const stats = dockStats({ data: { courses: [course({ done: 1, total: 9 })] }, today: [{ id: 'a' }, { id: 'b' }], ticked: new Set(['a']), plan, goalsLoaded: true, focus: '12:04' });
-    expect(stats).toEqual({
-      daily: { text: '1/2', label: '1 of 2 done today' },
-      progress: { text: '1/9', label: '1 of 9 sessions marked complete' }, creative: { text: '12:04', label: 'focus timer 12:04 left' }
-    });
-    expect(JSON.stringify(stats)).not.toContain('%');
-  });
-  it('omits progress that is unavailable, needs a re-check or has no sessions', () => {
-    for (const c of [course({ done: 1, total: 9 }, { progressUnavailable: true }), course(null, { needsRecheck: true }), course({ done: 0, total: 0 })]) {
-      expect(dockStats({ data: { courses: [c] }, today: [], ticked: new Set(), plan: { goals: [] }, goalsLoaded: true })).toEqual({});
-    }
+  it('keeps counts out of the menu and shows only a running timer or sounds', () => {
+    expect(dockStats({ focus: '12:04' })).toEqual({ creative: { text: '12:04', label: 'focus timer 12:04 left' } });
+    expect(dockStats({ playing: true }).creative.text).toBe('♪');
+    expect(dockStats({})).toEqual({});
   });
   it('suggests term-project steps only for a learner who has started a term project', () => {
     expect(termStep(null)).toBeNull();

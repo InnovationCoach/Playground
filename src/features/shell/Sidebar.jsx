@@ -90,7 +90,6 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
     ] },
     { label: 'nav.learning', items: [
       { key: 'courses', icon: BookOpen, label: 'nav.myCourses', onClick: onOpenCourses },
-      { key: 'programs', icon: School, label: 'nav.programs', href: hrefFor.programs() },
       { key: 'pbl', icon: Rocket, label: 'nav.pbl', href: hrefFor.pbl() },
       { key: 'competencies', icon: Award, label: 'nav.myCompetencies', href: hrefFor.pbl('competencies') },
       { key: 'canva', icon: Palette, label: 'nav.canva', href: hrefFor.canva() },

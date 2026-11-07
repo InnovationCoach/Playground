@@ -403,7 +403,7 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
                     <span className="mc-ed-badge">
                       <Link2 size={12} /> {course.code}
                     </span>
-                    <span style={{ fontSize: '0.72rem', color: '#8b949e' }}>{course.gradeRange}</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--gh-text-2)' }}>{course.gradeRange}</span>
                   </div>
 
                   <div>
@@ -418,7 +418,7 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
                     </div>
                     {avgScore !== null && (
                       <div className="mc-ed-stat-col" style={{ alignItems: 'flex-end' }}>
-                        <span className="mc-ed-stat-val" style={{ color: avgScore >= 80 ? '#3fb950' : '#d29922' }}>
+                        <span className="mc-ed-stat-val" style={{ color: avgScore >= 80 ? 'var(--gh-green-text)' : 'var(--gh-amber-text)' }}>
                           {avgScore}%
                         </span>
                         <span className="mc-ed-stat-lbl">AGS Average Score</span>
