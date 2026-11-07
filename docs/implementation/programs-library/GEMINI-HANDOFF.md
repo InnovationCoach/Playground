@@ -1,7 +1,9 @@
 # Shared Programs library: backend handoff for Gemini
 
 Branch: `feature/programs-library` (local, not pushed). Date: 2026-11-07.
-**Status: requires Mani's written approval.** This changes permissions, so `AGENTS.md` requires it before anything is applied. Nothing here has been deployed, and `firestore.rules` on this branch is unchanged apart from the existing `ai_usage` baseline block.
+**Status: approved for Gemini to apply on this branch** (recorded in the Claude Code session on 2026-11-07, in answer to "Does Mani approve the proposed permission rules for Gemini to apply?").
+
+The approval covers the five permission changes listed below, applied to `firestore.rules` on `feature/programs-library` and tested on emulators. It does **not** cover deploying rules or hosting, merging to main, or production data. Each of those needs Mani's separate written "go" for that exact step.
 
 Until these rules are applied, the frontend fails safely: "Save & Preview" reports "You do not have permission to do this. Nothing was saved."
 
@@ -57,3 +59,23 @@ firebase emulators:exec --only firestore --project demo-hearisland-rules --confi
 ```
 
 Do not run a bare `firebase deploy`. Rules deployment needs Mani's separate written "go" for that exact step.
+
+## Prompt for Gemini
+
+```text
+Read AGENTS.md and docs/implementation/programs-library/GEMINI-HANDOFF.md first.
+Work only in the worktree .claude/worktrees/programs-library, on branch feature/programs-library. Do not edit the root checkout.
+
+Approved task: apply the proposed Firestore rules to this branch.
+1. Copy docs/implementation/programs-library/firestore.rules.proposed over firestore.rules. Confirm the only differences from the current file are those in firestore.rules.patch.
+2. In tests/programs-library-rules.test.js, make firestore.rules the default RULES_FILE. In firebase.programs-library.local.json, point "rules" at firestore.rules. Then delete firestore.rules.proposed and firestore.rules.patch.
+3. Run:
+   firebase emulators:exec --only firestore --project demo-hearisland-rules --config firebase.programs-library.local.json "npx vitest run"
+   Expected: every test passes except tests/coach-roster-stats.test.js, which also fails on origin/main.
+4. Review the two-line getProgram change in src/services/pblService.js. It is on your file; say if you object.
+5. Commit on this branch. Report changed files, test results and open questions.
+
+Do not deploy anything. No firebase deploy of any kind, no hosting, no preview channel, no push, no merge, no production data. This approval is not a deploy authorisation, and neither is this prompt.
+
+Not approved, report only: the /archive permission gap and the program contract content loss (items 1 and 2 under "Existing issues"). The /archive fix is a further permission change and needs Mani's approval.
+```
