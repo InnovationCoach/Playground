@@ -1,0 +1,36 @@
+{
+  "score": 1,
+  "summary": "Release blocked: emulator-confirmed cross-school disclosure of DOB-bearing audit records. The server-only authority document resists learner writes, but current rules, conflicting profile/cohort evidence, and concurrent authority updates need owner remediation. Scope: lower-secondary contract and directly involved rules, not certification of the entire repository.",
+  "findings": [
+    {
+      "check": "Field-Level vs. Identity-Level Security",
+      "severity": "critical",
+      "issue": "firestore.rules:1108 grants every teacher/coach read access to every auditLogs document without organization, school or subject scope. admin-users.js ACCOUNT_CREATED now records exact DOB under details.after. A synthetic coach in school A successfully read school B's DOB-bearing server audit entry.",
+      "recommendation": "Gemini: place DOB/provenance audit details in an Admin-SDK-only collection or enforce approved tenant/class scope and data minimization; cover cross-school get/list denials. Mani must approve exact rule/permission changes before implementation."
+    },
+    {
+      "check": "Authority Source / Business Logic",
+      "severity": "major",
+      "issue": "Coach creation accepts ageBand 16-18 while independently marking a lower-secondary class cohort verified. The resolver ignores the staff-provided older band and returns lower-secondary for this contradiction. A pure resolver probe reproduced the result. This is incorrect age routing, not a demonstrated course-permission escalation.",
+      "recommendation": "Gemini: reject contradictory staff-entered band/cohort combinations at creation or mark them ambiguous and keep existing layout; choose and document policy. Add coach-created 16-18 in 11-14 class and inverse cases. Do not infer precise age from 13-15."
+    },
+    {
+      "check": "The Update Bypass / Atomicity",
+      "severity": "major",
+      "issue": "coach-students.js reads student, Auth claims and authority before its transaction, then writes a complete stale nextAuthority. Its transaction rechecks coach/school/class but not the target student or authority. A concurrent admin age/assignment edit can be overwritten or bypass the target scope check. admin-users.js also updates profile and authority in separate writes. Static review finding, not race-tested.",
+      "recommendation": "Gemini: read/revalidate target profile and authority inside the transaction; update only override-specific fields; preserve concurrent DOB/cohort/assignment edits. Atomically persist profile/authority where possible and add deterministic race/failure-injection tests."
+    },
+    {
+      "check": "The Update Bypass / Type Safety / Resource Exhaustion",
+      "severity": "minor",
+      "issue": "Current users create/update rules allow learner-written DOB/cohort/age/override fields and do not bound those fields' type/size. Emulator reproduced own age mutation; direct authority writes remain denied. Legacy self-editable data is not trusted by the selector, so the probe did not establish a layout escalation.",
+      "recommendation": "Gemini/Mani: review exact proposed protected-field rules, retain legitimate signup/self-enrollment behavior, add type/size bounds where appropriate, and test create/update/self-enrollment branches. Do not apply the current proposal unchanged: shared signup includes orgId/status that current/proposed self-create rules deny."
+    },
+    {
+      "check": "Business Logic / Contract Compatibility",
+      "severity": "moderate",
+      "issue": "Server treats learner as a selectable role while frontend enables only student; primary status differs between server cohort/ageBand and frontend ageBand. /api/me returns duplicated age/evidence metadata without a settled minimization decision.",
+      "recommendation": "Coordinator and Gemini: settle student/learner and primary semantics, define minimal response fields, and test the whole create-sign-in chain before enabling selection."
+    }
+  ]
+}

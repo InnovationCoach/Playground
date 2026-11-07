@@ -1,0 +1,29 @@
+{
+  "crossSchoolCoachCanReadAuditDob": true,
+  "learnerCanChangeOwnAgeFields": true,
+  "learnerCanWriteAuthority": false,
+  "conflictingOlderBandSelection": {
+    "contractVersion": 1,
+    "layout": "lower-secondary",
+    "reason": "eligible",
+    "verified": true,
+    "evidenceVerified": true,
+    "ageRange": {
+      "min": 11,
+      "max": 14
+    },
+    "source": "verified_cohort",
+    "role": "student",
+    "isPrimary": false,
+    "trustedAge": null,
+    "trustedAgeStatus": "missing",
+    "trustedAgeRange": {
+      "min": 11,
+      "max": 14,
+      "cohortId": "lower"
+    },
+    "trustedCohortStatus": "valid",
+    "staffOverride": null,
+    "overrideBlocked": false
+  }
+}
