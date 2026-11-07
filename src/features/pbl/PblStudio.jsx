@@ -1,5 +1,5 @@
 import { Rocket, Compass, NotebookPen, Award, BookOpen, FlaskConical, Library } from 'lucide-react';
-import { TERM, PHASES } from './content/pblModel.js';
+import { TERM } from './content/pblModel.js';
 import { usePblProject } from './engine/usePblProject.js';
 import { ProjectJourney } from './ProjectJourney.jsx';
 import { ExploreSteam } from './ExploreSteam.jsx';
@@ -65,14 +65,6 @@ export function PblStudio({ uid, role, tab, programId, section, classIds, onOpen
           <p className="pb-dq">{TERM.drivingQuestion}</p>
           {role === 'student' && <a className="pb-fs-link" href={hrefFor.futureSkills()}>Your Future Skills: what they are and how you build them →</a>}
         </div>
-        <ol className="pb-term-strip" aria-label={`Term plan, ${TERM.weeks} weeks`}>
-          {PHASES.map((p) => (
-            <li key={p.id} style={{ flexGrow: p.weeks[1] - p.weeks[0] + 1 }}>
-              <span>{p.title}</span>
-              <small>wk {p.weeks[0]}–{p.weeks[1]}</small>
-            </li>
-          ))}
-        </ol>
       </div>
 
       <div className="gh-tabs pb-tabs" role="tablist" aria-label="PBL Studio">

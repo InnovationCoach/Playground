@@ -10,6 +10,7 @@
 import { PHASES, EVIDENCE_KINDS, IMPACT, CODE_LANGUAGES } from '../content/pblModel.js';
 import { competencyById } from '../content/competencies.js';
 import { embedFor } from './mediaEmbed.js';
+import { copilotMode } from '../content/copilotModes.js';
 
 export const LIMITS = { evidence: 150, title: 120, body: 3000, code: 6000, link: 500, field: 600, sparks: 1500 };
 
@@ -182,7 +183,7 @@ export function copilotContext(project, phaseId) {
   const parts = [
     'You are a project co-pilot for a school Design Thinking project that helps people or the environment.',
     `Current phase: ${phase.title} - ${phase.goal}`,
-    'Help the learner plan, research and write or debug code (micro:bit MicroPython, Python, JavaScript, Arduino).',
+    copilotMode(phase.id).guidance,
     'When you give code, comment each line and ask them to test it and explain it back. Do not write their reflections or make their design decisions for them.'
   ];
   if (impact) parts.push(`Who it helps: ${impact.label}.`);
@@ -199,6 +200,7 @@ export function copilotRequest(project, phaseId, message) {
   return {
     message: String(message || '').slice(0, 2000),
     phase: PHASES.some((ph) => ph.id === phaseId) ? phaseId : PHASES[0].id,
+    mode: copilotMode(phaseId).id,
     impact: project.impact,
     language: project.codeLanguage,
     problem: {

@@ -3,6 +3,7 @@ import { TriangleAlert } from 'lucide-react';
 import { COMPETENCY_DOMAINS, COMPETENCIES, COMPETENCY_DATA_ISSUES, competencyById } from './content/competencies.js';
 import { PHASES } from './content/pblModel.js';
 import { competencyCoverage } from './engine/pblProject.js';
+import { CompetencyIcon } from './CompetencyIcon.jsx';
 
 /**
  * The school's competency framework, by domain. With a `project`, each
@@ -50,7 +51,7 @@ export function CompetencyFramework({ project, showIssues = false }) {
             <ul className="pb-comp-list">
               {list.map((c) => (
                 <li key={c.id} className="pb-comp">
-                  <span className="pb-code">{c.code}</span>
+                  {showIssues ? <span className="pb-code">{c.code}</span> : <span className="pb-comp-icon"><CompetencyIcon domain={c.domain} /></span>}
                   <div className="pb-grow">
                     <strong>{c.title}</strong>
                     {c.level === 'advanced' && <span className="pb-adv">Advanced</span>}

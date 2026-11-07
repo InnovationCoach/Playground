@@ -1001,24 +1001,17 @@
 }
 
 /* =========================================================================
-   PRESERVED: Daily notification (DailyGoalsNotice.jsx)
+   Goals invitation on My Dashboard (GoalsInviteBanner.jsx)
    ========================================================================= */
 
-.gl-notice-host { min-height: 0; height: 0; background: transparent; }
-.gl-notice { position: fixed; z-index: 1500; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  width: min(360px, calc(100vw - 32px)); box-sizing: border-box; padding: 0.95rem 1rem; border-radius: 16px;
-  background: var(--gh-surface, #fff); color: var(--gh-text, #14213a); border: 1px solid var(--gh-border, #e4e6ee);
-  box-shadow: 0 18px 40px rgba(16, 24, 40, 0.2), 0 3px 8px rgba(16, 24, 40, 0.08);
-  font-family: var(--gh-font, system-ui, sans-serif); display: flex; flex-direction: column; gap: 0.7rem; animation: gl-in 0.25s ease-out; }
-@keyframes gl-in { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
-.gl-notice-head { display: flex; align-items: center; gap: 0.6rem; }
-.gl-notice-head strong { flex: 1; font-size: 0.95rem; color: var(--gh-heading, #0f2c4c); }
-.gl-notice-icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--gh-purple-50, #f5eefa); color: var(--gh-purple, #8250a0); }
-.gl-notice-body { margin: 0; font-size: 0.86rem; color: var(--gh-text-2, #4b5670); }
-.gl-notice-more { font-size: 0.8rem; color: var(--gh-text-3, #737d93); padding-left: 0.6rem; }
-.gl-notice-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-.gl-notice .gh-btn { text-decoration: none; }
-.gl-notice-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.2rem; }
+/* Sits in the page's own flow: it must never cover a learner's work. */
+.gl-invite { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem 0.9rem; margin-top: 16px; padding: 0.85rem 1rem; border-radius: 14px;
+  background: var(--gh-surface, #fff); color: var(--gh-text, #14213a); border: 1px solid var(--gh-border, #e4e6ee); }
+.gl-invite-icon { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--gh-purple-50, #f5eefa); color: var(--gh-purple-text, #6e3f8b); }
+.gl-invite-text { flex: 1 1 260px; min-width: 0; }
+.gl-invite-text strong { color: var(--gh-heading, #0f2c4c); }
+.gl-invite-text p { margin: 0.1rem 0 0; font-size: 0.88rem; color: var(--gh-text-2, #4b5670); }
+.gl-invite .gh-btn { min-height: 44px; text-decoration: none; }
 .gl-check { display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.4rem 0.5rem; border: 0; border-radius: 10px;
   background: transparent; color: var(--gh-text, #14213a); font: inherit; font-size: 0.88rem; line-height: 1.3; text-align: left; cursor: pointer; }
 .gl-check:hover { background: var(--gh-subtle, #f5f6fa); }
@@ -1029,9 +1022,6 @@
 .gl-icon-btn { width: 30px; height: 30px; border-radius: 8px; border: 0; background: transparent; color: var(--gh-text-2); display: grid; place-items: center; cursor: pointer; }
 .gl-icon-btn:hover { background: var(--gh-subtle); color: var(--gh-heading); }
 
-@media (prefers-reduced-motion: reduce) {
-  .gl-notice { animation: none; }
-}
 
 /* ---------------- Page header ---------------- */
 .gl-head { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap; }

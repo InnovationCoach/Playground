@@ -174,7 +174,7 @@ describe('project engine', () => {
     expect(req).toMatchObject({ phase: 'prototype', impact: 'both', language: 'python', message: 'write code' });
     expect(req.problem.hmw).toBe('How might we…');
     expect(req.problem.who.length).toBe(200);
-    expect(Object.keys(req).sort()).toEqual(['impact', 'language', 'message', 'phase', 'problem']);
+    expect(Object.keys(req).sort()).toEqual(['impact', 'language', 'message', 'mode', 'phase', 'problem']);
     expect(copilotRequest(p, 'nope', 'x').phase).toBe('explore');
   });
 
