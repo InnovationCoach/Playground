@@ -4,6 +4,7 @@ import { geminiApi } from '../../services/geminiApi.js';
 import { AI_PRINCIPLES, CODE_LANGUAGES, IMPACT } from './content/pblModel.js';
 import { copilotContext, copilotRequest, updateProject, LIMITS } from './engine/pblProject.js';
 import { copilotMode, starterPrompts } from './content/copilotModes.js';
+import { hrefFor } from '../../app/routes.js';
 
 /**
  * The AI co-pilot for the open phase. Its job follows the phase (content/
@@ -13,7 +14,8 @@ import { copilotMode, starterPrompts } from './content/copilotModes.js';
  *
  * It calls /api/pbl-copilot. Until that endpoint is deployed (a 404), it falls
  * back to /api/tutor, whose rules forbid handing over code, and says so - a
- * learner should never think the co-pilot refused them on purpose.
+ * learner should never think the co-pilot refused them on purpose. If neither
+ * answers, it says that too, and keeps their question.
  *
  * Every answer can be saved as an AI log, and every code block as code
  * evidence: using AI well becomes evidence, not something learners hide.
@@ -22,7 +24,7 @@ export function Copilot({ phase, project, apply, onLog, onSaveCode, prefill = nu
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [turns, setTurns] = useState([]);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(false);
   const [fallback, setFallback] = useState(false);
   const impact = IMPACT.find((i) => i.id === project.impact);
   const mode = copilotMode(phase.id);
@@ -53,17 +55,15 @@ export function Copilot({ phase, project, apply, onLog, onSaveCode, prefill = nu
         ({ reply } = await geminiApi.pblCopilot(copilotRequest(project, phase.id, question)));
         setFallback(false);
       } catch (err) {
-        setFallback(true);
-        try {
-          reply = await geminiApi.generateContextualResponse(question, copilotContext(project, phase.id));
-        } catch {
-          reply = `Here is a structured engineering guide for ${question}: In this ${phase.title || 'milestone'}, test your circuitry step-by-step on the MakerSpace bench, check signal voltages with the multimeter, and document all sensor observations.`;
-        }
+        setFallback(err?.status === 404);
+        reply = await geminiApi.generateContextualResponse(question, copilotContext(project, phase.id));
       }
-      setTurns((t) => [{ q: question, a: reply || '(no answer came back - try asking another way)' }, ...t].slice(0, 6));
+      if (!String(reply || '').trim()) throw new Error('Empty reply');
+      setTurns((t) => [{ q: question, a: reply }, ...t].slice(0, 6));
       setText('');
-    } catch (err) {
-      setError(err?.message || 'The co-pilot is unavailable right now.');
+    } catch {
+      // Never stand in for the AI: a made-up answer could look true and end up in a portfolio.
+      setError(true);
     } finally {
       setBusy(false);
     }
@@ -103,8 +103,12 @@ export function Copilot({ phase, project, apply, onLog, onSaveCode, prefill = nu
           </button>
         </div>
       </form>
-      {error && <p className="pb-error" role="alert">{error}</p>}
-      {fallback && (
+      {error && (
+        <p className="pb-error" role="alert">
+          The co-pilot can’t answer right now. Your question is still here, so try again in a minute, or <a href={hrefFor.messages()}>ask your coach</a>.
+        </p>
+      )}
+      {fallback && mode.usesCode && (
         <p className="pb-note" role="status">
           <Info size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />
           Code writing is switched on when the school's server update arrives. Until then the co-pilot gives hints instead of full code.

@@ -253,11 +253,11 @@ export const geminiApi = {
    * docs/BACKEND-PBL-COPILOT-PROMPT-FOR-GEMINI.md. The error carries `status`
    * so the caller can tell "endpoint not deployed yet" (404) from a failure.
    */
-  async pblCopilot({ message, phase, problem, impact, language, ageBand = null }) {
+  async pblCopilot({ message, phase, mode, problem, impact, language, ageBand = null }) {
     const response = await fetch(`${API_BASE_URL}/api/pbl-copilot`, {
       method: 'POST',
       headers: await authHeaders(),
-      body: JSON.stringify({ message, phase, problem, impact, language, ageBand: ageBand || getAgeBand() })
+      body: JSON.stringify({ message, phase, mode, problem, impact, language, ageBand: ageBand || getAgeBand() })
     });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));

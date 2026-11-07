@@ -8,6 +8,7 @@ import { addEvidence, addProof, copilotContext, copilotRequest, hydrateProject, 
 import { GoalsInviteBanner, inviteDismissed, inviteStorageKey } from '../src/features/goals/GoalsInviteBanner.jsx';
 import { CompetencyChips, ProjectJourney, rankedActivities } from '../src/features/pbl/ProjectJourney.jsx';
 import { Copilot } from '../src/features/pbl/Copilot.jsx';
+import { geminiApi } from '../src/services/geminiApi.js';
 import { CompetencyFramework } from '../src/features/pbl/CompetencyFramework.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -278,5 +279,70 @@ describe('P1: the phase page', () => {
     expect(host.querySelector('.pb-here')).toBeNull();
     expect(host.querySelector('.pb-code')).toBeTruthy();
     expect(host.textContent).toContain('Weeks 1–3');
+  });
+});
+
+describe('when the co-pilot can’t answer', () => {
+  const props = { project: blank(), apply: () => {}, onLog: () => {}, onSaveCode: () => {} };
+  const ask = async (phase = PHASES[0], text = 'What is a sensor?') => {
+    mount(<Copilot phase={phase} {...props} />);
+    const box = host.querySelector('#pb-ask');
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(box, text);
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => { host.querySelector('.pb-ask').requestSubmit(); });
+  };
+  const notFound = () => Object.assign(new Error('nope'), { status: 404 });
+  afterEach(() => vi.restoreAllMocks());
+  it('says so honestly, keeps the question, and offers nothing to save', async () => {
+    vi.spyOn(geminiApi, 'pblCopilot').mockRejectedValue(notFound());
+    vi.spyOn(geminiApi, 'generateContextualResponse').mockRejectedValue(new Error('secret server detail'));
+    await ask();
+    const alert = host.querySelector('[role="alert"]');
+    expect(alert.textContent).toContain('can’t answer right now');
+    expect(alert.textContent).not.toContain('secret');
+    expect(host.textContent).not.toMatch(/structured engineering|Here is a/);
+    expect(host.querySelector('.pb-turn')).toBeNull();
+    expect(host.querySelector('#pb-ask').value).toBe('What is a sensor?');
+    expect(button('Save to my AI log')).toBeUndefined();
+    expect(alert.querySelector('a').getAttribute('href')).toBe('#/messages');
+  });
+  it('treats an empty reply as no answer', async () => {
+    vi.spyOn(geminiApi, 'pblCopilot').mockResolvedValue({ reply: '   ' });
+    await ask();
+    expect(host.querySelector('[role="alert"]')).toBeTruthy();
+    expect(host.querySelector('.pb-turn')).toBeNull();
+  });
+  it('clears the alert and the question when a retry works', async () => {
+    const main = vi.spyOn(geminiApi, 'pblCopilot').mockRejectedValueOnce(new Error('x')).mockResolvedValue({ reply: 'A sensor measures things.' });
+    vi.spyOn(geminiApi, 'generateContextualResponse').mockRejectedValueOnce(new Error('y'));
+    await ask();
+    await act(async () => { host.querySelector('.pb-ask').requestSubmit(); });
+    expect(main).toHaveBeenCalledTimes(2);
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host.querySelector('.pb-turn').textContent).toContain('A sensor measures things.');
+    expect(host.querySelector('#pb-ask').value).toBe('');
+  });
+  it('mentions the missing code update only when code is the point, and the route is really missing', async () => {
+    vi.spyOn(geminiApi, 'generateContextualResponse').mockResolvedValue('A hint.');
+    const main = vi.spyOn(geminiApi, 'pblCopilot').mockRejectedValue(notFound());
+    await ask();
+    expect(host.querySelector('.pb-note')).toBeNull();
+    unmount();
+    await ask(PHASES.find((p) => p.id === 'prototype'));
+    expect(host.querySelector('.pb-note').textContent).toContain('Code writing');
+    unmount();
+    main.mockRejectedValue(Object.assign(new Error('busy'), { status: 500 }));
+    await ask(PHASES.find((p) => p.id === 'prototype'));
+    expect(host.querySelector('.pb-note')).toBeNull();
+    expect(host.querySelector('.pb-turn').textContent).toContain('A hint.');
+  });
+  it('actually sends the phase mode to the main route', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ reply: 'ok' }), { status: 200 }));
+    await geminiApi.pblCopilot(copilotRequest(blank(), 'define', 'hello'));
+    const [url, init] = fetchSpy.mock.calls.at(-1);
+    expect(url).toContain('/api/pbl-copilot');
+    expect(JSON.parse(init.body)).toMatchObject({ phase: 'define', mode: 'problem', message: 'hello' });
   });
 });
