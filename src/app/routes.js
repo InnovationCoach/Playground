@@ -6,6 +6,10 @@
  *   #/admin/new/<kind>                                   create
  *   #/spark                                              SPARK Home: every role's landing page
  *   #/coach/dashboard                                    Coach Dashboard (teachers)
+ *   #/program-library                                    Shared Programs library (staff)
+ *   #/program-library/<id>/preview/<draft|published>[/<section>]  coach preview of one program
+ *   #/program-library/<id>/edit                          reopen a saved draft in the course maker
+ *                                                        (not under #/coach: index.html's legacy router sends all of that to the dashboard.)
  *   #/settings   #/courses   #/parent  #/parent/:childUid[/:section]  everyone else
  *   #/primary-resources  #/worksheet/<id>  #/guide/<id>  printable primary material
  *   #/pbl  #/pbl/<tab>                                   PBL Studio (term project)
@@ -33,7 +37,7 @@ export function parseRoute(hash) {
   const parts = String(hash || '').replace(/^#\/?/, '').split('/').filter(Boolean).map((p) => {
     try { return decodeURIComponent(p); } catch { return p; }
   });
-  const [head, a, b, c] = parts;
+  const [head, a, b, c, d] = parts;
   if (head === 'admin') {
     if (KINDS.includes(a)) return { screen: 'admin', page: 'list', kind: a };
     if (['staff-attendance', 'student-attendance', 'leave'].includes(a)) return { screen: 'admin', page: a };
@@ -69,6 +73,11 @@ export function parseRoute(hash) {
   if (head === 'future-skills') return { screen: 'futureSkills' };
   if (head === 'dashboard') return { screen: 'dashboard' };
   if (head === 'spark') return { screen: 'spark' };
+  if (head === 'program-library') {
+    if (a && b === 'edit') return { screen: 'coachPrograms', page: 'edit', programId: a };
+    if (a) return { screen: 'coachPrograms', page: 'preview', programId: a, version: c === 'published' ? 'published' : 'draft', section: d || null };
+    return { screen: 'coachPrograms', page: 'list' };
+  }
   if (head === 'coach') return { screen: 'coach' };
   if (head === 'canva') return { screen: 'canva' };
   if (head === 'edmentum') return { screen: 'edmentum' };
@@ -112,5 +121,8 @@ export const hrefFor = {
   dashboard: () => '#/dashboard',
   spark: () => '#/spark',
   coach: () => '#/coach/dashboard',
+  programLibrary: () => '#/program-library',
+  programPreview: (id, version = 'draft', section) => `#/program-library/${encodeURIComponent(id)}/preview/${version}${section ? `/${section}` : ''}`,
+  programEdit: (id) => `#/program-library/${encodeURIComponent(id)}/edit`,
   canva: () => '#/canva'
 };

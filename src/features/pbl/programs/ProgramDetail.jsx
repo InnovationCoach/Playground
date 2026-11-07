@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, CircleCheck, Circle, ChevronDown, Target, Users, Leaf, HeartHandshake,
   Cpu, Wrench, Package, Laptop, ShieldAlert, GraduationCap, Bot, Printer, TriangleAlert, Clock,
@@ -8,7 +8,7 @@ import {
 import { programById, COACH_PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges, isSourcedConfirmation } from './catalog.js';
 import { getProgram, addToMyCourse } from '../../../services/pblService.js';
 import {
-  programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, removeSubmission, isSessionDone, unlockBadge, LIMITS,
+  hydrateProgress, programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, removeSubmission, isSessionDone, unlockBadge, LIMITS,
   needsRecheck, confirmRecheck
 } from './progress.js';
 import { addEvidence, hydrateProject } from '../engine/pblProject.js';
@@ -119,6 +119,28 @@ function LearnerDetail({ program, section, uid, cover }) {
   return <DetailView program={program} section={section} cover={cover} progress={progress} apply={apply} syncState={syncState} uid={uid} />;
 }
 
+/** True inside a coach preview: the student screens render, but save nowhere. */
+const PreviewContext = createContext(false);
+
+/**
+ * The real student course view for coach review. Progress lives only in this
+ * component, and uid stays null, so nothing can enrol the coach or reach
+ * learner records. Media comes from a viewer's classes, so there is none here.
+ */
+export function StudentProgramPreview({ program, section, linkFor, backHref }) {
+  const [progress, setProgress] = useState(() => hydrateProgress(null, program));
+  const apply = useCallback((fn) => setProgress((p) => fn(p)), []);
+  const media = { classes: [], isCoach: false, uid: null, reload: () => {} };
+  return (
+    <PreviewContext.Provider value>
+      <ProgramMediaProvider value={media}>
+        <DetailView program={program} section={section} cover={coverFor(program, [])} progress={progress} apply={apply}
+                    linkFor={linkFor} backHref={backHref} />
+      </ProgramMediaProvider>
+    </PreviewContext.Provider>
+  );
+}
+
 const SECTION_ALIASES = {
   toolkit: 'tools',
   safety: 'kit',
@@ -144,7 +166,7 @@ function saveToPortfolio(uid, evidenceItem) {
   }
 }
 
-function DetailView({ program: p, section, cover, isCoach = false, progress = null, apply = null, syncState, uid = null }) {
+function DetailView({ program: p, section, cover, isCoach = false, progress = null, apply = null, syncState, uid = null, linkFor = hrefFor.program, backHref = hrefFor.pbl('programs') }) {
   const kit = toolkitFor(p.id);
   const sections = SECTIONS.filter((s) => (!s.coach || isCoach) && (!s.kit || kit));
   const resolvedSection = SECTION_ALIASES[section] || section;
@@ -187,7 +209,7 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
     setSelectedPhase(session.phaseId);
     setSelectedSessionNum(session.sessionNumber);
     if (active !== 'plan') {
-      window.location.hash = hrefFor.program(p.id, 'plan');
+      window.location.hash = linkFor(p.id, 'plan');
     }
     setTimeout(() => {
       const el = document.getElementById(`pg-session-${session.sessionNumber}`);
@@ -200,13 +222,13 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
   const handleSelectPhase = (phaseId) => {
     setSelectedPhase(phaseId);
     if (active !== 'plan') {
-      window.location.hash = hrefFor.program(p.id, 'plan');
+      window.location.hash = linkFor(p.id, 'plan');
     }
   };
 
   return (
     <div className="pg-detail">
-      <a className="pb-link pg-back" href={hrefFor.pbl('programs')}><ArrowLeft size={15} aria-hidden="true" />All programs</a>
+      <a className="pb-link pg-back" href={backHref}><ArrowLeft size={15} aria-hidden="true" />All programs</a>
 
       {/* A <section>, not <header>: index.html still styles every bare `header` for the legacy app. */}
       <section className="pg-hero pg-hero-poster" data-tone={p.identity?.tone || 'amber'} aria-labelledby="pg-hero-title">
@@ -245,7 +267,7 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
             );
           })}
         </ol>
-        {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} uid={uid} onSelectSession={handleSelectSession} />}
+        {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} uid={uid} onSelectSession={handleSelectSession} linkFor={linkFor} />}
         {kit && progress?.startedAt && <FounderPanel program={p} progress={progress} />}
         </div>
         <div className="pg-hero-aside"><ProgramPoster program={p} cover={cover} size="hero" /></div>
@@ -266,7 +288,7 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
       <nav className="gh-tabs pb-tabs" aria-label="Program sections">
         {sections.map(({ id, label, icon: Icon }) => (
           <a key={id} className="gh-tab" aria-current={active === id ? 'page' : undefined} aria-selected={active === id}
-             href={hrefFor.program(p.id, id === 'overview' ? null : id)}>
+             href={linkFor(p.id, id === 'overview' ? null : id)}>
             <Icon size={16} aria-hidden="true" />{label}
             {id === 'checks' && (p.issues?.length || 0) > 0 && <span className="pg-count">{p.issues.length}</span>}
           </a>
@@ -343,12 +365,12 @@ function Toolkit({ program: p, kit, tools }) {
   );
 }
 
-function LearnerBar({ program: p, progress, summary, apply, uid = null, onSelectSession = null }) {
+function LearnerBar({ program: p, progress, summary, apply, uid = null, onSelectSession = null, linkFor = hrefFor.program }) {
   if (!progress.startedAt) {
     return (
       <div className="pg-learner-bar">
         <span>Ready when you are: {(p.sessions || []).length} sessions over {p.durationWeeks || 12} weeks.</span>
-        <a className="gh-btn gh-btn-primary" href={hrefFor.program(p.id, 'plan')} onClick={() => {
+        <a className="gh-btn gh-btn-primary" href={linkFor(p.id, 'plan')} onClick={() => {
           apply((x) => startProgram(x));
           if (uid) addToMyCourse(p.id, uid).catch(() => {});
         }}>
@@ -371,7 +393,7 @@ function LearnerBar({ program: p, progress, summary, apply, uid = null, onSelect
             if (onSelectSession) {
               onSelectSession(summary.next);
             } else {
-              window.location.hash = hrefFor.program(p.id, 'plan');
+              window.location.hash = linkFor(p.id, 'plan');
             }
           }}
         >
@@ -704,6 +726,7 @@ function Stage({ icon, title, children }) {
  * and a confidence check. Coaches see the same mission read-only.
  */
 function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpen, kit, tools, say, uid }) {
+  const isPreview = useContext(PreviewContext);
   const [expanded, setExpanded] = useState(defaultOpen);
   const entry = progress?.sessions[s.sessionNumber];
   const done = isSessionDone(entry, s);
@@ -743,7 +766,7 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
       competencies: portComps,
       phase: s.phaseId
     };
-    saveToPortfolio(uid, evItem);
+    if (!isPreview) saveToPortfolio(uid, evItem);
     apply((p) => setSubmission(p, s.sessionNumber, 'evidence', portLink || portTitle));
     buzz([20, 40]);
     say?.(`Evidence saved to your portfolio! 🎉`);

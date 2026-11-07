@@ -26,6 +26,9 @@ import { SchoolLearningPanel } from '../features/school/SchoolLearningPanel.jsx'
 import { LiveCourseDiscovery } from '../features/courses/LiveCourseDiscovery.jsx';
 import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
 import { CoachPblStudio } from '../features/coach/studio/CoachPblStudio.jsx';
+import { ProgramLibraryPage } from '../features/coach/library/ProgramLibraryPage.jsx';
+import { ProgramPreviewPage } from '../features/coach/library/ProgramPreviewPage.jsx';
+import { isLibraryRole } from '../features/coach/library/programLibraryModel.js';
 import { CanvaPage } from '../features/canva/CanvaPage.jsx';
 import { EdmentumIntegrationConsole } from '../features/edmentum/EdmentumIntegrationConsole.jsx';
 import { StudentOnboardingModal } from '../components/Onboarding/StudentOnboardingModal.jsx';
@@ -191,7 +194,7 @@ export function App() {
     || CONSOLE_ROLES.includes(role)
     || role === 'parent'
     || isCoachScreen
-    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard', 'spark', 'space', 'programs', 'journey', 'portfolio', 'coach'].includes(route?.screen)
+    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard', 'spark', 'space', 'programs', 'journey', 'portfolio', 'coach', 'coachPrograms'].includes(route?.screen)
   );
 
   useEffect(() => {
@@ -205,6 +208,7 @@ export function App() {
   }, [isLegacyDarkScene, isLightCapableScreen, effectiveTheme]);
 
   const headerProps = {
+    orgId,
     email: user?.email,
     displayName: profile?.displayName,
     role,
@@ -247,7 +251,8 @@ export function App() {
           email: user?.email,
           displayName: profile?.displayName || user?.email?.split('@')[0] || 'Coach',
           classIds: classIds || profile?.classIds || [],
-          role
+          role,
+          orgId
         }}
         navigate={setHash}
       />
@@ -359,6 +364,35 @@ export function App() {
                           displayName={profile?.displayName || user?.email?.split('@')[0] || ''}
                           onOpen={(convId) => setHash(hrefFor.messages(convId))} onBack={() => setHash(hrefFor.messages())} />
         )}
+      </>
+    );
+  }
+
+  // Shared Programs library: coaches and console staff. Students and parents fall
+  // through to their own screens; the data rules refuse them either way.
+  if (route?.screen === 'coachPrograms' && isLibraryRole(role)) {
+    const libraryUser = {
+      uid: user?.uid,
+      email: user?.email,
+      displayName: profile?.displayName || user?.email?.split('@')[0] || 'Coach',
+      classIds: classIds || profile?.classIds || [],
+      role,
+      orgId
+    };
+    return (
+      <>
+        <Header {...headerProps} />
+        {sidebar}
+        <div className="gh-app" style={{ minHeight: 'calc(100vh - 64px)' }}>
+          {route.page === 'edit' ? (
+            <CoachPblStudio key={route.programId} coachUser={libraryUser} navigate={setHash} initialTab="studio" editProgramId={route.programId} />
+          ) : route.page === 'preview' ? (
+            <ProgramPreviewPage programId={route.programId} version={route.version} section={route.section}
+                                uid={user?.uid} role={role} displayName={libraryUser.displayName} />
+          ) : (
+            <ProgramLibraryPage uid={user?.uid} orgId={orgId} />
+          )}
+        </div>
       </>
     );
   }

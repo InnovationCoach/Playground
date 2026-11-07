@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
-  House, Search, LayoutDashboard, BookOpen, Rocket, Target, Sparkles, Users, Printer, HeartHandshake,
+  House, Search, Library, LayoutDashboard, BookOpen, Rocket, Target, Sparkles, Users, Printer, HeartHandshake,
   GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2, Palette, Award,
   ClipboardCheck, CalendarOff, Boxes, LayoutGrid, School, Route, UserRound
 } from 'lucide-react';
@@ -62,6 +62,7 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
         { key: 'admin:materials', icon: PackageCheck, label: 'nav.materials', href: hrefFor.materials() }
       ] },
       { label: 'nav.teaching', items: [
+        { key: 'coachPrograms', icon: Library, label: 'nav.programLibrary', href: hrefFor.programLibrary() },
         { key: 'pbl', icon: Rocket, label: 'nav.pbl', href: hrefFor.pbl() },
         { key: 'admin:learning', icon: School, label: 'nav.schoolLearning', href: '#/admin/learning' },
         { key: 'canva', icon: Palette, label: 'nav.canva', href: hrefFor.canva() },
@@ -72,8 +73,9 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
   }
   if (role === 'teacher' || role === 'coach') {
     const coachProgramMaker = { key: 'spark', icon: Sparkles, label: 'nav.coachProgramMaker', href: hrefFor.spark() };
+    const programLibrary = { key: 'coachPrograms', icon: Library, label: 'nav.programLibrary', href: hrefFor.programLibrary() };
     return [
-      { items: [coachProgramMaker, { key: 'coach', icon: LayoutDashboard, label: 'nav.coachDashboard', href: hrefFor.coach(), onClick: () => onNavigate('coach') }] },
+      { items: [coachProgramMaker, programLibrary, { key: 'coach', icon: LayoutDashboard, label: 'nav.coachDashboard', href: hrefFor.coach(), onClick: () => onNavigate('coach') }] },
       { label: 'nav.teaching', items: [
         { key: 'pbl', icon: Rocket, label: 'nav.pblFramework', href: hrefFor.pbl() },
         { key: 'canva', icon: Palette, label: 'nav.canva', href: hrefFor.canva() },

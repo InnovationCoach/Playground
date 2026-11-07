@@ -12,6 +12,7 @@ import {
 import { WELEARN_DT_FRAMEWORK, LIBRARY_PROGRAMS, generateSearchTokens } from '../features/pbl/programs/libraryProgramsData.js';
 import { numberCourseSessions } from '../features/pbl/programs/sessionNumbering.js';
 import { programById } from '../features/pbl/programs/catalog.js';
+import { getCustomProgramById } from '../features/coach/programs/customProgramsStore.js';
 export { needsCourseNumbering } from '../features/pbl/programs/sessionNumbering.js';
 
 // ============================================================================
@@ -228,8 +229,11 @@ export async function getProgram(id, { dbInstance = db } = {}) {
   }
 
   // 1. Check official library programs first (from catalog.js)
+  // programById also returns this device's cached copy of a coach-authored
+  // program. That copy must not outrank Firestore, or a republish never reaches a
+  // learner who has already seen the course; it stays the offline fallback below.
   const official = programById(id);
-  if (official) {
+  if (official && !getCustomProgramById(id)) {
     return { status: 'found', program: official };
   }
 

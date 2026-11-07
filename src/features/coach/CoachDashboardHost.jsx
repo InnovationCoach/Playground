@@ -1,6 +1,6 @@
 import { LeavePanel } from '../admin/pilot/PilotOperations.jsx';
 import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Eye, Sun, Moon } from 'lucide-react';
+import { Sparkles, Eye, Library, Sun, Moon } from 'lucide-react';
 import { StudentInviteDialog } from './StudentInviteDialog.jsx';
 import { CoachWorkspace } from './CoachWorkspace.jsx';
 import CoachDashboard from '../../components/Coach/CoachDashboard.js';
@@ -135,6 +135,13 @@ export function CoachDashboardHost({ coachUser, orgId = null }) {
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', border: '1px solid var(--gh-border)' }}
             >
               <Eye size={15} /> Program Library
+            </a>
+            <a
+              href={hrefFor.programLibrary()}
+              className="gh-btn gh-btn-ghost"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', border: '1px solid var(--gh-border)' }}
+            >
+              <Library size={15} /> Programs
             </a>
           </div>
         </div>

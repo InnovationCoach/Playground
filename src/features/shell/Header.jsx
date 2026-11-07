@@ -6,13 +6,15 @@ import { hrefFor } from '../../app/routes.js';
 import { LOGO_URL } from '../../app/brand.js';
 import { Avatar } from './Avatar.jsx';
 import { NotificationBell } from '../studentProfile/NotificationBell.jsx';
+import { CoachNotificationBell } from '../coach/library/CoachNotificationBell.jsx';
+import { isLibraryRole } from '../coach/library/programLibraryModel.js';
 import { QuickTourButton } from '../../components/Onboarding/StudentOnboardingModal.jsx';
 
 /**
  * Top bar for every signed-in screen: logo on the left, the account menu on
  * the right (name, role, Settings, Sign out). Signed out, it shows the logo only.
  */
-export function Header({ email, displayName, role, uid, onSignOut, onHome, onMenu, menuOpen = false }) {
+export function Header({ email, displayName, role, uid, orgId = null, onSignOut, onHome, onMenu, menuOpen = false }) {
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
@@ -45,7 +47,7 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome, onMen
       {email && (
         <div className="gh-topbar-right" ref={wrapRef}>
           {role === 'student' && <QuickTourButton />}
-          {uid && <NotificationBell uid={uid} />}
+          {uid && (isLibraryRole(role) ? <CoachNotificationBell uid={uid} orgId={orgId} /> : <NotificationBell uid={uid} />)}
           <button type="button" className="gh-user-btn" aria-haspopup="menu" aria-expanded={open}
                   onClick={() => setOpen((o) => !o)}>
             <Avatar name={name} seed={uid || email} size={30} />

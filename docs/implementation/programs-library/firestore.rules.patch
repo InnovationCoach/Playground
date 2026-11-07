@@ -1,0 +1,149 @@
+diff --git a/firestore.rules b/docs/implementation/programs-library/firestore.rules.proposed
+index 7f0b693..0a2a6fd 100644
+--- a/firestore.rules
++++ b/docs/implementation/programs-library/firestore.rules.proposed
+@@ -527,6 +527,15 @@ service cloud.firestore {
+         allow delete: if isAuthenticated() && canWriteCoachRecord(userId) && resource.data.coachId == request.auth.uid;
+       }
+ 
++      // Which shared-library review notifications this coach has read.
++      match /notificationReads/{notificationId} {
++        allow read: if isOwner(userId);
++        allow create, update: if isOwner(userId) && isLibraryStaff()
++          && request.resource.data.keys().hasOnly(['readAt'])
++          && request.resource.data.readAt is number;
++        allow delete: if false;
++      }
++
+       // Coach notifications to students.
+       match /notifications/{notificationId} {
+         allow read: if isOwner(userId);
+@@ -587,14 +596,123 @@ service cloud.firestore {
+             || (('authorUid' in resource.data) && learnerHasClassWithCoach(resource.data.authorUid))
+           )
+         );
+-      // Teachers/coaches can create and update programs
+-      allow create: if isTeacher()
++      // Teachers/coaches can create and update programs. A program saved in the
++      // shared library (or already published from it) belongs to its creator and
++      // administrators; legacy programs keep their existing behaviour.
++      allow create: if (isTeacher() || isLibraryAdmin())
++        && (
++          exists(/databases/$(database)/documents/program_library/$(programId))
++            ? canManageLibraryRecord(get(/databases/$(database)/documents/program_library/$(programId)).data)
++            : isTeacher()
++        );
++      allow update: if resource.data.get('libraryManaged', false) == true
++        ? canManageLibraryRecord(get(/databases/$(database)/documents/program_library/$(programId)).data)
++          && request.resource.data.libraryManaged == true
++          && request.resource.data.get('authorId', '') == resource.data.get('authorId', '')
++        : (
++          isTeacher()
++          && (
++            !exists(/databases/$(database)/documents/program_library/$(programId))
++            || canManageLibraryRecord(get(/databases/$(database)/documents/program_library/$(programId)).data)
++          )
++        );
++      allow delete: if false;
++    }
++
++    // ---------------------------------------------------------------------
++    // Shared Programs library (coach drafts, feedback, review notifications)
++    // No student or parent can read any of this: drafts reach learners only
++    // when they are published into pbl_programs.
++    // ---------------------------------------------------------------------
++
++    // Coaches provisioned by scripts/grant-coach.js carry no orgId claim, so a
++    // missing claim means the default organization, as in server/routes/admin-users.js.
++    function libraryOrgId() {
++      return request.auth.token.get('orgId', 'org-welearn');
++    }
++    function isLibraryAdmin() {
++      return isAuthenticated() && request.auth.token.get('role', '') == 'admin';
++    }
++    function isLibraryStaff() {
++      return isTeacher() || isAdminOrSupervisor();
++    }
++    function canManageLibraryRecord(record) {
++      return record.orgId == libraryOrgId()
++        && ((isTeacher() && record.creatorUid == request.auth.uid) || isLibraryAdmin());
++    }
++
++    match /program_library/{programId} {
++      // A first save reads the id inside its transaction, before the record exists.
++      allow get: if isLibraryStaff() && (resource == null || resource.data.orgId == libraryOrgId());
++      allow list: if isLibraryStaff() && resource.data.orgId == libraryOrgId();
++
++      allow create: if (isTeacher() || isLibraryAdmin())
++        && request.resource.data.keys().hasOnly(['programId', 'orgId', 'creatorUid', 'creatorName', 'title', 'description', 'unit', 'status', 'draftVersion', 'publishedVersion', 'hasUnpublishedChanges', 'createdAt', 'updatedAt', 'publishedAt'])
++        && request.resource.data.programId == programId
++        && request.resource.data.orgId == libraryOrgId()
++        && request.resource.data.creatorUid == request.auth.uid
++        && request.resource.data.status == 'draft'
++        && request.resource.data.draftVersion == 1
++        && request.resource.data.publishedVersion == null
++        && request.resource.data.hasUnpublishedChanges == false
++        && request.resource.data.unit is map;
++
++      // Identity never changes. Editing moves the draft on one version at a time;
++      // publishing leaves the draft alone and records which version went live,
++      // and is only valid in a write that also updates the published copy.
++      allow update: if canManageLibraryRecord(resource.data)
++        && request.resource.data.programId == resource.data.programId
++        && request.resource.data.orgId == resource.data.orgId
++        && request.resource.data.creatorUid == resource.data.creatorUid
++        && request.resource.data.createdAt == resource.data.createdAt
+         && (
+-          request.resource.data.get('authorId', request.resource.data.get('authorUid', request.auth.uid)) == request.auth.uid
+-          || isTeacher()
++          (
++            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'unit', 'draftVersion', 'hasUnpublishedChanges', 'updatedAt'])
++            && request.resource.data.draftVersion == resource.data.draftVersion + 1
++            && request.resource.data.hasUnpublishedChanges == (resource.data.status == 'published')
++          ) || (
++            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'publishedVersion', 'hasUnpublishedChanges', 'publishedAt', 'lastPublishedAt', 'lastPublishedBy', 'updatedAt'])
++            && request.resource.data.status == 'published'
++            && request.resource.data.publishedVersion == resource.data.draftVersion
++            && request.resource.data.hasUnpublishedChanges == false
++            && request.resource.data.lastPublishedBy == request.auth.uid
++            && getAfter(/databases/$(database)/documents/pbl_programs/$(programId)).data.libraryVersion == resource.data.draftVersion
++          )
+         );
+-      allow update: if isTeacher();
++
+       allow delete: if false;
++
++      // Feedback is append-only and attached to the version it reviewed.
++      match /comments/{commentId} {
++        allow read: if isLibraryStaff()
++          && get(/databases/$(database)/documents/program_library/$(programId)).data.orgId == libraryOrgId();
++        allow create: if isLibraryStaff()
++          && get(/databases/$(database)/documents/program_library/$(programId)).data.orgId == libraryOrgId()
++          && request.resource.data.keys().hasOnly(['authorUid', 'authorName', 'orgId', 'body', 'view', 'version', 'createdAt'])
++          && request.resource.data.authorUid == request.auth.uid
++          && request.resource.data.orgId == libraryOrgId()
++          && request.resource.data.body is string
++          && request.resource.data.body.size() > 0
++          && request.resource.data.body.size() <= 2000
++          && request.resource.data.view in ['draft', 'published']
++          && request.resource.data.version is int;
++        allow update, delete: if false;
++      }
++    }
++
++    // One per program, created only in the same write as the library record, so a
++    // retry or repeated click cannot produce a second one. Read state is per coach.
++    match /coach_notifications/{notificationId} {
++      allow read: if isLibraryStaff() && resource.data.orgId == libraryOrgId();
++      allow create: if (isTeacher() || isLibraryAdmin())
++        && request.resource.data.keys().hasOnly(['type', 'programId', 'orgId', 'actorUid', 'actorName', 'programTitle', 'createdAt'])
++        && request.resource.data.type == 'program_review'
++        && notificationId == 'program-review_' + request.resource.data.programId
++        && request.resource.data.orgId == libraryOrgId()
++        && request.resource.data.actorUid == request.auth.uid
++        && !exists(/databases/$(database)/documents/program_library/$(request.resource.data.programId))
++        && getAfter(/databases/$(database)/documents/program_library/$(request.resource.data.programId)).data.creatorUid == request.auth.uid;
++      allow update, delete: if false;
+     }
+ 
+     // ---------------------------------------------------------------------

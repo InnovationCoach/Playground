@@ -9,7 +9,9 @@ import { UNIVERSAL_LEARNER } from './learnerProfiles.js';
 import { useCoachClasses, useClassLearners } from './useCoachStudioData.js';
 import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from './groundingSources.js';
 import { synthesizeGroundedUnit } from './pblSynthesizer.js';
-import { publishAndTransferToStudent, publishProgramToCatalog } from './pblTransferService.js';
+import { publishAndTransferToStudent } from './pblTransferService.js';
+import { canManageProgram, explainLibraryError } from '../library/programLibraryModel.js';
+import { getProgramRecord, saveProgramDraft } from '../library/programLibraryService.js';
 import { APPROVED_NGS_CATALOG, ngsById } from './pblUnitSchema.js';
 import { ProgramCompetencyPicker } from '../../school/programs/ProgramCompetencyPicker.jsx';
 import { competencyById } from '../../pbl/content/competencies.js';
@@ -23,7 +25,7 @@ import { useTheme } from '../../../app/theme/ThemeProvider.jsx';
 import { saveThemePreference } from '../../../auth.js';
 import './coachStudio.css';
 
-export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision' }) {
+export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision', editProgramId = null }) {
   const { effectiveTheme, setUserTheme } = useTheme();
   // Top-level Navigation Workspace Tab: 'supervision' | 'evaluation' | 'studio'
   const [workspaceTab, setWorkspaceTab] = useState(initialTab);
@@ -146,6 +148,63 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const [transferredInfo, setTransferredInfo] = useState(null);
   const [transferError, setTransferError] = useState(null);
 
+  // The saved program this unit belongs to, once it is in the shared library.
+  const [libraryDraft, setLibraryDraft] = useState(null);
+  const [loadingDraft, setLoadingDraft] = useState(Boolean(editProgramId));
+  const [saveError, setSaveError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+
+  // "Edit" reopens the same saved course with its existing content.
+  useEffect(() => {
+    if (!editProgramId) return undefined;
+    let cancelled = false;
+    setLoadingDraft(true);
+    getProgramRecord(editProgramId).then((record) => {
+      if (cancelled) return;
+      if (!record) {
+        setSaveError('This program could not be found.');
+      } else if (!canManageProgram(record, coachUser)) {
+        setSaveError('Only the creator or an administrator can edit this program.');
+      } else {
+        setUnit(record.unit);
+        setLibraryDraft({ programId: record.programId, draftVersion: record.draftVersion, title: record.title });
+        setOpenMilestoneIndex(0);
+      }
+    }).catch((err) => {
+      if (!cancelled) setSaveError(explainLibraryError(err, 'This draft could not be opened.'));
+    }).finally(() => {
+      if (!cancelled) setLoadingDraft(false);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editProgramId]);
+
+  // Save & Preview as Student: persists the unit as it stands. It does not publish
+  // or run synthesis, and only opens the preview once the save has succeeded.
+  const handleSaveAndPreview = async () => {
+    if (!unit || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await saveProgramDraft({
+        unit,
+        actor: { uid: coachUser?.uid, displayName: coachUser?.displayName },
+        orgId: coachUser?.orgId,
+        expectedVersion: libraryDraft?.draftVersion ?? null
+      });
+      setLibraryDraft({ programId: res.programId, draftVersion: res.draftVersion, title: unit.unitTitle });
+      navigate(hrefFor.programPreview(res.programId, 'draft'));
+    } catch (err) {
+      console.error('Draft save failed:', err);
+      setSaveError(explainLibraryError(err, 'The draft was not saved.'));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
+
   // Source toggle
   const toggleSource = (sourceId) => {
     setSources((prev) =>
@@ -193,35 +252,14 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
         step: 'full',
         competencies: selectedCompetencies
       });
-      setUnit(result);
+      // Regenerating a saved program stays that program, not a new one.
+      setUnit(libraryDraft ? { ...result, id: libraryDraft.programId } : result);
       buzz(15);
     } catch (err) {
       console.error('Synthesis failed:', err);
       setSynthesisError(err?.message || 'Synthesis failed. Please review grounding sources.');
     } finally {
       setSynthesizing(false);
-    }
-  };
-
-  // 1-Click Publish to Course Catalog (Search Engine - No specific student required)
-  const handlePublishToCatalog = async (e) => {
-    if (!unit) return;
-    setTransferring(true);
-    setTransferError(null);
-    const triggerEl = e.currentTarget;
-    try {
-      const targetClassId = selectedClassId !== 'all' ? selectedClassId : null;
-      const res = await publishProgramToCatalog(unit, coachUser?.uid, targetClassId);
-      setTransferredInfo({ ...res, mode: 'catalog', title: unit.unitTitle });
-      setUnit(null);
-      confettiFrom(triggerEl, { big: true });
-      buzz([30, 60, 30]);
-    } catch (err) {
-      console.error('Catalog publish failed:', err);
-      setTransferredInfo(null);
-      setTransferError(err?.message || 'Failed to publish program to catalog');
-    } finally {
-      setTransferring(false);
     }
   };
 
@@ -299,6 +337,19 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
           </a>
         </div>
       </header>
+
+      {editProgramId && (
+        <div className="cp-transferred-toast" role="status" style={{ margin: '0.75rem 1rem 0' }}>
+          {loadingDraft ? 'Opening saved draft...' : libraryDraft ? (
+            <span>
+              Editing saved draft <strong>{libraryDraft.title}</strong> (version {libraryDraft.draftVersion}). Changes stay in draft until you publish.{' '}
+              <a href={hrefFor.programPreview(libraryDraft.programId, 'draft')}>Back to preview</a>
+            </span>
+          ) : (
+            <span>{saveError} <a href={hrefFor.programLibrary()}>Back to Programs</a></span>
+          )}
+        </div>
+      )}
 
       {/* Top Navigation Tabs */}
       <nav className="cp-top-nav-bar" aria-label="Coach Workspace Modes">
@@ -506,7 +557,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
 
               {learner.isUniversal && (
                 <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '6px', padding: '0.45rem 0.6rem', marginBottom: '0.65rem', fontSize: '0.78rem', color: '#7dd3fc', lineHeight: 1.35 }}>
-                  🌐 <strong>Open Catalog Mode:</strong> You do not need to choose a specific learner. The synthesized program will be published directly to the Student Search engine (<code>#/search</code>) where any learner can find, add, and start it.
+                  🌐 <strong>Open Catalog Mode:</strong> You do not need to choose a specific learner. Save the synthesized program as a draft for coach review, then publish it from the preview to make it available in the Student Search engine (<code>#/search</code>), where any learner can find, add, and start it.
                 </div>
               )}
 
@@ -1104,24 +1155,35 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               )}
 
               <div className="cp-publish-actions" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {saveError && (
+                  <div className="cp-transferred-toast" style={{ borderLeft: '4px solid #ef4444', background: 'rgba(239, 68, 68, 0.12)', color: '#fca5a5' }} role="alert">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: '#f87171' }}>
+                      <AlertTriangle size={16} /> Not saved
+                    </div>
+                    <span>{saveError}</span>
+                  </div>
+                )}
                 <button
                   type="button"
-                  className={`cp-btn-transfer ${transferredInfo?.mode === 'catalog' ? 'success' : ''}`}
-                  onClick={handlePublishToCatalog}
-                  disabled={transferring || !unit}
+                  className="cp-btn-transfer"
+                  onClick={handleSaveAndPreview}
+                  disabled={saving || !unit}
                 >
-                  {transferring ? (
+                  {saving ? (
                     <>
-                      <RefreshCw size={18} className="spin" /> Publishing to Database...
+                      <RefreshCw size={18} className="spin" /> Saving draft...
                     </>
                   ) : (
                     <>
-                      <Globe size={18} /> Publish to Course Catalog (Search Engine)
+                      <Eye size={18} /> Save &amp; Preview as Student
                     </>
                   )}
                 </button>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#8b949e' }}>
+                  Saves a draft to the shared Programs library for coach review. Students cannot see it until you publish it from the preview.
+                </p>
 
-                {!learner.isUniversal && (
+                {!learner.isUniversal && !libraryDraft && (
                   <button
                     type="button"
                     className="cp-btn-direct-transfer"

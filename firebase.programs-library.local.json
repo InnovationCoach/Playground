@@ -1,0 +1,12 @@
+{
+  "auth": { "providers": { "anonymous": true, "emailPassword": true } },
+  "firestore": { "rules": "docs/implementation/programs-library/firestore.rules.proposed", "indexes": "firestore.indexes.json" },
+  "emulators": {
+    "firestore": { "host": "127.0.0.1", "port": 8288, "websocketPort": 9258 },
+    "auth": { "host": "127.0.0.1", "port": 9399 },
+    "hub": { "host": "127.0.0.1", "port": 4468 },
+    "logging": { "host": "127.0.0.1", "port": 4568 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

@@ -78,6 +78,44 @@
         "--strictPort"
       ],
       "port": 5177
+    },
+    {
+      "name": "programs-library-emulators",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "firebase",
+        "emulators:start",
+        "--only",
+        "firestore,auth",
+        "--project",
+        "demo-hearisland-local",
+        "--config",
+        "firebase.programs-library.local.json"
+      ],
+      "port": 8288
+    },
+    {
+      "name": "programs-library-api",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9399",
+        "FIRESTORE_EMULATOR_HOST=127.0.0.1:8288",
+        "GOOGLE_CLOUD_PROJECT=demo-hearisland-local",
+        "GCLOUD_PROJECT=demo-hearisland-local",
+        "node",
+        "tests/programs-library/fixture-api.js"
+      ],
+      "port": 3118
+    },
+    {
+      "name": "programs-library-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "tests/programs-library/vite.config.js"
+      ],
+      "port": 5188
     }
   ]
 }
