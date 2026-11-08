@@ -445,15 +445,39 @@ router.post('/classes/join', wrap(async (req, res) => {
   if (!code) fail(400, 'VALIDATION', 'That does not look like a class code. They are eight characters, like ABCD-2345.');
   const db = getFirestore();
   const codeRef = db.collection('classCodes').doc(code);
-  const codeSnap = await codeRef.get();
-  if (!codeSnap.exists) fail(404, 'NOT_FOUND', 'No class has that code. Check it with your teacher.');
-  const { classId, className } = codeSnap.data() || {};
-  if (!classId) fail(400, 'VALIDATION', 'That code is not set up correctly.');
-  const classRef = db.collection('classes').doc(classId);
-  const userRef = db.collection('users').doc(caller.uid);
+  let resolvedClassId;
+  let resolvedClassName;
+
   await db.runTransaction(async tx => {
+    const codeSnap = await tx.get(codeRef);
+    if (!codeSnap.exists) fail(404, 'NOT_FOUND', 'No class has that code. Check it with your teacher.');
+    const codeData = codeSnap.data() || {};
+    const { classId, className } = codeData;
+    if (!classId) fail(400, 'VALIDATION', 'That code is not set up correctly.');
+
+    const classRef = db.collection('classes').doc(classId);
+    const userRef = db.collection('users').doc(caller.uid);
+    const memberRef = db.collection('universeMemberships').doc(caller.uid);
+
     const [cSnap, uSnap] = await Promise.all([tx.get(classRef), tx.get(userRef)]);
     if (!cSnap.exists || cSnap.data().status === 'archived') fail(404, 'NOT_FOUND', 'Class not found or archived.');
+    const classData = cSnap.data();
+
+    // Cross-organization and cross-school boundary enforcement (R2-03)
+    const callerOrgId = caller.profile?.orgId || req.caller?.signedClaims?.orgId || req.caller?.orgId;
+    if (classData.orgId && callerOrgId && classData.orgId !== callerOrgId) {
+      fail(403, 'FORBIDDEN', 'Cannot join a class outside your organization.');
+    }
+    if (classData.schoolId && caller.schoolIds && Array.isArray(caller.schoolIds) && !caller.schoolIds.includes(classData.schoolId)) {
+      fail(403, 'FORBIDDEN', 'Learner is not enrolled in this school.');
+    }
+    if (uSnap.exists && uSnap.data().status === 'suspended') {
+      fail(403, 'FORBIDDEN', 'Suspended learners cannot join classes.');
+    }
+
+    resolvedClassId = classId;
+    resolvedClassName = className;
+
     tx.update(classRef, {
       learnerIds: FieldValue.arrayUnion(caller.uid),
       updatedAt: FieldValue.serverTimestamp()
@@ -464,21 +488,27 @@ router.post('/classes/join', wrap(async (req, res) => {
       groupName: className || classId,
       updatedAt: FieldValue.serverTimestamp()
     });
+    tx.set(memberRef, {
+      classIds: FieldValue.arrayUnion(classId),
+      orgId: caller.orgId || classData.orgId || 'org-welearn',
+      role: 'student',
+      status: 'active',
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
   });
-  try {
-    const { getAuth } = await import('firebase-admin/auth');
-    const user = await getAuth().getUser(caller.uid);
-    const existingClassIds = Array.isArray(user.customClaims?.classIds) ? user.customClaims.classIds : [];
-    if (!existingClassIds.includes(classId)) {
-      await getAuth().setCustomUserClaims(caller.uid, {
-        ...(user.customClaims || {}),
-        classIds: [...existingClassIds, classId]
-      });
-    }
-  } catch {
-    // Non-fatal
+
+  const { getAuth } = await import('firebase-admin/auth');
+  const user = await getAuth().getUser(caller.uid);
+  const existingClaims = user.customClaims || {};
+  const existingClassIds = Array.isArray(existingClaims.classIds) ? existingClaims.classIds : [];
+  if (!existingClassIds.includes(resolvedClassId)) {
+    await getAuth().setCustomUserClaims(caller.uid, {
+      ...existingClaims,
+      classIds: [...existingClassIds, resolvedClassId]
+    });
   }
-  res.json({ status: 'ok', classId, className });
+
+  res.json({ status: 'ok', classId: resolvedClassId, className: resolvedClassName, reconciled: true });
 }));
 router.get('/schools/:schoolId/program-offerings/:offeringId/lessons', wrap(async (req, res) => {
   const {

@@ -1,6 +1,6 @@
 import { describe, it, beforeAll, afterAll, expect } from 'vitest';
 import { setupApiTestEnv } from './api-test-helper.js';
-import { FIXTURE_RELEASES } from '../../shared/universe/fixtures/index.js';
+import { FIXTURE_RELEASES, REFERENCE_ARTIFACTS } from '../../shared/universe/fixtures/index.js';
 
 describe('Item 3: Invited and Join-code learners added to classes.learnerIds', () => {
   let env;
@@ -13,6 +13,7 @@ describe('Item 3: Invited and Join-code learners added to classes.learnerIds', (
   let coachToken;
 
   beforeAll(async () => {
+    process.env.ALLOW_DRAFT_MISSIONS = 'true';
     env = await setupApiTestEnv({ universeRegistry: FIXTURE_RELEASES });
 
     // Setup school, class, coach, and classCode
@@ -127,24 +128,88 @@ describe('Item 3: Invited and Join-code learners added to classes.learnerIds', (
     const classSnap = await env.db.collection('classes').doc(classId).get();
     expect(classSnap.data().learnerIds).toContain(studentUid);
 
-    // 3. Learner opens Universe
-    const updatedStudentToken = await env.getIdToken(studentUid, {
-      role: 'student',
-      orgId,
-      schoolIds: [schoolId],
-      classIds: [classId]
-    });
+    // Verify custom claims updated in Auth emulator without test injection (R2-06)
+    const authUser = await env.auth.getUser(studentUid);
+    expect(authUser.customClaims.classIds).toContain(classId);
+
+    // 3. Learner obtains token without test-assisted claim repair
+    const updatedStudentToken = await env.getIdToken(studentUid);
 
     const universeRes = await env.request('GET', '/api/universe/missions/submissions/mine', {
       token: updatedStudentToken
     });
     expect(universeRes.status, JSON.stringify(universeRes.body)).toBe(200);
 
-    // 4. Coach queries mission reviews for the class
+    // 4. Submit real mission response via POST /api/universe/missions/:missionId/submissions (R2-06)
+    const validArtifact = REFERENCE_ARTIFACTS.find((a) => a.name === 'spacecraft-journey-guided').request;
+    const subRes = await env.request('POST', '/api/universe/missions/spacecraft-journey/submissions', {
+      token: updatedStudentToken,
+      headers: {
+        'idempotency-key': `idem-${Date.now()}`
+      },
+      body: JSON.parse(JSON.stringify(validArtifact))
+    });
+    expect(subRes.status, JSON.stringify(subRes.body)).toBe(201);
+    const submissionId = subRes.body.submissionId;
+
+    // 5. Coach queries mission reviews and verifies actual submission visibility (not status-only)
     const reviewsRes = await env.request('GET', '/api/coach/universe/submissions', {
       token: coachToken,
       query: { classId }
     });
     expect(reviewsRes.status, JSON.stringify(reviewsRes.body)).toBe(200);
+    expect(Array.isArray(reviewsRes.body.submissions)).toBe(true);
+    expect(reviewsRes.body.submissions.some(s => s.id === submissionId || s.learnerUid === studentUid)).toBe(true);
+  });
+
+  it('rejects enrollment with 403 when learner belongs to a different school in same org', async () => {
+    const diffSchoolStudentUid = 'student-diff-school';
+    const claims = {
+      role: 'student',
+      orgId,
+      schoolIds: ['sch-different-school'],
+      classIds: []
+    };
+    await env.db.collection('users').doc(diffSchoolStudentUid).set({
+      uid: diffSchoolStudentUid,
+      ...claims,
+      displayName: 'Different School Student',
+      email: 'diff.school@school.edu',
+      status: 'active'
+    });
+    const token = await env.getIdToken(diffSchoolStudentUid, claims);
+
+    const res = await env.request('POST', '/api/classes/join', {
+      token,
+      body: { code: joinCode }
+    });
+    expect(res.status).toBe(403);
+    expect(res.body.error.message).toContain('Learner is not enrolled in this school');
+  });
+
+  it('rejects enrollment with 403 when learner belongs to a different organization', async () => {
+    const foreignOrgStudentUid = 'student-foreign-org';
+    const claims = {
+      role: 'student',
+      orgId: 'org-foreign',
+      schoolIds: [schoolId],
+      classIds: []
+    };
+    await env.db.collection('users').doc(foreignOrgStudentUid).set({
+      uid: foreignOrgStudentUid,
+      ...claims,
+      displayName: 'Foreign Org Student',
+      email: 'foreign@other.edu',
+      status: 'active'
+    });
+    const token = await env.getIdToken(foreignOrgStudentUid, claims);
+
+    const res = await env.request('POST', '/api/classes/join', {
+      token,
+      body: { code: joinCode }
+    });
+    expect(res.status).toBe(403);
+    expect(res.body.error.message).toContain('Cannot join a class outside your organization');
   });
 });
+

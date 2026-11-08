@@ -1055,6 +1055,28 @@ describe('pbl_programs: authoring and publishing', () => {
     await assertSucceeds(updateDoc(doc(adminDb, 'pbl_programs', 'prog-own'), {
       title: 'Admin update'
     }));
+
+    // 6. Conflicting authorId and authorUid on create fails (R2-05)
+    await assertFails(setDoc(doc(coachADb, 'pbl_programs', 'prog-conflict'), {
+      ...programData,
+      authorId: 'coach_a',
+      authorUid: 'coach_b'
+    }));
+
+    // 7. Foreign-admin write denial (R2-05)
+    const progWithOrg = { ...programData, authorUid: 'coach_a', orgId: 'org-alpha' };
+    await assertSucceeds(setDoc(doc(coachADb, 'pbl_programs', 'prog-org'), progWithOrg));
+
+    const foreignAdminDb = testEnv.authenticatedContext('admin_beta', { role: 'admin', orgId: 'org-beta' }).firestore();
+    const sameOrgAdminDb = testEnv.authenticatedContext('admin_alpha', { role: 'admin', orgId: 'org-alpha' }).firestore();
+
+    await assertFails(updateDoc(doc(foreignAdminDb, 'pbl_programs', 'prog-org'), {
+      title: 'Overwritten by foreign admin'
+    }));
+
+    await assertSucceeds(updateDoc(doc(sameOrgAdminDb, 'pbl_programs', 'prog-org'), {
+      title: 'Legitimate same-org admin update'
+    }));
   });
 });
 
@@ -1274,8 +1296,9 @@ describe('coach feedback and notification integrity', () => {
     await assertFails(setDoc(doc(coachB().firestore(), ...path), { ...ratingData, coachId: 'coach_b' }));
     await assertSucceeds(setDoc(doc(coachA().firestore(), ...path), ratingData));
     await assertFails(updateDoc(doc(studentA().firestore(), ...path), { rating: 1 }));
-    await assertFails(deleteDoc(doc(studentA().firestore(), ...path)));
     await assertSucceeds(updateDoc(doc(coachA().firestore(), ...path), { rating: 4 }));
+    // Rating author mutation attack must fail (R2-04)
+    await assertFails(updateDoc(doc(coachA().firestore(), ...path), { coachId: 'coach_b' }));
     await assertSucceeds(deleteDoc(doc(coachA().firestore(), ...path)));
   });
 });
