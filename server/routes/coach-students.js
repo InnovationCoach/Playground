@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { requireClaims } from '../middleware/auth.js';
 import { sendError } from '../lib/errors.js';
 import { schoolCaller, schoolAccess, assignedClass, requireId, requireText, fail, staff } from '../lib/schoolScope.js';
@@ -102,6 +102,10 @@ router.post('/', route(async (req, res, caller) => {
         || !s || s.status === 'suspended' || s.orgId !== orgId || !c || c.schoolId !== schoolId || c.status === 'archived'
         || caller.role !== 'admin' && !p.classIds?.includes(classId)) fail(403, 'FORBIDDEN', 'Your class access changed. Ask an administrator to check it.');
       tx.create(db.collection('users').doc(created.uid), student);
+      tx.update(db.collection('classes').doc(classId), {
+        learnerIds: FieldValue.arrayUnion(created.uid),
+        updatedAt: FieldValue.serverTimestamp()
+      });
       tx.create(db.collection('schools').doc(schoolId).collection('auditEvents').doc(), {
         actorUid: caller.uid, action: 'STUDENT_CREATED', entityId: created.uid, classId, createdAt: student.createdAt
       });

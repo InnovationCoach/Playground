@@ -1,7 +1,19 @@
 import { Router } from 'express';
 import { getFirestore } from 'firebase-admin/firestore';
+import { requireClaims } from '../middleware/auth.js';
+import { sendError } from '../lib/errors.js';
 
 const router = Router();
+
+function requireOneRosterAccess(req, res, next) {
+  if (!req.caller || !['admin', 'supervisor'].includes(req.caller.role)) {
+    return sendError(res, 403, 'FORBIDDEN', 'OneRoster endpoints are restricted to administrators.');
+  }
+  next();
+}
+
+router.use(requireClaims);
+router.use(requireOneRosterAccess);
 
 /**
  * OneRoster 1.1 / 1.2 REST API Endpoints
