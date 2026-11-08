@@ -281,8 +281,8 @@ export async function requireUniverseAuth(req, res, next) {
     }
   }
 
-  // Class-scoped roles (student, learner, teacher, coach) require at least one active verified class (B1/B2).
-  if (CLASS_SCOPED_ROLES.includes(authoritativeRole) && verifiedClassIds.length === 0) {
+  // Learner roles (student, learner) require at least one active verified class (B1/B2).
+  if (LEARNER_ROLES.includes(authoritativeRole) && verifiedClassIds.length === 0) {
     return sendUniverseError(
       req,
       res,

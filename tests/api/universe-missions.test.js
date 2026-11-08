@@ -916,6 +916,57 @@ describe('API: My Universe Pilot Contract 0.1.1 & G04 Findings B1-B6', () => {
       expect(unassignedClassQueue.status).toBe(403);
       expect(unassignedClassQueue.body.error.code).toBe('FORBIDDEN');
     });
+
+    it('allows coach with zero assigned classes to load empty submission queue (HTTP 200), but rejects learner without verified class (HTTP 403)', async () => {
+      const coachZeroToken = await env.getIdToken('coach_zero', {
+        role: 'coach',
+        orgId: ORG_A,
+        classIds: []
+      });
+      await env.db.collection('universeMemberships').doc('coach_zero').set({
+        uid: 'coach_zero',
+        orgId: ORG_A,
+        role: 'coach',
+        classIds: [],
+        status: 'active'
+      });
+
+      const zeroClassQueue = await env.request('GET', '/api/coach/universe/submissions', {
+        token: coachZeroToken,
+        query: { status: 'submitted' }
+      });
+      expect(zeroClassQueue.status).toBe(200);
+      expect(zeroClassQueue.body.contractVersion).toBe(API_CONTRACT_VERSION);
+      expect(zeroClassQueue.body.submissions).toEqual([]);
+      expect(zeroClassQueue.body.nextCursor).toBeNull();
+
+      // Learner without classes is rejected with 403
+      const learnerZeroToken = await env.getIdToken('learner_zero', {
+        role: 'student',
+        orgId: ORG_A,
+        classIds: []
+      });
+      await env.db.collection('universeMemberships').doc('learner_zero').set({
+        uid: 'learner_zero',
+        orgId: ORG_A,
+        role: 'student',
+        classIds: [],
+        status: 'active'
+      });
+
+      const learnerAvailability = await env.request('GET', `/api/universe/missions/${SPACECRAFT_MISSION}/availability`, {
+        token: learnerZeroToken,
+        query: {
+          releaseId: RELEASE_ID,
+          missionVersion: MISSION_VERSION,
+          routeId: 'guided',
+          taskId: SPACECRAFT_GUIDED_TASK,
+          policyVersion: POLICY_VERSION
+        }
+      });
+      expect(learnerAvailability.status).toBe(403);
+      expect(learnerAvailability.body.error.message).toContain('Active verified class membership');
+    });
   });
 
   describe('Phase 1 closure: bounded revisions, retired tasks and filtered queue paging', () => {
