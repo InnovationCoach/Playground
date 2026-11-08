@@ -47,6 +47,7 @@ describe('commands', () => {
     expect(hit('set a goal')).toBe('page:goal-setting');
     expect(hit('my goals')).toBe('section:goals');
     expect(hit('open settings')).toBe('page:settings');
+    expect(hit('portfolio maker')).toBe('page:journey');
   });
 
   it('forgives a one-letter typo but not nonsense', () => {

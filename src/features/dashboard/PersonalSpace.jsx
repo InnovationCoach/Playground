@@ -41,7 +41,7 @@ export function PersonalSpace({ prefs, update, renderWidget }) {
         <div><button type="button" className="sd-button" disabled={index === 0} aria-label={`Move ${titles[id]} earlier`} onClick={() => move(id, -1)}><ArrowUp size={15} /></button><button type="button" className="sd-button" disabled={index === TOOL_IDS.length - 1} aria-label={`Move ${titles[id]} later`} onClick={() => move(id, 1)}><ArrowDown size={15} /></button><button type="button" className="sd-button" aria-label={`Resize ${titles[id]}`} onClick={() => change((current) => ({ ...current, sizes: { ...current.sizes, [id]: current.sizes[id] === 'wide' ? 'compact' : 'wide' } }))}>{page.sizes[id] === 'wide' ? 'Compact' : 'Wide'}</button></div>
       </li>)}</ul>
     </section>}
-    <div className="sd-creative-links"><a href="#/pbl/portfolio"><strong>My portfolio & reflections</strong><span>Evidence, discoveries and work to be proud of</span><ArrowRight size={20} /></a><a href="#/canva"><strong>Canva Studio</strong><span>Open the existing creative tools and connection status</span><ArrowRight size={20} /></a></div>
+    <div className="sd-creative-links"><a href="#/journey"><strong>Portfolio maker</strong><span>Design journey, evidence and stage reflections</span><ArrowRight size={20} /></a><a href="#/pbl/portfolio"><strong>My portfolio & reflections</strong><span>Evidence, discoveries and work to be proud of</span><ArrowRight size={20} /></a><a href="#/canva"><strong>Canva Studio</strong><span>Open the existing creative tools and connection status</span><ArrowRight size={20} /></a></div>
     <WorkspaceTools prefs={prefs} slide="creative" renderWidget={renderWidget} />
   </div>;
 }

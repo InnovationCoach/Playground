@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, ListChecks, Compass, ChartNoAxesCombined, PenTool, Orbit, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, ListChecks, Compass, ChartNoAxesCombined, PenTool, Orbit, Sparkles, Route } from 'lucide-react';
+import { hrefFor } from '../../app/routes.js';
 import { SLIDES } from './slideModel.js';
 import './dashboardDeck.css';
 const SLIDE_ICONS = { daily: ListChecks, find: Compass, progress: ChartNoAxesCombined, creative: PenTool, universe: Orbit };
@@ -94,6 +95,7 @@ export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, r
     <div className="sd-top">
       <div><span className="sd-brand"><Sparkles size={16} strokeWidth={1.7} />We Learn <b>SPARK</b></span><h1>My Dashboard <span>· {name || 'Your space'}</span></h1></div>
       <div className="sd-top-actions"><span className="studio-avatar" aria-hidden="true">{(name || 'S').slice(0, 1).toUpperCase()}</span>
+        <a className="sd-button" href={hrefFor.journey()} aria-label="Open Portfolio maker"><Route size={17} /><span>Portfolio maker</span></a>
         <button className="sd-button" type="button" onClick={() => { if (grid) root.current?.scrollIntoView({ block: 'start', behavior: 'instant' }); update((s) => ({ ...s, dashboardLayout: grid ? 'slides' : 'grid' })); }} aria-label={grid ? 'Switch to slide view' : 'Switch to grid view'}>{grid ? <GalleryHorizontal size={17} /> : <LayoutGrid size={17} />}<span>{grid ? 'Slide view' : 'Grid view'}</span></button>
         <button className="sd-button" type="button" onClick={onPersonalise}><Paintbrush size={17} /><span>Personalise</span></button>
       </div>

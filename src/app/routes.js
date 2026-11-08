@@ -59,7 +59,7 @@ export function parseRoute(hash) {
   if (head === 'primary-resources') return { screen: 'resources' };
   if (head === 'worksheet' && a) return { screen: 'worksheet', activityId: a };
   if (head === 'guide' && a) return { screen: 'guide', activityId: a };
-  if (head === 'programs') return { screen: 'programs' };
+  if (head === 'programs') return { screen: 'pbl', tab: 'programs' };
   if (head === 'courses' && a === 'discover') return { screen: 'courses', discover: true };
   if (head === 'courses') return { screen: 'courses' };
   if (head === 'pbl' && a === 'programs' && b) return { screen: 'pbl', tab: 'programs', programId: b, section: c || null };
@@ -72,7 +72,7 @@ export function parseRoute(hash) {
   if (head === 'future-skills') return { screen: 'futureSkills' };
   if (head === 'dashboard') return DASHBOARD_SECTIONS.includes(a) ? { screen: 'dashboard', section: a } : { screen: 'dashboard' };
   if (head === 'spark') return { screen: 'spark' };
-  if (head === 'coach') return { screen: 'coach' };
+  if (head === 'coach') return a === 'studio' ? { screen: 'spark' } : { screen: 'coach' };
   if (head === 'canva') return { screen: 'canva' };
   if (head === 'edmentum') return { screen: 'edmentum' };
   return null;
@@ -96,7 +96,7 @@ export const hrefFor = {
   settings: () => '#/settings',
   courses: () => '#/courses',
   courseDiscovery: () => '#/courses/discover',
-  programs: () => '#/programs',
+  programs: () => '#/pbl/programs',
   space: () => '#/space',
   journey: () => '#/journey',
   portfolio: () => '#/portfolio',

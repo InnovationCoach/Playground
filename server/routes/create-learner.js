@@ -111,8 +111,10 @@ export async function createLearnerAccount({ email, displayName, classId, caller
     email: cleanEmail,
     role: 'learner',
     classIds: [cleanClassId],
-    createdAt: now,
-    status: 'active'
+    orgId: caller?.profile?.orgId || 'org-welearn',
+    status: 'active',
+    isTest: false,
+    createdAt: now
   });
 
   // 2. Add to classes/{classId}.learnerIds

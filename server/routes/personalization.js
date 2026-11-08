@@ -210,10 +210,13 @@ router.delete('/learner-space/items/:itemId',wrap(async(req,res) => {
   const snap = await portfolioRef(uid).get();
   const oldItem = snap.data()?.items?.find(i => i.id === id);
   const oldMedia = oldItem?.media?.path;
+  const clientRev = req.body?.revision !== undefined
+    ? req.body.revision
+    : (req.query?.revision !== undefined ? Number(req.query.revision) : undefined);
   await getFirestore().runTransaction(async tx => {
     const ref = portfolioRef(uid), txSnap = await tx.get(ref), value = txSnap.data(), item = value?.items.find(i=>i.id===id);
     if(!item) fail(404,'NOT_FOUND','Work not found.');
-    if(item.revision !== req.body?.revision) fail(409,'CONFLICT','This work changed. Reload before removing it.');
+    if(clientRev !== undefined && item.revision !== clientRev) fail(409,'CONFLICT','This work changed. Reload before removing it.');
     tx.update(ref,{items:value.items.filter(i=>i.id!==id)});
   });
   await cleanupUnreferencedMedia(uid, [oldMedia]);

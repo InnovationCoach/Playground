@@ -7,6 +7,11 @@ import { paginateArray } from '../lib/pagination.js';
 import { generateUniquePublicId } from '../lib/publicId.js';
 import { writeAuditLog } from '../lib/audit.js';
 import { isEmailConfigured, sendEmail } from '../lib/email.js';
+import {
+  parseVerifiedDob,
+  resolveUserLayoutSelection,
+  validateLayoutOverrideWrite
+} from '../lib/layoutSelection.js';
 
 const router = Router();
 
@@ -15,7 +20,7 @@ const STATUSES = ['pending', 'active', 'suspended'];
 const GENDERS = ['female', 'male', 'nonbinary', 'prefer_not_to_say'];
 const COHORTS = ['primary', 'lower-secondary', 'higher-secondary'];
 const AGE_BANDS = COHORTS;
-const EDITABLE = ['salutation', 'givenNames', 'surname', 'phone', 'gender', 'cohortId', 'cohort', 'ageBand', 'yearLevel', 'dateOfBirth', 'programmeIds', 'locale'];
+const EDITABLE = ['salutation', 'givenNames', 'surname', 'phone', 'gender', 'cohortId', 'cohort', 'ageBand', 'yearLevel', 'dateOfBirth', 'layoutOverride', 'programmeIds', 'locale'];
 const SORTABLE = ['surname', 'givenNames', 'createdAt', 'status', 'publicId', 'email', 'role'];
 
 const E164 = /^\+[1-9]\d{7,14}$/;
@@ -100,12 +105,26 @@ async function buildFullRecord(db, user, callerRole) {
 
   if (user.role === 'student') {
     const studentCohort = user.cohort || (user.ageBand === '13-15' ? 'lower-secondary' : user.ageBand === '16-18' ? 'higher-secondary' : user.ageBand) || null;
+    const signedClaims = authUser?.customClaims || {
+      role: user.role,
+      orgId: user.orgId || 'org-welearn',
+      schoolIds: user.schoolIds || [],
+      classIds: user.classIds || []
+    };
+    const layoutSelection = await resolveUserLayoutSelection(db, {
+      uid: user.uid,
+      role: user.role,
+      signedClaims,
+      userData: user
+    });
     Object.assign(record, {
       cohortId: user.cohortId || null,
       cohort: studentCohort,
       ageBand: studentCohort || user.ageBand || null,
       yearLevel: user.yearLevel || null,
-      consent: user.consent || null
+      consent: user.consent || null,
+      layoutOverride: layoutSelection.staffOverride,
+      layoutSelection
     });
   }
 
@@ -265,15 +284,47 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
     return sendError(res, 400, 'VALIDATION', 'Choose a school.', 'schoolIds');
   }
 
+  if (body.layoutOverride !== undefined && body.layoutOverride !== null && body.role !== 'student') {
+    return sendError(res, 400, 'VALIDATION', 'Layout overrides can only be set for student accounts.', 'layoutOverride');
+  }
+
+  let cohortDocData = null;
+  let validatedOverride = null;
+  let normalizedDob = null;
+
   if (body.role === 'student') {
     if (!body.cohortId) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
     const cohortSnap = await db.collection('cohorts').doc(body.cohortId).get();
     if (!cohortSnap.exists) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+    cohortDocData = cohortSnap.data();
 
     const rawCohort = body.cohort || body.ageBand;
     const resolvedCohort = rawCohort === '13-15' ? 'lower-secondary' : rawCohort === '16-18' ? 'higher-secondary' : rawCohort;
     if (!resolvedCohort || !COHORTS.includes(resolvedCohort)) {
       return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', body.cohort ? 'cohort' : 'ageBand');
+    }
+
+    if (body.dateOfBirth !== undefined && body.dateOfBirth !== null && String(body.dateOfBirth).trim() !== '') {
+      const dobCheck = parseVerifiedDob(body.dateOfBirth);
+      if (dobCheck.status !== 'valid') {
+        return sendError(res, 400, 'VALIDATION', 'Enter a valid date of birth (YYYY-MM-DD).', 'dateOfBirth');
+      }
+      normalizedDob = dobCheck.dob;
+    }
+
+    if (body.layoutOverride !== undefined) {
+      const overrideCheck = validateLayoutOverrideWrite({
+        targetRole: body.role,
+        layoutOverride: body.layoutOverride,
+        verifiedDob: normalizedDob,
+        cohortDoc: cohortDocData,
+        cohort: resolvedCohort,
+        ageBand: resolvedCohort
+      });
+      if (!overrideCheck.ok) {
+        return sendError(res, 400, 'VALIDATION', overrideCheck.message, overrideCheck.field);
+      }
+      validatedOverride = overrideCheck.value;
     }
   }
 
@@ -319,7 +370,6 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
   await getAuth().setCustomUserClaims(uid, claims);
 
   const assignedCohort = body.cohort || (body.ageBand === '13-15' ? 'lower-secondary' : body.ageBand === '16-18' ? 'higher-secondary' : body.ageBand);
-  const isPrimary = body.role === 'student' && assignedCohort === 'primary';
   const userDoc = {
     uid,
     publicId,
@@ -332,7 +382,8 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
     email,
     phone: body.phone || null,
     gender: body.gender || null,
-    orgId,
+    orgId: orgId || 'org-welearn',
+    isTest: Boolean(body.isTest ?? false),
     schoolIds: body.schoolIds,
     classIds: body.classIds || [],
     programmeIds: body.programmeIds || [],
@@ -349,7 +400,8 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
       cohort: assignedCohort,
       ageBand: assignedCohort,
       yearLevel: body.yearLevel || null,
-      dateOfBirth: body.dateOfBirth || null,
+      dateOfBirth: normalizedDob,
+      layoutOverride: validatedOverride,
       // Per Mani (24 Oct 2026): no consent rules for now during testing/presentation
       consent: null
     });
@@ -359,13 +411,40 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
     const batch = db.batch();
     batch.set(db.collection('users').doc(uid), userDoc);
     batch.set(db.collection('publicIds').doc(publicId), { uid, createdAt });
+    if (body.role === 'student') {
+      batch.set(db.collection('userLayoutAuthority').doc(uid), {
+        uid,
+        orgId: orgId || 'org-welearn',
+        schoolIds: body.schoolIds,
+        classIds: body.classIds || [],
+        cohortId: body.cohortId,
+        cohortVerified: true,
+        cohort: assignedCohort,
+        dateOfBirth: normalizedDob,
+        dobVerified: Boolean(normalizedDob),
+        layoutOverride: validatedOverride,
+        updatedAt: createdAt,
+        updatedBy: { uid: req.caller.uid, role: req.caller.role, name: req.caller.displayName }
+      });
+    }
     await batch.commit();
 
     await writeAuditLog(db, {
       caller: req.caller,
       subjectUid: uid,
       action: 'ACCOUNT_CREATED',
-      summary: `Account created as ${body.role}`
+      summary: `Account created as ${body.role}`,
+      details: body.role === 'student'
+        ? {
+            after: {
+              role: body.role,
+              cohortId: body.cohortId,
+              cohort: assignedCohort,
+              dateOfBirth: normalizedDob,
+              layoutOverride: validatedOverride
+            }
+          }
+        : {}
     });
   } catch (err) {
     // Rollback auth user creation if DB write fails
@@ -429,6 +508,10 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
     return sendError(res, 400, 'VALIDATION', `${forbidden} cannot be changed here.`, forbidden);
   }
 
+  if ('layoutOverride' in body && user.role !== 'student' && user.role !== 'learner') {
+    return sendError(res, 400, 'VALIDATION', 'Layout overrides can only be set for student accounts.', 'layoutOverride');
+  }
+
   // Validate fields
   if ('givenNames' in body) {
     const v = String(body.givenNames || '').trim();
@@ -450,23 +533,84 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
     return sendError(res, 400, 'VALIDATION', 'Unknown gender value.', 'gender');
   }
 
-  if (user.role === 'student') {
-    if ('cohortId' in body && !body.cohortId) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
-    if ('cohort' in body && !COHORTS.includes(body.cohort)) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohort');
+  let currentAuthority = null;
+  if (user.role === 'student' || user.role === 'learner') {
+    const authSnap = await db.collection('userLayoutAuthority').doc(user.uid).get();
+    currentAuthority = authSnap.exists ? authSnap.data() : null;
+
+    if ('cohortId' in body) {
+      if (!body.cohortId || typeof body.cohortId !== 'string' || !body.cohortId.trim()) {
+        return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+      }
+      const cohortCheckSnap = await db.collection('cohorts').doc(body.cohortId.trim()).get();
+      if (!cohortCheckSnap.exists) {
+        return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+      }
+    }
+    if ('cohort' in body && !COHORTS.includes(body.cohort)) {
+      return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohort');
+    }
     if ('ageBand' in body) {
       const mapped = body.ageBand === '13-15' ? 'lower-secondary' : body.ageBand === '16-18' ? 'higher-secondary' : body.ageBand;
       if (!COHORTS.includes(mapped)) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'ageBand');
+    }
+    if ('dateOfBirth' in body && body.dateOfBirth !== null && String(body.dateOfBirth).trim() !== '') {
+      const dobCheck = parseVerifiedDob(body.dateOfBirth);
+      if (dobCheck.status !== 'valid') {
+        return sendError(res, 400, 'VALIDATION', 'Enter a valid date of birth (YYYY-MM-DD).', 'dateOfBirth');
+      }
+    }
+
+    const nextDob = 'dateOfBirth' in body
+      ? (typeof body.dateOfBirth === 'string' && body.dateOfBirth.trim() ? body.dateOfBirth.trim() : null)
+      : (currentAuthority?.dobVerified ? currentAuthority.dateOfBirth : null);
+    const nextCohortId = 'cohortId' in body
+      ? String(body.cohortId).trim()
+      : (currentAuthority?.cohortVerified ? currentAuthority.cohortId : (user.cohortId || null));
+    const rawNextCohort = 'cohort' in body
+      ? body.cohort
+      : 'ageBand' in body
+        ? (body.ageBand === '13-15' ? 'lower-secondary' : body.ageBand === '16-18' ? 'higher-secondary' : body.ageBand)
+        : (currentAuthority?.cohort || user.cohort || null);
+
+    let nextCohortDoc = null;
+    if (nextCohortId) {
+      const cSnap = await db.collection('cohorts').doc(nextCohortId).get();
+      if (cSnap.exists) nextCohortDoc = cSnap.data();
+    }
+
+    if ('layoutOverride' in body) {
+      const overrideCheck = validateLayoutOverrideWrite({
+        targetRole: user.role,
+        layoutOverride: body.layoutOverride,
+        verifiedDob: nextDob,
+        cohortDoc: nextCohortDoc,
+        cohort: rawNextCohort,
+        ageBand: rawNextCohort
+      });
+      if (!overrideCheck.ok) {
+        return sendError(res, 400, 'VALIDATION', overrideCheck.message, overrideCheck.field);
+      }
     }
   }
 
   const before = {};
   const after = {};
   const updates = {};
+  const authorityKeys = ['cohortId', 'cohort', 'ageBand', 'dateOfBirth', 'layoutOverride'];
 
   Object.entries(body).forEach(([k, v]) => {
-    const nextVal = typeof v === 'string' ? (v.trim() || null) : v;
-    if (JSON.stringify(user[k] ?? null) !== JSON.stringify(nextVal ?? null)) {
-      before[k] = user[k] ?? null;
+    const nextVal = typeof v === 'string' ? (v.trim() || null) : (v ?? null);
+    const prevVal = k === 'layoutOverride' && currentAuthority
+      ? (currentAuthority.layoutOverride ?? null)
+      : (user[k] ?? null);
+    const authorityNeedsSync =
+      (user.role === 'student' || user.role === 'learner') &&
+      authorityKeys.includes(k) &&
+      (!currentAuthority || JSON.stringify(currentAuthority[k] ?? null) !== JSON.stringify(nextVal));
+
+    if (JSON.stringify(prevVal) !== JSON.stringify(nextVal) || authorityNeedsSync) {
+      before[k] = prevVal;
       after[k] = nextVal;
       updates[k] = nextVal;
     }
@@ -485,13 +629,40 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
     return res.json(record);
   }
 
+  const nowStr = new Date().toISOString();
   const givenNames = updates.givenNames || user.givenNames;
   const surname = updates.surname || user.surname;
   updates.displayName = `${givenNames} ${surname}`;
-  updates.updatedAt = new Date().toISOString();
+  updates.updatedAt = nowStr;
   updates.updatedBy = { uid: req.caller.uid, name: req.caller.displayName };
 
   await userRef.update(updates);
+
+  if (user.role === 'student' || user.role === 'learner') {
+    const authPatch = {
+      uid: user.uid,
+      orgId: user.orgId || 'org-welearn',
+      schoolIds: user.schoolIds || [],
+      classIds: user.classIds || [],
+      updatedAt: nowStr,
+      updatedBy: { uid: req.caller.uid, role: req.caller.role, name: req.caller.displayName }
+    };
+    if ('cohortId' in updates || currentAuthority?.cohortVerified) {
+      authPatch.cohortId = 'cohortId' in updates ? updates.cohortId : currentAuthority.cohortId;
+      authPatch.cohortVerified = Boolean(authPatch.cohortId);
+    }
+    if ('cohort' in updates || currentAuthority?.cohort) {
+      authPatch.cohort = 'cohort' in updates ? updates.cohort : currentAuthority.cohort;
+    }
+    if ('dateOfBirth' in updates || currentAuthority?.dobVerified) {
+      authPatch.dateOfBirth = 'dateOfBirth' in updates ? updates.dateOfBirth : currentAuthority.dateOfBirth;
+      authPatch.dobVerified = Boolean(authPatch.dateOfBirth);
+    }
+    if ('layoutOverride' in updates || (currentAuthority && 'layoutOverride' in currentAuthority)) {
+      authPatch.layoutOverride = 'layoutOverride' in updates ? updates.layoutOverride : currentAuthority.layoutOverride;
+    }
+    await db.collection('userLayoutAuthority').doc(user.uid).set(authPatch, { merge: true });
+  }
 
   // Write audit
   if (after.programmeIds) {
@@ -572,6 +743,10 @@ router.put('/:uid/role', requireClaims, requireAdmin, async (req, res) => {
     updatedBy: { uid: req.caller.uid, name: req.caller.displayName }
   });
 
+  if (newRole !== 'student' && newRole !== 'learner') {
+    await db.collection('userLayoutAuthority').doc(user.uid).delete().catch(() => {});
+  }
+
   await writeAuditLog(db, {
     caller: req.caller,
     subjectUid: user.uid,
@@ -616,6 +791,20 @@ router.put('/:uid/assignments', requireClaims, requireAdmin, async (req, res) =>
   await getAuth().revokeRefreshTokens(user.uid);
 
   await userRef.update(updates);
+
+  if (user.role === 'student' || user.role === 'learner') {
+    await db.collection('userLayoutAuthority').doc(user.uid).set(
+      {
+        uid: user.uid,
+        orgId: user.orgId || 'org-welearn',
+        schoolIds: after.schoolIds,
+        classIds: after.classIds,
+        updatedAt: updates.updatedAt,
+        updatedBy: { uid: req.caller.uid, role: req.caller.role, name: req.caller.displayName }
+      },
+      { merge: true }
+    );
+  }
 
   await writeAuditLog(db, {
     caller: req.caller,

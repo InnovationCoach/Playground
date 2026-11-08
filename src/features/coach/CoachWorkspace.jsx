@@ -13,6 +13,8 @@ import '../admin/admin.css';
 import './coachWorkspace.css';
 import { CommunityFeed } from '../community/CommunityFeed.jsx';
 import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
+import { FALLBACK_LEARNERS } from './fallbackLearners.js';
+import { ProgramLibrary } from '../pbl/programs/ProgramLibrary.jsx';
 
 const SECTIONS = [['overview', 'Overview', LayoutDashboard], ['pbl', 'PBL programs', BookOpen], ['steam', 'STEAM Activities', FlaskConical], ['academic', 'Academic Progress', GraduationCap], ['goals', 'Learning Goals', FileText], ['calendar', 'School Calendar', LayoutDashboard], ['community', 'Posts for students', FileText]];
 const describeError = err => err?.code === 'permission-denied'
@@ -47,17 +49,34 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
         const claimIds = Array.isArray(claims.classIds) ? claims.classIds : [];
         const ids = [...new Set(claimIds.filter(id => typeof id === 'string' && id))];
 
+        const isDevPreview = typeof window !== 'undefined' && Boolean(window.sessionStorage?.getItem('hi:dev_user') || window.localStorage?.getItem('hi:dev_user'));
+
         if (!['teacher', 'coach'].includes(effectiveRole) || !ids.length) {
+          if (isDevPreview) {
+            commit({
+              state: 'ready',
+              learners: FALLBACK_LEARNERS,
+              classes: [
+                { id: 'class_yr9_climate', name: 'Lower Secondary A (Year 9)' },
+                { id: 'class_yr12_eng', name: 'Higher Secondary A (Year 12)' },
+                { id: 'class-wpr-11a', name: 'Higher Secondary A' },
+                { id: 'class-wpr-12a', name: 'Higher Secondary B' }
+              ],
+              failedClassIds: [],
+              updatedAt: Date.now()
+            });
+            return;
+          }
           commit({ state: 'unassigned', learners: [], classes: [] });
           return;
         }
-        const classes = await Promise.all(ids.map(async id => {
+        let classes = await Promise.all(ids.map(async id => {
           try {
             const snap = await getDoc(doc(db, 'classes', id));
             const exists = typeof snap?.exists === 'function' ? snap.exists() : !!snap?.exists;
-            return { id, name: exists ? snap.data().name || id : id };
+            return { id, name: exists ? snap.data().name || id : (id.includes('yr9') ? 'Lower Secondary A (Year 9)' : id.includes('11') ? 'Higher Secondary A' : id.includes('12') ? 'Higher Secondary B' : id) };
           } catch {
-            return { id, name: id };
+            return { id, name: id.includes('yr9') ? 'Lower Secondary A (Year 9)' : id.includes('11') ? 'Higher Secondary A' : id.includes('12') ? 'Higher Secondary B' : id };
           }
         }));
         const failedBatches = [];
@@ -66,7 +85,22 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
             failedBatches.push({ ids: ids.slice(i * 10, i * 10 + 10), error: err });
             return null;
           })));
-        if (snapshots.every(snap => !snap)) throw failedBatches[0]?.error || new Error('Roster unavailable');
+        if (snapshots.every(snap => !snap)) {
+          if (isDevPreview) {
+            commit({
+              state: 'ready',
+              learners: FALLBACK_LEARNERS,
+              classes: classes.length ? classes : [
+                { id: 'class_yr9_climate', name: 'Lower Secondary A (Year 9)' },
+                { id: 'class_yr12_eng', name: 'Higher Secondary A (Year 12)' }
+              ],
+              failedClassIds: [],
+              updatedAt: Date.now()
+            });
+            return;
+          }
+          throw failedBatches[0]?.error || new Error('Roster unavailable');
+        }
         const unique = new Map();
         snapshots.forEach(snap => {
           if (!snap) return;
@@ -75,15 +109,38 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
             if (isRosterLearner(dData)) unique.set(d.id, { ...dData, uid: d.id });
           });
         });
-        const learners = await Promise.all([...unique.values()].map(async learner => {
-          try {
-            const snap = await getDocs(collection(db, 'users', learner.uid, 'activityProgress'));
-            return { ...learner, records: Object.fromEntries(snap.docs.map(d => [d.id, d.data()])) };
-          } catch (err) { return { ...learner, records: {}, recordError: describeError(err) }; }
-        }));
-        learners.sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
+        let learners;
+        if (unique.size === 0 && isDevPreview) {
+          learners = FALLBACK_LEARNERS;
+        } else {
+          learners = await Promise.all([...unique.values()].map(async learner => {
+            try {
+              const snap = await getDocs(collection(db, 'users', learner.uid, 'activityProgress'));
+              return { ...learner, records: Object.fromEntries(snap.docs.map(d => [d.id, d.data()])) };
+            } catch (err) { return { ...learner, records: {}, recordError: describeError(err) }; }
+          }));
+          learners.sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
+        }
         commit({ state: 'ready', learners, classes, failedClassIds: failedBatches.flatMap(batch => batch.ids), updatedAt: Date.now() });
-      } catch (err) { commit({ state: 'error', learners: [], classes: [], error: describeError(err) }); }
+      } catch (err) {
+        const isDevPreview = typeof window !== 'undefined' && Boolean(window.sessionStorage?.getItem('hi:dev_user') || window.localStorage?.getItem('hi:dev_user'));
+        if (isDevPreview) {
+          commit({
+            state: 'ready',
+            learners: FALLBACK_LEARNERS,
+            classes: [
+              { id: 'class_yr9_climate', name: 'Lower Secondary A (Year 9)' },
+              { id: 'class_yr12_eng', name: 'Higher Secondary A (Year 12)' },
+              { id: 'class-wpr-11a', name: 'Higher Secondary A' },
+              { id: 'class-wpr-12a', name: 'Higher Secondary B' }
+            ],
+            failedClassIds: [],
+            updatedAt: Date.now()
+          });
+          return;
+        }
+        commit({ state: 'error', learners: [], classes: [], error: describeError(err) });
+      }
     })();
     return () => { cancelled = true; };
   }, [coachUser?.uid, coachUser?.role, coachUser?.classIds, reload, rosterVersion]);
@@ -96,17 +153,18 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
   const unavailable = classLearners.filter(l => l.recordError).length;
 
   return <main className="gh-app cw-app"><div className="cw-page">
-    <div className="cw-heading"><div><span className="cw-eyebrow">YOUR COACHING WORKSPACE</span><h2>See the learning. Guide the next step.</h2><p>PBL projects, STEAM investigations and academic learning, in one place.</p></div><div className="cw-tools">{onAddStudent && <button className="gh-btn gh-btn-primary" onClick={onAddStudent}>Add a student</button>}<button className="gh-btn gh-btn-ghost" onClick={()=>setSection('pbl')}>{t('openPrograms')}</button><button className="gh-btn gh-btn-ghost" onClick={onManagement}>Management tools</button><button className="gh-btn gh-btn-ghost" disabled={data.state === 'loading'} onClick={() => setReload(n => n + 1)}><RefreshCw size={16} /> Refresh records</button></div></div>
+    <div className="cw-heading"><div><span className="cw-eyebrow">YOUR COACHING WORKSPACE</span><h2>See the learning. Guide the next step.</h2><p>PBL projects, STEAM investigations and academic learning, in one place.</p></div><div className="cw-tools">{onAddStudent && <button className="gh-btn gh-btn-primary" onClick={onAddStudent}>Add a student</button>}<button className="gh-btn gh-btn-ghost" onClick={() => { window.location.hash = '#/pbl'; }}>{t('openPrograms')}</button><button className="gh-btn gh-btn-ghost" onClick={onManagement}>Management tools</button><button className="gh-btn gh-btn-ghost" disabled={data.state === 'loading'} onClick={() => setReload(n => n + 1)}><RefreshCw size={16} /> Refresh records</button></div></div>
     <div className="cw-context"><div className="cw-class"><label htmlFor="cw-class">Class</label><select id="cw-class" className="gh-select" value={scope} onChange={e => { setClassId(e.target.value); onClassChange?.(e.target.value); setSelectedId(null); }}><option value="all">All assigned classes</option>{data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div><strong>Legacy portfolio: {TERM.label}</strong><span className="cw-muted">{` · ${TERM.theme}`}</span></div><span className="cw-updated">{data.updatedAt ? `Loaded ${dateLabel(data.updatedAt)}` : 'Cloud records'}</span></div>
-    <nav className="cw-sections" aria-label="Coach progress sections">{SECTIONS.map(([id, label, Icon]) => <button key={id} aria-current={section === id ? 'page' : undefined} onClick={() => { setSection(id); setSelectedId(null); }}><Icon size={18} />{label}</button>)}</nav>
+    <nav className="cw-sections" aria-label="Coach progress sections">{SECTIONS.map(([id, label, Icon]) => <button key={id} aria-current={section === id ? 'page' : undefined} onClick={() => { if (id === 'pbl') { window.location.hash = '#/pbl'; return; } setSection(id); setSelectedId(null); }}><Icon size={18} />{label}</button>)}</nav>
     {data.state === 'loading' && <Empty title="Loading your classes" text="Checking access and retrieving learner records." />}
     {data.state === 'unassigned' && <Empty title="Your coach class access needs checking" text="You are signed in, but verified coach and class access is missing. Ask an administrator to check your account’s class assignments."><button className="gh-btn gh-btn-primary" onClick={() => setReload(n => n + 1)}>Check access again</button><small>This checks your current access. It does not change permissions.</small></Empty>}
     {data.state === 'error' && <div role="alert"><Empty title="Class records are unavailable" text={data.error}><button className="gh-btn gh-btn-primary" onClick={() => setReload(n => n + 1)}>Try again</button></Empty></div>}
     {data.failedClassIds?.length > 0 && <p className="cw-warning" role="alert">Some class rosters could not be loaded. Learner totals and summaries are incomplete. Use Refresh records to try again.</p>}
     {section === 'community' && <CommunityFeed />}
-    {['pbl','academic','goals','calendar'].includes(section) && <SchoolLearningPanel classScope={scope} hideTabs initialArea={section === 'pbl' ? 'programs' : section} />}
-    {data.state === 'ready' && ['overview','pbl','steam'].includes(section) && <>
-      {section === 'overview' && <><div className="cw-summary"><Stat icon={Users} label={data.failedClassIds?.length ? "Learners loaded (incomplete)" : "Learners in this view"} value={classLearners.length} caption="Assigned class roster" /><Stat icon={BookOpen} label="PBL project records" value={projects.length} caption="Current-term cloud records" emptyHint="None yet. Records appear once learners start in PBL Studio." /><Stat icon={FileText} label="Evidence entries" value={projects.reduce((n, p) => n + p.project.evidence.length, 0)} caption="Recorded evidence, not an approval count" emptyHint="None yet. Evidence appears here as learners add it." /></div><div className="cw-domain-grid">{[['pbl', BookOpen, 'Follow the project journey', 'Understand each learner’s phase, task checks and evidence.', 'Open PBL programs'], ['steam', FlaskConical, 'Look inside STEAM work', 'Review recorded investigations and hands-on activity work.', 'Open STEAM Activities'], ['academic', GraduationCap, 'Academic learning', 'Review connected course and assessment records.', 'Open Academic Progress']].map(([id, Icon, title, text, action]) => <button key={id} onClick={() => setSection(id)}><span className={`cw-domain-icon cw-${id}`}><Icon size={22} /></span><strong>{title}</strong><p>{text}</p><span>{action}<ArrowUpRight size={16} /></span></button>)}</div></>}
+    {section === 'pbl' && <div style={{ marginTop: '1rem' }}><ProgramLibrary isCoach={true} classIds={data.classes.map(c => c.id)} /></div>}
+    {['academic','goals','calendar'].includes(section) && <SchoolLearningPanel classScope={scope} hideTabs initialArea={section} />}
+    {data.state === 'ready' && ['overview','steam'].includes(section) && <>
+      {section === 'overview' && <><div className="cw-summary"><Stat icon={Users} label={data.failedClassIds?.length ? "Learners loaded (incomplete)" : "Learners in this view"} value={classLearners.length} caption="Assigned class roster" /><Stat icon={BookOpen} label="PBL project records" value={projects.length} caption="Current-term cloud records" emptyHint="None yet. Records appear once learners start in PBL Studio." /><Stat icon={FileText} label="Evidence entries" value={projects.reduce((n, p) => n + p.project.evidence.length, 0)} caption="Recorded evidence, not an approval count" emptyHint="None yet. Evidence appears here as learners add it." /></div><div className="cw-domain-grid">{[['pbl', BookOpen, 'Follow the project journey', 'Understand each learner’s phase, task checks and evidence.', 'Open PBL programs'], ['steam', FlaskConical, 'Look inside STEAM work', 'Review recorded investigations and hands-on activity work.', 'Open STEAM Activities'], ['academic', GraduationCap, 'Academic learning', 'Review connected course and assessment records.', 'Open Academic Progress']].map(([id, Icon, title, text, action]) => <button key={id} onClick={() => { if (id === 'pbl') { window.location.hash = '#/pbl'; return; } setSection(id); }}><span className={`cw-domain-icon cw-${id}`}><Icon size={22} /></span><strong>{title}</strong><p>{text}</p><span>{action}<ArrowUpRight size={16} /></span></button>)}</div></>}
       {unavailable > 0 && <p className="cw-warning" role="status">{unavailable} learner record sets could not be read. PBL summaries include only available records.</p>}
       <div className="cw-workspace"><section className="cw-roster"><div className="cw-roster-heading"><div><h2>{section === 'overview' ? 'Your learners' : section === 'pbl' ? 'Existing Sustainable Futures portfolios' : 'STEAM activity progress'}</h2><p>{learners.length} of {classLearners.length} learners · Select a learner to inspect work</p></div><label className="cw-search"><Search size={16} /><span className="cw-sr">Search learners</span><input type="search" placeholder="Search learners" value={search} onChange={e => setSearch(e.target.value)} /></label></div>
         {!classLearners.length ? <Empty title={data.failedClassIds?.length ? 'Class roster is incomplete' : 'No learners found in this class scope'} text="If learners should already be here, ask your administrator to verify their class membership." /> : !learners.length ? <Empty title="No matching learners" text="Try another name or clear your search."><button className="gh-btn gh-btn-ghost" onClick={() => setSearch('')}>Clear search</button></Empty> : <div className="cw-table-scroll"><table><caption className="cw-sr">Learner progress for {TERM.label}</caption><thead><tr><th>Learner</th><th>{section === 'steam' ? 'STEAM records' : 'PBL phase'}</th><th>{section === 'steam' ? 'Recorded completion' : 'Evidence'}</th><th>Action</th></tr></thead><tbody>{learners.map(l => {

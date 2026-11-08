@@ -4,7 +4,6 @@
  * into the Student's active Dashboard and database.
  */
 
-import { db, doc, setDoc } from '../../../firebase.js';
 import { hrefFor } from '../../../app/routes.js';
 import { saveCustomProgram } from '../programs/customProgramsStore.js';
 import { publishProgram } from '../../../services/pblService.js';
@@ -17,7 +16,25 @@ const BROADCAST_CHANNEL_NAME = 'hearisland_pbl_transfer_channel';
  * with WeLearn's ProgramDetail component and catalog.
  */
 export function convertUnitToProgram(unit, coachUid = null) {
+  const unitCompetencyRefs = Array.isArray(unit.competencies) ? unit.competencies : [];
+  const unitCompetencyIds = unitCompetencyRefs
+    .map((c) => (typeof c === 'string' ? c : c?.id))
+    .filter(Boolean);
+
   const phases = unit.milestones.map((m) => {
+    const milestoneCompetencyIds = (Array.isArray(m.competencies) && m.competencies.length > 0
+      ? m.competencies
+      : unitCompetencyRefs)
+      .map((c) => (typeof c === 'string' ? c : c?.id))
+      .filter(Boolean);
+
+    const targetCompetencies = milestoneCompetencyIds.length > 0
+      ? milestoneCompetencyIds
+      : ['sdl-01', 'ctps-01', 'ct-03'];
+    const phaseCompetencies = milestoneCompetencyIds.length > 0
+      ? milestoneCompetencyIds
+      : ['sdl-01', 'ctps-01'];
+
     const session = {
       sessionNumber: m.stageNumber,
       week: m.week,
@@ -38,7 +55,7 @@ export function convertUnitToProgram(unit, coachUid = null) {
       evidenceToCollect: {
         kind: 'media',
         prompt: m.evidencePrompt,
-        targetCompetencies: ['sdl-01', 'ctps-01', 'ct-03']
+        targetCompetencies
       },
       reflectionPrompt: `What surprised you during this ${m.stageName} milestone, and how did your MakerSpace tools help?`,
       teacherTips: m.coachCue || 'Support learner initiation and celebrate iterations.'
@@ -57,8 +74,8 @@ export function convertUnitToProgram(unit, coachUid = null) {
         `Explain how to calibrate MakerSpace tools for ${m.stageName}`,
         `Check my prototype against engineering constraints`
       ],
-      competencies: ['sdl-01', 'ctps-01'],
-      stretchCompetencies: ['ct-10'],
+      competencies: phaseCompetencies,
+      stretchCompetencies: unitCompetencyIds.length > 2 ? unitCompetencyIds.slice(2) : ['ct-10'],
       sessions: [session]
     };
   });
@@ -69,6 +86,7 @@ export function convertUnitToProgram(unit, coachUid = null) {
   const tags = [
     unit.theme,
     ...(unit.makerSpaceSpecs || []).map((s) => s.toolType?.split(' ')?.[0]).filter(Boolean),
+    ...unitCompetencyIds.map((id) => String(id).toLowerCase()),
     'stem', 'makerspace', 'pbl', 'rover', 'robotics'
   ];
   const searchTokens = generateSearchTokens(unit.unitTitle, unit.theme, tags, unit.drivingQuestion);
@@ -86,6 +104,7 @@ export function convertUnitToProgram(unit, coachUid = null) {
     tags,
     searchTokens,
     authorId: unit.authorId || coachUid || 'coach',
+    competencies: unitCompetencyRefs,
     realProblem: unit.realProblem,
     targetAgeRange: isUniversal ? 'Ages 12–18 (Secondary PBL)' : 'Ages 12–16 (2e Adapted Secondary)',
     durationWeeks: 12,
@@ -130,16 +149,16 @@ export async function publishProgramToCatalog(pblUnit, coachUid, classId = null)
   program.visibility = 'centre';
   const now = Date.now();
 
-  // 1. Save to local Custom Programs Store (instant client persistence)
-  saveCustomProgram(program);
-
-  // 2. Publish to Firestore via publishProgram service (no student assigned)
+  // Publish to Firestore via publishProgram service (no student assigned)
   const assignTo = {};
   if (classId && classId !== 'all') assignTo.classId = classId;
   const { enrolmentIds } = await publishProgram(program, { assignTo });
+
+  // Announce availability only after the database confirms the save.
+  saveCustomProgram(program);
   console.log('[PBL Publish] Cloud catalog save successful to pbl_programs/' + program.id, enrolmentIds);
 
-  // 3. Emit real-time Broadcast Channel event for instant live multi-tab search sync
+  // Emit real-time Broadcast Channel event for instant live multi-tab search sync
   try {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
@@ -156,7 +175,7 @@ export async function publishProgramToCatalog(pblUnit, coachUid, classId = null)
     console.warn('[PBL Publish] BroadcastChannel notice:', err);
   }
 
-  // 4. Dispatch in-window custom events
+  // Dispatch in-window custom events
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('pbl-program-published', {
       detail: { programId: program.id, programTitle: program.title, program }
@@ -191,10 +210,14 @@ export async function publishAndTransferToStudent(pblUnit, studentUid, coachUid,
   if (coachUid) program.authorId = coachUid;
   const now = Date.now();
 
-  // 1. Save to local Custom Programs Store (instant client persistence)
-  saveCustomProgram(program);
+  // Save to Firestore via publishProgram service (atomic batch + strict contract validation)
+  const assignTo = { learnerId: studentUid };
+  if (classId) assignTo.classId = classId;
+  const { enrolmentIds } = await publishProgram(program, { assignTo });
 
-  // 2. Set as active program for student in localStorage
+  // Announce availability only after the database confirms the save.
+  saveCustomProgram(program);
+  // Set as active program for student in localStorage
   try {
     localStorage.setItem(`hearisland.activeProgram.${studentUid}`, program.id);
     localStorage.setItem(`hearisland.activeProgram.lastTransferred`, JSON.stringify({
@@ -207,13 +230,9 @@ export async function publishAndTransferToStudent(pblUnit, studentUid, coachUid,
     console.warn('[PBL Transfer] localStorage write warning:', err);
   }
 
-  // 3. Save to Firestore via publishProgram service (atomic batch + strict contract validation)
-  const assignTo = { learnerId: studentUid };
-  if (classId) assignTo.classId = classId;
-  const { enrolmentIds } = await publishProgram(program, { assignTo });
   console.log('[PBL Transfer] Cloud save successful to pbl_programs/' + program.id, enrolmentIds);
 
-  // 4. Emit real-time Broadcast Channel event for instant live multi-tab sync
+  // Emit real-time Broadcast Channel event for instant live multi-tab sync
   try {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
@@ -231,7 +250,7 @@ export async function publishAndTransferToStudent(pblUnit, studentUid, coachUid,
     console.warn('[PBL Transfer] BroadcastChannel notice:', err);
   }
 
-  // 5. Dispatch in-window custom event so any open student view updates synchronously
+  // Dispatch in-window custom event so any open student view updates synchronously
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('pbl-program-transferred', {
       detail: { programId: program.id, studentUid, program }

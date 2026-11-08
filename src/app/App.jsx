@@ -295,9 +295,9 @@ export function App() {
   }
 
   // Learner spaces: My space (personal dashboard with cover and profile
-  // images), school programs and the portfolio maker are secondary learners'
+  // images) and the portfolio maker are secondary learners'
   // own screens. A shared portfolio link opens read-only for permitted viewers.
-  if (role === 'student' && !isPrimary && ['space', 'programs', 'journey'].includes(route?.screen)) {
+  if (role === 'student' && !isPrimary && ['space', 'journey'].includes(route?.screen)) {
     return (
       <>
         <Header {...headerProps} />
@@ -306,9 +306,7 @@ export function App() {
           ? <StudentDashboard profile={profile} uid={user.uid} onProfileChanged={refreshProfile} />
           : (
             <div className="gh-app">
-              {route.screen === 'programs'
-                ? <SchoolLearningPanel initialArea="programs" hideTabs />
-                : <JourneyPortfolio uid={user.uid} profile={profile} printView={route.print} />}
+              <JourneyPortfolio uid={user.uid} profile={profile} printView={route.print} />
             </div>
           )}
       </>
@@ -483,9 +481,9 @@ export function App() {
                      onOpenActivity={navigate} />
       ) : route?.screen === 'futureSkills' && role === 'student' ? (
         <FutureSkillsPage isPrimary={isPrimary} />
-      ) : route?.screen === 'pbl' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
+      ) : (route?.screen === 'pbl' || route?.screen === 'programs') && (role === 'student' || role === 'teacher' || role === 'coach') ? (
         <div className="gh-app">
-          <PblStudio uid={user?.uid} role={role} tab={route.tab} programId={route.programId} section={route.section}
+          <PblStudio uid={user?.uid} role={role} tab={route.tab || (route.screen === 'programs' ? 'programs' : null)} programId={route.programId} section={route.section}
                      classIds={role === 'student' ? (profile?.classIds || []) : (classIds || profile?.classIds || [])}
                      onOpenActivity={navigate} displayName={profile?.displayName} />
         </div>

@@ -120,3 +120,55 @@ describe('helpers', () => {
     expect(displayName({ displayName: 'Inès D' })).toBe('Inès D');
   });
 });
+
+describe('user document schema validation', () => {
+  function validateUserDoc(doc) {
+    const errors = [];
+    if (!doc.orgId || typeof doc.orgId !== 'string') errors.push('Missing or invalid orgId');
+    if (!doc.status || !['active', 'pending', 'archived', 'suspended'].includes(doc.status)) errors.push('Missing or invalid status');
+    if (typeof doc.isTest !== 'boolean') errors.push('Missing or invalid isTest flag');
+    if (!doc.email) errors.push('Missing email');
+    return { valid: errors.length === 0, errors };
+  }
+
+  it('passes for a valid production user doc with orgId, status, and isTest', () => {
+    const validDoc = {
+      uid: 'u_123',
+      email: 'akira@welearn.org',
+      displayName: 'Akira',
+      role: 'student',
+      orgId: 'org-welearn',
+      status: 'active',
+      isTest: false
+    };
+    const res = validateUserDoc(validDoc);
+    expect(res.valid).toBe(true);
+    expect(res.errors).toHaveLength(0);
+  });
+
+  it('fails if a user doc lacks orgId', () => {
+    const docWithoutOrg = {
+      uid: 'u_456',
+      email: 'student@welearn.org',
+      role: 'student',
+      status: 'active',
+      isTest: false
+    };
+    const res = validateUserDoc(docWithoutOrg);
+    expect(res.valid).toBe(false);
+    expect(res.errors).toContain('Missing or invalid orgId');
+  });
+
+  it('fails if a user doc lacks status or isTest', () => {
+    const incompleteDoc = {
+      uid: 'u_789',
+      email: 'student@welearn.org',
+      role: 'student',
+      orgId: 'org-welearn'
+    };
+    const res = validateUserDoc(incompleteDoc);
+    expect(res.valid).toBe(false);
+    expect(res.errors).toContain('Missing or invalid status');
+    expect(res.errors).toContain('Missing or invalid isTest flag');
+  });
+});

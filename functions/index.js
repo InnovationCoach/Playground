@@ -88,6 +88,12 @@ export const generateCoachCue = onCall(async (request) => {
     throw new HttpsError('unauthenticated', 'Must be authenticated to generate coaching cues.');
   }
 
+  const callerRole = request.auth.token?.role;
+  const isAllowed = callerRole === 'admin' || callerRole === 'teacher' || callerRole === 'coach';
+  if (!isAllowed) {
+    throw new HttpsError('permission-denied', 'Only coaches and admins may generate coaching cues.');
+  }
+
   const submissionId = request.data?.submissionId;
   if (!submissionId || typeof submissionId !== 'string') {
     throw new HttpsError('invalid-argument', 'Valid submissionId is required.');

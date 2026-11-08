@@ -277,7 +277,7 @@ describe('routes', () => {
     expect(parseRoute('#/coach/dashboard')).toEqual({ screen: 'coach' });
     expect(parseRoute('#/unknown/route')).toBeNull();
     expect(parseRoute('#/coach/dashboard')).toEqual({screen:'coach'});
-    expect(parseRoute('#/programs')).toEqual({screen:'programs'});
+    expect(parseRoute('#/programs')).toEqual({ screen: 'pbl', tab: 'programs' });
     expect(parseRoute('')).toBeNull();
   });
 });

@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WeLearn SPARK</title>
+  <link rel="icon" type="image/jpeg" href="https://res.cloudinary.com/dkplz6vbx/image/upload/v1765273026/images_jkkxax_d3hhyo.jpg">
+  <link rel="apple-touch-icon" href="https://res.cloudinary.com/dkplz6vbx/image/upload/v1765273026/images_jkkxax_d3hhyo.jpg">
   <!-- Growth Hub typography: Plus Jakarta Sans (headings), Inter (text). -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2789,7 +2791,10 @@
     function escapeHtml(str) { return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
     function handleHashRouting() {
-      const user = firebase.auth().currentUser;
+      const devStored = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('hi:dev_user')) || (typeof localStorage !== 'undefined' && localStorage.getItem('hi:dev_user'));
+      let devUser = null;
+      if (devStored) { try { devUser = JSON.parse(devStored); } catch {} }
+      const user = firebase.auth().currentUser || devUser;
       if (!user) {
         switchPhase("login");
         return;
@@ -2816,7 +2821,7 @@
 
       // Screens React routes itself (src/app/routes.js). Falling through to the
       // "home" default below sent every console link straight back to #/.
-      if (/^(admin|settings|courses|parent|primary-resources|worksheet|guide|pbl|community|messages|goals|search|future-skills|dashboard|spark|canva|programs|portfolio|journey|space)(\/|$)/.test(hash)) return;
+      if (/^(admin|settings|courses|parent|primary-resources|worksheet|guide|pbl|community|messages|goals|search|future-skills|dashboard|spark|canva|programs|portfolio|journey|space|coach\/studio)(\/|$)/.test(hash)) return;
 
       if (hash === "coach" || hash.startsWith("coach/")) {
         switchPhase("coach");

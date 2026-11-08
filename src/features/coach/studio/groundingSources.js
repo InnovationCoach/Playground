@@ -9,7 +9,7 @@ export const DEFAULT_GROUNDING_SOURCES = [
     title: 'Cambridge Lower Secondary STEM Framework',
     category: 'Curriculum Standards',
     icon: 'BookOpen',
-    tokenCount: 6840,
+    tokenCount: 95,
     active: true,
     summary: 'Inquiry-led engineering cycle, scientific measurement rigor, hypotheses validation, and technical documentation.',
     excerpt: `Cambridge Lower Secondary Science Curriculum (0893):
@@ -21,7 +21,7 @@ export const DEFAULT_GROUNDING_SOURCES = [
     title: 'NGSS Middle School Engineering Design (MS-ETS1)',
     category: 'Standards',
     icon: 'Award',
-    tokenCount: 5210,
+    tokenCount: 150,
     active: true,
     summary: 'Criteria and constraints definition (MS-ETS1-1), systematic design evaluation (MS-ETS1-2), iterative testing & optimization (MS-ETS1-4).',
     excerpt: `Next Generation Science Standards - Engineering Design:
@@ -35,7 +35,7 @@ export const DEFAULT_GROUNDING_SOURCES = [
     title: 'WeLearn MakerSpace Hardware & Fab Lab Spec Sheet',
     category: 'MakerSpace Specs',
     icon: 'Wrench',
-    tokenCount: 4620,
+    tokenCount: 185,
     active: true,
     summary: 'Bambu Lab X1-Carbon 3D printers (PETG/PLA/TPU, 0.4mm nozzle), Epilog Zing 24 Laser (3mm/6mm acrylic, birch), micro:bit V2 & Raspberry Pi Pico pinouts, 5V pumps, soldering benches.',
     excerpt: `WeLearn MakerSpace Fabrication Protocol:
@@ -48,7 +48,7 @@ export const DEFAULT_GROUNDING_SOURCES = [
     title: 'UN Sustainable Development Goals (SDG 9 & 11)',
     category: 'Real-World Impact',
     icon: 'Leaf',
-    tokenCount: 3950,
+    tokenCount: 130,
     active: true,
     summary: 'Industry, Innovation & Infrastructure (SDG 9), Sustainable Cities & Resilient Communities (SDG 11). Real-world problem framing.',
     excerpt: `UN SDGs Framework:
@@ -59,5 +59,7 @@ export const DEFAULT_GROUNDING_SOURCES = [
 ];
 
 export function calculateTotalTokens(sources) {
-  return sources.filter((s) => s.active).reduce((sum, s) => sum + s.tokenCount, 0);
+  return sources
+    .filter((s) => s.active)
+    .reduce((sum, s) => sum + (s.tokenCount || Math.max(1, Math.round((s.excerpt || s.summary || '').length / 4))), 0);
 }
