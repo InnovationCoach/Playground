@@ -8,7 +8,7 @@ let offeringsStore = [
     title: 'Sustainable Futures',
     semester: 1,
     yearId: '2026-2027',
-    classIds: ['class-wpr-11a', 'class-wpr-12a'],
+    classIds: ['class-whs-11a', 'class-whs-12a'],
     status: 'published',
     revision: 1,
     createdAt: new Date().toISOString()
@@ -19,7 +19,7 @@ let offeringsStore = [
     title: 'District Net-Zero Resilient Microgrid',
     semester: 2,
     yearId: '2026-2027',
-    classIds: ['class-wpr-11a', 'class-wpr-12a'],
+    classIds: ['class-whs-11a', 'class-whs-12a'],
     status: 'published',
     revision: 1,
     createdAt: new Date().toISOString()
@@ -30,7 +30,7 @@ let offeringsStore = [
     title: 'Project Arachne — Engineering the Sesame Quadruped',
     semester: 3,
     yearId: '2026-2027',
-    classIds: ['class-wpr-11a', 'class-wpr-12a'],
+    classIds: ['class-whs-11a', 'class-whs-12a'],
     status: 'published',
     revision: 1,
     createdAt: new Date().toISOString()
@@ -46,7 +46,7 @@ let lessonsStore = [
     milestoneId: 'phase-1',
     status: 'published',
     revision: 1,
-    classId: 'class-wpr-11a',
+    classId: 'class-whs-11a',
     outcome: 'Identify campus energy consumption and waste patterns.',
     instructions: 'Conduct a baseline energy audit of selected campus spaces.',
     createdAt: new Date().toISOString()
@@ -59,7 +59,7 @@ let lessonsStore = [
     milestoneId: 'phase-1',
     status: 'published',
     revision: 1,
-    classId: 'class-wpr-11a',
+    classId: 'class-whs-11a',
     outcome: 'Record 3 electricity users and estimate consumption.',
     instructions: 'Choose a room or outdoor space. Record three items using electricity.',
     createdAt: new Date().toISOString()
@@ -72,7 +72,7 @@ let lessonsStore = [
     milestoneId: 'phase-1',
     status: 'published',
     revision: 1,
-    classId: 'class-wpr-11a',
+    classId: 'class-whs-11a',
     outcome: 'Design quadruped leg linkages for terrain stability.',
     instructions: 'Model 3-DOF linkage dimensions and test payload balance.',
     createdAt: new Date().toISOString()
@@ -88,7 +88,7 @@ let goalsStore = [
     state: 'active',
     target: 'Explain one energy estimate using evidence.',
     acknowledged: false,
-    classId: 'class-wpr-11a',
+    classId: 'class-whs-11a',
     revision: 1,
     createdAt: new Date().toISOString()
   }
@@ -104,7 +104,7 @@ let academicStore = [
     total: 20,
     dataAsOf: '2026-10-01',
     sourceMethod: 'coach_recorded',
-    classId: 'class-wpr-11a'
+    classId: 'class-whs-11a'
   }
 ];
 
@@ -112,7 +112,7 @@ let supportRequestsStore = [
   {
     id: 'req-demo-1',
     learnerUid: 'student-jordan',
-    classId: 'class-wpr-11a',
+    classId: 'class-whs-11a',
     category: 'first_step',
     note: 'Audio explanation: how insulation changes energy demand.',
     status: 'submitted',
@@ -131,8 +131,8 @@ export function handleSchoolFallback(method, path, body, callerRole = 'student')
         { id: 'school-main', name: 'WeLearn School Workspace', timezone: 'Asia/Bangkok' }
       ],
       classes: [
-        { id: 'class-wpr-11a', name: 'WHS · Grade 11', cohortId: 'cohort-whs', schoolId: 'school-main' },
-        { id: 'class-wpr-12a', name: 'WHS · Grade 12', cohortId: 'cohort-whs', schoolId: 'school-main' }
+        { id: 'class-whs-11a', name: 'WHS · Grade 11', cohortId: 'cohort-whs', schoolId: 'school-main' },
+        { id: 'class-whs-12a', name: 'WHS · Grade 12', cohortId: 'cohort-whs', schoolId: 'school-main' }
       ],
       providerStatus: { cambrilearn: 'access_pending', edmentum: 'access_pending' }
     };
@@ -165,8 +165,8 @@ export function handleSchoolFallback(method, path, body, callerRole = 'student')
   if (path.includes('/learners')) {
     return {
       items: [
-        { id: 'student-alex', displayName: 'Alex', classIds: ['class-wpr-11a'] },
-        { id: 'student-jordan', displayName: 'Jordan', classIds: ['class-wpr-11a'] }
+        { id: 'student-alex', displayName: 'Alex', classIds: ['class-whs-11a'] },
+        { id: 'student-jordan', displayName: 'Jordan', classIds: ['class-whs-11a'] }
       ]
     };
   }

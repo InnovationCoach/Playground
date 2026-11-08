@@ -28,22 +28,26 @@ export function intersection(a, b) {
 
 export function cohortForGrade(grade) {
   const g = typeof grade === 'string' ? Number(grade.trim()) : Number(grade);
-  if (!Number.isInteger(g) || g < 6 || g > 12) return null;
-  if (g >= 6 && g <= 8) return 'cohort-wls';
-  if (g >= 9 && g <= 12) return 'cohort-whs';
+  if (!Number.isInteger(g) || g < 5 || g > 12) return null;
+  if (g >= 5 && g <= 8) return 'cohort-wls';
+  if (g >= 8 && g <= 12) return 'cohort-whs';
   return null;
 }
 
 export function validateGradeAndCohort({ gradeLevel, cohortId }) {
   if (gradeLevel !== undefined && gradeLevel !== null && gradeLevel !== '') {
     const g = typeof gradeLevel === 'string' ? Number(gradeLevel.trim()) : Number(gradeLevel);
-    if (!Number.isInteger(g) || g < 6 || g > 12) {
-      fail(400, 'VALIDATION', 'Grade level must be between 6 and 12.');
+    if (!Number.isInteger(g) || g < 5 || g > 12) {
+      fail(400, 'VALIDATION', 'Grade level must be between 5 and 12.');
     }
-    const derivedCohort = g <= 8 ? 'cohort-wls' : 'cohort-whs';
-    if (cohortId && cohortId !== derivedCohort) {
-      fail(400, 'VALIDATION', `Cohort ${cohortId} does not match grade level ${g}. Expected ${derivedCohort}.`);
+    const validCohorts = [];
+    if (g >= 5 && g <= 8) validCohorts.push('cohort-wls');
+    if (g >= 8 && g <= 12) validCohorts.push('cohort-whs');
+
+    if (cohortId && !validCohorts.includes(cohortId)) {
+      fail(400, 'VALIDATION', `Cohort ${cohortId} does not match grade level ${g}.`);
     }
+    const derivedCohort = cohortId || (g <= 8 ? 'cohort-wls' : 'cohort-whs');
     return { gradeLevel: g, cohortId: derivedCohort };
   }
   return { gradeLevel: null, cohortId: cohortId || null };

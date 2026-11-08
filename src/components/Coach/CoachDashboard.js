@@ -151,7 +151,7 @@ export class CoachDashboard {
           uid: userId,
           displayName: userData.displayName || userData.email?.split('@')[0] || 'Student',
           email: userData.email || '',
-          groupName: userData.groupName || 'Unassigned',
+          groupName: (userData.groupName && !userData.groupName.toLowerCase().includes('climate champion')) ? userData.groupName : 'Unassigned',
           classIds: Array.isArray(userData.classIds) ? userData.classIds : [],
           createdAt: userData.createdAt || Date.now(),
           solarCar: null,
@@ -343,9 +343,8 @@ export class CoachDashboard {
             <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
               <select id="coach-group-select" style="background: #0f172a; color: white; border: 1px solid #475569; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600;">
                 <option value="all">🌐 All Classes & Groups</option>
-                <option value="WLS">WLS</option>
-                <option value="Eco-Designers 8B">Eco-Designers 8B</option>
-                <option value="Green Tech 9C">Green Tech 9C</option>
+                <option value="WLS">Lower Secondary (WLS)</option>
+                <option value="WHS">Higher Secondary (WHS)</option>
               </select>
               <button id="coach-register-student-btn" style="background: #10b981; color: #000; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 800; display: flex; align-items: center; gap: 0.4rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
                 ➕ Register Student

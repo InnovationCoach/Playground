@@ -40,7 +40,7 @@ export const isPrimaryProfile = (profile) => profile?.ageBand === PRIMARY_AGE_BA
  * (see firestore.rules -> users/{userId}). Coach access is granted out-of-band
  * with the Admin SDK - see scripts/grant-coach.js.
  */
-export async function signUpUser(email, password, displayName = "", _role = "student", groupName = "Climate Champions", ageBand = "13-15") {
+export async function signUpUser(email, password, displayName = "", _role = "student", groupName = "", ageBand = "13-15") {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -51,7 +51,7 @@ export async function signUpUser(email, password, displayName = "", _role = "stu
       email: user.email,
       displayName: displayName || email.split("@")[0],
       role: "student",
-      groupName: groupName || "Climate Champions",
+      groupName: groupName || "",
       // Drives the reading level and vocabulary the AI tutor uses. A platform
       // spanning ages 6-18 cannot address every child in the same register.
       ageBand: AGE_BANDS.includes(ageBand) ? ageBand : DEFAULT_AGE_BAND,
@@ -95,7 +95,7 @@ export async function getUserProfile(userId, optionalEmail = null) {
         email: currentEmail,
         displayName: currentEmail ? currentEmail.split("@")[0] : "Student",
         role: "student",
-        groupName: "Climate Champions 7A",
+        groupName: "",
         ageBand: DEFAULT_AGE_BAND,
         classIds: [],
         createdAt: serverTimestamp(),
@@ -114,7 +114,7 @@ export async function getUserProfile(userId, optionalEmail = null) {
       uid: userId,
       displayName: data.displayName || (data.email || currentEmail).split("@")[0] || "User",
       email: data.email || currentEmail,
-      groupName: data.groupName || "Climate Champions 7A",
+      groupName: data.groupName || "",
       classIds: Array.isArray(data.classIds) ? data.classIds : [],
       ageBand: READABLE_AGE_BANDS.includes(data.ageBand) ? data.ageBand : DEFAULT_AGE_BAND,
       role
