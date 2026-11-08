@@ -1023,6 +1023,61 @@ describe('pbl_programs: authoring and publishing', () => {
     await assertFails(deleteDoc(doc(coachA().firestore(), 'pbl_programs', 'prog-del')));
     await assertFails(deleteDoc(doc(studentA().firestore(), 'pbl_programs', 'prog-del')));
   });
+
+  it('enforces authorship on create and restricts updates to author or admin (Item 5)', async () => {
+    const coachADb = coachA().firestore();
+    const coachBDb = coachB().firestore();
+    const adminDb = testEnv.authenticatedContext('admin_user', { role: 'admin' }).firestore();
+
+    // 1. Coach A cannot set authorId/authorUid to coach_b
+    await assertFails(setDoc(doc(coachADb, 'pbl_programs', 'prog-forged'), {
+      ...programData,
+      authorUid: 'coach_b'
+    }));
+
+    // 2. Coach A can create with own authorUid
+    await assertSucceeds(setDoc(doc(coachADb, 'pbl_programs', 'prog-own'), {
+      ...programData,
+      authorUid: 'coach_a'
+    }));
+
+    // 3. Coach B CANNOT update Coach A's program
+    await assertFails(updateDoc(doc(coachBDb, 'pbl_programs', 'prog-own'), {
+      title: 'Hacked by Coach B'
+    }));
+
+    // 4. Coach A (author) CAN update own program
+    await assertSucceeds(updateDoc(doc(coachADb, 'pbl_programs', 'prog-own'), {
+      title: 'Legitimate update by author'
+    }));
+
+    // 5. Admin CAN update program
+    await assertSucceeds(updateDoc(doc(adminDb, 'pbl_programs', 'prog-own'), {
+      title: 'Admin update'
+    }));
+
+    // 6. Conflicting authorId and authorUid on create fails (R2-05)
+    await assertFails(setDoc(doc(coachADb, 'pbl_programs', 'prog-conflict'), {
+      ...programData,
+      authorId: 'coach_a',
+      authorUid: 'coach_b'
+    }));
+
+    // 7. Foreign-admin write denial (R2-05)
+    const progWithOrg = { ...programData, authorUid: 'coach_a', orgId: 'org-alpha' };
+    await assertSucceeds(setDoc(doc(coachADb, 'pbl_programs', 'prog-org'), progWithOrg));
+
+    const foreignAdminDb = testEnv.authenticatedContext('admin_beta', { role: 'admin', orgId: 'org-beta' }).firestore();
+    const sameOrgAdminDb = testEnv.authenticatedContext('admin_alpha', { role: 'admin', orgId: 'org-alpha' }).firestore();
+
+    await assertFails(updateDoc(doc(foreignAdminDb, 'pbl_programs', 'prog-org'), {
+      title: 'Overwritten by foreign admin'
+    }));
+
+    await assertSucceeds(updateDoc(doc(sameOrgAdminDb, 'pbl_programs', 'prog-org'), {
+      title: 'Legitimate same-org admin update'
+    }));
+  });
 });
 
 describe('WeLearn SPARK: enrolments and phaseProgress rules', () => {
@@ -1232,6 +1287,19 @@ describe('coach feedback and notification integrity', () => {
     await assertFails(setDoc(doc(db,'users','student_a','feedback','review'), feedback));
     await testEnv.withSecurityRulesDisabled(async ctx => updateDoc(doc(ctx.firestore(),'users','coach_a'),{classIds:[CLASS_A],status:'suspended'}));
     await assertFails(setDoc(doc(db,'users','student_a','feedback','review'), feedback));
+  });
+  it('allows only the assigned coach to write ratings and rejects student writes (Item 2)', async () => {
+    const path = ['users', 'student_a', 'ratings', 'rate_01'];
+    const ratingData = { coachId: 'coach_a', coachName: 'Sara', rating: 5, timestamp: Date.now() };
+    await assertFails(setDoc(doc(studentA().firestore(), ...path), ratingData));
+    await assertFails(setDoc(doc(studentA2().firestore(), ...path), ratingData));
+    await assertFails(setDoc(doc(coachB().firestore(), ...path), { ...ratingData, coachId: 'coach_b' }));
+    await assertSucceeds(setDoc(doc(coachA().firestore(), ...path), ratingData));
+    await assertFails(updateDoc(doc(studentA().firestore(), ...path), { rating: 1 }));
+    await assertSucceeds(updateDoc(doc(coachA().firestore(), ...path), { rating: 4 }));
+    // Rating author mutation attack must fail (R2-04)
+    await assertFails(updateDoc(doc(coachA().firestore(), ...path), { coachId: 'coach_b' }));
+    await assertSucceeds(deleteDoc(doc(coachA().firestore(), ...path)));
   });
 });
 

@@ -49,7 +49,7 @@ export async function setupApiTestEnv(options = {}) {
   const port = server.address().port;
   const baseUrl = `http://127.0.0.1:${port}`;
 
-  async function getIdToken(uid, claims = {}) {
+  async function getIdToken(uid, claims = null) {
     // Create or update user in auth emulator
     try {
       await auth.getUser(uid);
@@ -57,9 +57,11 @@ export async function setupApiTestEnv(options = {}) {
       await auth.createUser({ uid, email: `${uid}@welearn.test`, emailVerified: true });
     }
 
-    await auth.setCustomUserClaims(uid, claims);
+    if (claims !== null) {
+      await auth.setCustomUserClaims(uid, claims);
+    }
 
-    const customToken = await auth.createCustomToken(uid, claims);
+    const customToken = await auth.createCustomToken(uid);
 
     // Exchange custom token for ID token via Auth emulator REST endpoint
     const response = await fetch(
