@@ -21,6 +21,7 @@ import { toolkitFor } from './tools/index.js';
 import { ToolFor, FounderPanel } from './tools/EntrepreneurshipTools.jsx';
 import { confettiFrom, buzz } from '../../goals/celebrate.js';
 import { useProgramProgress } from './useProgramProgress.js';
+import { schoolRequest } from '../../../services/api/apiClient.js';
 import { ProgramIcon } from './ProgramIcon.jsx';
 import { CompetencyChips } from '../ProjectJourney.jsx';
 import { COMPETENCY_DOMAINS, competencyById } from '../content/competencies.js';
@@ -954,12 +955,22 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
   function complete(e) {
     const el = e.currentTarget;
     apply((x) => toggleSession(x, s));
-    if (!done) { confettiFrom(el, { big: true }); buzz([20, 40, 20]); say?.(`Mission ${s.sessionNumber} complete!${xp ? ` +${xp} XP` : ''}`); }
+    if (!done) {
+      confettiFrom(el, { big: true });
+      buzz([20, 40, 20]);
+      say?.(`Mission ${s.sessionNumber} complete!${xp ? ` +${xp} XP` : ''}`);
+      if (entry?.reflection && entry.reflection.trim().length >= 40) {
+        schoolRequest('POST', '/api/quest/events', { type: 'reflection', text: entry.reflection.trim() }).catch(() => {});
+      }
+    }
   }
   function addStarter(text) {
     const cur = entry?.reflection || '';
     const next = `${cur}${cur ? (cur.endsWith('\n') ? '' : '\n') : ''}${text}`.slice(0, LIMITS.reflection);
     apply((x) => setReflection(x, s.sessionNumber, next));
+    if (next.trim().length >= 40) {
+      schoolRequest('POST', '/api/quest/events', { type: 'reflection', text: next.trim() }).catch(() => {});
+    }
     requestAnimationFrame(() => { const t = reflectRef.current; if (t) { t.focus(); t.setSelectionRange(next.length, next.length); } });
   }
 
@@ -1123,7 +1134,13 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
                 </div>
                 <textarea ref={reflectRef} className="gh-input pb-textarea" rows={3} maxLength={LIMITS.reflection}
                           aria-label={`Your reflection for session ${s.sessionNumber}`} placeholder="Tap a starter above, or write your own…"
-                          value={entry?.reflection || ''} onChange={(e) => apply((x) => setReflection(x, s.sessionNumber, e.target.value))} />
+                          value={entry?.reflection || ''}
+                          onChange={(e) => apply((x) => setReflection(x, s.sessionNumber, e.target.value))}
+                          onBlur={() => {
+                            if (entry?.reflection?.trim()?.length >= 40) {
+                              schoolRequest('POST', '/api/quest/events', { type: 'reflection', text: entry.reflection.trim() }).catch(() => {});
+                            }
+                          }} />
                 <div className="pg-confidence" role="group" aria-label="How confident do you feel about this mission?">
                   <span>How confident do you feel?</span>
                   <div className="pg-confidence-row">

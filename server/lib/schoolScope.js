@@ -87,13 +87,14 @@ export async function schoolAccess(caller, schoolId) {
   }
   fail(403, 'FORBIDDEN', 'You do not have access to this school.');
 }
-export async function assignedClass(caller, schoolId, classId) {
+export async function assignedClass(caller, schoolId, classId, options = {}) {
   requireId(classId);
   const c = await getFirestore().collection('classes').doc(classId).get();
-  if (!c.exists || c.data().schoolId !== schoolId || c.data().status === 'archived' || caller.role !== 'admin' && (!staff(caller) || !caller.classIds.includes(classId))) fail(403, 'FORBIDDEN', 'This class is not assigned to you.');
+  const allowArchived = options.allowArchived === true;
+  if (!c.exists || c.data().schoolId !== schoolId || (!allowArchived && c.data().status === 'archived') || caller.role !== 'admin' && (!staff(caller) || !caller.classIds.includes(classId))) fail(403, 'FORBIDDEN', 'This class is not assigned to you.');
   return c.data();
 }
-export async function learnerAccess(caller, schoolId, learnerUid, classId) {
+export async function learnerAccess(caller, schoolId, learnerUid, classId, options = {}) {
   requireId(learnerUid);
   const snap = await getFirestore().collection('users').doc(learnerUid).get();
   const learner = snap.data();
@@ -101,7 +102,7 @@ export async function learnerAccess(caller, schoolId, learnerUid, classId) {
   if (caller.role === 'admin') return learner;
   if (staff(caller)) {
     if (classId) {
-      await assignedClass(caller, schoolId, classId);
+      await assignedClass(caller, schoolId, classId, options);
       if (learner.classIds?.includes(classId)) return learner;
     }
     const sharesCohort = (learner.cohortId && caller.cohortIds?.includes(learner.cohortId))

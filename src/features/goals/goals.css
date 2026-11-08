@@ -1036,7 +1036,17 @@
 /* ---------------- Page header ---------------- */
 .gl-head { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap; }
 .gl-head h1 { margin:0 0 .25rem;font-size:clamp(1.6rem,3vw,2.1rem);color:var(--gh-heading,#0f2c4c); }
+.gl-head .gl-subtitle { color:var(--gh-text-2,#4b5670); }
 .gl-privacy { display:flex;align-items:center;gap:.4rem;margin:.5rem 0 0;font-size:.85rem;color:var(--gh-text-2,#4b5670); }
+[data-theme='dark'] .gl-head h1,
+.theme-dark .gl-head h1,
+.dark .gl-head h1 { color: #f8fafc; }
+[data-theme='dark'] .gl-head .gl-subtitle,
+.theme-dark .gl-head .gl-subtitle,
+.dark .gl-head .gl-subtitle { color: #cbd5e1; }
+[data-theme='dark'] .gl-privacy,
+.theme-dark .gl-privacy,
+.dark .gl-privacy { color: #94a3b8; }
 
 /* ---------------- One question at a time ---------------- */
 .gl-flow { max-width:640px;display:flex;flex-direction:column;gap:.9rem; }

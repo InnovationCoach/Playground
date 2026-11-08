@@ -188,17 +188,65 @@ function Stat({ icon: Icon, label, value, caption, emptyHint }) { return <div cl
 
 function LearnerReview({ learner, section, onClose }) {
   const pbl = projectProgress(learner.records);
+  const programEntries = Object.entries(learner.records || {})
+    .filter(([id, data]) => id.startsWith('pbl-program-') && data && typeof data === 'object');
   return <div><div className="cw-review-header"><div><span className="cw-eyebrow">LEARNER WORK</span><h2>{learner.displayName || learner.email || 'Learner'}</h2></div><button className="cw-close" aria-label="Close learner review" onClick={onClose}><X size={19} /></button></div>
     {learner.recordError ? <p role="alert" className="cw-warning">{learner.recordError}</p> : section === 'steam' ? <><p className="cw-muted">Completion appears only when explicitly recorded.</p>{STEAM_ACTIVITIES.map(([id, name]) => {
       const record = learner.records[id], status = activityProgress(id, record);
       return <section className="cw-activity" key={id}><h3>{name}</h3><span className="cw-pill">{status.status}</span><p>{status.detail}</p>{record && <><small>{dateLabel(record.updatedAt)}</small><ActivityEvidence id={id} record={record} /></>}</section>;
-    })}</> : !pbl ? <Empty title="No current-term project record" text="Check whether this learner has started a project and synced it to the cloud." /> : <>
-      <p className="cw-muted">{TERM.label} · {dateLabel(pbl.project.updatedAt)}</p><div className="cw-readiness"><strong>{pbl.readiness.done}/{pbl.readiness.total}</strong><span>Readiness checks met<small>Learner evidence checks, not coach approval</small></span></div>
-      <h3 className="cw-section-title">Project phases</h3><ul className="cw-phase-list">{pbl.phases.map(p => <li key={p.id}><span>{p.title}{p.id === pbl.project.currentPhase && <small>Current phase</small>}</span><span>{p.tasksDone}/{p.tasksTotal} tasks<small>{p.evidenceCount} evidence · {p.complete ? 'Checks met' : 'Checks remaining'}</small></span></li>)}</ul>
-      {pbl.project.problem.hmw && <section className="cw-problem"><h3>The learner’s question</h3><p>{pbl.project.problem.hmw}</p>{pbl.project.problem.criteria && <><strong>Success criteria</strong><p>{pbl.project.problem.criteria}</p></>}</section>}
-      <h3 className="cw-section-title">Evidence portfolio · {pbl.project.evidence.length}</h3>{!pbl.project.evidence.length && <p className="cw-muted">No evidence entries recorded yet.</p>}
-      {[...pbl.project.evidence].sort((a, b) => b.createdAt - a.createdAt).map(e => <details className="cw-evidence" key={e.id}><summary><strong>{e.title}</strong><small>{PHASES.find(p => p.id === e.phase)?.title} · {e.kind}</small></summary><small>{dateLabel(e.createdAt)}</small><p className="cw-evidence-body">{e.body || 'No written description.'}</p>{safeLink(e.link) && <a href={safeLink(e.link)} target="_blank" rel="noopener noreferrer">Open linked evidence <ArrowUpRight size={14} /></a>}{e.ai && <div><strong>AI reflection</strong><p>Asked: {e.ai.asked}</p><p>Received: {e.ai.gave}</p><p>Kept: {e.ai.kept}</p></div>}</details>)}
-      <details className="cw-evidence"><summary>Readiness checklist</summary>{pbl.readiness.checks.map(c => <p key={c.id}>{c.ok ? 'Met' : 'Remaining'} · {c.label}</p>)}</details><p className="cw-footnote">Coach approval is not available in this view yet.</p>
+    })}</> : !pbl && programEntries.length === 0 ? <Empty title="No current-term project record" text="Check whether this learner has started a project and synced it to the cloud." /> : <>
+      {pbl && <>
+        <p className="cw-muted">{TERM.label} · {dateLabel(pbl.project.updatedAt)}</p><div className="cw-readiness"><strong>{pbl.readiness.done}/{pbl.readiness.total}</strong><span>Readiness checks met<small>Learner evidence checks, not coach approval</small></span></div>
+        <h3 className="cw-section-title">Project phases</h3><ul className="cw-phase-list">{pbl.phases.map(p => <li key={p.id}><span>{p.title}{p.id === pbl.project.currentPhase && <small>Current phase</small>}</span><span>{p.tasksDone}/{p.tasksTotal} tasks<small>{p.evidenceCount} evidence · {p.complete ? 'Checks met' : 'Checks remaining'}</small></span></li>)}</ul>
+        {pbl.project.problem.hmw && <section className="cw-problem"><h3>The learner’s question</h3><p>{pbl.project.problem.hmw}</p>{pbl.project.problem.criteria && <><strong>Success criteria</strong><p>{pbl.project.problem.criteria}</p></>}</section>}
+        <h3 className="cw-section-title">Evidence portfolio · {pbl.project.evidence.length}</h3>{!pbl.project.evidence.length && <p className="cw-muted">No evidence entries recorded yet.</p>}
+        {[...pbl.project.evidence].sort((a, b) => b.createdAt - a.createdAt).map(e => <details className="cw-evidence" key={e.id}><summary><strong>{e.title}</strong><small>{PHASES.find(p => p.id === e.phase)?.title} · {e.kind}</small></summary><small>{dateLabel(e.createdAt)}</small><p className="cw-evidence-body">{e.body || 'No written description.'}</p>{safeLink(e.link) && <a href={safeLink(e.link)} target="_blank" rel="noopener noreferrer">Open linked evidence <ArrowUpRight size={14} /></a>}{e.ai && <div><strong>AI reflection</strong><p>Asked: {e.ai.asked}</p><p>Received: {e.ai.gave}</p><p>Kept: {e.ai.kept}</p></div>}</details>)}
+        <details className="cw-evidence"><summary>Readiness checklist</summary>{pbl.readiness.checks.map(c => <p key={c.id}>{c.ok ? 'Met' : 'Remaining'} · {c.label}</p>)}</details><p className="cw-footnote">Coach approval is not available in this view yet.</p>
+      </>}
+      {programEntries.length > 0 && (
+        <section className="cw-program-progress" style={{ margin: '1rem 0', padding: '1rem', background: 'rgba(30, 41, 59, 0.7)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <h3 className="cw-section-title" style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--gh-heading, #f8fafc)' }}>
+            Program Mission Progress
+          </h3>
+          {programEntries.map(([docId, progData]) => {
+            const progId = progData.programId || docId.replace('pbl-program-', '');
+            const sessions = progData.sessions || {};
+            const completedCount = Object.values(sessions).filter(s => s && s.done).length;
+            const reflections = Object.entries(sessions)
+              .filter(([, s]) => s && s.reflection)
+              .map(([sessionNum, s]) => ({ sessionNum, reflection: s.reflection, confidence: s.confidence }));
+            return (
+              <div key={docId} style={{ marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#38bdf8' }}>
+                    {progId.replace(/-/g, ' ').toUpperCase()}
+                  </strong>
+                  <span className="cw-pill" style={{ fontSize: '0.75rem' }}>
+                    {completedCount} sessions done
+                  </span>
+                </div>
+                {progData.updatedAt && (
+                  <small style={{ color: '#94a3b8', display: 'block', marginTop: '0.2rem' }}>
+                    Last active: {dateLabel(progData.updatedAt)}
+                  </small>
+                )}
+                {reflections.length > 0 && (
+                  <div style={{ marginTop: '0.4rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Recent Mission Reflections:</span>
+                    <ul style={{ margin: '0.2rem 0 0', paddingLeft: '1.2rem', fontSize: '0.82rem', color: '#cbd5e1' }}>
+                      {reflections.slice(-3).map(({ sessionNum, reflection, confidence }) => (
+                        <li key={sessionNum} style={{ marginTop: '0.2rem' }}>
+                          <strong>Mission {sessionNum}:</strong> "{reflection}" {confidence ? `(Confidence: ${confidence}/5)` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </section>
+      )}
     </>}
     {!learner.recordError && <LearnerFeedback learnerUid={learner.uid} workId={section === 'steam' ? 'steam-review' : `pbl-${TERM.id}`} />}
     {learner.status === 'pending' && <StudentSetupLink learnerUid={learner.uid} />}

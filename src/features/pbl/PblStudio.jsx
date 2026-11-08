@@ -107,7 +107,7 @@ function StudentTabs({ uid, active, onOpenActivity, displayName }) {
       <SyncNote state={syncState} />
       {active === 'project' && <ProjectJourney project={project} apply={apply} onOpenActivity={onOpenActivity} />}
       {active === 'explore' && <ExploreSteam onOpenActivity={onOpenActivity} />}
-      {active === 'portfolio' && <Portfolio project={project} apply={apply} displayName={displayName} />}
+      {active === 'portfolio' && <Portfolio project={project} apply={apply} displayName={displayName} uid={uid} />}
       {active === 'competencies' && <CompetencyFramework project={project} />}
       {active === 'approach' && <Approach />}
     </>
