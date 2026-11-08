@@ -11,6 +11,7 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all'); // 'all' | 'pending' | 'approved' | 'video' | 'github' | 'prototype' | 'reflection'
   const [feedbackTexts, setFeedbackTexts] = useState({});
+  const [actionError, setActionError] = useState(null);
 
   const loadLiveSubmissions = useCallback(async () => {
     setLoading(true);
@@ -42,26 +43,38 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
   const handleApprove = async (item, e) => {
     const triggerEl = e.currentTarget;
     const text = feedbackTexts[item.id] || item.coachCue || '';
-    await approveSubmission(item.id, {
-      feedback: text,
-      xp: 100,
-      coachUid: coachUser?.uid || '',
-      coachName: coachUser?.displayName || 'Coach'
-    });
-    confettiFrom(triggerEl, { big: true });
-    buzz([25, 50, 25]);
-    loadLiveSubmissions();
+    setActionError(null);
+    try {
+      await approveSubmission(item.id, {
+        feedback: text,
+        xp: 100,
+        coachUid: coachUser?.uid || '',
+        coachName: coachUser?.displayName || 'Coach'
+      });
+      confettiFrom(triggerEl, { big: true });
+      buzz([25, 50, 25]);
+      loadLiveSubmissions();
+    } catch (err) {
+      console.warn('[EvaluationDeskView] Approve failed:', err);
+      setActionError(`${item.studentName}'s work was not approved. Check your connection and try again.`);
+    }
   };
 
   const handleRequestRevision = async (item) => {
     const text = feedbackTexts[item.id] || 'Please refine telemetry or add brief notes.';
-    await requestRevisionSubmission(item.id, {
-      guidance: text,
-      coachUid: coachUser?.uid || '',
-      coachName: coachUser?.displayName || 'Coach'
-    });
-    buzz(30);
-    loadLiveSubmissions();
+    setActionError(null);
+    try {
+      await requestRevisionSubmission(item.id, {
+        guidance: text,
+        coachUid: coachUser?.uid || '',
+        coachName: coachUser?.displayName || 'Coach'
+      });
+      buzz(30);
+      loadLiveSubmissions();
+    } catch (err) {
+      console.warn('[EvaluationDeskView] Revision request failed:', err);
+      setActionError(`The revision request for ${item.studentName} was not sent. Check your connection and try again.`);
+    }
   };
 
   const filtered = evaluations.filter((item) => {
@@ -128,6 +141,7 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
       </div>
 
       {/* Submissions Feed */}
+      {actionError && <p className="cw-warning" role="alert">{actionError}</p>}
       <div className="cp-eval-feed">
         {loading ? (
           <div className="cp-eval-empty">

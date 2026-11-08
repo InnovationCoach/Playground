@@ -190,18 +190,16 @@ export function setTool(progress, toolId, data, now = Date.now()) {
 }
 
 /**
- * A session counts as done only when its steps or evidence are done.
+ * A session counts as done if marked done, or if all activity steps are completed.
  */
 export function isSessionDone(entry, session) {
-  if (!entry?.done) return false;
+  if (entry?.done === true) return true;
+  if (!entry) return false;
   const totalSteps = session?.activities?.length || 0;
-  if (totalSteps === 0) return true;
-  const hasEvidence = Boolean(entry.submissions && Object.keys(entry.submissions).length > 0);
-  if (hasEvidence) return true;
-  if (entry.rawHasSteps === true && Array.isArray(entry.steps) && entry.steps.length === 0) {
-    return false;
+  if (totalSteps > 0 && Array.isArray(entry.steps) && entry.steps.length === totalSteps) {
+    return true;
   }
-  return true;
+  return false;
 }
 
 /** Summary for meters and the "next up" pointer. */

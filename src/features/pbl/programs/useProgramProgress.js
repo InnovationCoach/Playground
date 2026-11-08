@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { db, doc, getDoc, setDoc } from '../../../firebase.js';
 import { hydrateProgress, progressDocId } from './progress.js';
 
-const CLOUD_DEBOUNCE_MS = 2500;
+const CLOUD_DEBOUNCE_MS = 600;
 const LOCAL_DEBOUNCE_MS = 300;
 const localKey = (uid, programId) => `hearisland.pblProgram.v1:${uid || 'signed-out'}:${programId}`;
 

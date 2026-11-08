@@ -70,8 +70,8 @@ export function buildFixtures(seed = 20260925) {
     { classId: 'cls-y7-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-wls', name: 'WLS · Grade 7', yearLevel: 'Year 7' },
     { classId: 'cls-y9-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-wls', name: 'WLS · Grade 9', yearLevel: 'Year 9' },
     { classId: 'cls-y11-w2e', schoolId: 'sch-online', cohortId: 'cohort-whs', name: 'WHS · Grade 11', yearLevel: 'Year 11' },
-    { classId: 'cls-y3-wpr', schoolId: 'sch-bkk', cohortId: 'cohort-lower-primary', name: 'Lower Primary A', yearLevel: 'Year 3' },
-    { classId: 'cls-y5-wpr', schoolId: 'sch-bkk', cohortId: 'cohort-higher-primary', name: 'Higher Primary A', yearLevel: 'Year 5' },
+    { classId: 'cls-y3-primary', schoolId: 'sch-bkk', cohortId: 'cohort-lower-primary', name: 'Lower Primary A', yearLevel: 'Year 3' },
+    { classId: 'cls-y5-primary', schoolId: 'sch-bkk', cohortId: 'cohort-higher-primary', name: 'Higher Primary A', yearLevel: 'Year 5' },
     { classId: 'cls-thai-dip', schoolId: 'sch-bkk', programmeId: 'prog-thai-diploma', name: 'Thai Diploma – Thai Language', yearLevel: 'Year 10' }
   ].map((c) => ({ ...c, orgId: organization.orgId, status: 'active' }));
 

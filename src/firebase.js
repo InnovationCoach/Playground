@@ -24,7 +24,36 @@ if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)
   firebase.initializeApp(firebaseConfig);
 }
 
-const auth = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth() : null;
+export function getDevStoredUser() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem('hi:dev_user') || localStorage.getItem('hi:dev_user');
+    if (!raw) return null;
+    const u = JSON.parse(raw);
+    const role = u.role || 'teacher';
+    const classIds = u.classIds || ['class_yr9_climate', 'class_yr12_eng', 'class-wpr-11a', 'class-wpr-12a'];
+    return {
+      uid: u.uid || 'coach_rivera_local',
+      email: u.email || 'coach.rivera@school.edu',
+      displayName: u.displayName || 'Coach Sam Rivera',
+      getIdToken: async () => 'mock-dev-token',
+      getIdTokenResult: async () => ({ claims: { role, classIds, orgId: u.orgId || 'org-welearn', schoolIds: ['sch-bkk', 'school-main'] } })
+    };
+  } catch { return null; }
+}
+
+const rawAuth = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth() : null;
+const auth = rawAuth ? new Proxy(rawAuth, {
+  get(target, prop, receiver) {
+    if (prop === 'currentUser') {
+      const real = Reflect.get(target, prop, receiver);
+      if (real) return real;
+      return getDevStoredUser();
+    }
+    const val = Reflect.get(target, prop, receiver);
+    return typeof val === 'function' ? val.bind(target) : val;
+  }
+}) : null;
 const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
 const storage = (typeof firebase !== 'undefined' && firebase.storage) ? firebase.storage() : null;
 
@@ -46,8 +75,15 @@ export function signInWithEmailAndPassword(authInstance, email, password) {
 }
 
 export function signOut(authInstance) {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('hi:dev_user');
+      sessionStorage.removeItem('hi:dev_user');
+      window.dispatchEvent(new CustomEvent('hearisland-auth-changed'));
+    }
+  } catch {}
   const targetAuth = (authInstance && authInstance.signOut) ? authInstance : auth;
-  return targetAuth.signOut();
+  return targetAuth?.signOut ? targetAuth.signOut() : Promise.resolve();
 }
 
 export function onAuthStateChanged(authInstance, callback) {

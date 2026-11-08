@@ -17,12 +17,12 @@ export function installPathwayRoutes(router, { wrap, root, audit }) {
     if (!['student', 'coach', 'teacher', 'admin'].includes(caller.role)) fail(403, 'FORBIDDEN', 'Pathways are available to learners and their assigned coaches.');
     if (write && !staff(caller) && caller.role !== 'admin') fail(403, 'FORBIDDEN', 'Only assigned coaches can confirm competencies.');
     const uid = requireId(req.params.learnerUid), classId = requireId(req.query.classId);
-    const learner = await learnerAccess(caller, req.schoolId, uid, classId);
+    const learner = await learnerAccess(caller, req.schoolId, uid, classId, { allowArchived: true });
     if (!learner.classIds?.includes(classId)) fail(403, 'FORBIDDEN', 'This learner is not in the selected class.');
-    if (caller.role !== 'student') await assignedClass(caller, req.schoolId, classId);
+    if (caller.role !== 'student') await assignedClass(caller, req.schoolId, classId, { allowArchived: true });
     else {
       const cls = await getFirestore().collection('classes').doc(classId).get();
-      if (!cls.exists || cls.data().schoolId !== req.schoolId || cls.data().status === 'archived') fail(403, 'FORBIDDEN', 'This learning class is unavailable.');
+      if (!cls.exists || cls.data().schoolId !== req.schoolId) fail(403, 'FORBIDDEN', 'This learning class is unavailable.');
     }
     return { uid, classId, ref: root(req.schoolId).collection('learnerPathways').doc(uid).collection('classes').doc(classId) };
   }

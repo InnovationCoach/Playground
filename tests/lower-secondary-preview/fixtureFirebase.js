@@ -1,0 +1,34 @@
+import { hydratePlan } from '../../src/features/goals/goalPlan.js';
+import { scenarioId } from './scenarios.js';
+export const db = {};
+export const usingEmulators = true;
+export const auth = { currentUser: { uid: 'fixture' } };
+export const storage = { ref: () => ({ put: async () => {}, getDownloadURL: async () => '' }) };
+const plan = hydratePlan({ version: 1, updatedAt: Date.now(), goals: [
+  { id: 'g1', explore: 'Find out if our river water is safe for plants', steps: [{ id: 's1', text: 'Sketch where to take three water samples', done: false }, { id: 's2', text: 'Ask my coach about test strips', done: false }], supports: [], createdAt: 1 }
+] });
+const uid = scenarioId();
+const noGoals = uid === 'age12new' || new URLSearchParams(location.search).get('goals') === 'none';
+if (noGoals) localStorage.removeItem(`goalPlan_${uid}`);
+const data = new Map(noGoals ? [] : [[`users/${uid}`, { goalPlan: plan }]]);
+const path = (parts) => parts.join('/');
+export const doc = (_db, ...parts) => ({ path: path(parts) });
+export const collection = doc;
+export const getDoc = async (ref) => ({ exists: data.has(ref.path), data: () => data.get(ref.path) });
+export const setDoc = async (ref, value) => { data.set(ref.path, value); };
+export const deleteDoc = async (ref) => { data.delete(ref.path); };
+export const updateDoc = setDoc;
+export const arrayUnion = (...values) => values;
+export const arrayRemove = (...values) => values;
+export const serverTimestamp = () => Date.now();
+export const runTransaction = async (_db, fn) => fn({ get: getDoc, set: setDoc, update: updateDoc, delete: deleteDoc });
+export const getAuthClaims = async () => ({ role: 'student' });
+export const increment = (n) => n;
+export const query = (ref) => ref;
+export const where = () => null;
+export const limit = () => null;
+export const orderBy = () => null;
+export const getDocs = async () => ({ forEach() {}, docs: [], empty: true, size: 0 });
+export const onSnapshot = () => () => {};
+export const addDoc = async () => ({ id: 'fixture' });
+export const writeBatch = () => ({ set() {}, update() {}, delete() {}, commit: async () => {} });

@@ -97,6 +97,13 @@ describe('Competency decisions → learner choices → reviewed evidence', () =>
     const history = await schoolRef.collection('learnerPathways').doc(uid).collection('classes').doc(cls).collection('decisions').get();
     expect(history.size).toBe(3);
   });
+  it('allows assigned coach to view pathway when class has status: archived', async () => {
+    await env.db.collection('classes').doc(cls).update({ status: 'archived' });
+    const res = await call('GET', '', 'coach');
+    expect(res.status).toBe(200);
+    expect(res.body.achievements).toBeDefined();
+    await env.db.collection('classes').doc(cls).update({ status: 'active' });
+  });
   it('revokes access when class membership changes', async () => {
     await env.db.collection('users').doc(uid).update({ classIds: [] });
     expect((await call('GET')).status).toBe(403);

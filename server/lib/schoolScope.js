@@ -28,22 +28,26 @@ export function intersection(a, b) {
 
 export function cohortForGrade(grade) {
   const g = typeof grade === 'string' ? Number(grade.trim()) : Number(grade);
-  if (!Number.isInteger(g) || g < 6 || g > 12) return null;
-  if (g >= 6 && g <= 8) return 'cohort-wls';
-  if (g >= 9 && g <= 12) return 'cohort-whs';
+  if (!Number.isInteger(g) || g < 5 || g > 12) return null;
+  if (g >= 5 && g <= 8) return 'cohort-wls';
+  if (g >= 8 && g <= 12) return 'cohort-whs';
   return null;
 }
 
 export function validateGradeAndCohort({ gradeLevel, cohortId }) {
   if (gradeLevel !== undefined && gradeLevel !== null && gradeLevel !== '') {
     const g = typeof gradeLevel === 'string' ? Number(gradeLevel.trim()) : Number(gradeLevel);
-    if (!Number.isInteger(g) || g < 6 || g > 12) {
-      fail(400, 'VALIDATION', 'Grade level must be between 6 and 12.');
+    if (!Number.isInteger(g) || g < 5 || g > 12) {
+      fail(400, 'VALIDATION', 'Grade level must be between 5 and 12.');
     }
-    const derivedCohort = g <= 8 ? 'cohort-wls' : 'cohort-whs';
-    if (cohortId && cohortId !== derivedCohort) {
-      fail(400, 'VALIDATION', `Cohort ${cohortId} does not match grade level ${g}. Expected ${derivedCohort}.`);
+    const validCohorts = [];
+    if (g >= 5 && g <= 8) validCohorts.push('cohort-wls');
+    if (g >= 8 && g <= 12) validCohorts.push('cohort-whs');
+
+    if (cohortId && !validCohorts.includes(cohortId)) {
+      fail(400, 'VALIDATION', `Cohort ${cohortId} does not match grade level ${g}.`);
     }
+    const derivedCohort = cohortId || (g <= 8 ? 'cohort-wls' : 'cohort-whs');
     return { gradeLevel: g, cohortId: derivedCohort };
   }
   return { gradeLevel: null, cohortId: cohortId || null };
@@ -83,13 +87,14 @@ export async function schoolAccess(caller, schoolId) {
   }
   fail(403, 'FORBIDDEN', 'You do not have access to this school.');
 }
-export async function assignedClass(caller, schoolId, classId) {
+export async function assignedClass(caller, schoolId, classId, options = {}) {
   requireId(classId);
   const c = await getFirestore().collection('classes').doc(classId).get();
-  if (!c.exists || c.data().schoolId !== schoolId || c.data().status === 'archived' || caller.role !== 'admin' && (!staff(caller) || !caller.classIds.includes(classId))) fail(403, 'FORBIDDEN', 'This class is not assigned to you.');
+  const allowArchived = options.allowArchived === true;
+  if (!c.exists || c.data().schoolId !== schoolId || (!allowArchived && c.data().status === 'archived') || caller.role !== 'admin' && (!staff(caller) || !caller.classIds.includes(classId))) fail(403, 'FORBIDDEN', 'This class is not assigned to you.');
   return c.data();
 }
-export async function learnerAccess(caller, schoolId, learnerUid, classId) {
+export async function learnerAccess(caller, schoolId, learnerUid, classId, options = {}) {
   requireId(learnerUid);
   const snap = await getFirestore().collection('users').doc(learnerUid).get();
   const learner = snap.data();
@@ -97,7 +102,7 @@ export async function learnerAccess(caller, schoolId, learnerUid, classId) {
   if (caller.role === 'admin') return learner;
   if (staff(caller)) {
     if (classId) {
-      await assignedClass(caller, schoolId, classId);
+      await assignedClass(caller, schoolId, classId, options);
       if (learner.classIds?.includes(classId)) return learner;
     }
     const sharesCohort = (learner.cohortId && caller.cohortIds?.includes(learner.cohortId))

@@ -112,7 +112,7 @@ export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, r
     <div className="sd-top">
       <div><span className="sd-brand"><Sparkles size={16} strokeWidth={1.7} />We Learn <b>SPARK</b></span><h1>My Dashboard <span>· {name || 'Your space'}</span></h1></div>
       <div className="sd-top-actions"><span className="studio-avatar" aria-hidden="true">{(name || 'S').slice(0, 1).toUpperCase()}</span>
-        <a className="sd-button sd-portfolio-link" href={hrefFor.journey()}><Route size={17} aria-hidden="true" /><span>Portfolio maker</span></a>
+        <a className="sd-button sd-portfolio-link" href={hrefFor.journey()} aria-label="Open Portfolio maker"><Route size={17} aria-hidden="true" /><span>Portfolio maker</span></a>
         <button className="sd-button" type="button" onClick={() => { if (grid) root.current?.scrollIntoView({ block: 'start', behavior: 'instant' }); update((s) => ({ ...s, dashboardLayout: grid ? 'slides' : 'grid' })); }} aria-label={grid ? 'Switch to slide view' : 'Switch to grid view'}>{grid ? <GalleryHorizontal size={17} /> : <LayoutGrid size={17} />}<span>{grid ? 'Slide view' : 'Grid view'}</span></button>
         <button className="sd-button" type="button" onClick={onPersonalise}><Paintbrush size={17} /><span>Personalise</span></button>
       </div>

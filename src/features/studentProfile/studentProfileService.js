@@ -5,6 +5,8 @@
  * when Gemini's routes land; the return shapes stay the same.
  */
 
+import { db, collection, getDocs } from '../../firebase.js';
+
 export const PROFILE_LIMITS = Object.freeze({
   schoolStudentId: 32, progressNote: 200, gradeSubject: 60, gradeText: 10, gradeComment: 240,
   schoolSummary: 500, gradesMax: 40
@@ -233,20 +235,52 @@ function notifyParents(profile, what) {
   }
 }
 
+const readKey = (uid, id) => `hearisland.notifRead.${uid}.${id}`;
+
 export async function listNotifications(uid, { limit = 20 } = {}) {
-  await delay(60);
-  const list = notifications.get(uid) || [];
-  return { items: list.slice(0, limit), unreadCount: list.filter((n) => !n.readAt).length };
+  const list = [...(notifications.get(uid) || [])];
+  if (uid && db) {
+    try {
+      const snap = await getDocs(collection(db, 'users', uid, 'feedback'));
+      snap.forEach((d) => {
+        const data = d.data() || {};
+        const isRead = typeof localStorage !== 'undefined' && localStorage.getItem(readKey(uid, d.id)) !== null;
+        list.push({
+          id: d.id,
+          type: 'coach_feedback',
+          title: `${data.coachName || 'Coach'} left feedback`,
+          body: data.feedbackText || '',
+          link: '#/pbl',
+          createdAt: data.timestamp || Date.now(),
+          readAt: isRead ? Date.now() : null
+        });
+      });
+    } catch (err) {
+      console.warn('[Notifications] Could not read feedback collection:', err?.message);
+    }
+  }
+  list.sort((a, b) => b.createdAt - a.createdAt);
+  const sliced = list.slice(0, limit);
+  return { items: sliced, unreadCount: sliced.filter((n) => !n.readAt).length };
 }
 
 export async function markNotificationRead(uid, id) {
-  await delay(40);
+  if (uid && id && typeof localStorage !== 'undefined') {
+    try { localStorage.setItem(readKey(uid, id), String(Date.now())); } catch {}
+  }
   const n = (notifications.get(uid) || []).find((x) => x.id === id);
   if (n && !n.readAt) n.readAt = Date.now();
 }
 
 export async function markAllRead(uid) {
-  await delay(40);
+  if (uid && db && typeof localStorage !== 'undefined') {
+    try {
+      const snap = await getDocs(collection(db, 'users', uid, 'feedback'));
+      snap.forEach((d) => {
+        try { localStorage.setItem(readKey(uid, d.id), String(Date.now())); } catch {}
+      });
+    } catch {}
+  }
   for (const n of notifications.get(uid) || []) if (!n.readAt) n.readAt = Date.now();
 }
 

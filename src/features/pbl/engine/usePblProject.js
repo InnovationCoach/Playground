@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { db, doc, getDoc, setDoc } from '../../../firebase.js';
 import { hydrateProject } from './pblProject.js';
+import { schoolRequest } from '../../../services/api/apiClient.js';
 
 const CLOUD_DEBOUNCE_MS = 2500;
 const LOCAL_DEBOUNCE_MS = 300;
@@ -62,6 +63,15 @@ export function usePblProject(uid, termId) {
       try {
         await setDoc(doc(db, 'users', docPath), { ...project, activityId: `pbl-${termId}` });
         setSyncState('saved');
+        if (project.tasksDone) {
+          Object.entries(project.tasksDone).forEach(([phaseId, indices]) => {
+            if (Array.isArray(indices)) {
+              indices.forEach((index) => {
+                schoolRequest('POST', '/api/quest/events', { type: 'task_step', phaseId, index }).catch(() => {});
+              });
+            }
+          });
+        }
       } catch (err) {
         console.warn('[PBL] Cloud save failed, keeping local copy:', err?.message);
         setSyncState('local-only');

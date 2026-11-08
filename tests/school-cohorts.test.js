@@ -18,29 +18,42 @@ import { cohortForGrade, validateGradeAndCohort } from '../server/lib/schoolScop
 import { programPrompt } from '../server/lib/ai/programGeneration.js';
 
 describe('secondary programme grade and cohort derivation', () => {
-  it('derives cohort-wls for Grade 6, 7, 8', () => {
+  it('derives cohort-wls for Grade 5, 6, 7, 8', () => {
+    expect(cohortForGrade(5)).toBe('cohort-wls');
     expect(cohortForGrade(6)).toBe('cohort-wls');
     expect(cohortForGrade(7)).toBe('cohort-wls');
     expect(cohortForGrade(8)).toBe('cohort-wls');
   });
 
-  it('derives cohort-whs for Grade 9, 10, 11, 12', () => {
+  it('derives cohort-whs for Grade 8, 9, 10, 11, 12', () => {
     expect(cohortForGrade(9)).toBe('cohort-whs');
     expect(cohortForGrade(10)).toBe('cohort-whs');
     expect(cohortForGrade(11)).toBe('cohort-whs');
     expect(cohortForGrade(12)).toBe('cohort-whs');
   });
 
-  it('returns null for grades outside 6-12', () => {
-    expect(cohortForGrade(5)).toBeNull();
+  it('returns null for grades outside 5-12', () => {
+    expect(cohortForGrade(4)).toBeNull();
     expect(cohortForGrade(13)).toBeNull();
     expect(cohortForGrade('abc')).toBeNull();
   });
 
   it('validates matching grade and cohort', () => {
+    expect(validateGradeAndCohort({ gradeLevel: 5, cohortId: 'cohort-wls' })).toEqual({
+      gradeLevel: 5,
+      cohortId: 'cohort-wls'
+    });
     expect(validateGradeAndCohort({ gradeLevel: 7, cohortId: 'cohort-wls' })).toEqual({
       gradeLevel: 7,
       cohortId: 'cohort-wls'
+    });
+    expect(validateGradeAndCohort({ gradeLevel: 8, cohortId: 'cohort-wls' })).toEqual({
+      gradeLevel: 8,
+      cohortId: 'cohort-wls'
+    });
+    expect(validateGradeAndCohort({ gradeLevel: 8, cohortId: 'cohort-whs' })).toEqual({
+      gradeLevel: 8,
+      cohortId: 'cohort-whs'
     });
     expect(validateGradeAndCohort({ gradeLevel: 10, cohortId: 'cohort-whs' })).toEqual({
       gradeLevel: 10,
@@ -49,6 +62,10 @@ describe('secondary programme grade and cohort derivation', () => {
   });
 
   it('automatically derives cohort when cohortId is omitted', () => {
+    expect(validateGradeAndCohort({ gradeLevel: 5 })).toEqual({
+      gradeLevel: 5,
+      cohortId: 'cohort-wls'
+    });
     expect(validateGradeAndCohort({ gradeLevel: 7 })).toEqual({
       gradeLevel: 7,
       cohortId: 'cohort-wls'
@@ -59,9 +76,9 @@ describe('secondary programme grade and cohort derivation', () => {
     });
   });
 
-  it('rejects gradeLevel outside 6-12', () => {
-    expect(() => validateGradeAndCohort({ gradeLevel: 4 })).toThrow(/Grade level must be between 6 and 12/);
-    expect(() => validateGradeAndCohort({ gradeLevel: 13 })).toThrow(/Grade level must be between 6 and 12/);
+  it('rejects gradeLevel outside 5-12', () => {
+    expect(() => validateGradeAndCohort({ gradeLevel: 4 })).toThrow(/Grade level must be between 5 and 12/);
+    expect(() => validateGradeAndCohort({ gradeLevel: 13 })).toThrow(/Grade level must be between 5 and 12/);
   });
 
   it('rejects mismatching cohortId for given grade', () => {
