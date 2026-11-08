@@ -44,6 +44,12 @@ describe('coach workspace pilot fixes', () => {
     expect(host.textContent).toContain('Class records are unavailable');
     expect(host.textContent).not.toContain('No learners found');
   });
+  it('renders a roster row for a learner in the class', async () => {
+    getDocs.mockResolvedValueOnce(snapshot([['anna',{displayName:'Anna',role:'student',status:'active',classIds:['class-1']}]])).mockResolvedValue(snapshot([]));
+    await render(<CoachWorkspace coachUser={{uid:'coach-1'}} />);
+    expect(host.querySelector('tbody tr').textContent).toContain('Anna');
+    expect(host.textContent).toContain('No current-term record');
+  });
   it('labels partial rosters and totals as incomplete', async () => {
     auth.currentUser.getIdTokenResult.mockResolvedValue({claims:{role:'teacher',classIds:Array.from({length:11},(_,i)=>`class-${i}`)}});
     getDocs.mockResolvedValueOnce(snapshot([])).mockRejectedValueOnce({code:'unavailable'});
