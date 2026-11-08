@@ -1,4 +1,3 @@
-import { hrefFor } from '../../app/routes.js';
 import { menuFor } from '../shell/Sidebar.jsx';
 
 /**
@@ -28,13 +27,10 @@ const ABOUT = {
   settings: 'Change your password, language and light or dark look.'
 };
 
-/** The sidebar opens these two with click handlers; these are the routes those handlers go to. */
-const ROUTES = { courses: hrefFor.courses(), goals: hrefFor.goals() };
-
 export function toolGroups() {
   const items = new Map(menuFor('student').flatMap((group) => group.items).map((item) => [item.key, item]));
   return GROUPS.map(({ keys, ...group }) => ({
     ...group,
-    tools: keys.map((key) => ({ key, icon: items.get(key).icon, label: items.get(key).label, about: ABOUT[key], href: items.get(key).href || ROUTES[key] }))
+    tools: keys.map((key) => ({ key, icon: items.get(key).icon, label: items.get(key).label, about: ABOUT[key], href: items.get(key).href }))
   }));
 }

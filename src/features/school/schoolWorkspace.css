@@ -165,3 +165,4 @@
 .sw-lesson-resource-details > summary { cursor: pointer; padding: 8px 0; min-height: 44px; box-sizing: border-box; overflow-wrap: anywhere; }
 .sw-lesson-resource-details > summary:focus-visible { outline: 3px solid var(--sw-accent); outline-offset: 3px; }
 .sw-lesson-resource-details[open] > summary { margin-bottom: 12px; }
+.sw-spin{animation:sw-spin .9s linear infinite}@keyframes sw-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.sw-panel .sw-spin{animation:none}}

@@ -168,6 +168,11 @@ describe('sidebar menu', () => {
       }
       expect(keys.some((k) => k.includes('messages'))).toBe(false);
       if (role === 'student') expect(items.find((i) => i.key === 'competencies')?.href).toBe(hrefFor.pbl('competencies'));
+      if (role === 'student') {
+        expect(keys).not.toContain('programs');
+        expect(items.find((i) => i.key === 'courses')?.href).toBe(hrefFor.courses());
+        expect(items.find((i) => i.key === 'goals')?.href).toBe(hrefFor.goals());
+      }
     });
   }
 });

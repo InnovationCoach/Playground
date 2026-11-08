@@ -26,7 +26,7 @@ function LiveDiscoveryData({ uid, classIds, name, onOpenActivity }) {
     recommendations={denied || pathway.error ? [] : recommendations} achievements={denied || pathway.error ? [] : achievements}
     loading={context.loading || pathway.loading} error={context.error || offerings.error} recommendationError={context.error || pathway.error}
     onRetry={() => { context.reload(); offerings.reload(); pathway.reload(); }} onOpenActivity={onOpenActivity}
-    onOpenProgram={() => { window.location.hash = hrefFor.programs(); }}
+    onOpenProgram={() => { window.location.hash = hrefFor.pbl('programs'); }}
     onChooseQuest={async item => {
       if (!base || denied) throw new Error('Your school access needs checking. Please refresh your access.');
       await mutateSchool('POST', `${base}/choose${suffix}`, { recommendationId: item.recommendationId, revision: pathway.data?.revision });

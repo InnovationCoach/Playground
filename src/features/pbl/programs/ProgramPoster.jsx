@@ -1,4 +1,5 @@
 import { ProgramIcon } from './ProgramIcon.jsx';
+import { programIdentity } from './catalog.js';
 
 /**
  * A program's poster: its cover image when there is one (programMedia.coverFor),
@@ -6,18 +7,19 @@ import { ProgramIcon } from './ProgramIcon.jsx';
  * no program ever shows an empty box.
  */
 export function ProgramPoster({ program: p, cover, size = 'card' }) {
+  const identity = programIdentity(p);
   if (cover?.url) {
     return (
-      <div className={`pg-poster pg-poster-${size} pg-poster-img`} data-tone={p.identity.tone}>
+      <div className={`pg-poster pg-poster-${size} pg-poster-img`} data-tone={identity.tone}>
         <img src={cover.url} alt={`${p.title} poster`} loading={size === 'card' ? 'lazy' : 'eager'} referrerPolicy="no-referrer" />
       </div>
     );
   }
   return (
-    <div className={`pg-poster pg-poster-${size} pg-poster-drawn`} data-tone={p.identity.tone} aria-hidden="true">
-      <span className="pg-poster-art"><ProgramIcon name={p.identity.icon} size={size === 'hero' ? 150 : 110} /></span>
+    <div className={`pg-poster pg-poster-${size} pg-poster-drawn`} data-tone={identity.tone} aria-hidden="true">
+      <span className="pg-poster-art"><ProgramIcon name={identity.icon} size={size === 'hero' ? 150 : 110} /></span>
       <span className="pg-poster-weeks">{p.durationWeeks} weeks · PBL</span>
-      <span className="pg-poster-name">{p.identity.short}</span>
+      <span className="pg-poster-name">{identity.short}</span>
     </div>
   );
 }
