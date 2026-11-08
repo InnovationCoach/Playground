@@ -3,10 +3,12 @@ import {
   ArrowLeft, ArrowRight, CircleCheck, Circle, ChevronDown, Target, Users, Leaf, HeartHandshake,
   Cpu, Wrench, Package, Laptop, ShieldAlert, GraduationCap, Bot, Printer, TriangleAlert, Clock,
   Lightbulb, MessageSquareQuote, ListChecks, Compass, CalendarDays, Wrench as ToolIcon, NotebookPen, Rocket, Undo2,
-  Video, GitBranch, Box
+  Video, GitBranch, Box, Edit3, Eye, Presentation, HelpCircle, Sparkles
 } from 'lucide-react';
 import { programById, COACH_PLATFORM_NOTES, AGE_TRACKS, programCompetencies, sessionsInWeek, shortAges, isSourcedConfirmation } from './catalog.js';
-import { getProgram, addToMyCourse } from '../../../services/pblService.js';
+import { getProgram, addToMyCourse, getVideoLibrary } from '../../../services/pblService.js';
+import { StudentStageViewer } from './StudentStageViewer.jsx';
+import { StageEditorModal } from '../../coach/programs/StageEditorModal.jsx';
 import {
   programProgress, startProgram, toggleSession, chooseOption, setReflection, toggleStep, setConfidence, setTool, setSubmission, removeSubmission, isSessionDone, unlockBadge, LIMITS,
   needsRecheck, confirmRecheck
@@ -31,6 +33,7 @@ import { ProgramMediaProvider, MediaGallery, MediaManager, SessionMedia } from '
 const SECTIONS = [
   { id: 'overview', label: 'Overview', icon: Compass },
   { id: 'plan', label: 'Term plan', icon: CalendarDays },
+  { id: 'videos', label: 'Video library', icon: Video },
   { id: 'tools', label: 'Toolkit', icon: ToolIcon, kit: true },
   { id: 'kit', label: 'Kit & safety', icon: Package },
   { id: 'guide', label: 'Teaching guide', icon: GraduationCap, coach: true },
@@ -108,7 +111,7 @@ export function ProgramDetail({ programId, section, uid, isCoach, classIds = [] 
   return (
     <ProgramMediaProvider value={{ classes: running, isCoach, uid, reload }}>
       {isCoach
-        ? <DetailView program={program} section={section} cover={cover} isCoach />
+        ? <DetailView program={program} section={section} cover={cover} isCoach classes={running} />
         : <LearnerDetail program={program} section={section} uid={uid} cover={cover} />}
     </ProgramMediaProvider>
   );
@@ -144,7 +147,7 @@ function saveToPortfolio(uid, evidenceItem) {
   }
 }
 
-function DetailView({ program: p, section, cover, isCoach = false, progress = null, apply = null, syncState, uid = null }) {
+function DetailView({ program: p, section, cover, isCoach = false, progress = null, apply = null, syncState, uid = null, classes = [] }) {
   const kit = toolkitFor(p.id);
   const sections = SECTIONS.filter((s) => (!s.coach || isCoach) && (!s.kit || kit));
   const resolvedSection = SECTION_ALIASES[section] || section;
@@ -154,6 +157,10 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
 
   const [selectedPhase, setSelectedPhase] = useState(null);
   const [selectedSessionNum, setSelectedSessionNum] = useState(null);
+
+  const [isEditingStage, setIsEditingStage] = useState(false);
+  const [editingStageIdx, setEditingStageIdx] = useState(0);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   const summary = progress ? programProgress(progress, p) : null;
   const [toast, say] = useToast();
@@ -204,6 +211,47 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
     }
   };
 
+  // Preview Mode: isolated student simulation view
+  if (isPreviewMode) {
+    const previewStage = p.phases?.[editingStageIdx] || p.phases?.[0];
+    return (
+      <div className="pg-detail">
+        <div style={{ marginBottom: '1rem' }}>
+          <button
+            type="button"
+            className="pb-link pg-back"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0 }}
+            onClick={() => setIsPreviewMode(false)}
+          >
+            <ArrowLeft size={15} aria-hidden="true" /> Exit Preview & Back to Program Detail
+          </button>
+        </div>
+        <StudentStageViewer
+          stage={previewStage}
+          program={p}
+          isPreview={true}
+          onExitPreview={() => setIsPreviewMode(false)}
+          onOpenEditor={() => {
+            setIsPreviewMode(false);
+            setIsEditingStage(true);
+          }}
+        />
+        <StageEditorModal
+          isOpen={isEditingStage}
+          onClose={() => setIsEditingStage(false)}
+          program={p}
+          stageIndex={editingStageIdx}
+          cohorts={classes}
+          onSaved={() => say('Stage updated successfully!')}
+          onOpenPreview={(idx) => {
+            setEditingStageIdx(idx);
+            setIsPreviewMode(true);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="pg-detail">
       <a className="pb-link pg-back" href={hrefFor.pbl('programs')}><ArrowLeft size={15} aria-hidden="true" />All programs</a>
@@ -223,28 +271,87 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
           </div>
         </div>
         <p className="pb-dq pg-hero-dq"><MessageSquareQuote size={18} aria-hidden="true" /><span>{p.drivingQuestion}</span></p>
-        <ol className="pb-term-strip" aria-label={`Program plan, ${p.durationWeeks || 12} weeks`}>
+
+        {/* Coach Workspace Actions */}
+        {isCoach && (
+          <div className="pg-coach-actions-bar">
+            <span className="pg-coach-badge">
+              <GraduationCap size={16} aria-hidden="true" /> Coach Workspace
+            </span>
+            <button
+              type="button"
+              className="gh-btn gh-btn-sm gh-btn-primary"
+              onClick={() => {
+                setEditingStageIdx(0);
+                setIsEditingStage(true);
+              }}
+            >
+              <Edit3 size={14} aria-hidden="true" /> Edit Program & Stages
+            </button>
+            <button
+              type="button"
+              className="gh-btn gh-btn-sm gh-btn-secondary"
+              onClick={() => {
+                setEditingStageIdx(0);
+                setIsPreviewMode(true);
+              }}
+            >
+              <Eye size={14} aria-hidden="true" /> Student Preview
+            </button>
+          </div>
+        )}
+
+        {/* Horizontal Stage Progression Timeline */}
+        <div className="pg-stages-timeline" role="region" aria-label="Program stage progression">
           {(p.phases || []).map((ph, idx) => {
-            const wRange = Array.isArray(ph.weeks) && ph.weeks.length >= 2 && ph.weeks[0] != null && ph.weeks[1] != null
-              ? ph.weeks[1] - ph.weeks[0] + 1
-              : 1;
             const phId = ph.id || ph.phaseId || `phase-${idx + 1}`;
+            const isSelected = selectedPhase ? selectedPhase === phId : idx === 0;
+            const vCount = ph.videos?.length || 0;
+            const sCount = ph.slides?.length || 0;
+            const qCount = ph.quiz?.length || 0;
+            const tCount = ph.checklist?.length || (ph.tasks?.length || 0);
+
             return (
-              <li key={phId} style={{ flexGrow: Math.max(1, wRange) }}
-                  data-done={summary?.byPhase?.[phId]?.complete || undefined}>
-                <button
-                  type="button"
-                  onClick={() => handleSelectPhase(phId)}
-                  className="pb-term-strip-btn"
-                  style={{ background: 'none', border: 'none', color: 'inherit', padding: 0, font: 'inherit', textAlign: 'inherit', width: '100%', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
-                >
-                  <span title={ph.title}>{stripLabel(ph.title)}</span>
-                  <small>{weekLabel(ph.weeks)}</small>
-                </button>
-              </li>
+              <div
+                key={phId}
+                className={`pg-stage-timeline-card ${isSelected ? 'is-active' : ''}`}
+                onClick={() => handleSelectPhase(phId)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && handleSelectPhase(phId)}
+              >
+                <div className="pg-stage-card-top">
+                  <span>Stage {idx + 1}</span>
+                  <span className="pg-stage-card-week">{weekLabel(ph.weeks)}</span>
+                </div>
+                <h4 className="pg-stage-card-title">{ph.title}</h4>
+                <p className="pg-stage-card-goal">{ph.learningGoal || ph.goal || ''}</p>
+                <div className="pg-stage-card-badges">
+                  {vCount > 0 && <span className="pg-stage-badge-item"><Video size={11} aria-hidden="true" /> {vCount} vids</span>}
+                  {sCount > 0 && <span className="pg-stage-badge-item"><Presentation size={11} aria-hidden="true" /> {sCount} slides</span>}
+                  {qCount > 0 && <span className="pg-stage-badge-item"><HelpCircle size={11} aria-hidden="true" /> {qCount} quiz</span>}
+                  {tCount > 0 && <span className="pg-stage-badge-item"><ListChecks size={11} aria-hidden="true" /> {tCount} tasks</span>}
+                  {isCoach && (
+                    <button
+                      type="button"
+                      className="gh-btn gh-btn-ghost gh-btn-sm"
+                      style={{ marginLeft: 'auto', padding: '0.1rem 0.4rem', fontSize: '0.72rem' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingStageIdx(idx);
+                        setIsEditingStage(true);
+                      }}
+                      title="Edit this stage"
+                    >
+                      <Edit3 size={11} aria-hidden="true" /> Edit
+                    </button>
+                  )}
+                </div>
+              </div>
             );
           })}
-        </ol>
+        </div>
+
         {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} uid={uid} onSelectSession={handleSelectSession} />}
         {kit && progress?.startedAt && <FounderPanel program={p} progress={progress} />}
         </div>
@@ -280,12 +387,119 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
           <Overview program={p} />
         </>
       )}
-      {active === 'plan' && <TermPlan program={p} isCoach={isCoach} progress={progress} apply={apply} kit={kit} tools={tools} say={say} selectedPhase={selectedPhase} selectedSessionNum={selectedSessionNum} uid={uid} />}
+      {active === 'videos' && <ProgramVideoLibrary program={p} />}
+      {active === 'plan' && (
+        <TermPlan
+          program={p}
+          isCoach={isCoach}
+          progress={progress}
+          apply={apply}
+          kit={kit}
+          tools={tools}
+          say={say}
+          selectedPhase={selectedPhase}
+          selectedSessionNum={selectedSessionNum}
+          uid={uid}
+          onEditStage={(idx) => {
+            setEditingStageIdx(idx);
+            setIsEditingStage(true);
+          }}
+        />
+      )}
       {active === 'tools' && kit && <Toolkit program={p} kit={kit} tools={tools} />}
       {active === 'kit' && <KitAndSafety program={p} />}
       {active === 'guide' && <TeachingGuide program={p} />}
       {active === 'checks' && <Checks program={p} kit={kit} />}
+
+      <StageEditorModal
+        isOpen={isEditingStage}
+        onClose={() => setIsEditingStage(false)}
+        program={p}
+        stageIndex={editingStageIdx}
+        cohorts={classes}
+        onSaved={() => say('Stage updated successfully!')}
+        onOpenPreview={(idx) => {
+          setEditingStageIdx(idx);
+          setIsPreviewMode(true);
+        }}
+      />
+
       <div className="pg-toast-host" aria-live="polite">{toast && <span className="pg-toast" key={toast.at}>{toast.text}</span>}</div>
+    </div>
+  );
+}
+
+function ProgramVideoLibrary({ program }) {
+  const library = getVideoLibrary(program);
+  const [activeVideo, setActiveVideo] = useState(library[0] || null);
+
+  if (library.length === 0) {
+    return (
+      <div className="gh-card" style={{ padding: '2.5rem', textAlign: 'center' }}>
+        <Video size={36} style={{ opacity: 0.4, margin: '0 auto 0.8rem' }} />
+        <h3 className="pb-h3" style={{ margin: '0 0 0.4rem' }}>No Stage Videos Added Yet</h3>
+        <p className="pb-sub" style={{ maxWidth: '48ch', margin: '0 auto' }}>
+          Coaches can add YouTube videos or playlists directly inside each stage editor. They will appear here organized by stage.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pb-video-library-section">
+      {activeVideo && (
+        <div className="gh-card pb-video-viewer-card" style={{ marginBottom: '1.5rem' }}>
+          <div className="pb-video-frame-wrap">
+            <iframe
+              src={activeVideo.embedUrl}
+              title={activeVideo.title}
+              className="pb-video-iframe"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <div className="pb-video-info">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span className="pb-stage-week-badge">Stage {activeVideo.stageNumber}</span>
+              <h3 className="pb-video-title">{activeVideo.title}</h3>
+            </div>
+            {activeVideo.description && <p className="pb-video-desc">{activeVideo.description}</p>}
+          </div>
+        </div>
+      )}
+
+      <div className="gh-card-head" style={{ marginBottom: '0.8rem' }}>
+        <div>
+          <h3 className="pb-h3" style={{ margin: 0 }}>Program Video Library ({library.length})</h3>
+          <p className="pb-sub" style={{ margin: '0.2rem 0 0' }}>All instructional videos and playlists across stages.</p>
+        </div>
+      </div>
+
+      <div className="pg-grid">
+        {library.map((v) => {
+          const isSelected = activeVideo?.id === v.id;
+          return (
+            <div
+              key={v.id}
+              className={`pg-card ${isSelected ? 'is-active' : ''}`}
+              style={{
+                cursor: 'pointer',
+                padding: '1rem',
+                border: isSelected ? '2px solid var(--gh-purple)' : '1px solid var(--gh-border)',
+                background: isSelected ? 'var(--gh-surface-2)' : 'var(--gh-surface)'
+              }}
+              onClick={() => setActiveVideo(v)}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <span className="pg-stage-badge-item">Stage {v.stageNumber}</span>
+                <span style={{ fontSize: '0.74rem', color: 'var(--gh-text-3)' }}>{weekLabel(v.stageWeek)}</span>
+              </div>
+              <strong style={{ fontSize: '0.94rem', color: 'var(--gh-heading)', marginBottom: '0.3rem' }}>{v.title}</strong>
+              {v.description && <p style={{ fontSize: '0.82rem', color: 'var(--gh-text-2)', margin: 0 }}>{v.description}</p>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -460,7 +674,7 @@ function Overview({ program: p }) {
 
 /* ----------------------------------------------------------------- Term plan */
 
-function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say, selectedPhase, selectedSessionNum, uid }) {
+function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say, selectedPhase, selectedSessionNum, uid, onEditStage }) {
   const summary = progress ? programProgress(progress, p) : null;
   const phases = Array.isArray(p.phases) && p.phases.length > 0
     ? p.phases
@@ -510,8 +724,24 @@ function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say, selec
 
       <section className="pb-phase" aria-labelledby="pg-phase-title">
         <div className="pb-phase-head">
-          <span className="pb-kicker">{weekLabel(phase.weeks, 'Week')}{phase.strap ? ` · ${phase.strap}` : ''}</span>
-          <h2 id="pg-phase-title">{phase.title || 'Phase'}</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.6rem' }}>
+            <div>
+              <span className="pb-kicker">{weekLabel(phase.weeks, 'Week')}{phase.strap ? ` · ${phase.strap}` : ''}</span>
+              <h2 id="pg-phase-title">{phase.title || 'Phase'}</h2>
+            </div>
+            {isCoach && onEditStage && (
+              <button
+                type="button"
+                className="gh-btn gh-btn-sm gh-btn-secondary"
+                onClick={() => {
+                  const idx = phases.findIndex((ph) => (ph.id || ph.phaseId) === (phase.id || phase.phaseId));
+                  onEditStage(idx >= 0 ? idx : 0);
+                }}
+              >
+                <Edit3 size={14} aria-hidden="true" /> Edit Stage Details, Videos & AI Materials
+              </button>
+            )}
+          </div>
           <p>{phase.goal || phase.learningGoal}</p>
         </div>
 

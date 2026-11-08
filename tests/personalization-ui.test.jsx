@@ -111,3 +111,22 @@ it('resets crop controls and returns focus after applying the crop',async()=>{
  const slider=host.querySelector('[aria-label="Zoom"]');await act(async()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(slider,'2');slider.dispatchEvent(new Event('input',{bubbles:true}));});expect(slider.value).toBe('2');await click('Reset');expect(slider.value).toBe('1');expect(storage.ref).not.toHaveBeenCalled();
  await click('Use this crop');expect(storage.ref).toHaveBeenCalledTimes(1);expect(document.activeElement).toBe(trigger);expect(host.querySelector('[role="dialog"]')).toBeNull();
 });
+
+it('removes work and passes revision as query parameter to prevent proxy body stripping', async () => {
+  data.items = [{ id: 'p', title: 'Private reflection', body: 'Private content', revision: 2, audiences: [] }];
+  schoolRequest.mockImplementation((method, path) => Promise.resolve(method === 'DELETE' ? { ...data, items: [] } : structuredClone(data)));
+  await act(async () => root.render(<PortfolioEditor uid="learner" />));
+  const removeBtn = [...host.querySelectorAll('button')].find(b => b.textContent.includes('Remove work Private reflection'));
+  expect(removeBtn).toBeTruthy();
+  await act(async () => removeBtn.click());
+  expect(host.textContent).toContain('Remove “Private reflection” from your portfolio?');
+  await click('Confirm removal');
+  expect(schoolRequest).toHaveBeenCalledWith(
+    'DELETE',
+    '/api/learner-space/items/p',
+    expect.objectContaining({
+      query: { revision: 2 },
+      body: expect.objectContaining({ id: 'p', revision: 2 })
+    })
+  );
+});

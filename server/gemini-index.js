@@ -5,18 +5,17 @@ import { initAdmin } from './auth.js';
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
 const adminReady = initAdmin();
 const app = createApp();
+const geminiConfig = app.locals.geminiConfig || { model: 'gemini-2.5-flash', configured: false };
 
 let bannerTimer = null;
 const server = app.listen(PORT, () => {
   bannerTimer = setTimeout(() => {
     console.log(`🚀 HearIsland Server running on http://localhost:${PORT}`);
-    console.log(`🤖 Using Gemini API Model: ${MODEL_NAME}`);
-    console.log(`📝 Gemini API Key: ${GEMINI_API_KEY ? 'Configured ✓' : 'Missing ✗'}`);
+    console.log(`🤖 Using Gemini API Model: ${geminiConfig.model}`);
+    console.log(`📝 Gemini API Key: ${geminiConfig.configured ? 'Configured ✓' : 'Missing ✗'}`);
     console.log(`🌐 CORS Allowed Origin: ${process.env.FRONTEND_URL || 'http://localhost:5173 (dev default; set in production)'}`);
     console.log(`🛡️  Safety settings: BLOCK_LOW_AND_ABOVE on all categories`);
     console.log(`🔐 Token verification: ${adminReady ? 'Enabled ✓' : 'DISABLED - requests are unverified ✗'}`);

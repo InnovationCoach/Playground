@@ -130,8 +130,10 @@ export async function createLearnerAccount({ email, displayName, classId, gradeL
     email: cleanEmail,
     role: 'learner',
     classIds: [cleanClassId],
-    createdAt: now,
+    orgId: caller?.profile?.orgId || 'org-welearn',
     status: 'active',
+    isTest: false,
+    createdAt: now,
     ...(finalGrade !== null ? { gradeLevel: finalGrade } : {}),
     ...(finalCohort ? { cohortId: finalCohort, cohortIds: [finalCohort] } : {})
   });

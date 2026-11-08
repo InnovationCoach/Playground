@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db, collection, query, where, getDocs, getAuthClaims } from '../../../firebase.js';
 import { loadClasses } from '../classCodes.js';
+import { isTestAccount } from '../learners/rosterFilter.js';
 
 const STAFF_ROLES = new Set(['teacher', 'coach', 'admin', 'supervisor', 'parent']);
 
@@ -111,15 +112,9 @@ export function useClassLearners(classId, { includeTest = false, fallbackClassId
         if (data.status && data.status !== 'active') return;
 
         // Filter out test accounts unless explicitly enabled
-        const isTestAccount = Boolean(
-          data.isTest === true ||
-          data.status === 'archived' ||
-          data.email?.includes('test@school.edu') ||
-          data.email?.includes('test.') ||
-          data.email?.includes('@hearisland-test.org')
-        );
+        const testAccount = isTestAccount(data);
 
-        if (!includeTest && isTestAccount) {
+        if (!includeTest && testAccount) {
           return;
         }
 
@@ -146,7 +141,7 @@ export function useClassLearners(classId, { includeTest = false, fallbackClassId
           cohort: data.cohortId || data.cohort || '',
           cohortId: data.cohortId || data.cohort || '',
           ageBand: data.ageBand || '11-16',
-          isTest: isTestAccount,
+          isTest: testAccount,
           status: data.status || 'active',
           diagnosisTraits: rawTraits,
           traitBadges: Array.isArray(data.traitBadges) && data.traitBadges.length > 0 ? data.traitBadges : rawTraits,
