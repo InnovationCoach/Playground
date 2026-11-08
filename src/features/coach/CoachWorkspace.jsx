@@ -57,10 +57,10 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
               state: 'ready',
               learners: FALLBACK_LEARNERS,
               classes: [
-                { id: 'class_yr9_climate', name: 'Lower Secondary A (Year 9)' },
-                { id: 'class_yr12_eng', name: 'Higher Secondary A (Year 12)' },
-                { id: 'class-wpr-11a', name: 'Higher Secondary A' },
-                { id: 'class-wpr-12a', name: 'Higher Secondary B' }
+                { id: 'class_yr9_climate', name: 'Lower Secondary (WLS)' },
+                { id: 'class_yr12_eng', name: 'Higher Secondary (WHS)' },
+                { id: 'class-wpr-11a', name: 'WHS' },
+                { id: 'class-wpr-12a', name: 'WHS' }
               ],
               failedClassIds: [],
               updatedAt: Date.now()
@@ -74,9 +74,11 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
           try {
             const snap = await getDoc(doc(db, 'classes', id));
             const exists = typeof snap?.exists === 'function' ? snap.exists() : !!snap?.exists;
-            return { id, name: exists ? snap.data().name || id : (id.includes('yr9') ? 'Lower Secondary A (Year 9)' : id.includes('11') ? 'Higher Secondary A' : id.includes('12') ? 'Higher Secondary B' : id) };
+            const rawName = exists ? snap.data().name || id : (id.includes('yr9') ? 'Lower Secondary (WLS)' : id.includes('11') ? 'WHS' : id.includes('12') ? 'WHS' : id);
+            const name = rawName === 'WPR Year 11 Climate' || id === 'class-wpr-11a' ? 'WHS' : rawName === 'Climate Champions 7A' || id === 'class_climate_champions_7a' ? 'WLS' : rawName;
+            return { id, name };
           } catch {
-            return { id, name: id.includes('yr9') ? 'Lower Secondary A (Year 9)' : id.includes('11') ? 'Higher Secondary A' : id.includes('12') ? 'Higher Secondary B' : id };
+            return { id, name: id.includes('yr9') ? 'Lower Secondary (WLS)' : id.includes('11') ? 'WHS' : id.includes('12') ? 'WHS' : id };
           }
         }));
         const failedBatches = [];

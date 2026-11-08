@@ -385,7 +385,7 @@ export class CoachDashboard {
               </button>
             </div>
             <div style="position: relative;">
-              <label>Class <select id="coach-class-select"><option value="all">All assigned classes</option>${this.classIds.map(id => `<option value="${escapeHtml(id)}" ${this.selectedClassId === id ? 'selected' : ''}>${escapeHtml(id)}</option>`).join('')}</select></label>
+              <label>Class <select id="coach-class-select"><option value="all">All assigned classes</option>${this.classIds.map(id => `<option value="${escapeHtml(id)}" ${this.selectedClassId === id ? 'selected' : ''}>${escapeHtml(id === 'class-wpr-11a' ? 'WHS' : id === 'class_climate_champions_7a' ? 'WLS' : id)}</option>`).join('')}</select></label>
               <input type="text" id="coach-search-input" placeholder="🔍 Search student..." value="${escapeHtml(this.searchQuery)}" style="background: #1e293b; color: white; border: 1px solid #475569; padding: 0.5rem 1rem; border-radius: 8px; outline: none; width: 200px;" />
             </div>
           </div>

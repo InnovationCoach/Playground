@@ -26,6 +26,12 @@ function secureRandomInt(n) {
 
 const exists = (snap) => (typeof snap?.exists === 'function' ? snap.exists() : !!snap?.exists);
 
+export function normalizeClassName(name, id) {
+  if (name === 'WPR Year 11 Climate' || id === 'class-wpr-11a') return 'WHS';
+  if (name === 'Climate Champions 7A' || id === 'class_climate_champions_7a') return 'WLS';
+  return name || id;
+}
+
 /** The coach's classes, in claim order. A class that cannot be read is reported, not dropped. */
 export async function loadClasses(classIds) {
   return Promise.all((classIds || []).map(async (id) => {
@@ -34,7 +40,7 @@ export async function loadClasses(classIds) {
       if (!exists(snap)) return { id, missing: true };
       const d = snap.data() || {};
       return {
-        id, name: d.name || id, joinCode: d.joinCode || null, programId: d.programId || null,
+        id, name: normalizeClassName(d.name, id), joinCode: d.joinCode || null, programId: d.programId || null,
         programMedia: Array.isArray(d.programMedia) ? d.programMedia : [],
         programCovers: d.programCovers && typeof d.programCovers === 'object' ? d.programCovers : {}
       };
