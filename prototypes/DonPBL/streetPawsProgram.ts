@@ -605,21 +605,87 @@ export const STREETPAWS_GAMIFICATION_BADGES: StreetPawsBadge[] = [
 export const STREETPAWS_PROGRAM: PblProgram = {
   id: 'streetpaws-animal-rescue-2026',
   title: 'StreetPaws — The Community Animal Rescue App',
-  version: '2026.1-Provisional',
+  subtitle:
+    'Complete 12-Week (120-Hour) Design Thinking ESL PBL Curriculum: Design, prototype, test, and pitch a 4-pillar community street animal rescue mobile app and physical QR feeding station.',
   status: 'provisional_prototype',
+  theme: 'Mobile UX/UI Design, Community Animal Welfare, Social Entrepreneurship & Physical QR Touchpoints',
+  drivingQuestion:
+    'How can we design an easy-to-use mobile app that connects our community to feed, heal, and adopt street animals safely?',
+  realProblem: {
+    type: 'both',
+    summary:
+      'Street dogs and cats in our neighborhoods face daily hunger, dirty water, traffic hazards, and untreated illness while caring community members lack an easy, trusted way to coordinate feeding, donate pet food, crowdfund emergency vet care, or adopt friendly animals.',
+    peopleImpact:
+      'Empowers ESL and secondary learners to interview real community helpers, design 3-click mobile UX flows, manage transparent Thai Baht (THB) micro-donation budgets, and build physical QR feeding stations.',
+    environmentalImpact:
+      'Reduces spoiled street food waste via live Red-to-Green volunteer feeding pins and improves urban animal health through coordinated vaccination, sterilization, and safe adoption.'
+  },
+  targetAgeRange: 'Ages 11–17 (L-SEC Lower Secondary & U-SEC Upper Secondary Differentiation; ESL-Friendly)',
   durationWeeks: 12,
   totalSessions: 24,
-  theme: 'Mobile UX/UI Design, Community Animal Welfare, Social Entrepreneurship & Physical QR Touchpoints',
-  ages: 'Ages 11–17 (L-SEC Lower Secondary & U-SEC Upper Secondary Differentiation)',
-  hardwareSummary:
-    'Canva Mobile Prototype / Figma / Glide Apps / Thunkable, Paper Phone Wireframe Templates, and Rain-Proof PVC / Cardboard / 3D-Printed Community QR Feeding Station',
-  masterDrivingQuestion:
-    'How can we design an easy-to-use mobile app that connects our community to feed, heal, and adopt street animals safely?',
+  materialsAndKit: {
+    microcontrollers: [
+      'Optional U-SEC Week 9 Smart Feeder Extension: BBC micro:bit V2 or simple LED / weight indicator sensor showing when the physical food box is empty'
+    ],
+    sensorsAndActuators: [
+      'Smartphones or tablets for scanning physical QR codes and testing clickable mobile prototypes',
+      'Printed weather-proof QR Code stickers linking the physical feeding station to the digital StreetPaws app'
+    ],
+    fabricationMaterials: [
+      'Paper Phone Wireframe Templates, sticky notes, markers, and poster boards for Week 4 Sitemaps & Week 5 Paper Phone Tests',
+      'Rain-proof PVC pipes, plastic bins, cardboard, or 3D-printed parts for the Week 9 Physical Community Feeding & QR Station'
+    ],
+    softwareAndTools: [
+      'Digital App Builders: Canva Mobile Prototype, Figma, Glide Apps (connected to Google Sheets), or Thunkable',
+      'Kanban / Trello Task Board, FigJam / Miro / Lucidchart for U-SEC digital logic flowcharts',
+      'Thai Baht (THB) Community Impact & Startup Budget Spreadsheet (600 THB/15kg bag, 500 THB vet check, 15 THB bowl button)'
+    ]
+  },
+  teacherGuidance: {
+    safetyProtocol: [
+      'Neighbourhood Observation Walk Safety (Week 1): Learners observe street animals only from a safe supervised distance (never touch or approach unfamiliar stray animals) or use Google Street View mapping.',
+      'Physical Station Hygiene & Weather-Proofing (Week 9): Use clean, food-safe containers or PVC pipes placed in approved school/condo lobby locations.',
+      'Under-13 Safeguarding & Consent Rule: Under-13 learners use written notes, screenshots, and tap-to-choose reflection cards (never under-13 voice/video recording or speech-to-text). Any audio/video capture of older learners requires prior school consent and is never stored on the platform.'
+    ],
+    pedagogicalScaffolding: [
+      'Daily 2-Hour ESL Class Routine (Monday–Friday): 0:00–0:15 (15m) Daily Stand-Up & Word Wall (3 new English words + 3 stand-up questions), 0:15–0:35 (20m) Coach Mini-Lesson, 0:35–1:40 (65m) Studio Build Time, 1:40–2:00 (20m) Show & Reflect (upload photo/screenshot + 2–3 reflection sentences).',
+      '3-Click UX Rule (Week 3 & Speaker 3): Challenge teams to ensure any user can donate a 15 THB bowl, log a feeding pin, or report a sick animal in 3 clicks or less.',
+      'Paper Phone Test Before Digital Building (Week 5): Partner teams must "tap" paper wireframes first to catch confusing buttons before opening Canva, Figma, or Glide in Week 7.'
+    ],
+    aiEthicsRules: [
+      'Real Community Data First: Survey data (Week 2) and usability test logs (Week 10) must come from real people; AI may assist with ESL vocabulary polishing or layout brainstorming.',
+      'Document AI Provenance: Log what prompt was asked, what suggestion AI gave, and what the team kept or revised.'
+    ],
+    differentiationNotes: [
+      'L-SEC (Lower Secondary) Track: Illustrated 1-zone hazard map, fill-in-the-blank interview scripts, 3 illustrated Persona Cards, poster flowchart (8–10 screens), 6 paper wireframes, 1-month Income & Expense Table (10 animals), clickable Canva/Slides app, and rehearsed 4-speaker pitch with cue cards.',
+      'U-SEC (Upper Secondary) Track: 1-page cited Inquiry Report comparing 3 charities, in-depth vet/rescue interviews, full User Journey Map, digital logic flowchart (FigJam/Miro) with verification steps, UI Style Guide + 8–10 annotated wireframes, Business Model Canvas & Startup Budget Spreadsheet (10% partner discount), functional Glide/Figma app with Adoption Screening Questionnaire & Vet Receipt tracker, 3D-printed/sensor QR feeder, timed usability metrics, and unscripted judge Q&A.'
+    ]
+  },
+  measurableImpactCriteria: [
+    {
+      id: 'metric-streetpaws-three-click-ux',
+      metric: '3-Click User Experience & 4-Pillar App Completeness',
+      target: 'All 4 core features (Food Donation Hub, Volunteer Feeding Map, SOS Vet Care, Adoption Matchmaker) connected and operable in <= 3 clicks per core task',
+      verificationMethod: 'Week 5 Paper Phone Test, Week 8 4-Feature Checkpoint, and Week 10 5-User Usability Test'
+    },
+    {
+      id: 'metric-streetpaws-thb-sustainability',
+      metric: 'Transparent Thai Baht (THB) Community Impact Budget',
+      target: '100% transparent monthly THB food & vet budget (600 THB/15kg bag = 12 THB/dog/day, 500 THB vaccine, 15 THB micro-donation bowl) balanced by community donations & partner shops',
+      verificationMethod: 'Week 6 App Budget Table / Business Model Canvas & Community Partner List review'
+    },
+    {
+      id: 'metric-streetpaws-mtc-showcase',
+      metric: '6 WeLearn MTC Portfolio Artifacts & Physical QR Station Launch',
+      target: 'Working physical QR feeding/donation station + >= 3 Version 2.0 "Before & After" fixes + 8-Slide / 4-Speaker 10-Minute Live Pitch + all 6 MTC Foundational Credit artifacts curated',
+      verificationMethod: 'Week 12 Grand Showcase & 4-Tier WeLearn MTC Competency Assessment Rubric'
+    }
+  ],
   assumptions: [
     {
       id: 'asmp-streetpaws-schedule',
-      category: 'Schedule',
-      statement:
+      domain: '12-Week / 120-Hour ESL Studio Schedule',
+      assumption:
         '12-week term running 2 hours per weekday (Monday–Friday = 10 hours/week, 120 hours total) following the 4-part Daily 2-Hour ESL Class Routine (15m Daily Stand-Up & Word Wall, 20m Coach Mini-Lesson, 65m Studio Build Time, 20m Show & Reflect).',
       ownerVerificationNeeded:
         'Confirm neighbourhood observation walk boundaries (or Google Street View alternative) and local rescue / shelter partner contacts for Week 1 and Week 12.',
@@ -629,8 +695,8 @@ export const STREETPAWS_PROGRAM: PblProgram = {
     },
     {
       id: 'asmp-streetpaws-safeguarding',
-      category: 'Safeguarding & Ethics',
-      statement:
+      domain: 'Safeguarding, Field Observation & Under-13 Privacy',
+      assumption:
         'Learners never touch or approach unfamiliar street animals during Week 1 neighbourhood observation walks (safe distance or Google Street View only). Under-13 learners use written notes, screenshots, and tap-to-choose reflection cards (never under-13 voice/video recording or speech-to-text).',
       ownerVerificationNeeded:
         'Confirm school field-walk supervision protocol and local shelter drop-off coordination for the Week 12 mini pet-food donation drive.',
@@ -643,29 +709,34 @@ export const STREETPAWS_PROGRAM: PblProgram = {
     {
       id: 'explore',
       title: '1. Explore — Week 1: Life on the Streets (Understanding the Problem)',
+      strap: 'PHASE 1: EMPATHIZE (Week 1) • Rescue Stories, Neighbourhood Observation & Street Animal Hazard Map',
       weeks: [1, 1],
-      summary:
-        'PHASE 1: EMPATHIZE (Week 1). Investigate the daily dangers street dogs and cats face in our neighborhoods (malnutrition, traffic, sickness, heat) and map who is currently trying to help them.',
-      deliverables: [
-        '"Day in the Life of a Street Dog" Storyboard (Mon–Tue)',
-        'Neighbourhood Observation Walk / Google Street View Problem Log (Wed–Thu)',
-        '1-Page Visual "Street Animal Hazard Map" (L-SEC) or 1-Page City Stray Statistics & Rescue Charity Inquiry Report (U-SEC) (Fri)'
-      ],
-      competencies: ['ctps-01', 'ctps-09'],
-      stretchCompetencies: ['ctps-02'],
+      goal:
+        'Investigate the daily dangers street dogs and cats face in our neighborhoods (malnutrition, traffic, sickness, heat) and map who is currently trying to help them.',
       tasks: [
         'Learn Week 1 ESL Vocabulary (Stray, shelter, malnutrition, territory, vaccination, volunteer, compassion) during Daily Stand-Up.',
         'Watch short videos about street dogs/cats (Soi Dog Foundation / local Bangkok rescues) and sketch a "Day in the Life of a Street Dog" storyboard.',
         'Conduct a safe neighbourhood observation walk (or Google Street View mapping) to log where street animals gather, find water/food, and face dangers.',
         'Present a 1-page visual "Street Animal Hazard Map" (L-SEC) or 1-page cited Inquiry Report comparing 3 rescue charities (U-SEC).'
       ],
+      evidence: [
+        '"Day in the Life of a Street Dog" Storyboard (Mon–Tue)',
+        'Neighbourhood Observation Walk / Google Street View Problem Log (Wed–Thu)',
+        '1-Page Visual "Street Animal Hazard Map" (L-SEC) or 1-Page City Stray Statistics & Rescue Charity Inquiry Report (U-SEC) (Fri)'
+      ],
+      aiPromptStarters: [
+        'Help our team practice our 7 Week 1 ESL vocabulary words (Stray, shelter, malnutrition, territory, vaccination, volunteer, compassion) in simple sentences about street dogs in Bangkok.',
+        'We observed 6 street dogs behind the local market with dirty water and 1 dog with a skin infection. How can we organize this into a clear 1-page Street Animal Hazard Map?'
+      ],
+      competencies: ['ctps-01', 'ctps-09'],
+      stretchCompetencies: ['ctps-02'],
       sessions: [
         {
           sessionNumber: 1,
           week: 1,
           title: 'Week 1 (Mon–Tue): Rescue Stories & "Day in the Life of a Street Dog" Storyboard',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Understand the daily challenges faced by street dogs and cats and illustrate their lived experience using key ESL vocabulary.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Learn Stray, shelter, malnutrition, territory, vaccination, volunteer, compassion.',
@@ -673,19 +744,27 @@ export const STREETPAWS_PROGRAM: PblProgram = {
             '0:35–1:40 Studio Build Time: Create a 6-panel "Day in the Life of a Street Dog" storyboard showing where animals sleep, search for food/water, and encounter hazards.',
             '1:40–2:00 Show & Reflect: Upload storyboard photo to portfolio and write 2–3 reflection sentences.'
           ],
-          deliverable: '"Day in the Life of a Street Dog" Storyboard',
+          learnerChoices: {
+            question: 'Which street animal perspective will your team illustrate in your Week 1 Storyboard?',
+            options: [
+              { id: 'market-pack', label: 'Local Market Street Dogs', description: 'Focus on food safety, plastic in scraps, and busy road crossings.' },
+              { id: 'soi-colony', label: 'BTS / Soi Cat Colony', description: 'Focus on territory, hidden shelter spots, and clean water access.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload your "Day in the Life of a Street Dog" storyboard with 2–3 sentences describing the main dangers street animals face.',
             targetCompetencies: ['ctps-01', 'ctps-09']
-          }
+          },
+          reflectionPrompt: 'Which daily danger was most surprising when you mapped a day in the life of a street animal?',
+          teacherTips: 'Pre-teach the 7 ESL Word Wall terms with visual flashcards before playing the Soi Dog Foundation video.'
         },
         {
           sessionNumber: 2,
           week: 1,
           title: 'Week 1 (Wed–Fri): Safe Neighbourhood Mapping & Street Animal Hazard Map Checkpoint',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Collect real-world observation data on neighbourhood street animal zones, hazards, and existing informal helpers.',
           activities: [
             'Wed–Thu: Conduct a safe neighbourhood observation walk (from a safe distance) or Google Street View audit to log animal gathering points, water/food sources, and hazards (traffic, sickness, heat).',
@@ -694,41 +773,54 @@ export const STREETPAWS_PROGRAM: PblProgram = {
             'U-SEC Track: Research city-wide stray animal statistics, compare 3 existing rescue charities, and write a 1-page Inquiry Report with cited sources.',
             'Fri Weekly Checkpoint: Present the 1-page visual "Street Animal Hazard Map" to the class.'
           ],
-          deliverable: '1-Page Visual Street Animal Hazard Map & Problem Log',
+          learnerChoices: {
+            question: 'How will your team conduct your Week 1 neighbourhood hazard mapping?',
+            options: [
+              { id: 'walk-map', label: 'Supervised Neighbourhood Walk', description: 'Observe from a safe distance and mark hazards on a printed neighbourhood map.' },
+              { id: 'street-view', label: 'Google Street View & Charity Audit', description: 'Map street corners digitally and compare local rescue statistics.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'data',
             prompt: 'Log your Street Animal Hazard Map and neighbourhood Problem Log (or U-SEC 1-page Inquiry Report).',
             targetCompetencies: ['ctps-01', 'ctps-09']
-          }
+          },
+          reflectionPrompt: 'What real facts did your team discover about where street animals find food and water in our neighborhood?',
+          teacherTips: 'Remind students never to approach or touch stray animals; keep all observation at a safe distance.'
         }
       ]
     },
     {
       id: 'empathise',
       title: '2. Empathise — Week 2: Talking to Helpers (User Interviews & Empathy)',
+      strap: 'PHASE 1: EMPATHIZE (Week 2) • 5 Interview Questions, 10+ Community Surveys & 2 Empathy Maps',
       weeks: [2, 2],
-      summary:
-        'PHASE 1: EMPATHIZE (Week 2). Interview pet owners, animal lovers, local feeders, and rescue volunteers to discover why it is hard for regular people to donate food, volunteer, or adopt right now.',
-      deliverables: [
-        '5-Question ESL Helper Interview Script (Mon–Tue)',
-        'Community Survey Data Charts from >= 10 Respondents (Wed–Thu)',
-        '2 Empathy Maps: "Busy Donor" & "Street Animal Feeder" (Fri)'
-      ],
-      competencies: ['ctps-01', 'ec-05'],
-      stretchCompetencies: ['ctps-03'],
+      goal:
+        'Interview pet owners, animal lovers, local feeders, and rescue volunteers to discover why it is hard for regular people to donate food, volunteer, or adopt right now.',
       tasks: [
         'Master Week 2 ESL Vocabulary: Interview, survey, donor, barrier, trust, veterinarian, foster.',
         'Write 5 simple interview questions in English for pet owners, animal lovers, or local feeders.',
         'Survey at least 10 people (school staff, parents, classmates) and summarize their answers using bar/pie charts.',
         'Build 2 Empathy Maps (1 for a "Busy Donor" and 1 for a "Street Animal Feeder") for the Friday Weekly Checkpoint.'
       ],
+      evidence: [
+        '5-Question ESL Helper Interview Script (Mon–Tue)',
+        'Community Survey Data Charts from >= 10 Respondents (Wed–Thu)',
+        '2 Empathy Maps: "Busy Donor" & "Street Animal Feeder" (Fri)'
+      ],
+      aiPromptStarters: [
+        'Check our 5 English interview questions for pet owners and street animal feeders so they are polite, clear, and easy to answer.',
+        'We surveyed 12 people and 10 said they want to donate dog food but do not know where to drop it off or if online money is trusted. How can we summarize this on our Empathy Map?'
+      ],
+      competencies: ['ctps-01', 'ec-05'],
+      stretchCompetencies: ['ctps-03'],
       sessions: [
         {
           sessionNumber: 3,
           week: 2,
           title: 'Week 2 (Mon–Tue): Designing the 5-Question Helper Interview & Survey',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Formulate empathetic, bias-free interview questions to uncover trust and logistical barriers to helping street animals.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Practice Interview, survey, donor, barrier, trust, veterinarian, foster.',
@@ -736,79 +828,108 @@ export const STREETPAWS_PROGRAM: PblProgram = {
             '0:35–1:40 Studio Build Time: Write 5 simple interview questions in English (L-SEC fill-in-the-blank interview script; U-SEC in-depth vet/rescue volunteer interview protocol).',
             '1:40–2:00 Show & Reflect: Practice interviewing a classmate and log your 5 questions.'
           ],
-          deliverable: '5-Question Helper Interview Script',
+          learnerChoices: {
+            question: 'Which community helper group will your team focus your interview questions on?',
+            options: [
+              { id: 'busy-donors', label: 'Busy Pet Owners & Donors', description: 'Explore why people hesitate to donate money or food bags.' },
+              { id: 'daily-feeders', label: 'Local Street Feeders & Vets', description: 'Explore how daily feeders coordinate schedules and vet bills.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'note',
             prompt: 'Save your 5 interview questions for pet owners, donors, and local street animal feeders.',
             targetCompetencies: ['ctps-01', 'ec-05']
-          }
+          },
+          reflectionPrompt: 'How did practicing your 5 interview questions with a classmate help you make them clearer?',
+          teacherTips: 'Provide the fill-in-the-blank ESL question stems for L-SEC learners so they can interview school staff with confidence.'
         },
         {
           sessionNumber: 4,
           week: 2,
           title: 'Week 2 (Wed–Fri): Surveying 10+ Community Members & Building 2 Empathy Maps',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Synthesize survey responses from at least 10 people into visual charts and 2 stakeholder Empathy Maps.',
           activities: [
             'Wed–Thu: Survey at least 10 people (school staff, parents, classmates) and capture direct quotes (e.g., "I want to donate dog food, but I don\'t know where to drop it off. I am afraid if I give money online, it won\'t go to the animals.").',
             'Summarize survey answers using bar charts (L-SEC) or a data interpretation summary identifying key user barriers (U-SEC).',
             'Fri Weekly Checkpoint: Build and present 2 Empathy Maps — 1 for a "Busy Donor" and 1 for a "Street Animal Feeder".'
           ],
-          deliverable: '10-Person Survey Charts & 2 Empathy Maps (Busy Donor & Street Animal Feeder)',
+          learnerChoices: {
+            question: 'How will your team visualize your 10+ community survey responses?',
+            options: [
+              { id: 'bar-chart', label: 'Color Bar Chart & Quote Cards (L-SEC)', description: 'Show top barriers to donating and volunteering with clear bar heights.' },
+              { id: 'barrier-matrix', label: 'Barrier Data Summary & Vet Transcript (U-SEC)', description: 'Cross-tabulate trust, convenience, and cost barriers from survey & vet interviews.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'feedback',
             prompt: 'Upload your 10+ survey chart summary, key interview quote, and 2 Empathy Maps.',
             targetCompetencies: ['ctps-01', 'ec-05', 'ctps-03']
-          }
+          },
+          reflectionPrompt: 'What was the #1 reason people in our community gave for not donating or adopting right now?',
+          teacherTips: 'Highlight how "trust" and "not knowing where to drop off food" directly inspire the 4 StreetPaws app pillars.'
         }
       ]
     },
     {
       id: 'define',
       title: '3. Define — Weeks 3–4: User Personas, Problem Statements & 4 App Pillars',
+      strap: 'PHASE 2: DEFINE (Weeks 3–4) • 4 Team Roles, 3 Personas (Auntie Mali), 3-Click Rule & App Sitemap',
       weeks: [3, 4],
-      summary:
-        'PHASE 2: DEFINE (Weeks 3–4). Form 3–4 student teams, assign the 4 StreetPaws roles, create 3 User Personas and ESL Problem Statements, and map the 4 App Pillars into a complete App Flowchart (Sitemap) following the 3-Click Rule.',
-      deliverables: [
-        'Signed Team Charter & Kanban / Trello Task Board with 4 Assigned Roles (Week 3)',
-        '3 User Persona Cards (The Food Donor, The Volunteer Feeder e.g. Auntie Mali, The Adopter) & ESL Problem Statement (Week 3)',
-        '4-Pillar App Flowchart / Sitemap with Red-to-Green Pin Logic & Safety Verification Rules (Week 4)'
-      ],
-      competencies: ['lc-01', 'lc-05', 'ct-02', 'ctps-06'],
-      stretchCompetencies: ['ct-04'],
+      goal:
+        'Form 3–4 student teams, assign the 4 StreetPaws roles, create 3 User Personas and ESL Problem Statements, and map the 4 App Pillars into a complete App Flowchart (Sitemap) following the 3-Click Rule.',
       tasks: [
         'Form teams of 3–4 learners, assign roles (UI/Visual Designer, Map & Data Lead, Operations/Finance Lead, Communications/Pitch Lead), and sign the Team Contract.',
         'Create 3 User Personas (The Food Donor, The Volunteer Feeder like Auntie Mali Age 45, The Adopter) and write a Problem Statement using: "[User Name] needs a way to [Action] because [Reason], so our app will [Solution]."',
         'Brainstorm how the 4 App Pillars (Food Donation, Feeding Map, Vet Care, Adoption) work safely in real life and stop fake SOS reports.',
         'Draw the App Flowchart (Sitemap) showing how any core user goal completes in 3 clicks or less and run the Friday Wall Walk critique.'
       ],
+      evidence: [
+        'Signed Team Charter & Kanban / Trello Task Board with 4 Assigned Roles (Week 3)',
+        '3 User Persona Cards (The Food Donor, The Volunteer Feeder e.g. Auntie Mali, The Adopter) & ESL Problem Statement (Week 3)',
+        '4-Pillar App Flowchart / Sitemap with Red-to-Green Pin Logic & Safety Verification Rules (Week 4)'
+      ],
+      aiPromptStarters: [
+        'Help us check our ESL Problem Statement for Auntie Mali (Age 45) using the frame: "[User Name] needs a way to [Action] because [Reason], so our app will [Solution]."',
+        'How can our app verify that a Medical SOS report is real before sending a vet alert, while keeping the user flow to 3 clicks or less?'
+      ],
+      competencies: ['lc-01', 'lc-05', 'ct-02', 'ctps-06'],
+      stretchCompetencies: ['ct-04'],
       sessions: [
         {
           sessionNumber: 5,
           week: 3,
           title: 'Week 3 (Mon–Tue): Team Roles, Team Contract & Kanban / Trello Board Setup',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Organize a 3–4 member app studio team with clear role accountability and a visible weekly Kanban task board.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Persona, profile, frustration, goal, feature, priority, teamwork.',
             'Assign the 4 team roles: 1. UI/Visual Designer, 2. Map & Data Lead, 3. Operations/Finance Lead, 4. Communications/Pitch Lead.',
             'Sign the Team Charter / Contract and set up the team Trello or classroom Kanban board.'
           ],
-          deliverable: 'Signed Team Charter & Kanban / Trello Task Board',
+          learnerChoices: {
+            question: 'Which of the 4 StreetPaws studio roles matches your personal strengths best?',
+            options: [
+              { id: 'ui-map', label: 'UI/Visual Designer or Map & Data Lead', description: 'Lead screen layouts, icons, and neighbourhood feeding pin data.' },
+              { id: 'ops-pitch', label: 'Operations/Finance Lead or Communications/Pitch Lead', description: 'Lead THB food/vet budgets, partner shops, and storytelling.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'note',
             prompt: 'Record your team members, assigned 4 roles, and Kanban board setup.',
             targetCompetencies: ['lc-01', 'lc-05']
-          }
+          },
+          reflectionPrompt: 'How does dividing our work into 4 clear roles help our team finish weekly checkpoints on time?',
+          teacherTips: 'Have teams review their Kanban board during the first 15 minutes of every Daily Stand-Up.'
         },
         {
           sessionNumber: 6,
           week: 3,
           title: 'Week 3 (Wed–Fri): 3 User Personas (Auntie Mali) & ESL Problem Statement Checkpoint',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Define 3 concrete target user personas and synthesize an actionable problem statement requiring 3 clicks or less.',
           activities: [
             'Wed–Thu: Create 3 User Personas: (1) The Food Donor, (2) The Volunteer Feeder (e.g., Auntie Mali, Age 45, who feeds 10 cats near the BTS station every Tuesday), and (3) The Adopter.',
@@ -817,37 +938,53 @@ export const STREETPAWS_PROGRAM: PblProgram = {
             'U-SEC Track: Build a full User Journey Map showing step-by-step how a user discovers, uses, and trusts the app.',
             'Fri Weekly Checkpoint: Present Team Charter, Kanban board, and 3 User Persona cards.'
           ],
-          deliverable: '3 User Persona Cards & ESL Problem Statement',
+          learnerChoices: {
+            question: 'Which persona format will your team build for the Week 3 Friday Checkpoint?',
+            options: [
+              { id: 'persona-cards', label: '3 Illustrated Persona Cards (L-SEC)', description: 'Use ESL sentence frames for The Food Donor, Volunteer Feeder, and Adopter.' },
+              { id: 'journey-map', label: '3 Personas + Full User Journey Map (U-SEC)', description: 'Map discovery, 3-click usage, and long-term trust steps.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'note',
             prompt: 'Submit your 3 User Personas and completed "[User Name] needs a way to..." Problem Statement.',
             targetCompetencies: ['lc-01', 'lc-05', 'ctps-09']
-          }
+          },
+          reflectionPrompt: 'Why is the "3 clicks or less" rule so important for busy users like Auntie Mali?',
+          teacherTips: 'Display the Auntie Mali example card on the projector so ESL learners see a concrete model.'
         },
         {
           sessionNumber: 7,
           week: 4,
           title: 'Week 4 (Mon–Tue): Real-World Rules for the 4 App Pillars & Safety Verification',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Design the real-world operational rules connecting Food Donation, Volunteer Feeding Map, SOS Vet Care, and Adoption safely.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Flowchart, menu, navigation, drop-off point, verify, emergency, adoption form.',
             'Brainstorm how each of the 4 pillars works in real life: Where does donated food go? How do we verify volunteers? How do we stop fake SOS reports?'
           ],
-          deliverable: '4 App Pillars Operational & Safety Rules',
+          learnerChoices: {
+            question: 'How will your app verify that a feeding log or SOS vet report is genuine?',
+            options: [
+              { id: 'photo-pin', label: 'Photo Proof + GPS Pin Check', description: 'Require a live photo of the food bowl or injured animal to turn a pin green or alert a vet.' },
+              { id: 'clinic-partner', label: 'Partner Shop & Vet Clinic Approval', description: 'Route donations and SOS funds directly to verified partner pet shops and vet clinics.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'note',
             prompt: 'Document how your team verifies real feeding/SOS reports and manages donated food safely.',
             targetCompetencies: ['ct-02', 'ctps-06']
-          }
+          },
+          reflectionPrompt: 'What could go wrong if our app did not verify SOS reports or feeding pins, and how did we prevent it?',
+          teacherTips: 'Prompt students to trace both the digital click and the physical food bag or vet bill.'
         },
         {
           sessionNumber: 8,
           week: 4,
           title: 'Week 4 (Wed–Fri): App Flowchart (Sitemap) & Sticky-Note Wall Walk Checkpoint',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Map the complete screen-to-screen navigation logic (including Red-to-Green Feeding Map pins) and refine via peer critique.',
           activities: [
             'Wed–Thu: Draw the App Flowchart (Sitemap) showing what happens when a user clicks each button on the Home Screen (e.g., Open App -> Click "Feed Map" -> See Red Pin -> Click "I Will Feed Them" -> Upload Photo of Food Bowl -> Pin Turns Green!).',
@@ -855,97 +992,134 @@ export const STREETPAWS_PROGRAM: PblProgram = {
             'U-SEC Track: Create a digital logic flowchart (FigJam, Miro, or Lucidchart) including safety rules, user verification, and vet clinic approval steps.',
             'Fri Weekly Checkpoint: Wall walk of Team App Flowcharts with sticky-note feedback from classmates.'
           ],
-          deliverable: 'Color-Coded Poster or Digital Logic App Flowchart (Sitemap)',
+          learnerChoices: {
+            question: 'Which tool will your team use to create your Week 4 App Flowchart (Sitemap)?',
+            options: [
+              { id: 'poster-flowchart', label: 'Color-Coded Poster Flowchart (L-SEC)', description: 'Map 8–10 main screens with arrows and color-coded pillars.' },
+              { id: 'digital-flowchart', label: 'FigJam / Miro / Lucidchart Logic Map (U-SEC)', description: 'Include verification branches, safety rules, and vet clinic approval nodes.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload your App Flowchart (Sitemap) and summarize the sticky-note feedback from the Wall Walk.',
             targetCompetencies: ['ct-02', 'ctps-06']
-          }
+          },
+          reflectionPrompt: 'Which sticky-note suggestion from the Friday Wall Walk helped simplify your app navigation?',
+          teacherTips: 'Have classmates count the arrows on each team flowchart to verify every core action takes 3 clicks or less.'
         }
       ]
     },
     {
       id: 'ideate',
       title: '4. Ideate — Weeks 5–6: App Branding, 6 Paper Wireframes & THB Sustainability Budget',
+      strap: 'PHASE 3: IDEATE (Weeks 5–6) • Brand Logo/Slogan, 6 Paper Phone Wireframes & 600 THB Bag / 15 THB Bowl Math',
       weeks: [5, 6],
-      summary:
-        'PHASE 3: IDEATE (Weeks 5–6). Design the StreetPaws brand identity, sketch 6 low-fidelity paper phone wireframes for the "Paper Phone Test", and build a transparent Thai Baht (THB) Community Impact & Budget Plan.',
-      deliverables: [
-        'App Name, Logo, Color Palette & 1-Sentence Slogan ("StreetPaws: Tap to Feed, Tap to Save") (Week 5)',
-        '6 Low-Fidelity Paper Wireframes + Partner "Paper Phone Test" Notes (Week 5)',
-        'Thai Baht (THB) App Budget Table, "15 THB Bowl" Micro-Donation Model & Community Partner List / Business Model Canvas (Week 6)'
-      ],
-      competencies: ['ct-02', 'ec-03', 'ent-01', 'ent-04'],
-      stretchCompetencies: ['ent-03', 'ent-05'],
+      goal:
+        'Design the StreetPaws brand identity, sketch 6 low-fidelity paper phone wireframes for the "Paper Phone Test", and build a transparent Thai Baht (THB) Community Impact & Budget Plan.',
       tasks: [
         'Design the App Name, Logo, Color Palette, and 1-sentence Slogan ("StreetPaws: Tap to Feed, Tap to Save").',
         'Sketch 6 Low-Fidelity Paper Wireframes (1. Home Screen, 2. Food Donation Store, 3. Live Feeding Map, 4. Vet SOS Report, 5. Adoption Tinder/Gallery, 6. Volunteer Profile) and run the "Paper Phone Test".',
         'Calculate real costs in Thai Baht (15kg Dog Food Bag = 600 THB = 12 THB/dog/day; Basic Vet Check + Vaccine = 500 THB; "Buy 1 Bowl of Food for 15 THB").',
         'Present the App Budget Table and Community Partner List (L-SEC Income & Expense Table; U-SEC Business Model Canvas & Startup Budget Spreadsheet with 10% pet store partner discount).'
       ],
+      evidence: [
+        'App Name, Logo, Color Palette & 1-Sentence Slogan ("StreetPaws: Tap to Feed, Tap to Save") (Week 5)',
+        '6 Low-Fidelity Paper Wireframes + Partner "Paper Phone Test" Notes (Week 5)',
+        'Thai Baht (THB) App Budget Table, "15 THB Bowl" Micro-Donation Model & Community Partner List / Business Model Canvas (Week 6)'
+      ],
+      aiPromptStarters: [
+        'We are sketching our SOS Medical Screen wireframe. How can we arrange the Big Red Camera Button, Auto GPS Pin, and 3 injury icons (Broken Leg, Skin Problem, Hit by Car) so anyone can use it without reading much text?',
+        'Check our Week 6 Thai Baht budget math: 15kg Dog Food Bag = 600 THB (feeds 10 dogs for 5 days = 12 THB/dog/day). How many 15 THB micro-donation bowls do we need per month to feed 10 dogs?'
+      ],
+      competencies: ['ct-02', 'ec-03', 'ent-01', 'ent-04'],
+      stretchCompetencies: ['ent-03', 'ent-05'],
       sessions: [
         {
           sessionNumber: 9,
           week: 5,
           title: 'Week 5 (Mon–Tue): App Branding, Logo, Color Palette & 1-Sentence Slogan',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Create an accessible, trustworthy visual brand identity and slogan for the community animal rescue app.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Wireframe, icon, button, layout, logo, slogan, color palette, user-friendly.',
             'Design the App Name, Logo, Color Palette, and 1-sentence Slogan (e.g., "StreetPaws: Tap to Feed, Tap to Save").',
             'U-SEC Extension: Define a complete UI Style Guide (typography, color contrast rules, and accessible icon set).'
           ],
-          deliverable: 'App Brand Identity & UI Style Guide',
+          learnerChoices: {
+            question: 'What visual tone will your team choose for your app brand and color palette?',
+            options: [
+              { id: 'warm-rescue', label: 'Warm Amber & Teal Care Palette', description: 'Friendly, high-contrast buttons with playful dog/cat icons.' },
+              { id: 'emergency-trust', label: 'Clean Medical & Civic Trust Palette', description: 'High-visibility SOS red accents with verified green map badges.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload your App Name, Logo, Color Palette, and 1-sentence Slogan.',
             targetCompetencies: ['ct-02', 'ec-03']
-          }
+          },
+          reflectionPrompt: 'How does your logo and 1-sentence slogan help new users immediately trust your app?',
+          teacherTips: 'Emphasize big icons and short English labels so even users who do not read much text can navigate.'
         },
         {
           sessionNumber: 10,
           week: 5,
           title: 'Week 5 (Wed–Fri): Sketching 6 Core Paper Wireframes & "Paper Phone Test" Checkpoint',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Sketch icon-driven paper phone wireframes for all 6 core screens and validate button clarity with a partner team.',
           activities: [
             'Wed–Thu: Sketch Low-Fidelity Paper Wireframes on paper phone templates for 6 core screens: 1. Home Screen, 2. Food Donation Store, 3. Live Feeding Map, 4. Vet SOS Report (Big red camera button + Auto GPS Pin + Broken Leg / Skin Problem / Hit by Car icons + "Send to Nearest Vet"), 5. Adoption Tinder/Gallery, 6. Volunteer Profile.',
             'Fri Weekly Checkpoint: Run the "Paper Phone Test"—partner with another team and ask them to "tap" the paper drawings to see if every button makes sense without explanation.'
           ],
-          deliverable: '6 Low-Fidelity Paper Wireframes & Paper Phone Test Log',
+          learnerChoices: {
+            question: 'Which wireframe level will your team complete for Week 5?',
+            options: [
+              { id: 'six-paper-screens', label: '6 Clean Paper Phone Screens (L-SEC)', description: 'Focus on clear icons, big buttons, and short English labels.' },
+              { id: 'annotated-style-guide', label: 'UI Style Guide + 8–10 Annotated Wireframes (U-SEC)', description: 'Include typography, contrast rules, and interaction annotations.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload photos of your 6 paper wireframes and note what buttons your partner team tapped during the Paper Phone Test.',
             targetCompetencies: ['ct-02', 'ec-03']
-          }
+          },
+          reflectionPrompt: 'Which paper button confused your partner team during the Paper Phone Test, and how did you redraw it?',
+          teacherTips: 'Enforce silent observation during the Paper Phone Test so designers see if their icons speak for themselves.'
         },
         {
           sessionNumber: 11,
           week: 6,
           title: 'Week 6 (Mon–Tue): Real-World Thai Baht (THB) Food & Vet Cost Calculations',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Calculate accurate daily and monthly feeding and veterinary costs in Thai Baht (THB) for neighbourhood street animals.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Budget, expense, income, sponsor, partnership, receipt, transparent, sustainable.',
             'Calculate real costs in Thai Baht (THB): 15kg Dog Food Bag = 600 THB (feeds 10 dogs for 5 days = 12 THB per dog/day); Basic Vet Check + Vaccine = 500 THB.',
             'Design the "Buy 1 Bowl of Food for 15 THB" micro-donation feature so students with small pocket money can donate.'
           ],
-          deliverable: 'Thai Baht (THB) Unit Cost & 15-THB Bowl Calculation Sheet',
+          learnerChoices: {
+            question: 'Which micro-donation and sponsorship mix will fund your neighbourhood animals?',
+            options: [
+              { id: 'bowl-15thb', label: '"Buy 1 Bowl of Food for 15 THB" Micro-Donations', description: 'Allow students and neighbours to fund daily bowls with pocket money.' },
+              { id: 'shop-sponsor', label: 'Local Pet Shop 10% Discount + School Food Drive', description: 'Combine discounted bulk 15kg bags with monthly sponsor pledges.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'data',
             prompt: 'Save your Thai Baht (THB) calculations for feeding and vaccinating 10 neighborhood animals for 1 month.',
             targetCompetencies: ['ent-01', 'ent-03', 'ent-04']
-          }
+          },
+          reflectionPrompt: 'Why does breaking a 600 THB bag of dog food down into a "15 THB for 1 Bowl" button encourage more people to donate?',
+          teacherTips: 'Walk through the unit rate math together: 600 THB / (10 dogs * 5 days) = 12 THB per dog per day.'
         },
         {
           sessionNumber: 12,
           week: 6,
           title: 'Week 6 (Wed–Fri): Community Impact Budget Table, Partner List & Business Model Canvas',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Build a transparent financial sustainability model and local pet-shop/clinic partnership plan.',
           activities: [
             'Wed–Thu: Build the Community Impact & Budget Plan (pet shop sponsors, 15 THB micro-donations, school food drives).',
@@ -953,59 +1127,80 @@ export const STREETPAWS_PROGRAM: PblProgram = {
             'U-SEC Track: Complete a full Business Model Canvas and Startup Budget Spreadsheet showing partner commissions (e.g., local pet stores giving a 10% discount on donated food) and breakeven costs (7.1.4 & 7.1.5).',
             'Fri Weekly Checkpoint: Present the App Budget Table and Community Partner List.'
           ],
-          deliverable: 'App Budget Table, Community Partner List & Business Model Canvas',
+          learnerChoices: {
+            question: 'Which financial deliverable will your team present at the Week 6 Friday Checkpoint?',
+            options: [
+              { id: 'lsec-budget-table', label: '1-Month Income & Expense Table (L-SEC 7.1.3)', description: 'Track monthly food bags, vaccines, and 15 THB bowl donations for 10 animals.' },
+              { id: 'usec-bmc-spreadsheet', label: 'Business Model Canvas & Breakeven Spreadsheet (U-SEC 7.1.4/7.1.5)', description: 'Model 10% pet store partner discounts, commissions, and breakeven bowls.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'data',
             prompt: 'Upload your 1-month Income & Expense Table (L-SEC) or Business Model Canvas & Breakeven Spreadsheet (U-SEC).',
             targetCompetencies: ['ent-01', 'ent-04', 'ent-05']
-          }
+          },
+          reflectionPrompt: 'How does showing transparent vet receipts and food bag costs build trust with community donors?',
+          teacherTips: 'Use the interactive StreetPaws THB Budget Lab in the simulator to verify each team\'s monthly surplus/deficit.'
         }
       ]
     },
     {
       id: 'prototype',
       title: '5. Prototype — Weeks 7–9: Clickable Digital App (4 Features) & Physical QR Feeding Station',
+      strap: 'PHASE 4: PROTOTYPE (Weeks 7–9) • Clickable Canva/Figma/Glide App, Somchai Profile & Physical QR Station',
       weeks: [7, 9],
-      summary:
-        'PHASE 4: PROTOTYPE (Weeks 7–9). Build the clickable digital app in Canva, Figma, Glide, or Thunkable across all 4 core features (Food Donation, Volunteer Feeding Map, Medical SOS & Vet Crowdfunding, Adoption Matchmaker) and build a physical Weather-Proof Community Feeding / Donation Box connected via QR Code.',
-      deliverables: [
-        'Clickable Digital App Part 1: Home Screen, Food Donation Hub & Live Volunteer Feeding Map with Red/Green Pins (Week 7)',
-        'Clickable Digital App Part 2: Medical SOS Vet Bill Progress Bar & 4 Animal Adoption Profiles (e.g., Somchai) (Week 8)',
-        'Physical Smart Community Feeding / Food Drop-Off Station with Working QR Code Sticker (Week 9)'
-      ],
-      competencies: ['ct-05', 'ct-03', 'ec-02'],
-      stretchCompetencies: ['ec-04'],
+      goal:
+        'Build the clickable digital app in Canva, Figma, Glide, or Thunkable across all 4 core features (Food Donation, Volunteer Feeding Map, Medical SOS & Vet Crowdfunding, Adoption Matchmaker) and build a physical Weather-Proof Community Feeding / Donation Box connected via QR Code.',
       tasks: [
         'Week 7: Set up Canva Mobile Prototype, Figma, Glide Apps, or Thunkable and build Feature 1 (Food Donation) & Feature 2 (Volunteer Feeding Map with Pin A Soi 4 Park & Pin B Temple Gate).',
         'Week 8: Build Feature 3 (Medical SOS & Vet Bill Progress Bar: Raised 1,200 / 2,000 THB for Lucky\'s leg surgery) & Feature 4 (Adoption Matchmaker profiles e.g., Somchai on Sukhumvit Soi 50).',
         'Week 9: Build a physical Weather-Proof Feeding Station or Community Pet Food Donation Bin (cardboard, PVC pipe, plastic bin, or 3D-printed parts) with a scannable QR code sticker that opens the digital app.',
         'Test scanning the physical QR code on a phone to verify seamless real-world-to-app connection.'
       ],
+      evidence: [
+        'Clickable Digital App Part 1: Home Screen, Food Donation Hub & Live Volunteer Feeding Map with Red/Green Pins (Week 7)',
+        'Clickable Digital App Part 2: Medical SOS Vet Bill Progress Bar & 4 Animal Adoption Profiles (e.g., Somchai) (Week 8)',
+        'Physical Smart Community Feeding / Food Drop-Off Station with Working QR Code Sticker (Week 9)'
+      ],
+      aiPromptStarters: [
+        'Help us write 4 warm, engaging English adoption profiles using the Somchai ESL Writing Frame (Name, Age, Personality adjectives, Vaccinated/Sterilized status, and short rescue story).',
+        'We are building our Week 9 Physical Community Feeding & QR Station. How should we design the rain-proof PVC feeder and English sign so anyone walking by can scan the QR code in 10 seconds?'
+      ],
+      competencies: ['ct-05', 'ct-03', 'ec-02'],
+      stretchCompetencies: ['ec-04'],
       sessions: [
         {
           sessionNumber: 13,
           week: 7,
           title: 'Week 7 (Mon–Tue): Setting Up the Digital App Builder, Home Screen & Navigation Bar',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Configure the digital prototyping environment (Canva, Figma, Glide, or Thunkable) and build the Home Screen navigation bar.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Prototype, interactive, clickable, hyperlink, pin, schedule, drop-off.',
             'Set up the digital app builder and create the Home Screen with 4 clear feature buttons and bottom navigation bar.'
           ],
-          deliverable: 'Digital Home Screen & Navigation Bar',
+          learnerChoices: {
+            question: 'Which digital app builder will your team use to prototype StreetPaws?',
+            options: [
+              { id: 'canva-slides', label: 'Canva Mobile Prototype or Google Slides (L-SEC)', description: 'Link mobile screens with clickable button hyperlinks.' },
+              { id: 'glide-figma', label: 'Glide Apps (Google Sheet DB) or Interactive Figma (U-SEC)', description: 'Build working form inputs and live data-driven lists.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'code',
             prompt: 'Share a screenshot or link of your digital Home Screen and navigation bar.',
             targetCompetencies: ['ct-05']
-          }
+          },
+          reflectionPrompt: 'How did your Week 5 paper wireframes speed up building your digital Home Screen today?',
+          teacherTips: 'Ensure every screen includes a persistent "Back to Home" button so users never get trapped on a dead-end page.'
         },
         {
           sessionNumber: 14,
           week: 7,
           title: 'Week 7 (Wed–Fri): Building Feature 1 (Food Donation) & Feature 2 (Volunteer Feeding Map)',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Build interactive screens for micro-donations and live red/green neighbourhood feeding pins.',
           activities: [
             'Wed–Thu: Build Feature 1 (Food Donation Hub) and Feature 2 (Volunteer Feeding Map) with sample neighbourhood pins: 📍 Pin A (Soi 4 Park): 4 Cats — Status: Needs Food Today (Click to Sign Up); 📍 Pin B (Temple Gate): 3 Dogs — Status: Fed by Coach Donovan at 7:30 AM.',
@@ -1013,238 +1208,336 @@ export const STREETPAWS_PROGRAM: PblProgram = {
             'U-SEC Track: Build a functional no-code app in Glide (connected to a Google Sheet database) or an interactive Figma prototype with working form inputs.',
             'Fri Weekly Checkpoint: Live demo of the first 2 clickable features on a phone or tablet.'
           ],
-          deliverable: 'Clickable Feature 1 (Food Donation) & Feature 2 (Volunteer Feeding Map)',
+          learnerChoices: {
+            question: 'How will your Volunteer Feeding Map show which animal packs still need food today?',
+            options: [
+              { id: 'red-green-pins', label: 'Red Pin (Hungry) -> Photo Upload -> Green Pin (Fed Today)', description: 'Clear color change once a volunteer uploads a photo of the filled food bowl.' },
+              { id: 'schedule-table', label: 'Pin Map + Weekly Volunteer Feeder Schedule', description: 'Show who is signed up for morning and evening feedings at each Soi pin.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload screenshots of your clickable Food Donation Hub and Volunteer Feeding Map with Pin A and Pin B.',
             targetCompetencies: ['ct-05']
-          }
+          },
+          reflectionPrompt: 'How does changing a map pin from Red to Green after a photo upload prevent food waste and forgotten animals?',
+          teacherTips: 'Test the clickable links on a real phone or tablet during Friday Show & Reflect.'
         },
         {
           sessionNumber: 15,
           week: 8,
           title: 'Week 8 (Mon–Tue): Building Feature 3 — Medical SOS & Vet Crowdfunding Progress Bar',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Build the 3-click Medical SOS report screen and transparent Vet Bill crowdfunding tracker.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Adopt, personality, vaccinated, sterilized, urgent, fundraising, progress bar.',
             'Build Feature 3 (Medical SOS & Vet Crowdfunding): photo upload button, GPS location pin, injury selector, and "Vet Bill Progress Bar" (e.g., Raised 1,200 / 2,000 THB for Lucky\'s leg surgery) + U-SEC Vet Receipt tracker.'
           ],
-          deliverable: 'Clickable Feature 3: Medical SOS & Vet Bill Progress Bar',
+          learnerChoices: {
+            question: 'What transparency feature will you include on your Medical SOS & Vet Crowdfunding screen?',
+            options: [
+              { id: 'progress-bar', label: 'Visual Vet Bill Progress Bar (e.g., 1,200 / 2,000 THB)', description: 'Show exact Baht raised for a specific animal surgery like Lucky\'s leg.' },
+              { id: 'vet-receipt-log', label: 'Progress Bar + Verified Vet Clinic Receipt Tracker (U-SEC)', description: 'Attach itemized vet clinic invoices so donors see where every Baht goes.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload a screenshot of your Medical SOS screen and Vet Bill Progress Bar.',
             targetCompetencies: ['ct-05', 'ec-02']
-          }
+          },
+          reflectionPrompt: 'Can a user report a sick animal on your Medical SOS screen in 3 clicks or less?',
+          teacherTips: 'Verify the 3 clicks: (1) Take Photo, (2) Share GPS Location, (3) Tap Injury Icon & Send to Nearest Vet.'
         },
         {
           sessionNumber: 16,
           week: 8,
           title: 'Week 8 (Wed–Fri): Building Feature 4 — Adoption Matchmaker Profiles & Full 4-Pillar Link',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Write empathetic English adoption stories and link all 4 app features into a complete end-to-end prototype.',
           activities: [
             'Wed–Thu: Build Feature 4 (Adoption Matchmaker) using the ESL Writing Frame (e.g., Name: Somchai, 2 years old, Male | Personality: Gentle, quiet, loves belly rubs, good with children | Health: Vaccinated ✅ | Sterilized ✅ | Story: "Somchai lived outside 7-Eleven on Sukhumvit Soi 50. He healed from a hurt paw and is ready for a safe home!" [Button: Meet Somchai]).',
             'U-SEC Track: Add an Adoption Screening Questionnaire inside the app to verify the adopter has a safe home.',
             'Fri Weekly Checkpoint: All 4 app sections connected and clickable from start to finish.'
           ],
-          deliverable: '4 Animal Adoption Profiles & Fully Connected 4-Feature App Prototype',
+          learnerChoices: {
+            question: 'What adoption safety step will happen when a user clicks [Button: Meet Somchai]?',
+            options: [
+              { id: 'meet-greet-card', label: 'Simple Meet & Greet Request Card (L-SEC)', description: 'Connect the family with the local rescue volunteer for a supervised visit.' },
+              { id: 'screening-form', label: 'In-App Adoption Screening Questionnaire (U-SEC)', description: 'Check safe fencing, landlord permission, and vaccine commitment before approval.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Submit your Adoption Matchmaker profiles (e.g., Somchai) and confirm all 4 app features are linked.',
             targetCompetencies: ['ct-05', 'ec-02', 'ec-04']
-          }
+          },
+          reflectionPrompt: 'How do positive personality adjectives and health badges (Vaccinated ✅ | Sterilized ✅) help street animals get adopted?',
+          teacherTips: 'Celebrate the Week 8 Friday milestone—every team now has a complete 4-pillar clickable app!'
         },
         {
           sessionNumber: 17,
           week: 9,
           title: 'Week 9 (Mon–Tue): Designing the Physical Community Food Drop-Off & QR Feeding Station',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Design a weather-proof physical community touchpoint that bridges street feeders/donors to the mobile app via QR code.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Station, weather-proof, dispenser, QR code, hygiene, container, prototype.',
             'Design a physical Community Food Drop-Off Box or rain-proof PVC pipe Feeding Station with clear English signage: "Scan QR Code to log food level or report an empty bowl on the StreetPaws App!"'
           ],
-          deliverable: 'Physical QR Feeding / Donation Station Blueprint',
+          learnerChoices: {
+            question: 'Which physical community touchpoint will your team build in Week 9?',
+            options: [
+              { id: 'pvc-feeder', label: 'Rain-Proof PVC Pipe Feeding & Water Station', description: 'Gravity-fed dry kibble dispenser with a roof overhang and QR code sign.' },
+              { id: 'donation-bin', label: 'School / Condo Lobby Pet Food Donation Bin', description: 'Drop-off bin for 15kg food bags and cans with a QR code linking to the app.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload your design sketch or CAD plan for the physical Community Feeding & QR Station.',
             targetCompetencies: ['ct-03']
-          }
+          },
+          reflectionPrompt: 'How does your physical station stay clean, hygienic, and rain-proof outdoors?',
+          teacherTips: 'Show examples of gravity-fed PVC pipe dog feeders and clear QR signage.'
         },
         {
           sessionNumber: 18,
           week: 9,
           title: 'Week 9 (Wed–Fri): Building & Testing the Physical QR Station Prototype',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Construct the physical feeding/donation station prototype and verify instant mobile QR code launching.',
           activities: [
             'Wed–Thu: Build the physical scale model or full-size prototype (using cardboard, PVC pipes, plastic bins, or 3D-printed parts) and attach a printed QR code sticker linked to the team\'s digital app.',
             'U-SEC Track: Incorporate 3D-printed/CAD parts or a simple circuit/sensor concept (e.g., an LED light or weight indicator showing when the food box is empty).',
             'Fri Weekly Checkpoint: Test scanning the QR code on the physical feeding station to open the app on a phone.'
           ],
-          deliverable: 'Physical Smart Community Feeding & QR Station Prototype',
+          learnerChoices: {
+            question: 'What level of engineering detail will your team include in your Week 9 physical station?',
+            options: [
+              { id: 'mockup-qr', label: 'Clean Physical Mockup + Working QR Code Sticker (L-SEC)', description: 'Clear English signage and instant mobile QR scan into the app.' },
+              { id: 'cad-sensor-qr', label: '3D-Printed / Empty-Bowl LED Indicator + QR Station (U-SEC)', description: 'Include a simple weight/switch LED indicator showing when food runs low.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload a photo of your physical feeding/donation station with its scannable QR code sticker.',
             targetCompetencies: ['ct-03', 'ct-05']
-          }
+          },
+          reflectionPrompt: 'How many seconds did it take a classmate to scan your station QR code and report an empty bowl on your app?',
+          teacherTips: 'Test every team\'s printed QR code from 1 meter away using a phone camera.'
         }
       ]
     },
     {
       id: 'test',
       title: '6. Test — Weeks 10–11: Usability Testing, Version 2.0 Iteration, 8-Slide Deck & Rehearsal',
+      strap: 'PHASE 5: TEST & PITCH (Weeks 10–11) • 5 Outside Testers, 3 "Before & After" Fixes & 8-Slide / 4-Speaker Rehearsal',
       weeks: [10, 11],
-      summary:
-        'PHASE 5: TEST & PITCH (Weeks 10–11). Conduct unassisted usability testing with 5 outside students or teachers, log a Test & Fix Table, ship Version 2.0 with at least 3 "Before & After" improvements, and build/rehearse the 8-Slide Pitch Deck and 4-Speaker ESL Pitch Script.',
-      deliverables: [
-        '5-User Usability Test & Fix Log + Version 2.0 App with >= 3 "Before & After" Screenshots (Week 10)',
-        '8-Slide Showcase Pitch Deck & Exhibition Poster (Week 11)',
-        'Completed 4-Speaker Fill-in-the-Blank ESL Pitch Script Cue Cards & Peer Rehearsal Rubric (Week 11)'
-      ],
-      competencies: ['sdl-02', 'sdl-04', 'ec-02', 'ec-03', 'ec-11'],
-      stretchCompetencies: ['ec-07', 'ec-08'],
+      goal:
+        'Conduct unassisted usability testing with 5 outside students or teachers, log a Test & Fix Table, ship Version 2.0 with at least 3 "Before & After" improvements, and build/rehearse the 8-Slide Pitch Deck and 4-Speaker ESL Pitch Script.',
       tasks: [
         'Week 10: Invite 5 students or teachers from outside the class to try the app without help and observe where they get stuck.',
         'Record feedback in a Test & Fix Log, update the app to Version 2.0, and present at least 3 "Before & After" screenshots (e.g., adding 🐶 Dog and 🐱 Cat filter buttons).',
         'Week 11: Create the 8-Slide Pitch Deck and an Exhibition Poster showing the app screens, QR code, and physical feeding station.',
         'Write cue cards using the 4-Speaker Fill-in-the-Blank ESL Pitch Script and complete Friday dress rehearsal.'
       ],
+      evidence: [
+        '5-User Usability Test & Fix Log + Version 2.0 App with >= 3 "Before & After" Screenshots (Week 10)',
+        '8-Slide Showcase Pitch Deck & Exhibition Poster (Week 11)',
+        'Completed 4-Speaker Fill-in-the-Blank ESL Pitch Script Cue Cards & Peer Rehearsal Rubric (Week 11)'
+      ],
+      aiPromptStarters: [
+        'During Week 10 testing, users did not know if the food donation page was for dogs or cats. How can we document this in a clear "Before, Feedback, After" slide for Slide 7 of our pitch deck?',
+        'Help our 4 team speakers practice our 10-minute Fill-in-the-Blank ESL Pitch Script so each transition between Speaker 1, Speaker 2, Speaker 3, and Speaker 4 is smooth.'
+      ],
+      competencies: ['sdl-02', 'sdl-04', 'ec-02', 'ec-03', 'ec-11'],
+      stretchCompetencies: ['ec-07', 'ec-08'],
       sessions: [
         {
           sessionNumber: 19,
           week: 10,
           title: 'Week 10 (Mon–Tue): 5-User Unassisted Usability Testing Session',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Observe 5 real users outside the class attempting core app tasks without coaching to identify navigation friction.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Test, feedback, bug, confusing, improve, revise, version.',
             'Invite 5 students or teachers from outside the class to test the app without help.',
             'U-SEC Track: Measure how many seconds and clicks it takes each user to report a sick animal or log a feeding pin.'
           ],
-          deliverable: '5-User Usability Observation Notes & Task Timing Log',
+          learnerChoices: {
+            question: 'How will your team record usability data from your 5 outside testers?',
+            options: [
+              { id: 'feedback-forms', label: '5 Structured Feedback Forms & Observation Checklist (L-SEC)', description: 'Note which buttons confused users and what they liked best.' },
+              { id: 'timed-task-audit', label: 'Timed Task Completion Audit in Seconds & Clicks (U-SEC)', description: 'Measure exact seconds to complete an SOS report and feeding pin check-in.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'feedback',
             prompt: 'Record observations from at least 5 outside testers showing where they succeeded or got confused.',
             targetCompetencies: ['sdl-02', 'sdl-04']
-          }
+          },
+          reflectionPrompt: 'Why is it important to stay silent and not help the user while testing whether your app is easy to use?',
+          teacherTips: 'Remind teams that finding a confusing button is a win—it gives them real evidence for Slide 7!'
         },
         {
           sessionNumber: 20,
           week: 10,
           title: 'Week 10 (Wed–Fri): Test & Fix Log, Version 2.0 Upgrade & "Before & After" Checkpoint',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Translate user feedback into at least 3 concrete UI/UX improvements in Version 2.0.',
           activities: [
             'Wed–Thu: Record feedback in a Test & Fix Log and update the app screens to Version 2.0 (e.g., "Before: Users didn\'t know if the food donation was for dogs or cats. Feedback: Add animal icons. After: Added a big 🐶 Dog and 🐱 Cat filter button at the top of the donation page.").',
             'Fri Weekly Checkpoint: Present "Before & After" screenshots showing at least 3 improvements based on user feedback.'
           ],
-          deliverable: 'Test & Fix Log + 3 "Before & After" Version 2.0 Screenshots',
+          learnerChoices: {
+            question: 'Which Version 2.0 improvement made the biggest difference for your users?',
+            options: [
+              { id: 'dog-cat-filters', label: 'Visual Icon Filters (e.g., 🐶 Dog & 🐱 Cat Filter Buttons)', description: 'Make food donation and adoption filtering instant at a glance.' },
+              { id: 'sos-simplification', label: 'Faster 3-Click SOS & Larger Map Pin Labels', description: 'Reduce text clutter and enlarge tap targets for mobile screens.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'reflection',
             prompt: 'Upload your Test & Fix Log and 3 "Before & After" Version 2.0 improvement descriptions.',
             targetCompetencies: ['sdl-02', 'sdl-04']
-          }
+          },
+          reflectionPrompt: 'How did listening to user feedback make Version 2.0 of your app much stronger than Version 1.0?',
+          teacherTips: 'Have teams take side-by-side "Before" and "After" screenshots right away for Slide 7 of their pitch deck.'
         },
         {
           sessionNumber: 21,
           week: 11,
           title: 'Week 11 (Mon–Tue): Building the 8-Slide Pitch Deck & Exhibition Poster',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Design a visually clear 8-Slide Pitch Deck and Exhibition Poster showcasing problem data, all 4 app features, QR station, and budget.',
           activities: [
             '0:00–0:15 Daily Stand-Up & Word Wall: Pitch, audience, hook, demonstration, impact, confident, body language.',
             'Build the 8-Slide Pitch Deck (Slides 1–8) and Exhibition Poster showing app screens, QR code, and physical feeding station.'
           ],
-          deliverable: '8-Slide Pitch Deck & Exhibition Poster',
+          learnerChoices: {
+            question: 'How will your team pair your 8-Slide Pitch Deck with your live demonstration on Slide 5 and Slide 6?',
+            options: [
+              { id: 'tablet-live-click', label: 'Live Tablet App Walkthrough + Physical QR Box', description: 'One teammate holds the tablet/QR box while the speaker demonstrates each click.' },
+              { id: 'screen-mirror-qr', label: 'Screen-Mirrored Demo + Audience Live QR Scan', description: 'Project the mobile screen live and invite guests to scan Slide 8 on their phones.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload your 8-Slide Pitch Deck outline and Exhibition Poster layout.',
             targetCompetencies: ['ec-03']
-          }
+          },
+          reflectionPrompt: 'How did you use layout, contrast, and large visuals on your 8 slides so the audience does not have to read crowded text?',
+          teacherTips: 'Check that Slide 8 has a large, high-contrast QR code that guests in the back row can scan.'
         },
         {
           sessionNumber: 22,
           week: 11,
           title: 'Week 11 (Wed–Fri): 4-Speaker ESL Pitch Script Cue Cards & Dress Rehearsal',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Rehearse a 10-minute 4-speaker team pitch with confident pronunciation, eye contact, and live app/QR demonstration.',
           activities: [
             'Wed–Thu: Write cue cards using the Fill-in-the-Blank ESL Pitch Script for Speakers 1–4 (2m Hook & Problem + 2.5m Food & Map Demo + 2.5m SOS & Adoption Demo + 3m Physical QR Station, Testing & Call to Action).',
             'Fri Weekly Checkpoint: Dress rehearsal in front of peers using the Peer Feedback Rubric (U-SEC prepares for unscripted judge Q&A).'
           ],
-          deliverable: '4-Speaker ESL Pitch Cue Cards & Dress Rehearsal Feedback',
+          learnerChoices: {
+            question: 'Which of the 4 speaker roles will you deliver during the 10-minute Showcase Pitch?',
+            options: [
+              { id: 'speaker-1-2', label: 'Speaker 1 (Hook & Problem) or Speaker 2 (Food Hub & Feeding Map)', description: 'Introduce the local street animal story, survey data, 15 THB bowl, and Red/Green pins.' },
+              { id: 'speaker-3-4', label: 'Speaker 3 (Medical SOS & Adoption) or Speaker 4 (QR Station & Call to Action)', description: 'Demo 3-click SOS, Somchai adoption, physical QR station, and Week 10 improvements.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'note',
             prompt: 'Save your team\'s completed 4-Speaker ESL Pitch Script and peer rehearsal feedback.',
             targetCompetencies: ['ec-02', 'ec-11', 'ec-07', 'ec-08']
-          }
+          },
+          reflectionPrompt: 'What feedback did your classmates give you during Friday dress rehearsal to improve your eye contact and pacing?',
+          teacherTips: 'Use the interactive 4-Speaker ESL Pitch Script tab in the StreetPaws simulator to print clean cue cards.'
         }
       ]
     },
     {
       id: 'share',
       title: '7. Share — Week 12: The Grand "StreetPaws" App Launch, Showcase & Pet-Food Drive',
+      strap: 'PHASE 5: TEST & PITCH (Week 12) • Booth Setup, 10-Minute Live Pitch, 6 MTC Portfolio Defense & Shelter Food Drive',
       weeks: [12, 12],
-      summary:
-        'PHASE 5: TEST & PITCH (Week 12). Set up the exhibition booth and physical QR feeding station, deliver the 10-minute live pitch and app demo to coaches, parents, and community guests, curate all 6 WeLearn MTC Portfolio artifacts, and run a real mini pet-food donation drive for a local shelter.',
-      deliverables: [
-        'Exhibition Booth with Printable Guest QR Codes & Physical Feeding Station Model (Mon–Tue)',
-        '10-Minute Live Showcase Pitch & Interactive App Demo (Wed)',
-        'Curated WeLearn MTC Portfolio (All 6 Selected Competencies) & Mini Pet-Food Donation Drive (Thu–Fri)'
-      ],
-      competencies: ['ctps-01', 'lc-01', 'ct-05', 'ent-04', 'sdl-04', 'ec-11'],
-      stretchCompetencies: ['ec-08', 'ent-07'],
+      goal:
+        'Set up the exhibition booth and physical QR feeding station, deliver the 10-minute live pitch and app demo to coaches, parents, and community guests, curate all 6 WeLearn MTC Portfolio artifacts, and run a real mini pet-food donation drive for a local shelter.',
       tasks: [
         'Mon–Tue: Final booth setup, printing QR codes for guests to scan on their own phones, and setting up the physical feeding/donation station models.',
         'Wed: Live Showcase & Pitch Day! Deliver the 10-minute pitch and live app demo to coaches, parents, and community guests.',
         'Thu–Fri: Upload all final artifacts to the WeLearn MTC Portfolio, complete final self-reflection across all 6 competencies, and organize a real mini pet-food donation drive for a local shelter.'
       ],
+      evidence: [
+        'Exhibition Booth with Printable Guest QR Codes & Physical Feeding Station Model (Mon–Tue)',
+        '10-Minute Live Showcase Pitch & Interactive App Demo (Wed)',
+        'Curated WeLearn MTC Portfolio (All 6 Selected Competencies) & Mini Pet-Food Donation Drive (Thu–Fri)'
+      ],
+      aiPromptStarters: [
+        'Help us review our 6 WeLearn MTC Portfolio artifacts against the Proficient (Target Credit) and Mastery descriptors before our final portfolio defense.',
+        'What 3 judge Q&A questions should our team prepare for about our Thai Baht budget, safety verification, and local shelter partnership?'
+      ],
+      competencies: ['ctps-01', 'lc-01', 'ct-05', 'ent-04', 'sdl-04', 'ec-11'],
+      stretchCompetencies: ['ec-08', 'ent-07'],
       sessions: [
         {
           sessionNumber: 23,
           week: 12,
           title: 'Week 12 (Mon–Wed): Booth Setup & Live 10-Minute StreetPaws Showcase Pitch Day!',
-          durationMinutes: 360,
-          learningObjective:
+          durationMin: 360,
+          learningGoal:
             'Deliver a persuasive 10-minute live app demonstration and community pitch that inspires real action for street animals.',
           activities: [
             'Mon–Tue: Set up exhibition booth, print QR codes for guests to scan on their own phones, and stage the physical QR feeding/donation station.',
             'Wed: Deliver the 10-minute live showcase pitch (Speakers 1–4) and interactive tablet/phone demo to coaches, parents, and community guests.'
           ],
-          deliverable: 'Live 10-Minute StreetPaws Showcase Pitch & Guest QR Demo',
+          learnerChoices: {
+            question: 'How will your team engage visitors at your Week 12 Showcase booth after your 10-minute pitch?',
+            options: [
+              { id: 'live-qr-scan', label: 'Live Physical QR Station Scan & App Trial', description: 'Invite parents and guests to scan the physical feeder QR code on their own phones.' },
+              { id: 'shelter-food-pledge', label: 'Mini Pet-Food Donation Drive Check-In', description: 'Log real pet food bags and bowls donated for our local shelter partner.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Log your Showcase Pitch Day summary, guest QR scan count, and judge/community feedback.',
             targetCompetencies: ['ec-02', 'ec-03', 'ec-11', 'ct-05']
-          }
+          },
+          reflectionPrompt: 'How did the audience react when they scanned your physical QR station and tried your StreetPaws app live?',
+          teacherTips: 'Celebrate every speaker\'s growth in spoken English confidence from Week 1 to Week 12.'
         },
         {
           sessionNumber: 24,
           week: 12,
           title: 'Week 12 (Thu–Fri): WeLearn MTC Portfolio Defense & Mini Pet-Food Donation Drive',
-          durationMinutes: 240,
-          learningObjective:
+          durationMin: 240,
+          learningGoal:
             'Curate all 6 Foundational Credit portfolio artifacts, self-assess on the 4-tier MTC rubric, and complete a real pet-food donation drive.',
           activities: [
             'Thu–Fri: Upload all 6 final portfolio artifacts to the WeLearn MTC Portfolio (1. Street Animal Research Map & Empathy Report, 2. Team Charter & Kanban Board, 3. Paper Wireframes & Interactive App Prototype, 4. App Impact Plan / Business Model Canvas & Budget, 5. User Testing Feedback Log & Weekly Reflection Journal, 6. Final App Pitch Deck, UI Poster & 10-Minute Live Pitch).',
             'Complete final self-reflection and organize the real mini pet-food donation drive for a local shelter!'
           ],
-          deliverable: 'Complete 6-Competency WeLearn MTC Portfolio & Shelter Pet-Food Donation Drive Log',
+          learnerChoices: {
+            question: 'Which of the 6 Selected WeLearn MTC Competencies are you most proud of achieving Mastery in?',
+            options: [
+              { id: 'design-research', label: 'Problem ID (2.1.1) & Creative/Tech Design (5.1.2 / 5.1.5)', description: 'Turning real street animal research into a working 4-pillar app and QR station.' },
+              { id: 'impact-pitch', label: 'Impact & Sustainability (7.1.1 / 7.1.4) & Public Speaking (4.1.2 / 4.1.3)', description: 'Building a real THB donation model and pitching confidently to the community.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'reflection',
             prompt: 'Submit your final 6-competency WeLearn MTC self-assessment and pet-food donation drive impact reflection.',
             targetCompetencies: ['ctps-01', 'lc-01', 'ct-05', 'ent-04', 'sdl-04', 'ec-11']
-          }
+          },
+          reflectionPrompt: 'Looking back over all 120 hours, how did your team turn empathy for street animals into real-world impact?',
+          teacherTips: 'Verify that every student has all 6 Portfolio Artifacts uploaded for their WeLearn MTC credit claim.'
         }
       ]
     }
