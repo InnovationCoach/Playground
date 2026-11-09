@@ -19,6 +19,7 @@ import { InterstellarArkSimulator } from './components/InterstellarArkSimulator'
 import { KineticEnergySimulator } from './components/KineticEnergySimulator';
 import { VitalFlowSimulator } from './components/VitalFlowSimulator';
 import { VoyagerSimulator } from './components/VoyagerSimulator';
+import { StreetPawsSimulator } from './components/StreetPawsSimulator';
 import { AiCopilotModal } from './components/AiCopilotModal';
 import { EvidenceModal } from './components/EvidenceModal';
 import { IntegrationDrawer } from './components/IntegrationDrawer';
@@ -66,6 +67,7 @@ export default function App() {
   const [isKineticSimulatorOpen, setIsKineticSimulatorOpen] = useState(false);
   const [isVitalFlowSimulatorOpen, setIsVitalFlowSimulatorOpen] = useState(false);
   const [isVoyagerSimulatorOpen, setIsVoyagerSimulatorOpen] = useState(false);
+  const [isStreetPawsSimulatorOpen, setIsStreetPawsSimulatorOpen] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [evidenceModalPhase, setEvidenceModalPhase] = useState<string>('prototype');
@@ -178,6 +180,7 @@ export default function App() {
         onOpenKineticSimulator={() => setIsKineticSimulatorOpen(true)}
         onOpenVitalFlowSimulator={() => setIsVitalFlowSimulatorOpen(true)}
         onOpenVoyagerSimulator={() => setIsVoyagerSimulatorOpen(true)}
+        onOpenStreetPawsSimulator={() => setIsStreetPawsSimulatorOpen(true)}
         onOpenCopilot={() => handleOpenCopilot()}
         onOpenIntegration={() => setIsIntegrationDrawerOpen(true)}
         onOpenAssumptions={() => setIsIntegrationDrawerOpen(true)}
@@ -376,6 +379,24 @@ export default function App() {
             handleUpdateProject(res.updatedProject);
           }
           setIsVoyagerSimulatorOpen(false);
+        }}
+      />
+
+      <StreetPawsSimulator
+        isOpen={isStreetPawsSimulatorOpen}
+        onClose={() => setIsStreetPawsSimulatorOpen(false)}
+        onSaveToPortfolio={(title, summary) => {
+          const res = validateAndAddEvidence(activeProject, {
+            title,
+            phase: 'test',
+            kind: 'data',
+            body: summary,
+            competencies: ['ctps-01', 'lc-01', 'ct-05', 'ent-04', 'sdl-04', 'ec-11']
+          });
+          if (res.success && res.updatedProject) {
+            handleUpdateProject(res.updatedProject);
+          }
+          setIsStreetPawsSimulatorOpen(false);
         }}
       />
 

@@ -569,6 +569,77 @@ async function main() {
         assert.ok(Number.isFinite(val), `Expected finite number from simulateVoyagerRcSolar, got ${val}`);
       }
     }
+
+    // Also test simulateStreetPawsApp deterministic THB budget, 15-THB bowl & 3-click UX math
+    const { simulateStreetPawsApp } = pbl;
+    const sustainableStreetPaws = simulateStreetPawsApp({
+      neighborhoodAnimalsCount: 10,
+      dogFoodBag15KgPriceTHB: 600,
+      partnerPetShopDiscountPct: 10,
+      vetCheckAndVaccineCostTHB: 500,
+      animalsNeedingVaccinePerMonth: 2,
+      sosSurgeryGoalTHB: 2000,
+      microDonationBowlTHB: 15,
+      monthlyMicroDonationCount: 260,
+      monthlyPartnerSponsorTHB: 2500,
+      clicksToReportSos: 3,
+      feedingMapTotalPins: 6,
+      feedingMapGreenVerifiedPins: 5,
+      qrStationWeatherproofAndWorking: true,
+      usabilityTestersCount: 5,
+      beforeAfterImprovementsCount: 3
+    });
+    const deficitStreetPaws = simulateStreetPawsApp({
+      neighborhoodAnimalsCount: 25,
+      dogFoodBag15KgPriceTHB: 600,
+      partnerPetShopDiscountPct: 0,
+      vetCheckAndVaccineCostTHB: 500,
+      animalsNeedingVaccinePerMonth: 5,
+      sosSurgeryGoalTHB: 4000,
+      microDonationBowlTHB: 15,
+      monthlyMicroDonationCount: 20,
+      monthlyPartnerSponsorTHB: 0,
+      clicksToReportSos: 6,
+      feedingMapTotalPins: 6,
+      feedingMapGreenVerifiedPins: 1,
+      qrStationWeatherproofAndWorking: false,
+      usabilityTestersCount: 2,
+      beforeAfterImprovementsCount: 1
+    });
+    assert.equal(sustainableStreetPaws.bagsNeededPerMonth, 6);
+    assert.equal(sustainableStreetPaws.grossMonthlyFoodTHB, 3600);
+    assert.equal(sustainableStreetPaws.netMonthlyFoodTHB, 3240);
+    assert.equal(sustainableStreetPaws.threeClickRulePassed, true);
+    assert.equal(sustainableStreetPaws.usabilityTargetMet, true);
+    assert.equal(sustainableStreetPaws.financiallySustainable, true);
+    assert.equal(sustainableStreetPaws.showcaseReady, true);
+    assert.equal(deficitStreetPaws.threeClickRulePassed, false);
+    assert.equal(deficitStreetPaws.usabilityTargetMet, false);
+    assert.equal(deficitStreetPaws.financiallySustainable, false);
+    assert.equal(deficitStreetPaws.showcaseReady, false);
+
+    const badStreetPaws = simulateStreetPawsApp({
+      neighborhoodAnimalsCount: Number.NaN,
+      dogFoodBag15KgPriceTHB: Number.POSITIVE_INFINITY,
+      partnerPetShopDiscountPct: -20,
+      vetCheckAndVaccineCostTHB: Number.NaN,
+      animalsNeedingVaccinePerMonth: -5,
+      sosSurgeryGoalTHB: -100,
+      microDonationBowlTHB: 0,
+      monthlyMicroDonationCount: Number.NaN,
+      monthlyPartnerSponsorTHB: -500,
+      clicksToReportSos: 99,
+      feedingMapTotalPins: 0,
+      feedingMapGreenVerifiedPins: -2,
+      qrStationWeatherproofAndWorking: false,
+      usabilityTestersCount: -3,
+      beforeAfterImprovementsCount: Number.NaN
+    });
+    for (const val of Object.values(badStreetPaws)) {
+      if (typeof val === 'number') {
+        assert.ok(Number.isFinite(val), `Expected finite number from simulateStreetPawsApp, got ${val}`);
+      }
+    }
   });
 
   // 8. Test PROGRAM_REGISTRY and PROGRAM_LIST alignment
@@ -598,6 +669,14 @@ async function main() {
       VOYAGER_WELEARN_MTC_RUBRIC,
       VOYAGER_MTC_REFLECTION_QUESTIONS,
       VOYAGER_GAMIFICATION_BADGES,
+      STREETPAWS_CORE_FEATURES,
+      STREETPAWS_MTC_COMPETENCIES,
+      STREETPAWS_DAILY_ESL_ROUTINE,
+      STREETPAWS_12_WEEK_CURRICULUM,
+      STREETPAWS_PITCH_SLIDES,
+      STREETPAWS_ESL_PITCH_SCRIPT,
+      STREETPAWS_ASSESSMENT_RUBRIC,
+      STREETPAWS_GAMIFICATION_BADGES,
       BIOMIMETIC_TRACKS,
       BIOMECHANICS_60_DAY_SCHEDULE,
       BIOMECHANICS_OLDER_STUDENT_PILLARS,
@@ -612,7 +691,22 @@ async function main() {
       GENESIS_GAMIFICATION_BADGES
     } = pbl;
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
-    assert.equal(registryKeys.length, 10, 'Expected 10 complete programs in PROGRAM_REGISTRY');
+    assert.equal(registryKeys.length, 11, 'Expected 11 complete programs in PROGRAM_REGISTRY');
+    assert.ok('streetpaws-animal-rescue-2026' in PROGRAM_REGISTRY, 'streetpaws-animal-rescue-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['streetpaws-animal-rescue-2026'].title,
+      'StreetPaws — The Community Animal Rescue App',
+      'Expected StreetPaws — The Community Animal Rescue App title'
+    );
+    assert.equal(STREETPAWS_CORE_FEATURES.length, 4, 'Expected 4 Core App Features for StreetPaws');
+    assert.equal(STREETPAWS_MTC_COMPETENCIES.length, 6, 'Expected 6 Selected WeLearn MTC Competencies for StreetPaws');
+    assert.equal(STREETPAWS_DAILY_ESL_ROUTINE.length, 4, 'Expected 4 blocks in STREETPAWS_DAILY_ESL_ROUTINE');
+    assert.equal(STREETPAWS_12_WEEK_CURRICULUM.length, 12, 'Expected 12 weeks in STREETPAWS_12_WEEK_CURRICULUM');
+    assert.equal(STREETPAWS_PITCH_SLIDES.length, 8, 'Expected 8 slides in STREETPAWS_PITCH_SLIDES');
+    assert.equal(STREETPAWS_ESL_PITCH_SCRIPT.length, 4, 'Expected 4 speakers in STREETPAWS_ESL_PITCH_SCRIPT');
+    assert.equal(STREETPAWS_ASSESSMENT_RUBRIC.length, 6, 'Expected 6 rows in STREETPAWS_ASSESSMENT_RUBRIC');
+    assert.equal(STREETPAWS_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for StreetPaws');
+
     assert.ok('project-voyager-rc-solar-2026' in PROGRAM_REGISTRY, 'project-voyager-rc-solar-2026 must be registered');
     assert.equal(
       PROGRAM_REGISTRY['project-voyager-rc-solar-2026'].title,

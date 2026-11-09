@@ -146,6 +146,27 @@ import type {
   VoyagerMtcReflectionQuestion,
   VoyagerGamificationBadge
 } from './voyagerProgram';
+import {
+  STREETPAWS_PROGRAM,
+  STREETPAWS_CORE_FEATURES,
+  STREETPAWS_MTC_COMPETENCIES,
+  STREETPAWS_DAILY_ESL_ROUTINE,
+  STREETPAWS_12_WEEK_CURRICULUM,
+  STREETPAWS_PITCH_SLIDES,
+  STREETPAWS_ESL_PITCH_SCRIPT,
+  STREETPAWS_ASSESSMENT_RUBRIC,
+  STREETPAWS_GAMIFICATION_BADGES
+} from './streetPawsProgram';
+import type {
+  StreetPawsCoreFeature,
+  StreetPawsMtcCompetency,
+  StreetPawsDailyRoutineBlock,
+  StreetPawsWeekPlan,
+  StreetPawsPitchSlide,
+  StreetPawsEslPitchSpeaker,
+  StreetPawsRubricRow,
+  StreetPawsBadge
+} from './streetPawsProgram';
 
 export { 
   SCHOOL_SCHEDULE_CONFIG, 
@@ -286,6 +307,28 @@ export type {
   VoyagerGamificationBadge
 };
 
+export {
+  STREETPAWS_PROGRAM,
+  STREETPAWS_CORE_FEATURES,
+  STREETPAWS_MTC_COMPETENCIES,
+  STREETPAWS_DAILY_ESL_ROUTINE,
+  STREETPAWS_12_WEEK_CURRICULUM,
+  STREETPAWS_PITCH_SLIDES,
+  STREETPAWS_ESL_PITCH_SCRIPT,
+  STREETPAWS_ASSESSMENT_RUBRIC,
+  STREETPAWS_GAMIFICATION_BADGES
+};
+export type {
+  StreetPawsCoreFeature,
+  StreetPawsMtcCompetency,
+  StreetPawsDailyRoutineBlock,
+  StreetPawsWeekPlan,
+  StreetPawsPitchSlide,
+  StreetPawsEslPitchSpeaker,
+  StreetPawsRubricRow,
+  StreetPawsBadge
+};
+
 /**
  * Stub program kept outside PROGRAM_REGISTRY and PROGRAM_LIST until dedicated
  * stormwater sessions are authored.
@@ -375,6 +418,7 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
 };
 
 export const PROGRAM_REGISTRY: Record<string, PblProgram> = {
+  'streetpaws-animal-rescue-2026': STREETPAWS_PROGRAM,
   'project-voyager-rc-solar-2026': VOYAGER_PROGRAM,
   'project-vital-flow-2026': VITAL_FLOW_PROGRAM,
   'kinetic-smart-energy-2026': KINETIC_ENERGY_PROGRAM,

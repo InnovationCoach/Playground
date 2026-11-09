@@ -31,6 +31,7 @@ interface HeaderProps {
   onOpenKineticSimulator?: () => void;
   onOpenVitalFlowSimulator?: () => void;
   onOpenVoyagerSimulator?: () => void;
+  onOpenStreetPawsSimulator?: () => void;
   onOpenCopilot: () => void;
   onOpenIntegration: () => void;
   onOpenAssumptions: () => void;
@@ -58,6 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenKineticSimulator,
   onOpenVitalFlowSimulator,
   onOpenVoyagerSimulator,
+  onOpenStreetPawsSimulator,
   onOpenCopilot,
   onOpenIntegration,
   onOpenAssumptions,
@@ -158,7 +160,16 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Action Controls & Role Switcher */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Quick interactive tools */}
-          {activeProgramId === 'project-voyager-rc-solar-2026' ? (
+          {activeProgramId === 'streetpaws-animal-rescue-2026' ? (
+            <button
+              onClick={onOpenStreetPawsSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-md transition-colors shadow-2xs"
+              title="Open StreetPaws Simulator: 4 App Pillars, THB Sustainability Budget, 12-Week ESL Curriculum & 10-Minute Pitch Script"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              StreetPaws Rescue App &amp; THB Impact Lab
+            </button>
+          ) : activeProgramId === 'project-voyager-rc-solar-2026' ? (
             <button
               onClick={onOpenVoyagerSimulator}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-sky-700 hover:bg-sky-800 rounded-md transition-colors shadow-2xs"

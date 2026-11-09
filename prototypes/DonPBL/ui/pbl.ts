@@ -79,7 +79,16 @@ export {
   VOYAGER_ACTIVITY_GUIDES,
   VOYAGER_WELEARN_MTC_RUBRIC,
   VOYAGER_MTC_REFLECTION_QUESTIONS,
-  VOYAGER_GAMIFICATION_BADGES
+  VOYAGER_GAMIFICATION_BADGES,
+  STREETPAWS_PROGRAM,
+  STREETPAWS_CORE_FEATURES,
+  STREETPAWS_MTC_COMPETENCIES,
+  STREETPAWS_DAILY_ESL_ROUTINE,
+  STREETPAWS_12_WEEK_CURRICULUM,
+  STREETPAWS_PITCH_SLIDES,
+  STREETPAWS_ESL_PITCH_SCRIPT,
+  STREETPAWS_ASSESSMENT_RUBRIC,
+  STREETPAWS_GAMIFICATION_BADGES
 } from '../programRegistry';
 
 export type {
@@ -124,7 +133,15 @@ export type {
   VoyagerActivityGuideStep,
   VoyagerWeLearnCompetencyRubric,
   VoyagerMtcReflectionQuestion,
-  VoyagerGamificationBadge
+  VoyagerGamificationBadge,
+  StreetPawsCoreFeature,
+  StreetPawsMtcCompetency,
+  StreetPawsDailyRoutineBlock,
+  StreetPawsWeekPlan,
+  StreetPawsPitchSlide,
+  StreetPawsEslPitchSpeaker,
+  StreetPawsRubricRow,
+  StreetPawsBadge
 } from '../programRegistry';
 
 export {
@@ -163,7 +180,8 @@ export {
   simulateArkBiosphere,
   simulateKineticHarvesting,
   simulateVitalFlowCirculation,
-  simulateVoyagerRcSolar
+  simulateVoyagerRcSolar,
+  simulateStreetPawsApp
 } from '../engine';
 
 export type {

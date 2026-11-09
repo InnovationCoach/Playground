@@ -872,6 +872,126 @@ export function simulateVoyagerRcSolar(params: {
   };
 }
 
+/**
+ * Pure deterministic calculator for StreetPaws — The Community Animal Rescue App.
+ * Models:
+ * - Week 6 Real-World Operations, Budget & Sustainability (Thai Baht — THB):
+ *   - 15kg Dog Food Bag = 600 THB (feeds 10 dogs for 5 days = 12 THB per dog/day)
+ *   - Basic Vet Check + Vaccine = 500 THB per animal
+ *   - "Buy 1 Bowl of Food for 15 THB" micro-donation button + partner pet store discount (e.g., 10%)
+ * - Week 3 & Speaker 3 UX Rule: <= 3 clicks to report a sick animal or complete core tasks
+ * - Week 4 & Week 7 Live Volunteer Feeding Map: Red Pins (Hungry Pack) vs. Green Pins (Fed Today with photo verification)
+ * - Week 9 Physical Touchpoint: Weather-proof Community Feeding & QR Station
+ * - Week 10 Usability Testing: >= 5 outside testers and >= 3 "Before & After" Version 2.0 fixes
+ */
+export function simulateStreetPawsApp(params: {
+  neighborhoodAnimalsCount: number;
+  dogFoodBag15KgPriceTHB: number;
+  partnerPetShopDiscountPct: number;
+  vetCheckAndVaccineCostTHB: number;
+  animalsNeedingVaccinePerMonth: number;
+  sosSurgeryGoalTHB: number;
+  microDonationBowlTHB: number;
+  monthlyMicroDonationCount: number;
+  monthlyPartnerSponsorTHB: number;
+  clicksToReportSos: number;
+  feedingMapTotalPins: number;
+  feedingMapGreenVerifiedPins: number;
+  qrStationWeatherproofAndWorking: boolean;
+  usabilityTestersCount: number;
+  beforeAfterImprovementsCount: number;
+}) {
+  const animals = Number.isFinite(params.neighborhoodAnimalsCount)
+    ? Math.max(1, Math.min(100, Math.round(params.neighborhoodAnimalsCount)))
+    : 10;
+  const bagPriceTHB = Number.isFinite(params.dogFoodBag15KgPriceTHB)
+    ? Math.max(100, Math.min(3000, Math.round(params.dogFoodBag15KgPriceTHB)))
+    : 600;
+  const discountPct = Number.isFinite(params.partnerPetShopDiscountPct)
+    ? Math.max(0, Math.min(50, Math.round(params.partnerPetShopDiscountPct)))
+    : 10;
+  const vaccinePriceTHB = Number.isFinite(params.vetCheckAndVaccineCostTHB)
+    ? Math.max(0, Math.min(5000, Math.round(params.vetCheckAndVaccineCostTHB)))
+    : 500;
+  const vaccinesPerMonth = Number.isFinite(params.animalsNeedingVaccinePerMonth)
+    ? Math.max(0, Math.min(50, Math.round(params.animalsNeedingVaccinePerMonth)))
+    : 2;
+  const sosGoalTHB = Number.isFinite(params.sosSurgeryGoalTHB)
+    ? Math.max(0, Math.min(20000, Math.round(params.sosSurgeryGoalTHB)))
+    : 2000;
+  const bowlPriceTHB = Number.isFinite(params.microDonationBowlTHB)
+    ? Math.max(5, Math.min(200, Math.round(params.microDonationBowlTHB)))
+    : 15;
+  const microDonations = Number.isFinite(params.monthlyMicroDonationCount)
+    ? Math.max(0, Math.min(5000, Math.round(params.monthlyMicroDonationCount)))
+    : 260;
+  const sponsorTHB = Number.isFinite(params.monthlyPartnerSponsorTHB)
+    ? Math.max(0, Math.min(50000, Math.round(params.monthlyPartnerSponsorTHB)))
+    : 2500;
+  const clicks = Number.isFinite(params.clicksToReportSos)
+    ? Math.max(1, Math.min(12, Math.round(params.clicksToReportSos)))
+    : 3;
+  const totalPins = Number.isFinite(params.feedingMapTotalPins)
+    ? Math.max(1, Math.min(50, Math.round(params.feedingMapTotalPins)))
+    : 6;
+  const greenPins = Number.isFinite(params.feedingMapGreenVerifiedPins)
+    ? Math.max(0, Math.min(totalPins, Math.round(params.feedingMapGreenVerifiedPins)))
+    : 5;
+  const testers = Number.isFinite(params.usabilityTestersCount)
+    ? Math.max(0, Math.min(50, Math.round(params.usabilityTestersCount)))
+    : 5;
+  const fixes = Number.isFinite(params.beforeAfterImprovementsCount)
+    ? Math.max(0, Math.min(25, Math.round(params.beforeAfterImprovementsCount)))
+    : 3;
 
+  // Week 6 Math: 15kg bag feeds 10 dogs for 5 days = 50 animal-days per bag
+  const animalDaysPerMonth = animals * 30;
+  const bagsNeededPerMonth = Math.round((animalDaysPerMonth / 50) * 10) / 10;
+  const grossMonthlyFoodTHB = Math.round(bagsNeededPerMonth * bagPriceTHB);
+  const netMonthlyFoodTHB = Math.round(grossMonthlyFoodTHB * (1 - discountPct / 100));
+  const costPerAnimalPerDayTHB = Math.round((netMonthlyFoodTHB / animalDaysPerMonth) * 10) / 10;
 
+  const monthlyVetAndVaccineTHB = vaccinesPerMonth * vaccinePriceTHB + sosGoalTHB;
+  const totalMonthlyExpenseTHB = netMonthlyFoodTHB + monthlyVetAndVaccineTHB;
 
+  const monthlyMicroDonationIncomeTHB = microDonations * bowlPriceTHB;
+  const totalMonthlyIncomeTHB = monthlyMicroDonationIncomeTHB + sponsorTHB;
+  const monthlySurplusOrDeficitTHB = totalMonthlyIncomeTHB - totalMonthlyExpenseTHB;
+  const breakEvenBowlsNeeded = bowlPriceTHB > 0
+    ? Math.max(0, Math.ceil(Math.max(0, totalMonthlyExpenseTHB - sponsorTHB) / bowlPriceTHB))
+    : 0;
+
+  const feedingMapRedPins = Math.max(0, totalPins - greenPins);
+  const feedingCoveragePct = Math.round((greenPins / totalPins) * 100);
+
+  const threeClickRulePassed = clicks <= 3;
+  const usabilityTargetMet = testers >= 5 && fixes >= 3;
+  const financiallySustainable = monthlySurplusOrDeficitTHB >= 0;
+
+  const showcaseReady =
+    threeClickRulePassed &&
+    usabilityTargetMet &&
+    financiallySustainable &&
+    params.qrStationWeatherproofAndWorking &&
+    feedingCoveragePct >= 75;
+
+  return {
+    bagsNeededPerMonth,
+    grossMonthlyFoodTHB,
+    netMonthlyFoodTHB,
+    costPerAnimalPerDayTHB,
+    monthlyVetAndVaccineTHB,
+    totalMonthlyExpenseTHB,
+    monthlyMicroDonationIncomeTHB,
+    totalMonthlyIncomeTHB,
+    monthlySurplusOrDeficitTHB,
+    breakEvenBowlsNeeded,
+    feedingMapRedPins,
+    feedingMapGreenPins: greenPins,
+    feedingCoveragePct,
+    threeClickRulePassed,
+    usabilityTargetMet,
+    financiallySustainable,
+    showcaseReady
+  };
+}

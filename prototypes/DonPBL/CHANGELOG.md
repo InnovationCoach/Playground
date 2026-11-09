@@ -9,6 +9,14 @@
 
 ## Change Log Entries
 
+### [2026-10-21] - Added "StreetPaws — The Community Animal Rescue App" PBL (12 Weeks / 120 Hours)
+- **Program Curriculum (`prototypes/DonPBL/streetPawsProgram.ts`):**
+  - Added `STREETPAWS_PROGRAM` (`id: 'streetpaws-animal-rescue-2026'`), a 12-week, 120-hour, 24-session curriculum structured across all 7 Design Thinking phases (`explore` [1, 1], `empathise` [2, 2], `define` [3, 4], `ideate` [5, 6], `prototype` [7, 9], `test` [10, 11], `share` [12, 12]).
+  - Incorporated the **4 Core App Features (`STREETPAWS_CORE_FEATURES`)** (`1. Food Donation Hub`, `2. Volunteer Feeding Map`, `3. SOS Vet & Medical Care`, `4. Adoption Matchmaker`), **Part 1: The 6 Selected WeLearn MTC Competencies (`STREETPAWS_MTC_COMPETENCIES`)** with L-SEC & U-SEC codes, Simplified ESL `"I Can"` Goals, and Portfolio Artifacts, the **Daily 2-Hour ESL Class Routine (`STREETPAWS_DAILY_ESL_ROUTINE`)** (`0:00–0:15` Daily Stand-Up & Word Wall, `0:15–0:35` Coach Mini-Lesson, `0:35–1:40` Studio Build Time, `1:40–2:00` Show & Reflect), and **Part 2: 12-Week Curriculum & Weekly Breakdown (`STREETPAWS_12_WEEK_CURRICULUM`)** with ESL Vocabulary, Concrete Examples (Behind the local market Problem Log, Auntie Mali Persona, Red-to-Green Pin Logic, 600 THB / 15kg Bag & 15 THB Bowl Budget Math, Pin A Soi 4 Park & Pin B Temple Gate, Somchai Adoption Profile, Rain-proof PVC QR Feeding Station, and Version 2.0 🐶 Dog & 🐱 Cat filter iteration), and L-SEC vs. U-SEC Differentiation.
+  - Embedded **Part 3: Final Week 10-Minute Showcase Pitch Guide & ESL Script Template** (`STREETPAWS_PITCH_SLIDES` Slides 1–8 and `STREETPAWS_ESL_PITCH_SCRIPT` for Speakers 1–4), **Part 4: WeLearn MTC Competency Assessment Rubric (`STREETPAWS_ASSESSMENT_RUBRIC`)** across `Emerging`, `Developing`, `Proficient (Target Credit)`, and `Mastery`, and **7 StreetPaws Badges (`STREETPAWS_GAMIFICATION_BADGES`)**.
+- **Interactive Simulator & Gamification (`prototypes/DonPBL/ui/components/StreetPawsSimulator.tsx` & `engine.ts`):**
+  - Added `simulateStreetPawsApp` in `engine.ts` and `StreetPawsSimulator.tsx` featuring an interactive 4-Pillar Mobile App Preview & Week 6 Thai Baht (THB) Impact Budget Lab, 12-Week ESL Curriculum & Persona Problem Statement Builder, 8-Slide Deck & 4-Speaker Fill-in-the-Blank ESL Pitch Script Generator, and 6-Competency MTC Rubric & 7 Badges.
+
 ### [2026-10-21] - Added "Project Voyager: 3D-Printed RC Truck & Solar Charging Bay" PBL (12 Weeks / 120 Hours)
 - **Program Curriculum (`prototypes/DonPBL/voyagerProgram.ts`):**
   - Added `VOYAGER_PROGRAM` (`id: 'project-voyager-rc-solar-2026'`), a 12-week, 120-hour, 24-session curriculum structured across all 7 Design Thinking phases (`explore` [1, 1], `empathise` [2, 2], `define` [3, 4], `ideate` [5, 6], `prototype` [7, 9], `test` [10, 11], `share` [12, 12]).
