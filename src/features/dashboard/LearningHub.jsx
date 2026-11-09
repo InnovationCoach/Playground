@@ -15,6 +15,7 @@ import { loadDashboardCourses } from './dashboardCourses.js';
 import { SessionGauge, UnavailableDial, StepMeter, Spark } from './Instruments.jsx';
 import { phaseMilestones, phaseStages, goalSteps, gaugeReading } from './instrumentModel.js';
 import { COMPETENCY_DOMAINS } from '../pbl/content/competencies.js';
+import { providerStatus } from '../edmentum/providerState.js';
 import './learningHub.css';
 
 /** One account-scoped read shared by the plan and progress slides. */
@@ -52,16 +53,16 @@ const EXAMPLES = [
   { id: 'maths', title: 'Patterns everywhere', subject: 'Mathematics', lesson: 'Find a pattern', prompt: 'Find a repeating pattern around you. Sketch its next three steps and explain your rule.' }
 ];
 
-function AcademicLearning() {
+function AcademicLearning({ status = providerStatus(undefined) }) {
   const [examples, setExamples] = useState(false), [sample, setSample] = useState(null);
   return <div className="sd-academic">
     <div className="sd-empty ig-plate ig-plate-quiet">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-        <span className="ig-status-pill"><Unplug size={14} aria-hidden="true" /> Not connected</span>
+        <span className="ig-status-pill" data-state={status.state}><Unplug size={14} aria-hidden="true" /> {status.label}</span>
         <span style={{ fontSize: '11px', color: 'var(--sp-sky-text)', fontWeight: 650 }}>Edmentum</span>
       </div>
       <h4>School courses</h4>
-      <p>Your school courses will show up here once your school connects them.</p>
+      <p>{status.detail}</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
         <a className="sd-link" href={hrefFor.courses()}>Open My Courses <ArrowRight size={16} /></a>
       </div>
@@ -99,7 +100,7 @@ function AcademicLearning() {
  * three things close: real progress they can see (Your sky), what they're good at,
  * and a choice when a step feels too big. Everything here comes from their records.
  */
-export function DailyLearningSlide({ data, model, plan, project, firstName, onToggle, goalsLoaded, goalSync, onOpenActivity, joinPanel = null }) {
+export function DailyLearningSlide({ data, model, plan, project, firstName, onToggle, goalsLoaded, goalSync, onOpenActivity, joinPanel = null, edmentumStatus }) {
   const [chosenId, setChosenId] = useState(null);
   const [justDone, setJustDone] = useState(false);
   const open = model.today.filter((item) => !model.ticked.has(item.id));
@@ -146,12 +147,12 @@ export function DailyLearningSlide({ data, model, plan, project, firstName, onTo
     {joinPanel}
     <details className="lh-full-plan">
       <summary>See my whole plan</summary>
-      <FullPlan data={data} model={model} plan={plan} onToggle={onToggle} goalsLoaded={goalsLoaded} goalSync={goalSync} onOpenActivity={onOpenActivity} />
+      <FullPlan data={data} model={model} plan={plan} onToggle={onToggle} goalsLoaded={goalsLoaded} goalSync={goalSync} onOpenActivity={onOpenActivity} edmentumStatus={edmentumStatus} />
     </details>
   </>;
 }
 
-function FullPlan({ data, model, plan, onToggle, goalsLoaded, goalSync, onOpenActivity }) {
+function FullPlan({ data, model, plan, onToggle, goalsLoaded, goalSync, onOpenActivity, edmentumStatus }) {
   const [period, setPeriod] = useState('today');
   const { active: activeGoals, completed: achievedGoals } = splitGoals(plan);
   const completedTasks = plan.goals.flatMap((goal) => goal.steps.filter((s) => s.done).map((step) => ({ ...step, goal: goal.explore })));
@@ -236,7 +237,7 @@ function FullPlan({ data, model, plan, onToggle, goalsLoaded, goalSync, onOpenAc
     <div className="sd-learning-columns lh-columns">
       <section className="sd-learning-lane">
         <h3 id="lh-academic-title">School courses</h3>
-        <AcademicLearning />
+        <AcademicLearning status={edmentumStatus} />
       </section>
 
       <section className="sd-learning-lane">
