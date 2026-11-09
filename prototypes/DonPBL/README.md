@@ -13,16 +13,17 @@ This directory contains the isolated Project-Based Learning (PBL) prototype buil
 
 Key architectural properties:
 - **100% Isolated inside `prototypes/DonPBL/`**: No root configuration (`package.json`, `vite.config.*`, `firestore.rules`, `firebase.json`), `src/`, `server/`, `scripts/`, or GitHub workflows are modified.
-- **9 Complete 12-Week (120-Hour) PBL Programs + 1 Explicit Stub**:
-  1. `project-vital-flow-2026` — **Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics** (12 Weeks / 120h • 24 Sessions)
-  2. `kinetic-smart-energy-2026` — **Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting** (12 Weeks / 120h • 24 Sessions)
-  3. `interstellar-ark-horizon-2026` — **Project Exodus: Building Our New Home in Space** (12 Weeks / 120h • 24 Sessions)
-  4. `entrepreneurship-product-creation-2026` — **Entrepreneurship: Creating a Product** (12 Weeks / 120h • 18 Sessions)
-  5. `storytelling-genesis-2026` — **Project "Genesis Engine": Build Your Own Movie Universe!** (12 Weeks / 120h • 24 Sessions)
-  6. `passion-project-blueprint-2026` — **The Passion Project Blueprint: Discovering Your Next Big Idea** (12 Weeks / 120h • 24 Sessions)
-  7. `biomechanics-robotics-2026` — **Quantitative Biomechanics & Bio-Inspired Robotics** (12 Weeks / 120h • 24 Sessions)
-  8. `hex-city-thailand-2026` — **Hex-City Thailand: Modular Resilient Floating City** (12 Weeks / 120h • 24 Sessions)
-  9. `ecocool-smart-garden-2026` — **EcoCool: Smart Urban Heat & Community Garden Monitor** (12 Weeks / 120h • 24 Sessions)
+- **10 Complete 12-Week (120-Hour) PBL Programs + 1 Explicit Stub**:
+  1. `project-voyager-rc-solar-2026` — **Project Voyager: 3D-Printed RC Truck & Solar Charging Bay** (12 Weeks / 120h • 24 Sessions)
+  2. `project-vital-flow-2026` — **Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics** (12 Weeks / 120h • 24 Sessions)
+  3. `kinetic-smart-energy-2026` — **Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting** (12 Weeks / 120h • 24 Sessions)
+  4. `interstellar-ark-horizon-2026` — **Project Exodus: Building Our New Home in Space** (12 Weeks / 120h • 24 Sessions)
+  5. `entrepreneurship-product-creation-2026` — **Entrepreneurship: Creating a Product** (12 Weeks / 120h • 18 Sessions)
+  6. `storytelling-genesis-2026` — **Project "Genesis Engine": Build Your Own Movie Universe!** (12 Weeks / 120h • 24 Sessions)
+  7. `passion-project-blueprint-2026` — **The Passion Project Blueprint: Discovering Your Next Big Idea** (12 Weeks / 120h • 24 Sessions)
+  8. `biomechanics-robotics-2026` — **Quantitative Biomechanics & Bio-Inspired Robotics** (12 Weeks / 120h • 24 Sessions)
+  9. `hex-city-thailand-2026` — **Hex-City Thailand: Modular Resilient Floating City** (12 Weeks / 120h • 24 Sessions)
+  10. `ecocool-smart-garden-2026` — **EcoCool: Smart Urban Heat & Community Garden Monitor** (12 Weeks / 120h • 24 Sessions)
   - *Stub Program (excluded from `PROGRAM_REGISTRY` and `PROGRAM_LIST` until dedicated sessions are authored)*: `cleanstream-stormwater-2026` (`status: 'stub'`, `totalSessions: 0`, `phases: []`).
 - **Offline Persistence (`prototypes/DonPBL/store.ts`)**:
   - Keys student projects by `(uid, pbl-<programId>)` so learners across different programs never overwrite each other's documents.
@@ -76,9 +77,9 @@ What `checks.mjs` verifies:
 4. `engine.validateAndAddEvidence`: rejects missing title, invalid phase, unsafe link, and `ai` items missing `asked` or `kept`; accepts valid items; returns a new project object without mutating its input.
 5. `engine.getPhaseProgress` and `engine.getCompetencyCoverage` on fixtures.
 6. `engine.calculateUnitEconomics`: verifies hand-computed cases, zero units, and zero price overrides without ever returning `NaN` or `Infinity`.
-7. `engine.simulateMarketStep`, `engine.simulateArkBiosphere`, `engine.simulateKineticHarvesting`, and `engine.simulateVitalFlowCirculation`: verifies determinism for a given input and supports an injectable random number generator (`rng`).
-8. `PROGRAM_REGISTRY` keys equal each program's `id`, `PROGRAM_LIST` has the exact same 9 IDs in order, and `CLEAN_STREAM_PROGRAM` is marked `status: 'stub'` and excluded from `PROGRAM_REGISTRY`.
-9. Every program has all 7 phases (`explore`, `empathise`, `define`, `ideate`, `prototype`, `test`, `share`) in order, with non-overlapping weeks within `durationWeeks: 12`, and session counts summing to `totalSessions` (18 for Entrepreneurship; 24 for the other 8 programs).
+7. `engine.simulateMarketStep`, `engine.simulateArkBiosphere`, `engine.simulateKineticHarvesting`, `engine.simulateVitalFlowCirculation`, and `engine.simulateVoyagerRcSolar`: verifies determinism for a given input and supports an injectable random number generator (`rng`).
+8. `PROGRAM_REGISTRY` keys equal each program's `id`, `PROGRAM_LIST` has the exact same 10 IDs in order, and `CLEAN_STREAM_PROGRAM` is marked `status: 'stub'` and excluded from `PROGRAM_REGISTRY`.
+9. Every program has all 7 phases (`explore`, `empathise`, `define`, `ideate`, `prototype`, `test`, `share`) in order, with non-overlapping weeks within `durationWeeks: 12`, and session counts summing to `totalSessions` (18 for Entrepreneurship; 24 for the other 9 programs).
 10. Every competency ID referenced by any program or fixture exists in the 85 school competencies (`CORE_COMPETENCIES` in `mockFixtures.ts`, verbatim from `src/features/pbl/content/competencies.js`).
 11. Every program and fixture is strictly JSON-serialisable (`JSON.parse(JSON.stringify(p))` deep-equals `p`) for Firestore storage.
 12. All config and assumption `confirmation` objects follow the structured `ConfirmationRecord` schema, and `COPILOT_DEPLOYMENT_CONFIG.status` is `'not_deployed'`.
@@ -112,10 +113,11 @@ Because no external citation record with person, ISO date, and message source is
 
 ---
 
-## 5. Complete 9-Program Catalog Summary
+## 5. Complete 10-Program Catalog Summary
 
 | Program ID | Title | Duration | Contact Hours | Total Sessions | Phase Week Ranges |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| `project-voyager-rc-solar-2026` | Project Voyager: 3D-Printed RC Truck & Solar Charging Bay | 12 Weeks | 120h | **24 Sessions** | `[1,1], [2,2], [3,4], [5,6], [7,9], [10,11], [12,12]` |
 | `project-vital-flow-2026` | Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics | 12 Weeks | 120h | **24 Sessions** | `[1,1], [2,2], [3,4], [5,6], [7,9], [10,11], [12,12]` |
 | `kinetic-smart-energy-2026` | Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting | 12 Weeks | 120h | **24 Sessions** | `[1,1], [2,2], [3,4], [5,6], [7,9], [10,11], [12,12]` |
 | `interstellar-ark-horizon-2026` | Project Exodus: Building Our New Home in Space | 12 Weeks | 120h | **24 Sessions** | `[1,1], [2,2], [3,4], [5,6], [7,8], [9,10], [11,12]` |

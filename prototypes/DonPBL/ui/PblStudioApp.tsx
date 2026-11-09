@@ -18,6 +18,7 @@ import { EntrepreneurshipSimulator } from './components/EntrepreneurshipSimulato
 import { InterstellarArkSimulator } from './components/InterstellarArkSimulator';
 import { KineticEnergySimulator } from './components/KineticEnergySimulator';
 import { VitalFlowSimulator } from './components/VitalFlowSimulator';
+import { VoyagerSimulator } from './components/VoyagerSimulator';
 import { AiCopilotModal } from './components/AiCopilotModal';
 import { EvidenceModal } from './components/EvidenceModal';
 import { IntegrationDrawer } from './components/IntegrationDrawer';
@@ -64,6 +65,7 @@ export default function App() {
   const [isArkSimulatorOpen, setIsArkSimulatorOpen] = useState(false);
   const [isKineticSimulatorOpen, setIsKineticSimulatorOpen] = useState(false);
   const [isVitalFlowSimulatorOpen, setIsVitalFlowSimulatorOpen] = useState(false);
+  const [isVoyagerSimulatorOpen, setIsVoyagerSimulatorOpen] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [evidenceModalPhase, setEvidenceModalPhase] = useState<string>('prototype');
@@ -175,6 +177,7 @@ export default function App() {
         onOpenArkSimulator={() => setIsArkSimulatorOpen(true)}
         onOpenKineticSimulator={() => setIsKineticSimulatorOpen(true)}
         onOpenVitalFlowSimulator={() => setIsVitalFlowSimulatorOpen(true)}
+        onOpenVoyagerSimulator={() => setIsVoyagerSimulatorOpen(true)}
         onOpenCopilot={() => handleOpenCopilot()}
         onOpenIntegration={() => setIsIntegrationDrawerOpen(true)}
         onOpenAssumptions={() => setIsIntegrationDrawerOpen(true)}
@@ -355,6 +358,24 @@ export default function App() {
             handleUpdateProject(res.updatedProject);
           }
           setIsVitalFlowSimulatorOpen(false);
+        }}
+      />
+
+      <VoyagerSimulator
+        isOpen={isVoyagerSimulatorOpen}
+        onClose={() => setIsVoyagerSimulatorOpen(false)}
+        onSaveToPortfolio={(title, summary) => {
+          const res = validateAndAddEvidence(activeProject, {
+            title,
+            phase: 'test',
+            kind: 'data',
+            body: summary,
+            competencies: ['ctps-05', 'ct-01', 'ent-01', 'ec-05', 'sea-01']
+          });
+          if (res.success && res.updatedProject) {
+            handleUpdateProject(res.updatedProject);
+          }
+          setIsVoyagerSimulatorOpen(false);
         }}
       />
 

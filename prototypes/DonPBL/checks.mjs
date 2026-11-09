@@ -508,6 +508,67 @@ async function main() {
         assert.ok(Number.isFinite(val), `Expected finite number from simulateVitalFlowCirculation, got ${val}`);
       }
     }
+
+    // Also test simulateVoyagerRcSolar deterministic 3D-printed RC Truck Shell & Solar Charging Bay math
+    const { simulateVoyagerRcSolar } = pbl;
+    const optimalVoyager = simulateVoyagerRcSolar({
+      truckLengthMm: 310,
+      truckWidthMm: 165,
+      shellWallThicknessMm: 2.8,
+      wheelArchClearanceMm: 12,
+      infillPct: 18,
+      wallLoops: 3,
+      batteryType: 'li_ion_2s_2000mah',
+      solarPanelWatts: 20,
+      solarRoofAngleDeg: 22,
+      bayExtraClearanceCm: 5,
+      totalBudgetTHB: 2400
+    });
+    const brittleVoyager = simulateVoyagerRcSolar({
+      truckLengthMm: 310,
+      truckWidthMm: 165,
+      shellWallThicknessMm: 1.5,
+      wheelArchClearanceMm: 4,
+      infillPct: 10,
+      wallLoops: 2,
+      batteryType: 'lipo_2s_2200mah',
+      solarPanelWatts: 10,
+      solarRoofAngleDeg: 5,
+      bayExtraClearanceCm: 2,
+      totalBudgetTHB: 3800
+    });
+    assert.equal(optimalVoyager.wallThicknessStatus, 'optimal_2.5_to_3mm');
+    assert.equal(optimalVoyager.printBedSections, 2);
+    assert.equal(optimalVoyager.wheelsRubFree, true);
+    assert.equal(optimalVoyager.bayClearanceSafe, true);
+    assert.equal(optimalVoyager.angleOptimal, true);
+    assert.equal(optimalVoyager.withinThbBudget, true);
+    assert.equal(optimalVoyager.designReviewReady, true);
+    assert.equal(brittleVoyager.wallThicknessStatus, 'too_thin_cracks');
+    assert.equal(brittleVoyager.wheelsRubFree, false);
+    assert.equal(brittleVoyager.bayClearanceSafe, false);
+    assert.equal(brittleVoyager.angleOptimal, false);
+    assert.equal(brittleVoyager.withinThbBudget, false);
+    assert.equal(brittleVoyager.designReviewReady, false);
+
+    const badVoyager = simulateVoyagerRcSolar({
+      truckLengthMm: Number.NaN,
+      truckWidthMm: Number.POSITIVE_INFINITY,
+      shellWallThicknessMm: Number.NaN,
+      wheelArchClearanceMm: -5,
+      infillPct: 200,
+      wallLoops: -1,
+      batteryType: 'li_ion_2s_2000mah',
+      solarPanelWatts: -10,
+      solarRoofAngleDeg: 90,
+      bayExtraClearanceCm: -3,
+      totalBudgetTHB: 5000
+    });
+    for (const val of Object.values(badVoyager)) {
+      if (typeof val === 'number') {
+        assert.ok(Number.isFinite(val), `Expected finite number from simulateVoyagerRcSolar, got ${val}`);
+      }
+    }
   });
 
   // 8. Test PROGRAM_REGISTRY and PROGRAM_LIST alignment
@@ -531,6 +592,12 @@ async function main() {
       VITAL_FLOW_DELIVERABLES,
       VITAL_FLOW_WELEARN_SKILLS_TABLE,
       VITAL_FLOW_GAMIFICATION_BADGES,
+      VOYAGER_TEAM_ROLES,
+      VOYAGER_12_WEEK_SCHEDULE,
+      VOYAGER_ACTIVITY_GUIDES,
+      VOYAGER_WELEARN_MTC_RUBRIC,
+      VOYAGER_MTC_REFLECTION_QUESTIONS,
+      VOYAGER_GAMIFICATION_BADGES,
       BIOMIMETIC_TRACKS,
       BIOMECHANICS_60_DAY_SCHEDULE,
       BIOMECHANICS_OLDER_STUDENT_PILLARS,
@@ -545,7 +612,20 @@ async function main() {
       GENESIS_GAMIFICATION_BADGES
     } = pbl;
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
-    assert.equal(registryKeys.length, 9, 'Expected 9 complete programs in PROGRAM_REGISTRY');
+    assert.equal(registryKeys.length, 10, 'Expected 10 complete programs in PROGRAM_REGISTRY');
+    assert.ok('project-voyager-rc-solar-2026' in PROGRAM_REGISTRY, 'project-voyager-rc-solar-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['project-voyager-rc-solar-2026'].title,
+      'Project Voyager: 3D-Printed RC Truck & Solar Charging Bay',
+      'Expected Project Voyager: 3D-Printed RC Truck & Solar Charging Bay title'
+    );
+    assert.equal(VOYAGER_TEAM_ROLES.length, 5, 'Expected 5 ESL-Friendly Team Roles for Project Voyager');
+    assert.equal(VOYAGER_12_WEEK_SCHEDULE.length, 12, 'Expected 12 weeks in VOYAGER_12_WEEK_SCHEDULE');
+    assert.equal(VOYAGER_ACTIVITY_GUIDES.length, 7, 'Expected 7 activity guides (Guide A 1–4 + Guide B 1–3) in VOYAGER_ACTIVITY_GUIDES');
+    assert.equal(VOYAGER_WELEARN_MTC_RUBRIC.length, 7, 'Expected 7 WeLearn/MTC competencies in VOYAGER_WELEARN_MTC_RUBRIC');
+    assert.equal(VOYAGER_MTC_REFLECTION_QUESTIONS.length, 12, 'Expected 12 Final MTC Portfolio Reflection Questions');
+    assert.equal(VOYAGER_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Project Voyager');
+
     assert.ok('storytelling-genesis-2026' in PROGRAM_REGISTRY, 'storytelling-genesis-2026 must be registered');
     assert.equal(
       PROGRAM_REGISTRY['storytelling-genesis-2026'].title,

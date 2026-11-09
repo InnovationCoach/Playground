@@ -129,6 +129,23 @@ import type {
   VitalFlowSkillPracticeItem,
   VitalFlowGamificationBadge
 } from './vitalFlowProgram';
+import {
+  VOYAGER_PROGRAM,
+  VOYAGER_TEAM_ROLES,
+  VOYAGER_12_WEEK_SCHEDULE,
+  VOYAGER_ACTIVITY_GUIDES,
+  VOYAGER_WELEARN_MTC_RUBRIC,
+  VOYAGER_MTC_REFLECTION_QUESTIONS,
+  VOYAGER_GAMIFICATION_BADGES
+} from './voyagerProgram';
+import type {
+  VoyagerTeamRole,
+  VoyagerWeekDeliverable,
+  VoyagerActivityGuideStep,
+  VoyagerWeLearnCompetencyRubric,
+  VoyagerMtcReflectionQuestion,
+  VoyagerGamificationBadge
+} from './voyagerProgram';
 
 export { 
   SCHOOL_SCHEDULE_CONFIG, 
@@ -251,6 +268,24 @@ export type {
   VitalFlowGamificationBadge
 };
 
+export {
+  VOYAGER_PROGRAM,
+  VOYAGER_TEAM_ROLES,
+  VOYAGER_12_WEEK_SCHEDULE,
+  VOYAGER_ACTIVITY_GUIDES,
+  VOYAGER_WELEARN_MTC_RUBRIC,
+  VOYAGER_MTC_REFLECTION_QUESTIONS,
+  VOYAGER_GAMIFICATION_BADGES
+};
+export type {
+  VoyagerTeamRole,
+  VoyagerWeekDeliverable,
+  VoyagerActivityGuideStep,
+  VoyagerWeLearnCompetencyRubric,
+  VoyagerMtcReflectionQuestion,
+  VoyagerGamificationBadge
+};
+
 /**
  * Stub program kept outside PROGRAM_REGISTRY and PROGRAM_LIST until dedicated
  * stormwater sessions are authored.
@@ -340,6 +375,7 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
 };
 
 export const PROGRAM_REGISTRY: Record<string, PblProgram> = {
+  'project-voyager-rc-solar-2026': VOYAGER_PROGRAM,
   'project-vital-flow-2026': VITAL_FLOW_PROGRAM,
   'kinetic-smart-energy-2026': KINETIC_ENERGY_PROGRAM,
   'interstellar-ark-horizon-2026': INTERSTELLAR_ARK_PROGRAM,

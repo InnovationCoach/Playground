@@ -30,6 +30,7 @@ interface HeaderProps {
   onOpenArkSimulator?: () => void;
   onOpenKineticSimulator?: () => void;
   onOpenVitalFlowSimulator?: () => void;
+  onOpenVoyagerSimulator?: () => void;
   onOpenCopilot: () => void;
   onOpenIntegration: () => void;
   onOpenAssumptions: () => void;
@@ -56,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenArkSimulator,
   onOpenKineticSimulator,
   onOpenVitalFlowSimulator,
+  onOpenVoyagerSimulator,
   onOpenCopilot,
   onOpenIntegration,
   onOpenAssumptions,
@@ -156,7 +158,16 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Action Controls & Role Switcher */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Quick interactive tools */}
-          {activeProgramId === 'project-vital-flow-2026' ? (
+          {activeProgramId === 'project-voyager-rc-solar-2026' ? (
+            <button
+              onClick={onOpenVoyagerSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-sky-700 hover:bg-sky-800 rounded-md transition-colors shadow-2xs"
+              title="Open Project Voyager Simulator: 3D-Printed RC Truck Shell, Solar Charging Bay, 5 Roles & WeLearn/MTC Rubric"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Voyager 3D RC Truck &amp; Solar Bay Lab
+            </button>
+          ) : activeProgramId === 'project-vital-flow-2026' ? (
             <button
               onClick={onOpenVitalFlowSimulator}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 rounded-md transition-colors shadow-2xs"

@@ -72,7 +72,14 @@ export {
   VITAL_FLOW_VASCULAR_PATHWAYS,
   VITAL_FLOW_DELIVERABLES,
   VITAL_FLOW_WELEARN_SKILLS_TABLE,
-  VITAL_FLOW_GAMIFICATION_BADGES
+  VITAL_FLOW_GAMIFICATION_BADGES,
+  VOYAGER_PROGRAM,
+  VOYAGER_TEAM_ROLES,
+  VOYAGER_12_WEEK_SCHEDULE,
+  VOYAGER_ACTIVITY_GUIDES,
+  VOYAGER_WELEARN_MTC_RUBRIC,
+  VOYAGER_MTC_REFLECTION_QUESTIONS,
+  VOYAGER_GAMIFICATION_BADGES
 } from '../programRegistry';
 
 export type {
@@ -111,7 +118,13 @@ export type {
   VitalFlowVascularZone,
   VitalFlowDeliverableSpec,
   VitalFlowSkillPracticeItem,
-  VitalFlowGamificationBadge
+  VitalFlowGamificationBadge,
+  VoyagerTeamRole,
+  VoyagerWeekDeliverable,
+  VoyagerActivityGuideStep,
+  VoyagerWeLearnCompetencyRubric,
+  VoyagerMtcReflectionQuestion,
+  VoyagerGamificationBadge
 } from '../programRegistry';
 
 export {
@@ -149,7 +162,8 @@ export {
   simulateMarketStep,
   simulateArkBiosphere,
   simulateKineticHarvesting,
-  simulateVitalFlowCirculation
+  simulateVitalFlowCirculation,
+  simulateVoyagerRcSolar
 } from '../engine';
 
 export type {

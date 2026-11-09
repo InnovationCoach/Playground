@@ -760,5 +760,118 @@ export function simulateVitalFlowCirculation(params: {
   };
 }
 
+/**
+ * Pure deterministic calculator for Project Voyager: 3D-Printed RC Truck & Solar Charging Bay.
+ * Models:
+ * - Guide A (Voyager RC Truck Body/Shell):
+ *   - "Box-Fit" & "No-Go Zones" wheel clearance (needs >= 8mm so tires don't rub when turning/bouncing)
+ *   - CAD Shelling wall thickness (optimal 2.5mm to 3.0mm: <2.5mm cracks over bumps; >3.0mm is too heavy for the motor)
+ *   - 3D Printer bed split check (>220mm length splits into 2–3 parts: Front Hood, Middle Cab, Back Bed)
+ *   - Filament mass & print time based on 15%–20% infill and 3 wall loops
+ * - Guide B (Solar Charging Bay) & Electrical System:
+ *   - Bay parking clearance (needs >= 5cm extra space on all sides of the completed truck)
+ *   - Solar roof tilt angle (optimal 15° to 30° toward the sun)
+ *   - Battery chemistry (Li-ion vs. LiPo), driving runtime (mins), solar recharge time (mins), and THB budget compliance
+ */
+export function simulateVoyagerRcSolar(params: {
+  truckLengthMm: number;
+  truckWidthMm: number;
+  shellWallThicknessMm: number;
+  wheelArchClearanceMm: number;
+  infillPct: number;
+  wallLoops: number;
+  batteryType: 'li_ion_2s_2000mah' | 'lipo_2s_2200mah';
+  solarPanelWatts: number;
+  solarRoofAngleDeg: number;
+  bayExtraClearanceCm: number;
+  totalBudgetTHB: number;
+}) {
+  const lengthMm = Number.isFinite(params.truckLengthMm) ? Math.max(150, Math.min(480, params.truckLengthMm)) : 310;
+  const widthMm = Number.isFinite(params.truckWidthMm) ? Math.max(100, Math.min(280, params.truckWidthMm)) : 165;
+  const wallMm = Number.isFinite(params.shellWallThicknessMm) ? Math.max(1.0, Math.min(6.0, params.shellWallThicknessMm)) : 2.8;
+  const wheelClearanceMm = Number.isFinite(params.wheelArchClearanceMm) ? Math.max(0, Math.min(30, params.wheelArchClearanceMm)) : 12;
+  const infill = Number.isFinite(params.infillPct) ? Math.max(5, Math.min(60, Math.round(params.infillPct))) : 18;
+  const loops = Number.isFinite(params.wallLoops) ? Math.max(1, Math.min(6, Math.round(params.wallLoops))) : 3;
+  const panelWatts = Number.isFinite(params.solarPanelWatts) ? Math.max(5, Math.min(60, params.solarPanelWatts)) : 20;
+  const roofAngle = Number.isFinite(params.solarRoofAngleDeg) ? Math.max(0, Math.min(60, params.solarRoofAngleDeg)) : 22;
+  const bayClearanceCm = Number.isFinite(params.bayExtraClearanceCm) ? Math.max(0, Math.min(20, params.bayExtraClearanceCm)) : 5;
+  const budgetTHB = Number.isFinite(params.totalBudgetTHB) ? Math.max(0, Math.round(params.totalBudgetTHB)) : 2400;
+
+  // Guide A Step 4: Wall thickness check (2.5mm to 3.0mm optimal)
+  const wallThicknessStatus: 'optimal_2.5_to_3mm' | 'too_thin_cracks' | 'too_thick_heavy' =
+    wallMm < 2.5 ? 'too_thin_cracks' : wallMm > 3.0 ? 'too_thick_heavy' : 'optimal_2.5_to_3mm';
+
+  // Guide A Step 5: Split for 220mm x 220mm printer bed
+  const printBedSections = lengthMm > 330 ? 3 : lengthMm > 220 ? 2 : 1;
+
+  // Shell mass in grams and 3D print time in hours
+  const shellMassGrams = Math.round(
+    (lengthMm * widthMm * 0.0022) * (wallMm / 2.75) * (0.75 + (infill / 100) * 0.8 + loops * 0.08)
+  );
+  const estimatedPrintHours = Math.round((shellMassGrams / 28) * 10) / 10;
+
+  // No-Go Zone tire rub check (needs >= 8mm arch clearance)
+  const wheelsRubFree = wheelClearanceMm >= 8;
+
+  // Guide B Step 1: Bay clearance check (>= 5cm on all sides)
+  const bayClearanceSafe = bayClearanceCm >= 5;
+  const bayInteriorWidthCm = Math.round((widthMm / 10 + bayClearanceCm * 2) * 10) / 10;
+  const bayInteriorLengthCm = Math.round((lengthMm / 10 + bayClearanceCm * 2) * 10) / 10;
+
+  // Guide B Step 2: Solar roof tilt angle efficiency (optimal 15° to 30°)
+  const angleOptimal = roofAngle >= 15 && roofAngle <= 30;
+  const angleDeviation = roofAngle < 15 ? 15 - roofAngle : roofAngle > 30 ? roofAngle - 30 : 0;
+  const solarAngleEfficiencyPct = Math.max(55, Math.round(96 - angleDeviation * 1.2));
+  const effectiveSolarChargeWatts = Math.round(panelWatts * (solarAngleEfficiencyPct / 100) * 0.82 * 10) / 10;
+
+  // Battery capacity Wh (7.4V * 2.0Ah = 14.8Wh for Li-ion; 7.4V * 2.2Ah = 16.28Wh for LiPo)
+  const batteryCapacityWh = params.batteryType === 'li_ion_2s_2000mah' ? 14.8 : 16.28;
+  // Motor power draw increases if shell is heavy (>3.0mm wall) or wheels rub
+  const massPenaltyFactor = 1 + Math.max(0, (shellMassGrams - 240) * 0.0015) + (wheelsRubFree ? 0 : 0.25);
+  const avgMotorDrawWatts = Math.round(18 * massPenaltyFactor * 10) / 10;
+
+  const drivingRuntimeMinutes = avgMotorDrawWatts > 0
+    ? Math.round((batteryCapacityWh / avgMotorDrawWatts) * 60 * 10) / 10
+    : 0;
+  const solarChargeTimeMinutes = effectiveSolarChargeWatts > 0
+    ? Math.round(((batteryCapacityWh * 1.1) / effectiveSolarChargeWatts) * 60 * 10) / 10
+    : 999;
+
+  // Track test lap time (seconds)
+  const trackLapTimeSeconds = Math.round((24.0 * massPenaltyFactor + (wallThicknessStatus === 'too_thin_cracks' ? 4.5 : 0)) * 10) / 10;
+
+  const withinThbBudget = budgetTHB <= 3000;
+  const designReviewReady =
+    wallThicknessStatus === 'optimal_2.5_to_3mm' &&
+    wheelsRubFree &&
+    bayClearanceSafe &&
+    angleOptimal &&
+    infill >= 15 &&
+    loops >= 3 &&
+    withinThbBudget;
+
+  return {
+    wallThicknessStatus,
+    printBedSections,
+    shellMassGrams,
+    estimatedPrintHours,
+    wheelsRubFree,
+    bayClearanceSafe,
+    bayInteriorWidthCm,
+    bayInteriorLengthCm,
+    angleOptimal,
+    solarAngleEfficiencyPct,
+    effectiveSolarChargeWatts,
+    batteryCapacityWh,
+    avgMotorDrawWatts,
+    drivingRuntimeMinutes,
+    solarChargeTimeMinutes,
+    trackLapTimeSeconds,
+    withinThbBudget,
+    designReviewReady
+  };
+}
+
+
 
 
