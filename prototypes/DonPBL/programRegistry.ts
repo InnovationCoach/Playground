@@ -2,14 +2,18 @@
  * Program Registry for WeLearn PBL Studio
  * Location: prototypes/DonPBL/programRegistry.ts
  * 
- * Complete 7-program catalog (all fitting a 12-week, 120-hour term):
- * - Program 1: Project Exodus: Building Our New Home in Space (12 Weeks / 120h • 24 Sessions)
- * - Program 2: Entrepreneurship: Product Creation (12 Weeks / 120h • 18 Sessions)
- * - Program 3: Project Genesis Engine: Storytelling IP (12 Weeks / 120h • 24 Sessions)
- * - Program 4: The Passion Project Blueprint (12 Weeks / 120h • 24 Sessions)
- * - Program 5: Quantitative Biomechanics & Bio-Inspired Robotics (12 Weeks / 120h • 24 Sessions)
- * - Program 6: Hex-City Thailand: Modular Resilient Floating City (12 Weeks / 120h • 24 Sessions)
- * - Program 7: EcoCool: Smart Urban Heat & Community Garden Monitor (12 Weeks / 120h • 24 Sessions)
+ * Complete 11-program catalog (all fitting a 12-week, 120-hour term):
+ * - Program 1: StreetPaws — The Community Animal Rescue App (12 Weeks / 120h • 24 Sessions)
+ * - Program 2: Project Voyager: 3D-Printed RC Truck & Solar Charging Bay (12 Weeks / 120h • 24 Sessions)
+ * - Program 3: Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics (12 Weeks / 120h • 24 Sessions)
+ * - Program 4: Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting (12 Weeks / 120h • 24 Sessions)
+ * - Program 5: Project Exodus: Building Our New Home in Space (12 Weeks / 120h • 24 Sessions)
+ * - Program 6: Entrepreneurship: Creating a Product (12 Weeks / 120h • 18 Sessions)
+ * - Program 7: Project "Genesis Engine": Build Your Own Movie Universe! (12 Weeks / 120h • 24 Sessions)
+ * - Program 8: The Passion Project Blueprint: Discovering Your Next Big Idea (12 Weeks / 120h • 24 Sessions)
+ * - Program 9: Quantitative Biomechanics & Bio-Inspired Robotics (12 Weeks / 120h • 24 Sessions)
+ * - Program 10: Hex-City Thailand: Modular Resilient Floating City (12 Weeks / 120h • 24 Sessions)
+ * - Program 11: EcoCool: Smart Urban Heat & Community Garden Monitor (12 Weeks / 120h • 24 Sessions)
  * 
  * Stub Program (excluded from PROGRAM_REGISTRY and PROGRAM_LIST until phases are authored):
  * - CleanStream: Smart Urban Stormwater & Micro-Filter Sentinel (status: 'stub')

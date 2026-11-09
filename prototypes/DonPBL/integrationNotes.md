@@ -12,14 +12,14 @@ The existing PBL Studio (`src/features/pbl/PblStudio.jsx`) defines a framework f
 2. The coach portfolio review and competency scoring view is not yet wired in.
 3. `POST /api/pbl-copilot` is not deployed (`status: 'not_deployed'`), and production deploys are frozen.
 
-This prototype provides 6 complete, JSON-serialisable 12-week (120-hour) programs, a pure validation and readiness engine (`engine.ts`), an offline storage adapter (`store.ts`) matching the Firestore document model, and a self-contained demo (`demo/vite.config.mjs` on port `5180`).
+This prototype provides 11 complete, JSON-serialisable 12-week (120-hour) programs, a pure validation and readiness engine (`engine.ts`), an offline storage adapter (`store.ts`) matching the Firestore document model, and a self-contained demo (`demo/vite.config.mjs` on port `5180`).
 
 ---
 
 ## 2. File-by-File Integration Mapping
 
 ### A. Program Catalog (`prototypes/DonPBL/programRegistry.ts` → `src/features/pbl/content/pblModel.js`)
-- `PROGRAM_REGISTRY` exports 6 complete 12-week programs (each with all 7 phases in order, non-overlapping weeks within `1..12`, session counts summing to `totalSessions`, and valid competency IDs from the 85 school competencies in `src/features/pbl/content/competencies.js`).
+- `PROGRAM_REGISTRY` exports 11 complete 12-week programs (`streetpaws-animal-rescue-2026`, `project-voyager-rc-solar-2026`, `project-vital-flow-2026`, `kinetic-smart-energy-2026`, `interstellar-ark-horizon-2026`, `entrepreneurship-product-creation-2026`, `storytelling-genesis-2026`, `passion-project-blueprint-2026`, `biomechanics-robotics-2026`, `hex-city-thailand-2026`, and `ecocool-smart-garden-2026`), each with all 7 phases in order, non-overlapping weeks within `1..12`, session counts summing to `totalSessions`, and valid competency IDs from the 85 school competencies in `src/features/pbl/content/competencies.js`.
 - Every program passes `JSON.parse(JSON.stringify(p))` deep-equality so programs can be stored directly as Firestore documents during migration.
 - `CLEAN_STREAM_PROGRAM` is explicitly marked `status: 'stub'` (`phases: []`, `totalSessions: 0`) and excluded from `PROGRAM_REGISTRY` and `PROGRAM_LIST` until its dedicated sessions are authored.
 
@@ -32,7 +32,7 @@ This prototype provides 6 complete, JSON-serialisable 12-week (120-hour) program
 - `safeLink(url)`: Rejects `javascript:`, mixed-case `JaVaScRiPt:`, leading whitespace, `data:`, `vbscript:`, protocol-relative `//evil.com`, and URLs over 500 chars (`LIMITS.link`); accepts `http:` and `https:`.
 - `evaluateReadiness(project)`: Evaluates the 8 readiness gates (`hmw`, `impact`, `phases`, `code`, `ai-provenance`, `data-table`, `user-feedback`, `final-format`).
 - `validateAndAddEvidence(project, item)`: Validates required fields, phase, link safety, and AI provenance (`asked` and `kept`), returning a new `StudentProject` without mutating the input.
-- `calculateUnitEconomics` & `simulateMarketStep`: Deterministic financial and market sandbox helpers guarded against `NaN` and `Infinity`.
+- `calculateUnitEconomics`, `simulateMarketStep`, `simulateArkBiosphere`, `simulateKineticHarvesting`, `simulateVitalFlowCirculation`, `simulateVoyagerRcSolar`, & `simulateStreetPawsApp`: Deterministic financial, engineering, and impact sandbox helpers guarded against `NaN` and `Infinity`.
 
 ### D. AI Co-Pilot Fallback (`COPILOT_DEPLOYMENT_CONFIG`)
 - `COPILOT_DEPLOYMENT_CONFIG.status` is `'not_deployed'`. Until `POST /api/pbl-copilot` is deployed after the production deploy freeze, the UI falls back to the local mock (`generateMockCopilotReply`).
