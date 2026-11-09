@@ -85,3 +85,36 @@ Current rules (`backend/coach-fixes`): a parent is not `isTeacher()`, so parents
 3. C-07 trigger, plus allow-lists on the client and the server.
 4. C-06 repointing.
 5. Mani assigns the real classes (data), then the retest from Report 001's plan.
+
+## Addendum, 8 Nov 2026 afternoon: retest of the coach-preview channel
+
+Build under test: `index-DeSHayHm.js`, built from `backend/coach-fixes` @ `fbf55d7` and deployed to `coach-preview` only (Mani's go, 14:19 Bangkok time). Signed in as Mani (teacher). Read-only: no form was submitted.
+
+**C-01 closed on preview.** `#/coach/dashboard` renders with the 6-learner roster, and the new bundle logged no console errors across reloads. Learner review (phases, evidence, feedback form), STEAM Activities, School Calendar, Posts for students, Mission reviews (empty queue), Day-off requests and Management tools all load.
+
+### Production changed during the audit (for Mani)
+
+- **The live `api` Cloud Function was redeployed at 13:33 Bangkok time** (Cloud Functions `updateTime` 06:33:49Z). Antigravity session `18ec2a46` contains `deploy --only functions:api` and `deploy --only firestore:rules` commands. Since then, `/api/coach/universe/submissions` returns 200 (it was 403) and `/api/universe/access` returns 404 (the route existed this morning). AGENTS.md requires Mani's written go for each deploy. Gemini: state which commit was deployed and when Mani approved it.
+- **Production class records were renamed.** `classes/class-wpr-11a.name` is now "WHS" and `classes/class_climate_champions_7a.name` is "WLS". Both are still `status: "archived"`. This makes the screens look right but does not fix C-03 (see section C-03): Mani and the learners still belong only to archived classes. That is a production data write. It needs Mani's go and should be done through the admin UI, not a script.
+
+### New and confirmed issues (coach-preview, 8 Nov)
+
+| # | Severity | Where | Problem | Fix direction |
+|---|---|---|---|---|
+| P-01 | Critical | Add a student | Dialog says "No classes are available". `/api/coach/students/classes` returns `[]` because both classes are archived. | C-03 decisions 1–3: assign active WLS/WHS classes. Don't rename archived ones. |
+| P-02 | High | Learners → Academic Progress, Learning Goals | 403 on `/api/schools/school-wpr/learner-goals`, `/academic-progress`, `/learners/{uid}/pathway` and `/api/quest/learners/{uid}`. Academic Progress shows a correct "no access" message but still offers "Record a dated academic observation". | Same root cause as C-03. Also hide the record form whenever the read returns 403. |
+| P-03 | High | Class & join codes | Shows the archived classes (relabelled WHS/WLS) as live, with a program picker and "Generate code". A code would enrol learners into archived classes. | Exclude `status != 'active'` classes from this panel and from code generation (client and server). |
+| P-04 | Medium | Roster vs Learning Goals/Academic vs Management tools | Learner counts disagree: roster 6; goals/academic pickers 10 (include Leo Boonmee, Nicha Chen, Thanawat Hughes and "Penny Primary", which looks like a test account); Management tools "Signed Up Accounts (7)". | One shared roster filter (students only, active, not `isTest`, in an active class) used by every panel. Ties to C-05 and C-11. |
+| P-05 | Medium | Roster, Management tools | Old class names still shown: Akira's group "WPR Year 11 Climate"; Management tools lists "Climate Champions", "Climate Champions 7A" and "WPR Year 11 Climate" next to WLS/WHS. Four learners show "WHS, WLS" because they are in both archived classes. | Fix the data via C-03, then derive group labels from the learner's active class, not stored `groupName`. Don't string-match names in code. |
+| P-06 | Low | Class & join codes | Each program appears twice in the program picker. | De-duplicate by program id. |
+| P-07 | Low | Add a student | Age bands "Primary / 13–15 / 16–18" don't match the grade-based WLS (5–8) / WHS (8–12) model used elsewhere. | Use grade level, as `admin-users.js` now does. |
+| P-08 | Low | Learning Goals (coach view) | Shows student copy ("MY LEARNING PATHWAY… show your coach the evidence"). | Use coach wording in the coach view. |
+
+Still unverified: every write flow (create student, generate code, assign program, review, rating, post), the student side, and the third-party scripts the audit browser blocked (Google Fonts, Cloudinary, the Firebase compat SDK loaded by `index.html`). Check those in a normal browser before going live.
+
+### Updated order for Gemini
+
+1. Report the 13:33 functions deploy and the class-name writes to Mani (above). Make no further production deploys or data writes without Mani's written go.
+2. C-03 + P-01/P-02/P-03/P-05: archived classes excluded everywhere, and real active-class assignment through the admin UI with Mani's go.
+3. C-11 rules and tests, then P-04 (one roster filter).
+4. C-07, C-06, then P-06–P-08.
