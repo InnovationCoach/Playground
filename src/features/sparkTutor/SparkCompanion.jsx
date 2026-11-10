@@ -240,9 +240,9 @@ export function SparkCompanion({ learnerName, projectContext = null }) {
                       <div className={`sk-result ${practice.result.correct ? 'sk-ok' : 'sk-retry'}`} role="status">
                         <p>{practice.result.feedback}</p>
                         {practice.result.evidenceCandidate && <small>Saved as practice for your coach to see. It does not change your grades or XP.</small>}
-                        {practice.result.correct && practice.result.nextTaskId && !practice.result.readyToReturn && (
-                          <small>Spark has another practice question ready. Ask Spark for the next one.</small>
-                        )}
+                        {practice.result.correct && !practice.result.readyToReturn && (practice.result.nextTask
+                          ? <button type="button" className="gh-btn gh-btn-primary" onClick={() => setPractice({ task: practice.result.nextTask, answer: '', result: null, showHint: false })}>Next question</button>
+                          : practice.result.nextTaskId && <small>Spark has another practice question ready. Ask Spark for the next one.</small>)}
                       </div>
                     )}
                   </form>

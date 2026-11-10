@@ -118,6 +118,28 @@ describe('SparkCompanion', () => {
     expect(host.textContent).not.toContain('Concept detour:');
   });
 
+  it('moves on to the next practice question the server sends', async () => {
+    const NEXT = { taskId: 'prac-ratio-dust-02', question: 'What is one fourth of 200 W?', unit: 'W' };
+    routeApi({
+      'POST /api/spark-tutor/session': { session: SESSION, isNew: true, initialMessage: { text: 'Hi' } },
+      'POST /api/spark-tutor/session/ses_1/mode': { mode: 'academic_tutor', activeDetour: DETOUR, initialPracticeTask: TASK },
+      'POST /api/spark-tutor/session/ses_1/practice/submit': (body) => body.taskId === TASK.taskId
+        ? { correct: true, feedback: 'Spot on!', nextTaskId: NEXT.taskId, nextTask: NEXT, readyToReturn: false }
+        : { correct: false, feedback: 'Not quite.', readyToReturn: false }
+    });
+    await render(<SparkCompanion />);
+    await click('Ask Spark');
+    await click('Academic Tutor');
+    await type(host.querySelector('.sk-answer input'), '9');
+    await click('Check my answer');
+    await click('Next question');
+    expect(host.textContent).toContain(NEXT.question);
+    expect(host.querySelector('.sk-answer input').value).toBe('');
+    await type(host.querySelector('.sk-answer input'), '40');
+    await click('Check my answer');
+    expect(calls().at(-1)[2]).toEqual({ taskId: NEXT.taskId, answer: '40' });
+  });
+
   it('rests instead of failing when the service is switched off', async () => {
     schoolRequest.mockRejectedValue(apiError(503, 'FEATURE_DISABLED'));
     await render(<SparkCompanion />);
