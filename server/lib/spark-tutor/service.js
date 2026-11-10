@@ -167,10 +167,25 @@ export async function recordSessionTurn({
   const schoolId = session.schoolId || 'sch-bkk';
   const now = new Date().toISOString();
 
-  const turnId = clientTurnId || `turn_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const turnsCol = db.collection('schools').doc(schoolId)
+    .collection('sparkTutorSessions').doc(session.sessionId)
+    .collection('turns');
+
+  // Idempotency: if a turn with this clientTurnId was already saved, return it without duplicating or overwriting
+  if (clientTurnId) {
+    const existingSnap = await turnsCol.where('clientTurnId', '==', clientTurnId).limit(1).get();
+    if (!existingSnap.empty) {
+      return existingSnap.docs[0].data();
+    }
+  }
+
+  // Generate unique document ID so turns never overwrite each other
+  const turnRef = turnsCol.doc();
+  const turnId = turnRef.id;
 
   const turnRecord = {
     turnId,
+    clientTurnId: clientTurnId || null,
     userMessage: String(userMessage || '').slice(0, 1200),
     replyText: String(replyText || '').slice(0, 4000),
     assistanceLevel,
@@ -179,13 +194,9 @@ export async function recordSessionTurn({
     createdAt: now
   };
 
-  // 1. Record under session turns subcollection
-  await db.collection('schools').doc(schoolId)
-    .collection('sparkTutorSessions').doc(session.sessionId)
-    .collection('turns').doc(turnId)
-    .set(turnRecord);
+  await turnRef.set(turnRecord);
 
-  // 2. Safeguarding transcript persistence
+  // Safeguarding transcript persistence
   await logConversation({
     uid: session.learnerUid,
     prompt: userMessage,
@@ -277,12 +288,19 @@ export async function createSparkSupportRequest({ session, caller, question, rea
 }
 
 /**
- * Retrieves coach summaries for assigned classes.
+ * Retrieves coach summaries for assigned classes, enriched with practice stats and insights.
  */
 export async function getCoachSummariesForCaller(caller) {
   const db = getDb();
   const schoolId = caller.schoolIds?.[0] || 'sch-bkk';
   const classIds = caller.classIds || [];
+
+  // Security guard: a teacher with NO assigned class IDs must receive [] immediately
+  if (caller.role !== 'admin') {
+    if (!classIds || classIds.length === 0) {
+      return [];
+    }
+  }
 
   let query = db.collection('schools').doc(schoolId).collection('sparkTutorSessions');
   if (caller.role !== 'admin' && classIds.length > 0) {
@@ -290,10 +308,33 @@ export async function getCoachSummariesForCaller(caller) {
   }
 
   const snap = await query.orderBy('updatedAt', 'desc').limit(20).get();
-  return snap.docs.map(doc => {
+  const summaries = [];
+
+  for (const doc of snap.docs) {
     const s = doc.data();
-    return {
-      sessionId: doc.id,
+    const sessionId = doc.id;
+
+    // Fetch practice evidence for this session
+    const eviSnap = await db.collection('schools').doc(schoolId)
+      .collection('sparkTutorEvidence')
+      .where('sessionId', '==', sessionId)
+      .get();
+    const evidenceList = eviSnap.docs.map(d => d.data());
+
+    // Fetch support request for this session if any
+    const supSnap = await db.collection('schools').doc(schoolId)
+      .collection('supportRequests')
+      .where('sessionId', '==', sessionId)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    const supportRequest = !supSnap.empty ? supSnap.docs[0].data() : null;
+
+    const correctCount = evidenceList.filter(e => e.evaluationResult?.correct).length;
+    const totalAttempts = evidenceList.length;
+
+    summaries.push({
+      sessionId,
       learnerUid: s.learnerUid,
       displayName: s.displayName,
       classId: s.classId,
@@ -301,7 +342,90 @@ export async function getCoachSummariesForCaller(caller) {
       assistanceLevel: s.assistanceLevel,
       highestAssistanceUsed: s.highestAssistanceUsed,
       activeDetour: s.activeDetour ? s.activeDetour.topic : null,
+      practiceStats: {
+        totalAttempts,
+        correctCount,
+        passRate: totalAttempts > 0 ? Math.round((correctCount / totalAttempts) * 100) : null
+      },
+      supportRequested: Boolean(supportRequest),
+      supportDetails: supportRequest ? {
+        id: supportRequest.id,
+        status: supportRequest.status,
+        question: supportRequest.question,
+        requestedAt: supportRequest.createdAt
+      } : null,
+      provisionalInsights: [
+        totalAttempts > 0 && correctCount === totalAttempts
+          ? 'Completed all practice tasks accurately.'
+          : (totalAttempts > 0 ? 'Practicing proportional scaling.' : null),
+        s.highestAssistanceUsed === 'guided_application'
+          ? 'Benefited from step-by-step guidance.'
+          : null
+      ].filter(Boolean),
       updatedAt: s.updatedAt
+    });
+  }
+
+  return summaries;
+}
+
+/**
+ * Tutoring settings for school or class scope.
+ */
+export async function getTutoringSettings(schoolId, scopeId = 'default') {
+  const db = getDb();
+  const doc = await db.collection('schools').doc(schoolId)
+    .collection('tutoringSettings').doc(scopeId)
+    .get();
+
+  if (!doc.exists) {
+    return {
+      scopeId,
+      allowedModes: ['pbl_mentor', 'academic_tutor'],
+      maxAssistanceLevel: 'guided_application',
+      assessmentLock: false,
+      disabledTopics: []
     };
+  }
+  return doc.data();
+}
+
+export async function updateTutoringSettings(schoolId, scopeId = 'default', updates = {}, caller) {
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  const validLevels = ['elicit', 'hint', 'scaffold', 'analogous_example', 'guided_application'];
+  const sanitized = {
+    scopeId,
+    allowedModes: Array.isArray(updates.allowedModes) ? updates.allowedModes : ['pbl_mentor', 'academic_tutor'],
+    maxAssistanceLevel: validLevels.includes(updates.maxAssistanceLevel) ? updates.maxAssistanceLevel : 'guided_application',
+    assessmentLock: Boolean(updates.assessmentLock),
+    disabledTopics: Array.isArray(updates.disabledTopics) ? updates.disabledTopics : [],
+    updatedBy: caller.uid,
+    updatedAt: now
+  };
+
+  await db.collection('schools').doc(schoolId)
+    .collection('tutoringSettings').doc(scopeId)
+    .set(sanitized, { merge: true });
+
+  return sanitized;
+}
+
+/**
+ * Coach action: acknowledge a support request or student session.
+ */
+export async function acknowledgeSupportRequest(schoolId, requestId, caller) {
+  const db = getDb();
+  const reqRef = db.collection('schools').doc(schoolId).collection('supportRequests').doc(requestId);
+  const snap = await reqRef.get();
+  if (!snap.exists) fail(404, 'NOT_FOUND', 'Support request not found.');
+
+  await reqRef.update({
+    status: 'acknowledged',
+    reviewedBy: caller.uid,
+    reviewedAt: new Date().toISOString()
   });
+
+  return { ok: true, requestId, status: 'acknowledged' };
 }

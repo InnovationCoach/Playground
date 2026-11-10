@@ -28,7 +28,10 @@ import {
   saveEvidenceRecord,
   getSessionEvidence,
   createSparkSupportRequest,
-  getCoachSummariesForCaller
+  getCoachSummariesForCaller,
+  getTutoringSettings,
+  updateTutoringSettings,
+  acknowledgeSupportRequest
 } from '../lib/spark-tutor/service.js';
 import {
   createDetour,
@@ -141,13 +144,22 @@ export function createSparkTutorRouter(options = {}) {
       }
     ];
 
+    // Resolve assessment restriction server-side (cannot be bypassed by learner body)
+    const schoolSettings = await getTutoringSettings(session.schoolId, session.classId);
+    const isRestricted = Boolean(
+      session.assessmentRestricted ||
+      session.projectContext?.assessmentRestricted ||
+      schoolSettings.assessmentLock ||
+      assessmentRestricted
+    );
+
     const turnResult = await engine.processTurn({
       learnerProfile: req.schoolCaller.profile || req.schoolCaller,
       session,
       userMessage: message,
       recentTurns,
       approvedResources,
-      assessmentRestricted: assessmentRestricted ?? false
+      assessmentRestricted: isRestricted
     });
 
     // Update highest assistance level reached in this session
@@ -282,8 +294,12 @@ export function createSparkTutorRouter(options = {}) {
     const { taskId, answer } = req.body || {};
 
     const session = await getAuthorizedSession(sessionId, req.schoolCaller);
-    const task = BUILT_IN_PRACTICE_QUESTIONS[taskId] || BUILT_IN_PRACTICE_QUESTIONS['prac-ratio-solar-01'];
 
+    if (!taskId || typeof taskId !== 'string' || !BUILT_IN_PRACTICE_QUESTIONS[taskId]) {
+      return sendError(res, 400, 'VALIDATION', `Unknown practice task '${taskId || ''}'. Valid tasks: ${Object.keys(BUILT_IN_PRACTICE_QUESTIONS).join(', ')}`);
+    }
+
+    const task = BUILT_IN_PRACTICE_QUESTIONS[taskId];
     const evalResult = checkNumericAnswer(answer, task);
 
     // Record immutable evidence candidate with absolute NO XP / NO grade impact
@@ -301,6 +317,7 @@ export function createSparkTutorRouter(options = {}) {
     await saveEvidenceRecord(evidence);
 
     let nextTaskId = null;
+    let nextTask = null;
     let readyToReturn = false;
     let returnPrompt = null;
 
@@ -316,6 +333,20 @@ export function createSparkTutorRouter(options = {}) {
         );
         returnPrompt = returnBrief.prompt;
       }
+
+      if (nextTaskId && BUILT_IN_PRACTICE_QUESTIONS[nextTaskId]) {
+        const nextSpec = BUILT_IN_PRACTICE_QUESTIONS[nextTaskId];
+        nextTask = {
+          taskId: nextSpec.id,
+          question: nextSpec.question,
+          promptHint: nextSpec.promptHint,
+          unit: nextSpec.unit
+        };
+        if (session.activeDetour) {
+          session.activeDetour.currentTaskId = nextTaskId;
+          await updateSession(session);
+        }
+      }
     }
 
     res.json({
@@ -326,6 +357,7 @@ export function createSparkTutorRouter(options = {}) {
       userValue: evalResult.userValue,
       expectedValue: evalResult.expectedValue,
       nextTaskId,
+      nextTask,
       readyToReturn,
       returnPrompt,
       evidenceCandidate: {
@@ -369,6 +401,43 @@ export function createSparkTutorRouter(options = {}) {
 
     const summaries = await getCoachSummariesForCaller(req.schoolCaller);
     res.json({ items: summaries });
+  }));
+
+  /**
+   * GET /coach/settings/:scopeId - Get tutoring settings
+   */
+  router.get('/coach/settings/:scopeId', wrap(async (req, res) => {
+    const { scopeId } = req.params;
+    const schoolId = req.schoolCaller.schoolIds?.[0] || 'sch-bkk';
+    const settings = await getTutoringSettings(schoolId, scopeId);
+    res.json(settings);
+  }));
+
+  /**
+   * PATCH /coach/settings/:scopeId - Update tutoring settings
+   */
+  router.patch('/coach/settings/:scopeId', wrap(async (req, res) => {
+    if (!staff(req.schoolCaller) && req.schoolCaller.role !== 'admin') {
+      return sendError(res, 403, 'FORBIDDEN', 'Only assigned coaches and administrators can update settings.');
+    }
+    const { scopeId } = req.params;
+    const schoolId = req.schoolCaller.schoolIds?.[0] || 'sch-bkk';
+    const updated = await updateTutoringSettings(schoolId, scopeId, req.body || {}, req.schoolCaller);
+    res.json(updated);
+  }));
+
+  /**
+   * POST /coach/actions/acknowledge - Coach acknowledges support request
+   */
+  router.post('/coach/actions/acknowledge', wrap(async (req, res) => {
+    if (!staff(req.schoolCaller) && req.schoolCaller.role !== 'admin') {
+      return sendError(res, 403, 'FORBIDDEN', 'Only assigned coaches can acknowledge support requests.');
+    }
+    const { requestId } = req.body || {};
+    if (!requestId) return sendError(res, 400, 'VALIDATION', 'requestId is required.');
+    const schoolId = req.schoolCaller.schoolIds?.[0] || 'sch-bkk';
+    const result = await acknowledgeSupportRequest(schoolId, requestId, req.schoolCaller);
+    res.json(result);
   }));
 
   return router;

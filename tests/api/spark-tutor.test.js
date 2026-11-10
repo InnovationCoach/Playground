@@ -310,4 +310,124 @@ describe('Spark AI Learning Companion API & Emulator Acceptance Suite', () => {
       expect(res.body.reply).toBeDefined();
     }
   });
+
+  it('Backend Issue 1 (Security): Teacher with no assigned class IDs gets 0 summaries', async () => {
+    // Unassigned teacher with classIds: []
+    const unassignedUid = 'u_coach_unassigned_pilot';
+    const unassignedClaims = { role: 'teacher', orgId, schoolIds: [schoolId], classIds: [] };
+    await env.db.collection('users').doc(unassignedUid).set({
+      uid: unassignedUid,
+      displayName: 'Unassigned Teacher',
+      email: 'unassigned.teacher@school.edu',
+      role: 'teacher',
+      status: 'active',
+      orgId,
+      schoolIds: [schoolId],
+      classIds: []
+    });
+    const unassignedToken = await env.getIdToken(unassignedUid, unassignedClaims);
+
+    const res = await env.request('GET', '/api/spark-tutor/coach/summaries', {
+      token: unassignedToken
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toEqual([]); // Strictly empty list, cannot see other teachers' classes
+  });
+
+  it('Backend Issue 3: practice/submit returns nextTask object and rejects unknown task IDs', async () => {
+    // 1. Submit unknown task ID -> returns 400 VALIDATION
+    const errRes = await env.request('POST', `/api/spark-tutor/session/${activeSessionId}/practice/submit`, {
+      token: tokens.mia,
+      body: {
+        taskId: 'unknown-nonexistent-task',
+        answer: '9'
+      }
+    });
+    expect(errRes.status).toBe(400);
+    expect(errRes.body.error.code).toBe('VALIDATION');
+
+    // 2. Submit task 1 answer -> returns nextTaskId AND nextTask object with question and unit
+    const res = await env.request('POST', `/api/spark-tutor/session/${activeSessionId}/practice/submit`, {
+      token: tokens.mia,
+      body: {
+        taskId: 'prac-ratio-solar-01',
+        answer: '9'
+      }
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.correct).toBe(true);
+    expect(res.body.nextTaskId).toBe('prac-ratio-dust-02');
+    expect(res.body.nextTask).toBeDefined();
+    expect(res.body.nextTask.taskId).toBe('prac-ratio-dust-02');
+    expect(res.body.nextTask.question).toContain('dust storms');
+    expect(res.body.nextTask.unit).toBe('W');
+  });
+
+  it('Backend Issue 4: Reusing clientTurnId is idempotent and does not overwrite existing turns', async () => {
+    const turnPayload = {
+      message: 'Can you remind me of the dust storm ratio?',
+      clientTurnId: 'idempotent-turn-001'
+    };
+
+    // First call
+    const res1 = await env.request('POST', `/api/spark-tutor/session/${activeSessionId}/message`, {
+      token: tokens.mia,
+      body: turnPayload
+    });
+    expect(res1.status).toBe(200);
+    const firstTurnId = res1.body.turnId;
+
+    // Retry call with exact same clientTurnId
+    const res2 = await env.request('POST', `/api/spark-tutor/session/${activeSessionId}/message`, {
+      token: tokens.mia,
+      body: turnPayload
+    });
+    expect(res2.status).toBe(200);
+    expect(res2.body.turnId).toBe(firstTurnId); // Returns same turn without duplicating
+  });
+
+  it('Backend Issue 5: Coach settings and acknowledge actions work with full summary data', async () => {
+    // 1. Get default settings
+    const getSettingsRes = await env.request('GET', `/api/spark-tutor/coach/settings/${classId}`, {
+      token: tokens.coach
+    });
+    expect(getSettingsRes.status).toBe(200);
+    expect(getSettingsRes.body.allowedModes).toContain('pbl_mentor');
+
+    // 2. Patch settings (e.g. set assessmentLock: true)
+    const patchRes = await env.request('PATCH', `/api/spark-tutor/coach/settings/${classId}`, {
+      token: tokens.coach,
+      body: {
+        assessmentLock: true,
+        maxAssistanceLevel: 'scaffold'
+      }
+    });
+    expect(patchRes.status).toBe(200);
+    expect(patchRes.body.assessmentLock).toBe(true);
+    expect(patchRes.body.maxAssistanceLevel).toBe('scaffold');
+
+    // 3. Summaries include enriched practice stats, support details, and provisional insights
+    const sumRes = await env.request('GET', '/api/spark-tutor/coach/summaries', {
+      token: tokens.coach
+    });
+    expect(sumRes.status).toBe(200);
+    const miaSummary = sumRes.body.items.find(s => s.learnerUid === 'u_mia_chen_pilot');
+    expect(miaSummary).toBeDefined();
+    expect(miaSummary.practiceStats).toBeDefined();
+    expect(miaSummary.practiceStats.totalAttempts).toBeGreaterThan(0);
+    expect(miaSummary.supportRequested).toBe(true);
+    expect(miaSummary.supportDetails).toBeDefined();
+    expect(miaSummary.provisionalInsights).toBeInstanceOf(Array);
+
+    // 4. Coach acknowledges the support request
+    const ackRes = await env.request('POST', '/api/spark-tutor/coach/actions/acknowledge', {
+      token: tokens.coach,
+      body: {
+        requestId: miaSummary.supportDetails.id
+      }
+    });
+    expect(ackRes.status).toBe(200);
+    expect(ackRes.body.status).toBe('acknowledged');
+  });
 });
