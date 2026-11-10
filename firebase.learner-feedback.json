@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "site": "dnd-master-73449",
+    "public": "dist",
+    "cleanUrls": true,
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [{"source": "**/*.html", "headers": [{"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}]}],
+    "rewrites": [{"source": "/api/**", "run": {"serviceId": "api", "region": "us-central1"}}, {"source": "**", "destination": "/index.html"}]
+  }
+}
