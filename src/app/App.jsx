@@ -473,7 +473,7 @@ export function App() {
       )}
 
       {/* Not on Goal setting or My Dashboard: both show today's checklist, and two copies of the plan on one screen would overwrite each other. */}
-      {role === 'student' && !isPrimary && user && !['goals', 'dashboard', 'spark'].includes(route?.screen) && <DailyGoalsNotice uid={user.uid} />}
+      {role === 'student' && !isPrimary && user && !['goals', 'dashboard', 'spark'].includes(route?.screen) && !route?.programId && <DailyGoalsNotice uid={user.uid} />}
 
       {route?.screen === 'spark' ? spark
       : route?.screen === 'dashboard' && role === 'student' && !isPrimary ? (

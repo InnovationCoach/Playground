@@ -831,7 +831,7 @@ function MultiModalSubmissions({ session: s, progress, apply, say }) {
   };
 
   return (
-    <div className="pg-submissions-box" style={{ marginTop: '0.85rem', padding: '0.85rem', background: 'var(--gh-surface-2, #1b212c)', border: '1px solid var(--gh-border, #30363d)', borderRadius: '8px' }}>
+    <div className="pg-submissions-box" style={{ marginTop: '0.85rem', padding: '0.85rem', background: 'var(--gh-surface, #fff)', border: '1px solid var(--gh-border, #30363d)', borderRadius: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f0f6fc', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           Multi-Modal Submissions
@@ -1094,7 +1094,7 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
                   </div>
 
                   {showPortfolioForm && (
-                    <form onSubmit={submitPortfolioEvidence} className="pb-form" style={{ marginTop: '0.75rem', padding: '0.85rem', background: 'var(--gh-surface-2, #1b212c)', borderRadius: '8px', border: '1px solid var(--gh-border)' }}>
+                    <form onSubmit={submitPortfolioEvidence} className="pb-form" style={{ marginTop: '0.75rem', padding: '0.85rem', background: 'var(--gh-surface, #fff)', borderRadius: '8px', border: '1px solid var(--gh-border)' }}>
                       <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.88rem', color: 'var(--gh-heading)' }}>
                         {isBrainDump ? 'Save your brain dump' : 'Add Evidence to Portfolio'} · Mission {s.sessionNumber}
                       </h4>
