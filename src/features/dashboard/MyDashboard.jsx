@@ -19,6 +19,8 @@ import { DIAL_FINISHES } from './instrumentModel.js';
 import { SLIDES, moveSlide } from './slideModel.js';
 import { DashboardDeck } from './DashboardDeck.jsx';
 import { DailyLearningSlide, ProgressLearningSlide, useLearningCourses } from './LearningHub.jsx';
+import { useSchoolResource } from '../school/useSchoolWorkspace.js';
+import { providerStatus } from '../edmentum/providerState.js';
 import { FindQuestSlide } from './FindQuestSlide.jsx';
 import { ACCENTS, COVERS, MAX_INTERESTS, MAX_TAGLINE, loadSignals, academicProgress, badgeStatus, goalSummary, skillOfTheWeek, dayKey, streakDays } from './dashboardModel.js';
 import { useDashboardPrefs, useCloudProject, saveMood, deviceStorage, logVisit } from './dashboardStore.js';
@@ -42,6 +44,9 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState('daily');
   const data = useLearningCourses(uid, classIds, profile?.activeProgramId);
+  // School course connection state from the school service only (O0); never assumed connected.
+  const learningContext = useSchoolResource(uid ? '/api/learning-context' : null);
+  const edmentumStatus = providerStatus(learningContext.data?.providerStatus?.edmentum, learningContext);
   useEffect(() => {
     const visits = logVisit(uid, dayKey(new Date()));
     setSignals((state) => ({ ...state, visits }));
@@ -105,7 +110,7 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
   }
 
   function renderSlide(id) {
-    if (id === 'daily') return <DailyLearningSlide data={data} model={model} plan={plan} project={project} firstName={profile?.displayName?.split(' ')[0]} goalsLoaded={goalsLoaded} goalSync={goalSync}
+    if (id === 'daily') return <DailyLearningSlide data={data} model={model} plan={plan} project={project} firstName={profile?.displayName?.split(' ')[0]} goalsLoaded={goalsLoaded} goalSync={goalSync} edmentumStatus={edmentumStatus}
       onToggle={(item) => updatePlan((state) => toggleToday(state, item, signals.today))} onOpenActivity={onOpenActivity}
       joinPanel={uid && classIds.length === 0 ? <JoinClassPanel uid={uid} classIds={classIds} onJoined={onJoined} /> : null} />;
     if (id === 'find') return <FindQuestSlide uid={uid} data={data} plan={plan} interests={prefs.interests} started={signals.started} onOpenActivity={onOpenActivity} />;

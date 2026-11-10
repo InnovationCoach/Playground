@@ -124,7 +124,7 @@
 
 .ed-params-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
   gap: 1rem;
 }
 
@@ -223,7 +223,7 @@
 /* Connected Courses Cards */
 .ed-course-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 1rem;
 }
 
@@ -341,7 +341,7 @@
 /* Student My Courses Edmentum Card */
 .mc-edmentum-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 1.25rem;
   list-style: none;
   padding: 0;
@@ -437,3 +437,24 @@
 .mc-ed-launch-btn:hover {
   opacity: 0.95;
 }
+
+/* Provider connection state (O0): plain status, no invented courses. */
+.mc-provider-status { align-items: flex-start; }
+.mc-provider-status-body { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.mc-provider-status-body p { margin: 0; }
+.mc-provider-status-head { color: var(--gh-text); }
+.mc-provider-status-dates { font-size: 0.8rem; }
+.mc-provider-sample { font-weight: 600; color: var(--gh-amber-text); }
+.mc-provider-status .gh-btn { align-self: flex-start; margin-top: 0.3rem; }
+.mc-provider-status[data-state="sync_failed"], .mc-provider-status[data-state="stale"] { border-color: var(--gh-amber-text); }
+
+/* Coach setup page: say what is and is not proven. */
+.ed-status-badge:not([data-state="connected"]) { background: rgba(210, 153, 34, 0.15); border-color: rgba(210, 153, 34, 0.45); color: #e3b341; }
+.ed-truth-note { margin: 0; font-size: 0.85rem; color: #c9d1d9; background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 0.75rem 1rem; }
+.ed-launch-result { border-radius: 10px; padding: 1rem 1.25rem; color: #f0f6fc; background: rgba(56, 189, 248, 0.12); border: 1px solid #38bdf8; }
+.ed-launch-result[data-ok="false"] { background: rgba(248, 81, 73, 0.15); border-color: #f85149; color: #ffb3ad; }
+.ed-launch-result code { background: #0d1117; padding: 2px 6px; border-radius: 4px; color: #7ee787; word-break: break-all; }
+.ed-synthetic-banner { display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.75rem; font-size: 0.8rem; font-weight: 600; color: #e3b341; }
+@media (prefers-reduced-motion: reduce) { .ed-pulse-dot { animation: none; } }
+/* .gh-app heading colours outrank the single-class rules on this dark page; keep titles readable. */
+.ed-console-wrap .ed-title, .ed-console-wrap .ed-sec-title, .ed-console-wrap .ed-course-title { color: #f0f6fc; }

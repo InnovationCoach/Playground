@@ -105,6 +105,7 @@ export function childRecords(profile, now = Date.now()) {
     },
     edmentum: {
       status: 'connected',
+      synthetic: true, // made-up test data: the parent view labels it "Sample data", never a live connection
       syncedAt: now - 3 * 3600000,
       courses: [
         { id: 'edm-math', title: 'Mathematics', progressPercent: 46, lastActivityAt: now - 1 * DAY, recent: [

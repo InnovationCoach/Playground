@@ -3,6 +3,7 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase.js', () => ({
+  usingEmulators:false,
   auth:{currentUser:{uid:'coach-1',displayName:'Sara',getIdTokenResult:vi.fn()}}, db:{},
   getDoc:vi.fn(), getDocs:vi.fn(), setDoc:vi.fn(),
   doc:(_db,...parts)=>parts.join('/'), collection:(_db,...parts)=>parts.join('/'),
