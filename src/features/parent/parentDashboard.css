@@ -153,3 +153,4 @@ p.pd-small { margin: 0.35rem 0 0; }
   .pd-results li { grid-template-columns: 1fr auto; }
   .pd-results li .pd-small { grid-column: 1 / -1; }
 }
+.pd-sample { font-weight: 600; color: var(--gh-amber-text); }

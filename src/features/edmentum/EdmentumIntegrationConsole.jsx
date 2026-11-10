@@ -1,37 +1,51 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Link2, CheckCircle2, ShieldCheck, Copy, Check, ExternalLink,
-  RefreshCw, Play, Sparkles, Layers, BookOpen, AlertCircle, Database, Server
+  RefreshCw, Play, BookOpen, AlertCircle
 } from 'lucide-react';
-import {
-  CONNECTED_EDMENTUM_COURSES,
-  getEdmentumConfig,
-  saveEdmentumConfig,
-  recordAgsScore,
-  launchEdmentumCourse
-} from './edmentumService.js';
-import { confettiFrom, buzz } from '../goals/celebrate.js';
+import { launchEdmentumCourse } from './edmentumService.js';
+import { providerStatus, PROVIDER_STATES } from './providerState.js';
+import { SYNTHETIC_EDMENTUM_COURSES } from './fixtures/syntheticEdmentum.js';
+import { useSchoolResource } from '../school/useSchoolWorkspace.js';
+import { usingEmulators } from '../../firebase.js';
+import { buzz } from '../goals/celebrate.js';
 import './edmentum.css';
 
+// The synthetic sample catalogue is a development aid only: emulator or Vite dev builds.
+const SHOW_SYNTHETIC = usingEmulators || import.meta.env?.DEV === true;
+
+/**
+ * Coach/admin Edmentum setup page.
+ *
+ * Shows what is true: the school's Edmentum connection state from the school
+ * service, the platform registration values the server publishes, and a local
+ * signing self-test. Passing the self-test proves WeLearn can sign LTI tokens;
+ * it does not prove Edmentum has registered WeLearn or that any learner can
+ * launch a course.
+ */
 export function EdmentumIntegrationConsole({ coachUser }) {
   const [copiedKey, setCopiedKey] = useState(null);
-  const [config, setConfig] = useState(() => getEdmentumConfig());
   const [diagnosticsRunning, setDiagnosticsRunning] = useState(false);
   const [diagResults, setDiagResults] = useState(null);
   const [launchingCourseId, setLaunchingCourseId] = useState(null);
   const [launchResult, setLaunchResult] = useState(null);
-  const [passbackStatus, setPassbackStatus] = useState(null);
 
-  const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'http://localhost:5173';
+  const context = useSchoolResource('/api/learning-context');
+  const status = providerStatus(context.data?.providerStatus?.edmentum, context);
+  const ltiConfig = useSchoolResource('/api/lti/config');
+  const reg = ltiConfig.data?.registration || {};
+  const unavailable = ltiConfig.loading ? 'Loading…' : 'Not available';
+
+  const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '';
   const ltiParams = [
-    { key: 'issuer', label: 'Platform ID / Issuer (iss)', value: origin },
-    { key: 'clientId', label: 'Client ID (aud)', value: config.clientId || 'welearn-edmentum-client' },
-    { key: 'deploymentId', label: 'Deployment ID', value: config.deploymentId || 'welearn-prod-deployment-01' },
-    { key: 'oidcUrl', label: 'OIDC Login Initiation URL', value: `${origin}/api/lti/login_initiations` },
-    { key: 'jwksUrl', label: 'Public Keyset URL (JWKS RFC 7517)', value: `${origin}/api/lti/jwks` },
-    { key: 'tokenUrl', label: 'Access Token URL (OAuth 2.0)', value: `${origin}/api/lti/token` },
-    { key: 'agsUrl', label: 'Assignment & Grade Services (AGS)', value: `${origin}/api/lti/ags/lineitems` },
-    { key: 'oneroster', label: 'OneRoster 1.1 / 1.2 REST Endpoint', value: `${origin}/api/oneroster/v1p1` }
+    { key: 'issuer', label: 'Platform ID / Issuer (iss)', value: reg.issuer },
+    { key: 'clientId', label: 'Client ID (aud)', value: reg.clientId },
+    { key: 'deploymentId', label: 'Deployment ID', value: reg.deploymentId },
+    { key: 'oidcUrl', label: 'OIDC Login Initiation URL', value: reg.oidcAuthUrl },
+    { key: 'jwksUrl', label: 'Public Keyset URL (JWKS RFC 7517)', value: reg.jwksUrl },
+    { key: 'tokenUrl', label: 'Access Token URL (OAuth 2.0)', value: reg.accessTokenUrl },
+    { key: 'agsUrl', label: 'Assignment & Grade Services (AGS)', value: reg.agsLineItemsUrl },
+    { key: 'oneroster', label: 'OneRoster 1.1 REST Endpoint', value: origin ? `${origin}/api/oneroster/v1p1` : undefined }
   ];
 
   const handleCopy = (key, value) => {
@@ -47,102 +61,54 @@ export function EdmentumIntegrationConsole({ coachUser }) {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const runDiagnostics = async (e) => {
+  const runDiagnostics = async () => {
     setDiagnosticsRunning(true);
     setDiagResults(null);
-    const triggerEl = e?.currentTarget;
-
     try {
       const res = await fetch('/api/lti/diagnostics', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setDiagResults(data.results || []);
-        buzz([30, 60]);
-        if (triggerEl) confettiFrom(triggerEl);
+      const data = res.ok ? await res.json().catch(() => null) : null;
+      if (res.ok && Array.isArray(data?.results) && data.results.length) {
+        setDiagResults(data.results);
       } else {
-        const errorText = await res.text().catch(() => '');
-        setDiagResults([
-          { step: 'ENDPOINT_HEALTH', status: 'fail', detail: `Backend returned HTTP ${res.status}${errorText ? `: ${errorText.slice(0, 100)}` : ' (Service Unavailable)'}.` },
-          { step: 'JWKS_KEYPAIR', status: 'fail', detail: 'Could not verify RS256 keypair due to endpoint error.' },
-          { step: 'JWT_SIGNING', status: 'fail', detail: 'Signature validation aborted.' },
-          { step: 'LTI_LAUNCH_PAYLOAD', status: 'fail', detail: 'Launch simulation aborted.' },
-          { step: 'AGS_GRADE_PASSBACK', status: 'fail', detail: 'AGS pipeline check aborted.' }
-        ]);
-        buzz(40);
+        const errorText = res.ok ? 'an empty or unreadable report' : `HTTP ${res.status}`;
+        setDiagResults([{ step: 'SELF_TEST', status: 'fail', detail: `The self-test service returned ${errorText}. Nothing was checked.` }]);
       }
     } catch (err) {
-      setDiagResults([
-        { step: 'ENDPOINT_CONNECTION', status: 'fail', detail: `Failed to connect to /api/lti/diagnostics (${err?.message || 'Network error'}). Ensure server is running on port 3001.` },
-        { step: 'JWKS_KEYPAIR', status: 'fail', detail: 'Endpoint unreachable.' },
-        { step: 'JWT_SIGNING', status: 'fail', detail: 'Endpoint unreachable.' },
-        { step: 'LTI_LAUNCH_PAYLOAD', status: 'fail', detail: 'Endpoint unreachable.' },
-        { step: 'AGS_GRADE_PASSBACK', status: 'fail', detail: 'Endpoint unreachable.' }
-      ]);
-      buzz(40);
+      setDiagResults([{ step: 'SELF_TEST', status: 'fail', detail: `Could not reach the self-test service (${err?.message || 'network error'}). Nothing was checked.` }]);
     } finally {
       setDiagnosticsRunning(false);
     }
   };
 
-  const handleTestLaunch = async (courseId) => {
-    setLaunchingCourseId(courseId);
+  const handleTestLaunch = async (course) => {
+    setLaunchingCourseId(course.id);
     setLaunchResult(null);
-    try {
-      const result = await launchEdmentumCourse(courseId, {
-        uid: coachUser?.uid || 'coach-tester',
-        displayName: coachUser?.displayName || 'Coach Donovan',
-        role: 'coach'
-      });
-      buzz(20);
-      setLaunchResult({
-        courseTitle: result.courseTitle,
-        launchUrl: result.launchUrl,
-        id_token: result.id_token,
-        time: new Date().toLocaleTimeString()
-      });
-    } catch (err) {
-      setLaunchResult({
-        error: true,
-        message: err.message || 'Launch token generation failed'
-      });
-    } finally {
-      setLaunchingCourseId(null);
-    }
+    const result = await launchEdmentumCourse(course, { role: coachUser?.role === 'student' ? undefined : 'coach' });
+    setLaunchResult({ ...result, courseTitle: course.title, time: new Date().toLocaleTimeString() });
+    setLaunchingCourseId(null);
   };
 
-  const handleSimulatePassback = (course) => {
-    const scoreVal = Math.floor(Math.random() * 11) + 88; // 88 - 98
-    const studentUid = 'learner-simulated';
-    recordAgsScore(studentUid, {
-      courseId: course.id,
-      title: `${course.title}: Unit Mastery Test`,
-      scoreGiven: scoreVal,
-      scoreMaximum: 100
-    });
-    setPassbackStatus(`✅ Simulated AGS score passback: ${scoreVal}/100 recorded for learner in "${course.title}"!`);
-    buzz([20, 40]);
-    setTimeout(() => setPassbackStatus(null), 5000);
-  };
+  const allPassed = diagResults?.length > 0 && diagResults.every((r) => r.status === 'pass');
+  const connected = status.state === PROVIDER_STATES.CONNECTED;
 
   return (
     <div className="ed-console-wrap">
-      {/* Header */}
       <header className="ed-header">
         <div className="ed-header-left">
           <div className="ed-brand-logo">
-            <Link2 size={26} />
+            <Link2 size={26} aria-hidden="true" />
           </div>
           <div>
-            <h1 className="ed-title">Edmentum LTI 1.3 Advantage & Rostering Hub</h1>
+            <h1 className="ed-title">Edmentum setup</h1>
             <p className="ed-subtitle">
-              Official 1EdTech LTI 1.3 Core, AGS Grade Return & OneRoster Integration Readiness
+              LTI 1.3 registration values and a local signing self-test.
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span className="ed-status-badge">
-            <span className="ed-pulse-dot" /> LTI 1.3 & AGS Ready
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <span className="ed-status-badge" data-state={status.state} role="status">
+            {connected && <span className="ed-pulse-dot" />} School connection: {status.label}
           </span>
           <button
             type="button"
@@ -152,63 +118,60 @@ export function EdmentumIntegrationConsole({ coachUser }) {
           >
             {diagnosticsRunning ? (
               <>
-                <RefreshCw size={15} className="spin" /> Testing Handshake...
+                <RefreshCw size={15} className="spin" aria-hidden="true" /> Running self-test…
               </>
             ) : (
               <>
-                <Play size={15} /> Run LTI Diagnostics
+                <Play size={15} aria-hidden="true" /> Run signing self-test
               </>
             )}
           </button>
         </div>
       </header>
 
-      {passbackStatus && (
-        <div style={{ background: 'rgba(46, 160, 67, 0.15)', border: '1px solid rgba(46, 160, 67, 0.4)', borderRadius: 8, padding: '0.75rem 1rem', color: '#7ee787', fontSize: '0.85rem' }}>
-          <CheckCircle2 size={16} style={{ display: 'inline', marginRight: 6 }} />
-          {passbackStatus}
-        </div>
-      )}
+      <p className="ed-truth-note">
+        {status.detail} A passing self-test shows WeLearn can sign LTI tokens; it does not confirm that Edmentum has registered WeLearn or that learners can open courses.
+      </p>
 
       {launchResult && (
-        <div style={{ background: launchResult.error ? 'rgba(248, 81, 73, 0.15)' : 'rgba(56, 189, 248, 0.15)', border: `1px solid ${launchResult.error ? '#f85149' : '#38bdf8'}`, borderRadius: 10, padding: '1rem 1.25rem', color: '#f0f6fc' }}>
+        <div className="ed-launch-result" data-ok={launchResult.ok ? 'true' : 'false'} role="alert">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <h4 style={{ margin: 0, color: launchResult.error ? '#ff7b72' : '#38bdf8', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Sparkles size={16} /> {launchResult.error ? 'LTI 1.3 Launch Token Request Failed' : `LTI 1.3 Launch Package: ${launchResult.courseTitle}`}
+            <h4 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {launchResult.ok ? <CheckCircle2 size={16} aria-hidden="true" /> : <AlertCircle size={16} aria-hidden="true" />}
+              {launchResult.ok ? `Launch token issued: ${launchResult.courseTitle}` : `Launch failed: ${launchResult.courseTitle}`}
             </h4>
-            <button type="button" onClick={() => setLaunchResult(null)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: '1.2rem' }}>&times;</button>
+            <button type="button" aria-label="Dismiss launch result" onClick={() => setLaunchResult(null)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '1.2rem' }}>&times;</button>
           </div>
-          {launchResult.error ? (
-            <p style={{ margin: 0, color: '#ff7b72', fontSize: '0.85rem' }}>{launchResult.message}</p>
-          ) : (
+          {launchResult.ok ? (
             <div style={{ fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <p style={{ margin: 0 }}><strong>Target Launch URL:</strong> <a href={launchResult.launchUrl} target="_blank" rel="noreferrer" style={{ color: '#58a6ff' }}>{launchResult.launchUrl}</a></p>
-              <p style={{ margin: 0 }}><strong>Authenticated RS256 JWT Token:</strong> <code style={{ background: '#0d1117', padding: '2px 6px', borderRadius: 4, color: '#7ee787' }}>{launchResult.id_token.slice(0, 48)}...</code></p>
-              <p style={{ margin: 0, color: '#8b949e' }}>Direct launch token generated and validated at {launchResult.time}.</p>
+              <p style={{ margin: 0 }}><strong>Target URL:</strong> {launchResult.launchUrl}</p>
+              <p style={{ margin: 0 }}><strong>Signed token:</strong> <code>{launchResult.idToken.slice(0, 48)}…</code></p>
+              <p style={{ margin: 0 }}>The server signed a token at {launchResult.time}. This does not show that Edmentum accepted it.</p>
             </div>
+          ) : (
+            <p style={{ margin: 0, fontSize: '0.85rem' }}>{launchResult.message}</p>
           )}
         </div>
       )}
 
-      {/* Diagnostics Report (if run) */}
       {diagResults && (
-        <section className="ed-section-card" aria-label="Diagnostic Results">
+        <section className="ed-section-card" aria-label="Self-test results">
           <div className="ed-sec-head">
             <h2 className="ed-sec-title">
-              <ShieldCheck size={16} style={{ display: 'inline', marginRight: 6, color: diagResults.every(r => r.status === 'pass') ? '#3fb950' : '#f85149' }} />
-              Integration Verification Report
+              <ShieldCheck size={16} aria-hidden="true" style={{ display: 'inline', marginRight: 6, color: allPassed ? '#3fb950' : '#f85149' }} />
+              Signing self-test
             </h2>
-            <span style={{ fontSize: '0.75rem', color: diagResults.every(r => r.status === 'pass') ? '#3fb950' : '#ff7b72', fontWeight: 700 }}>
-              {diagResults.filter(r => r.status === 'pass').length}/{diagResults.length} CHECKS PASSED
+            <span style={{ fontSize: '0.75rem', color: allPassed ? '#3fb950' : '#ff7b72', fontWeight: 700 }}>
+              {diagResults.filter(r => r.status === 'pass').length} of {diagResults.length} checks passed
             </span>
           </div>
           <div className="ed-diag-list">
             {diagResults.map((r) => (
               <div key={r.step} className={`ed-diag-item ${r.status}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.8rem', borderRadius: 6, background: r.status === 'pass' ? 'rgba(46, 160, 67, 0.1)' : 'rgba(248, 81, 73, 0.1)', border: `1px solid ${r.status === 'pass' ? 'rgba(46, 160, 67, 0.3)' : 'rgba(248, 81, 73, 0.3)'}` }}>
                 {r.status === 'pass' ? (
-                  <CheckCircle2 size={16} color="#3fb950" />
+                  <CheckCircle2 size={16} color="#3fb950" aria-label="Passed" />
                 ) : (
-                  <AlertCircle size={16} color="#f85149" />
+                  <AlertCircle size={16} color="#f85149" aria-label="Failed" />
                 )}
                 <span className="ed-diag-name" style={{ fontWeight: 700, minWidth: 160, color: r.status === 'pass' ? '#7ee787' : '#ff7b72' }}>{r.step}</span>
                 <span className="ed-diag-detail" style={{ color: '#c9d1d9', fontSize: '0.85rem' }}>{r.detail}</span>
@@ -218,13 +181,12 @@ export function EdmentumIntegrationConsole({ coachUser }) {
         </section>
       )}
 
-      {/* Registration Parameters for Edmentum */}
       <section className="ed-section-card">
         <div className="ed-sec-head">
           <div>
-            <h2 className="ed-sec-title">LMS Platform Registration Parameters</h2>
+            <h2 className="ed-sec-title">Platform registration values</h2>
             <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: '#8b949e' }}>
-              Provide these endpoints to Edmentum's integration team (support@edmentum.com) to complete LMS registration.
+              Values the WeLearn server publishes for Edmentum's integration team. Sharing them does not complete registration.
             </p>
           </div>
         </div>
@@ -234,79 +196,65 @@ export function EdmentumIntegrationConsole({ coachUser }) {
             <div key={p.key} className="ed-param-box">
               <span className="ed-param-label">{p.label}</span>
               <div className="ed-param-val-row">
-                <span className="ed-param-val">{p.value}</span>
-                <button
-                  type="button"
-                  className="ed-btn-copy"
-                  onClick={() => handleCopy(p.key, p.value)}
-                  title="Copy to clipboard"
-                >
-                  {copiedKey === p.key ? <Check size={12} color="#3fb950" /> : <Copy size={12} />}
-                  {copiedKey === p.key ? 'Copied' : 'Copy'}
-                </button>
+                <span className="ed-param-val">{p.value || unavailable}</span>
+                {p.value && (
+                  <button
+                    type="button"
+                    className="ed-btn-copy"
+                    onClick={() => handleCopy(p.key, p.value)}
+                    aria-label={`Copy ${p.label}`}
+                  >
+                    {copiedKey === p.key ? <Check size={12} color="#3fb950" aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
+                    {copiedKey === p.key ? 'Copied' : 'Copy'}
+                  </button>
+                )}
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Connected Edmentum Courseware Catalog */}
       <section className="ed-section-card">
         <div className="ed-sec-head">
           <div>
-            <h2 className="ed-sec-title">Connected Edmentum Courseware Catalog ({CONNECTED_EDMENTUM_COURSES.length})</h2>
+            <h2 className="ed-sec-title">Courses</h2>
             <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: '#8b949e' }}>
-              Courses ready for secondary student 1-click launch and automated grade return via AGS.
+              No Edmentum courses have been imported. Course outlines arrive through the reviewed import, not from this page.
             </p>
           </div>
         </div>
 
-        <div className="ed-course-grid">
-          {CONNECTED_EDMENTUM_COURSES.map((course) => (
-            <div key={course.id} className="ed-course-card">
-              <div className="ed-course-top">
-                <span className="ed-course-code">{course.code}</span>
-                <span className="ed-course-grade">{course.gradeRange}</span>
-              </div>
-
-              <div>
-                <h3 className="ed-course-title">{course.title}</h3>
-                <p className="ed-course-desc">{course.description}</p>
-              </div>
-
-              <div className="ed-standards-row">
-                {course.standards.map((std) => (
-                  <span key={std} className="ed-std-pill">{std}</span>
-                ))}
-              </div>
-
-              <div className="ed-course-actions">
-                <button
-                  type="button"
-                  className="ed-btn-launch"
-                  onClick={() => handleTestLaunch(course.id)}
-                  disabled={launchingCourseId === course.id}
-                >
-                  {launchingCourseId === course.id ? (
-                    <RefreshCw size={13} className="spin" />
-                  ) : (
-                    <ExternalLink size={13} />
-                  )}
-                  Test 1-Click Launch
-                </button>
-
-                <button
-                  type="button"
-                  className="ed-btn-simulate-passback"
-                  onClick={() => handleSimulatePassback(course)}
-                  title="Simulate student completing a test and sending grade over AGS"
-                >
-                  <Sparkles size={12} /> Test AGS Passback
-                </button>
-              </div>
+        {SHOW_SYNTHETIC && (
+          <>
+            <p className="ed-synthetic-banner"><BookOpen size={14} aria-hidden="true" /> Synthetic sample courses for the launch self-test. Development only; not a school enrolment.</p>
+            <div className="ed-course-grid">
+              {SYNTHETIC_EDMENTUM_COURSES.map((course) => (
+                <div key={course.id} className="ed-course-card">
+                  <div className="ed-course-top">
+                    <span className="ed-course-code">{course.code}</span>
+                    <span className="ed-course-grade">Synthetic</span>
+                  </div>
+                  <h3 className="ed-course-title">{course.title}</h3>
+                  <div className="ed-course-actions">
+                    <button
+                      type="button"
+                      className="ed-btn-launch"
+                      onClick={() => handleTestLaunch(course)}
+                      disabled={launchingCourseId === course.id}
+                    >
+                      {launchingCourseId === course.id ? (
+                        <RefreshCw size={13} className="spin" aria-hidden="true" />
+                      ) : (
+                        <ExternalLink size={13} aria-hidden="true" />
+                      )}
+                      Request test launch token
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </section>
     </div>
   );

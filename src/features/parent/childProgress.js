@@ -121,9 +121,18 @@ function activitiesSection(activityDocs) {
  * Edmentum results arrive as LTI 1.3 Assignment and Grade Services scores per
  * line item. Until the school connects Edmentum the backend sends
  * { status: 'not_connected' } and the dashboard says so; it never shows zeros.
+ * Pending, unknown, stale and failed states stay distinct (O0); stale and
+ * failed keep the last data received with its date. `synthetic` marks
+ * test-data fixtures so they are never presented as a live connection.
  */
+const EDM_NO_DATA = ['not_connected', 'access_pending', 'unknown'];
+const EDM_WITH_DATA = ['connected', 'stale', 'sync_failed'];
+
 function edmentumSection(edmentum) {
-  if (!edmentum || edmentum.status !== 'connected') return { status: 'not_connected', courses: [] };
+  const raw = edmentum?.status;
+  const status = EDM_WITH_DATA.includes(raw) || EDM_NO_DATA.includes(raw) ? raw : (edmentum ? 'unknown' : 'not_connected');
+  const synthetic = edmentum?.synthetic === true;
+  if (EDM_NO_DATA.includes(status)) return { status, courses: [], ...(synthetic ? { synthetic } : {}) };
   const courses = (Array.isArray(edmentum.courses) ? edmentum.courses : []).map((c) => {
     const recent = (Array.isArray(c.recent) ? c.recent : [])
       .filter((r) => r && r.title && Number.isFinite(r.scoreGiven) && Number.isFinite(r.scoreMaximum) && r.scoreMaximum > 0)
@@ -140,7 +149,7 @@ function edmentumSection(edmentum) {
       recent
     };
   }).sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0));
-  return { status: 'connected', syncedAt: toMillis(edmentum.syncedAt), courses };
+  return { status, syncedAt: toMillis(edmentum.syncedAt), courses, ...(synthetic ? { synthetic } : {}) };
 }
 
 /** Recent things the child did, newest first, from dated records only. */
