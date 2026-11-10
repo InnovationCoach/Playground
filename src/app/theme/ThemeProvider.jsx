@@ -9,7 +9,7 @@ const ThemeContext = createContext(null);
  * System mode follows prefers-color-scheme media query
  */
 export function ThemeProvider({ children, userThemePreference }) {
-  const [theme, setTheme] = useState(userThemePreference || 'system');
+  const [theme, setTheme] = useState(userThemePreference || 'light');
   const [systemDark, setSystemDark] = useState(
     () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false,
   );
