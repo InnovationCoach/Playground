@@ -15,8 +15,8 @@ import { fail, validId, staff } from '../schoolScope.js';
 import { ASSISTANCE_LEVELS } from './assistance.js';
 
 export function isSparkTutorEnabled() {
-  // Feature toggle switch: defaults to true in development unless explicitly set to 'false'
-  return process.env.SPARK_AI_TUTOR_ENABLED !== 'false';
+  // Feature toggle switch: disabled by default, only active when explicitly set to 'true'
+  return process.env.SPARK_AI_TUTOR_ENABLED === 'true';
 }
 
 function getDb() {
@@ -81,6 +81,13 @@ export async function startOrResumeSession({ caller, mode = 'pbl_mentor', projec
     } : null,
     consecutiveFailures: 0,
     turnsCount: 0,
+    practiceStats: {
+      totalAttempts: 0,
+      correctCount: 0,
+      passRate: null
+    },
+    supportRequested: false,
+    supportDetails: null,
     status: 'active',
     createdAt: now,
     updatedAt: now
@@ -284,11 +291,21 @@ export async function createSparkSupportRequest({ session, caller, question, rea
     .collection('supportRequests').doc(requestId)
     .set(requestDoc);
 
+  // Update session doc directly with support request state so summaries require 0 extra reads
+  session.supportRequested = true;
+  session.supportDetails = {
+    id: requestId,
+    status: 'pending',
+    question: requestDoc.question,
+    requestedAt: now
+  };
+  await updateSession(session);
+
   return requestDoc;
 }
 
 /**
- * Retrieves coach summaries for assigned classes, enriched with practice stats and insights.
+ * Retrieves coach summaries for assigned classes, reading directly from session records (0 extra subqueries).
  */
 export async function getCoachSummariesForCaller(caller) {
   const db = getDb();
@@ -314,24 +331,11 @@ export async function getCoachSummariesForCaller(caller) {
     const s = doc.data();
     const sessionId = doc.id;
 
-    // Fetch practice evidence for this session
-    const eviSnap = await db.collection('schools').doc(schoolId)
-      .collection('sparkTutorEvidence')
-      .where('sessionId', '==', sessionId)
-      .get();
-    const evidenceList = eviSnap.docs.map(d => d.data());
-
-    // Fetch support request for this session if any
-    const supSnap = await db.collection('schools').doc(schoolId)
-      .collection('supportRequests')
-      .where('sessionId', '==', sessionId)
-      .orderBy('createdAt', 'desc')
-      .limit(1)
-      .get();
-    const supportRequest = !supSnap.empty ? supSnap.docs[0].data() : null;
-
-    const correctCount = evidenceList.filter(e => e.evaluationResult?.correct).length;
-    const totalAttempts = evidenceList.length;
+    // Direct read from session document — 0 extra subqueries per session!
+    const stats = s.practiceStats || { totalAttempts: 0, correctCount: 0, passRate: null };
+    const totalAttempts = stats.totalAttempts || 0;
+    const correctCount = stats.correctCount || 0;
+    const passRate = stats.passRate ?? (totalAttempts > 0 ? Math.round((correctCount / totalAttempts) * 100) : null);
 
     summaries.push({
       sessionId,
@@ -345,15 +349,10 @@ export async function getCoachSummariesForCaller(caller) {
       practiceStats: {
         totalAttempts,
         correctCount,
-        passRate: totalAttempts > 0 ? Math.round((correctCount / totalAttempts) * 100) : null
+        passRate
       },
-      supportRequested: Boolean(supportRequest),
-      supportDetails: supportRequest ? {
-        id: supportRequest.id,
-        status: supportRequest.status,
-        question: supportRequest.question,
-        requestedAt: supportRequest.createdAt
-      } : null,
+      supportRequested: Boolean(s.supportRequested || s.supportDetails),
+      supportDetails: s.supportDetails || null,
       provisionalInsights: [
         totalAttempts > 0 && correctCount === totalAttempts
           ? 'Completed all practice tasks accurately.'
@@ -371,26 +370,60 @@ export async function getCoachSummariesForCaller(caller) {
 
 /**
  * Tutoring settings for school or class scope.
+ * Reads school-wide 'default' and merges class-specific overrides.
+ * School-wide assessmentLock cannot be bypassed by any class setting.
  */
 export async function getTutoringSettings(schoolId, scopeId = 'default') {
   const db = getDb();
-  const doc = await db.collection('schools').doc(schoolId)
+  const defaultDoc = await db.collection('schools').doc(schoolId)
+    .collection('tutoringSettings').doc('default')
+    .get();
+
+  const defaultData = defaultDoc.exists ? defaultDoc.data() : {
+    scopeId: 'default',
+    allowedModes: ['pbl_mentor', 'academic_tutor'],
+    maxAssistanceLevel: 'guided_application',
+    assessmentLock: false,
+    disabledTopics: []
+  };
+
+  if (scopeId === 'default') {
+    return defaultData;
+  }
+
+  const classDoc = await db.collection('schools').doc(schoolId)
     .collection('tutoringSettings').doc(scopeId)
     .get();
 
-  if (!doc.exists) {
-    return {
-      scopeId,
-      allowedModes: ['pbl_mentor', 'academic_tutor'],
-      maxAssistanceLevel: 'guided_application',
-      assessmentLock: false,
-      disabledTopics: []
-    };
+  if (!classDoc.exists) {
+    return { ...defaultData, scopeId };
   }
-  return doc.data();
+
+  const classData = classDoc.data();
+  return {
+    ...defaultData,
+    ...classData,
+    scopeId,
+    // School-wide assessment lock enforces restriction regardless of class setting
+    assessmentLock: Boolean(defaultData.assessmentLock || classData.assessmentLock)
+  };
 }
 
 export async function updateTutoringSettings(schoolId, scopeId = 'default', updates = {}, caller) {
+  // Authorization check:
+  // Only admins can modify school-wide default settings
+  if (scopeId === 'default' && caller.role !== 'admin') {
+    fail(403, 'FORBIDDEN', 'Only school administrators can update school-wide default settings.');
+  }
+
+  // Teachers can only modify settings for classes they are assigned to
+  if (scopeId !== 'default' && caller.role !== 'admin') {
+    const callerClasses = caller.classIds || [];
+    if (!callerClasses.includes(scopeId)) {
+      fail(403, 'FORBIDDEN', 'You are not assigned to manage settings for this class.');
+    }
+  }
+
   const db = getDb();
   const now = new Date().toISOString();
 
@@ -413,7 +446,8 @@ export async function updateTutoringSettings(schoolId, scopeId = 'default', upda
 }
 
 /**
- * Coach action: acknowledge a support request or student session.
+ * Coach action: acknowledge a support request.
+ * Non-admin coaches must be assigned to the class associated with the request.
  */
 export async function acknowledgeSupportRequest(schoolId, requestId, caller) {
   const db = getDb();
@@ -421,11 +455,36 @@ export async function acknowledgeSupportRequest(schoolId, requestId, caller) {
   const snap = await reqRef.get();
   if (!snap.exists) fail(404, 'NOT_FOUND', 'Support request not found.');
 
+  const requestData = snap.data();
+
+  // Authorization check: non-admin coach must teach the class
+  if (caller.role !== 'admin') {
+    const callerClasses = caller.classIds || [];
+    if (!callerClasses.includes(requestData.classId)) {
+      fail(403, 'FORBIDDEN', 'You do not teach the class associated with this support request.');
+    }
+  }
+
+  const now = new Date().toISOString();
   await reqRef.update({
     status: 'acknowledged',
     reviewedBy: caller.uid,
-    reviewedAt: new Date().toISOString()
+    reviewedAt: now
   });
+
+  // Also update session doc if sessionId exists so session state stays consistent
+  if (requestData.sessionId) {
+    const sessionRef = db.collection('schools').doc(schoolId).collection('sparkTutorSessions').doc(requestData.sessionId);
+    const sessionSnap = await sessionRef.get();
+    if (sessionSnap.exists) {
+      const sData = sessionSnap.data();
+      if (sData.supportDetails) {
+        sData.supportDetails.status = 'acknowledged';
+        sData.supportDetails.acknowledgedAt = now;
+        await sessionRef.set({ supportDetails: sData.supportDetails }, { merge: true });
+      }
+    }
+  }
 
   return { ok: true, requestId, status: 'acknowledged' };
 }

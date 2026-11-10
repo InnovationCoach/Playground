@@ -316,6 +316,15 @@ export function createSparkTutorRouter(options = {}) {
 
     await saveEvidenceRecord(evidence);
 
+    // Update session practiceStats directly on session doc for fast coach summaries
+    const currentStats = session.practiceStats || { totalAttempts: 0, correctCount: 0, passRate: null };
+    currentStats.totalAttempts = (currentStats.totalAttempts || 0) + 1;
+    if (evalResult.correct) {
+      currentStats.correctCount = (currentStats.correctCount || 0) + 1;
+    }
+    currentStats.passRate = Math.round((currentStats.correctCount / currentStats.totalAttempts) * 100);
+    session.practiceStats = currentStats;
+
     let nextTaskId = null;
     let nextTask = null;
     let readyToReturn = false;
@@ -344,10 +353,11 @@ export function createSparkTutorRouter(options = {}) {
         };
         if (session.activeDetour) {
           session.activeDetour.currentTaskId = nextTaskId;
-          await updateSession(session);
         }
       }
     }
+
+    await updateSession(session);
 
     res.json({
       sessionId,

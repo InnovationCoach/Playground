@@ -102,6 +102,20 @@ describe('Spark AI Learning Companion API & Emulator Acceptance Suite', () => {
       classIds: [otherClassId]
     });
     tokens.otherCoach = await env.getIdToken(otherCoachUid, otherCoachClaims);
+
+    // 5. Admin
+    const adminUid = 'u_admin_pilot';
+    const adminClaims = { role: 'admin', orgId, schoolIds: [schoolId] };
+    await env.db.collection('users').doc(adminUid).set({
+      uid: adminUid,
+      displayName: 'Platform Admin',
+      email: 'admin.pilot@school.edu',
+      role: 'admin',
+      status: 'active',
+      orgId,
+      schoolIds: [schoolId]
+    });
+    tokens.admin = await env.getIdToken(adminUid, adminClaims);
   });
 
   afterAll(async () => {
@@ -429,5 +443,83 @@ describe('Spark AI Learning Companion API & Emulator Acceptance Suite', () => {
     });
     expect(ackRes.status).toBe(200);
     expect(ackRes.body.status).toBe('acknowledged');
+  });
+
+  it('Review Fix: Scope settings authorization - teacher cannot edit default or unassigned classes', async () => {
+    // 1. Teacher attempts to update school-wide default settings -> 403
+    const defaultFailRes = await env.request('PATCH', '/api/spark-tutor/coach/settings/default', {
+      token: tokens.coach,
+      body: { assessmentLock: true }
+    });
+    expect(defaultFailRes.status).toBe(403);
+    expect(defaultFailRes.body.error.code).toBe('FORBIDDEN');
+
+    // 2. Teacher attempts to update another class's settings -> 403
+    const otherClassFailRes = await env.request('PATCH', `/api/spark-tutor/coach/settings/${otherClassId}`, {
+      token: tokens.coach,
+      body: { assessmentLock: true }
+    });
+    expect(otherClassFailRes.status).toBe(403);
+    expect(otherClassFailRes.body.error.code).toBe('FORBIDDEN');
+
+    // 3. Admin can update school-wide default settings -> 200
+    const adminDefaultRes = await env.request('PATCH', '/api/spark-tutor/coach/settings/default', {
+      token: tokens.admin,
+      body: { assessmentLock: false, maxAssistanceLevel: 'guided_application' }
+    });
+    expect(adminDefaultRes.status).toBe(200);
+    expect(adminDefaultRes.body.scopeId).toBe('default');
+  });
+
+  it('Review Fix: Support request acknowledge authorization - teacher cannot acknowledge unassigned class requests', async () => {
+    // Other coach (assigned to otherClassId) attempts to acknowledge Mia's request in classId -> 403
+    const summaries = await env.request('GET', '/api/spark-tutor/coach/summaries', {
+      token: tokens.coach
+    });
+    const miaSummary = summaries.body.items.find(s => s.learnerUid === 'u_mia_chen_pilot');
+    expect(miaSummary?.supportDetails?.id).toBeDefined();
+
+    const ackFail = await env.request('POST', '/api/spark-tutor/coach/actions/acknowledge', {
+      token: tokens.otherCoach,
+      body: { requestId: miaSummary.supportDetails.id }
+    });
+    expect(ackFail.status).toBe(403);
+    expect(ackFail.body.error.code).toBe('FORBIDDEN');
+  });
+
+  it('Review Fix: School-wide assessmentLock enforces restriction across all classes', async () => {
+    // Set school-wide default assessmentLock to true via admin
+    await env.request('PATCH', '/api/spark-tutor/coach/settings/default', {
+      token: tokens.admin,
+      body: { assessmentLock: true }
+    });
+
+    // Check settings for class_yr9_climate (even if class setting has assessmentLock: false)
+    const settingsRes = await env.request('GET', `/api/spark-tutor/coach/settings/${classId}`, {
+      token: tokens.coach
+    });
+    expect(settingsRes.status).toBe(200);
+    expect(settingsRes.body.assessmentLock).toBe(true);
+
+    // Reset default setting back to false
+    await env.request('PATCH', '/api/spark-tutor/coach/settings/default', {
+      token: tokens.admin,
+      body: { assessmentLock: false }
+    });
+  });
+
+  it('Review Fix: Spark AI Tutor is disabled by default when SPARK_AI_TUTOR_ENABLED !== true', async () => {
+    const original = process.env.SPARK_AI_TUTOR_ENABLED;
+    try {
+      delete process.env.SPARK_AI_TUTOR_ENABLED;
+      const res = await env.request('POST', '/api/spark-tutor/session', {
+        token: tokens.mia,
+        body: { mode: 'pbl_mentor' }
+      });
+      expect(res.status).toBe(503);
+      expect(res.body.error.code).toBe('FEATURE_DISABLED');
+    } finally {
+      process.env.SPARK_AI_TUTOR_ENABLED = original || 'true';
+    }
   });
 });

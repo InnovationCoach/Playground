@@ -29,6 +29,7 @@ process.env.FIREBASE_AUTH_EMULATOR_HOST = AUTH_EMULATOR_HOST;
 process.env.FIRESTORE_EMULATOR_HOST = FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT = PROJECT_ID;
 process.env.GOOGLE_CLOUD_PROJECT = PROJECT_ID;
+process.env.SPARK_AI_TUTOR_ENABLED = 'true';
 
 export async function setupApiTestEnv(options = {}) {
   const { universeRegistry = FIXTURE_RELEASES, ...appOptions } = options;
