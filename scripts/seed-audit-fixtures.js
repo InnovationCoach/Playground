@@ -16,6 +16,12 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || 'demo-hearisland-local';
 
+const host = process.env.FIRESTORE_EMULATOR_HOST;
+if (!host || !/^(127\.0\.0\.1|localhost):\d+$/.test(host)) {
+  console.error('Refusing to run seed script outside local emulator. FIRESTORE_EMULATOR_HOST must be set.');
+  process.exit(1);
+}
+
 if (!getApps().length) {
   initializeApp({ projectId: PROJECT_ID });
 }
@@ -32,7 +38,10 @@ async function seed() {
     displayName: 'Sam Outlier',
     email: 'sam.outlier@welearn.org',
     role: 'student', // will test role migration
-    groupName: 'Climate Champions 7AClimate Champions 7A', // doubled string
+    cohortId: 'cohort-wls',
+    cohortIds: ['cohort-wls'],
+    gradeLevel: 7,
+    groupName: 'WeLearn Lower SecondaryWeLearn Lower Secondary', // doubled string
     classIds: [],
     createdAt: Date.now() - 86400000 * 5
   }, { merge: true });

@@ -27,7 +27,7 @@ export function generateSecurePassword() {
  * Core business logic for creating a learner account safely.
  * Can be called by Express route or Firebase Callable Cloud Function.
  */
-export async function createLearnerAccount({ email, displayName, classId, caller, generatePassword = true, password = null }) {
+export async function createLearnerAccount({ email, displayName, classId, gradeLevel, cohortId, caller, generatePassword = true, password = null }) {
   const db = getFirestore();
   const auth = getAuth();
 
@@ -49,6 +49,22 @@ export async function createLearnerAccount({ email, displayName, classId, caller
     throw { status: 400, code: 'VALIDATION', message: 'Name is required.', field: 'displayName' };
   }
 
+  let finalGrade = null;
+  let finalCohort = null;
+  if (gradeLevel !== undefined && gradeLevel !== null && gradeLevel !== '') {
+    const g = typeof gradeLevel === 'string' ? Number(gradeLevel.trim()) : Number(gradeLevel);
+    if (!Number.isInteger(g) || g < 6 || g > 12) {
+      throw { status: 400, code: 'VALIDATION', message: 'Grade level must be between 6 and 12.', field: 'gradeLevel' };
+    }
+    finalGrade = g;
+    finalCohort = g <= 8 ? 'cohort-wls' : 'cohort-whs';
+    if (cohortId && cohortId !== finalCohort) {
+      throw { status: 400, code: 'VALIDATION', message: `Cohort ${cohortId} does not match grade level ${g}. Expected ${finalCohort}.`, field: 'cohortId' };
+    }
+  } else if (cohortId) {
+    finalCohort = cohortId;
+  }
+
   const cleanClassId = String(classId || '').trim();
   if (!cleanClassId) {
     throw { status: 400, code: 'VALIDATION', message: 'Class assignment by classId is required.', field: 'classId' };
@@ -63,11 +79,13 @@ export async function createLearnerAccount({ email, displayName, classId, caller
 
   const classData = classSnap.data() || {};
 
-  // If coach, verify tenancy boundary: coach must be assigned to this class
+  // If coach, verify tenancy boundary: coach must be assigned to this class or cohort
   if (callerRole === 'teacher' || callerRole === 'coach') {
     const coachClassIds = Array.isArray(caller?.classIds) ? caller.classIds : [];
+    const coachCohortIds = Array.isArray(caller?.cohortIds) ? caller.cohortIds : [];
     const isCoachOfClass = coachClassIds.includes(cleanClassId) || (Array.isArray(classData.coachIds) && classData.coachIds.includes(callerUid));
-    if (!isCoachOfClass) {
+    const isCoachOfCohort = (finalCohort && coachCohortIds.includes(finalCohort)) || (classData.cohortId && coachCohortIds.includes(classData.cohortId));
+    if (!isCoachOfClass && !isCoachOfCohort) {
       throw { status: 403, code: 'FORBIDDEN', message: 'You are not assigned to this class.' };
     }
   }
@@ -97,7 +115,8 @@ export async function createLearnerAccount({ email, displayName, classId, caller
   // Set Auth Custom Claims
   await auth.setCustomUserClaims(newUid, {
     role: 'learner',
-    classIds: [cleanClassId]
+    classIds: [cleanClassId],
+    ...(finalCohort ? { cohortIds: [finalCohort], cohortId: finalCohort } : {})
   });
 
   // Prepare Firestore writes
@@ -112,7 +131,9 @@ export async function createLearnerAccount({ email, displayName, classId, caller
     role: 'learner',
     classIds: [cleanClassId],
     createdAt: now,
-    status: 'active'
+    status: 'active',
+    ...(finalGrade !== null ? { gradeLevel: finalGrade } : {}),
+    ...(finalCohort ? { cohortId: finalCohort, cohortIds: [finalCohort] } : {})
   });
 
   // 2. Add to classes/{classId}.learnerIds
@@ -133,7 +154,7 @@ export async function createLearnerAccount({ email, displayName, classId, caller
       actorUid: callerUid,
       actorName: caller?.displayName || 'Coach',
       summary: `Registered learner ${cleanName} (${cleanEmail}) in class ${classData.name || cleanClassId}`,
-      details: { classId: cleanClassId, email: cleanEmail }
+      details: { classId: cleanClassId, email: cleanEmail, ...(finalGrade !== null ? { gradeLevel: finalGrade, cohortId: finalCohort } : {}) }
     });
   } catch {
     // Non-fatal
@@ -145,6 +166,8 @@ export async function createLearnerAccount({ email, displayName, classId, caller
     email: cleanEmail,
     role: 'learner',
     classId: cleanClassId,
+    ...(finalGrade !== null ? { gradeLevel: finalGrade } : {}),
+    ...(finalCohort ? { cohortId: finalCohort, cohortIds: [finalCohort] } : {}),
     temporaryPassword
   };
 }
@@ -159,6 +182,8 @@ router.post('/', async (req, res) => {
       email: req.body?.email,
       displayName: req.body?.displayName || req.body?.name,
       classId: req.body?.classId,
+      gradeLevel: req.body?.gradeLevel,
+      cohortId: req.body?.cohortId,
       caller: req.caller,
       password: req.body?.password
     });

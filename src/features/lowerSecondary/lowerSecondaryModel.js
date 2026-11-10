@@ -80,7 +80,7 @@ export function alsoToday({ hero, quest, fallback }) {
   if (hero.loading) return [];
   const rows = [];
   if (hero.kind === 'course' && quest?.todaysQuest) rows.push({ id: 'quest', label: 'Today’s quest', text: taskText(quest.todaysQuest.task), href: hrefFor.pbl('project') });
-  if (hero.kind !== 'guidance' && fallback.source === 'Your learning plan' && !fallback.loading) rows.push({ id: 'goal', label: 'From your plan', text: fallback.title, href: fallback.href });
+  if (hero.kind !== 'guidance' && fallback.href === hrefFor.goals() && !fallback.loading) rows.push({ id: 'goal', label: 'From your plan', text: fallback.title, href: fallback.href });
   return rows;
 }
 

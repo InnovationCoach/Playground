@@ -131,8 +131,8 @@ export function handleSchoolFallback(method, path, body, callerRole = 'student')
         { id: 'school-main', name: 'WeLearn School Workspace', timezone: 'Asia/Bangkok' }
       ],
       classes: [
-        { id: 'class-wpr-11a', name: 'Higher Secondary A', cohortId: 'cohort-higher-secondary', schoolId: 'school-main' },
-        { id: 'class-wpr-12a', name: 'Higher Secondary B', cohortId: 'cohort-higher-secondary', schoolId: 'school-main' }
+        { id: 'class-wpr-11a', name: 'WHS · Grade 11', cohortId: 'cohort-whs', schoolId: 'school-main' },
+        { id: 'class-wpr-12a', name: 'WHS · Grade 12', cohortId: 'cohort-whs', schoolId: 'school-main' }
       ],
       providerStatus: { cambrilearn: 'access_pending', edmentum: 'access_pending' }
     };

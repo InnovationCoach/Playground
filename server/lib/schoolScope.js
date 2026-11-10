@@ -26,6 +26,29 @@ export function intersection(a, b) {
   return Array.isArray(a) && Array.isArray(b) ? a.filter(id => validId(id) && b.includes(id)) : [];
 }
 
+export function cohortForGrade(grade) {
+  const g = typeof grade === 'string' ? Number(grade.trim()) : Number(grade);
+  if (!Number.isInteger(g) || g < 6 || g > 12) return null;
+  if (g >= 6 && g <= 8) return 'cohort-wls';
+  if (g >= 9 && g <= 12) return 'cohort-whs';
+  return null;
+}
+
+export function validateGradeAndCohort({ gradeLevel, cohortId }) {
+  if (gradeLevel !== undefined && gradeLevel !== null && gradeLevel !== '') {
+    const g = typeof gradeLevel === 'string' ? Number(gradeLevel.trim()) : Number(gradeLevel);
+    if (!Number.isInteger(g) || g < 6 || g > 12) {
+      fail(400, 'VALIDATION', 'Grade level must be between 6 and 12.');
+    }
+    const derivedCohort = g <= 8 ? 'cohort-wls' : 'cohort-whs';
+    if (cohortId && cohortId !== derivedCohort) {
+      fail(400, 'VALIDATION', `Cohort ${cohortId} does not match grade level ${g}. Expected ${derivedCohort}.`);
+    }
+    return { gradeLevel: g, cohortId: derivedCohort };
+  }
+  return { gradeLevel: null, cohortId: cohortId || null };
+}
+
 // New workflows require signed role/scope AND the current provisioned profile.
 // The intersection revokes access immediately after a profile reassignment.
 export async function schoolCaller(req) {
@@ -39,6 +62,7 @@ export async function schoolCaller(req) {
     role,
     schoolIds: intersection(claims.schoolIds, data.schoolIds),
     classIds: intersection(claims.classIds, data.classIds),
+    cohortIds: intersection(claims.cohortIds, data.cohortIds),
     profile: data
   };
 }
@@ -72,8 +96,14 @@ export async function learnerAccess(caller, schoolId, learnerUid, classId) {
   if (!learner || learner.role !== 'student' || !learner.schoolIds?.includes(schoolId)) fail(403, 'FORBIDDEN', 'Learner access is unavailable.');
   if (caller.role === 'admin') return learner;
   if (staff(caller)) {
-    await assignedClass(caller, schoolId, classId);
-    if (learner.classIds?.includes(classId)) return learner;
+    if (classId) {
+      await assignedClass(caller, schoolId, classId);
+      if (learner.classIds?.includes(classId)) return learner;
+    }
+    const sharesCohort = (learner.cohortId && caller.cohortIds?.includes(learner.cohortId))
+      || learner.cohortIds?.some(id => caller.cohortIds?.includes(id));
+    if (sharesCohort) return learner;
+    if (learner.classIds?.some(id => caller.classIds.includes(id))) return learner;
   }
   if (caller.role === 'student' && caller.uid === learnerUid) return learner;
   if (caller.role === 'parent') {

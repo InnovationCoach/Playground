@@ -233,9 +233,12 @@ async function audiencesFor(caller,uid) {
   const shared = assigned.some(c=>c.exists && schools.includes(c.data().schoolId) && c.data().status !== 'archived');
   const activeSchools = await Promise.all(schools.map(id=>getFirestore().collection('schools').doc(id).get()));
   const schoolActive = activeSchools.some(s=>s.exists && s.data().status !== 'suspended');
+  const ownerCohorts = [owner.cohortId, ...(owner.cohortIds || [])].filter(Boolean);
+  const callerCohorts = caller.cohortIds || [];
+  const sharesCohort = callerCohorts.some(id => ownerCohorts.includes(id));
   const grants = await grantsRef(uid).get();
   const result = [];
-  if(shared && schoolActive && staff(caller)) result.push('coaches');
+  if((shared || sharesCohort) && schoolActive && staff(caller)) result.push('coaches');
   if(shared && schoolActive && caller.role==='student') result.push('classmates');
   const grant = grants.data();
   if(grant?.viewerUids?.includes(caller.uid) && owner.schoolIds?.includes(grant.schoolId)) {

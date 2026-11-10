@@ -32,6 +32,11 @@ service cloud.firestore {
       return request.auth.token.get('classIds', []);
     }
 
+    // Cohort ids this coach is assigned to, carried in the cohortIds claim.
+    function myCohortIds() {
+      return request.auth.token.get('cohortIds', []);
+    }
+
     // Tenancy check against a user document that is already loaded as
     // `resource` - i.e. rules on /users/{userId} itself.
     //
@@ -40,17 +45,35 @@ service cloud.firestore {
     // query is rejected with "Null value error". It also happens to be free,
     // where the get() form costs a document read per candidate row.
     function coachSharesClassWith(userData) {
-      return isTeacher() && userData.get('classIds', []).hasAny(myClassIds());
+      return isTeacher() && (
+        userData.get('classIds', []).hasAny(myClassIds())
+        || myCohortIds().hasAny([userData.get('cohortId', '')])
+        || userData.get('cohortIds', []).hasAny(myCohortIds())
+        || (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('classIds', []).hasAny(userData.get('classIds', []))
+            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('cohortIds', []).hasAny([userData.get('cohortId', '')])
+            || userData.get('cohortIds', []).hasAny(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('cohortIds', []))
+          )
+        )
+      );
     }
 
     // Tenancy check from the learner's perspective: does the learner share at least one
-    // class with a given coach?
+    // class or cohort with a given coach?
     function learnerHasClassWithCoach(coachId) {
       return isAuthenticated()
         && exists(/databases/$(database)/documents/users/$(coachId))
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid))
-             .data.get('classIds', []).hasAny(get(/databases/$(database)/documents/users/$(coachId)).data.get('classIds', []));
+        && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid))
+            .data.get('classIds', []).hasAny(get(/databases/$(database)/documents/users/$(coachId)).data.get('classIds', []))
+          || get(/databases/$(database)/documents/users/$(coachId))
+            .data.get('cohortIds', []).hasAny([get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('cohortId', '')])
+          || get(/databases/$(database)/documents/users/$(request.auth.uid))
+            .data.get('cohortIds', []).hasAny(get(/databases/$(database)/documents/users/$(coachId)).data.get('cohortIds', []))
+        );
     }
 
     // Same check for SUBcollection rules, where the parent user document is not
@@ -59,8 +82,22 @@ service cloud.firestore {
     function isCoachOf(userId) {
       return isTeacher()
         && exists(/databases/$(database)/documents/users/$(userId))
-        && get(/databases/$(database)/documents/users/$(userId))
-             .data.get('classIds', []).hasAny(myClassIds());
+        && (
+          get(/databases/$(database)/documents/users/$(userId)).data.get('classIds', []).hasAny(myClassIds())
+          || myCohortIds().hasAny([get(/databases/$(database)/documents/users/$(userId)).data.get('cohortId', '')])
+          || get(/databases/$(database)/documents/users/$(userId)).data.get('cohortIds', []).hasAny(myCohortIds())
+          || (
+            exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && (
+              get(/databases/$(database)/documents/users/$(userId)).data.get('classIds', [])
+                .hasAny(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('classIds', []))
+              || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('cohortIds', [])
+                .hasAny([get(/databases/$(database)/documents/users/$(userId)).data.get('cohortId', '')])
+              || get(/databases/$(database)/documents/users/$(userId)).data.get('cohortIds', [])
+                .hasAny(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('cohortIds', []))
+            )
+          )
+        );
     }
 
     // A removed assignment or suspension must stop assessment writes even
@@ -72,7 +109,11 @@ service cloud.firestore {
         && learner.role == 'student'
         && coach.role == request.auth.token.role
         && coach.get('status', 'active') != 'suspended'
-        && coach.get('classIds', []).hasAny(learner.get('classIds', []));
+        && (
+          coach.get('classIds', []).hasAny(learner.get('classIds', []))
+          || coach.get('cohortIds', []).hasAny([learner.get('cohortId', '')])
+          || coach.get('cohortIds', []).hasAny(learner.get('cohortIds', []))
+        );
     }
 
     // A join code the learner typed, resolved through classCodes/{CODE}.
@@ -109,6 +150,32 @@ service cloud.firestore {
         && after.hasOnly(before.concat([codeClassId()]));
     }
 
+    /**
+     * True for safe cohort self-enrolment: a learner joins a cohort by presenting
+     * its exact joinCode, setting cohortId (and optionally cohortIds/groupName)
+     * and touching nothing else.
+     * Learners must never join cohort-test, and cannot join with an invalid or old code.
+     */
+    function isCohortSelfEnrolment() {
+      let code = request.resource.data.get('enrolledVia', '');
+      let targetCohortId = request.resource.data.get('cohortId', '');
+
+      return code is string
+        && code.size() > 0
+        && targetCohortId is string
+        && targetCohortId.size() > 0
+        && targetCohortId != 'cohort-test'
+        && exists(/databases/$(database)/documents/cohorts/$(targetCohortId))
+        && get(/databases/$(database)/documents/cohorts/$(targetCohortId)).data.get('joinCode', '') == code
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['cohortId', 'cohortIds', 'groupName', 'enrolledVia', 'updatedAt'])
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['cohortIds'])
+          || request.resource.data.get('cohortIds', []).hasAll(resource.data.get('cohortIds', []))
+        );
+    }
+
     function teachesClass(classId) {
       return isTeacher() && myClassIds().hasAny([classId]);
     }
@@ -130,7 +197,42 @@ service cloud.firestore {
     // ---------------------------------------------------------------------
     match /organizations/{docId} { allow read, write: if false; }
     match /schools/{docId} { allow read, write: if false; }
-    match /cohorts/{docId} { allow read, write: if false; }
+    function coachTeachesCohort(cohortId) {
+      return isTeacher() && (
+        myCohortIds().hasAny([cohortId])
+        || (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('cohortIds', []).hasAny([cohortId])
+        )
+      );
+    }
+
+    // ---------------------------------------------------------------------
+    // Cohorts. Read by coaches/admins; learners may only read their own assigned cohort
+    // and never cohort-test. Bulk listing by learners is denied to protect join codes.
+    // Writes are restricted to Mani-approved Admin SDK paths.
+    // ---------------------------------------------------------------------
+    match /cohorts/{cohortId} {
+      allow list: if isAdminOrSupervisor() || (isTeacher() && myCohortIds().size() > 0);
+      allow get: if isAdminOrSupervisor()
+        || coachTeachesCohort(cohortId)
+        || (
+          isAuthenticated()
+          && cohortId != 'cohort-test'
+          && (
+            request.auth.token.get('cohortId', '') == cohortId
+            || request.auth.token.get('cohortIds', []).hasAny([cohortId])
+            || (
+              exists(/databases/$(database)/documents/users/$(request.auth.uid))
+              && (
+                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('cohortId', '') == cohortId
+                || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('cohortIds', []).hasAny([cohortId])
+              )
+            )
+          )
+        );
+      allow write: if false;
+    }
     match /programmes/{docId} { allow read, write: if false; }
     match /publicIds/{docId} { allow read, write: if false; }
     match /parentLinks/{docId} { allow read, write: if false; }
@@ -359,8 +461,9 @@ service cloud.firestore {
         && request.resource.data.get('role', resource.data.get('role', 'student')) == resource.data.get('role', 'student')
         && (
           !request.resource.data.diff(resource.data).affectedKeys()
-             .hasAny(['role', 'orgId', 'schoolIds', 'classIds', 'status', 'publicId', 'consent', 'enrolledVia'])
+             .hasAny(['role', 'orgId', 'schoolIds', 'classIds', 'cohortId', 'cohortIds', 'status', 'publicId', 'consent', 'enrolledVia'])
           || isSelfEnrolment()
+          || isCohortSelfEnrolment()
         )
       ) || (
         isCoachOf(userId)

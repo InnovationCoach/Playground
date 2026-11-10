@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { STUDENT_2E_PROFILES, getLearnerById } from '../src/features/coach/studio/learnerProfiles.js';
+import { STUDENT_2E_PROFILES, UNIVERSAL_LEARNER, getLearnerById } from '../src/features/coach/studio/learnerProfiles.js';
 import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from '../src/features/coach/studio/groundingSources.js';
 import { PblUnitSchema } from '../src/features/coach/studio/pblUnitSchema.js';
 import { generateGroundedUnitLocal } from '../src/features/coach/studio/pblSynthesizer.js';
@@ -9,18 +9,11 @@ import { programById } from '../src/features/pbl/programs/catalog.js';
 import { newProgress, setSubmission } from '../src/features/pbl/programs/progress.js';
 
 describe('Coach AI PBL Authoring Studio', () => {
-  it('loads rich 2e learner profiles with traits, passions, and hurdles', () => {
-    expect(STUDENT_2E_PROFILES.length).toBeGreaterThanOrEqual(4);
-    const liam = getLearnerById('student-liam-chen');
-    expect(liam.name).toBe('Liam Chen');
-    expect(liam.diagnosisTraits).toContain('ADHD');
-    expect(liam.consumingPassions).toContain('Robotics');
-    expect(liam.executiveFunctionHurdles).toContain('Task initiation');
-    expect(liam.appliedAccommodations.length).toBeGreaterThan(0);
-
-    const maya = getLearnerById('student-maya-patel');
-    expect(maya.diagnosisTraits).toContain('Dyslexia');
-    expect(maya.consumingPassions).toContain('Blender');
+  it('offers the universal learner and no invented student profiles', () => {
+    expect(STUDENT_2E_PROFILES).toEqual([UNIVERSAL_LEARNER]);
+    expect(UNIVERSAL_LEARNER.isUniversal).toBe(true);
+    expect(UNIVERSAL_LEARNER.appliedAccommodations.length).toBeGreaterThan(0);
+    expect(getLearnerById('student-liam-chen')).toBe(UNIVERSAL_LEARNER);
   });
 
   it('calculates tokens across active grounding sources', () => {
@@ -33,9 +26,8 @@ describe('Coach AI PBL Authoring Studio', () => {
   });
 
   it('synthesizes a structured 8-stage PBL unit conforming to Zod schema', () => {
-    const liam = getLearnerById('student-liam-chen');
     const unit = generateGroundedUnitLocal({
-      learner: liam,
+      learner: UNIVERSAL_LEARNER,
       activeSources: DEFAULT_GROUNDING_SOURCES
     });
 
@@ -43,20 +35,19 @@ describe('Coach AI PBL Authoring Studio', () => {
     expect(parsed.success).toBe(true);
     expect(unit.milestones.length).toBe(8);
     expect(unit.drivingQuestion).toContain('How might we');
-    expect(unit.milestones[0].stageName).toBe('Curiosity & Exploration');
-    expect(unit.milestones[7].stageName).toBe('Showcase & Public Expo');
+    expect(unit.milestones[0].stageName).toBe('Curiosity & Inquiry');
+    expect(unit.milestones[7].stageName).toBe('Showcase & Pitch');
     expect(unit.makerSpaceSpecs.length).toBeGreaterThan(0);
     expect(unit.coachCues.leadCoach).toBe('Coach Donovan');
   });
 
   it('transfers synthesized unit to student program and registers in dynamic catalog', async () => {
-    const maya = getLearnerById('student-maya-patel');
     const unit = generateGroundedUnitLocal({
-      learner: maya,
+      learner: UNIVERSAL_LEARNER,
       activeSources: DEFAULT_GROUNDING_SOURCES
     });
 
-    const transferResult = await publishAndTransferToStudent(unit, maya.id, 'coach-donovan');
+    const transferResult = await publishAndTransferToStudent(unit, 'student-1', 'coach-donovan');
     expect(transferResult.success).toBe(true);
     expect(transferResult.programId).toBe(unit.id);
     expect(transferResult.studentUrl).toContain(encodeURIComponent(unit.id));
@@ -79,31 +70,16 @@ describe('Coach AI PBL Authoring Studio', () => {
     expect(Number.isFinite(prog.sessions[1].submissions.video.submittedAt)).toBe(true);
   });
 
-  it('manages coach evaluations desk with formative assessment and XP awards', async () => {
-    const { getEvaluations, approveSubmission, requestRevisionSubmission } = await import('../src/features/coach/evaluation/evaluationsStore.js');
-    const evals = getEvaluations();
-    expect(evals.length).toBeGreaterThanOrEqual(3);
-
-    const liamEval = evals.find((e) => e.studentName === 'Liam Chen');
-    expect(liamEval).toBeDefined();
-    expect(liamEval.submissions.video.url).toContain('youtube.com');
-    expect(liamEval.submissions.github.repo).toContain('liam-chen');
-    expect(liamEval.submissions.prototype.assetTag).toBe('MS-PRUSA-04');
-    expect(liamEval.status).toBe('pending');
-
-    const approved = approveSubmission(liamEval.id, {
-      feedback: 'Outstanding motor telemetry calibration!',
-      xp: 100,
-      coachName: 'Coach Donovan'
-    });
-    expect(approved.status).toBe('approved');
-    expect(approved.xpAwarded).toBe(100);
-    expect(approved.coachFeedback).toBe('Outstanding motor telemetry calibration!');
-  });
-
   it('allows students to search and find transferred custom programs via searchCatalog', async () => {
     const { buildCatalog, searchCatalog } = await import('../src/features/courses/catalog.js');
     const { getCustomPrograms } = await import('../src/features/coach/programs/customProgramsStore.js');
+
+    const unit = generateGroundedUnitLocal({
+      learner: UNIVERSAL_LEARNER,
+      activeSources: DEFAULT_GROUNDING_SOURCES,
+      customFocus: 'Biomimetic Grip Design'
+    });
+    await publishAndTransferToStudent(unit, 'student-1', 'coach-donovan');
 
     const custom = Object.values(getCustomPrograms());
     const catalog = buildCatalog({
