@@ -40,7 +40,7 @@ export function SparkCompanion({ learnerName, projectContext = null }) {
   const patchSession = (patch) => setSession((s) => ({ ...s, ...patch }));
 
   function fail(err) {
-    const { state, message } = classifySparkError(err);
+    const { state, message } = classifySparkError(err, { hasSession: Boolean(session) });
     setStatus(state === 'disabled' ? 'disabled' : session ? 'ready' : 'error');
     setNotice(message);
   }

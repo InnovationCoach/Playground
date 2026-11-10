@@ -49,6 +49,8 @@ describe('spark tutor model', () => {
     expect(classifySparkError(apiError(503, 'FEATURE_DISABLED')).state).toBe('disabled');
     expect(classifySparkError(apiError(404, 'NOT_FOUND')).state).toBe('disabled');
     expect(classifySparkError(apiError(403, 'FORBIDDEN')).state).toBe('error');
+    expect(classifySparkError(apiError(403, 'FORBIDDEN'), { hasSession: false }).message).toContain('once you are in a class');
+    expect(classifySparkError(apiError(403, 'FORBIDDEN')).message).toContain('another account');
     expect(classifySparkError(new Error('offline')).state).toBe('error');
   });
 

@@ -57,7 +57,12 @@ export function suggestionIntent(text) {
  * and a missing route (404, the backend not deployed here) both mean "Spark is
  * resting", not an error the learner caused.
  */
-export function classifySparkError(err) {
+export function classifySparkError(err, { hasSession = true } = {}) {
+  // Before a session exists, 403 means the learner has no verified school and
+  // class yet, not that they opened someone else's conversation.
+  if (!hasSession && (err?.status === 403 || err?.code === 'FORBIDDEN')) {
+    return { state: 'error', message: 'Spark opens once you are in a class. Ask your coach to check your class enrollment.' };
+  }
   if (err?.code === 'FEATURE_DISABLED' || err?.status === 503 || err?.status === 404 || err?.code === 'NOT_FOUND') {
     return { state: 'disabled', message: 'Spark is taking a rest while coaches review the learning space.' };
   }
