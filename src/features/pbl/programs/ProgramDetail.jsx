@@ -833,7 +833,7 @@ function MultiModalSubmissions({ session: s, progress, apply, say }) {
   return (
     <div className="pg-submissions-box" style={{ marginTop: '0.85rem', padding: '0.85rem', background: 'var(--gh-surface, #fff)', border: '1px solid var(--gh-border, #30363d)', borderRadius: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f0f6fc', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gh-heading, #14213a)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           Multi-Modal Submissions
         </span>
         <div style={{ display: 'flex', gap: '0.35rem' }}>
