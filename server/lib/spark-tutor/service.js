@@ -31,9 +31,15 @@ export async function startOrResumeSession({ caller, mode = 'pbl_mentor', projec
     fail(503, 'FEATURE_DISABLED', 'WeLearn Spark AI Tutor is currently disabled by administrator policy.');
   }
 
+  const schoolId = caller.schoolIds?.[0];
+  const classId = caller.classIds?.[0];
+
+  if (!schoolId || !classId) {
+    fail(403, 'FORBIDDEN', 'Active school and class enrollment is required to use Spark AI Tutor.');
+  }
+
   const db = getDb();
   const uid = caller.uid;
-  const schoolId = caller.schoolIds?.[0] || 'sch-bkk';
 
   // Check if learner has a recently active session (within 2 hours)
   const existingSnap = await db.collection('schools').doc(schoolId)
@@ -64,10 +70,10 @@ export async function startOrResumeSession({ caller, mode = 'pbl_mentor', projec
     sessionId,
     learnerUid: uid,
     schoolId,
-    classId: caller.classIds?.[0] || userData.classIds?.[0] || 'class_yr9_climate',
-    cohortId: userData.cohortId || 'cohort-wls',
-    ageBand: userData.ageBand || '13-15',
-    gradeLevel: userData.gradeLevel ?? 7,
+    classId,
+    cohortId: caller.cohortIds?.[0] || userData.cohortId || null,
+    ageBand: userData.ageBand || null,
+    gradeLevel: userData.gradeLevel ?? null,
     displayName: userData.displayName || caller.name || 'Learner',
     mode: mode === 'academic_tutor' ? 'academic_tutor' : 'pbl_mentor',
     assistanceLevel: ASSISTANCE_LEVELS.ELICIT,
@@ -111,9 +117,12 @@ export async function getAuthorizedSession(sessionId, caller) {
     fail(503, 'FEATURE_DISABLED', 'WeLearn Spark AI Tutor is currently disabled by administrator policy.');
   }
 
-  const db = getDb();
-  const schoolId = caller.schoolIds?.[0] || 'sch-bkk';
+  const schoolId = caller.schoolIds?.[0];
+  if (!schoolId) {
+    fail(403, 'FORBIDDEN', 'No verified school membership.');
+  }
 
+  const db = getDb();
   const doc = await db.collection('schools').doc(schoolId)
     .collection('sparkTutorSessions').doc(sessionId)
     .get();
@@ -147,8 +156,12 @@ export async function getAuthorizedSession(sessionId, caller) {
  * Persists an updated session document.
  */
 export async function updateSession(session) {
+  const schoolId = session.schoolId;
+  if (!schoolId) {
+    fail(500, 'STATE_ERROR', 'Session document is missing verified schoolId.');
+  }
+
   const db = getDb();
-  const schoolId = session.schoolId || 'sch-bkk';
   const now = new Date().toISOString();
 
   await db.collection('schools').doc(schoolId)
@@ -170,8 +183,12 @@ export async function recordSessionTurn({
   detourState = null,
   clientTurnId = null
 }) {
+  const schoolId = session.schoolId;
+  if (!schoolId) {
+    fail(500, 'STATE_ERROR', 'Session document is missing verified schoolId.');
+  }
+
   const db = getDb();
-  const schoolId = session.schoolId || 'sch-bkk';
   const now = new Date().toISOString();
 
   const turnsCol = db.collection('schools').doc(schoolId)
@@ -235,8 +252,12 @@ export async function getSessionTurns(sessionId, schoolId, limitCount = 6) {
  * Persists a practice evidence candidate.
  */
 export async function saveEvidenceRecord(evidence) {
+  const schoolId = evidence.schoolId;
+  if (!schoolId) {
+    fail(500, 'STATE_ERROR', 'Evidence record is missing verified schoolId.');
+  }
+
   const db = getDb();
-  const schoolId = evidence.schoolId || 'sch-bkk';
 
   await db.collection('schools').doc(schoolId)
     .collection('sparkTutorEvidence').doc(evidence.evidenceId)
@@ -262,8 +283,12 @@ export async function getSessionEvidence(sessionId, schoolId) {
  * Creates an authorized coach support request ("Ask my coach").
  */
 export async function createSparkSupportRequest({ session, caller, question, reason = 'LEARNER_INITIATED' }) {
+  const schoolId = session.schoolId;
+  if (!schoolId) {
+    fail(500, 'STATE_ERROR', 'Session document is missing verified schoolId.');
+  }
+
   const db = getDb();
-  const schoolId = session.schoolId || 'sch-bkk';
   const now = new Date().toISOString();
 
   const requestId = `sup_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -308,9 +333,12 @@ export async function createSparkSupportRequest({ session, caller, question, rea
  * Retrieves coach summaries for assigned classes, reading directly from session records (0 extra subqueries).
  */
 export async function getCoachSummariesForCaller(caller) {
-  const db = getDb();
-  const schoolId = caller.schoolIds?.[0] || 'sch-bkk';
+  const schoolId = caller.schoolIds?.[0];
   const classIds = caller.classIds || [];
+
+  if (!schoolId) {
+    return [];
+  }
 
   // Security guard: a teacher with NO assigned class IDs must receive [] immediately
   if (caller.role !== 'admin') {
@@ -319,6 +347,7 @@ export async function getCoachSummariesForCaller(caller) {
     }
   }
 
+  const db = getDb();
   let query = db.collection('schools').doc(schoolId).collection('sparkTutorSessions');
   if (caller.role !== 'admin' && classIds.length > 0) {
     query = query.where('classId', 'in', classIds.slice(0, 10));

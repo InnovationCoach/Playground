@@ -418,7 +418,8 @@ export function createSparkTutorRouter(options = {}) {
    */
   router.get('/coach/settings/:scopeId', wrap(async (req, res) => {
     const { scopeId } = req.params;
-    const schoolId = req.schoolCaller.schoolIds?.[0] || 'sch-bkk';
+    const schoolId = req.schoolCaller.schoolIds?.[0];
+    if (!schoolId) return sendError(res, 403, 'FORBIDDEN', 'No verified school membership.');
     const settings = await getTutoringSettings(schoolId, scopeId);
     res.json(settings);
   }));
@@ -431,7 +432,8 @@ export function createSparkTutorRouter(options = {}) {
       return sendError(res, 403, 'FORBIDDEN', 'Only assigned coaches and administrators can update settings.');
     }
     const { scopeId } = req.params;
-    const schoolId = req.schoolCaller.schoolIds?.[0] || 'sch-bkk';
+    const schoolId = req.schoolCaller.schoolIds?.[0];
+    if (!schoolId) return sendError(res, 403, 'FORBIDDEN', 'No verified school membership.');
     const updated = await updateTutoringSettings(schoolId, scopeId, req.body || {}, req.schoolCaller);
     res.json(updated);
   }));
@@ -445,7 +447,8 @@ export function createSparkTutorRouter(options = {}) {
     }
     const { requestId } = req.body || {};
     if (!requestId) return sendError(res, 400, 'VALIDATION', 'requestId is required.');
-    const schoolId = req.schoolCaller.schoolIds?.[0] || 'sch-bkk';
+    const schoolId = req.schoolCaller.schoolIds?.[0];
+    if (!schoolId) return sendError(res, 403, 'FORBIDDEN', 'No verified school membership.');
     const result = await acknowledgeSupportRequest(schoolId, requestId, req.schoolCaller);
     res.json(result);
   }));

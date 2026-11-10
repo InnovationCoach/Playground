@@ -522,4 +522,30 @@ describe('Spark AI Learning Companion API & Emulator Acceptance Suite', () => {
       process.env.SPARK_AI_TUTOR_ENABLED = original || 'true';
     }
   });
+
+  it('Review Fix 2: Refuses learners with no verified school or class enrollment (403)', async () => {
+    // Unenrolled student with no verified schoolIds or classIds
+    const unenrolledUid = 'u_unenrolled_student';
+    const unenrolledClaims = { role: 'student', orgId, schoolIds: [], classIds: [] };
+    await env.db.collection('users').doc(unenrolledUid).set({
+      uid: unenrolledUid,
+      displayName: 'Unenrolled Student',
+      email: 'unenrolled@school.edu',
+      role: 'student',
+      status: 'active',
+      orgId,
+      schoolIds: [],
+      classIds: ['unverified_profile_class'] // unverified profile field that must not grant access
+    });
+    const unenrolledToken = await env.getIdToken(unenrolledUid, unenrolledClaims);
+
+    const res = await env.request('POST', '/api/spark-tutor/session', {
+      token: unenrolledToken,
+      body: { mode: 'pbl_mentor' }
+    });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+    expect(res.body.error.message).toContain('Active school and class enrollment is required');
+  });
 });
