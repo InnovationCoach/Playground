@@ -18,6 +18,7 @@
  *   #/messages  #/messages/<convId>                      private messages
  *   #/goals                                              goal setting (secondary learners)
  *   #/dashboard                                          My Dashboard (secondary learners)
+ *   #/dashboard/learning|universe|portfolio              lower-secondary shell sections
  *   #/future-skills                                      Future Skills: AI in education + the 7 skills
  *   #/search  #/search/<query>                           course search (secondary learners)
  *                                                        (#/home is the live site's dashboard, so it is not reused.)
@@ -29,6 +30,8 @@
 const KINDS = ['staff', 'students', 'parents'];
 /** Sections of the parent's child dashboard a link may jump to. */
 export const PARENT_SECTIONS = ['pbl', 'goals', 'competencies', 'edmentum'];
+/** Sections of the lower-secondary shell. Every other layout shows My Dashboard for these addresses. */
+const DASHBOARD_SECTIONS = ['learning', 'universe', 'portfolio'];
 
 export function parseRoute(hash) {
   const parts = String(hash || '').replace(/^#\/?/, '').split('/').filter(Boolean).map((p) => {
@@ -68,7 +71,7 @@ export function parseRoute(hash) {
   if (head === 'goals') return { screen: 'goals' };
   if (head === 'search') return { screen: 'homeSearch', q: a || '' };
   if (head === 'future-skills') return { screen: 'futureSkills' };
-  if (head === 'dashboard') return { screen: 'dashboard' };
+  if (head === 'dashboard') return DASHBOARD_SECTIONS.includes(a) ? { screen: 'dashboard', section: a } : { screen: 'dashboard' };
   if (head === 'spark') return { screen: 'spark' };
   if (head === 'coach') return { screen: 'coach' };
   if (head === 'canva') return { screen: 'canva' };
