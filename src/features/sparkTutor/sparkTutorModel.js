@@ -82,3 +82,14 @@ export function messagesFromTurns(turns = []) {
     t.replyText && { id: `${t.turnId || i}-a`, role: 'spark', text: t.replyText, level: t.assistanceLevel }
   ].filter(Boolean));
 }
+
+// A safeguarding disclosure: never sorted below ordinary help requests.
+export const isUrgentSupport = (d) => Boolean(d && (d.priority === 'urgent' || d.category === 'safeguarding' || d.reason === 'SAFEGUARDING'));
+
+// Support requests a coach has not acknowledged yet, urgent first, then newest.
+export function openSupportItems(items = []) {
+  return items
+    .filter((s) => s.supportDetails && s.supportDetails.status !== 'acknowledged')
+    .sort((a, b) => (isUrgentSupport(b.supportDetails) - isUrgentSupport(a.supportDetails))
+      || String(b.supportDetails.requestedAt || '').localeCompare(String(a.supportDetails.requestedAt || '')));
+}

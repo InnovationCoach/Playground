@@ -9,8 +9,8 @@ vi.mock('../src/firebase.js', () => ({ auth: { currentUser: { uid: 'u_mia_chen_p
 vi.mock('../src/services/api/apiClient.js', () => ({ schoolRequest: vi.fn() }));
 import { schoolRequest } from '../src/services/api/apiClient.js';
 import { SparkCompanion } from '../src/features/sparkTutor/SparkCompanion.jsx';
-import { SparkReviewDesk } from '../src/features/sparkTutor/SparkReviewDesk.jsx';
-import { classifySparkError, levelLabel, messagesFromTurns, suggestionIntent, topicLabel, sparkTutorUiEnabled } from '../src/features/sparkTutor/sparkTutorModel.js';
+import { SparkReviewDesk, SparkSafeguardingBanner } from '../src/features/sparkTutor/SparkReviewDesk.jsx';
+import { classifySparkError, levelLabel, messagesFromTurns, suggestionIntent, topicLabel, sparkTutorUiEnabled, openSupportItems } from '../src/features/sparkTutor/sparkTutorModel.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
@@ -203,5 +203,54 @@ describe('SparkReviewDesk', () => {
     schoolRequest.mockRejectedValue(apiError(503, 'FEATURE_DISABLED'));
     await render(<SparkReviewDesk />);
     expect(host.textContent).toContain('Spark is switched off for this school');
+  });
+});
+
+describe('Spark support requests and safeguarding alerts', () => {
+  const urgent = { id: 'sup_u', status: 'pending', reason: 'SAFEGUARDING', category: 'safeguarding', priority: 'urgent', question: '[SAFEGUARDING ALERT] Learner disclosed concerning statement', requestedAt: '2026-11-11T08:00:00Z' };
+  const help = { id: 'sup_h', status: 'pending', reason: 'LEARNER_INITIATED', priority: 'normal', question: 'Stuck on dust ratio', requestedAt: '2026-11-11T09:00:00Z' };
+  const rows = [
+    { sessionId: 's2', displayName: 'Tom Lee', classId: 'c-wls', mode: 'pbl_mentor', supportDetails: help, practiceStats: { totalAttempts: 3, correctCount: 2 } },
+    { sessionId: 's1', displayName: 'Mia Chen', classId: 'c-wls', mode: 'pbl_mentor', supportDetails: urgent },
+    { sessionId: 's3', displayName: 'Ana Ruiz', classId: 'c-wls', mode: 'pbl_mentor', supportDetails: { ...help, id: 'sup_done', status: 'acknowledged' } }
+  ];
+
+  it('lists open requests with safeguarding first, even when older', () => {
+    expect(openSupportItems(rows).map((s) => s.supportDetails.id)).toEqual(['sup_u', 'sup_h']);
+  });
+
+  it('shows the urgent concern as an alert and acknowledges it only after the server confirms', async () => {
+    schoolRequest.mockImplementation(async (method, path) => (path.endsWith('/acknowledge') ? { ok: true, status: 'acknowledged' } : { items: rows }));
+    await render(<SparkReviewDesk scope="all" />);
+    const cards = [...host.querySelectorAll('.sk-request')];
+    expect(cards.map((c) => c.querySelector('strong').textContent)).toEqual(['Safeguarding concern: Mia Chen', 'Asked for help: Tom Lee']);
+    expect(cards[0].getAttribute('role')).toBe('alert');
+    expect(cards[0].textContent).toContain('follow your school');
+    expect(host.textContent).toContain('2 of 3 correct');
+    expect(host.textContent).not.toContain('sup_done');
+    await click("I've seen this");
+    expect(schoolRequest).toHaveBeenCalledWith('POST', '/api/spark-tutor/coach/actions/acknowledge', { body: { requestId: 'sup_u' } });
+    expect(host.textContent).not.toContain('Safeguarding concern: Mia Chen');
+    expect(host.textContent).toContain('Asked for help: Tom Lee');
+  });
+
+  it('keeps the concern on screen when acknowledging fails', async () => {
+    schoolRequest.mockImplementation(async (method, path) => { if (path.endsWith('/acknowledge')) throw apiError(500, 'INTERNAL'); return { items: rows }; });
+    await render(<SparkReviewDesk scope="all" />);
+    await click("I've seen this");
+    expect(host.textContent).toContain('Safeguarding concern: Mia Chen');
+    expect(host.textContent).toContain('tell your safeguarding lead directly');
+  });
+
+  it('raises a workspace banner only while a safeguarding concern is open', async () => {
+    const onOpen = vi.fn();
+    await render(<SparkSafeguardingBanner summaries={{ items: rows }} onOpen={onOpen} />);
+    expect(host.querySelector('.sk-banner').getAttribute('role')).toBe('alert');
+    expect(host.textContent).toContain('Mia Chen');
+    expect(host.textContent).not.toContain('Tom Lee');
+    await click('Review now');
+    expect(onOpen).toHaveBeenCalled();
+    await render(<SparkSafeguardingBanner summaries={{ items: [rows[0], { ...rows[1], supportDetails: { ...urgent, status: 'acknowledged' } }] }} onOpen={onOpen} />);
+    expect(host.querySelector('.sk-banner')).toBeNull();
   });
 });
