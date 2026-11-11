@@ -13,7 +13,7 @@ import { publishAndTransferToStudent, publishProgramToCatalog } from './pblTrans
 import { LearnerSupervisionView } from '../supervision/LearnerSupervisionView.jsx';
 import { CourseStudioPanel } from './CourseStudioPanel.jsx';
 import { EvaluationDeskView } from '../evaluation/EvaluationDeskView.jsx';
-import { fetchSubmissions } from '../evaluation/evaluationsStore.js';
+import { fetchSubmissions, STUDENT_SUBMISSIONS_CONNECTED } from '../evaluation/evaluationsStore.js';
 import { EdmentumIntegrationConsole } from '../../edmentum/EdmentumIntegrationConsole.jsx';
 import { hrefFor } from '../../../app/routes.js';
 import { confettiFrom, buzz } from '../../goals/celebrate.js';
@@ -297,7 +297,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             onClick={() => setWorkspaceTab('supervision')}
           >
             <Users size={16} /> Learner Supervision
-            <span className="cp-tab-pill">{availableLearners.length} Active</span>
+            <span className="cp-tab-pill">{realLearners.length} Active</span>
           </button>
 
           <button
@@ -306,10 +306,14 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             onClick={() => setWorkspaceTab('evaluation')}
           >
             <CheckCircle2 size={16} /> Evaluation Desk
-            <span className="cp-tab-pill pill-amber">
-              {pendingCount > 0 && <span className="cp-tab-pulse-dot" />}
-              {pendingCount} Pending
-            </span>
+            {!STUDENT_SUBMISSIONS_CONNECTED && pendingCount === 0 ? (
+              <span className="cp-tab-pill">Not yet connected</span>
+            ) : (
+              <span className="cp-tab-pill pill-amber">
+                {pendingCount > 0 && <span className="cp-tab-pulse-dot" />}
+                {pendingCount} Pending
+              </span>
+            )}
           </button>
 
           <button

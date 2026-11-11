@@ -1721,3 +1721,15 @@ body[data-surface="dark"] .cp-studio {
   border-radius: 6px;
   border: 1px solid var(--cp-green-border);
 }
+
+.cp-eval-notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-surface-subtle);
+  color: var(--cp-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.cp-eval-notice strong { color: var(--cp-text); }

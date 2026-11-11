@@ -20,6 +20,13 @@ import {
 
 const LEGACY_STORAGE_KEY = 'hearisland.coach_evaluations.v1';
 
+/**
+ * No student screen sends milestone work here yet (createSubmission has no
+ * callers). Coach screens say so instead of implying work is on its way.
+ * Switch this on in the same change that ships the student submission flow.
+ */
+export const STUDENT_SUBMISSIONS_CONNECTED = false;
+
 // One-time cache cleanup of fabricated legacy evaluations
 if (typeof window !== 'undefined' && window.localStorage) {
   try {

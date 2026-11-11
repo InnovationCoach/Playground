@@ -391,6 +391,8 @@ function Lessons({
   );
 }
 export function LessonMedia(props) { return <LearningMedia {...props}/>; }
+// The learners API may return suspended or archived accounts; coaches should not pick them.
+const isSelectableLearner = l => !['suspended', 'archived'].includes(l.status);
 function LearnerSelect({
   learners,
   value,
@@ -410,7 +412,7 @@ function Goals({
     [domain, setDomain] = useState('pbl'),
     [dueDate, setDueDate] = useState(today());
   const isStaff = ['teacher', 'coach', 'admin'].includes(role),
-    choices = (learners.data?.items || []).filter(l => !isStaff || l.classIds.some(id => classes.some(c => c.id === id))),
+    choices = (learners.data?.items || []).filter(l => isSelectableLearner(l) && (!isStaff || l.classIds.some(id => classes.some(c => c.id === id)))),
     selected = choices.find(l => l.id === learnerUid) || choices[0];
   const scopedClasses = classes.filter(c => selected?.classIds.includes(c.id)),
     selectedClass = scopedClasses.find(c => c.id === classId) || scopedClasses[0];
@@ -455,7 +457,7 @@ function Academic({
     [provider, setProvider] = useState('all'),
     [courseFilter, setCourseFilter] = useState('all');
   const isStaff = ['teacher', 'coach', 'admin'].includes(role),
-    choices = (learners.data?.items || []).filter(l => !isStaff || l.classIds.some(id => classes.some(c => c.id === id))),
+    choices = (learners.data?.items || []).filter(l => isSelectableLearner(l) && (!isStaff || l.classIds.some(id => classes.some(c => c.id === id)))),
     selected = choices.find(l => l.id === learnerUid) || choices[0],
     scopedClasses = classes.filter(c => selected?.classIds.includes(c.id)),
     selectedClass = scopedClasses.find(c => c.id === classId) || scopedClasses[0];
