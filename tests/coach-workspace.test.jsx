@@ -7,7 +7,8 @@ vi.mock('../src/firebase.js', () => ({
   auth:{currentUser:{uid:'coach-1',displayName:'Sara',getIdTokenResult:vi.fn()}}, db:{},
   getDoc:vi.fn(), getDocs:vi.fn(), setDoc:vi.fn(),
   doc:(_db,...parts)=>parts.join('/'), collection:(_db,...parts)=>parts.join('/'),
-  query:(ref,filter)=>({ref,filter}), where:(field,op,value)=>({field,op,value})
+  query:(ref,filter)=>({ref,filter}), where:(field,op,value)=>({field,op,value}),
+  usingEmulators: false
 }));
 vi.mock('../src/features/community/CommunityFeed.jsx', () => ({CommunityFeed:()=>null}));
 vi.mock('../src/features/school/SchoolLearningPanel.jsx', () => ({SchoolLearningPanel:()=>null}));

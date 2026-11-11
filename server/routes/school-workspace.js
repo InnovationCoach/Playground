@@ -86,7 +86,7 @@ router.get('/learning-context', wrap(async (req, res) => {
   const classes = [];
   for (const id of caller.role === 'student' ? (caller.profile.classIds || []).filter(validId) : caller.classIds) {
     const c = await db.collection('classes').doc(id).get();
-    if (c.exists && ids.has(c.data().schoolId)) classes.push({
+    if (c.exists && ids.has(c.data().schoolId) && c.data().status !== 'archived') classes.push({
       id,
       name: c.data().name || id,
       schoolId: c.data().schoolId

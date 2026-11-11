@@ -111,7 +111,8 @@ export async function fetchSubmissions({ classIds = [], studentId = null } = {})
       Array.from(studentIds).map(async (uid) => {
         try {
           const userSnap = await getDoc(doc(db, 'users', uid));
-          if (userSnap.exists()) {
+          // The compat SDK exposes `exists` as a property, the modular SDK as a method.
+          if (typeof userSnap.exists === 'function' ? userSnap.exists() : userSnap.exists) {
             studentMap[uid] = userSnap.data();
           }
         } catch {

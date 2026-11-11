@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { subscribeToAuth, getUserProfile, logoutUser } from '../auth.js';
+import { getDevStoredUser } from '../firebase.js';
 import { startTimeTracking, stopTimeTracking } from '../utils/timeTracker.js';
 import { purgeUnscopedUserData, purgeUserDataFor } from '../utils/deviceData.js';
 import { resolveRole } from './roles.js';
@@ -176,6 +177,41 @@ export function AuthProvider({ children, onThemeLoaded }) {
       const gen = ++generation.current;
 
       if (!user) {
+        const devUser = getDevStoredUser();
+        if (devUser) {
+          const devClaims = {
+            role: devUser.role || 'teacher',
+            classIds: devUser.classIds || ['class_yr9_climate', 'class_yr12_eng', 'class-wpr-11a', 'class-wpr-12a'],
+            orgId: devUser.orgId || 'org-welearn',
+            schoolIds: ['sch-bkk', 'school-main']
+          };
+          const devProfile = {
+            uid: devUser.uid,
+            email: devUser.email,
+            displayName: devUser.displayName,
+            role: devUser.role || 'teacher',
+            classIds: devClaims.classIds,
+            orgId: devClaims.orgId,
+            schoolIds: devClaims.schoolIds,
+            status: 'active',
+            ageBand: '16-18',
+            themePreference: 'light'
+          };
+          window.currentUserRole = devProfile.role;
+          identity.current = { uid: devUser.uid, ready: true, profile: devProfile, seq: identity.current.seq + 1 };
+          setState({
+            status: 'ready',
+            user: devUser,
+            profile: devProfile,
+            role: devProfile.role,
+            classIds: devClaims.classIds,
+            orgId: devClaims.orgId,
+            themePreference: 'light',
+            error: null
+          });
+          return;
+        }
+
         identity.current = { uid: null, ready: false, profile: null, seq: identity.current.seq + 1 };
         stopTimeTracking();
         clearImperativeOverlays();
@@ -188,10 +224,52 @@ export function AuthProvider({ children, onThemeLoaded }) {
       signedIn(user, gen);
     }, { tokens: true });
 
+    const handleAuthEvent = () => {
+      if (unmounted) return;
+      const devUser = getDevStoredUser();
+      if (devUser) {
+        const devClaims = {
+          role: devUser.role || 'teacher',
+          classIds: devUser.classIds || ['class_yr9_climate', 'class_yr12_eng', 'class-wpr-11a', 'class-wpr-12a'],
+          orgId: devUser.orgId || 'org-welearn',
+          schoolIds: ['sch-bkk', 'school-main']
+        };
+        const devProfile = {
+          uid: devUser.uid,
+          email: devUser.email,
+          displayName: devUser.displayName,
+          role: devUser.role || 'teacher',
+          classIds: devClaims.classIds,
+          orgId: devClaims.orgId,
+          schoolIds: devClaims.schoolIds,
+          status: 'active',
+          ageBand: '16-18',
+          themePreference: 'light'
+        };
+        window.currentUserRole = devProfile.role;
+        identity.current = { uid: devUser.uid, ready: true, profile: devProfile, seq: identity.current.seq + 1 };
+        setState({
+          status: 'ready',
+          user: devUser,
+          profile: devProfile,
+          role: devProfile.role,
+          classIds: devClaims.classIds,
+          orgId: devClaims.orgId,
+          themePreference: 'light',
+          error: null
+        });
+      } else {
+        identity.current = { uid: null, ready: false, profile: null, seq: identity.current.seq + 1 };
+        setState({ status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null, error: null });
+      }
+    };
+    window.addEventListener('hearisland-auth-changed', handleAuthEvent);
+
     return () => {
       unmounted = true;
       generation.current += 1;
       unsubscribe?.();
+      window.removeEventListener('hearisland-auth-changed', handleAuthEvent);
     };
   }, []);
 
@@ -219,7 +297,12 @@ export function AuthProvider({ children, onThemeLoaded }) {
   const signOut = async () => {
     stopTimeTracking();
     window.currentUserRole = null;
+    try {
+      localStorage.removeItem('hi:dev_user');
+      sessionStorage.removeItem('hi:dev_user');
+    } catch {}
     purgeUserDataFor(state.user?.uid);
+    window.dispatchEvent(new CustomEvent('hearisland-auth-changed'));
     await logoutUser();
   };
 

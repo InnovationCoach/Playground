@@ -57,6 +57,9 @@ export async function signUpUser(email, password, displayName = "", _role = "stu
       ageBand: AGE_BANDS.includes(ageBand) ? ageBand : DEFAULT_AGE_BAND,
       classIds: [],
       isFirstTimeUser: true,
+      orgId: "org-welearn",
+      status: "active",
+      isTest: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });

@@ -1302,5 +1302,11 @@ service cloud.firestore {
     match /universeTaskStatus/{taskKey} {
       allow read, write: if false;
     }
+
+    // AI Course Maker / AI Usage logging (server-written, admin/supervisor-read only)
+    match /ai_usage/{docId} {
+      allow read: if isAdminOrSupervisor();
+      allow write: if false;
+    }
   }
 }

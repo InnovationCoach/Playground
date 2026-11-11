@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { LayoutGrid, GalleryHorizontal, Paintbrush, ListChecks, Compass, ChartNoAxesCombined, PenTool, Orbit, Sparkles, Wrench, Route } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, ListChecks, Compass, ChartNoAxesCombined, PenTool, Orbit, Sparkles, Wrench, Route } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { SLIDES } from './slideModel.js';
 import { AllToolsPanel } from './AllToolsPanel.jsx';

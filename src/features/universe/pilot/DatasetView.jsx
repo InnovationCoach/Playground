@@ -8,7 +8,23 @@ const CLASS_LABEL = {
   'scientific-explanation': 'Scientific explanation'
 };
 const SKIP = new Set(['id', 'version', 'classification', 'attribution', 'sha256', 'records', 'plans', 'options', 'limitations', 'qualityNotes', 'stressCase', 'constraints', 'units', 'observationPeriod']);
-const words = (k) => k.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
+// Authored keys carry their unit as a suffix (ratedPowerKW); show it the way a learner would write it.
+const LABELS = {
+  ratedPowerKW: 'Rated power (kW)',
+  solarKWhDay: 'Solar energy (kWh/day)',
+  deckAreaM2: 'Deck area (m²)',
+  maxDeckAreaM2: 'Largest deck area (m²)',
+  ionPanelAreaM2: 'Ion panel area (m²)',
+  availableIonPanelAreaM2: 'Available ion panel area (m²)',
+  demandKWhDay: 'Energy demand (kWh/day)',
+  windKWEach: 'Power from each turbine (kW)',
+  deltaVMps: 'Change in speed, Δv (m/s)',
+  fluxAtIgnisWm2: 'Sunlight at Ignis (W/m²)',
+  fluxAtThalassaWm2: 'Sunlight at Thalassa (W/m²)',
+  panelElectricalWm2: 'Panel electrical output (W/m²)',
+  standardGravityApproxMps2: 'Standard gravity, approx. (m/s²)'
+};
+const words = (k) => LABELS[k] || k.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase()).replace(/(?<=.) ([A-Z])(?=[a-z])/g, (m) => m.toLowerCase());
 const show = (v) => (typeof v === 'number' ? v.toLocaleString('en-US', { maximumFractionDigits: 6 }) : String(v));
 
 function rowsTable(caption, list) {
@@ -25,7 +41,7 @@ export function DatasetView({ dataset: d }) {
   const scalars = Object.entries(d).filter(([k, v]) => !SKIP.has(k) && !/^reference/.test(k) && (typeof v === 'number' || typeof v === 'string'));
   const list = d.records || d.plans || d.options;
   return <section className="px-dataset" aria-label={`Evidence: ${d.id}`}>
-    <p className="px-dataset-head"><span className="mx-tag">{CLASS_LABEL[d.classification] || d.classification}</span> <small>{d.id} · version {d.version}</small></p>
+    <p className="px-dataset-head"><span className="mx-tag">{CLASS_LABEL[d.classification] || d.classification}</span> </p>
     {d.attribution && <p className="px-fine">{d.attribution}</p>}
     {d.observationPeriod && <p className="px-fine">Period: {d.observationPeriod}</p>}
     {scalars.length > 0 && <dl className="px-dl">{scalars.map(([k, v]) => <div key={k}><dt>{words(k)}</dt><dd>{show(v)}</dd></div>)}</dl>}
@@ -33,5 +49,6 @@ export function DatasetView({ dataset: d }) {
     {Array.isArray(list) && list.length > 0 && rowsTable(d.records ? 'Records' : d.plans ? 'Plan cards' : 'Options', list)}
     {d.stressCase && <p className="px-note">Test case “{d.stressCase.id}”: capacity factor {show(d.stressCase.capacityFactor)}. {d.stressCase.otherAssumptions}</p>}
     {(d.qualityNotes || d.limitations) && <ul className="px-notes">{[...(d.qualityNotes || []), ...(d.limitations || [])].map((n) => <li key={n}>{n}</li>)}</ul>}
+    <details className="px-fine"><summary>Technical details</summary><small>{d.id} · version {d.version}</small></details>
   </section>;
 }

@@ -329,9 +329,11 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
         {!closing && !route && <Briefing bundle={bundle} mission={mission} onChoose={(r) => chooseRoute(r)} history={history} onHistory={() => { setRouteId(mission.routes[0].id); chooseRoute(mission.routes[0]); setView('history'); }} />}
         {!closing && route && <>
           <StatusLine availResult={avail[key]} availability={availability} save={save} onSave={() => doSave()} onRetryAvail={() => checkAvailability(identity, key)} open={open}
-            support={<Support route={route} work={work} setWork={setWork} />} />
+            hasLoadError={Boolean(save.loadError)} support={<Support route={route} work={work} setWork={setWork} />} />
           {save.loadError && <div className="px-alert" role="alert"><AlertTriangle size={16} aria-hidden="true" />
-            <p>{save.loadError.message ? save.loadError.message : `Your saved work couldn’t be loaded. ${describeFailure(save.loadError)}`} Saving is paused so nothing is overwritten. <button type="button" className="px-link" onClick={() => chooseRoute(route)}>Try loading again</button></p></div>}
+            <p>{(isScopeFailure(save.loadError) || isScopeFailure(avail[key]))
+              ? 'Active verified class membership in your organization is required. Saving is unavailable. Please contact your coach or school administrator. Your work on this screen is kept and you can still read everything.'
+              : `${save.loadError.message ? save.loadError.message : `Your saved work couldn’t be loaded. ${describeFailure(save.loadError)}`} You can still read everything. Saving is paused so nothing is overwritten.`} <button type="button" className="px-link" onClick={() => chooseRoute(route)}>Try loading again</button></p></div>}
           {save.state === 'conflict' && <div className="px-alert" role="alert"><AlertTriangle size={16} aria-hidden="true" />
             <div><p>Your account has a different saved version of this task{save.currentDraft ? ` (saved ${formatTime(save.currentDraft.updatedAt)})` : ''}. Nothing has been overwritten.</p>
               <div className="px-row">{save.currentDraft && restorable(registry, identity, save.currentDraft) && <button type="button" className="px-ghost" onClick={() => resolveConflict(true)}>Load the account version</button>}
@@ -405,13 +407,17 @@ function Briefing({ bundle, mission, onChoose, history, onHistory }) {
 }
 
 /** One compact line: whether the mission is open, the save state, and the help style. Failures keep their actions. */
-function StatusLine({ availResult, availability, save, onSave, onRetryAvail, open, support }) {
+function StatusLine({ availResult, availability, save, onSave, onRetryAvail, open, support, hasLoadError = false }) {
   let avail;
   if (!availResult) avail = <span role="status">Checking…</span>;
+  else if (hasLoadError) avail = <span role="status">Unavailable</span>;
   else if (availResult.state !== 'loaded') avail = <span>{describeFailure(availResult)} You can still read everything. <button type="button" className="px-link" onClick={onRetryAvail}>Check again</button></span>;
   else if (!open) avail = <span>{availability.reason || AVAIL_TEXT[availability.status] || AVAIL_TEXT.unknown} You can still read everything. <button type="button" className="px-link" onClick={onRetryAvail}>Check again</button></span>;
   else avail = <span>{availability.status === 'open' ? 'Open' : `Open in this preview (${availability.status})`}</span>;
-  const saveText = { 'not-saved': 'Not saved yet', saving: 'Saving…', saved: `Saved${save.updatedAt ? ` · ${formatTime(save.updatedAt)}` : ''}`, error: 'Not saved', conflict: 'Not saved · two versions' }[save.state] || 'Not saved yet';
+  const isForbiddenScope = isScopeFailure(save?.loadError) || isScopeFailure(availResult);
+  const saveText = isForbiddenScope
+    ? 'Saving paused · read-only'
+    : ({ 'not-saved': 'Not saved yet', saving: 'Saving…', saved: `Saved${save.updatedAt ? ` · ${formatTime(save.updatedAt)}` : ''}`, error: 'Not saved', conflict: 'Not saved · two versions' }[save.state] || 'Not saved yet');
   return <div className={`px-status is-compact${open ? '' : ' is-closed'}`}>
     <p className="px-avail">{avail}</p>
     <p className={`px-save is-${save.state}`} role="status">{save.state === 'saved' ? <Cloud size={14} aria-hidden="true" /> : <CloudOff size={14} aria-hidden="true" />}{save.loading ? 'Loading saved work…' : saveText}

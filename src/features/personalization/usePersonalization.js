@@ -28,7 +28,8 @@ export function usePersonalization(uid) {
     setBusy(true);setError('');
     try {
       const path = `/api/learner-space/items${item.id ? `/${encodeURIComponent(item.id)}` : ''}`;
-      const data = await schoolRequest(remove?'DELETE':item.id?'PATCH':'POST',path,{body:item});
+      const query = remove && item?.revision !== undefined ? { revision: item.revision } : undefined;
+      const data = await schoolRequest(remove?'DELETE':item.id?'PATCH':'POST',path,{query,body:item});
       setSaved(data);setDraft(d=>({...d,items:data.items,approvedAudienceCount:data.approvedAudienceCount}));setStatus(remove?'Work removed.':'Work and audience settings saved.');return true;
     }catch(e){setError(e.message || 'Work could not be saved.');return false;}finally{setBusy(false);}
   }

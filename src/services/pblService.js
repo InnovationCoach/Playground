@@ -19,9 +19,15 @@ export { needsCourseNumbering } from '../features/pbl/programs/sessionNumbering.
 // ============================================================================
 
 export const PblSessionContractSchema = z.object({
+  sessionNumber: z.number().nullable().optional(),
   title: z.string().default(''),
   minutes: z.number().default(90),
-  activities: z.array(z.string()).default([])
+  activities: z.array(z.string()).default([]),
+  evidenceToCollect: z.object({
+    kind: z.string().default('note'),
+    prompt: z.string().default(''),
+    targetCompetencies: z.array(z.string()).default([])
+  }).optional()
 });
 
 export const PblPhaseContractSchema = z.object({
@@ -31,6 +37,8 @@ export const PblPhaseContractSchema = z.object({
   sessions: z.array(PblSessionContractSchema).default([]),
   tools: z.array(z.string()).default([]),
   deliverables: z.array(z.string()).default([]),
+  competencies: z.array(z.string()).default([]),
+  stretchCompetencies: z.array(z.string()).default([]),
   coachCue: z.string().optional().default('')
 });
 
@@ -46,6 +54,13 @@ export const PblProgramContractSchema = z.object({
   }).default({ people: '', environment: '' }),
   frameworkId: z.literal('welearn-dt').default('welearn-dt'),
   frameworkVersion: z.number().default(1),
+  competencies: z.array(z.object({
+    framework: z.string(),
+    id: z.string(),
+    code: z.string().optional(),
+    title: z.string().optional(),
+    statement: z.string().optional()
+  })).default([]),
   phases: z.array(PblPhaseContractSchema).default([]),
   ageBand: z.string().default('11-16'),
   durationWeeks: z.number().default(12),
@@ -88,6 +103,9 @@ export function normaliseContractProgram(raw) {
           }],
           tools: Array.isArray(m.makerSpaceTools) ? m.makerSpaceTools : [],
           deliverables: Array.isArray(m.allowedSubmissions) ? m.allowedSubmissions : (m.evidencePrompt ? [m.evidencePrompt] : []),
+          competencies: Array.isArray(m.competencies)
+            ? m.competencies.map((c) => (typeof c === 'string' ? c : c?.id)).filter(Boolean)
+            : [],
           coachCue: m.coachCue || ''
         }))
       : []);
@@ -121,7 +139,13 @@ export function normaliseContractProgram(raw) {
       competencies: Array.isArray(ph.competencies) ? ph.competencies : [],
       stretchCompetencies: Array.isArray(ph.stretchCompetencies) ? ph.stretchCompetencies : [],
       aiPromptStarters: Array.isArray(ph.aiPromptStarters) ? ph.aiPromptStarters : [],
-      coachCue: ph.coachCue || ph.teacherTips || ''
+      coachCue: ph.coachCue || ph.teacherTips || '',
+      videos: Array.isArray(ph.videos) ? ph.videos : [],
+      slides: Array.isArray(ph.slides) ? ph.slides : [],
+      quiz: Array.isArray(ph.quiz) ? ph.quiz : [],
+      checklist: Array.isArray(ph.checklist) ? ph.checklist : (Array.isArray(ph.tasks) ? ph.tasks.map((t, i) => ({ id: `task-${i + 1}`, label: typeof t === 'string' ? t : (t.label || ''), required: true })) : []),
+      instructions: ph.instructions || ph.goal || ph.learningGoal || '',
+      resources: Array.isArray(ph.resources) ? ph.resources : []
     };
   });
 
@@ -155,9 +179,11 @@ export function normaliseContractProgram(raw) {
     },
     frameworkId: raw.frameworkId || 'welearn-dt',
     frameworkVersion: raw.frameworkVersion || 1,
+    competencies: Array.isArray(raw.competencies) ? raw.competencies : [],
     phases,
     sessions,
     renumbered,
+    cohortOverrides: raw.cohortOverrides || {},
     ageBand: raw.ageBand || raw.targetAgeRange || '11-16',
     targetAgeRange: raw.targetAgeRange || raw.ageBand || '11-16',
     durationWeeks: raw.durationWeeks || 12,
@@ -203,51 +229,146 @@ export function normaliseContractProgram(raw) {
  * Guarded reader for program documents.
  * Returns { status: 'not_found', program: null } instead of throwing.
  */
-export async function getProgram(id) {
+export async function getProgram(id, { cohortId = null, dbInstance = db } = {}) {
   if (!id || typeof id !== 'string') {
     return { status: 'not_found', program: null };
   }
 
-  // 1. Check official library programs first (from catalog.js)
-  const official = programById(id);
-  if (official) {
-    return { status: 'found', program: official };
-  }
+  const applyCohort = (prog) => {
+    if (!prog || !cohortId || !prog.cohortOverrides?.[cohortId]) return prog;
+    const ov = prog.cohortOverrides[cohortId];
+    return {
+      ...prog,
+      ...ov,
+      phases: Array.isArray(ov.phases) ? ov.phases : prog.phases
+    };
+  };
 
-  // 2. Check Firestore pbl_programs collection
-  try {
-    const snap = await getDoc(doc(db, 'pbl_programs', id));
-    if (snap && (typeof snap.exists === 'function' ? snap.exists() : snap.exists)) {
-      const data = snap.data();
-      return { status: 'found', program: normaliseContractProgram({ id: snap.id, ...data }) };
-    }
-  } catch (err) {
-    console.warn('[PBL Service] Firestore read notice:', err?.message);
-  }
-
-  // 2. Check 6 library programs
-  const libProg = LIBRARY_PROGRAMS.find((p) => p.id === id || p.slug === id);
-  if (libProg) {
-    return { status: 'found', program: normaliseContractProgram(libProg) };
-  }
-
-  // 3. Check client localStorage (custom programs store from emulator/mock)
+  // 1. Check custom localStorage overrides first (coach edits / cohort overrides)
   try {
     if (typeof localStorage !== 'undefined') {
       const raw = localStorage.getItem('hearisland.custom_pbl_programs.v1');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed[id]) {
-          return { status: 'found', program: normaliseContractProgram(parsed[id]) };
+          return { status: 'found', program: applyCohort(normaliseContractProgram(parsed[id])) };
         }
       }
     }
-  } catch {
-    // Ignore storage parse issues
+  } catch {}
+
+  // 2. Check Firestore pbl_programs collection
+  try {
+    const snap = await getDoc(doc(dbInstance, 'pbl_programs', id));
+    if (snap && (typeof snap.exists === 'function' ? snap.exists() : snap.exists)) {
+      const data = snap.data();
+      return { status: 'found', program: applyCohort(normaliseContractProgram({ id: snap.id, ...data })) };
+    }
+  } catch (err) {
+    console.warn('[PBL Service] Firestore read notice:', err?.message);
+  }
+
+  // 3. Check official library programs (from catalog.js)
+  const official = programById(id);
+  if (official) {
+    return { status: 'found', program: applyCohort(official) };
+  }
+
+  // 4. Check 6 library programs
+  const libProg = LIBRARY_PROGRAMS.find((p) => p.id === id || p.slug === id);
+  if (libProg) {
+    return { status: 'found', program: applyCohort(normaliseContractProgram(libProg)) };
   }
 
   return { status: 'not_found', program: null };
 }
+
+/**
+ * Saves modifications to a program (or stage) either to the master template or to a specific cohort.
+ * Stores in localStorage 'hearisland.custom_pbl_programs.v1', syncs to Firestore if available,
+ * and broadcasts 'pbl:programUpdated'.
+ */
+export async function saveProgramCustomization(programId, customizer, { cohortId = null, dbInstance = db } = {}) {
+  const currentRes = await getProgram(programId, { dbInstance });
+  let baseProg = currentRes.program || programById(programId);
+  if (!baseProg) {
+    throw new Error(`Program not found: ${programId}`);
+  }
+
+  let updated = JSON.parse(JSON.stringify(baseProg));
+
+  if (typeof customizer === 'function') {
+    updated = customizer(updated, cohortId) || updated;
+  } else if (customizer && typeof customizer === 'object') {
+    if (cohortId) {
+      if (!updated.cohortOverrides) updated.cohortOverrides = {};
+      updated.cohortOverrides[cohortId] = {
+        ...(updated.cohortOverrides[cohortId] || {}),
+        ...customizer
+      };
+    } else {
+      updated = { ...updated, ...customizer };
+    }
+  }
+
+  updated.updatedAt = Date.now();
+
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const storeKey = 'hearisland.custom_pbl_programs.v1';
+      const raw = localStorage.getItem(storeKey);
+      const store = raw ? JSON.parse(raw) : {};
+      store[programId] = updated;
+      localStorage.setItem(storeKey, JSON.stringify(store));
+    }
+  } catch (err) {
+    console.warn('[PBL Service] Local custom program save failed:', err);
+  }
+
+  try {
+    if (dbInstance) {
+      await setDoc(doc(dbInstance, 'pbl_programs', programId), updated, { merge: true });
+    }
+  } catch (err) {
+    // Ignore offline errors in dev/sandbox
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('pbl:programUpdated', { detail: { programId, cohortId } }));
+  }
+
+  return { status: 'saved', program: normaliseContractProgram(updated) };
+}
+
+/**
+ * Extracts a complete, ordered program-wide video library across all stages.
+ */
+export function getVideoLibrary(program, { cohortId = null } = {}) {
+  if (!program) return [];
+  const prog = normaliseContractProgram(program);
+  const cohortData = cohortId && prog.cohortOverrides?.[cohortId];
+  const phases = cohortData?.phases || prog.phases || [];
+
+  const library = [];
+  phases.forEach((ph, pIdx) => {
+    const phTitle = ph.title || `Stage ${pIdx + 1}`;
+    const phId = ph.id || ph.phaseId || `phase-${pIdx + 1}`;
+    const videos = Array.isArray(ph.videos) ? ph.videos : [];
+    videos.forEach((v, vIdx) => {
+      library.push({
+        ...v,
+        id: v.id || `v-${phId}-${vIdx + 1}`,
+        stageId: phId,
+        stageNumber: pIdx + 1,
+        stageTitle: phTitle,
+        stageWeek: ph.weeks,
+        videoIndex: vIdx
+      });
+    });
+  });
+  return library;
+}
+
 
 // ============================================================================
 // Publish Program Pipeline (P0-1, P0-5)
@@ -260,7 +381,7 @@ export async function getProgram(id) {
  * - REJECTS on error; suppresses NO errors in production
  * - Returns { programId, enrolmentIds }
  */
-export async function publishProgram(draft, { assignTo = {} } = {}) {
+export async function publishProgram(draft, { assignTo = {}, dbInstance = db } = {}) {
   const now = Date.now();
   const normalized = normaliseContractProgram(draft);
   if (!normalized) {
@@ -284,8 +405,8 @@ export async function publishProgram(draft, { assignTo = {} } = {}) {
   const programData = validation.data;
 
   // Prepare batch write
-  const batch = writeBatch(db);
-  const programRef = doc(db, 'pbl_programs', programId);
+  const batch = writeBatch(dbInstance);
+  const programRef = doc(dbInstance, 'pbl_programs', programId);
   batch.set(programRef, programData, { merge: true });
 
   const enrolmentIds = [];
@@ -293,7 +414,7 @@ export async function publishProgram(draft, { assignTo = {} } = {}) {
 
   // 1. Assign to class if specified
   if (assignTo.classId) {
-    const classRef = doc(db, 'classes', assignTo.classId);
+    const classRef = doc(dbInstance, 'classes', assignTo.classId);
     batch.update(classRef, {
       programId: programId,
       updatedAt: serverTimestamp()
@@ -304,7 +425,7 @@ export async function publishProgram(draft, { assignTo = {} } = {}) {
   if (assignTo.learnerId) {
     const enrolmentId = `${assignTo.learnerId}_${programId}`;
     enrolmentIds.push(enrolmentId);
-    const enrolRef = doc(db, 'enrolments', enrolmentId);
+    const enrolRef = doc(dbInstance, 'enrolments', enrolmentId);
     batch.set(enrolRef, {
       learnerId: assignTo.learnerId,
       programId: programId,
@@ -316,7 +437,7 @@ export async function publishProgram(draft, { assignTo = {} } = {}) {
       updatedAt: now
     }, { merge: true });
 
-    const phaseRef = doc(db, 'enrolments', enrolmentId, 'phaseProgress', firstPhaseId);
+    const phaseRef = doc(dbInstance, 'enrolments', enrolmentId, 'phaseProgress', firstPhaseId);
     batch.set(phaseRef, {
       status: 'in_progress',
       evidence: [],
@@ -324,7 +445,7 @@ export async function publishProgram(draft, { assignTo = {} } = {}) {
     }, { merge: true });
 
     // Also update student user document for fast lookup
-    const userRef = doc(db, 'users', assignTo.learnerId);
+    const userRef = doc(dbInstance, 'users', assignTo.learnerId);
     batch.set(userRef, {
       activeProgramId: programId,
       updatedAt: serverTimestamp()
@@ -336,7 +457,7 @@ export async function publishProgram(draft, { assignTo = {} } = {}) {
     for (const lId of assignTo.learnerIds) {
       const enrolmentId = `${lId}_${programId}`;
       enrolmentIds.push(enrolmentId);
-      const enrolRef = doc(db, 'enrolments', enrolmentId);
+      const enrolRef = doc(dbInstance, 'enrolments', enrolmentId);
       batch.set(enrolRef, {
         learnerId: lId,
         programId: programId,
@@ -350,7 +471,16 @@ export async function publishProgram(draft, { assignTo = {} } = {}) {
     }
   }
 
-  // Write to client localStorage as instant optimistic cache
+  // Commit batch write to Firestore BEFORE writing client cache or emitting events
+  try {
+    await batch.commit();
+  } catch (err) {
+    // Contract requirement P0-1: REJECT on error. Strictly throw on failure so caller knows status.
+    console.error('[PBL Service] Failed to commit program to Firestore:', err);
+    throw new Error(`Failed to publish program to Firestore: ${err?.message || 'Permission denied'}`);
+  }
+
+  // Write to client localStorage cache only after Firestore commit succeeds
   try {
     if (typeof localStorage !== 'undefined') {
       const raw = localStorage.getItem('hearisland.custom_pbl_programs.v1');
@@ -365,15 +495,7 @@ export async function publishProgram(draft, { assignTo = {} } = {}) {
     // Non-fatal
   }
 
-  // Commit batch write to Firestore
-  try {
-    await batch.commit();
-    return { programId, enrolmentIds };
-  } catch (err) {
-    // Contract requirement P0-1: REJECT on error. Strictly throw on failure so caller knows status.
-    console.error('[PBL Service] Failed to commit program to Firestore:', err);
-    throw new Error(`Failed to publish program to Firestore: ${err?.message || 'Permission denied'}`);
-  }
+  return { programId, enrolmentIds };
 }
 
 // ============================================================================

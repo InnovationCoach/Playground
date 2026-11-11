@@ -29,7 +29,7 @@ const designs = [
     routeNote: 'A made-up week helps us test a method. It is not a real weather record.',
     ngss: [ms],
     steps: {
-      'evidence-check': step('Check the data', 'Open the wind record and find its source label.', {
+      'evidence-check': step('Inspect the evidence', 'Open the wind record and find its source label.', {
         reference: 'A synthetic record is made for learning. A calculated result comes from a rule or formula.',
         parts: { 'data-quality': part('Describe what is made up, what the model assumes, and one missing observation.', 'An observation is a measurement someone actually collects. Do not relabel this fictional week as an observation.') }
       }),
