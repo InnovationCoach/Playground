@@ -11,6 +11,7 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all'); // 'all' | 'pending' | 'approved' | 'video' | 'github' | 'prototype' | 'reflection'
   const [feedbackTexts, setFeedbackTexts] = useState({});
+  const [actionError, setActionError] = useState(null);
 
   const loadLiveSubmissions = useCallback(async () => {
     setLoading(true);
@@ -42,26 +43,38 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
   const handleApprove = async (item, e) => {
     const triggerEl = e.currentTarget;
     const text = feedbackTexts[item.id] || item.coachCue || '';
-    await approveSubmission(item.id, {
-      feedback: text,
-      xp: 100,
-      coachUid: coachUser?.uid || '',
-      coachName: coachUser?.displayName || 'Coach'
-    });
-    confettiFrom(triggerEl, { big: true });
-    buzz([25, 50, 25]);
-    loadLiveSubmissions();
+    setActionError(null);
+    try {
+      await approveSubmission(item.id, {
+        feedback: text,
+        xp: 100,
+        coachUid: coachUser?.uid || '',
+        coachName: coachUser?.displayName || 'Coach'
+      });
+      confettiFrom(triggerEl, { big: true });
+      buzz([25, 50, 25]);
+      loadLiveSubmissions();
+    } catch (err) {
+      console.warn('[EvaluationDeskView] Approve failed:', err);
+      setActionError(`${item.studentName}'s work was not approved. Check your connection and try again.`);
+    }
   };
 
   const handleRequestRevision = async (item) => {
     const text = feedbackTexts[item.id] || 'Please refine telemetry or add brief notes.';
-    await requestRevisionSubmission(item.id, {
-      guidance: text,
-      coachUid: coachUser?.uid || '',
-      coachName: coachUser?.displayName || 'Coach'
-    });
-    buzz(30);
-    loadLiveSubmissions();
+    setActionError(null);
+    try {
+      await requestRevisionSubmission(item.id, {
+        guidance: text,
+        coachUid: coachUser?.uid || '',
+        coachName: coachUser?.displayName || 'Coach'
+      });
+      buzz(30);
+      loadLiveSubmissions();
+    } catch (err) {
+      console.warn('[EvaluationDeskView] Revision request failed:', err);
+      setActionError(`The revision request for ${item.studentName} was not sent. Check your connection and try again.`);
+    }
   };
 
   const filtered = evaluations.filter((item) => {
@@ -79,6 +92,9 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
   return (
     <div className="cp-eval-desk">
       {/* Desk Subheader / Filter Bar */}
+      <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: '1rem', color: 'var(--gh-text-1, #e0f2fe)', fontSize: '0.85rem' }}>
+        <strong>Pipeline Notice:</strong> Student submission flow is not connected yet (Contract 9). Once learners submit deliverables through their daily tasks, reviews will appear here.
+      </div>
       <div className="cp-eval-header">
         <div>
           <h2 className="cp-section-title">Evaluation Desk</h2>
@@ -128,6 +144,7 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
       </div>
 
       {/* Submissions Feed */}
+      {actionError && <p className="cw-warning" role="alert">{actionError}</p>}
       <div className="cp-eval-feed">
         {loading ? (
           <div className="cp-eval-empty">
@@ -136,8 +153,9 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
           </div>
         ) : filtered.length === 0 ? (
           <div className="cp-eval-empty">
-            <CheckCircle2 size={32} />
-            <p>No submissions found for the selected filter.</p>
+            <Clock size={32} />
+            <p>Submissions pipeline not connected yet.</p>
+            <small style={{ color: 'var(--gh-text-2, #64748b)' }}>Student deliverables will arrive here once the submission workflow is activated.</small>
           </div>
         ) : (
           filtered.map((item) => {

@@ -6,6 +6,7 @@
 
 import { db, collection, getDocs, doc, setDoc, updateDoc, arrayUnion, query, where, getAuthClaims } from '../../firebase.js';
 import { escapeHtml } from '../../utils/escapeHtml.js';
+import { isRosterLearner } from '../../features/coach/learners/rosterFilter.js';
 import { logAuditEvent } from '../../utils/auditLogger.js';
 import { listMaterialRequests, createMaterialRequest } from '../../services/api/endpoints.js';
 
@@ -129,17 +130,7 @@ export class CoachDashboard {
           snap.docs.forEach((d) => {
             if (seen.has(d.id)) return;
             seen.add(d.id);
-            const dData = d.data();
-            const isTestAccount = Boolean(
-              dData.isTest === true ||
-              dData.status === 'archived' ||
-              dData.email?.includes('test@school.edu') ||
-              dData.email?.includes('test.') ||
-              dData.email?.includes('@hearisland-test.org')
-            );
-            if (dData.role === 'student' && dData.status === 'active' && !isTestAccount) {
-              studentDocs.push(d);
-            }
+            if (isRosterLearner(d.data())) studentDocs.push(d);
           });
         });
       }
@@ -343,9 +334,7 @@ export class CoachDashboard {
             <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
               <select id="coach-group-select" style="background: #0f172a; color: white; border: 1px solid #475569; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600;">
                 <option value="all">🌐 All Classes & Groups</option>
-                <option value="WLS">WLS</option>
-                <option value="Eco-Designers 8B">Eco-Designers 8B</option>
-                <option value="Green Tech 9C">Green Tech 9C</option>
+                ${[...new Set(this.students.map(s => s.groupName).filter(Boolean))].sort().map(group => `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`).join('')}
               </select>
               <button id="coach-register-student-btn" style="background: #10b981; color: #000; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 800; display: flex; align-items: center; gap: 0.4rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
                 ➕ Register Student
@@ -521,7 +510,7 @@ export class CoachDashboard {
                   <tr style="border-bottom: 1px solid #334155;">
                     <td style="padding: 0.75rem 1rem; font-weight: 700; color: white;">${escapeHtml(c.displayName || c.email?.split('@')[0] || 'Coach')}</td>
                     <td style="padding: 0.75rem 1rem; color: #cbd5e1;">${escapeHtml(c.email)}</td>
-                    <td style="padding: 0.75rem 1rem; color: #38bdf8;">${escapeHtml(c.groupName || 'WLS')}</td>
+                    <td style="padding: 0.75rem 1rem; color: #38bdf8;">${escapeHtml(c.groupName || 'Unassigned')}</td>
                     <td style="padding: 0.75rem 1rem;"><span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">Coach / Teacher</span></td>
                     <td style="padding: 0.75rem 1rem;"><span style="color: #34d399; font-weight: 700;">Active ✓</span></td>
                   </tr>

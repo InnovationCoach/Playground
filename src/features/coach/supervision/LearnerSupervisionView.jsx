@@ -22,10 +22,6 @@ export function LearnerSupervisionView({
   const activeCount = learners.filter(l => !l.isTest).length;
   const pendingEvals = (submissions || []).filter(e => e.status === 'pending').length;
 
-  const onTrackPercent = learners.length > 0
-    ? Math.round((learners.filter(l => l.status !== 'needs_support' && l.status !== 'behind').length / learners.length) * 100)
-    : 100;
-
   const accomCount = learners.filter(l => Array.isArray(l.appliedAccommodations) && l.appliedAccommodations.length > 0).length;
   const accomPercent = learners.length > 0 ? Math.round((accomCount / learners.length) * 100) : 0;
 
@@ -39,7 +35,7 @@ export function LearnerSupervisionView({
           </div>
           <div className="cp-metric-info">
             <span className="cp-metric-val">{activeCount}</span>
-            <span className="cp-metric-lbl">Active 2e Learners</span>
+            <span className="cp-metric-lbl">Active learners</span>
           </div>
         </div>
 
@@ -63,8 +59,9 @@ export function LearnerSupervisionView({
             <CheckCircle2 size={20} />
           </div>
           <div className="cp-metric-info">
-            <span className="cp-metric-val">{onTrackPercent}%</span>
-            <span className="cp-metric-lbl">PBL Milestone On-Track</span>
+            {/* No milestone data feeds this yet; a dash, not a made-up 100%. */}
+            <span className="cp-metric-val">—</span>
+            <span className="cp-metric-lbl">PBL milestone tracking not connected yet</span>
           </div>
         </div>
 
@@ -99,13 +96,14 @@ export function LearnerSupervisionView({
           <div className="cp-learner-grid">
             {learners.map((learner) => {
               const learnerId = learner.id || learner.uid;
-              const currentStageIndex = Math.max(0, Math.min(7, typeof learner.currentStageIndex === 'number' ? learner.currentStageIndex : 0));
+              const hasStage = typeof learner.currentStageIndex === 'number';
+              const currentStageIndex = hasStage ? Math.max(0, Math.min(7, learner.currentStageIndex)) : -1;
               const currentStage = WELEARN_8_STAGES[currentStageIndex];
               const pct = Math.round(((currentStageIndex + 1) / 8) * 100);
 
-              const diagnosisSummary = Array.isArray(learner.diagnosisTraits) && learner.diagnosisTraits.length > 0
+              const diagnosisSummary = Array.isArray(learner.diagnosisTraits)
                 ? learner.diagnosisTraits.join(', ')
-                : (learner.diagnosisTraits || 'General inquiry');
+                : learner.diagnosisTraits;
 
               const hurdleBadge = (learner.hurdleBadges && learner.hurdleBadges[0])
                 || (Array.isArray(learner.executiveFunctionHurdles) ? learner.executiveFunctionHurdles[0] : learner.executiveFunctionHurdles)
@@ -114,7 +112,7 @@ export function LearnerSupervisionView({
 
               const passions = Array.isArray(learner.consumingPassions) && learner.consumingPassions.length > 0
                 ? learner.consumingPassions.join(', ')
-                : (learner.consumingPassions || learner.interests || 'Inquiry & Prototyping');
+                : (learner.consumingPassions || learner.interests || 'None recorded');
 
               const hasPending = (submissions || []).some(s => s.studentId === learnerId && s.status === 'pending');
 
@@ -153,10 +151,16 @@ export function LearnerSupervisionView({
                   {/* 8-Stage PBL Progress Visualizer */}
                   <div className="cp-progress-section">
                     <div className="cp-progress-header">
-                      <span className="cp-progress-title">
-                        Stage {currentStageIndex + 1}/8: <strong>{currentStage}</strong>
-                      </span>
-                      <span className="cp-progress-pct">{pct}% Complete</span>
+                      {hasStage ? (
+                        <>
+                          <span className="cp-progress-title">
+                            Stage {currentStageIndex + 1}/8: <strong>{currentStage}</strong>
+                          </span>
+                          <span className="cp-progress-pct">{pct}% Complete</span>
+                        </>
+                      ) : (
+                        <span className="cp-progress-title">No stage recorded yet</span>
+                      )}
                     </div>
 
                     <div className="cp-stage-track">

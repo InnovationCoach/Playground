@@ -72,6 +72,18 @@
   --gh-red-50: #3a1f1f;
 }
 
+[data-theme="dark"] .gh-modal {
+  background: var(--gh-surface);
+  color: var(--gh-text);
+  border: 1px solid var(--gh-border);
+}
+[data-theme="dark"] .gh-modal p {
+  color: var(--gh-text-2);
+}
+[data-theme="dark"] .gh-banner {
+  border-color: #5a4422;
+}
+
 [data-theme="dark"] header.gh-topbar {
   background: #1a1e27;
   border-bottom-color: #3a4452;

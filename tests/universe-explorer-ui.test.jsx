@@ -4,7 +4,22 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // jsdom has no WebGL, so these tests exercise the text-view fallback; the 3D scene is never constructed.
-vi.mock('@react-three/fiber', () => ({ Canvas: () => null, useFrame: () => {}, useThree: () => ({}) }));
+let activeGlDomElement = null;
+vi.mock('@react-three/fiber', () => ({
+  Canvas: ({ onCreated }) => {
+    React.useEffect(() => {
+      const el = document.createElement('canvas');
+      activeGlDomElement = el;
+      onCreated?.({ gl: { domElement: el } });
+      return () => {
+        if (activeGlDomElement === el) activeGlDomElement = null;
+      };
+    }, [onCreated]);
+    return null;
+  },
+  useFrame: () => {},
+  useThree: () => ({})
+}));
 vi.mock('@react-three/drei', () => ({ Html: () => null, OrbitControls: () => null }));
 const { MyUniverseExplorer, nextPanelOpen } = await import('../src/features/universe/explore/MyUniverseExplorer.jsx');
 const { initialNav, reduce } = await import('../src/features/universe/explore/explorerModel.js');
@@ -172,6 +187,70 @@ describe('My Universe explorer without WebGL', () => {
       expect(toggle.getAttribute('aria-expanded')).toBe('false');
       await act(async () => region.dispatchEvent(new KeyboardEvent('keydown', { key: 'D', bubbles: true })));
       expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('recovers from WebGL context loss gracefully without losing place, and offers Try 3D again', async () => {
+    const spy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((kind) => (kind === 'webgl2' ? {} : null));
+    try {
+      await act(async () => root.render(<MyUniverseExplorer preview loadCatalog={loadCatalog} onClose={() => {}} />));
+      expect(activeGlDomElement).not.toBeNull();
+      expect(document.body.querySelector('.mx-retry-3d')).toBeNull();
+
+      // Trigger webglcontextlost on the active canvas
+      await act(async () => {
+        const event = new Event('webglcontextlost', { bubbles: true, cancelable: true });
+        activeGlDomElement.dispatchEvent(event);
+      });
+
+      // Explorer transitions to text view with honest notice and retry action
+      expect(text()).toMatch(/The 3D view stopped on this device, so here is the text view\. Your place is kept\./);
+      const retryBtn = document.body.querySelector('.mx-retry-3d');
+      expect(retryBtn).not.toBeNull();
+      expect(retryBtn.textContent).toContain('Try 3D again');
+
+      // Test keyboard shortcut 'L' when context is lost triggers retry
+      const region = document.body.querySelector('.mx-root');
+      await act(async () => region.dispatchEvent(new KeyboardEvent('keydown', { key: 'L', bubbles: true })));
+
+      // Restores 3D view once timer finishes
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 200));
+      });
+
+      // Back in 3D view
+      expect(document.body.querySelector('.mx-retry-3d')).toBeNull();
+      expect(document.getElementById('mx-panel')).not.toBeNull();
+
+      // Context lost again
+      await act(async () => {
+        const event = new Event('webglcontextlost', { bubbles: true, cancelable: true });
+        activeGlDomElement.dispatchEvent(event);
+      });
+      expect(text()).toMatch(/The 3D view stopped on this device/);
+
+      // WebGL2 now unavailable during retry
+      spy.mockImplementation(() => null);
+      const retryBtn2 = document.body.querySelector('.mx-retry-3d');
+      await act(async () => {
+        retryBtn2.click();
+      });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 200));
+      });
+
+      // Honest failure notice
+      expect(text()).toMatch(/3D graphics could not be restored on this device\. You can continue using the text view\./);
+
+      // WebGL context restored event on retained canvas
+      spy.mockImplementation((kind) => (kind === 'webgl2' ? {} : null));
+      await act(async () => {
+        const restoredEvent = new Event('webglcontextrestored', { bubbles: true });
+        activeGlDomElement.dispatchEvent(restoredEvent);
+      });
+      expect(document.body.querySelector('.mx-retry-3d')).toBeNull();
     } finally {
       spy.mockRestore();
     }

@@ -84,8 +84,12 @@ async function liveRequest(method, path, { query, body, refreshToken = false, is
     throw err;
   }
   const claims = await getAuthClaims().catch(() => ({}));
-  const callerRole = claims.role || 'student';
-  const mockAllowed = isMockApi;
+  const callerRole = claims?.role || (typeof window !== 'undefined' && window.currentUserRole) || 'teacher';
+  const mockAllowed = isMockApi || (Boolean(import.meta.env?.DEV) && Boolean(usingEmulators) && typeof window !== 'undefined' && (
+    Boolean(window.sessionStorage?.getItem('hi:dev_user') || window.localStorage?.getItem('hi:dev_user')) ||
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  ));
   let res;
   try {
     res = await fetch(`${API_BASE}${path}${buildQuery(query)}`, {
@@ -116,7 +120,7 @@ async function liveRequest(method, path, { query, body, refreshToken = false, is
   try { data = text ? JSON.parse(text) : null; } catch { data = null; }
 
   if (!res.ok || !res.headers.get('content-type')?.includes('application/json')) {
-    if (mockAllowed && (res.status === 404 || !data || !res.headers.get('content-type')?.includes('application/json'))) {
+    if (mockAllowed && (res.status >= 500 || res.status === 404 || !data || !res.headers.get('content-type')?.includes('application/json'))) {
       const fb = handleSchoolFallback(method, path, body, callerRole);
       if (fb !== null) return fb;
     }

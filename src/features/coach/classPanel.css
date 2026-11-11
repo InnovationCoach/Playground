@@ -278,3 +278,63 @@
   .cp-row { grid-template-columns: 1fr; }
   .cp-head, .cp-list { padding-left: 1rem; padding-right: 1rem; }
 }
+
+/* Cohort distinction: Lower Secondary (WLS) vs Higher Secondary (WHS) */
+.cp-cohort-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  width: fit-content;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.cp-cohort-wls {
+  background: var(--gh-green-50, #dafbe1);
+  color: var(--gh-green-text, #1a7f37);
+  border: 1px solid rgba(26, 127, 55, 0.3);
+}
+.cp-cohort-whs {
+  background: var(--gh-purple-50, #fbeaf2);
+  color: var(--gh-purple-text, #8250a0);
+  border: 1px solid rgba(130, 80, 160, 0.3);
+}
+
+.cp-cohort-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--gh-surface, #ffffff);
+  border-left: 1px solid var(--gh-border, #e4e6ee);
+  border-right: 1px solid var(--gh-border, #e4e6ee);
+  border-bottom: 1px solid var(--gh-border, #e4e6ee);
+  flex-wrap: wrap;
+}
+.cp-cohort-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--gh-border, #e4e6ee);
+  background: var(--gh-surface, #ffffff);
+  color: var(--gh-text-2, #4b5670);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.cp-cohort-filter-btn:hover {
+  background: var(--gh-subtle, #f0f2f8);
+  color: var(--gh-heading, #0f2c4c);
+}
+.cp-cohort-filter-btn.is-active {
+  background: var(--gh-purple-50, #fbeaf2);
+  border-color: var(--gh-purple, #8250a0);
+  color: var(--gh-purple-text, #8250a0);
+}
+

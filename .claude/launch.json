@@ -68,6 +68,16 @@
       "port": 5175
     },
     {
+      "name": "lower-secondary-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "tests/lower-secondary-preview/vite.config.js"
+      ],
+      "port": 5198
+    },
+    {
       "name": "hearisland-web-clean",
       "runtimeExecutable": "npx",
       "runtimeArgs": [

@@ -20,13 +20,17 @@ export class TimeoutError extends Error {
 
 /**
  * Classifies an error from Google Generative AI or network.
- * Returns 429, 503, 504, 400, or 500.
+ * Returns 429, 502, 503, 504, 400, or 500.
  */
 export function getGeminiErrorStatus(err) {
   if (!err) return 500;
+  if (err.code === 'AI_NOT_CONFIGURED') return 503;
+  if (err.code === 'MODEL_UNAVAILABLE') return 502;
   if (err.status === 429 || err.statusCode === 429) return 429;
   if (err.status === 503 || err.statusCode === 503) return 503;
   if (err.status === 504 || err.statusCode === 504 || err.name === 'TimeoutError') return 504;
+  if (err.status === 404 || err.statusCode === 404) return 502;
+  if (err.status === 401 || err.statusCode === 401 || err.status === 403 || err.statusCode === 403) return 503;
   if (err.status === 400 || err.statusCode === 400) return 400;
 
   const msg = String(err.message || '').toLowerCase();
@@ -38,6 +42,23 @@ export function getGeminiErrorStatus(err) {
     msg.includes('too many requests')
   ) {
     return 429;
+  }
+  if (
+    msg.includes('404') ||
+    msg.includes('not found') ||
+    msg.includes('not supported') ||
+    msg.includes('unsupported model') ||
+    msg.includes('invalid model')
+  ) {
+    return 502;
+  }
+  if (
+    msg.includes('api_key_invalid') ||
+    msg.includes('api key not valid') ||
+    msg.includes('unauthenticated') ||
+    msg.includes('permission_denied')
+  ) {
+    return 503;
   }
   if (
     msg.includes('503') ||
@@ -56,6 +77,29 @@ export function getGeminiErrorStatus(err) {
 }
 
 /**
+ * Maps an AI error and HTTP status to a safe public error category code.
+ */
+export function getGeminiErrorCode(err, status = getGeminiErrorStatus(err)) {
+  if (err?.code === 'AI_NOT_CONFIGURED') return 'AI_NOT_CONFIGURED';
+  if (err?.code === 'MODEL_UNAVAILABLE' || status === 502) return 'MODEL_UNAVAILABLE';
+  if (status === 429) return 'RATE_LIMIT_EXCEEDED';
+  if (status === 504) return 'GATEWAY_TIMEOUT';
+  if (status === 503) {
+    const msg = String(err?.message || '').toLowerCase();
+    if (
+      err?.status === 401 ||
+      err?.status === 403 ||
+      msg.includes('api_key_invalid') ||
+      msg.includes('api key not valid')
+    ) {
+      return 'AI_NOT_CONFIGURED';
+    }
+    return 'SERVICE_UNAVAILABLE';
+  }
+  return 'AI_SERVICE_ERROR';
+}
+
+/**
  * Executes an async operation with bounded retry and backoff on 429/503 errors.
  */
 export async function executeWithRetry(operation, maxRetries = 1, baseBackoffMs = 1000) {
@@ -66,9 +110,9 @@ export async function executeWithRetry(operation, maxRetries = 1, baseBackoffMs 
     } catch (err) {
       attempt++;
       const status = getGeminiErrorStatus(err);
-      if ((status === 429 || status === 503) && attempt <= maxRetries) {
+      const code = getGeminiErrorCode(err, status);
+      if ((status === 429 || (status === 503 && code === 'SERVICE_UNAVAILABLE')) && attempt <= maxRetries) {
         const delay = baseBackoffMs * attempt;
-        console.warn(`[AI Retry] Upstream returned status ${status}. Retrying (attempt ${attempt}/${maxRetries}) after ${delay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
@@ -102,44 +146,77 @@ export async function withTimeout(promise, timeoutMs = 12000, fallback = undefin
 
 /**
  * Standardized AI error handler for Express routes.
- * Logs full diagnostic error with endpoint name and sends correctly mapped status code.
+ * Logs ONLY safe metadata (endpoint, model, status, code, requestId, durationMs).
+ * Never logs tokens, prompts, learner details, or raw provider URLs/messages.
  */
-export function handleAiError(res, error, endpoint, fallbackMessage) {
+export function handleAiError(res, error, endpoint, fallbackMessage, meta = {}) {
   const status = getGeminiErrorStatus(error);
-  console.error(`[AI Error: ${endpoint}] Status: ${status} | Message: ${error?.message || error}`);
-  if (error?.stack) {
-    console.error(`[AI Error: ${endpoint} Stack]:`, error.stack);
+  const code = getGeminiErrorCode(error, status);
+  const requestId = meta.requestId || res.getHeader?.('X-Request-Id') || undefined;
+  const durationMs = typeof meta.startedAt === 'number' ? Math.max(0, Date.now() - meta.startedAt) : undefined;
+  const model = meta.model || 'unknown';
+
+  if (requestId && typeof res.set === 'function') {
+    res.set('X-Request-Id', requestId);
+  }
+
+  console.error('[AI Error]', {
+    endpoint,
+    model,
+    status,
+    code,
+    ...(requestId ? { requestId } : {}),
+    ...(durationMs !== undefined ? { durationMs } : {})
+  });
+
+  const payload = (extra) => ({
+    ...extra,
+    ...(requestId ? { requestId } : {})
+  });
+
+  if (code === 'AI_NOT_CONFIGURED') {
+    return res.status(503).json(payload({
+      error: 'The AI service is not configured on this server.',
+      code: 'AI_NOT_CONFIGURED'
+    }));
+  }
+
+  if (code === 'MODEL_UNAVAILABLE') {
+    return res.status(502).json(payload({
+      error: 'The configured AI model is unavailable or unsupported.',
+      code: 'MODEL_UNAVAILABLE'
+    }));
   }
 
   if (status === 429) {
     res.set('Retry-After', '5');
-    return res.status(429).json({
+    return res.status(429).json(payload({
       error: 'The AI tutor is receiving too many requests right now. Please try again in a few seconds.',
       code: 'RATE_LIMIT_EXCEEDED',
       retryAfter: 5
-    });
+    }));
   }
 
   if (status === 503) {
     res.set('Retry-After', '3');
-    return res.status(503).json({
+    return res.status(503).json(payload({
       error: 'The AI service is experiencing a sudden spike in demand. Please try again in a moment.',
       code: 'SERVICE_UNAVAILABLE',
       retryAfter: 3
-    });
+    }));
   }
 
   if (status === 504) {
-    return res.status(504).json({
+    return res.status(504).json(payload({
       error: 'The AI response took longer than expected. Please try again.',
       code: 'GATEWAY_TIMEOUT'
-    });
+    }));
   }
 
-  return res.status(500).json({
+  return res.status(500).json(payload({
     error: fallbackMessage || 'The AI service is unavailable right now.',
     code: 'AI_SERVICE_ERROR'
-  });
+  }));
 }
 
 /**

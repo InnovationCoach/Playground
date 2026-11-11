@@ -36,9 +36,11 @@ process.env.ALLOW_DRAFT_MISSIONS = process.env.ALLOW_DRAFT_MISSIONS || 'true';
 const PORT = process.env.PORT || 3001;
 initAdmin();
 const app = createApp({ universeRegistry: FIXTURE_RELEASES });
+const geminiConfig = app.locals.geminiConfig || { model: 'gemini-2.5-flash', configured: false };
 
 const server = app.listen(PORT, '127.0.0.1', () => {
   console.log(`🚀 HearIsland Emulator Server running on http://localhost:${PORT} (project: ${projectId})`);
+  console.log(`🤖 Using Gemini API Model: ${geminiConfig.model} (${geminiConfig.configured ? 'Key Configured ✓' : 'Key Missing ✗'})`);
 });
 
 server.on('error', (err) => {
