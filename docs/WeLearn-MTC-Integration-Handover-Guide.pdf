@@ -1,0 +1,387 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [8 0 R 10 0 R 12 0 R 14 0 R 16 0 R] /Count 5 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 9 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R /F5 7 0 R >> /ProcSet [/PDF /Text /ImageB /ImageC] >> >>
+endobj
+9 0 obj
+<< /Length 5350 >>
+stream
+q 0.0 0.24 0.41 rg 42.00 701.89 511.28 95.00 re f Q
+q 0.06 0.46 0.43 rg 42.00 792.89 511.28 4.00 re f Q
+BT /F2 8 Tf 0.59 0.84 0.0 rg 58.00 774.89 Td (WELEARN GROWTH HUB  |  IT PLATFORM & ARCHITECTURE) Tj ET
+BT /F2 16 Tf 1 1 1 rg 58.00 752.89 Td (Mastery Transcript Consortium \(MTC\) Integration) Tj ET
+BT /F1 9.5 Tf 0.85 0.9 0.95 rg 58.00 736.89 Td (Technical Handover Specification, Data Mapping & API Integration Architecture) Tj ET
+q 0.0 0.18 0.32 rg 58.00 713.89 479.28 16.00 re f Q
+BT /F1 7.2 Tf 0.7 0.8 0.9 rg 64.00 718.89 Td (Version: 1.0.0-RC  |  Date: Nov 2026  |  Author: Mani Golzary \(Platform Lead\)  |  Target: MTC & WeLearn Engineering) Tj ET
+q 0.06 0.46 0.43 rg 42.00 667.89 4.00 18.00 re f Q
+BT /F2 14 Tf 0.0 0.24 0.41 rg 52.00 671.89 Td (1. Executive Summary & Integration Purpose) Tj ET
+BT /F3 8.5 Tf 0.35 0.4 0.48 rg 52.00 655.89 Td (Strategic alignment between WeLearn progressive learning and MTC Mastery Transcripts) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 637.89 Td (WeLearn is a progressive mastery- and project-based academy operating across multiple cohorts, including secondary 2e) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 625.89 Td (learners \(W2E\), primary learners \(WPR\), and dual-enrolment students pursuing the Thai National Diploma. Our educational) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 613.89 Td (model rejects traditional seat-time and subjective letter grades \(A-F\), centering instead on verified competency demonstrations,) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 601.89 Td (iterative project rubrics, and rich multimodal learning evidence.) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 586.89 Td (This technical handover document defines the bilateral integration between WeLearn Growth Hub \(the school LMS and learning) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 574.89 Td (studio\) and the Mastery Transcript Consortium \(MTC\) platform. The primary goal is to establish an automated, tamper-proof) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 562.89 Td (conduit that transmits coach-verified competency masteries and supporting student artifacts from WeLearn directly to MTC) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 550.89 Td (digital transcripts, empowering students with verified mastery credentials for university admissions and lifelong achievement.) Tj ET
+q 0.95 0.98 0.99 rg 0.88 0.9 0.94 RG 0.75 w 42.00 497.89 511.28 46.00 re B Q
+q 0.06 0.46 0.43 rg 42.00 497.89 4.00 46.00 re f Q
+BT /F2 8 Tf 0.05 0.35 0.33 rg 56.00 531.89 Td (CORE INTEGRATION OBJECTIVE) Tj ET
+BT /F1 8 Tf 0.15 0.22 0.3 rg 56.00 519.89 Td (Enable continuous, verified transmission of student mastery milestones, rubric assessments, and authentic evidence URLs from WeLearn) Tj ET
+BT /F1 8 Tf 0.15 0.22 0.3 rg 56.00 508.89 Td (Growth Hub to MTC, with seamless single sign-on \(SSO\) and reciprocal credit framework synchronization.) Tj ET
+q 0.06 0.46 0.43 rg 42.00 471.89 4.00 18.00 re f Q
+BT /F2 14 Tf 0.0 0.24 0.41 rg 52.00 475.89 Td (2. LMS Environment & LTI Standards Baseline) Tj ET
+BT /F3 8.5 Tf 0.35 0.4 0.48 rg 52.00 459.89 Td (Underlying learning platform infrastructure and specification compliance) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 441.89 Td (WeLearn operates a custom-built, modern cloud learning platform--WeLearn Growth Hub--avoiding the constraints and legacy) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 429.89 Td (data models of commercial off-the-shelf LMS platforms.) Tj ET
+q 0.06 0.46 0.43 rg 45.00 416.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 414.89 Td (Platform Core:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 114.01 414.89 Td (Single-Page React 18 client backed by Node.js / Express microservices hosted on Google Cloud Platform / Firebase) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 403.89 Td (\(Enterprise Blaze\).) Tj ET
+q 0.06 0.46 0.43 rg 45.00 392.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 390.89 Td (Tenant Architecture:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 136.84 390.89 Td (Strict multi-tenancy enforcing cryptographic isolation between schools, cohorts \(W2E, WPR, Thai Diploma\),) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 379.89 Td (and classes.) Tj ET
+q 0.06 0.46 0.43 rg 45.00 368.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 366.89 Td (1EdTech LTI 1.3 Advantage:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 170.10 366.89 Td (Engineered natively as an LTI 1.3 Tool Platform & Tool Consumer, fully certified for Core 1.3 \(OIDC) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 355.89 Td (3-legged launch\), Assignment & Grade Services \(AGS v2.0\), Names and Role Provisioning Services \(NRPS v2.0\), and Deep) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 344.89 Td (Linking \(v2.0\).) Tj ET
+q 0.06 0.46 0.43 rg 45.00 333.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 331.89 Td (Partner LMS Pass-Through:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 167.59 331.89 Td (For partner international schools maintaining Canvas LMS, WeLearn's backend acts as an) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 320.89 Td (authenticated LTI bridge, allowing upstream Canvas gradebook pass-through.) Tj ET
+q 0.82 0.85 0.9 RG 0.75 w 42.00 32.00 m 553.28 32.00 l s Q
+BT /F1 7 Tf 0.5 0.55 0.6 rg 42.00 22.00 Td (CONFIDENTIAL  -  FOR WELEARN & MASTERY TRANSCRIPT CONSORTIUM WORKING GROUP ONLY) Tj ET
+BT /F2 7.5 Tf 0.1 0.2 0.4 rg 513.00 22.00 Td (Page 1 of 5) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 11 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R /F5 7 0 R >> /ProcSet [/PDF /Text /ImageB /ImageC] >> >>
+endobj
+11 0 obj
+<< /Length 4493 >>
+stream
+q 0.06 0.46 0.43 rg 42.00 778.89 4.00 18.00 re f Q
+BT /F2 14 Tf 0.0 0.24 0.41 rg 52.00 782.89 Td (3. Security & Authentication Architecture) Tj ET
+BT /F3 8.5 Tf 0.35 0.4 0.48 rg 52.00 766.89 Td (Dual-layered authentication for interactive sessions and server-to-server data pipelines) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 748.89 Td (To satisfy international student privacy standards \(FERPA, COPPA, and PDPA\) while providing zero-friction usability, the) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 736.89 Td (integration operates two distinct, cryptographically isolated authentication planes:) Tj ET
+BT /F2 11 Tf 0.0 0.24 0.41 rg 42.00 711.89 Td (3.1 Interactive Learner & Coach Launch \(LTI 1.3 / OIDC\)) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 698.89 Td (When a student or coach opens their MTC portfolio viewer or launches WeLearn from within MTC, the session uses 1EdTech) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 686.89 Td (LTI 1.3 Advantage security based on OpenID Connect \(OIDC\) 3-legged redirection:) Tj ET
+q 0.06 0.46 0.43 rg 45.00 673.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 671.89 Td (Step 1 \(Login Initiation\):) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 150.74 671.89 Td (WeLearn initiates an OIDC authentication request to MTC's authorization endpoint with target_link_uri,) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 660.89 Td (lti_message_hint, and login_hint.) Tj ET
+q 0.06 0.46 0.43 rg 45.00 649.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 647.89 Td (Step 2 \(Authentication Response\):) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 192.41 647.89 Td (MTC authenticates the user context and returns a signed ID Token \(JWT\) via HTTP POST form) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 636.89 Td (submission to WeLearn's redirect URI.) Tj ET
+q 0.06 0.46 0.43 rg 45.00 625.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 623.89 Td (Step 3 \(JWKS Signature Verification\):) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 205.29 623.89 Td (WeLearn verifies the token signature against MTC's public JSON Web Key Set) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 612.89 Td (\(/.well-known/jwks.json\) using asymmetric RS256, validating state, nonce, and client_id.) Tj ET
+BT /F2 11 Tf 0.0 0.24 0.41 rg 42.00 589.89 Td (3.2 Service-to-Service Automated REST API \(OAuth 2.0\)) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 576.89 Td (All automated synchronization jobs--including event-driven webhook pushes and nightly reconciliation tasks--communicate with) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 564.89 Td (MTC's REST API via OAuth 2.0 Client Credentials Grant with asymmetric private key JWT authentication:) Tj ET
+q 0.06 0.46 0.43 rg 45.00 551.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 549.89 Td (Client Token Exchange:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 151.23 549.89 Td (WeLearn signs an ephemeral assertion JWT with its private RSA key and POSTs to /oauth/token, receiving) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 538.89 Td (a scoped bearer access token \(1 hour TTL\).) Tj ET
+q 0.06 0.46 0.43 rg 45.00 527.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 525.89 Td (API Authorization Header:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 159.66 525.89 Td (Subsequent REST API calls carry Authorization: Bearer <access_token> with tenant-scoping headers) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 514.89 Td (\(X-School-ID, X-Cohort-ID\).) Tj ET
+q 1.0 0.98 0.92 rg 0.88 0.9 0.94 RG 0.75 w 42.00 463.89 511.28 46.00 re B Q
+q 0.85 0.45 0.05 rg 42.00 463.89 4.00 46.00 re f Q
+BT /F2 8 Tf 0.65 0.3 0.0 rg 56.00 497.89 Td (DATA MINIMIZATION & COMPLIANCE RULE) Tj ET
+BT /F1 8 Tf 0.15 0.22 0.3 rg 56.00 485.89 Td (Student personal support notes, psychological evaluations, and primary parent billing credentials never cross the API boundary. Only) Tj ET
+BT /F1 8 Tf 0.15 0.22 0.3 rg 56.00 474.89 Td (school-authorized academic mastery records, rubric evaluations, and public portfolio URLs are transmitted.) Tj ET
+q 0.82 0.85 0.9 RG 0.75 w 42.00 32.00 m 553.28 32.00 l s Q
+BT /F1 7 Tf 0.5 0.55 0.6 rg 42.00 22.00 Td (CONFIDENTIAL  -  FOR WELEARN & MASTERY TRANSCRIPT CONSORTIUM WORKING GROUP ONLY) Tj ET
+BT /F2 7.5 Tf 0.1 0.2 0.4 rg 513.00 22.00 Td (Page 2 of 5) Tj ET
+q 0.82 0.85 0.9 RG 0.75 w 42.00 809.89 m 553.28 809.89 l s Q
+BT /F2 7.5 Tf 0.06 0.46 0.43 rg 42.00 815.89 Td (WELEARN GROWTH HUB  |  MTC INTEGRATION HANDOVER) Tj ET
+BT /F1 7.5 Tf 0.4 0.45 0.5 rg 368.28 815.89 Td (TECHNICAL SPECIFICATION & API ARCHITECTURE) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 13 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R /F5 7 0 R >> /ProcSet [/PDF /Text /ImageB /ImageC] >> >>
+endobj
+13 0 obj
+<< /Length 6176 >>
+stream
+q 0.06 0.46 0.43 rg 42.00 778.89 4.00 18.00 re f Q
+BT /F2 14 Tf 0.0 0.24 0.41 rg 52.00 782.89 Td (4. Bilateral Data Dictionary & Field Mapping) Tj ET
+BT /F3 8.5 Tf 0.35 0.4 0.48 rg 52.00 766.89 Td (Complete cross-system mapping between WeLearn Growth Hub and MTC API schemas) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 748.89 Td (WeLearn evaluates learning through four discrete rubric levels: Emerging \(1\), Developing \(2\), Proficient \(3\), and Exemplary \(4\).) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 736.89 Td (Mastery credit is earned when a learner achieves Proficient \(3\) or Exemplary \(4\) substantiated by coach-reviewed evidence) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 724.89 Td (artifacts.) Tj ET
+q 0.0 0.24 0.41 rg 42.00 691.89 511.28 18.00 re f Q
+BT /F2 7.5 Tf 1 1 1 rg 46.00 696.89 Td (WeLearn Object / Field) Tj ET
+BT /F2 7.5 Tf 1 1 1 rg 156.00 696.89 Td (MTC API Field) Tj ET
+BT /F2 7.5 Tf 1 1 1 rg 266.00 696.89 Td (Data Type) Tj ET
+BT /F2 7.5 Tf 1 1 1 rg 361.00 696.89 Td (Mapping Rules & Transformation) Tj ET
+q 1.0 1.0 1.0 rg 0.88 0.9 0.94 RG 0.5 w 42.00 674.89 511.28 16.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 680.89 Td (learnerUid) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 680.89 Td (student.external_id) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 680.89 Td (UUID String) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 680.89 Td (Immutable student ID; generated at enrollment.) Tj ET
+q 0.97 0.98 0.99 rg 0.88 0.9 0.94 RG 0.5 w 42.00 649.89 511.28 25.00 re B Q
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 46.00 664.89 Td (profile.displayName) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 664.89 Td (student.first_name
+student.last_name) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 664.89 Td (String \(split\)) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 664.89 Td (Parsed into given and family names; strips sensitive) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 655.39 Td (tags.) Tj ET
+q 1.0 1.0 1.0 rg 0.88 0.9 0.94 RG 0.5 w 42.00 633.89 511.28 16.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 639.89 Td (cohort) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 639.89 Td (student.cohort_id) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 639.89 Td (Enum String) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 639.89 Td (Maps W2E \(Senior\), WPR \(Primary\), or Thai Diploma.) Tj ET
+q 0.97 0.98 0.99 rg 0.88 0.9 0.94 RG 0.5 w 42.00 617.89 511.28 16.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 623.89 Td (expectedGraduationYear) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 623.89 Td (student.grad_year) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 623.89 Td (Integer \(YYYY\)) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 623.89 Td (Academic completion target \(e.g., 2027\).) Tj ET
+q 1.0 1.0 1.0 rg 0.88 0.9 0.94 RG 0.5 w 42.00 592.89 511.28 25.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 607.89 Td (competencyId) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 607.89 Td (credit.competency_id) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 607.89 Td (String / Code) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 607.89 Td (Corresponds to MTC Credit Domain or custom STEAM) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 598.39 Td (standard.) Tj ET
+q 0.97 0.98 0.99 rg 0.88 0.9 0.94 RG 0.5 w 42.00 576.89 511.28 16.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 582.89 Td (rubricScore \(3 or 4\)) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 582.89 Td (evaluation.mastery_status) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 582.89 Td (Enum String) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 582.89 Td (Score 3 -> 'PROFICIENT', Score 4 -> 'EXEMPLARY'.) Tj ET
+q 1.0 1.0 1.0 rg 0.88 0.9 0.94 RG 0.5 w 42.00 551.89 511.28 25.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 566.89 Td (evidenceUrl) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 566.89 Td (evidence.artifact_url) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 566.89 Td (HTTPS URI) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 566.89 Td (Signed CDN URL to student submission \(PDF, video,) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 557.39 Td (lab\).) Tj ET
+q 0.97 0.98 0.99 rg 0.88 0.9 0.94 RG 0.5 w 42.00 535.89 511.28 16.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 541.89 Td (reflectionText) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 541.89 Td (evidence.narrative) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 541.89 Td (Markdown Text) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 541.89 Td (Student's written meta-cognitive defense and summary.) Tj ET
+q 1.0 1.0 1.0 rg 0.88 0.9 0.94 RG 0.5 w 42.00 519.89 511.28 16.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 525.89 Td (coachUid) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 525.89 Td (evaluation.assessor_id) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 525.89 Td (UUID String) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 525.89 Td (Immutable staff ID of the reviewing educator.) Tj ET
+q 0.97 0.98 0.99 rg 0.88 0.9 0.94 RG 0.5 w 42.00 503.89 511.28 16.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 509.89 Td (coachFeedback) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 509.89 Td (evaluation.coach_notes) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 509.89 Td (Markdown Text) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 509.89 Td (Formal assessment notes and verification feedback.) Tj ET
+q 1.0 1.0 1.0 rg 0.88 0.9 0.94 RG 0.5 w 42.00 478.89 511.28 25.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 493.89 Td (evaluatedAt) Tj ET
+BT /F4 7.0 Tf 0.05 0.3 0.5 rg 156.00 493.89 Td (evaluation.awarded_at) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 266.00 493.89 Td (ISO 8601 UTC) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 493.89 Td (Timestamp of coach signature \(e.g.,) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 361.00 484.39 Td (2026-11-05T10:00:00Z\).) Tj ET
+q 0.82 0.85 0.9 RG 0.75 w 42.00 32.00 m 553.28 32.00 l s Q
+BT /F1 7 Tf 0.5 0.55 0.6 rg 42.00 22.00 Td (CONFIDENTIAL  -  FOR WELEARN & MASTERY TRANSCRIPT CONSORTIUM WORKING GROUP ONLY) Tj ET
+BT /F2 7.5 Tf 0.1 0.2 0.4 rg 513.00 22.00 Td (Page 3 of 5) Tj ET
+q 0.82 0.85 0.9 RG 0.75 w 42.00 809.89 m 553.28 809.89 l s Q
+BT /F2 7.5 Tf 0.06 0.46 0.43 rg 42.00 815.89 Td (WELEARN GROWTH HUB  |  MTC INTEGRATION HANDOVER) Tj ET
+BT /F1 7.5 Tf 0.4 0.45 0.5 rg 368.28 815.89 Td (TECHNICAL SPECIFICATION & API ARCHITECTURE) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 15 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R /F5 7 0 R >> /ProcSet [/PDF /Text /ImageB /ImageC] >> >>
+endobj
+15 0 obj
+<< /Length 3926 >>
+stream
+q 0.06 0.46 0.43 rg 42.00 778.89 4.00 18.00 re f Q
+BT /F2 14 Tf 0.0 0.24 0.41 rg 52.00 782.89 Td (5. Key API Endpoints & Request/Response Contracts) Tj ET
+BT /F3 8.5 Tf 0.35 0.4 0.48 rg 52.00 766.89 Td (Technical payload contracts for core synchronization endpoints) Tj ET
+q 0.98 0.99 1.0 rg 0.8 0.85 0.92 RG 0.75 w 42.00 574.39 511.28 174.50 re B Q
+q 0.06 0.46 0.43 rg 50.00 728.89 36.00 13.00 re f Q
+BT /F2 7.5 Tf 1 1 1 rg 55.00 731.89 Td (POST) Tj ET
+BT /F4 8.5 Tf 0.0 0.2 0.4 rg 90.00 731.89 Td (/api/v1/mastery-records) Tj ET
+BT /F3 8 Tf 0.35 0.4 0.48 rg 52.00 716.89 Td (Submits a coach-signed competency mastery achievement to MTC transcript queue.) Tj ET
+BT /F1 7.5 Tf 0.15 0.22 0.3 rg 54.00 704.89 Td (- Header: Authorization: Bearer <access_token>) Tj ET
+BT /F1 7.5 Tf 0.15 0.22 0.3 rg 54.00 693.89 Td (- Header: Content-Type: application/json) Tj ET
+BT /F1 7.5 Tf 0.15 0.22 0.3 rg 54.00 682.89 Td (- Header: X-School-ID: welearn-bkk-01) Tj ET
+q 0.1 0.14 0.2 rg 0.05 0.08 0.12 RG 1 w 52.00 579.39 491.28 93.50 re B Q
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 662.89 Td ({) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 653.39 Td (  "student_external_id": "wl_stu_98b3f2e1",) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 643.89 Td (  "competency_id": "MTC_SCI_ENERGY_04",) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 634.39 Td (  "mastery_status": "PROFICIENT",) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 624.89 Td (  "rubric_level": 3,) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 615.39 Td (  "evaluated_at": "2026-11-05T08:30:00Z",) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 605.89 Td (  "assessor": { "id": "wl_staff_mani_01", "name": "Mani Golzary", "role": "Coach" },) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 596.39 Td (  "program_context": { "course_code": "STEAM-MICROGRID-26", "title": "Net-Zero Microgrid" }) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 586.89 Td (}) Tj ET
+q 0.98 0.99 1.0 rg 0.8 0.85 0.92 RG 0.75 w 42.00 410.39 511.28 154.00 re B Q
+q 0.06 0.46 0.43 rg 50.00 544.39 36.00 13.00 re f Q
+BT /F2 7.5 Tf 1 1 1 rg 55.00 547.39 Td (POST) Tj ET
+BT /F4 8.5 Tf 0.0 0.2 0.4 rg 90.00 547.39 Td (/api/v1/mastery-records/{record_id}/artifacts) Tj ET
+BT /F3 8 Tf 0.35 0.4 0.48 rg 52.00 532.39 Td (Attaches multimodal student evidence and reflective defense to an existing mastery record.) Tj ET
+BT /F1 7.5 Tf 0.15 0.22 0.3 rg 54.00 520.39 Td (- Path Parameter: record_id \(UUID returned from /mastery-records\)) Tj ET
+BT /F1 7.5 Tf 0.15 0.22 0.3 rg 54.00 509.39 Td (- Header: Idempotency-Key: <unique_hash_of_artifact>) Tj ET
+q 0.1 0.14 0.2 rg 0.05 0.08 0.12 RG 1 w 52.00 415.39 491.28 84.00 re B Q
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 489.39 Td ({) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 479.89 Td (  "artifact_type": "ENGINEERING_REPORT",) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 470.39 Td (  "title": "Solar Energy Dispatch & SO2 Mitigation Modeling",) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 460.89 Td (  "artifact_url": "https://storage.welearn.org/evidence/2026/wl_stu_98b3f2e1/microgrid_final.pdf",) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 451.39 Td (  "media_format": "application/pdf",) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 441.89 Td (  "file_size_bytes": 4829104,) Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 432.39 Td (  "student_narrative": "Synthesized solar car telemetry data to design a multi-zone battery buffer.") Tj ET
+BT /F4 6.8 Tf 0.78 0.9 0.8 rg 58.00 422.89 Td (}) Tj ET
+q 0.82 0.85 0.9 RG 0.75 w 42.00 32.00 m 553.28 32.00 l s Q
+BT /F1 7 Tf 0.5 0.55 0.6 rg 42.00 22.00 Td (CONFIDENTIAL  -  FOR WELEARN & MASTERY TRANSCRIPT CONSORTIUM WORKING GROUP ONLY) Tj ET
+BT /F2 7.5 Tf 0.1 0.2 0.4 rg 513.00 22.00 Td (Page 4 of 5) Tj ET
+q 0.82 0.85 0.9 RG 0.75 w 42.00 809.89 m 553.28 809.89 l s Q
+BT /F2 7.5 Tf 0.06 0.46 0.43 rg 42.00 815.89 Td (WELEARN GROWTH HUB  |  MTC INTEGRATION HANDOVER) Tj ET
+BT /F1 7.5 Tf 0.4 0.45 0.5 rg 368.28 815.89 Td (TECHNICAL SPECIFICATION & API ARCHITECTURE) Tj ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 17 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R /F5 7 0 R >> /ProcSet [/PDF /Text /ImageB /ImageC] >> >>
+endobj
+17 0 obj
+<< /Length 7749 >>
+stream
+q 0.06 0.46 0.43 rg 42.00 778.89 4.00 18.00 re f Q
+BT /F2 14 Tf 0.0 0.24 0.41 rg 52.00 782.89 Td (6. Data Flow Dynamics & Synchronization Cadence) Tj ET
+BT /F3 8.5 Tf 0.35 0.4 0.48 rg 52.00 766.89 Td (Lifecycle of data exchange across triggers, frequencies, and directionality) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 748.89 Td (To ensure transcript accuracy without placing unnecessary load on API infrastructure, data exchange operates under three) Tj ET
+BT /F1 9 Tf 0.12 0.18 0.25 rg 42.00 736.89 Td (distinct cadences:) Tj ET
+q 0.0 0.24 0.41 rg 42.00 703.89 511.28 18.00 re f Q
+BT /F2 7.5 Tf 1 1 1 rg 46.00 708.89 Td (Data Stream) Tj ET
+BT /F2 7.5 Tf 1 1 1 rg 166.00 708.89 Td (Direction) Tj ET
+BT /F2 7.5 Tf 1 1 1 rg 251.00 708.89 Td (Frequency) Tj ET
+BT /F2 7.5 Tf 1 1 1 rg 346.00 708.89 Td (Operational Trigger & Resilience) Tj ET
+q 1.0 1.0 1.0 rg 0.88 0.9 0.94 RG 0.5 w 42.00 677.89 511.28 25.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 692.89 Td (Competency Framework) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 166.00 692.89 Td (MTC -> WeLearn) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 251.00 692.89 Td (Quarterly / On-Demand) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 346.00 692.89 Td (Inbound pull to refresh standard MTC credit categories and) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 346.00 683.39 Td (competencies.) Tj ET
+q 0.97 0.98 0.99 rg 0.88 0.9 0.94 RG 0.5 w 42.00 652.89 511.28 25.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 667.89 Td (Roster & Provisioning) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 166.00 667.89 Td (Two-way) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 251.00 667.89 Td (Just-In-Time + Nightly) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 346.00 667.89 Td (LTI launch auto-provisions learner; nightly batch syncs class) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 346.00 658.39 Td (status.) Tj ET
+q 1.0 1.0 1.0 rg 0.88 0.9 0.94 RG 0.5 w 42.00 627.89 511.28 25.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 642.89 Td (Mastery & Rubrics) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 166.00 642.89 Td (WeLearn -> MTC) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 251.00 642.89 Td (Real-Time Event) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 346.00 642.89 Td (Fires within 5 seconds of coach signature; queues on) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 346.00 633.39 Td (network failure.) Tj ET
+q 0.97 0.98 0.99 rg 0.88 0.9 0.94 RG 0.5 w 42.00 602.89 511.28 25.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 617.89 Td (Multimodal Evidence) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 166.00 617.89 Td (WeLearn -> MTC) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 251.00 617.89 Td (Real-Time Event) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 346.00 617.89 Td (Pushes verified HTTPS asset links immediately following) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 346.00 608.39 Td (rubric submission.) Tj ET
+q 1.0 1.0 1.0 rg 0.88 0.9 0.94 RG 0.5 w 42.00 577.89 511.28 25.00 re B Q
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 46.00 592.89 Td (Transcript Publish Link) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 166.00 592.89 Td (MTC -> WeLearn) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 251.00 592.89 Td (On-Demand Read) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 346.00 592.89 Td (Polled when parents or learners access the WeLearn) Tj ET
+BT /F1 7.5 Tf 0.15 0.2 0.25 rg 346.00 583.39 Td (Transcript Hub.) Tj ET
+q 0.06 0.46 0.43 rg 42.00 549.89 4.00 18.00 re f Q
+BT /F2 14 Tf 0.0 0.24 0.41 rg 52.00 553.89 Td (7. Open Technical Questions for Bilateral Meeting) Tj ET
+BT /F3 8.5 Tf 0.35 0.4 0.48 rg 52.00 537.89 Td (Items for alignment during the scheduled working session with Jason and MTC) Tj ET
+q 0.06 0.46 0.43 rg 45.00 521.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 519.89 Td (1. Sandbox Provisioning:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 155.20 519.89 Td (What is the procedure and lead time for provisioning a dedicated WeLearn sandbox tenant with mock) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 508.89 Td (student profiles?) Tj ET
+q 0.06 0.46 0.43 rg 45.00 497.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 495.89 Td (2. Evidence Media Hosting:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 165.12 495.89 Td (Does MTC consume and cache raw media binaries \(MP4/PDF up to 50MB\), or does the MTC transcript) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 484.89 Td (viewer iframe/embed our secure HTTPS CDN URLs directly?) Tj ET
+q 0.06 0.46 0.43 rg 45.00 473.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 471.89 Td (3. Revision & Resubmission Semantics:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 214.20 471.89 Td (If a learner improves their project after coach feedback and earns an upgrade from) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 460.89 Td (Proficient to Exemplary, what is MTC's preferred update pattern \(PUT upsert vs. revision appending\)?) Tj ET
+q 0.06 0.46 0.43 rg 45.00 449.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 447.89 Td (4. Rate Limits & Concurrency:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 175.02 447.89 Td (What are the requests-per-minute rate limits, and is there a batch endpoint available for end-of-term) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 436.89 Td (transcript reconciliation \(e.g., 500 records at once\)?) Tj ET
+q 0.06 0.46 0.43 rg 45.00 425.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 423.89 Td (5. Custom STEAM Competency Governance:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 236.53 423.89 Td (Can WeLearn register specialized NGSS/STEAM micro-competencies mapped) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 54.00 412.89 Td (parentally to standard MTC high-level credit areas?) Tj ET
+q 0.06 0.46 0.43 rg 42.00 381.89 4.00 18.00 re f Q
+BT /F2 14 Tf 0.0 0.24 0.41 rg 52.00 385.89 Td (8. Project Contacts & Bilateral Working Group) Tj ET
+BT /F3 8.5 Tf 0.35 0.4 0.48 rg 52.00 369.89 Td (Key personnel and proposed meeting slots) Tj ET
+q 0.06 0.46 0.43 rg 45.00 353.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 351.89 Td (MTC Lead:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 100.62 351.89 Td (Jason \(Partner & Integration Lead\)) Tj ET
+q 0.06 0.46 0.43 rg 45.00 340.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 338.89 Td (WeLearn Platform Lead:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 153.21 338.89 Td (Mani Golzary \(AI Learning Architect & IT Platform Lead, mani@welearn.org\)) Tj ET
+q 0.06 0.46 0.43 rg 45.00 327.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 325.89 Td (WeLearn Project Sponsor:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 161.14 325.89 Td (David Doran \(Founder & CEO, WeLearn Academy\)) Tj ET
+q 0.06 0.46 0.43 rg 45.00 314.89 3.00 3.00 re f Q
+BT /F2 8.5 Tf 0.0 0.24 0.41 rg 54.00 312.89 Td (Preferred Meeting Time:) Tj ET
+BT /F1 8.5 Tf 0.15 0.2 0.28 rg 152.70 312.89 Td (8:00 PM US Eastern Time \(8:00 AM Indochina Time ICT\) - Alternative: 6:00 AM US ET.) Tj ET
+q 0.96 0.94 0.98 rg 0.88 0.9 0.94 RG 0.75 w 42.00 261.89 511.28 46.00 re B Q
+q 0.51 0.31 0.63 rg 42.00 261.89 4.00 46.00 re f Q
+BT /F2 8 Tf 0.4 0.2 0.5 rg 56.00 295.89 Td (TECHNICAL READINESS CONFIRMATION) Tj ET
+BT /F1 8 Tf 0.15 0.22 0.3 rg 56.00 283.89 Td (WeLearn's LTI 1.3 foundation and backend Express REST clients are ready for staging testing. Upon receipt of sandbox credentials from) Tj ET
+BT /F1 8 Tf 0.15 0.22 0.3 rg 56.00 272.89 Td (MTC, end-to-end integration tests can commence immediately within Phase B.) Tj ET
+q 0.82 0.85 0.9 RG 0.75 w 42.00 32.00 m 553.28 32.00 l s Q
+BT /F1 7 Tf 0.5 0.55 0.6 rg 42.00 22.00 Td (CONFIDENTIAL  -  FOR WELEARN & MASTERY TRANSCRIPT CONSORTIUM WORKING GROUP ONLY) Tj ET
+BT /F2 7.5 Tf 0.1 0.2 0.4 rg 513.00 22.00 Td (Page 5 of 5) Tj ET
+q 0.82 0.85 0.9 RG 0.75 w 42.00 809.89 m 553.28 809.89 l s Q
+BT /F2 7.5 Tf 0.06 0.46 0.43 rg 42.00 815.89 Td (WELEARN GROWTH HUB  |  MTC INTEGRATION HANDOVER) Tj ET
+BT /F1 7.5 Tf 0.4 0.45 0.5 rg 368.28 815.89 Td (TECHNICAL SPECIFICATION & API ARCHITECTURE) Tj ET
+endstream
+endobj
+xref
+0 18
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000149 00000 n 
+0000000246 00000 n 
+0000000348 00000 n 
+0000000453 00000 n 
+0000000548 00000 n 
+0000000648 00000 n 
+0000000858 00000 n 
+0000006260 00000 n 
+0000006472 00000 n 
+0000011018 00000 n 
+0000011230 00000 n 
+0000017459 00000 n 
+0000017671 00000 n 
+0000021650 00000 n 
+0000021862 00000 n 
+trailer
+<< /Size 18 /Root 1 0 R /Info << /Title (WeLearn Growth Hub <> MTC Technical Handover & Integration Architecture) /Author (WeLearn IT Platform Team) >> >>
+startxref
+29664
+%%EOF
