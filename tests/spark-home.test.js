@@ -11,7 +11,7 @@ import { childRecords } from '../src/services/api/mockChildRecords.js';
 // The screens App.jsx renders for each role. A SPARK card may only point at one of these.
 const ALLOWED = {
   student: ['courses', 'programs', 'space', 'journey', 'portfolio', 'pbl', 'goals', 'dashboard', 'futureSkills', 'homeSearch', 'community', 'spark', 'settings', 'canva'],
-  teacher: ['coach', 'pbl', 'resources', 'community', 'spark', 'settings', 'canva'],
+  teacher: ['coach', 'pbl', 'resources', 'community', 'spark', 'settings', 'canva', 'messages'],
   parent: ['parent', 'settings', 'spark'],
   supervisor: ['admin', 'pbl', 'settings', 'resources', 'spark', 'canva'],
   admin: ['admin', 'pbl', 'settings', 'resources', 'spark', 'canva']
@@ -166,7 +166,8 @@ describe('sidebar menu', () => {
         else expect(typeof i.onClick).toBe('function');
         for (const locale of ['en', 'zh', 'th']) expect(messages[locale][i.label], `${locale} ${i.label}`).toBeTruthy();
       }
-      expect(keys.some((k) => k.includes('messages'))).toBe(false);
+      if (role === 'teacher') expect(keys).toContain('messages');
+      else expect(keys.some((k) => k.includes('messages'))).toBe(false);
       if (role === 'student') expect(items.find((i) => i.key === 'competencies')?.href).toBe(hrefFor.pbl('competencies'));
     });
   }

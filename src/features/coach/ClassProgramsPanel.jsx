@@ -50,12 +50,19 @@ export function ClassProgramsPanel({ coachUser }) {
       try {
         const snap = await getDocs(collection(db, 'pbl_programs'));
         const map = new Map();
+        const seenTitles = new Set();
+        const norm = (s) => (s || '').trim().toLowerCase();
+
         snap.forEach((d) => {
           const data = d.data();
+          const title = data.title || d.id;
+          const key = norm(title);
+          if (seenTitles.has(key)) return;
+          seenTitles.add(key);
           map.set(d.id, {
             id: d.id,
-            title: data.title || d.id,
-            identity: { short: (data.title || d.id).slice(0, 24) },
+            title,
+            identity: { short: title.slice(0, 24) },
             source: data.source || 'studio',
             ageBand: data.ageBand || data.targetAgeRange || '11-16'
           });
@@ -63,10 +70,16 @@ export function ClassProgramsPanel({ coachUser }) {
 
         // Add prototype PROGRAMS and LIBRARY_PROGRAMS if not already present
         for (const p of PROGRAMS) {
-          if (!map.has(p.id)) map.set(p.id, p);
+          const key = norm(p.title || p.id);
+          if (!map.has(p.id) && !seenTitles.has(key)) {
+            seenTitles.add(key);
+            map.set(p.id, p);
+          }
         }
         for (const p of LIBRARY_PROGRAMS) {
-          if (!map.has(p.id)) {
+          const key = norm(p.title || p.id);
+          if (!map.has(p.id) && !seenTitles.has(key)) {
+            seenTitles.add(key);
             map.set(p.id, {
               id: p.id,
               title: p.title,
