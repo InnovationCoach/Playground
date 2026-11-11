@@ -6,6 +6,7 @@ import { sendError } from '../lib/errors.js';
 import { writeAuditLog } from '../lib/audit.js';
 import { schoolCaller, schoolAccess, assignedClass, requireId, requireText, fail, staff } from '../lib/schoolScope.js';
 import {
+  evaluateCohortRange,
   resolveUserLayoutSelection,
   validateLayoutOverrideWrite
 } from '../lib/layoutSelection.js';
@@ -71,6 +72,31 @@ router.post('/', route(async (req, res, caller) => {
   const cls = await assignedClass(caller, schoolId, classId);
   const orgId = school.orgId;
   if (!orgId || caller.profile.orgId !== orgId) fail(403, 'FORBIDDEN', 'Your organization assignment needs checking.');
+
+  const effectiveCohortId = cohortId || cls.cohortId || null;
+  if (effectiveCohortId) {
+    const cohortDocSnap = await db.collection('cohorts').doc(effectiveCohortId).get();
+    if (cohortDocSnap.exists) {
+      const cRange = evaluateCohortRange(cohortDocSnap.data(), effectiveCohortId);
+      if (cRange.classification === 'eligible') {
+        if (body.ageBand === '16-18') {
+          fail(400, 'VALIDATION', 'Age band 16-18 contradicts lower-secondary class cohort.');
+        }
+        if (body.ageBand === 'primary') {
+          fail(400, 'VALIDATION', 'Primary age band contradicts lower-secondary class cohort.');
+        }
+      } else if (cRange.classification === 'older') {
+        if (body.ageBand === 'primary') {
+          fail(400, 'VALIDATION', 'Primary age band contradicts higher-secondary class cohort.');
+        }
+      } else if (cRange.classification === 'outside-rollout') {
+        if (body.ageBand === '16-18') {
+          fail(400, 'VALIDATION', 'Age band 16-18 contradicts primary class cohort.');
+        }
+      }
+    }
+  }
+
   if (!(await db.collection('users').where('email', '==', email).limit(1).get()).empty) fail(409, 'CONFLICT', 'This email already has an account.');
 
   let created;
@@ -252,51 +278,102 @@ router.patch('/:uid/layout-override', route(async (req, res, caller) => {
   }
 
   const nowIso = new Date().toISOString();
-  const nextAuthority = {
-    uid,
-    role: student.role,
-    orgId: student.orgId,
-    schoolIds: verifiedStudentSchoolIds,
-    classIds: verifiedStudentClassIds,
-    dobVerified: Boolean(authority?.dobVerified),
-    dateOfBirth: verifiedDob,
-    cohortVerified: Boolean(authority?.cohortVerified),
-    cohortId: authority?.cohortVerified ? (authority.cohortId ?? null) : null,
-    cohort: authority?.cohort ?? null,
-    ageBand: authority?.ageBand ?? student.ageBand ?? null,
-    overrideVerified: true,
-    layoutOverride: overrideCheck.value,
-    updatedAt: nowIso,
-    updatedBy: { uid: caller.uid, role: caller.role, classId, schoolId }
-  };
 
   await db.runTransaction(async tx => {
-    const [callerNowSnap, schoolNowSnap, classNowSnap] = await Promise.all([
+    const [callerNowSnap, schoolNowSnap, classNowSnap, studentNowSnap, authorityNowSnap] = await Promise.all([
       tx.get(db.collection('users').doc(caller.uid)),
       tx.get(db.collection('schools').doc(schoolId)),
-      tx.get(db.collection('classes').doc(classId))
+      tx.get(db.collection('classes').doc(classId)),
+      tx.get(db.collection('users').doc(uid)),
+      tx.get(db.collection('userLayoutAuthority').doc(uid))
     ]);
     const p = callerNowSnap.data(), s = schoolNowSnap.data(), c = classNowSnap.data();
     if (
-      !p || p.role !== caller.role || p.status === 'suspended' || p.orgId !== student.orgId || !p.schoolIds?.includes(schoolId) ||
-      !s || s.status === 'suspended' || s.orgId !== student.orgId ||
+      !p || p.role !== caller.role || p.status === 'suspended' || p.orgId !== caller.profile.orgId || !p.schoolIds?.includes(schoolId) ||
+      !s || s.status === 'suspended' || s.orgId !== caller.profile.orgId ||
       !c || c.schoolId !== schoolId || c.status === 'archived' ||
       (caller.role !== 'admin' && !p.classIds?.includes(classId))
     ) {
       fail(403, 'FORBIDDEN', 'Your class access changed. Ask an administrator to check it.');
     }
-    tx.set(db.collection('userLayoutAuthority').doc(uid), nextAuthority, { merge: true });
-    tx.set(db.collection('users').doc(uid), {
-      layoutOverride: overrideCheck.value,
+
+    if (!studentNowSnap.exists) {
+      fail(404, 'NOT_FOUND', 'Student account not found.');
+    }
+    const currentStudent = studentNowSnap.data();
+    if (!currentStudent || (currentStudent.role !== 'student' && currentStudent.role !== 'learner')) {
+      fail(400, 'VALIDATION', 'Layout overrides can only be set for student accounts.');
+    }
+    if (currentStudent.status === 'suspended' || currentStudent.orgId !== caller.profile.orgId) {
+      fail(403, 'FORBIDDEN', 'This student account is unavailable.');
+    }
+
+    const currentAuthority = authorityNowSnap.exists ? authorityNowSnap.data() : null;
+
+    // Verify student is still in this school and class
+    const currentStudentSchoolIds = Array.isArray(currentAuthority?.schoolIds)
+      ? currentAuthority.schoolIds
+      : (Array.isArray(currentStudent.schoolIds) ? currentStudent.schoolIds : []);
+    if (!currentStudentSchoolIds.includes(schoolId)) {
+      fail(403, 'FORBIDDEN', 'This student is no longer in this school.');
+    }
+
+    const currentStudentClassIds = Array.isArray(currentAuthority?.classIds)
+      ? currentAuthority.classIds
+      : (Array.isArray(currentStudent.classIds) ? currentStudent.classIds : []);
+    if (!currentStudentClassIds.includes(classId)) {
+      fail(403, 'FORBIDDEN', 'This student is no longer assigned to this class.');
+    }
+
+    // Revalidate under-11 safeguard and override using transaction-fresh DOB and cohort
+    const currentDob = currentAuthority?.dobVerified ? currentAuthority.dateOfBirth : null;
+    const currentCohortId = (currentAuthority?.cohortVerified && currentAuthority.cohortId)
+      ? currentAuthority.cohortId
+      : (c.cohortId || null);
+
+    let currentCohortDoc = null;
+    if (currentCohortId) {
+      const cDocSnap = await tx.get(db.collection('cohorts').doc(currentCohortId));
+      if (cDocSnap.exists) currentCohortDoc = cDocSnap.data();
+    }
+
+    const txOverrideCheck = validateLayoutOverrideWrite({
+      targetRole: currentStudent.role,
+      layoutOverride: body.layoutOverride,
+      verifiedDob: currentDob,
+      cohortDoc: currentCohortDoc,
+      cohort: currentAuthority?.cohort ?? currentStudent.cohort ?? null,
+      ageBand: currentStudent.ageBand ?? null
+    });
+    if (!txOverrideCheck.ok) {
+      fail(400, 'VALIDATION', txOverrideCheck.message);
+    }
+
+    // Update ONLY override-specific fields on userLayoutAuthority, preserving concurrent DOB and cohort edits!
+    const authorityUpdate = {
+      uid,
+      role: currentStudent.role,
+      orgId: currentStudent.orgId,
+      overrideVerified: true,
+      layoutOverride: txOverrideCheck.value,
+      updatedAt: nowIso,
+      updatedBy: { uid: caller.uid, role: caller.role, classId, schoolId }
+    };
+    tx.set(db.collection('userLayoutAuthority').doc(uid), authorityUpdate, { merge: true });
+
+    // Update layoutOverride on users/{uid}
+    tx.update(db.collection('users').doc(uid), {
+      layoutOverride: txOverrideCheck.value,
       updatedAt: nowIso,
       updatedBy: { uid: caller.uid, email: caller.profile.email || null }
-    }, { merge: true });
+    });
+
     tx.create(db.collection('schools').doc(schoolId).collection('auditEvents').doc(), {
       actorUid: caller.uid,
       action: 'LAYOUT_OVERRIDE_CHANGED',
       entityId: uid,
       classId,
-      layoutOverride: overrideCheck.value,
+      layoutOverride: txOverrideCheck.value,
       createdAt: nowIso
     });
   });

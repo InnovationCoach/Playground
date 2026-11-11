@@ -158,7 +158,11 @@ export function evaluateCohortRange(cohortDoc, cohortId = null) {
   }
 
   const minAge = cohortDoc.minAge;
-  const maxAgeExclusive = cohortDoc.maxAgeExclusive;
+  const maxAgeExclusive = Number.isInteger(cohortDoc.maxAgeExclusive)
+    ? cohortDoc.maxAgeExclusive
+    : Number.isInteger(cohortDoc.maxAge)
+      ? cohortDoc.maxAge + 1
+      : undefined;
   if (
     !Number.isInteger(minAge) ||
     !Number.isInteger(maxAgeExclusive) ||
@@ -241,7 +245,7 @@ export function evaluateLayoutSelection(input = {}) {
   }
 
   const role = typeof input.role === 'string' && input.role.trim() ? input.role.trim() : null;
-  const isStudentRole = role === 'student' || role === 'learner';
+  const isStudentRole = role === 'student';
   const isPrimary = Boolean(input.isPrimary);
   const rawOverrideInput = input.staffOverride ?? input.override ?? null;
   const normalizedOverride = normalizeOverrideInput(rawOverrideInput);
@@ -317,6 +321,10 @@ export function evaluateLayoutSelection(input = {}) {
       fields.age = null;
       return fields;
     }
+    if (input.hasContradiction) {
+      fields.ageRange = { min: 13, max: 15 };
+      return fields;
+    }
     if (trustedAgeStatus === 'valid') {
       fields.age = trustedAge;
       return fields;
@@ -381,6 +389,30 @@ export function evaluateLayoutSelection(input = {}) {
       trustedCohortStatus,
       staffOverride: normalizedOverride,
       overrideBlocked: Boolean(normalizedOverride)
+    };
+  }
+
+  // Contradictory evidence safeguard:
+  // If verified signals contradict each other (e.g. older ageBand vs lower-secondary cohort,
+  // or verified DOB outside the cohort's age range), layout selection fails safe to existing.
+  if (input.hasContradiction) {
+    return {
+      contractVersion: LAYOUT_CONTRACT_VERSION,
+      layout: 'existing',
+      reason: 'ambiguous',
+      verified: true,
+      evidenceVerified: false,
+      ...selectorEvidence,
+      override: toContractOverride(normalizedOverride),
+      source: 'none',
+      role,
+      isPrimary,
+      trustedAge: null,
+      trustedAgeStatus: 'ambiguous',
+      trustedAgeRange,
+      trustedCohortStatus: 'ambiguous',
+      staffOverride: normalizedOverride,
+      overrideBlocked: Boolean(normalizedOverride === 'lower-secondary')
     };
   }
 
@@ -742,7 +774,43 @@ export async function resolveUserLayoutSelection(
     hasUnverifiedAgeSignal = true;
   }
 
-  // 6. Check for legacy/unverified self-editable age/cohort signals on users/{uid}
+  // 6. Check for contradictory evidence between verified cohort and DOB / staff-recorded ageBand
+  let hasContradiction = false;
+  const staffAgeBand = authority?.ageBand ?? userData?.ageBand ?? null;
+  const staffCohort = authority?.cohort ?? userData?.cohort ?? null;
+
+  if (trustedCohortStatus === 'valid' && trustedAgeRange) {
+    if (trustedAgeRange.min >= LOWER_SECONDARY_MIN_AGE && trustedAgeRange.max <= LOWER_SECONDARY_MAX_AGE) {
+      // Cohort is lower-secondary (11-14): contradicts older (16-18 / higher-secondary) or primary
+      if (staffAgeBand === '16-18' || staffCohort === 'higher-secondary' || staffCohort === 'cohort-whs') {
+        hasContradiction = true;
+      }
+      if (staffAgeBand === 'primary' || staffCohort === 'primary' || staffCohort === 'cohort-lower-primary' || staffCohort === 'cohort-higher-primary') {
+        hasContradiction = true;
+      }
+      if (trustedAgeStatus === 'valid' && (trustedAge < LOWER_SECONDARY_MIN_AGE || trustedAge > 15)) {
+        hasContradiction = true;
+      }
+    } else if (trustedAgeRange.min > LOWER_SECONDARY_MAX_AGE) {
+      // Cohort is older (15+): contradicts primary or verified DOB <= 14
+      if (staffAgeBand === 'primary' || staffCohort === 'primary') {
+        hasContradiction = true;
+      }
+      if (trustedAgeStatus === 'valid' && trustedAge <= LOWER_SECONDARY_MAX_AGE) {
+        hasContradiction = true;
+      }
+    } else if (trustedAgeRange.max < LOWER_SECONDARY_MIN_AGE) {
+      // Cohort is primary (<11): contradicts older 16-18 or verified DOB >= 11
+      if (staffAgeBand === '16-18' || staffCohort === 'higher-secondary') {
+        hasContradiction = true;
+      }
+      if (trustedAgeStatus === 'valid' && trustedAge > 12) {
+        hasContradiction = true;
+      }
+    }
+  }
+
+  // 7. Check for legacy/unverified self-editable age/cohort signals on users/{uid}
   if (
     Boolean(userData?.ageBand) ||
     Boolean(userData?.cohort) ||
@@ -768,6 +836,7 @@ export async function resolveUserLayoutSelection(
     trustedCohortStatus,
     staffOverride,
     hasUnverifiedAgeSignal,
+    hasContradiction,
     cohortSource
   });
 }

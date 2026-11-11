@@ -8,6 +8,7 @@ import { generateUniquePublicId } from '../lib/publicId.js';
 import { writeAuditLog } from '../lib/audit.js';
 import { isEmailConfigured, sendEmail } from '../lib/email.js';
 import {
+  evaluateCohortRange,
   parseVerifiedDob,
   resolveUserLayoutSelection,
   validateLayoutOverrideWrite
@@ -327,12 +328,43 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
       }
     }
 
+    let dobAge = null;
     if (body.dateOfBirth !== undefined && body.dateOfBirth !== null && String(body.dateOfBirth).trim() !== '') {
       const dobCheck = parseVerifiedDob(body.dateOfBirth);
       if (dobCheck.status !== 'valid') {
         return sendError(res, 400, 'VALIDATION', 'Enter a valid date of birth (YYYY-MM-DD).', 'dateOfBirth');
       }
       normalizedDob = dobCheck.dob;
+      dobAge = dobCheck.age;
+    }
+
+    if (cohortDocData) {
+      const cRange = evaluateCohortRange(cohortDocData, body.cohortId);
+      if (cRange.classification === 'eligible') {
+        if (body.ageBand === '16-18' || resolvedCohort === 'higher-secondary') {
+          return sendError(res, 400, 'VALIDATION', 'Age band 16-18 contradicts lower-secondary cohort.', 'ageBand');
+        }
+        if (body.ageBand === 'primary' || resolvedCohort === 'primary') {
+          return sendError(res, 400, 'VALIDATION', 'Primary age band contradicts lower-secondary cohort.', 'ageBand');
+        }
+        if (dobAge !== null && (dobAge < 11 || dobAge > 15)) {
+          return sendError(res, 400, 'VALIDATION', 'Date of birth contradicts selected cohort.', 'dateOfBirth');
+        }
+      } else if (cRange.classification === 'older') {
+        if (body.ageBand === 'primary' || resolvedCohort === 'primary') {
+          return sendError(res, 400, 'VALIDATION', 'Primary age band contradicts higher-secondary cohort.', 'ageBand');
+        }
+        if (dobAge !== null && dobAge < 15) {
+          return sendError(res, 400, 'VALIDATION', 'Date of birth contradicts selected cohort.', 'dateOfBirth');
+        }
+      } else if (cRange.classification === 'outside-rollout') {
+        if (body.ageBand === '16-18' || resolvedCohort === 'higher-secondary') {
+          return sendError(res, 400, 'VALIDATION', 'Age band 16-18 contradicts primary cohort.', 'ageBand');
+        }
+        if (dobAge !== null && dobAge > 12) {
+          return sendError(res, 400, 'VALIDATION', 'Date of birth contradicts selected cohort.', 'dateOfBirth');
+        }
+      }
     }
 
     if (body.layoutOverride !== undefined) {
@@ -466,7 +498,7 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
               role: body.role,
               cohortId: body.cohortId,
               cohort: assignedCohort,
-              dateOfBirth: normalizedDob,
+              hasDob: Boolean(normalizedDob),
               layoutOverride: validatedOverride
             }
           }
@@ -620,6 +652,44 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
       if (cSnap.exists) nextCohortDoc = cSnap.data();
     }
 
+    if (nextCohortDoc) {
+      const cRange = evaluateCohortRange(nextCohortDoc, nextCohortId);
+      if (cRange.classification === 'eligible') {
+        if (body.ageBand === '16-18' || rawNextCohort === 'higher-secondary') {
+          return sendError(res, 400, 'VALIDATION', 'Age band 16-18 contradicts lower-secondary cohort.', 'ageBand');
+        }
+        if (body.ageBand === 'primary' || rawNextCohort === 'primary') {
+          return sendError(res, 400, 'VALIDATION', 'Primary age band contradicts lower-secondary cohort.', 'ageBand');
+        }
+        if (nextDob) {
+          const parsed = parseVerifiedDob(nextDob);
+          if (parsed.status === 'valid' && (parsed.age < 11 || parsed.age > 15)) {
+            return sendError(res, 400, 'VALIDATION', 'Date of birth contradicts selected cohort.', 'dateOfBirth');
+          }
+        }
+      } else if (cRange.classification === 'older') {
+        if (body.ageBand === 'primary' || rawNextCohort === 'primary') {
+          return sendError(res, 400, 'VALIDATION', 'Primary age band contradicts higher-secondary cohort.', 'ageBand');
+        }
+        if (nextDob) {
+          const parsed = parseVerifiedDob(nextDob);
+          if (parsed.status === 'valid' && parsed.age < 15) {
+            return sendError(res, 400, 'VALIDATION', 'Date of birth contradicts selected cohort.', 'dateOfBirth');
+          }
+        }
+      } else if (cRange.classification === 'outside-rollout') {
+        if (body.ageBand === '16-18' || rawNextCohort === 'higher-secondary') {
+          return sendError(res, 400, 'VALIDATION', 'Age band 16-18 contradicts primary cohort.', 'ageBand');
+        }
+        if (nextDob) {
+          const parsed = parseVerifiedDob(nextDob);
+          if (parsed.status === 'valid' && parsed.age > 12) {
+            return sendError(res, 400, 'VALIDATION', 'Date of birth contradicts selected cohort.', 'dateOfBirth');
+          }
+        }
+      }
+    }
+
     if ('layoutOverride' in body) {
       const overrideCheck = validateLayoutOverrideWrite({
         targetRole: user.role,
@@ -681,7 +751,8 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
   updates.updatedAt = nowStr;
   updates.updatedBy = { uid: req.caller.uid, name: req.caller.displayName };
 
-  await userRef.update(updates);
+  const updateBatch = db.batch();
+  updateBatch.update(userRef, updates);
 
   if (user.role === 'student' || user.role === 'learner') {
     const authPatch = {
@@ -706,8 +777,10 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
     if ('layoutOverride' in updates || (currentAuthority && 'layoutOverride' in currentAuthority)) {
       authPatch.layoutOverride = 'layoutOverride' in updates ? updates.layoutOverride : currentAuthority.layoutOverride;
     }
-    await db.collection('userLayoutAuthority').doc(user.uid).set(authPatch, { merge: true });
+    updateBatch.set(db.collection('userLayoutAuthority').doc(user.uid), authPatch, { merge: true });
   }
+
+  await updateBatch.commit();
 
   // Write audit
   if (after.programmeIds) {
@@ -736,12 +809,22 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
   }
 
   if (Object.keys(after).length > 0) {
+    const auditBefore = { ...before };
+    const auditAfter = { ...after };
+    if ('dateOfBirth' in auditBefore) {
+      auditBefore.hasDob = Boolean(auditBefore.dateOfBirth);
+      delete auditBefore.dateOfBirth;
+    }
+    if ('dateOfBirth' in auditAfter) {
+      auditAfter.hasDob = Boolean(auditAfter.dateOfBirth);
+      delete auditAfter.dateOfBirth;
+    }
     await writeAuditLog(db, {
       caller: req.caller,
       subjectUid: user.uid,
       action: 'DETAILS_CHANGED',
       summary: `Changed ${Object.keys(after).join(', ')}`,
-      details: { before, after }
+      details: { before: auditBefore, after: auditAfter }
     });
   }
 
@@ -795,15 +878,17 @@ router.put('/:uid/role', requireClaims, requireAdmin, async (req, res) => {
   });
   await getAuth().revokeRefreshTokens(user.uid);
 
-  await userRef.update({
+  const roleBatch = db.batch();
+  roleBatch.update(userRef, {
     role: newRole,
     updatedAt: nowStr,
     updatedBy: { uid: req.caller.uid, name: req.caller.displayName }
   });
 
   if (newRole !== 'student' && newRole !== 'learner') {
-    await db.collection('userLayoutAuthority').doc(user.uid).delete().catch(() => {});
+    roleBatch.delete(db.collection('userLayoutAuthority').doc(user.uid));
   }
+  await roleBatch.commit();
 
   await writeAuditLog(db, {
     caller: req.caller,
@@ -848,10 +933,12 @@ router.put('/:uid/assignments', requireClaims, requireAdmin, async (req, res) =>
   });
   await getAuth().revokeRefreshTokens(user.uid);
 
-  await userRef.update(updates);
+  const assignBatch = db.batch();
+  assignBatch.update(userRef, updates);
 
   if (user.role === 'student' || user.role === 'learner') {
-    await db.collection('userLayoutAuthority').doc(user.uid).set(
+    assignBatch.set(
+      db.collection('userLayoutAuthority').doc(user.uid),
       {
         uid: user.uid,
         orgId: user.orgId || 'org-welearn',
@@ -863,6 +950,7 @@ router.put('/:uid/assignments', requireClaims, requireAdmin, async (req, res) =>
       { merge: true }
     );
   }
+  await assignBatch.commit();
 
   await writeAuditLog(db, {
     caller: req.caller,

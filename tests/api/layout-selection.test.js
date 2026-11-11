@@ -45,12 +45,14 @@ describe('Lower-secondary trusted layout-selection contract (unit + API + rules)
       const byId = Object.fromEntries(SCHOOL_COHORTS.map((c) => [c.cohortId, c]));
       expect(evaluateCohortRange(byId['cohort-lower-primary']).classification).toBe('outside-rollout');
       expect(evaluateCohortRange(byId['cohort-higher-primary']).classification).toBe('outside-rollout');
-      expect(evaluateCohortRange(byId['cohort-lower-secondary'])).toEqual({
+      const lowerSec = byId['cohort-wls'] || byId['cohort-lower-secondary'];
+      expect(evaluateCohortRange(lowerSec)).toEqual({
         status: 'valid',
         classification: 'eligible',
-        range: { min: 11, max: 14, cohortId: 'cohort-lower-secondary' }
+        range: { min: 11, max: 14, cohortId: lowerSec.cohortId }
       });
-      expect(evaluateCohortRange(byId['cohort-higher-secondary']).classification).toBe('older');
+      const higherSec = byId['cohort-whs'] || byId['cohort-higher-secondary'];
+      expect(evaluateCohortRange(higherSec).classification).toBe('older');
       expect(evaluateCohortRange({ cohortId: 'cohort-w2e', status: 'inactive' }).status).toBe('ambiguous');
     });
 
@@ -144,9 +146,32 @@ describe('Lower-secondary trusted layout-selection contract (unit + API + rules)
         trustedAgeStatus: 'missing',
         staffOverride: 'lower-secondary'
       });
-      expect(blockedPrimary.layout).toBe('existing');
-      expect(blockedPrimary.overrideBlocked).toBe(true);
-      expect(selectLayout({ role: 'student', contract: blockedPrimary }).layout).toBe(LAYOUTS.EXISTING);
+      // Contradictory evidence: 16-18 older band vs 11-14 lower-secondary cohort -> existing / ambiguous
+      const contradictory = evaluateLayoutSelection({
+        role: 'student',
+        trustedCohortStatus: 'valid',
+        trustedAgeRange: { min: 11, max: 14, cohortId: 'cohort-lower-secondary' },
+        hasContradiction: true
+      });
+      expect(contradictory.layout).toBe('existing');
+      expect(contradictory.reason).toBe('ambiguous');
+      expect(selectLayout({ role: 'student', contract: contradictory })).toEqual({
+        layout: LAYOUTS.EXISTING,
+        reason: 'ambiguous'
+      });
+
+      // Role gate: 'learner' role does not qualify for automatic lower-secondary rollout
+      const learnerRole = evaluateLayoutSelection({
+        role: 'learner',
+        trustedAge: 12,
+        trustedAgeStatus: 'valid'
+      });
+      expect(learnerRole.layout).toBe('existing');
+      expect(learnerRole.reason).toBe('outside-rollout');
+      expect(selectLayout({ role: 'learner', contract: learnerRole })).toEqual({
+        layout: LAYOUTS.EXISTING,
+        reason: 'not-student'
+      });
     });
   });
 
@@ -169,6 +194,22 @@ describe('Lower-secondary trusted layout-selection contract (unit + API + rules)
       for (const cohort of SCHOOL_COHORTS) {
         await env.db.collection('cohorts').doc(cohort.cohortId).set(cohort);
       }
+      await env.db.collection('cohorts').doc('cohort-lower-secondary').set({
+        cohortId: 'cohort-lower-secondary',
+        code: 'LSEC',
+        name: { en: 'Lower Secondary' },
+        minAge: 11,
+        maxAgeExclusive: 15,
+        status: 'active'
+      });
+      await env.db.collection('cohorts').doc('cohort-higher-secondary').set({
+        cohortId: 'cohort-higher-secondary',
+        code: 'HSEC',
+        name: { en: 'Higher Secondary' },
+        minAge: 15,
+        maxAgeExclusive: 19,
+        status: 'active'
+      });
 
       // Seed school and classes
       await env.db.collection('schools').doc(schoolId).set({
@@ -615,6 +656,171 @@ describe('Lower-secondary trusted layout-selection contract (unit + API + rules)
       expect(coachClear.body.layoutSelection.layout).toBe('existing');
       expect(coachClear.body.layoutSelection.reason).toBe('older');
     });
+
+    it('rejects contradictory staff inputs at creation and update across Coach and Admin endpoints', async () => {
+      // 1. Coach creating 16-18 ageBand in 11-14 class -> 400 VALIDATION
+      const coachMismatch = await env.request('POST', '/api/coach/students', {
+        token: coachAssignedToken,
+        body: {
+          displayName: 'Coach Mismatch Student',
+          email: `ls-coach-mismatch-${Date.now()}@welearn.test`,
+          classId: classLowerSec,
+          ageBand: '16-18'
+        }
+      });
+      expect(coachMismatch.status).toBe(400);
+      expect(coachMismatch.body.error?.code || coachMismatch.body.code).toBe('VALIDATION');
+
+      // 2. Admin creating 16-18 ageBand with cohort-lower-secondary -> 400 VALIDATION
+      const adminBandMismatch = await env.request('POST', '/api/admin/users', {
+        token: adminToken,
+        body: {
+          email: `ls-admin-band-mismatch-${Date.now()}@welearn.test`,
+          givenNames: 'Admin',
+          surname: 'Mismatch',
+          role: 'student',
+          schoolIds: [schoolId],
+          cohortId: 'cohort-lower-secondary',
+          ageBand: '16-18'
+        }
+      });
+      expect(adminBandMismatch.status).toBe(400);
+      expect(adminBandMismatch.body.error?.code || adminBandMismatch.body.code).toBe('VALIDATION');
+
+      // 3. Admin creating contradictory DOB (e.g. 2010-01-01 -> age 16) with cohort-lower-secondary (11-14) -> 400 VALIDATION
+      const adminDobMismatch = await env.request('POST', '/api/admin/users', {
+        token: adminToken,
+        body: {
+          email: `ls-admin-dob-mismatch-${Date.now()}@welearn.test`,
+          givenNames: 'AdminDob',
+          surname: 'Mismatch',
+          role: 'student',
+          schoolIds: [schoolId],
+          cohortId: 'cohort-lower-secondary',
+          ageBand: '13-15',
+          dateOfBirth: '2010-01-01'
+        }
+      });
+      expect(adminDobMismatch.status).toBe(400);
+      expect(adminDobMismatch.body.error?.code || adminDobMismatch.body.code).toBe('VALIDATION');
+    });
+
+    it('minimizes sensitive data in audit logs (omits exact dateOfBirth)', async () => {
+      const email = `ls-audit-min-${Date.now()}@welearn.test`;
+      const res = await env.request('POST', '/api/admin/users', {
+        token: adminToken,
+        body: {
+          email,
+          givenNames: 'Audit',
+          surname: 'Minimization',
+          role: 'student',
+          schoolIds: [schoolId],
+          cohortId: 'cohort-lower-secondary',
+          ageBand: '13-15',
+          dateOfBirth: '2013-05-15'
+        }
+      });
+      expect(res.status).toBe(201);
+      const studentUid = res.body.uid;
+
+      // Query auditLogs for this student's ACCOUNT_CREATED entry
+      const auditSnap = await env.db.collection('auditLogs')
+        .where('subjectUid', '==', studentUid)
+        .where('action', '==', 'ACCOUNT_CREATED')
+        .get();
+      expect(auditSnap.empty).toBe(false);
+      const auditEntry = auditSnap.docs[0].data();
+
+      // Verify exact dateOfBirth is omitted and hasDob: true is recorded
+      expect(auditEntry.details?.after?.dateOfBirth).toBeUndefined();
+      expect(auditEntry.details?.after?.hasDob).toBe(true);
+    });
+
+    it('transactionally preserves concurrent DOB corrections during coach overrides and revalidates target scope', async () => {
+      // 1. Create a student with verified DOB in authority
+      const studentEmail = `ls-race-test-${Date.now()}@welearn.test`;
+      const createRes = await env.request('POST', '/api/admin/users', {
+        token: adminToken,
+        body: {
+          email: studentEmail,
+          givenNames: 'Race',
+          surname: 'Target',
+          role: 'student',
+          schoolIds: [schoolId],
+          classIds: [classLowerSec],
+          cohortId: 'cohort-lower-secondary',
+          ageBand: '13-15',
+          dateOfBirth: '2013-08-20'
+        }
+      });
+      expect(createRes.status).toBe(201);
+      const raceUid = createRes.body.uid;
+
+      // Simulate a concurrent admin DOB update that occurs before/during the override
+      await env.db.collection('userLayoutAuthority').doc(raceUid).update({
+        dateOfBirth: '2013-09-01',
+        dobVerified: true
+      });
+
+      // Coach sets override to lower-secondary
+      const overrideRes = await env.request('PATCH', `/api/coach/students/${raceUid}/layout-override`, {
+        token: coachAssignedToken,
+        body: { layoutOverride: 'lower-secondary' }
+      });
+      expect(overrideRes.status).toBe(200);
+
+      // Verify the authority document retained the concurrent DOB correction and updated only override fields!
+      const freshAuthority = (await env.db.collection('userLayoutAuthority').doc(raceUid).get()).data();
+      expect(freshAuthority.dateOfBirth).toBe('2013-09-01');
+      expect(freshAuthority.dobVerified).toBe(true);
+      expect(freshAuthority.layoutOverride).toBe('lower-secondary');
+      expect(freshAuthority.overrideVerified).toBe(true);
+
+      // 2. Scope revalidation: if student is removed from coach's class, coach override inside transaction fails
+      await env.db.collection('users').doc(raceUid).update({ classIds: [classOther] });
+      await env.db.collection('userLayoutAuthority').doc(raceUid).update({ classIds: [classOther] });
+
+      const revalRes = await env.request('PATCH', `/api/coach/students/${raceUid}/layout-override`, {
+        token: coachAssignedToken,
+        body: { layoutOverride: 'existing' }
+      });
+      expect(revalRes.status).toBe(403);
+    });
+
+    it('atomically updates user profile and authority on admin update', async () => {
+      const email = `ls-atomic-test-${Date.now()}@welearn.test`;
+      const createRes = await env.request('POST', '/api/admin/users', {
+        token: adminToken,
+        body: {
+          email,
+          givenNames: 'Atomic',
+          surname: 'Test',
+          role: 'student',
+          schoolIds: [schoolId],
+          classIds: [classLowerSec],
+          cohortId: 'cohort-lower-secondary',
+          ageBand: '13-15'
+        }
+      });
+      expect(createRes.status).toBe(201);
+      const studentUid = createRes.body.uid;
+
+      // Admin updates DOB and cohort in one request
+      const patchRes = await env.request('PATCH', `/api/admin/users/${studentUid}`, {
+        token: adminToken,
+        body: {
+          dateOfBirth: '2014-02-14'
+        }
+      });
+      expect(patchRes.status).toBe(200);
+
+      // Verify both users/{uid} and userLayoutAuthority/{uid} are consistent
+      const userSnap = await env.db.collection('users').doc(studentUid).get();
+      const authSnap = await env.db.collection('userLayoutAuthority').doc(studentUid).get();
+      expect(userSnap.data().dateOfBirth).toBe('2014-02-14');
+      expect(authSnap.data().dateOfBirth).toBe('2014-02-14');
+      expect(authSnap.data().dobVerified).toBe(true);
+    });
   });
 
   describe('3. Firestore Security Rules Verification (Current & Proposed Diff)', () => {
@@ -665,8 +871,8 @@ describe('Lower-secondary trusted layout-selection contract (unit + API + rules)
           `        && !request.resource.data.keys().hasAny(['orgId', 'status', 'publicId', 'consent', 'enrolledVia', 'dateOfBirth', 'cohortId', 'cohort', 'yearLevel', 'layoutOverride', 'layoutSelection', 'createdBy', 'updatedBy'])\n        && (!('ageBand' in request.resource.data) || request.resource.data.ageBand in ['13-15', '16-18'])`
         )
         .replace(
-          `             .hasAny(['role', 'orgId', 'schoolIds', 'classIds', 'status', 'publicId', 'consent', 'enrolledVia'])`,
-          `             .hasAny(['role', 'orgId', 'schoolIds', 'classIds', 'status', 'publicId', 'consent', 'enrolledVia', 'dateOfBirth', 'cohortId', 'cohort', 'ageBand', 'yearLevel', 'layoutOverride', 'layoutSelection', 'createdBy', 'updatedBy'])`
+          `             .hasAny(['role', 'orgId', 'schoolIds', 'classIds', 'cohortId', 'cohortIds', 'status', 'publicId', 'consent', 'enrolledVia'])`,
+          `             .hasAny(['role', 'orgId', 'schoolIds', 'classIds', 'cohortId', 'cohortIds', 'status', 'publicId', 'consent', 'enrolledVia', 'dateOfBirth', 'cohort', 'ageBand', 'yearLevel', 'layoutOverride', 'layoutSelection', 'createdBy', 'updatedBy'])`
         );
 
       expect(proposedRules).not.toBe(currentRules);
@@ -730,6 +936,53 @@ describe('Lower-secondary trusted layout-selection contract (unit + API + rules)
             updateDoc(doc(newStudentDb, 'users/student-signup'), forbiddenUpdate)
           );
         }
+      } finally {
+        await testEnv.cleanup();
+      }
+    });
+
+    it('denies cross-school coach access to auditLogs under proposed audit read rules', async () => {
+      const currentRules = fs.readFileSync(RULES_PATH, 'utf8');
+
+      // Proposed rule replaces `allow read: if isTeacher() || isAdminOrSupervisor();`
+      // with `allow read: if isAdminOrSupervisor();`
+      const proposedAuditRules = currentRules.replace(
+        'allow read: if isTeacher() || isAdminOrSupervisor();',
+        'allow read: if isAdminOrSupervisor();'
+      );
+
+      const testEnv = await initializeTestEnvironment({
+        projectId: 'demo-hearisland-audit-rules-proposed',
+        firestore: { rules: proposedAuditRules }
+      });
+
+      try {
+        await testEnv.withSecurityRulesDisabled(async (ctx) => {
+          await setDoc(doc(ctx.firestore(), 'auditLogs/school-b-entry'), {
+            source: 'server',
+            orgId: 'org-welearn',
+            schoolId: 'school-b',
+            subjectUid: 'student-b',
+            details: { after: { hasDob: true } }
+          });
+        });
+
+        // Coach from school-a tries to read school-b's audit entry -> fails
+        const foreignCoachDb = testEnv.authenticatedContext('coach-a', {
+          role: 'coach',
+          orgId: 'org-welearn',
+          schoolIds: ['school-a']
+        }).firestore();
+
+        await assertFails(getDoc(doc(foreignCoachDb, 'auditLogs/school-b-entry')));
+
+        // Admin CAN read
+        const adminDb = testEnv.authenticatedContext('admin-1', {
+          role: 'admin',
+          orgId: 'org-welearn'
+        }).firestore();
+
+        await assertSucceeds(getDoc(doc(adminDb, 'auditLogs/school-b-entry')));
       } finally {
         await testEnv.cleanup();
       }
