@@ -3,7 +3,7 @@ import {
   Video, GitBranch, Box, FileText, CheckCircle2, Clock, Sparkles,
   ExternalLink, Award, AlertCircle, MessageSquare, Send, Check, Play
 } from 'lucide-react';
-import { fetchSubmissions, approveSubmission, requestRevisionSubmission } from './evaluationsStore.js';
+import { fetchSubmissions, approveSubmission, requestRevisionSubmission, STUDENT_SUBMISSIONS_CONNECTED } from './evaluationsStore.js';
 import { confettiFrom, buzz } from '../../goals/celebrate.js';
 
 export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
@@ -11,10 +11,12 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all'); // 'all' | 'pending' | 'approved' | 'video' | 'github' | 'prototype' | 'reflection'
   const [feedbackTexts, setFeedbackTexts] = useState({});
+  const [loadError, setLoadError] = useState(false);
   const [actionError, setActionError] = useState(null);
 
   const loadLiveSubmissions = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const classIds = Array.isArray(coachUser?.classIds) ? coachUser.classIds : [];
       const list = await fetchSubmissions({ classIds });
@@ -22,6 +24,7 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
     } catch (err) {
       console.warn('[EvaluationDeskView] Error loading submissions:', err);
       setEvaluations([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -143,6 +146,13 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
         </div>
       </div>
 
+      {!STUDENT_SUBMISSIONS_CONNECTED && (
+        <p className="cp-eval-notice" role="status">
+          <strong>Not yet connected.</strong> Students can't send milestone work to this desk yet, so it stays empty.
+          Submissions will appear here once milestone submission is switched on.
+        </p>
+      )}
+
       {/* Submissions Feed */}
       {actionError && <p className="cw-warning" role="alert">{actionError}</p>}
       <div className="cp-eval-feed">
@@ -151,11 +161,16 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
             <Clock size={32} />
             <p>Loading real student submissions...</p>
           </div>
+        ) : loadError ? (
+          <div className="cp-eval-empty" role="alert">
+            <AlertCircle size={32} />
+            <p>Submissions couldn't be loaded, so this isn't an empty queue.</p>
+            <button type="button" className="cp-btn-secondary" onClick={loadLiveSubmissions}>Try again</button>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="cp-eval-empty">
-            <Clock size={32} />
-            <p>Submissions pipeline not connected yet.</p>
-            <small style={{ color: 'var(--gh-text-2, #64748b)' }}>Student deliverables will arrive here once the submission workflow is activated.</small>
+            <CheckCircle2 size={32} />
+            <p>{evaluations.length === 0 ? 'No submissions yet.' : 'No submissions found for the selected filter.'}</p>
           </div>
         ) : (
           filtered.map((item) => {

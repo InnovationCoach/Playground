@@ -55,6 +55,18 @@ describe('Program switching and honest access states',()=>{
     expect(host.textContent).not.toContain('Join program');
     expect(host.textContent).toContain('School events are managed by coaches and the admin.');
   });
+  it('leaves suspended and archived learners out of the coach learner pickers',async()=>{
+    const learners={items:[{id:'ann',displayName:'Ann Active',classIds:['class'],status:'active'},{id:'pat',displayName:'Pat Pending',classIds:['class']},{id:'sam',displayName:'Sam Suspended',classIds:['class'],status:'suspended'},{id:'arc',displayName:'Arlo Archived',classIds:['class'],status:'archived'}]};
+    schoolRequest.mockImplementation((method,path)=>path.endsWith('/learners')?Promise.resolve(learners):mockRead(method,path));
+    for (const area of ['goals','academic']) {
+      await act(async()=>root.render(<SchoolLearningPanel key={area} initialArea={area}/>));
+      const names=[...host.querySelectorAll('select option')].map(o=>o.textContent);
+      expect(names).toContain('Ann Active');
+      expect(names).toContain('Pat Pending');
+      expect(names).not.toContain('Sam Suspended');
+      expect(names).not.toContain('Arlo Archived');
+    }
+  });
   it('removes cached records after access is revoked',async()=>{
     function Probe() {const resource=useSchoolResource('/api/private');return <div><p>{resource.data?.secret||'No record'}</p><button onClick={resource.reload}>Refresh private record</button></div>;}
     schoolRequest.mockResolvedValueOnce({secret:'Previously permitted record'}).mockRejectedValueOnce(Object.assign(new Error('Access revoked'),{status:403}));
