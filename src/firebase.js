@@ -25,7 +25,8 @@ if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)
 }
 
 export function getDevStoredUser() {
-  if (typeof window === 'undefined') return null;
+  if (import.meta.env.PROD || !import.meta.env.DEV) return null;
+  if (typeof window === 'undefined' || !window.__hearIslandUseEmulators) return null;
   try {
     const raw = sessionStorage.getItem('hi:dev_user') || localStorage.getItem('hi:dev_user');
     if (!raw) return null;

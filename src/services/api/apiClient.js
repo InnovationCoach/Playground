@@ -85,7 +85,7 @@ async function liveRequest(method, path, { query, body, refreshToken = false, is
   }
   const claims = await getAuthClaims().catch(() => ({}));
   const callerRole = claims?.role || (typeof window !== 'undefined' && window.currentUserRole) || 'teacher';
-  const mockAllowed = isMockApi || (typeof window !== 'undefined' && (
+  const mockAllowed = isMockApi || (Boolean(import.meta.env?.DEV) && Boolean(usingEmulators) && typeof window !== 'undefined' && (
     Boolean(window.sessionStorage?.getItem('hi:dev_user') || window.localStorage?.getItem('hi:dev_user')) ||
     window.location.hostname === 'localhost' ||
     window.location.hostname === '127.0.0.1'

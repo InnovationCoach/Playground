@@ -92,6 +92,9 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
   return (
     <div className="cp-eval-desk">
       {/* Desk Subheader / Filter Bar */}
+      <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: '1rem', color: 'var(--gh-text-1, #e0f2fe)', fontSize: '0.85rem' }}>
+        <strong>Pipeline Notice:</strong> Student submission flow is not connected yet (Contract 9). Once learners submit deliverables through their daily tasks, reviews will appear here.
+      </div>
       <div className="cp-eval-header">
         <div>
           <h2 className="cp-section-title">Evaluation Desk</h2>
@@ -150,8 +153,9 @@ export function EvaluationDeskView({ coachUser, onOpenStudioWithLearner }) {
           </div>
         ) : filtered.length === 0 ? (
           <div className="cp-eval-empty">
-            <CheckCircle2 size={32} />
-            <p>No submissions found for the selected filter.</p>
+            <Clock size={32} />
+            <p>Submissions pipeline not connected yet.</p>
+            <small style={{ color: 'var(--gh-text-2, #64748b)' }}>Student deliverables will arrive here once the submission workflow is activated.</small>
           </div>
         ) : (
           filtered.map((item) => {

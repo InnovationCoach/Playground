@@ -75,6 +75,7 @@ const HOST_TABS = [
 ];
 
 export function CoachDashboardHost({ coachUser, orgId = null }) {
+  const effectiveOrgId = orgId || coachUser?.orgId || null;
   const { effectiveTheme, setUserTheme } = useTheme();
   const [tab, setTab] = useState('learners');
   const [management, setManagement] = useState(false);
@@ -157,7 +158,7 @@ export function CoachDashboardHost({ coachUser, orgId = null }) {
       </nav>
 
       {tab === 'classes' && <ClassProgramsPanel coachUser={coachUser} />}
-      {tab === 'reviews' && <CoachUniverseSubmissions coachUser={coachUser} orgId={orgId} />}
+      {tab === 'reviews' && <CoachUniverseSubmissions coachUser={coachUser} orgId={effectiveOrgId} />}
       {tab === 'leave' && (
         <div className="gh-card" style={{ margin: '16px auto', padding: '1rem 1.25rem', maxWidth: 1360 }}>
           <LeavePanel />

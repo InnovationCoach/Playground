@@ -59,6 +59,7 @@
 .pg-hero .pb-kicker { color: rgba(255, 255, 255, 0.82); }
 .pg-hero-sub { margin: 0; color: rgba(255, 255, 255, 0.86); max-width: 72ch; font-size: 0.95rem; }
 .pg-hero-dq { display: flex; gap: 0.55rem; align-items: flex-start; padding: 0.75rem 0.9rem; border-radius: 10px; background: rgba(0, 0, 0, 0.16); max-width: none; font-style: italic; }
+.pg-hero .pg-hero-dq, .pg-hero .pg-hero-dq > span { color: #fff; }
 .pg-hero-dq > span { min-width: 0; overflow-wrap: anywhere; }
 .pg-hero-dq svg { flex-shrink: 0; margin-top: 3px; opacity: 0.8; }
 .pg-hero .pb-term-strip li:first-child { background: rgba(255, 255, 255, 0.12); }
@@ -342,7 +343,7 @@ button.pg-choice:hover { border-color: var(--gh-purple); }
 .pg-stage-timeline-card.is-active {
   border-color: var(--gh-purple);
   box-shadow: 0 0 0 2px var(--gh-purple);
-  background: var(--gh-surface-2, #242c3b);
+  background: var(--gh-purple-50);
 }
 .pg-stage-card-top {
   display: flex;
@@ -452,7 +453,7 @@ button.pg-choice:hover { border-color: var(--gh-purple); }
   font-weight: 700;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: #388bfd;
+  background: #1f6feb;
   color: #fff;
 }
 .pb-preview-banner-actions {
@@ -957,7 +958,7 @@ button.pg-choice:hover { border-color: var(--gh-purple); }
   padding: 1rem 1.1rem;
   border-radius: 12px;
   border: 1px solid var(--gh-border);
-  background: var(--gh-surface-2, #1b212c);
+  background: var(--gh-subtle);
 }
 .pb-sub-card-title {
   display: flex;

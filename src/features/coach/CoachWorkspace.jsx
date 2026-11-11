@@ -4,7 +4,7 @@ import { MediaImage } from '../media/MediaViewer.jsx';
 import { useActivityText } from '../activities/builder/activityMessages.js';
 import { useEffect, useState } from 'react';
 import { BookOpen, FlaskConical, GraduationCap, LayoutDashboard, Search, RefreshCw, ArrowUpRight, FileText, Users, ChevronRight, X } from 'lucide-react';
-import { auth, db, collection, getDocs, getDoc, doc, query, where } from '../../firebase.js';
+import { auth, db, collection, getDocs, getDoc, doc, query, where, usingEmulators } from '../../firebase.js';
 import { TERM, PHASES } from '../pbl/content/pblModel.js';
 import { safeLink } from '../pbl/engine/pblProject.js';
 import { activityProgress, dateLabel, projectProgress, STEAM_ACTIVITIES } from './progressModel.js';
@@ -49,7 +49,7 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
         const claimIds = Array.isArray(claims.classIds) ? claims.classIds : [];
         const ids = [...new Set(claimIds.filter(id => typeof id === 'string' && id))];
 
-        const isDevPreview = typeof window !== 'undefined' && Boolean(window.sessionStorage?.getItem('hi:dev_user') || window.localStorage?.getItem('hi:dev_user'));
+        const isDevPreview = Boolean(import.meta.env?.DEV) && Boolean(usingEmulators) && typeof window !== 'undefined' && Boolean(window.sessionStorage?.getItem('hi:dev_user') || window.localStorage?.getItem('hi:dev_user'));
 
         if (!['teacher', 'coach'].includes(effectiveRole) || !ids.length) {
           if (isDevPreview) {
@@ -70,19 +70,39 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
           commit({ state: 'unassigned', learners: [], classes: [] });
           return;
         }
-        let classes = await Promise.all(ids.map(async id => {
+        let classes = (await Promise.all(ids.map(async id => {
           try {
             const snap = await getDoc(doc(db, 'classes', id));
             const exists = typeof snap?.exists === 'function' ? snap.exists() : !!snap?.exists;
-            return { id, name: exists ? snap.data().name || id : (id.includes('yr9') ? 'Lower Secondary A (Year 9)' : id.includes('11') ? 'Higher Secondary A' : id.includes('12') ? 'Higher Secondary B' : id) };
+            const cData = exists ? snap.data() : null;
+            if (cData?.status === 'archived') return null;
+            return { id, name: exists ? cData?.name || id : (id.includes('yr9') ? 'Lower Secondary A (Year 9)' : id.includes('11') ? 'Higher Secondary A' : id.includes('12') ? 'Higher Secondary B' : id) };
           } catch {
             return { id, name: id.includes('yr9') ? 'Lower Secondary A (Year 9)' : id.includes('11') ? 'Higher Secondary A' : id.includes('12') ? 'Higher Secondary B' : id };
           }
-        }));
+        }))).filter(Boolean);
+        const activeIds = classes.map(c => c.id);
+        if (!activeIds.length) {
+          if (isDevPreview) {
+            commit({
+              state: 'ready',
+              learners: FALLBACK_LEARNERS,
+              classes: [
+                { id: 'class_yr9_climate', name: 'Lower Secondary A (Year 9)' },
+                { id: 'class_yr12_eng', name: 'Higher Secondary A (Year 12)' }
+              ],
+              failedClassIds: [],
+              updatedAt: Date.now()
+            });
+            return;
+          }
+          commit({ state: 'unassigned', learners: [], classes: [] });
+          return;
+        }
         const failedBatches = [];
-        const snapshots = await Promise.all(Array.from({ length: Math.ceil(ids.length / 10) }, (_, i) =>
-          getDocs(query(collection(db, 'users'), where('classIds', 'array-contains-any', ids.slice(i * 10, i * 10 + 10)))).catch(err => {
-            failedBatches.push({ ids: ids.slice(i * 10, i * 10 + 10), error: err });
+        const snapshots = await Promise.all(Array.from({ length: Math.ceil(activeIds.length / 10) }, (_, i) =>
+          getDocs(query(collection(db, 'users'), where('classIds', 'array-contains-any', activeIds.slice(i * 10, i * 10 + 10)))).catch(err => {
+            failedBatches.push({ ids: activeIds.slice(i * 10, i * 10 + 10), error: err });
             return null;
           })));
         if (snapshots.every(snap => !snap)) {
@@ -123,7 +143,7 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
         }
         commit({ state: 'ready', learners, classes, failedClassIds: failedBatches.flatMap(batch => batch.ids), updatedAt: Date.now() });
       } catch (err) {
-        const isDevPreview = typeof window !== 'undefined' && Boolean(window.sessionStorage?.getItem('hi:dev_user') || window.localStorage?.getItem('hi:dev_user'));
+        const isDevPreview = Boolean(import.meta.env?.DEV) && Boolean(usingEmulators) && typeof window !== 'undefined' && Boolean(window.sessionStorage?.getItem('hi:dev_user') || window.localStorage?.getItem('hi:dev_user'));
         if (isDevPreview) {
           commit({
             state: 'ready',

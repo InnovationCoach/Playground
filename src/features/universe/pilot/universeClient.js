@@ -133,10 +133,10 @@ export function createUniverseClient({ fetchImpl = globalThis.fetch?.bind(global
  * verified orgId claim differs from the scope (an account or organization changed meanwhile).
  */
 export function scopedTokenProvider(auth) {
-  return async (scope) => {
+  return async (scope, { forceRefresh = false } = {}) => {
     const user = auth?.currentUser;
     if (!scopeKey(scope) || !user || user.uid !== scope.uid) return null;
-    const result = await user.getIdTokenResult();
+    const result = await user.getIdTokenResult(forceRefresh);
     if (auth.currentUser !== user || result?.claims?.orgId !== scope.orgId) return null;
     return result.token || null;
   };

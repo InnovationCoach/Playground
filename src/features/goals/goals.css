@@ -342,7 +342,7 @@
 }
 
 .gl-tab-badge.is-complete {
-  background: #10b981;
+  background: #047857;
   color: #fff;
 }
 
@@ -639,12 +639,12 @@
   font-size: 0.76rem;
   font-weight: 700;
   background: #e2e8f0;
-  color: #64748b;
+  color: #475569;
   transition: all 0.2s ease;
 }
 
 .gl-dot.is-done {
-  background: #10b981;
+  background: #047857;
   color: #ffffff;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
 }
@@ -865,7 +865,7 @@
   background: #ecfdf5;
   border-color: #a7f3d0;
   text-decoration: line-through;
-  color: #94a3b8;
+  color: #047857;
 }
 
 .gl-step-check.is-done .gl-check-icon {
@@ -914,7 +914,7 @@
 }
 
 .gl-delete-ghost:hover {
-  color: #ef4444;
+  color: #b91c1c;
   background: #fee2e2;
 }
 
@@ -966,7 +966,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #8b5cf6;
+  background: #6d28d9;
   color: #fff;
   font-size: 0.78rem;
   font-weight: 800;
@@ -1441,7 +1441,7 @@
 }
 
 .gl-node-item.is-cleared .gl-node-circle {
-  background: #10b981;
+  background: #047857;
   border-color: #34d399;
   color: #fff;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
@@ -1598,7 +1598,7 @@
   font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
-  color: #a855f7;
+  color: #7e22ce;
   background: #f3e8ff;
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
@@ -1687,7 +1687,7 @@
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
-  background: #10b981;
+  background: #047857;
   color: #fff;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;

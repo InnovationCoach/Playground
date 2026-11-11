@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { requireClaims } from '../middleware/auth.js';
 import { sendError } from '../lib/errors.js';
 import { writeAuditLog } from '../lib/audit.js';
@@ -84,6 +84,9 @@ router.post('/', route(async (req, res, caller) => {
         || !s || s.status === 'suspended' || s.orgId !== orgId || !c || c.schoolId !== schoolId || c.status === 'archived'
         || caller.role !== 'admin' && !p.classIds?.includes(classId)) fail(403, 'FORBIDDEN', 'Your class access changed. Ask an administrator to check it.');
       tx.create(db.collection('users').doc(created.uid), student);
+      tx.set(db.collection('classes').doc(classId), {
+        learnerIds: FieldValue.arrayUnion(created.uid)
+      }, { merge: true });
       tx.set(db.collection('userLayoutAuthority').doc(created.uid), {
         uid: created.uid,
         role: 'student',

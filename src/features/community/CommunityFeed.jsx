@@ -47,11 +47,10 @@ export function CommunityFeed() {
 
   useEffect(() => {
     setLoading(true);
-    const isDev = typeof window !== 'undefined' && (
+    const isDev = Boolean(import.meta.env?.DEV) && typeof window !== 'undefined' && (
       window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1' ||
-      Boolean(window.sessionStorage?.getItem('hi:dev_user') || window.localStorage?.getItem('hi:dev_user'))
-    );
+      window.location.hostname === '127.0.0.1'
+    ) && Boolean(window.__hearIslandUseEmulators);
 
     const unsubscribe = onPostsChanged((postsData) => {
       if (!postsData || postsData.length === 0) {

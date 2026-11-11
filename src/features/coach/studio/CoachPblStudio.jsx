@@ -483,9 +483,8 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             onClick={() => setWorkspaceTab('evaluation')}
           >
             <CheckCircle2 size={16} /> Evaluation Desk
-            <span className="cp-tab-pill pill-amber">
-              {pendingCount > 0 && <span className="cp-tab-pulse-dot" />}
-              {pendingCount} Pending
+            <span className="cp-tab-pill pill-amber" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
+              Not connected yet
             </span>
           </button>
 

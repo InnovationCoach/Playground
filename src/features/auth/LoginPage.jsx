@@ -35,13 +35,15 @@ export function LoginPage({ initialError }) {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const isSignUp = mode === 'signup';
 
-  const isLocalDev = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    import.meta.env?.DEV === true
+  const isLocalDev = Boolean(
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+    window.__hearIslandUseEmulators === true
   );
 
   function handleDevLogin(targetRole = 'coach_rivera') {
+    if (!import.meta.env.DEV || !isLocalDev) return;
     let devUser;
     if (targetRole === 'coach_rivera') {
       devUser = {
@@ -103,7 +105,7 @@ export function LoginPage({ initialError }) {
       } else {
         const result = await signInUser(form.email, form.password);
         if (!result.success) {
-          if (isLocalDev && (
+          if (import.meta.env.DEV && isLocalDev && (
             form.email.includes('coach') ||
             form.email.includes('teacher') ||
             form.email.includes('school.edu') ||
@@ -117,7 +119,7 @@ export function LoginPage({ initialError }) {
         // On success AuthProvider takes over and this component unmounts.
       }
     } catch (err) {
-      if (isLocalDev && (
+      if (import.meta.env.DEV && isLocalDev && (
         form.email.includes('coach') ||
         form.email.includes('teacher') ||
         form.email.includes('school.edu') ||
@@ -172,7 +174,7 @@ export function LoginPage({ initialError }) {
               <h1>{isSignUp ? t('auth.createTitle') : t('auth.welcome')}</h1>
               <p className="gh-sub">{isSignUp ? t('auth.createSub') : t('auth.welcomeSub')}</p>
 
-              {isLocalDev && (
+              {import.meta.env.DEV && isLocalDev && (
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(130, 80, 160, 0.08) 0%, rgba(0, 60, 105, 0.05) 100%)',
                   border: '1px solid var(--gh-border, #cbd5e1)',

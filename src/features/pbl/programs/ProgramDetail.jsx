@@ -943,11 +943,16 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
   const reflectRef = useRef(null);
   const xp = kit?.sessionXp;
 
-  // Pre-filled Portfolio Evidence form state
-  const [showPortfolioForm, setShowPortfolioForm] = useState(false);
+  const isBrainDump = /brain[\s-]*dump/i.test([
+    s.title, ...(s.activities || []), s.evidenceToCollect?.prompt,
+    s.learnerChoices?.question,
+  ].filter(Boolean).join(' '));
+
+  // Brain dumps start blank so the instructions cannot be mistaken for learner work.
+  const [showPortfolioForm, setShowPortfolioForm] = useState(isBrainDump);
   const [portTitle, setPortTitle] = useState(() => `Mission ${s.sessionNumber}: ${s.title}`);
   const [portKind, setPortKind] = useState(() => s.evidenceToCollect?.kind || 'note');
-  const [portBody, setPortBody] = useState(() => s.evidenceToCollect?.prompt || '');
+  const [portBody, setPortBody] = useState(() => isBrainDump ? '' : s.evidenceToCollect?.prompt || '');
   const [portLink, setPortLink] = useState('');
   const [portComps, setPortComps] = useState(() => s.evidenceToCollect?.targetCompetencies || []);
 
@@ -1010,7 +1015,10 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
             <SessionMedia program={program} sessionNumber={s.sessionNumber} />
           </Stage>
 
-          <Stage icon="✅" title="Do it">
+          <Stage icon="✅" title="Session plan">
+            <p className="pg-sub">Read through the plan first. Your coach will introduce the session before you begin.
+              {progress ? ' Tick each step after you finish it; the checklist does not start an activity.' : ' This is an overview of the session activities.'}
+            </p>
             {progress ? (
               <ul className="pg-todo">
                 {s.activities.map((a, i) => (
@@ -1052,7 +1060,8 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
             </Stage>
           )}
 
-          <Stage icon="📸" title="Capture your evidence">
+          <Stage icon="📸" title={isBrainDump ? 'Your brain dump' : 'Capture your evidence'}>
+            {isBrainDump && <p className="pg-sub">Capture your first ideas here: rough bullet points are welcome. You can also add a link to a sketch or teacher-scribed notes. Save your brain dump to your portfolio when you are ready.</p>}
             <div className="pg-evidence">
               <span className={`pb-kind pb-kind-${s.evidenceToCollect?.kind || 'note'}`}>{EVIDENCE_LABEL[s.evidenceToCollect?.kind] || 'Evidence'}</span>
               <p>{s.evidenceToCollect?.prompt || ''}</p>
@@ -1066,7 +1075,7 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
                       onClick={() => setShowPortfolioForm((v) => !v)}
                     >
                       <NotebookPen size={15} aria-hidden="true" />
-                      {showPortfolioForm ? 'Cancel evidence form' : 'Add it to my portfolio'}
+                      {showPortfolioForm ? 'Close evidence form' : isBrainDump ? 'Add my brain dump' : 'Add it to my portfolio'}
                     </button>
                     <a className="pb-link" href={hrefFor.pbl('portfolio')} style={{ fontSize: '0.8rem' }}>
                       View portfolio <ArrowRight size={13} aria-hidden="true" />
@@ -1076,7 +1085,7 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
                   {showPortfolioForm && (
                     <form onSubmit={submitPortfolioEvidence} className="pb-form" style={{ marginTop: '0.75rem', padding: '0.85rem', background: 'var(--gh-surface-2, #1b212c)', borderRadius: '8px', border: '1px solid var(--gh-border)' }}>
                       <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.88rem', color: 'var(--gh-heading)' }}>
-                        Add Evidence to Portfolio · Mission {s.sessionNumber}
+                        {isBrainDump ? 'Save your brain dump' : 'Add Evidence to Portfolio'} · Mission {s.sessionNumber}
                       </h4>
                       <div className="pb-form-row">
                         <div className="pb-field">
@@ -1093,15 +1102,15 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
                         </div>
                       </div>
                       <div className="pb-field" style={{ marginTop: '0.4rem' }}>
-                        <label className="gh-label" htmlFor={`ev-body-${s.sessionNumber}`}>Notes / Reflection</label>
-                        <textarea id={`ev-body-${s.sessionNumber}`} className="gh-input pb-textarea" rows={2} value={portBody} onChange={(e) => setPortBody(e.target.value)} />
+                        <label className="gh-label" htmlFor={`ev-body-${s.sessionNumber}`}>{isBrainDump ? 'Your ideas / brain dump' : 'Notes / Reflection'}</label>
+                        <textarea id={`ev-body-${s.sessionNumber}`} className="gh-input pb-textarea" rows={isBrainDump ? 6 : 2} placeholder={isBrainDump ? 'What interests you? What would you like to explore? Write your ideas in any order…' : undefined} value={portBody} onChange={(e) => setPortBody(e.target.value)} />
                       </div>
                       <div className="pb-field" style={{ marginTop: '0.4rem' }}>
                         <label className="gh-label" htmlFor={`ev-link-${s.sessionNumber}`}>Link (Google Drive, photo, repo, demo URL)</label>
                         <input id={`ev-link-${s.sessionNumber}`} type="url" className="gh-input" placeholder="https://" value={portLink} onChange={(e) => setPortLink(e.target.value)} />
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-                        <button type="submit" className="gh-btn gh-btn-primary gh-btn-sm">Save to Portfolio</button>
+                        <button type="submit" className="gh-btn gh-btn-primary gh-btn-sm">{isBrainDump ? 'Save brain dump to portfolio' : 'Save to Portfolio'}</button>
                         <button type="button" className="gh-btn gh-btn-ghost gh-btn-sm" onClick={() => setShowPortfolioForm(false)}>Cancel</button>
                       </div>
                     </form>

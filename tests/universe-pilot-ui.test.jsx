@@ -766,6 +766,39 @@ describe('O03 focus flow: one action at a time', () => {
     expect(document.body.querySelector('.px-meta').textContent).toMatch(/Grades 6-8/);
     expect(card().querySelector('.px-action').textContent).toBe(wind.mission.routes[0].steps[0].prompt);
   });
+
+  it('consolidates membership failure into one actionable banner with coach contact instruction and pauses saving', async () => {
+    const forbiddenClient = {
+      ...clientOf('ben'),
+      availability: async () => ({
+        state: 'error',
+        status: 403,
+        code: 'FORBIDDEN',
+        message: 'Active verified class membership in your organization is required.',
+        retryable: false
+      }),
+      getDraft: async () => ({
+        state: 'error',
+        status: 403,
+        code: 'FORBIDDEN',
+        message: 'Active verified class membership in your organization is required.',
+        retryable: false
+      })
+    };
+    await act(async () => root.render(<PilotMissionSheet entry={wind} registry={FIXTURE_RELEASES} client={forbiddenClient} preview onClose={() => {}} />));
+    await settle();
+    await click(document.body.querySelector('.mx-route'));
+
+    // Exactly one alert banner is displayed
+    const alerts = document.body.querySelectorAll('.px-alert[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toContain('Active verified class membership in your organization is required.');
+    expect(alerts[0].textContent).toContain('Please contact your coach or school administrator.');
+    expect(alerts[0].textContent).toContain('Your work on this screen is kept and you can still read everything.');
+
+    // Status line shows paused saving, not a duplicate banner
+    expect(document.body.querySelector('.px-save').textContent).toMatch(/Saving paused · read-only/);
+  });
 });
 
 describe('production import graph', () => {
