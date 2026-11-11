@@ -433,29 +433,51 @@ export function createApp(options = {}) {
 
   app.post('/api/pbl/synthesize', requireAuth, async (req, res) => {
     try {
-      const { learner, groundingContext, customFocus } = req.body;
+      const { learner, groundingContext, customFocus, gradeRange } = req.body;
       const userId = req.user.uid;
 
-      if (!learner || !learner.name) {
+      if (!learner) {
         return res.status(400).json({ error: 'Learner profile is required' });
       }
 
+      let programme = req.body.programme;
+      if (programme !== undefined && programme !== null && programme !== '') {
+        programme = String(programme).trim().toUpperCase();
+        if (!['WLS', 'WHS'].includes(programme)) {
+          return res.status(400).json({ error: 'Programme must be WLS or WHS.' });
+        }
+      }
+
+      // Safeguard learner privacy: Never send personal names or clinical diagnoses to the AI model
+      const rawTraits = Array.isArray(learner.diagnosisTraits)
+        ? learner.diagnosisTraits.join(', ')
+        : String(learner.diagnosisTraits || '');
+      const sanitizedNeeds = rawTraits
+        .replace(/\b(adhd|add)\b/gi, 'Dynamic focus & kinesthetic prototype learner')
+        .replace(/\b(autism|autistic|asperger'?s?)\b/gi, 'Deep-focus systematic & pattern-driven learner')
+        .replace(/\b(dyslexia|dyslexic)\b/gi, 'Visual & multi-modal verbal learner')
+        .replace(/\b(dyscalculia)\b/gi, 'Concrete-visual quantitative learner')
+        .replace(/\b(diagnosis|diagnosed|syndrome|disorder|condition|medical|clinical)\b/gi, '')
+        .trim();
+
       const prompt = [
         'You are the WeLearn SPARK PBL Curriculum Architect.',
-        'Synthesize an authentic 8-stage PBL Unit specifically tailored for this 2e learner, fully grounded in the provided reference sources.',
+        'Synthesize an authentic 8-stage PBL Unit specifically tailored for this learner, fully grounded in the provided reference sources.',
+        programme ? `Secondary Programme: ${programme} (${programme === 'WLS' ? 'Lower Secondary Grade 6–8' : 'Higher Secondary Grade 9–12'})` : '',
+        gradeRange ? `Grade Range: ${Array.isArray(gradeRange) ? gradeRange.join('–') : gradeRange}` : '',
         '',
-        'LEARNER 2e PROFILE:',
-        `Name: ${learner.name}`,
-        `Diagnosis / Traits: ${learner.diagnosisTraits}`,
-        `Consuming Passions: ${learner.consumingPassions}`,
-        `Executive Function Hurdles: ${learner.executiveFunctionHurdles}`,
-        `Applied Accommodations: ${(learner.appliedAccommodations || []).join('; ')}`,
+        'LEARNER PROFILE (ANONYMIZED PEDAGOGICAL LEARNING NEEDS):',
+        sanitizedNeeds ? `Learning Needs & Modalities: ${sanitizedNeeds}` : '',
+        learner.consumingPassions ? `Consuming Passions: ${learner.consumingPassions}` : '',
+        learner.executiveFunctionHurdles ? `Executive Function Hurdles: ${learner.executiveFunctionHurdles}` : '',
+        learner.appliedAccommodations?.length ? `Applied Accommodations: ${(learner.appliedAccommodations || []).join('; ')}` : '',
         customFocus ? `Custom Coach Focus: ${customFocus}` : '',
         '',
         'GROUNDING REFERENCE CONTEXT:',
         String(groundingContext || '').slice(0, 4000),
         '',
         'CRITICAL: Return ONLY a valid JSON object with unitTitle, theme, drivingQuestion, realProblem, makerSpaceSpecs, coachCues, and milestones (8 stages from Curiosity to Showcase).',
+        'Do not include any student personal names or clinical diagnoses in the output.',
         'Return ONLY valid JSON. No markdown, no code fences.'
       ].filter(Boolean).join('\n');
 

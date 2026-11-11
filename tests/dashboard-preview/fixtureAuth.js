@@ -6,3 +6,7 @@ export const subscribeToAuth = () => () => {};
 export const getUserProfile = async () => ({ displayName: 'Alex Rivera', role: 'student' });
 export const logoutUser = async () => {};
 export const isPrimaryProfile = () => false;
+export const changePassword = async () => {};
+export const updateUserProfile = async () => {};
+export const saveLocale = async () => {};
+export const saveThemePreference = async () => {};

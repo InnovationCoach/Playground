@@ -83,6 +83,7 @@ for (const s of SCHOOLS) {
 // 3. Cohorts
 const COHORTS = SCHOOL_COHORTS.map(c => ({ ...c, id: c.cohortId }));
 for (const c of COHORTS) {
+  const code = generateJoinCode();
   await db.collection('cohorts').doc(c.id).set({
     orgId: ORG_ID,
     code: c.code,
@@ -91,9 +92,19 @@ for (const c of COHORTS) {
     minAge: c.minAge,
     maxAgeExclusive: c.maxAgeExclusive,
     status: c.status,
+    joinCode: code,
+    ...(c.id === 'cohort-whs' ? { programId: 'prog-thai-diploma' } : {}),
     createdAt: FieldValue.serverTimestamp()
   });
 }
+// Seed cohort-test (hidden)
+await db.collection('cohorts').doc('cohort-test').set({
+  orgId: ORG_ID,
+  code: 'TEST',
+  name: { en: 'Test Cohort' },
+  status: 'hidden',
+  createdAt: FieldValue.serverTimestamp()
+});
 
 // 4. Programmes
 const PROGRAMMES = [
@@ -114,8 +125,8 @@ for (const p of PROGRAMMES) {
 const CLASSES = [
   { id: 'class_lower_primary', name: 'Lower Primary A', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-lower-primary', yearLevel: 'Year 3', status: 'active' },
   { id: 'class_higher_primary', name: 'Higher Primary A', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-higher-primary', yearLevel: 'Year 5', status: 'active' },
-  { id: 'class_yr9_climate', name: 'Lower Secondary A', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-lower-secondary', yearLevel: 'Year 9', status: 'active' },
-  { id: 'class_yr12_eng', name: 'Higher Secondary A', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-higher-secondary', yearLevel: 'Year 12', status: 'active' }
+  { id: 'class_yr9_climate', name: 'Lower Secondary A', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-wls', yearLevel: 'Grade 7', status: 'active' },
+  { id: 'class_yr12_eng', name: 'Higher Secondary A', orgId: ORG_ID, schoolId: 'sch-bkk', cohortId: 'cohort-whs', yearLevel: 'Grade 11', status: 'active' }
 ];
 
 const issuedCodes = {};
@@ -144,8 +155,8 @@ for (const c of CLASSES) {
 
 // 6. Existing Coaches
 const COACHES = [
-  { email: 'coach.rivera@school.edu', givenNames: 'Sam', surname: 'Rivera', classIds: ['class_yr9_climate'] },
-  { email: 'coach.okafor@school.edu', givenNames: 'Ada', surname: 'Okafor', classIds: ['class_yr12_eng'] }
+  { email: 'coach.rivera@school.edu', givenNames: 'Sam', surname: 'Rivera', classIds: ['class_yr9_climate'], cohortIds: ['cohort-wls'] },
+  { email: 'coach.okafor@school.edu', givenNames: 'Ada', surname: 'Okafor', classIds: ['class_yr12_eng'], cohortIds: ['cohort-whs'] }
 ];
 
 for (const coach of COACHES) {
@@ -153,7 +164,13 @@ for (const coach of COACHES) {
   const user = await upsertUser(coach.email, displayName);
   const publicId = makePublicId(`COACH${coach.surname.toUpperCase()}`);
 
-  await auth.setCustomUserClaims(user.uid, { role: 'teacher', orgId: ORG_ID, schoolIds: ['sch-bkk'], classIds: coach.classIds });
+  await auth.setCustomUserClaims(user.uid, {
+    role: 'teacher',
+    orgId: ORG_ID,
+    schoolIds: ['sch-bkk'],
+    classIds: coach.classIds,
+    cohortIds: coach.cohortIds
+  });
 
   await db.collection('users').doc(user.uid).set({
     uid: user.uid,
@@ -167,6 +184,7 @@ for (const coach of COACHES) {
     orgId: ORG_ID,
     schoolIds: ['sch-bkk'],
     classIds: coach.classIds,
+    cohortIds: coach.cohortIds,
     groupName: CLASSES.find((c) => c.id === coach.classIds[0])?.name || '',
     createdAt: FieldValue.serverTimestamp()
   });
@@ -230,14 +248,14 @@ for (const staff of REVIEW_STAFF) {
 
 // 8. Students (Existing + Primary + Suspended)
 const STUDENTS = [
-  { email: 'mia@school.edu', givenNames: 'Mia', surname: 'Chen', classId: 'class_yr9_climate', cohortId: 'cohort-lower-secondary', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Year 9', minutes: 125, sessions: 6, status: 'active' },
-  { email: 'leo@school.edu', givenNames: 'Leo', surname: 'Martins', classId: 'class_yr9_climate', cohortId: 'cohort-lower-secondary', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Year 9', minutes: 95, sessions: 4, status: 'active' },
-  { email: 'noor@school.edu', givenNames: 'Noor', surname: 'Haddad', classId: 'class_yr9_climate', cohortId: 'cohort-lower-secondary', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Year 9', minutes: 160, sessions: 8, status: 'active' },
-  { email: 'tom@school.edu', givenNames: 'Tom', surname: 'Becker', classId: 'class_yr12_eng', cohortId: 'cohort-higher-secondary', cohort: 'higher-secondary', ageBand: '16-18', yearLevel: 'Year 12', minutes: 210, sessions: 9, status: 'active' },
-  { email: 'ines@school.edu', givenNames: 'Inès', surname: 'Dupont', classId: 'class_yr12_eng', cohortId: 'cohort-higher-secondary', cohort: 'higher-secondary', ageBand: '16-18', yearLevel: 'Year 12', minutes: 175, sessions: 7, status: 'active' },
+  { email: 'mia@school.edu', givenNames: 'Mia', surname: 'Chen', classId: 'class_yr9_climate', cohortId: 'cohort-wls', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Grade 7', gradeLevel: 7, minutes: 125, sessions: 6, status: 'active' },
+  { email: 'leo@school.edu', givenNames: 'Leo', surname: 'Martins', classId: 'class_yr9_climate', cohortId: 'cohort-wls', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Grade 8', gradeLevel: 8, minutes: 95, sessions: 4, status: 'active' },
+  { email: 'noor@school.edu', givenNames: 'Noor', surname: 'Haddad', classId: 'class_yr9_climate', cohortId: 'cohort-wls', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Grade 7', gradeLevel: 7, minutes: 160, sessions: 8, status: 'active' },
+  { email: 'tom@school.edu', givenNames: 'Tom', surname: 'Becker', classId: 'class_yr12_eng', cohortId: 'cohort-whs', cohort: 'higher-secondary', ageBand: '16-18', yearLevel: 'Grade 11', gradeLevel: 11, minutes: 210, sessions: 9, status: 'active' },
+  { email: 'ines@school.edu', givenNames: 'Inès', surname: 'Dupont', classId: 'class_yr12_eng', cohortId: 'cohort-whs', cohort: 'higher-secondary', ageBand: '16-18', yearLevel: 'Grade 12', gradeLevel: 12, minutes: 175, sessions: 7, status: 'active' },
   // Phase 0 additions:
-  { email: 'primary.student@school.edu', givenNames: 'Penny', surname: 'Primary', classId: 'class_lower_primary', cohortId: 'cohort-lower-primary', cohort: 'primary', ageBand: 'primary', yearLevel: 'Year 3', minutes: 0, sessions: 0, status: 'pending', consent: { status: 'required' } },
-  { email: 'suspended.student@school.edu', givenNames: 'Sam', surname: 'Suspended', classId: 'class_yr9_climate', cohortId: 'cohort-lower-secondary', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Year 9', minutes: 10, sessions: 1, status: 'suspended', disabled: true }
+  { email: 'primary.student@school.edu', givenNames: 'Penny', surname: 'Primary', classId: 'class_lower_primary', cohortId: 'cohort-lower-primary', cohort: 'primary', ageBand: 'primary', yearLevel: 'Year 3', gradeLevel: null, minutes: 0, sessions: 0, status: 'pending', consent: { status: 'required' } },
+  { email: 'suspended.student@school.edu', givenNames: 'Sam', surname: 'Suspended', classId: 'class_yr9_climate', cohortId: 'cohort-wls', cohort: 'lower-secondary', ageBand: '13-15', yearLevel: 'Grade 8', gradeLevel: 8, minutes: 10, sessions: 1, status: 'suspended', disabled: true }
 ];
 
 let miaStudentUid = null;
@@ -252,7 +270,13 @@ for (const s of STUDENTS) {
     miaStudentUid = user.uid;
   }
 
-  await auth.setCustomUserClaims(user.uid, { role: 'student', orgId: ORG_ID, schoolIds: ['sch-bkk'], classIds: [s.classId] });
+  await auth.setCustomUserClaims(user.uid, {
+    role: 'student',
+    orgId: ORG_ID,
+    schoolIds: ['sch-bkk'],
+    classIds: [s.classId],
+    ...(s.cohortId ? { cohortIds: [s.cohortId], cohortId: s.cohortId } : {})
+  });
 
   const userDoc = {
     uid: user.uid,
@@ -268,9 +292,11 @@ for (const s of STUDENTS) {
     classIds: [s.classId],
     groupName: className,
     cohortId: s.cohortId,
+    cohortIds: s.cohortId ? [s.cohortId] : [],
     cohort: s.cohort,
     ageBand: s.ageBand,
     yearLevel: s.yearLevel,
+    ...(s.gradeLevel !== null && s.gradeLevel !== undefined ? { gradeLevel: s.gradeLevel } : {}),
     createdAt: FieldValue.serverTimestamp()
   };
 
@@ -384,7 +410,7 @@ for (const student of STUDENTS) {
 console.log('======================================================================\n');
 console.log(' Join Codes:');
 for (const c of CLASSES) {
-  console.log(`   ${c.id.padEnd(22)}: ${issuedCodes[c.id]} (${c.name})`);
+  console.log(`   ${c.id.padEnd(22)}: [REDACTED] (${c.name})`);
 }
 console.log('\n  Seeding complete.\n');
 

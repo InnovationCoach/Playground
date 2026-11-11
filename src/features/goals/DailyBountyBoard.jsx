@@ -1,19 +1,14 @@
 import { useState } from 'react';
-import { Sparkles, Zap, Flame, CheckCircle2, Plus, Clock, Gift, Award } from 'lucide-react';
-import { playSfx } from './soundEffects.js';
-import { triggerSparkParticles } from './confetti.js';
+import { CheckCircle2, Plus } from 'lucide-react';
 import { dayKey } from './goalPlan.js';
 
 const DEFAULT_BOUNTIES = [
-  { id: 'bounty_focus', title: '5-Minute Power Sprint', xp: 50, desc: 'Work on 1 task for 5 minutes with zero tab switching.', icon: '⚡' },
-  { id: 'bounty_spark', title: 'Curiosity Spark', xp: 50, desc: 'Jot down 1 new question or idea in your notebook.', icon: '💡' },
-  { id: 'bounty_recharge', title: 'Tactical Brain Reset', xp: 40, desc: 'Stand up, stretch or grab water for a 3-minute refresh.', icon: '🔋' }
+  { id: 'bounty_focus', title: 'Five focused minutes', desc: 'Work on one task for 5 minutes without switching tabs.', icon: '⏱️' },
+  { id: 'bounty_spark', title: 'A new question', desc: 'Write down one new question or idea.', icon: '💡' },
+  { id: 'bounty_recharge', title: 'A quick break', desc: 'Stand up, stretch or get some water for 3 minutes.', icon: '🚶' }
 ];
 
-/**
- * Micro-Action Bounty Board:
- * Rapid, 1-click daily quick-wins that provide immediate dopamine and XP juice.
- */
+/** Quick wins: small things to tick off today, on top of a learner's plan. No points. */
 export function DailyBountyBoard({ plan, update }) {
   const today = dayKey();
   const [isOpen, setIsOpen] = useState(false);
@@ -28,10 +23,6 @@ export function DailyBountyBoard({ plan, update }) {
 
   function claimBounty(e, bounty) {
     if (claimedSet.has(bounty.id)) return;
-
-    // Trigger feedback: juice!
-    triggerSparkParticles(e.currentTarget, 24);
-    playSfx('bounty');
 
     const bountyKey = `bounty:${bounty.id}`;
     update((prev) => {
@@ -53,15 +44,12 @@ export function DailyBountyBoard({ plan, update }) {
     const newBounty = {
       id: `custom_${Date.now()}`,
       title: customTitle.trim(),
-      xp: 50,
-      desc: 'Custom teen quick-win completed today.',
+      desc: 'A quick win of your own.',
       icon: '🎯'
     };
     claimBounty(e, newBounty);
     setCustomTitle('');
   }
-
-  const completedToday = claimedList.length;
 
   return (
     <div className={`gl-bounty-board ${isOpen ? 'is-expanded' : ''}`}>
@@ -73,18 +61,12 @@ export function DailyBountyBoard({ plan, update }) {
           aria-expanded={isOpen}
         >
           <div className="gl-bounty-badge">
-            <Gift size={16} aria-hidden="true" />
-            <span>Daily Bounties</span>
-            {completedToday > 0 && (
-              <span className="gl-bounty-claimed-tag">{completedToday} Claimed</span>
-            )}
+            <span>Quick wins</span>
           </div>
           <span className="gl-bounty-subtitle">
-            {completedToday === DEFAULT_BOUNTIES.length
-              ? '🎉 All daily bounties secured! (+140 XP)'
-              : '⚡ Tap for 1-click micro quick-wins'}
+            Small things you can do right now
           </span>
-          <span className="gl-bounty-action-text">{isOpen ? 'Close' : 'Open Drawer'} →</span>
+          <span className="gl-bounty-action-text">{isOpen ? 'Close' : 'Open'}</span>
         </button>
       </div>
 
@@ -97,7 +79,6 @@ export function DailyBountyBoard({ plan, update }) {
                 <div key={b.id} className={`gl-bounty-card ${isClaimed ? 'is-claimed' : ''}`}>
                   <div className="gl-bounty-top">
                     <span className="gl-bounty-icon">{b.icon}</span>
-                    <span className="gl-bounty-xp">+{b.xp} XP</span>
                   </div>
                   <h4 className="gl-bounty-title">{b.title}</h4>
                   <p className="gl-bounty-desc">{b.desc}</p>
@@ -110,12 +91,11 @@ export function DailyBountyBoard({ plan, update }) {
                     {isClaimed ? (
                       <>
                         <CheckCircle2 size={14} className="gl-claimed-check" />
-                        <span>Claimed</span>
+                        <span>Done</span>
                       </>
                     ) : (
                       <>
-                        <Zap size={14} />
-                        <span>Complete (+{b.xp} XP)</span>
+                        <span>I did this</span>
                       </>
                     )}
                   </button>
@@ -131,7 +111,7 @@ export function DailyBountyBoard({ plan, update }) {
               className="gh-input gl-bounty-input"
               value={customTitle}
               onChange={(e) => setCustomTitle(e.target.value)}
-              placeholder="Or write a 5-minute quick win you just crushed…"
+              placeholder="Or write a quick win of your own…"
               maxLength={100}
             />
             <button
@@ -140,7 +120,7 @@ export function DailyBountyBoard({ plan, update }) {
               disabled={!customTitle.trim()}
             >
               <Plus size={14} />
-              <span>Log Quick-Win (+50 XP)</span>
+              <span>Add it</span>
             </button>
           </form>
         </div>

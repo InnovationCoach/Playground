@@ -169,7 +169,7 @@ try {
     await page.waitForFunction(() => document.querySelector('.ls-hero')?.textContent.includes('Today’s quest'));
     assert.equal(await page.$eval('.ls-hero a', (el) => el.getAttribute('href')), '#/pbl/project');
     await open('state=empty&quest=off');
-    await page.waitForFunction(() => document.querySelector('.ls-hero')?.textContent.includes('Your learning plan'));
+    await page.waitForFunction(() => document.querySelector('.ls-hero a')?.getAttribute('href') === '#/goals');
     assert.equal(await page.$eval('.ls-hero a', (el) => el.getAttribute('href')), '#/goals');
   });
 

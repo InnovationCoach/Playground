@@ -76,8 +76,8 @@ export function goalWords(text) {
 const haystack = (item) => norm(`${item.kicker} ${item.title} ${item.description} ${item.keywords} ${item.extra || ''}`);
 
 /** Catalogue entries that share a meaningful word with a goal, most shared words first. */
-export function relatedToGoal(items, goalText) {
-  const words = goalWords(goalText);
+export function relatedToGoal(items, goalText, ignore = new Set()) {
+  const words = goalWords(goalText).filter((w) => !ignore.has(w));
   if (!words.length) return [];
   return items.map((item, order) => {
     const hay = haystack(item);
@@ -116,6 +116,50 @@ export function suggestions({ items = [], results = [], query = '', focusGoal = 
   }
   if (q) for (const item of results) push(item, searchReason);
   return out;
+}
+
+/** Everyday names for courses whose official titles are hard to read at a glance. The dialog keeps the official title. */
+const PLAIN_TITLES = {
+  'EcoCool: Smart Urban Heat & Community Garden Monitor': 'Cool down a neighbourhood with a smart garden',
+  'Entrepreneurship: Product Creation': 'Invent a product people want',
+  'Project Genesis Engine: Storytelling IP': 'Create your own story world',
+  'The Passion Project Blueprint': 'Plan a project about what you love',
+  'Quantitative Biomechanics & Bio-Inspired Robotics': 'How animals move, and robots that copy them',
+  'Hex-City Thailand: Modular Resilient Floating City': 'Design a floating city'
+};
+export const plainTitle = (item) => PLAIN_TITLES[item.title] || item.title.replace(/\s*\([^)]*\)\s*$/, '');
+
+/** True of nearly every course, so sharing one of these says nothing about the fit. */
+const WEAK_GOAL_WORDS = new Set(['idea', 'ideas', 'working', 'prototype', 'turn', 'real', 'good', 'better', 'help', 'world', 'people']);
+
+/**
+ * What Find a Quest offers: only quests this learner has not begun. Courses they
+ * are enrolled in or assigned, things they added and activities they started
+ * all belong to My Quests. Partner links stay in search because they leave SPARK.
+ * Reasons are rules over real choices (goal, interests); with nothing to go on,
+ * a couple of openers say so plainly. No scores, no AI.
+ */
+export function newQuests({ items = [], focusGoal = null, courses = [], interestMatches = [], started = [], added = [], limit = 3 }) {
+  const taken = new Set([...courses.map((c) => `program:${c.program?.id}`), ...started.map((id) => `activity:${id}`), ...added]);
+  const pool = items.filter((item) => item.source !== 'partner' && !taken.has(item.key));
+  const out = [], seen = new Set();
+  const push = (item, reason) => {
+    if (!item || seen.has(item.key) || out.length >= limit) return;
+    seen.add(item.key);
+    out.push({ item, reason });
+  };
+  // Interests first: with goal matches capped at two, one goal can't fill the list with one reason.
+  for (const match of interestMatches.slice(0, 1)) push(pool.find((item) => item.key === `activity:${match.id}`), { type: 'interest', interest: match.because[0] });
+  if (focusGoal?.explore) for (const { item } of relatedToGoal(pool, focusGoal.explore, WEAK_GOAL_WORDS).slice(0, 2)) push(item, { type: 'goal', goal: focusGoal.explore });
+  for (const match of interestMatches.slice(1)) push(pool.find((item) => item.key === `activity:${match.id}`), { type: 'interest', interest: match.because[0] });
+  if (out.length < 2) for (const item of pool) push(item, { type: 'try' });
+  return out;
+}
+
+export function questReason(reason) {
+  if (reason.type === 'goal') return `It connects to your goal: ${reason.goal}`;
+  if (reason.type === 'interest') return reason.interest === 'My community' ? 'You said you care about your community' : `You said you like ${reason.interest.toLowerCase()}`;
+  return 'A good one to try if you’re not sure yet';
 }
 
 /**

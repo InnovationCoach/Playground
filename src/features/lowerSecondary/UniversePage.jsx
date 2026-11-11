@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import { ArrowRight, Compass, Cpu, Palette, Search } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
-import { PUBLISHED_PILOT_RELEASES } from '../universe/pilot/publishedRegistry.js';
+import { PILOT_RELEASES } from '../universe/pilot/pilotRegistry.js';
 import { continueCourse, sectionHref, WORLDS } from './lowerSecondaryModel.js';
 import { ArrowLink, Failure, Loading, PageTitle } from './common.jsx';
 import { DesignIsland, IdeaArt, ScienceIsland, TechnologyIsland } from './illustrations.jsx';
@@ -58,7 +58,7 @@ export function UniversePage({ uid, orgId, courses, calm, onOpenActivity }) {
     <PageTitle title="My Universe" subtitle="Where will your curiosity take you?" />
     {explorer && <Suspense fallback={<Loading>Opening My Universe…</Loading>}>
       {/* The same preview flags as the existing dashboard's explorer; its own chrome says it is a preview. */}
-      <MyUniverseExplorer preview allowInReviewMissions missionRegistry={PUBLISHED_PILOT_RELEASES} initialArrival={explorer.arrival}
+      <MyUniverseExplorer preview allowInReviewMissions missionRegistry={PILOT_RELEASES} initialArrival={explorer.arrival}
         viewer={uid && orgId ? { uid, orgId } : null} calm={calm} active onClose={() => setExplorer(null)}
         onOpenActivity={onOpenActivity ? (id, options) => { setExplorer(null); onOpenActivity(id, options); } : undefined} />
     </Suspense>}

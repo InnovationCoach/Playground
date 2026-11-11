@@ -297,9 +297,9 @@ export function App() {
   }
 
   // Learner spaces: My space (personal dashboard with cover and profile
-  // images), school programs and the portfolio maker are secondary learners'
+  // images) and the portfolio maker are secondary learners'
   // own screens. A shared portfolio link opens read-only for permitted viewers.
-  if (role === 'student' && !isPrimary && ['space', 'programs', 'journey'].includes(route?.screen)) {
+  if (role === 'student' && !isPrimary && ['space', 'journey'].includes(route?.screen)) {
     return (
       <>
         <Header {...headerProps} />
@@ -308,9 +308,7 @@ export function App() {
           ? <StudentDashboard profile={profile} uid={user.uid} onProfileChanged={refreshProfile} />
           : (
             <div className="gh-app">
-              {route.screen === 'programs'
-                ? <SchoolLearningPanel initialArea="programs" hideTabs />
-                : <JourneyPortfolio uid={user.uid} profile={profile} printView={route.print} />}
+              <JourneyPortfolio uid={user.uid} profile={profile} printView={route.print} />
             </div>
           )}
       </>

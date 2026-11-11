@@ -127,13 +127,6 @@
 .ig-bay span { display:block;font:500 11px/1.4 var(--ig-mono);text-transform:uppercase;letter-spacing:.08em;margin-top:3px; }
 .ig-bays>.sd-caption { grid-column:1/-1;margin:0; }
 
-/* Dock: an instrument bezel. */
-.sd-root .sd-indicators { background:var(--ig-face);border-color:var(--ig-track); }
-.sd-root .sd-indicator { color:var(--ig-muted); }
-.sd-root .sd-indicator[aria-current=step] { background:var(--ig-ink);color:var(--ig-face); }
-.sd-root .sd-indicator-index { display:inline;order:-1;font:600 10px var(--ig-mono);opacity:.75; }
-.sd-root .sd-page-number { font-family:var(--ig-mono); }
-
 /* Calm and reduced motion: still needle, no star plate. */
 .sd-root.md-calm .ig-needle { transition:none; }
 .sd-root.md-calm .ig-starfield { display:none; }
@@ -142,7 +135,6 @@
 .sd-grid-mode .ig-cluster { grid-template-columns:1fr; }
 @media(max-width:1100px) { .ig-dial-row { grid-template-columns:minmax(200px,260px) minmax(0,1fr); } }
 @media(max-width:900px) { .ig-cluster { grid-template-columns:1fr; } .ig-side { grid-template-columns:1fr 1fr; } }
-@media(max-width:800px) { .sd-root .sd-indicator-index { display:block;order:0; } }
 @media(max-width:620px) {
   .ig-side,.ig-universe-lists,.ig-bays,.ig-dial-row { grid-template-columns:1fr; }
   .ig-universe { padding:22px; }
@@ -173,11 +165,6 @@
 .ig-mini .ig-readout strong { font-size:21px; }
 .ig-mini .ig-readout small { font-size:9.5px; }
 @media(max-width:560px) { .ig-project-main { grid-template-columns:1fr; } .ig-mini .ig-gauge { margin:0; } }
-
-/* Live status in the slide dock: honest counts only (no combined percentage). */
-.sd-indicator-stat { font:600 10px/1 var(--ig-mono);padding:3px 6px;border-radius:999px;border:1px solid currentColor;opacity:.85; }
-.sd-root .sd-indicator[aria-current=step] .sd-indicator-stat { opacity:1; }
-@media(max-width:800px) { .sd-indicator-stat { font-size:9px;padding:2px 5px; } }
 .ig-greeting { color:var(--gh-heading);font-weight:700; }
 
 /* Term project plate: Design Thinking tasks ticked in PBL Studio. */

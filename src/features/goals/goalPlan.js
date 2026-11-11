@@ -129,6 +129,27 @@ export function newPlan() {
   };
 }
 
+const FIRST_STEP_BY_SHOW = {
+  slides: 'Write down what my first slide should say',
+  talk: 'Say my idea out loud for one minute',
+  model: 'Sketch a first idea for my model',
+  video: 'Write down the first three shots of my video',
+  diagram: 'Draw a rough first sketch',
+  code: 'Write down what my code or app should do',
+  poster: 'Sketch where things go on my poster',
+  writing: 'Write my first two sentences'
+};
+
+/** Small first steps to choose from at the end of the goal flow; each is doable in one sitting. */
+export function firstStepOptions(explore, showHow = null) {
+  const topic = str(explore, 70);
+  return [
+    `Write 3 questions I have about ${topic}`,
+    `Find one good video or article about ${topic}`,
+    FIRST_STEP_BY_SHOW[showHow] || 'Tell my coach what I want to find out'
+  ].map((step) => step.slice(0, LIMITS.text));
+}
+
 let seq = 0;
 export const newId = (prefix) => `${prefix}_${Date.now().toString(36)}${(seq++).toString(36)}`;
 
