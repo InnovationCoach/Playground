@@ -39,3 +39,7 @@ export const requestSparkCoachSupport = (sessionId, { question, reason = 'LEARNE
   schoolRequest('POST', `${BASE}/session/${enc(sessionId)}/support-request`, { body: { question, reason } });
 
 export const getSparkCoachSummaries = () => schoolRequest('GET', `${BASE}/coach/summaries`);
+
+// Coach records that they have seen a learner's support request.
+export const acknowledgeSparkSupport = (requestId) =>
+  schoolRequest('POST', `${BASE}/coach/actions/acknowledge`, { body: { requestId } });

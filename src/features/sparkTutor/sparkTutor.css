@@ -82,3 +82,20 @@
 .sk-table td small { display:block; margin-top:4px; color:var(--gh-text-2); font-size:11px; }
 .sk-pill { display:inline-block; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:600; }
 .sk-pill-detour { background:var(--gh-purple-50, #f3ecf8); color:var(--gh-purple, #8250a0); }
+
+/* Support requests and safeguarding alerts */
+.sk-requests { display:flex; flex-direction:column; gap:12px; margin-top:16px; }
+.sk-request { border:1px solid #e6cb8f; background:#fff8e9; color:#4a330b; border-radius:12px; padding:14px 16px; }
+.sk-request header { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.sk-request header small { color:inherit; opacity:.8; font-size:12px; }
+.sk-request p { margin:8px 0; font-size:14px; line-height:1.6; }
+.sk-request .cw-muted { color:inherit; opacity:.8; font-size:12px; }
+.sk-request-text { white-space:pre-wrap; overflow-wrap:anywhere; }
+.sk-request-urgent { border:2px solid #b42318; background:#fef3f2; color:#7a1a12; }
+.sk-request-note { font-weight:600; }
+.sk-pill-urgent { margin-left:8px; background:#b42318; color:#fff; }
+.sk-pill-help { margin-left:8px; background:#fff8e9; color:#7a5113; border:1px solid #e6cb8f; }
+.sk-banner { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:16px 0 0; padding:12px 16px; border:2px solid #b42318; border-radius:12px; background:#fef3f2; color:#7a1a12; }
+.sk-banner p { flex:1; margin:0; font-size:14px; min-width:200px; }
+[data-theme="dark"] .sk-request { background:#3a2c10; color:#f6dfae; border-color:#8a6a2a; }
+[data-theme="dark"] .sk-request-urgent, [data-theme="dark"] .sk-banner { background:#3d1714; color:#ffd5d0; border-color:#f97066; }
