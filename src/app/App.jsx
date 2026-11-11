@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthProvider.jsx';
 import { useTheme } from './theme/ThemeProvider.jsx';
 import { useHashRoute } from './useHashRoute.js';
@@ -39,12 +39,15 @@ import { PblStudio } from '../features/pbl/PblStudio.jsx';
 import { CommunityFeed } from '../features/community/CommunityFeed.jsx';
 import { MessagesScreen } from '../features/messages/MessagesScreen.jsx';
 import { AdminAuditView } from '../features/messages/AdminAuditView.jsx';
+import { readLayoutContract, selectLayout, shellSection } from '../features/lowerSecondary/layoutSelector.js';
 import { isPrimaryProfile } from '../auth.js';
 import { API_BASE } from '../services/apiBase.js';
 import { initializeSENGlobally } from '../integrations/senIntegration.js';
 import { renderSENToggle } from '../components/SEN/SENPreferenceToggle.js';
 import { createGoalSettingModal } from '../components/Goals/GoalSettingModal.js';
 import { showGoalsPanel } from '../integrations/goalSettingIntegration.js';
+
+const LowerSecondaryShell = lazy(() => import('../features/lowerSecondary/LowerSecondaryShell.jsx').then((m) => ({ default: m.LowerSecondaryShell })));
 
 const KNOWN_VIEWS = new Set(ACTIVITY_NAV.map((a) => a.id));
 
@@ -434,6 +437,21 @@ export function App() {
     );
   }
 
+  // The lower-secondary layout replaces My Dashboard only, after the guarded
+  // screens above. Off for every account until the verified contract ships.
+  const lowerSecondary = shellSection({ layout: selectLayout({ role, contract: readLayoutContract() }).layout, route, isPrimary });
+  if (lowerSecondary) {
+    return (
+      <>
+        {!isPrimary && <StudentOnboardingModal user={user} profile={profile} />}
+        <Suspense fallback={<div className="gh-app" role="status" aria-label="Loading" />}>
+          <LowerSecondaryShell uid={user.uid} orgId={orgId} profile={profile} classIds={profile?.classIds || []} isPrimary={isPrimary} section={lowerSecondary}
+                               onOpenActivity={navigate} onJoined={refreshProfile} onSignOut={signOut} />
+        </Suspense>
+      </>
+    );
+  }
+
   if (isPrimary) {
     return (
       <>
@@ -463,9 +481,9 @@ export function App() {
                      onOpenActivity={navigate} />
       ) : route?.screen === 'futureSkills' && role === 'student' ? (
         <FutureSkillsPage isPrimary={isPrimary} />
-      ) : route?.screen === 'pbl' && (role === 'student' || role === 'teacher' || role === 'coach') ? (
+      ) : (route?.screen === 'pbl' || route?.screen === 'programs') && (role === 'student' || role === 'teacher' || role === 'coach') ? (
         <div className="gh-app">
-          <PblStudio uid={user?.uid} role={role} tab={route.tab} programId={route.programId} section={route.section}
+          <PblStudio uid={user?.uid} role={role} tab={route.tab || (route.screen === 'programs' ? 'programs' : null)} programId={route.programId} section={route.section}
                      classIds={role === 'student' ? (profile?.classIds || []) : (classIds || profile?.classIds || [])}
                      onOpenActivity={navigate} displayName={profile?.displayName} />
         </div>

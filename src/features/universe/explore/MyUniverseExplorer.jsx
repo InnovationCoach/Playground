@@ -159,6 +159,67 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const { nav, travel, panelOpen, sheetExpanded } = state;
   const [view, setView] = useState(webgl ? '3d' : 'text');
   const [contextLost, setContextLost] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const [restoring3d, setRestoring3d] = useState(false);
+  const [restoreFailed, setRestoreFailed] = useState(false);
+  const canvasElRef = useRef(null);
+
+  const handleContextLost = useCallback((e) => {
+    e.preventDefault();
+    setContextLost(true);
+    setRestoreFailed(false);
+    setRestoring3d(false);
+  }, []);
+
+  const handleContextRestored = useCallback(() => {
+    setContextLost(false);
+    setRestoreFailed(false);
+    setRestoring3d(false);
+    setView((v) => (v === '3d' ? '3d' : v));
+  }, []);
+
+  const registerCanvas = useCallback((gl) => {
+    const el = gl?.domElement;
+    if (!el) return;
+    if (canvasElRef.current && canvasElRef.current !== el) {
+      canvasElRef.current.removeEventListener('webglcontextlost', handleContextLost);
+      canvasElRef.current.removeEventListener('webglcontextrestored', handleContextRestored);
+    }
+    canvasElRef.current = el;
+    el.addEventListener('webglcontextlost', handleContextLost);
+    el.addEventListener('webglcontextrestored', handleContextRestored);
+  }, [handleContextLost, handleContextRestored]);
+
+  useEffect(() => {
+    return () => {
+      if (canvasElRef.current) {
+        canvasElRef.current.removeEventListener('webglcontextlost', handleContextLost);
+        canvasElRef.current.removeEventListener('webglcontextrestored', handleContextRestored);
+        canvasElRef.current = null;
+      }
+    };
+  }, [handleContextLost, handleContextRestored]);
+
+  const retry3d = useCallback(() => {
+    if (restoring3d) return;
+    setRestoring3d(true);
+    setRestoreFailed(false);
+    setTimeout(() => {
+      if (!mounted.current) return;
+      if (hasWebGL2()) {
+        setRetryKey((k) => k + 1);
+        setContextLost(false);
+        setRestoring3d(false);
+        setRestoreFailed(false);
+        setView('3d');
+      } else {
+        setRestoring3d(false);
+        setRestoreFailed(true);
+        setContextLost(true);
+      }
+    }, 150);
+  }, [restoring3d]);
+
   const [reduced, setReduced] = useState(false);
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.visibilityState === 'hidden'); // opened in a background tab counts as hidden
   const [low, setLow] = useState(autoLowQuality);
@@ -344,7 +405,11 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     if (e.target.closest?.('input, textarea, select')) return;
     const k = e.key;
     if (k === 'Escape') { if (nav.path.length > 1 || nav.selected) { e.preventDefault(); go({ type: 'back' }); } return; }
-    if (k === 'l' || k === 'L') { if (webgl && !contextLost) setView((v) => (v === '3d' ? 'text' : '3d')); return; }
+    if (k === 'l' || k === 'L') {
+      if (webgl && !contextLost) setView((v) => (v === '3d' ? 'text' : '3d'));
+      else if (contextLost) retry3d();
+      return;
+    }
     if (!in3d) return;
     if ((k === 'd' || k === 'D') && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); togglePanel(); return; }
     if (!api.current) return;
@@ -361,10 +426,10 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const select = (id) => { if (!dragging.current) go({ type: 'select', id }); };
   const selectQuietly = (id) => go({ type: 'select', id, quiet: true }); // a site chosen in the card frames it without reopening the dock
 
-  const scene = in3d && <div className="mx-canvas">
+  const scene = webgl && (in3d || contextLost) && <div className="mx-canvas" key={retryKey} style={!in3d ? { display: 'none' } : undefined}>
     <Canvas dpr={low ? [1, 1.25] : [1, 1.75]} gl={{ antialias: !low, powerPreference: 'high-performance' }}
       frameloop={!active ? 'never' : running ? 'always' : 'demand'} camera={{ fov: 45, near: 0.1, far: 1200, position: shot.position }}
-      onCreated={({ gl }) => gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); setContextLost(true); })}>
+      onCreated={({ gl }) => registerCanvas(gl)}>
       <color attach="background" args={['#05101f']} />
       {here.level !== 'environment' && <><Starfield low={low} /><Nebulae low={low} /><SpaceLevel cosmos={cosmos} entry={here} selected={nav.selected} onSelect={select} low={low} /></>}
       {environment && env.status === 'ready' && env.kind === environment.sceneKind && <env.Comp environment={environment} selected={nav.selected} onSelect={select} motion={motion} low={low} equipment={equipment} />}
@@ -373,8 +438,26 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     </Canvas>
   </div>;
 
-  const textNotice = contextLost ? 'The 3D view stopped on this device, so here is the text view. Your place is kept.'
-    : !webgl ? '3D isn’t available on this device, so here is the text view. It has the same destinations and details.' : null;
+  const textNotice = contextLost ? (
+    restoreFailed
+      ? '3D graphics could not be restored on this device. You can continue using the text view. Your place is kept.'
+      : 'The 3D view stopped on this device, so here is the text view. Your place is kept.'
+  ) : !webgl ? '3D isn’t available on this device, so here is the text view. It has the same destinations and details.' : null;
+
+  const retryButtonNode = contextLost && (
+    <button type="button" className="mx-primary mx-retry-3d" onClick={retry3d} disabled={restoring3d}>
+      <RefreshCw size={14} className={restoring3d ? 'is-spinning' : ''} aria-hidden="true" />
+      {restoring3d ? 'Restoring 3D…' : 'Try 3D again'}
+    </button>
+  );
+
+  const noticeElement = textNotice ? (
+    <span className="mx-notice-wrap">
+      <span>{textNotice}</span>
+      {retryButtonNode}
+    </span>
+  ) : null;
+
   // The text view's explicit way onto a surface; the same access rule as the 3D landing button.
   const land = (planetId) => {
     const p = cosmos.planetById(planetId), path = canLand(p, opts) && pathTo('environment', p.environmentId, cosmos);
@@ -398,6 +481,12 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       </ol></nav>
       <div className="mx-actions">
         {nav.path.length > 1 && <button type="button" onClick={() => go({ type: 'back' })}><ArrowLeft size={16} aria-hidden="true" />Back</button>}
+        {contextLost && (
+          <button type="button" onClick={retry3d} disabled={restoring3d} className="mx-primary mx-retry-3d">
+            <RefreshCw size={15} aria-hidden="true" className={restoring3d ? 'is-spinning' : ''} />
+            {restoring3d ? 'Restoring 3D…' : 'Try 3D again'}
+          </button>
+        )}
         {webgl && !contextLost && <button type="button" onClick={() => setView(in3d ? 'text' : '3d')} aria-pressed={!in3d}>{in3d ? <><List size={16} aria-hidden="true" />Text view</> : <><Box size={16} aria-hidden="true" />3D view</>}</button>}
         {in3d && <button type="button" onClick={() => api.current?.reset()}><RotateCcw size={16} aria-hidden="true" />Reset view</button>}
         {in3d && <button type="button" onClick={() => setLow((v) => !v)} aria-pressed={!low} title="Rendering detail">Detail: {low ? 'Standard' : 'High'}</button>}
@@ -409,10 +498,10 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       {scene}
       {in3d && <div className={`mx-fade${traveling ? '' : ' is-done'}`} key={`${nav.path.length}-${here.id || ''}`} aria-hidden="true" />}
       {!in3d && environment && <SurfaceTextView cosmos={cosmos} environment={environment} opts={opts} selected={nav.selected} onSelect={select} headingRef={heading}
-        notice={textNotice} canUse3d={webgl && !contextLost} onShow3d={() => setView('3d')} onBack={() => go({ type: 'back' })}
+        notice={noticeElement} canUse3d={webgl && !contextLost} onShow3d={() => setView('3d')} onBack={() => go({ type: 'back' })}
         onOpenMission={openMission} onOpenActivity={onOpenActivity} arrivalCard={arrivalCard(true)} />}
       {!in3d && !environment && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} onOpenMission={openMission} onOpenActivity={onOpenActivity} canUse3d={webgl && !contextLost}
-        notice={textNotice} onLand={land}
+        notice={noticeElement} onLand={land}
         onShow3d={(level, id) => { const path = pathTo(level, id, cosmos); if (path) { go({ type: 'jump', path }); setView('3d'); } }} />}
       {in3d && arrivalCard(false)}
       {in3d && <div className={`mx-panel-dock${panelOpen ? ' is-open' : ' is-collapsed'}${sheetExpanded ? ' is-expanded' : ''}`}>

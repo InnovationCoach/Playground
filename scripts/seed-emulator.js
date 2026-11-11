@@ -142,6 +142,7 @@ for (const c of CLASSES) {
     yearLevel: c.yearLevel,
     status: c.status,
     coachIds: [],
+    learnerIds: [],
     joinCode: code,
     createdAt: FieldValue.serverTimestamp()
   });
@@ -307,6 +308,13 @@ for (const s of STUDENTS) {
 
   await db.collection('users').doc(user.uid).set(userDoc);
   await db.collection('publicIds').doc(publicId).set({ uid: user.uid, createdAt: FieldValue.serverTimestamp() });
+
+  if (s.status === 'active' && s.classId) {
+    await db.collection('classes').doc(s.classId).set(
+      { learnerIds: FieldValue.arrayUnion(user.uid) },
+      { merge: true }
+    );
+  }
 
   if (s.minutes > 0) {
     await db.collection('users').doc(user.uid).collection('dailyStats')

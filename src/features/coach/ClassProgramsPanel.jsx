@@ -7,6 +7,24 @@ import { hrefFor } from '../../app/routes.js';
 import { loadClasses, issueCode, revokeCode, setClassProgram, explainError } from './classCodes.js';
 import './classPanel.css';
 
+export function cohortForClass(cls) {
+  if (!cls) return 'WLS';
+  const rawCohort = String(cls.cohort || cls.cohortId || '').toUpperCase();
+  if (rawCohort.includes('WHS') || rawCohort.includes('HIGH') || rawCohort.includes('SENIOR')) {
+    return 'WHS';
+  }
+  if (rawCohort.includes('WLS') || rawCohort.includes('LOW') || rawCohort.includes('JUNIOR')) {
+    return 'WLS';
+  }
+  const str = `${cls.name || ''} ${cls.id || ''}`.toLowerCase();
+  // Year 10, 11, 12, WPR 11, 12, etc. -> Higher Secondary (WHS, Ages 15-18)
+  if (/\b(year\s*1[0-2]|yr\s*1[0-2]|1[0-2][a-z]?|higher|whs|senior)\b/i.test(str)) {
+    return 'WHS';
+  }
+  // Default to Lower Secondary (WLS, Ages 11-14)
+  return 'WLS';
+}
+
 /**
  * "My classes" on the coach dashboard: which PBL program each class runs and
  * the code learners use to join it. Generate, rotate and revoke all go
@@ -17,6 +35,7 @@ export function ClassProgramsPanel({ coachUser }) {
   const [classes, setClasses] = useState(null);
   const [presenting, setPresenting] = useState(null);
   const [availablePrograms, setAvailablePrograms] = useState(() => PROGRAMS);
+  const [cohortFilter, setCohortFilter] = useState('all'); // 'all' | 'WLS' | 'WHS'
 
   const reload = useCallback(async () => {
     setClasses(await loadClasses(classIds));
@@ -37,7 +56,8 @@ export function ClassProgramsPanel({ coachUser }) {
             id: d.id,
             title: data.title || d.id,
             identity: { short: (data.title || d.id).slice(0, 24) },
-            source: data.source || 'studio'
+            source: data.source || 'studio',
+            ageBand: data.ageBand || data.targetAgeRange || '11-16'
           });
         });
 
@@ -51,7 +71,8 @@ export function ClassProgramsPanel({ coachUser }) {
               id: p.id,
               title: p.title,
               identity: { short: p.title.slice(0, 24) },
-              source: 'library'
+              source: 'library',
+              ageBand: p.ageBand || p.targetAgeRange || '11-16'
             });
           }
         }
@@ -66,6 +87,11 @@ export function ClassProgramsPanel({ coachUser }) {
 
   const patch = (id, next) => setClasses((list) => list.map((c) => (c.id === id ? { ...c, ...next } : c)));
 
+  const classList = classes || [];
+  const wlsCount = classList.filter((c) => cohortForClass(c) === 'WLS').length;
+  const whsCount = classList.filter((c) => cohortForClass(c) === 'WHS').length;
+  const filteredClasses = classList.filter((c) => cohortFilter === 'all' || cohortForClass(c) === cohortFilter);
+
   return (
     <section className="cp-panel" aria-labelledby="cp-title">
       <div className="cp-head">
@@ -76,13 +102,44 @@ export function ClassProgramsPanel({ coachUser }) {
         <a className="cp-btn cp-btn-ghost" href={hrefFor.pbl('programs')}><Library size={16} aria-hidden="true" />Program library</a>
       </div>
 
+      {classes && classes.length > 0 && (
+        <div className="cp-cohort-filter-bar" role="group" aria-label="Filter classes by cohort">
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--gh-text-3)', textTransform: 'uppercase' }}>
+            Cohort:
+          </span>
+          <button
+            type="button"
+            className={`cp-cohort-filter-btn ${cohortFilter === 'all' ? 'is-active' : ''}`}
+            onClick={() => setCohortFilter('all')}
+          >
+            All Cohorts ({classes.length})
+          </button>
+          <button
+            type="button"
+            className={`cp-cohort-filter-btn ${cohortFilter === 'WLS' ? 'is-active' : ''}`}
+            onClick={() => setCohortFilter('WLS')}
+          >
+            Lower Secondary &ldquo;WLS&rdquo; ({wlsCount}) · Ages 11–14
+          </button>
+          <button
+            type="button"
+            className={`cp-cohort-filter-btn ${cohortFilter === 'WHS' ? 'is-active' : ''}`}
+            onClick={() => setCohortFilter('WHS')}
+          >
+            Higher Secondary &ldquo;WHS&rdquo; ({whsCount}) · Ages 15–18
+          </button>
+        </div>
+      )}
+
       {classes === null ? (
         <p className="cp-muted" role="status">Loading your classes…</p>
       ) : classes.length === 0 ? (
         <p className="cp-muted">You have no classes assigned yet. Ask an administrator to add you to a class.</p>
+      ) : filteredClasses.length === 0 ? (
+        <p className="cp-muted">No classes found in this cohort filter.</p>
       ) : (
         <ul className="cp-list">
-          {classes.map((c) => (
+          {filteredClasses.map((c) => (
             <li key={c.id}>
               <ClassRow
                 cls={c}
@@ -107,6 +164,8 @@ function ClassRow({ cls, uid, availablePrograms = PROGRAMS, onChange, onPresent 
   const [message, setMessage] = useState(null);
   const [copied, setCopied] = useState(false);
   const program = availablePrograms.find((p) => p.id === cls.programId) || programById(cls.programId);
+  const cohort = cohortForClass(cls);
+  const isWLS = cohort === 'WLS';
 
   if (cls.missing || cls.error) {
     return (
@@ -149,16 +208,30 @@ function ClassRow({ cls, uid, availablePrograms = PROGRAMS, onChange, onPresent 
   return (
     <div className="cp-row">
       <div className="cp-class">
-        <strong>{cls.name}</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
+          <strong>{cls.name}</strong>
+          <span className={`cp-cohort-badge ${isWLS ? 'cp-cohort-wls' : 'cp-cohort-whs'}`}>
+            {isWLS ? 'Lower Secondary · WLS (Ages 11–14)' : 'Higher Secondary · WHS (Ages 15–18)'}
+          </span>
+        </div>
         <label className="cp-field">
           <span>PBL program</span>
           <select value={cls.programId || ''} disabled={busy === 'program'} onChange={(e) => chooseProgram(e.target.value)}>
             <option value="">No program yet</option>
-            {availablePrograms.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title || p.identity?.short}{p.source === 'studio' ? ' (Studio)' : ''}{p.sharesPhasesWith ? ' (outline only)' : ''}
-              </option>
-            ))}
+            <optgroup label="Lower Secondary (WLS) · Ages 11–14">
+              {availablePrograms.filter((p) => !p.ageBand || p.ageBand.includes('11') || p.ageBand.includes('14') || p.targetAgeRange?.includes('11')).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title || p.identity?.short}{p.source === 'studio' ? ' (Studio)' : ''}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Higher Secondary (WHS) · Ages 15–18">
+              {availablePrograms.filter((p) => p.ageBand?.includes('15') || p.ageBand?.includes('16') || p.ageBand?.includes('18') || p.targetAgeRange?.includes('15') || (!p.ageBand && !p.targetAgeRange)).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title || p.identity?.short}{p.source === 'studio' ? ' (Studio)' : ''}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </label>
         {program && (
