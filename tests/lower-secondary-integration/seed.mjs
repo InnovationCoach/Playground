@@ -34,6 +34,8 @@ export async function seed(apiBase, program, progressFor) {
   await db.collection('organizations').doc(ORG).set({ name: 'Integration Org', status: 'active' });
   for (const [id, name] of [[SCHOOL, 'Integration School'], [OTHER_SCHOOL, 'Other School']]) await db.collection('schools').doc(id).set({ orgId: ORG, name, timezone: 'Asia/Bangkok', status: 'active', features: { questMode: true } });
   for (const c of SCHOOL_COHORTS) await db.collection('cohorts').doc(c.cohortId).set({ ...c, id: c.cohortId, orgId: ORG, status: 'active' });
+  await db.collection('cohorts').doc('cohort-lower-secondary').set({ cohortId: 'cohort-lower-secondary', code: 'LSEC', minAge: 11, maxAgeExclusive: 15, orgId: ORG, status: 'active' });
+  await db.collection('cohorts').doc('cohort-higher-secondary').set({ cohortId: 'cohort-higher-secondary', code: 'HSEC', minAge: 15, maxAgeExclusive: 19, orgId: ORG, status: 'active' });
   await db.collection('classes').doc(CLASS).set({ name: 'Lower Secondary A', orgId: ORG, schoolId: SCHOOL, cohortId: 'cohort-lower-secondary', status: 'active', learnerCount: 0 });
   await db.collection('classes').doc(OTHER_CLASS).set({ name: 'Other Class', orgId: ORG, schoolId: OTHER_SCHOOL, cohortId: 'cohort-lower-secondary', status: 'active', learnerCount: 0 });
 
