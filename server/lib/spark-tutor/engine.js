@@ -55,6 +55,16 @@ export class SparkTutorEngine {
 
     // 2. Prompt Injection Defense
     const isInjectionAttempt = detectPromptInjection(rawMessage);
+    if (isInjectionAttempt) {
+      return {
+        reply: "I'm here to help you understand concepts and guide your learning. Let's focus on the topic we're working on together.",
+        assistanceLevel: session.assistanceLevel,
+        promptInjectionDetected: true,
+        transitionReason: 'PROMPT_INJECTION_DEFENSE',
+        suggestedActions: ['Continue current lesson', 'Ask a project question'],
+        detourOffer: null
+      };
+    }
     const sanitizedStudentMessage = wrapStudentInput(rawMessage);
 
     // 3. Check for Prerequisite Gaps & Detour Triggers

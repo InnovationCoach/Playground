@@ -7,6 +7,21 @@ import { wrapStudentInput } from '../../safety.js';
 export const SAFEGUARDING_REFERRAL_MESSAGE =
   "That sounds really important. Please talk to your coach, teacher, or another adult you trust right now.";
 
+export const SAFEGUARDING_PATTERNS = [
+  {
+    pattern: /\b(kill myself|commit suicide|end my life|want to die|hurt myself|cut myself|cutting myself|cut my wrist|cutting my wrist|slit my wrist|take my own life|kms|hang myself|overdose|suicidal|suicide|end it all|rather be dead|better off dead|no reason to live|dont want to live|don't want to live|self-harm|self harm|bleed out|want to disappear forever)\b/i,
+    reason: 'SELF_HARM'
+  },
+  {
+    pattern: /\b(being abused|touches me inappropriately|touches me|hits me at home|abused by|abusing me|sexual abuse|physical abuse|domestic violence|beaten at home|beats me|hurts me at home)\b/i,
+    reason: 'ABUSE'
+  },
+  {
+    pattern: /\b(in danger|someone is hurting me|scared to go home|forced to|forcing me|traffick(ed|ing)|someone threatened to kill me|threatened to hurt me|stalking me|kidnapped)\b/i,
+    reason: 'IMMEDIATE_DANGER'
+  }
+];
+
 /**
  * Checks for safeguarding triggers (self-harm, abuse, immediate danger).
  */
@@ -14,13 +29,7 @@ export function checkSafeguarding(text) {
   if (!text || typeof text !== 'string') return { flagged: false, reason: null };
   const lower = text.toLowerCase();
 
-  const patterns = [
-    { pattern: /\b(kill myself|commit suicide|end my life|want to die|hurt myself)\b/, reason: 'SELF_HARM' },
-    { pattern: /\b(being abused|touches me|hits me at home|abused by)\b/, reason: 'ABUSE' },
-    { pattern: /\b(in danger|someone is hurting me|scared to go home)\b/, reason: 'IMMEDIATE_DANGER' }
-  ];
-
-  for (const { pattern, reason } of patterns) {
+  for (const { pattern, reason } of SAFEGUARDING_PATTERNS) {
     if (pattern.test(lower)) {
       return { flagged: true, reason };
     }

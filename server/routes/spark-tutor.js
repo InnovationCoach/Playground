@@ -15,8 +15,10 @@
 
 import { Router } from 'express';
 import { requireClaims } from '../middleware/auth.js';
+import { flagForReview } from '../auth.js';
 import { sendError } from '../lib/errors.js';
-import { schoolCaller, staff } from '../lib/schoolScope.js';
+import { schoolCaller, staff, validId } from '../lib/schoolScope.js';
+import { createRateLimiter } from '../lib/ai-resilience.js';
 import { SparkTutorEngine } from '../lib/spark-tutor/engine.js';
 import {
   isSparkTutorEnabled,
@@ -50,6 +52,10 @@ export function createSparkTutorRouter(options = {}) {
     modelName: options.modelName || process.env.GEMINI_MODEL || 'gemini-3.6-flash'
   });
 
+  const rateLimiter = options.rateLimiter || createRateLimiter({ maxEntries: 1000 });
+  const maxRequestsPerWindow = options.rateLimitMaxRequests || 30; // 30 requests per minute
+  const windowMs = options.rateLimitWindowMs || 60000;
+
   // 1. Authentication
   router.use(requireClaims);
 
@@ -72,6 +78,20 @@ export function createSparkTutorRouter(options = {}) {
     }
   });
 
+  // 4. Rate Limiter per Learner UID on state-mutating operations
+  router.use((req, res, next) => {
+    if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
+      const uid = req.schoolCaller?.uid || req.user?.uid;
+      if (uid) {
+        const allowed = rateLimiter.check(uid, maxRequestsPerWindow, windowMs);
+        if (!allowed) {
+          return sendError(res, 429, 'RATE_LIMITED', 'Rate limit exceeded. Please wait a moment before sending another message.');
+        }
+      }
+    }
+    next();
+  });
+
   // Error wrapper
   const wrap = fn => async (req, res, next) => {
     try {
@@ -87,7 +107,16 @@ export function createSparkTutorRouter(options = {}) {
    * POST /session - Start or resume session
    */
   router.post('/session', wrap(async (req, res) => {
-    const { mode, projectContext } = req.body || {};
+    const { mode = 'pbl_mentor', projectContext } = req.body || {};
+    const schoolId = req.schoolCaller.schoolIds?.[0];
+    const classId = req.schoolCaller.classIds?.[0];
+    if (schoolId && classId) {
+      const settings = await getTutoringSettings(schoolId, classId);
+      if (settings.allowedModes && !settings.allowedModes.includes(mode)) {
+        return sendError(res, 403, 'FORBIDDEN', `Mode '${mode}' is not permitted by class tutoring policy.`);
+      }
+    }
+
     const { session, isNew } = await startOrResumeSession({
       caller: req.schoolCaller,
       mode,
@@ -144,8 +173,20 @@ export function createSparkTutorRouter(options = {}) {
       }
     ];
 
-    // Resolve assessment restriction server-side (cannot be bypassed by learner body)
+    // Resolve tutoring settings & restrictions server-side
     const schoolSettings = await getTutoringSettings(session.schoolId, session.classId);
+
+    // 1. Enforce allowedModes policy
+    if (schoolSettings.allowedModes && !schoolSettings.allowedModes.includes(session.mode)) {
+      return sendError(res, 403, 'FORBIDDEN', `Mode '${session.mode}' is currently disabled for your class.`);
+    }
+
+    // 2. Enforce disabledTopics policy if learner is in an active detour or requesting a topic
+    const activeOrRequestedTopic = session.activeDetour?.topic || req.body?.requestedTopic;
+    if (activeOrRequestedTopic && schoolSettings.disabledTopics?.includes(activeOrRequestedTopic)) {
+      return sendError(res, 403, 'FORBIDDEN', `Topic '${activeOrRequestedTopic}' is disabled for your class.`);
+    }
+
     const isRestricted = Boolean(
       session.assessmentRestricted ||
       session.projectContext?.assessmentRestricted ||
@@ -161,6 +202,61 @@ export function createSparkTutorRouter(options = {}) {
       approvedResources,
       assessmentRestricted: isRestricted
     });
+
+    // 3. Handle Safeguarding Disclosures
+    if (turnResult.safeguardingFlagged) {
+      await createSparkSupportRequest({
+        session,
+        caller: req.schoolCaller,
+        question: `[SAFEGUARDING ALERT] Learner disclosed concerning statement: "${message.slice(0, 100)}"`,
+        reason: 'SAFEGUARDING',
+        priority: 'urgent'
+      });
+
+      await flagForReview({
+        uid: req.schoolCaller.uid,
+        prompt: message,
+        reason: 'safeguarding_disclosure',
+        severity: 'high',
+        endpoint: 'spark-tutor'
+      });
+
+      const turnRecord = await recordSessionTurn({
+        session,
+        userMessage: message,
+        replyText: turnResult.reply,
+        assistanceLevel: turnResult.assistanceLevel,
+        detourState: session.activeDetour,
+        clientTurnId,
+        blocked: true,
+        flagged: true,
+        flaggedReason: turnResult.safeguardingReason
+      });
+
+      return res.json({
+        sessionId,
+        turnId: turnRecord.turnId,
+        reply: turnResult.reply,
+        mode: session.mode,
+        assistanceLevel: turnResult.assistanceLevel,
+        safeguardingFlagged: true,
+        suggestedActions: turnResult.suggestedActions
+      });
+    }
+
+    // 4. Enforce maxAssistanceLevel ceiling from coach settings
+    if (schoolSettings.maxAssistanceLevel) {
+      const maxIdx = LEVEL_ORDER.indexOf(schoolSettings.maxAssistanceLevel);
+      const currentIdx = LEVEL_ORDER.indexOf(turnResult.assistanceLevel);
+      if (currentIdx > maxIdx && maxIdx !== -1) {
+        turnResult.assistanceLevel = schoolSettings.maxAssistanceLevel;
+      }
+    }
+
+    // 5. Suppress detour offers for disabled topics
+    if (turnResult.detourOffer && schoolSettings.disabledTopics?.includes(turnResult.detourOffer.topic)) {
+      turnResult.detourOffer = null;
+    }
 
     // Update highest assistance level reached in this session
     const currentHighIdx = LEVEL_ORDER.indexOf(session.highestAssistanceUsed || 'elicit');
@@ -225,9 +321,11 @@ export function createSparkTutorRouter(options = {}) {
    */
   router.post('/session/:sessionId/mode', wrap(async (req, res) => {
     const { sessionId } = req.params;
-    const { mode, detourId, returnToProject } = req.body || {};
+    const { mode, targetMode, detourId, topic, returnToProject } = req.body || {};
+    const effectiveMode = mode || targetMode || (detourId ? 'academic_tutor' : null);
 
     const session = await getAuthorizedSession(sessionId, req.schoolCaller);
+    const settings = await getTutoringSettings(session.schoolId, session.classId);
 
     if (returnToProject) {
       // Return from Academic Detour to originating PBL project
@@ -249,11 +347,22 @@ export function createSparkTutorRouter(options = {}) {
       });
     }
 
-    if (mode === 'academic_tutor' || detourId) {
+    // Enforce allowedModes policy
+    if (effectiveMode && settings.allowedModes && !settings.allowedModes.includes(effectiveMode)) {
+      return sendError(res, 403, 'FORBIDDEN', `Mode '${effectiveMode}' is not permitted by class tutoring policy.`);
+    }
+
+    if (effectiveMode === 'academic_tutor' || detourId) {
+      const detourTopic = topic || DETOUR_TOPICS.RATIOS_FRACTIONS;
+      // Enforce disabledTopics policy
+      if (settings.disabledTopics?.includes(detourTopic)) {
+        return sendError(res, 403, 'FORBIDDEN', `Topic '${detourTopic}' is disabled for your class.`);
+      }
+
       // Enter academic detour
       const detour = createDetour({
         originatingProjectContext: session.projectContext,
-        topic: DETOUR_TOPICS.RATIOS_FRACTIONS,
+        topic: detourTopic,
         reason: 'PREREQUISITE_GAP_IDENTIFIED'
       });
 
@@ -418,8 +527,18 @@ export function createSparkTutorRouter(options = {}) {
    */
   router.get('/coach/settings/:scopeId', wrap(async (req, res) => {
     const { scopeId } = req.params;
+    if (!validId(scopeId)) return sendError(res, 400, 'VALIDATION', 'Invalid scopeId.');
     const schoolId = req.schoolCaller.schoolIds?.[0];
     if (!schoolId) return sendError(res, 403, 'FORBIDDEN', 'No verified school membership.');
+
+    // Staff/admin can view any class settings; learners can only view default or their own assigned class
+    if (!staff(req.schoolCaller) && req.schoolCaller.role !== 'admin') {
+      const studentClassIds = req.schoolCaller.classIds || [];
+      if (scopeId !== 'default' && !studentClassIds.includes(scopeId)) {
+        return sendError(res, 403, 'FORBIDDEN', 'Learners may only view tutoring settings for their own assigned class.');
+      }
+    }
+
     const settings = await getTutoringSettings(schoolId, scopeId);
     res.json(settings);
   }));
@@ -428,10 +547,11 @@ export function createSparkTutorRouter(options = {}) {
    * PATCH /coach/settings/:scopeId - Update tutoring settings
    */
   router.patch('/coach/settings/:scopeId', wrap(async (req, res) => {
+    const { scopeId } = req.params;
+    if (!validId(scopeId)) return sendError(res, 400, 'VALIDATION', 'Invalid scopeId.');
     if (!staff(req.schoolCaller) && req.schoolCaller.role !== 'admin') {
       return sendError(res, 403, 'FORBIDDEN', 'Only assigned coaches and administrators can update settings.');
     }
-    const { scopeId } = req.params;
     const schoolId = req.schoolCaller.schoolIds?.[0];
     if (!schoolId) return sendError(res, 403, 'FORBIDDEN', 'No verified school membership.');
     const updated = await updateTutoringSettings(schoolId, scopeId, req.body || {}, req.schoolCaller);

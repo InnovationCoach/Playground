@@ -140,7 +140,10 @@ export function createApp(options = {}) {
   app.use('/api', questRouter);
   app.use('/api/spark-tutor', createSparkTutorRouter({
     adapter: options.sparkTutorAdapter,
-    engine: options.sparkTutorEngine
+    engine: options.sparkTutorEngine,
+    rateLimiter: options.sparkTutorRateLimiter,
+    rateLimitMaxRequests: options.sparkTutorRateLimitMaxRequests,
+    rateLimitWindowMs: options.sparkTutorRateLimitWindowMs
   }));
 
   // ============= EXISTING AI ENDPOINTS =============
