@@ -36,7 +36,8 @@ export class SparkTutorEngine {
     userMessage,
     recentTurns = [],
     approvedResources = [],
-    assessmentRestricted = false
+    assessmentRestricted = false,
+    maxAssistanceLevel = null
   }) {
     const rawMessage = String(userMessage || '').trim();
 
@@ -75,13 +76,14 @@ export class SparkTutorEngine {
 
     const shouldOfferRatiosDetour = session.mode === 'pbl_mentor' && !session.activeDetour && isMarsSolarProblem && strugglesWithRatios;
 
-    // 4. Resolve Assistance Ladder Transition
+    // 4. Resolve Assistance Ladder Transition (clamped to maxAssistanceLevel BEFORE response generation)
     const assistanceTransition = resolveAssistanceTransition({
       currentLevel: session.assistanceLevel,
       consecutiveFailures: session.consecutiveFailures || 0,
       studentMessage: rawMessage,
       assessmentRestricted,
-      prerequisiteMissing: shouldOfferRatiosDetour
+      prerequisiteMissing: shouldOfferRatiosDetour,
+      maxAssistanceLevel
     });
 
     const activeLevel = assistanceTransition.assistanceLevel;

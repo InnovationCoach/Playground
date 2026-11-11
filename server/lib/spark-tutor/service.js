@@ -513,19 +513,20 @@ export async function updateTutoringSettings(schoolId, scopeId = 'default', upda
 
   const sanitized = {
     scopeId,
-    allowedModes: updates.allowedModes !== undefined ? updates.allowedModes : ['pbl_mentor', 'academic_tutor'],
-    maxAssistanceLevel: updates.maxAssistanceLevel !== undefined ? updates.maxAssistanceLevel : 'guided_application',
-    assessmentLock: updates.assessmentLock !== undefined ? Boolean(updates.assessmentLock) : false,
-    disabledTopics: updates.disabledTopics !== undefined ? updates.disabledTopics : [],
     updatedBy: caller.uid,
     updatedAt: now
   };
+
+  if (updates.allowedModes !== undefined) sanitized.allowedModes = updates.allowedModes;
+  if (updates.maxAssistanceLevel !== undefined) sanitized.maxAssistanceLevel = updates.maxAssistanceLevel;
+  if (updates.assessmentLock !== undefined) sanitized.assessmentLock = Boolean(updates.assessmentLock);
+  if (updates.disabledTopics !== undefined) sanitized.disabledTopics = updates.disabledTopics;
 
   await db.collection('schools').doc(schoolId)
     .collection('tutoringSettings').doc(scopeId)
     .set(sanitized, { merge: true });
 
-  return sanitized;
+  return await getTutoringSettings(schoolId, scopeId);
 }
 
 /**

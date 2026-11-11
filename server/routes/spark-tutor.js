@@ -44,6 +44,7 @@ import {
 } from '../lib/spark-tutor/detour.js';
 import { recordPracticeEvidence, compileCoachSummary } from '../lib/spark-tutor/evidence.js';
 import { LEVEL_ORDER } from '../lib/spark-tutor/assistance.js';
+import { checkSafeguarding, SAFEGUARDING_REFERRAL_MESSAGE } from '../lib/spark-tutor/safety.js';
 
 export function createSparkTutorRouter(options = {}) {
   const router = Router();
@@ -81,6 +82,12 @@ export function createSparkTutorRouter(options = {}) {
   // 4. Rate Limiter per Learner UID on state-mutating operations
   router.use((req, res, next) => {
     if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
+      // Disclosures of crisis/safeguarding must bypass rate limit so learners are never turned away with 429
+      const messageText = req.body?.message;
+      if (typeof messageText === 'string' && checkSafeguarding(messageText).flagged) {
+        return next();
+      }
+
       const uid = req.schoolCaller?.uid || req.user?.uid;
       if (uid) {
         const allowed = rateLimiter.check(uid, maxRequestsPerWindow, windowMs);
@@ -155,6 +162,53 @@ export function createSparkTutorRouter(options = {}) {
     }
 
     const session = await getAuthorizedSession(sessionId, req.schoolCaller);
+
+    // CRITICAL: Safeguarding disclosure check MUST run before any mode/topic restriction checks.
+    // A child disclosing self-harm or abuse must NEVER receive 403 FORBIDDEN.
+    const safeguarding = checkSafeguarding(message);
+    if (safeguarding.flagged) {
+      await createSparkSupportRequest({
+        session,
+        caller: req.schoolCaller,
+        question: `[SAFEGUARDING ALERT] Learner disclosed concerning statement: "${message.slice(0, 100)}"`,
+        reason: 'SAFEGUARDING',
+        priority: 'urgent'
+      });
+
+      await flagForReview({
+        uid: req.schoolCaller.uid,
+        prompt: message,
+        reason: 'safeguarding_disclosure',
+        severity: 'high',
+        endpoint: 'spark-tutor'
+      });
+
+      const turnRecord = await recordSessionTurn({
+        session,
+        userMessage: message,
+        replyText: SAFEGUARDING_REFERRAL_MESSAGE,
+        assistanceLevel: session.assistanceLevel || 'elicit',
+        detourState: session.activeDetour,
+        clientTurnId,
+        blocked: true,
+        flagged: true,
+        flaggedReason: safeguarding.reason
+      });
+
+      return res.json({
+        sessionId,
+        turnId: turnRecord.turnId,
+        reply: SAFEGUARDING_REFERRAL_MESSAGE,
+        mode: session.mode,
+        assistanceLevel: session.assistanceLevel || 'elicit',
+        safeguardingFlagged: true,
+        suggestedActions: [
+          'Talk to your coach now',
+          'Contact a trusted adult'
+        ]
+      });
+    }
+
     const recentTurns = await getSessionTurns(sessionId, session.schoolId, 6);
 
     // Curriculum resources approved for grounding
@@ -200,49 +254,9 @@ export function createSparkTutorRouter(options = {}) {
       userMessage: message,
       recentTurns,
       approvedResources,
-      assessmentRestricted: isRestricted
+      assessmentRestricted: isRestricted,
+      maxAssistanceLevel: schoolSettings.maxAssistanceLevel
     });
-
-    // 3. Handle Safeguarding Disclosures
-    if (turnResult.safeguardingFlagged) {
-      await createSparkSupportRequest({
-        session,
-        caller: req.schoolCaller,
-        question: `[SAFEGUARDING ALERT] Learner disclosed concerning statement: "${message.slice(0, 100)}"`,
-        reason: 'SAFEGUARDING',
-        priority: 'urgent'
-      });
-
-      await flagForReview({
-        uid: req.schoolCaller.uid,
-        prompt: message,
-        reason: 'safeguarding_disclosure',
-        severity: 'high',
-        endpoint: 'spark-tutor'
-      });
-
-      const turnRecord = await recordSessionTurn({
-        session,
-        userMessage: message,
-        replyText: turnResult.reply,
-        assistanceLevel: turnResult.assistanceLevel,
-        detourState: session.activeDetour,
-        clientTurnId,
-        blocked: true,
-        flagged: true,
-        flaggedReason: turnResult.safeguardingReason
-      });
-
-      return res.json({
-        sessionId,
-        turnId: turnRecord.turnId,
-        reply: turnResult.reply,
-        mode: session.mode,
-        assistanceLevel: turnResult.assistanceLevel,
-        safeguardingFlagged: true,
-        suggestedActions: turnResult.suggestedActions
-      });
-    }
 
     // 4. Enforce maxAssistanceLevel ceiling from coach settings
     if (schoolSettings.maxAssistanceLevel) {
@@ -353,6 +367,11 @@ export function createSparkTutorRouter(options = {}) {
     }
 
     if (effectiveMode === 'academic_tutor' || detourId) {
+      if (topic !== undefined && topic !== null) {
+        if (typeof topic !== 'string' || !Object.values(DETOUR_TOPICS).includes(topic)) {
+          return sendError(res, 400, 'VALIDATION', `Invalid detour topic '${topic}'. Allowed topics: ${Object.values(DETOUR_TOPICS).join(', ')}`);
+        }
+      }
       const detourTopic = topic || DETOUR_TOPICS.RATIOS_FRACTIONS;
       // Enforce disabledTopics policy
       if (settings.disabledTopics?.includes(detourTopic)) {

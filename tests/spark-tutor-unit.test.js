@@ -193,8 +193,28 @@ describe('Spark AI Tutor: Safeguarding, Prompt Injection & Citations (Req 10, 11
     expect(checkSafeguarding("I don't want to live anymore").flagged).toBe(true);
     expect(checkSafeguarding("someone is forcing me and trafficking me").flagged).toBe(true);
 
+    // Negative test cases: Everyday classroom and conversational sentences must NOT flag
+    expect(checkSafeguarding("My brother beats me at chess every time").flagged).toBe(false);
+    expect(checkSafeguarding("The panda species is in danger of extinction").flagged).toBe(false);
+    expect(checkSafeguarding("I was forced to use the old formula").flagged).toBe(false);
+    expect(checkSafeguarding("We are reading about suicide in Romeo and Juliet").flagged).toBe(false);
+    expect(checkSafeguarding("This error makes me want to end it all lol").flagged).toBe(false);
+
     const harmless = checkSafeguarding("How much sun hits Mars in the winter?");
     expect(harmless.flagged).toBe(false);
+  });
+
+  it('clamps assistance ladder escalation to maxAssistanceLevel policy ceiling', () => {
+    // When learner requests an advanced walkthrough or ladder escalates,
+    // if coach policy sets maxAssistanceLevel to 'hint', it must clamp to 'hint'.
+    const capped = resolveAssistanceTransition({
+      currentLevel: ASSISTANCE_LEVELS.ELICIT,
+      studentMessage: 'Can you walk me through this and solve it together?',
+      maxAssistanceLevel: ASSISTANCE_LEVELS.HINT
+    });
+
+    expect(capped.assistanceLevel).toBe(ASSISTANCE_LEVELS.HINT);
+    expect(capped.transitionReason).toBe('CAPPED_BY_MAX_ASSISTANCE_POLICY');
   });
 
   it('10. Detects prompt injection attempts', () => {

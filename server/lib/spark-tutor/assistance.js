@@ -114,11 +114,18 @@ export function resolveAssistanceTransition({
   studentMessage = '',
   assessmentRestricted = false,
   claimedModelLevel = null,
-  prerequisiteMissing = false
+  prerequisiteMissing = false,
+  maxAssistanceLevel = null
 }) {
   const isFrustrated = detectFrustration(studentMessage);
   const helpIntent = detectHelpIntent(studentMessage);
-  const maxAllowedLevel = assessmentRestricted ? ASSISTANCE_LEVELS.ANALOGOUS_EXAMPLE : ASSISTANCE_LEVELS.GUIDED_APPLICATION;
+
+  let effectiveCeiling = assessmentRestricted ? ASSISTANCE_LEVELS.ANALOGOUS_EXAMPLE : ASSISTANCE_LEVELS.GUIDED_APPLICATION;
+  if (maxAssistanceLevel && LEVEL_ORDER.includes(maxAssistanceLevel)) {
+    if (LEVEL_ORDER.indexOf(maxAssistanceLevel) < LEVEL_ORDER.indexOf(effectiveCeiling)) {
+      effectiveCeiling = maxAssistanceLevel;
+    }
+  }
 
   let nextLevel = currentLevel;
   let transitionReason = 'MAINTAIN';
@@ -143,7 +150,7 @@ export function resolveAssistanceTransition({
   } else if (consecutiveFailures >= 2) {
     // Two unsuccessful attempts: escalate ladder or change representation
     const currentIndex = LEVEL_ORDER.indexOf(currentLevel);
-    if (currentIndex < LEVEL_ORDER.indexOf(maxAllowedLevel)) {
+    if (currentIndex < LEVEL_ORDER.indexOf(effectiveCeiling)) {
       nextLevel = LEVEL_ORDER[currentIndex + 1];
       transitionReason = 'CONSECUTIVE_UNSUCCESSFUL_ATTEMPTS';
     } else {
@@ -161,12 +168,12 @@ export function resolveAssistanceTransition({
     }
   }
 
-  // Enforce assessment restriction ceiling
+  // Enforce ceiling (assessment restriction or coach policy ceiling)
   const nextIndex = LEVEL_ORDER.indexOf(nextLevel);
-  const maxIndex = LEVEL_ORDER.indexOf(maxAllowedLevel);
+  const maxIndex = LEVEL_ORDER.indexOf(effectiveCeiling);
   if (nextIndex > maxIndex) {
-    nextLevel = maxAllowedLevel;
-    transitionReason = 'CAPPED_BY_ASSESSMENT_RESTRICTION';
+    nextLevel = effectiveCeiling;
+    transitionReason = assessmentRestricted ? 'CAPPED_BY_ASSESSMENT_RESTRICTION' : 'CAPPED_BY_MAX_ASSISTANCE_POLICY';
   }
 
   return {

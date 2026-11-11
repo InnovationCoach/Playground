@@ -663,6 +663,19 @@ describe('Spark AI Learning Companion API & Emulator Acceptance Suite', () => {
       // Request for Tom Becker (different user) is NOT rate limited
       const rTom = await makeReq(tokens.tom, { mode: 'pbl_mentor' });
       expect(rTom.status).toBe(200);
+
+      // Disclosures of self-harm/abuse/danger must NEVER be rate-limited (bypasses 429)
+      const rSafeguarding = await fetch(`http://127.0.0.1:${port}/api/spark-tutor/session/${activeSessionId}/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${tokens.mia}`
+        },
+        body: JSON.stringify({ message: "i want to kms, im going to cut myself" })
+      });
+      expect(rSafeguarding.status).toBe(200);
+      const safeData = await rSafeguarding.json();
+      expect(safeData.safeguardingFlagged).toBe(true);
     } finally {
       server.close();
     }
@@ -670,12 +683,12 @@ describe('Spark AI Learning Companion API & Emulator Acceptance Suite', () => {
 
   it('Readiness Review: Enforces allowedModes, disabledTopics, and maxAssistanceLevel', async () => {
     try {
-      // 1. Restrict allowedModes to only 'pbl_mentor' and disable 'crypto' topic
+      // 1. Restrict allowedModes to only 'pbl_mentor'
       const patchRes = await env.request('PATCH', `/api/spark-tutor/coach/settings/${classId}`, {
         token: tokens.coach,
         body: {
           allowedModes: ['pbl_mentor'],
-          disabledTopics: ['black_holes', 'crypto'],
+          disabledTopics: ['energy_and_power_conversion'],
           maxAssistanceLevel: 'guided_application'
         }
       });
@@ -698,32 +711,64 @@ describe('Spark AI Learning Companion API & Emulator Acceptance Suite', () => {
       expect(switchDisallowed.status).toBe(403);
       expect(switchDisallowed.body.error.code).toBe('FORBIDDEN');
 
-      // 2. Allow academic_tutor, but test disabled topic
+      // 2. Allow academic_tutor, but test disabled topic & invalid topic
       await env.request('PATCH', `/api/spark-tutor/coach/settings/${classId}`, {
         token: tokens.coach,
         body: {
           allowedModes: ['pbl_mentor', 'academic_tutor'],
-          disabledTopics: ['black_holes', 'crypto']
+          disabledTopics: ['energy_and_power_conversion']
         }
       });
+
+      // Invalid topic on mode switch returns 400 VALIDATION
+      const badTopicRes = await env.request('POST', `/api/spark-tutor/session/${activeSessionId}/mode`, {
+        token: tokens.mia,
+        body: { targetMode: 'academic_tutor', topic: 'Ratios' }
+      });
+      expect(badTopicRes.status).toBe(400);
+      expect(badTopicRes.body.error.code).toBe('VALIDATION');
+      expect(badTopicRes.body.error.message).toContain('Invalid detour topic');
 
       // Switching to a disabled topic returns 403
       const detourDisabledTopic = await env.request('POST', `/api/spark-tutor/session/${activeSessionId}/mode`, {
         token: tokens.mia,
-        body: { targetMode: 'academic_tutor', topic: 'crypto' }
+        body: { targetMode: 'academic_tutor', topic: 'energy_and_power_conversion' }
       });
       expect(detourDisabledTopic.status).toBe(403);
       expect(detourDisabledTopic.body.error.code).toBe('FORBIDDEN');
-      expect(detourDisabledTopic.body.error.message).toContain("Topic 'crypto' is disabled");
+      expect(detourDisabledTopic.body.error.message).toContain("Topic 'energy_and_power_conversion' is disabled");
 
       // Message requesting disabled topic returns 403
       const msgDisabledTopic = await env.request('POST', `/api/spark-tutor/session/${activeSessionId}/message`, {
         token: tokens.mia,
-        body: { message: 'Can we switch to black_holes?', requestedTopic: 'black_holes' }
+        body: { message: 'Can we switch to energy_and_power_conversion?', requestedTopic: 'energy_and_power_conversion' }
       });
       expect(msgDisabledTopic.status).toBe(403);
       expect(msgDisabledTopic.body.error.code).toBe('FORBIDDEN');
-      expect(msgDisabledTopic.body.error.message).toContain("Topic 'black_holes' is disabled");
+      expect(msgDisabledTopic.body.error.message).toContain("Topic 'energy_and_power_conversion' is disabled");
+
+      // 3. Safeguarding disclosure MUST bypass disabled modes policy!
+      // First disable pbl_mentor:
+      await env.request('PATCH', `/api/spark-tutor/coach/settings/${classId}`, {
+        token: tokens.coach,
+        body: {
+          allowedModes: ['academic_tutor']
+        }
+      });
+      // Normal message in pbl_mentor session returns 403
+      const normalMsg = await env.request('POST', `/api/spark-tutor/session/${activeSessionId}/message`, {
+        token: tokens.mia,
+        body: { message: 'Hello Spark' }
+      });
+      expect(normalMsg.status).toBe(403);
+
+      // Safeguarding disclosure in that same session returns 200 (NOT 403)
+      const crisisMsg = await env.request('POST', `/api/spark-tutor/session/${activeSessionId}/message`, {
+        token: tokens.mia,
+        body: { message: 'i am feeling suicidal today' }
+      });
+      expect(crisisMsg.status).toBe(200);
+      expect(crisisMsg.body.safeguardingFlagged).toBe(true);
     } finally {
       // Reset settings back
       await env.request('PATCH', `/api/spark-tutor/coach/settings/${classId}`, {
@@ -731,10 +776,44 @@ describe('Spark AI Learning Companion API & Emulator Acceptance Suite', () => {
         body: {
           allowedModes: ['pbl_mentor', 'academic_tutor'],
           disabledTopics: [],
-          maxAssistanceLevel: 'direct_instruction'
+          maxAssistanceLevel: 'guided_application'
         }
       });
     }
+  });
+
+  it('Readiness Review: Partial PATCH preserves existing settings without resetting them', async () => {
+    // 1. Set assessmentLock to true and maxAssistanceLevel to hint
+    const initialPatch = await env.request('PATCH', `/api/spark-tutor/coach/settings/${classId}`, {
+      token: tokens.coach,
+      body: {
+        assessmentLock: true,
+        maxAssistanceLevel: 'hint'
+      }
+    });
+    expect(initialPatch.status).toBe(200);
+    expect(initialPatch.body.assessmentLock).toBe(true);
+    expect(initialPatch.body.maxAssistanceLevel).toBe('hint');
+
+    // 2. Perform a partial PATCH updating only maxAssistanceLevel to 'scaffold'
+    const partialPatch = await env.request('PATCH', `/api/spark-tutor/coach/settings/${classId}`, {
+      token: tokens.coach,
+      body: {
+        maxAssistanceLevel: 'scaffold'
+      }
+    });
+    expect(partialPatch.status).toBe(200);
+    expect(partialPatch.body.maxAssistanceLevel).toBe('scaffold');
+    // Crucial check: assessmentLock must STILL be true! It was not provided in updates and must NOT be reset!
+    expect(partialPatch.body.assessmentLock).toBe(true);
+
+    // 3. Verify with a fresh GET
+    const freshGet = await env.request('GET', `/api/spark-tutor/coach/settings/${classId}`, {
+      token: tokens.coach
+    });
+    expect(freshGet.status).toBe(200);
+    expect(freshGet.body.maxAssistanceLevel).toBe('scaffold');
+    expect(freshGet.body.assessmentLock).toBe(true);
   });
 
   it('Readiness Review: Validates PATCH /coach/settings/:scopeId against allowed values and caps', async () => {

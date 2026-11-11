@@ -9,15 +9,18 @@ export const SAFEGUARDING_REFERRAL_MESSAGE =
 
 export const SAFEGUARDING_PATTERNS = [
   {
-    pattern: /\b(kill myself|commit suicide|end my life|want to die|hurt myself|cut myself|cutting myself|cut my wrist|cutting my wrist|slit my wrist|take my own life|kms|hang myself|overdose|suicidal|suicide|end it all|rather be dead|better off dead|no reason to live|dont want to live|don't want to live|self-harm|self harm|bleed out|want to disappear forever)\b/i,
+    // Self-harm & suicide ideation (excludes academic/literary study and casual slang with lol/haha)
+    pattern: /\b(kill myself|commit(ting)? suicide|attempt(ed|ing)? suicide|suicidal thoughts|feeling suicidal|(i am|i'm) suicidal|end my life|want to die|hurt myself|cut(ting)? myself|cut(ting)? my wrist|slit my wrist|take my own life|\bkms\b|hang myself|overdose|overdosed|overdosing|(going to|want to|ready to|plan to) end it all(?!.*?\b(lol|lmao|haha|jk|rofl|xd)\b)|rather be dead|better off dead|no reason to live|don'?t want to live|self-harm|self harm|bleed out|want to disappear forever)\b/i,
     reason: 'SELF_HARM'
   },
   {
-    pattern: /\b(being abused|touches me inappropriately|touches me|hits me at home|abused by|abusing me|sexual abuse|physical abuse|domestic violence|beaten at home|beats me|hurts me at home)\b/i,
+    // Physical, sexual, and domestic abuse (excludes gaming/sports/metaphorical "beats me at chess")
+    pattern: /\b(being abused|touches me inappropriately|touches my private|hits me at home|abused by|abusing me|sexual(ly)? abuse[d]?|physical(ly)? abuse[d]?|domestic violence|beaten at home|beats me up|(mom|dad|father|mother|stepdad|stepmom|uncle|guardian|partner|boyfriend|husband) beats me(?!.*?\b(at|in)\s+(chess|tennis|game|cards|checkers|sports|fifa)\b)|hurts me at home)\b/i,
     reason: 'ABUSE'
   },
   {
-    pattern: /\b(in danger|someone is hurting me|scared to go home|forced to|forcing me|traffick(ed|ing)|someone threatened to kill me|threatened to hurt me|stalking me|kidnapped)\b/i,
+    // Immediate danger, trafficking, abduction, threats
+    pattern: /\b((i am|i'm|my life is)\s+in danger\b|in immediate danger\b|someone is hurting me\b|scared to go home\b|forced (into sex|to touch|marriage|labo[u]?r)\b|forcing me to touch\b|traffick(ed|ing)\b|threatened to kill me\b|threatened to hurt me\b|stalking me\b|kidnapped\b)/i,
     reason: 'IMMEDIATE_DANGER'
   }
 ];
