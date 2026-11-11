@@ -259,8 +259,15 @@ export async function requireUniverseAuth(req, res, next) {
         return sendUniverseError(req, res, 403, 'FORBIDDEN', `Class "${cid}" does not belong to your verified organization.`);
       }
 
-      // Mandatory roster array structure checks (B2)
-      if (!Array.isArray(cData.coachIds) || !Array.isArray(cData.learnerIds)) {
+      // Mandatory roster array structure checks (B2) with safe transition handling
+      const coachIds = Array.isArray(cData.coachIds)
+        ? cData.coachIds
+        : (typeof cData.coachId === 'string' && isSafeId(cData.coachId) ? [cData.coachId] : null);
+      const learnerIds = Array.isArray(cData.learnerIds)
+        ? cData.learnerIds
+        : (cData.learnerIds === undefined ? [] : null);
+
+      if (coachIds === null || learnerIds === null) {
         return sendUniverseError(req, res, 403, 'FORBIDDEN', `Class "${cid}" is missing required roster authority fields.`);
       }
 
@@ -268,16 +275,16 @@ export async function requireUniverseAuth(req, res, next) {
         continue;
       }
 
-      if (TEACHER_ROLES.includes(authoritativeRole) && !cData.coachIds.includes(decoded.uid)) {
+      if (TEACHER_ROLES.includes(authoritativeRole) && !coachIds.includes(decoded.uid)) {
         continue;
       }
 
-      if (LEARNER_ROLES.includes(authoritativeRole) && !cData.learnerIds.includes(decoded.uid)) {
+      if (LEARNER_ROLES.includes(authoritativeRole) && !learnerIds.includes(decoded.uid)) {
         continue;
       }
 
       verifiedClassIds.push(cid);
-      classDocsById.set(cid, cData);
+      classDocsById.set(cid, { ...cData, coachIds, learnerIds });
     }
   }
 
