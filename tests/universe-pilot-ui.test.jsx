@@ -64,6 +64,20 @@ describe('pilot mission sheet', () => {
     expect(text()).not.toMatch(/kept only until you close it/); // the unsaved consequence is shown when closing (O03)
   });
 
+  it('shows a Mission Builder plan beside the reviewed mission and starts in the help mode it chose', async () => {
+    const route = wind.mission.routes[0];
+    const plan = { missionId: wind.mission.id, routeId: route.id, supportMode: 'independent', hook: 'Bands plan around limits too.', sittings: [{ number: 1, minutes: 15, stepTitles: [route.steps[0].title] }] };
+    await act(async () => root.render(sheet('ben', { plan, initial: { id: wind.mission.id, route: route.id } }))); await settle();
+    expect(document.body.querySelector('.px-my-plan').textContent).toContain('Bands plan around limits too.');
+    const modes = [...document.body.querySelectorAll('input[name="px-support"]')];
+    expect(modes.length).toBe(2);
+    expect(modes.find((m) => m.checked).closest('label').textContent).toContain('Independent');
+    expect(document.body.querySelector('#px-title').textContent).toBe(wind.mission.title);
+    // A plan for another mission doesn't show.
+    await act(async () => root.render(null));
+    await act(async () => root.render(sheet('ben', { plan: { ...plan, missionId: 'other' } }))); await settle();
+    expect(document.body.querySelector('.px-my-plan')).toBeNull();
+  });
   it('checks numbers with the shared rules: more-precise, close, percent and unreadable input', async () => {
     await act(async () => root.render(sheet('ben'))); await settle();
     await click(document.body.querySelector('.mx-route'));

@@ -1,14 +1,17 @@
-import { ArrowRight, Gamepad2, Bot, Star, Compass } from 'lucide-react';
-import { lazy, Suspense, useState } from 'react';
+import { ArrowRight, MapPin, Star } from 'lucide-react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { hrefFor } from '../../app/routes.js';
 import { splitGoals } from './slideModel.js';
-import { PUBLISHED_PILOT_RELEASES } from '../universe/pilot/publishedRegistry.js';
+import { PILOT_RELEASES } from '../universe/pilot/pilotRegistry.js';
+import { ARRIVAL_VIDEOS, cloudinarySceneFrame } from '../universe/explore/arrivalVideos.js';
+import { MissionBuilder } from '../universe/builder/MissionBuilder.jsx';
+import { reviewedRoutes, allRoutes, routeTime, isReviewedRelease } from '../universe/builder/missionBuilder.js';
 const MyUniverseExplorer = lazy(() => import('../universe/explore/MyUniverseExplorer.jsx').then(m => ({ default: m.MyUniverseExplorer })));
 
-const EXPEDITIONS = [
-  { id: 'wind', planetId: 'thalassa', missionId: 'thalassa-wind-survey', routeId: 'guided', title: 'Wind energy estimate', where: 'Thalassa', description: 'Help Thalassa choose a power plan.', grades: '6–8', challenge: 2 },
-  { id: 'journey-guided', planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided', title: 'Journey timing', where: 'Thalassa departure station', description: 'Compare travel time and supplies for Ignis.', grades: '6–8', challenge: 2 },
-  { id: 'journey-advanced', planetId: 'ignis', missionId: 'spacecraft-journey', routeId: 'advanced', title: 'Mass and power tradeoffs', where: 'Ignis', description: 'Balance the expedition’s mass, time and power.', grades: '9–11', challenge: 4 }
+const PREVIEWS = [
+  { id: 'wind', planetId: 'thalassa', missionId: 'thalassa-wind-survey', routeId: 'guided', frame: 3, title: 'Is the wind worth it?', where: 'Thalassa', description: 'Help the station choose a power plan using a week of wind records.', grades: '6–8', challenge: 2 },
+  { id: 'journey-guided', planetId: 'thalassa', missionId: 'spacecraft-journey', routeId: 'guided', frame: 20, title: 'Plan a journey to Ignis', where: 'Thalassa departure station', description: 'Compare travel time and supplies, then recommend a plan.', grades: '6–8', challenge: 2 },
+  { id: 'journey-advanced', planetId: 'ignis', missionId: 'spacecraft-journey', routeId: 'advanced', frame: 3, title: 'Plan a journey to Ignis: harder version', where: 'Ignis', description: 'Weigh up the mass, time and power of a spacecraft design.', grades: '9–12', challenge: 4 }
 ];
 
 // Fixed, decorative star positions: still, never animated, never meaningful.
@@ -18,82 +21,88 @@ const STARS = (() => {
   return Array.from({ length: 70 }, (_, i) => ({ x: next() * 100, y: next() * 60, r: i % 9 === 0 ? .32 : i % 3 === 0 ? .2 : .13 }));
 })();
 
-/** Personal themes and self-marked milestones on a still star plate, plus clearly inactive future bays. */
+/**
+ * The way into My Universe: enter the explorer, start a mission (one button each)
+ * or fit one with Mission Builder, under the learner's own themes and milestones
+ * on a still star plate. Milestones are goals they marked achieved themselves.
+ */
 // The earlier SVG island prototype stays in src/features/universe/ (preview: tests/universe-preview/index.html)
 // but is not offered to learners: the approved vision replaced the island with the deep-space explorer.
-export function SparkUniverse({ prefs, plan, uid, orgId, onPersonalise, active = true, onOpenActivity }) {
+export function SparkUniverse({ prefs, plan, uid, orgId, onPersonalise, active = true, onOpenActivity, registry = PILOT_RELEASES }) {
   const [explorerOpen, setExplorerOpen] = useState(false);
   const [arrival, setArrival] = useState(null);
+  const [missionPlan, setMissionPlan] = useState(null);
+  const routes = useMemo(() => reviewedRoutes(registry), [registry]);
+  const everyRoute = useMemo(() => allRoutes(registry), [registry]);
+  const pending = !registry.every(isReviewedRelease);
   const achieved = splitGoals(plan).completed.slice(0, 6);
+  const open = (next, nextPlan = null) => { setArrival(next); setMissionPlan(nextPlan); setExplorerOpen(true); };
+  const close = () => { setExplorerOpen(false); setArrival(null); setMissionPlan(null); };
+  const timeFor = (x) => routeTime(everyRoute.find((r) => r.mission.id === x.missionId && r.route.id === x.routeId)?.route);
   return <>
     {explorerOpen && <Suspense fallback={<p role="status">Opening My Universe…</p>}>
       <MyUniverseExplorer
         preview={true}
         allowInReviewMissions={true}
-        missionRegistry={PUBLISHED_PILOT_RELEASES}
+        missionRegistry={registry}
         initialArrival={arrival}
+        missionPlan={missionPlan}
         viewer={uid && orgId ? { uid, orgId } : null}
         calm={!!prefs.calm}
         active={active}
-        onClose={() => { setExplorerOpen(false); setArrival(null); }}
-        onOpenActivity={onOpenActivity ? (id, options) => { setExplorerOpen(false); setArrival(null); onOpenActivity(id, options); } : undefined}
+        onClose={close}
+        onOpenActivity={onOpenActivity ? (id, options) => { close(); onOpenActivity(id, options); } : undefined}
       />
     </Suspense>}
-    <section className="ig-plate" style={{ marginBottom: 20 }} aria-label="My Universe exploration">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h4>Explore My Universe</h4>
-          <p className="sd-caption" style={{ margin: '4px 0 0' }}>
-            Deep-space exploration in Lyra Spiral & Lyra Prime: survey ocean winds on Thalassa, calculate journey times, and balance mass & power for Ignis.
-          </p>
-        </div>
-        <button type="button" className="sd-primary" onClick={() => { setArrival(null); setExplorerOpen(true); }}>
-          Enter My Universe <ArrowRight size={17}/>
-        </button>
+    <section className="ig-plate uv-enter" aria-labelledby="uv-enter-title">
+      <svg className="uv-enter-art" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+        {STARS.map((star, i) => <circle key={i} cx={star.x} cy={star.y} r={star.r} />)}
+      </svg>
+      <div>
+        <h3 id="uv-enter-title">Explore My Universe</h3>
+        <p className="sd-caption">Travel through deep space to Lyra Prime. Survey ocean winds on Thalassa, work out journey times, and balance weight and power for Ignis.</p>
       </div>
-      <div className="sv-missions" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginTop: 16 }}>
-        {EXPEDITIONS.map((x) => (
-          <button
-            key={x.id}
-            type="button"
-            className="sv-mission"
-            style={{ textAlign: 'left', padding: '14px 16px', background: 'var(--surface-subtle, rgba(255,255,255,0.04))', border: '1px solid var(--border-subtle, rgba(255,255,255,0.12))', borderRadius: 10, cursor: 'pointer', color: 'inherit' }}
-            onClick={() => { setArrival({ planetId: x.planetId, missionId: x.missionId, routeId: x.routeId }); setExplorerOpen(true); }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-              <strong style={{ fontSize: '0.98rem' }}>{x.title}</strong>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{x.where}</span>
-            </div>
-            <p style={{ margin: '4px 0 8px', fontSize: '0.85rem', color: 'var(--text-secondary, #cbd5e1)', lineHeight: 1.4 }}>{x.description}</p>
-            <small style={{ fontSize: '0.76rem', color: 'var(--text-muted, #94a3b8)', display: 'block' }}>Grades {x.grades} · Challenge {x.challenge}/5</small>
-          </button>
-        ))}
-      </div>
+      <button type="button" className="sd-primary" onClick={() => open(null)}>Enter My Universe <ArrowRight size={17} aria-hidden="true" /></button>
     </section>
-    <section className="ig-universe" aria-labelledby="ig-universe-title">
+    {pending && <p className="sd-notice" role="note">Teachers are still checking these missions. You can try them, but they may change.</p>}
+    <ul className="uv-missions" aria-label="Missions">
+      {PREVIEWS.map((x) => {
+        const video = ARRIVAL_VIDEOS[`${x.missionId}|${x.routeId}`];
+        return <li key={x.id} className="uv-mission">
+          {video?.src && <div className="uv-mission-figure"><img className="uv-mission-img" src={cloudinarySceneFrame(video.src, x.frame)} alt="" loading="lazy" onError={(event) => { event.currentTarget.parentElement.hidden = true; }} /></div>}
+          <div className="uv-mission-body">
+            <h3>{x.title}</h3>
+            <p className="uv-where"><MapPin size={14} aria-hidden="true" /> {x.where}</p>
+            <p>{x.description}</p>
+            <p className="uv-facts">Grades {x.grades} · Challenge {x.challenge} of 5{timeFor(x) ? ` · ${timeFor(x)}` : ''}</p>
+            <button type="button" className="sd-primary" aria-label={`Start mission: ${x.title}`} onClick={() => open({ planetId: x.planetId, missionId: x.missionId, routeId: x.routeId })}>
+              Start <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          </div>
+        </li>;
+      })}
+    </ul>
+    <MissionBuilder routes={routes} uid={uid} interests={prefs.interests}
+      onStart={(p) => open({ planetId: p.planetId, missionId: p.missionId, routeId: p.routeId }, p)} />
+    <section className="ig-universe uv-sky" aria-labelledby="ig-universe-title">
       <svg className="ig-starfield" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         {STARS.map((star, i) => <circle key={i} cx={star.x} cy={star.y} r={star.r} />)}
       </svg>
       <div className="ig-universe-head">
         <span className="sd-eyebrow">Your universe</span>
         <h3 id="ig-universe-title">{prefs.tagline || 'A space that feels like you. Curiosity included.'}</h3>
-        <button type="button" className="sd-primary" onClick={onPersonalise}>Choose my atmosphere <ArrowRight size={17} /></button>
+        <button type="button" className="sd-primary" onClick={onPersonalise}>Choose my atmosphere <ArrowRight size={17} aria-hidden="true" /></button>
       </div>
       <div className="ig-universe-lists">
         <div><h4>My themes</h4>{prefs.interests.length
           ? <ul className="ig-themes">{prefs.interests.map((interest) => <li key={interest}><Star size={13} aria-hidden="true" />{interest}</li>)}</ul>
           : <p className="sd-caption">Pick up to six interests in Personalise to light up your themes.</p>}</div>
-        <div><h4>Personal milestones</h4>{achieved.length
+        <div><h4>My milestones</h4>{achieved.length
           ? <ul className="ig-themes">{achieved.map((goal) => <li key={goal.id}><Star size={13} aria-hidden="true" fill="currentColor" />{goal.explore}</li>)}</ul>
-          : <p className="sd-caption">Goals you mark achieved appear here.</p>}
-          <small className="ig-note">Goals you marked achieved yourself · not assessed mastery.</small></div>
+          : <p className="sd-caption">Goals you mark as done appear here.</p>}
+          <small className="ig-note">You marked these as done yourself. They aren’t a grade.</small></div>
       </div>
     </section>
-    <section className="ig-bays" aria-label="Future optional features (not active)">
-      <div className="ig-bay"><Gamepad2 size={22} aria-hidden="true" /><div><strong>Optional games</strong><span>Not active · planned</span></div></div>
-      <div className="ig-bay"><Bot size={22} aria-hidden="true" /><div><strong>AI companion</strong><span>Not active · planned</span></div></div>
-      <p className="sd-caption">No XP, rewards, unlocks or companion features are active. If optional extras arrive, your learning tools always stay available.</p>
-    </section>
-    <a className="sd-link" href={hrefFor.goals()}>Mark a goal achieved in Goal Setting <ArrowRight size={16} /></a>
+    <a className="sd-link uv-link" href={hrefFor.goals()}>Mark a goal as done in Goal setting <ArrowRight size={16} aria-hidden="true" /></a>
   </>;
 }

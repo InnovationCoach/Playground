@@ -46,6 +46,8 @@ describe('Coach student provisioning', () => {
     expect((await env.db.collection('users').doc(createdUid).collection('activityProgress').get()).empty).toBe(true);
     const roster = await env.db.collection('users').where('classIds', 'array-contains', classId).get();
     expect(roster.docs.some(d => d.id === createdUid)).toBe(true);
+    const classDoc = (await env.db.collection('classes').doc(classId).get()).data();
+    expect(classDoc.learnerIds).toContain(createdUid);
     expect((await post('coach', payload('anna@pilot.test'))).status).toBe(409);
   });
   it('can recover setup links only for an unused student in the assigned class', async () => {

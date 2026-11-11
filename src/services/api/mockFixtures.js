@@ -67,9 +67,9 @@ export function buildFixtures(seed = 20260925) {
   ];
 
   const classes = [
-    { classId: 'cls-y7-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-lower-secondary', name: 'Lower Secondary A', yearLevel: 'Year 7' },
-    { classId: 'cls-y9-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-lower-secondary', name: 'Lower Secondary B', yearLevel: 'Year 9' },
-    { classId: 'cls-y11-w2e', schoolId: 'sch-online', cohortId: 'cohort-higher-secondary', name: 'Higher Secondary A', yearLevel: 'Year 11' },
+    { classId: 'cls-y7-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-wls', name: 'WLS · Grade 7', yearLevel: 'Year 7' },
+    { classId: 'cls-y9-w2e', schoolId: 'sch-bkk', cohortId: 'cohort-wls', name: 'WLS · Grade 9', yearLevel: 'Year 9' },
+    { classId: 'cls-y11-w2e', schoolId: 'sch-online', cohortId: 'cohort-whs', name: 'WHS · Grade 11', yearLevel: 'Year 11' },
     { classId: 'cls-y3-wpr', schoolId: 'sch-bkk', cohortId: 'cohort-lower-primary', name: 'Lower Primary A', yearLevel: 'Year 3' },
     { classId: 'cls-y5-wpr', schoolId: 'sch-bkk', cohortId: 'cohort-higher-primary', name: 'Higher Primary A', yearLevel: 'Year 5' },
     { classId: 'cls-thai-dip', schoolId: 'sch-bkk', programmeId: 'prog-thai-diploma', name: 'Thai Diploma – Thai Language', yearLevel: 'Year 10' }
@@ -132,7 +132,7 @@ export function buildFixtures(seed = 20260925) {
   // Students: 129, the total the wireframes showed, so "Displaying 1–30 of 129" is exercised.
   for (let i = 0; i < 129; i += 1) {
     const primary = i % 3 === 0;
-    const cls = primary ? pick(classes.filter((c) => c.cohortId?.endsWith('-primary'))) : pick(classes.filter((c) => c.cohortId?.endsWith('-secondary')));
+    const cls = primary ? pick(classes.filter((c) => c.cohortId?.endsWith('-primary'))) : pick(classes.filter((c) => !c.cohortId?.endsWith('-primary')));
     const consentVerified = !primary || rand() < 0.8;
     const s = person('student', {
       cohortId: cls.cohortId,

@@ -139,7 +139,7 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
  */
 function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader,
   missionRegistry = PUBLISHED_RELEASES, missionClient, viewer = null, initialMission = null, initialArrival = null, allowInReviewMissions = false,
-  arrivalVideos = ARRIVAL_VIDEOS, trustArrivalVideos = false }) {
+  arrivalVideos = ARRIVAL_VIDEOS, trustArrivalVideos = false, missionPlan = null }) {
   // Mission service calls are bound to one learner in one verified organization. Until the host
   // supplies both, nothing is requested and no mission opens (fail closed).
   const viewerKey = scopeKey(viewer);
@@ -525,7 +525,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       {!in3d && !environment && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
       {mission && <MissionSheet mission={mission} onClose={() => setMissionId(null)} />}
       {pilotEntry && !client && <MissionSignInNotice mission={pilotEntry.mission} onClose={() => setMissionId(null)} />}
-      {pilotEntry && client && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={missionInitial?.id === pilotEntry.mission.id ? missionInitial : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} onClose={() => setMissionId(null)} />}
+      {pilotEntry && client && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={missionInitial?.id === pilotEntry.mission.id ? missionInitial : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} plan={missionPlan} onClose={() => setMissionId(null)} />}
       {showMetrics && in3d && <div className="mx-metrics" aria-hidden="true">
         {metrics ? <>{metrics.at && performance.now() - metrics.at < 1600 ? `${metrics.fps} fps` : 'idle · renders on demand'} · {metrics.calls} draw calls · {metrics.triangles.toLocaleString()} tris · {metrics.geometries} geometries · {metrics.textures} textures · {low ? 'standard' : 'high'} detail</> : 'measuring…'}
       </div>}

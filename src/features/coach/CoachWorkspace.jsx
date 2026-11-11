@@ -3,7 +3,7 @@ import { StudentSetupLink } from './StudentInviteDialog.jsx';
 import { MediaImage } from '../media/MediaViewer.jsx';
 import { useActivityText } from '../activities/builder/activityMessages.js';
 import { useEffect, useState } from 'react';
-import { BookOpen, FlaskConical, GraduationCap, LayoutDashboard, Search, RefreshCw, ArrowUpRight, FileText, Users, ChevronRight, X } from 'lucide-react';
+import { BookOpen, FlaskConical, GraduationCap, LayoutDashboard, Search, RefreshCw, ArrowUpRight, FileText, Users, ChevronRight, X, Sparkles } from 'lucide-react';
 import { auth, db, collection, getDocs, getDoc, doc, query, where, usingEmulators } from '../../firebase.js';
 import { TERM, PHASES } from '../pbl/content/pblModel.js';
 import { safeLink } from '../pbl/engine/pblProject.js';
@@ -15,8 +15,12 @@ import { CommunityFeed } from '../community/CommunityFeed.jsx';
 import { SchoolLearningPanel } from '../school/SchoolLearningPanel.jsx';
 import { FALLBACK_LEARNERS } from './fallbackLearners.js';
 import { ProgramLibrary } from '../pbl/programs/ProgramLibrary.jsx';
+import { SparkReviewDesk } from '../sparkTutor/SparkReviewDesk.jsx';
+import { sparkTutorUiEnabled } from '../sparkTutor/sparkTutorModel.js';
 
 const SECTIONS = [['overview', 'Overview', LayoutDashboard], ['pbl', 'PBL programs', BookOpen], ['steam', 'STEAM Activities', FlaskConical], ['academic', 'Academic Progress', GraduationCap], ['goals', 'Learning Goals', FileText], ['calendar', 'School Calendar', LayoutDashboard], ['community', 'Posts for students', FileText]];
+// The Spark Review Desk appears only where the companion is switched on.
+const VISIBLE_SECTIONS = sparkTutorUiEnabled ? [...SECTIONS, ['spark', 'AI Companion', Sparkles]] : SECTIONS;
 const describeError = err => err?.code === 'permission-denied'
   ? 'Your account could not read this class. Ask your administrator to check your coach claims and learner class assignments.'
   : 'Learning records could not be loaded. Check your connection and try again.';
@@ -166,21 +170,22 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
   }, [coachUser?.uid, coachUser?.role, coachUser?.classIds, reload, rosterVersion]);
 
   const scope = data.classes.some(c => c.id === classId) ? classId : 'all';
-  const classLearners = data.learners.filter(l => scope === 'all' || l.classIds?.includes(scope));
+  const classLearners = data.learners.filter(l => scope === 'all' || (scope.startsWith('cohort:') ? l.cohortId === scope.slice(7) : l.classIds?.includes(scope)));
   const learners = classLearners.filter(l => `${l.displayName || ''} ${l.email || ''}`.toLowerCase().includes(search.trim().toLowerCase()));
   const selected = learners.find(l => l.uid === selectedId);
   const projects = classLearners.map(l => !l.recordError && projectProgress(l.records)).filter(Boolean);
   const unavailable = classLearners.filter(l => l.recordError).length;
 
   return <main className="gh-app cw-app"><div className="cw-page">
-    <div className="cw-heading"><div><span className="cw-eyebrow">YOUR COACHING WORKSPACE</span><h2>See the learning. Guide the next step.</h2><p>PBL projects, STEAM investigations and academic learning, in one place.</p></div><div className="cw-tools">{onAddStudent && <button className="gh-btn gh-btn-primary" onClick={onAddStudent}>Add a student</button>}<button className="gh-btn gh-btn-ghost" onClick={() => { window.location.hash = '#/pbl'; }}>{t('openPrograms')}</button><button className="gh-btn gh-btn-ghost" onClick={onManagement}>Management tools</button><button className="gh-btn gh-btn-ghost" disabled={data.state === 'loading'} onClick={() => setReload(n => n + 1)}><RefreshCw size={16} /> Refresh records</button></div></div>
-    <div className="cw-context"><div className="cw-class"><label htmlFor="cw-class">Class</label><select id="cw-class" className="gh-select" value={scope} onChange={e => { setClassId(e.target.value); onClassChange?.(e.target.value); setSelectedId(null); }}><option value="all">All assigned classes</option>{data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div><strong>Legacy portfolio: {TERM.label}</strong><span className="cw-muted">{` · ${TERM.theme}`}</span></div><span className="cw-updated">{data.updatedAt ? `Loaded ${dateLabel(data.updatedAt)}` : 'Cloud records'}</span></div>
-    <nav className="cw-sections" aria-label="Coach progress sections">{SECTIONS.map(([id, label, Icon]) => <button key={id} aria-current={section === id ? 'page' : undefined} onClick={() => { if (id === 'pbl') { window.location.hash = '#/pbl'; return; } setSection(id); setSelectedId(null); }}><Icon size={18} />{label}</button>)}</nav>
+    <div className="cw-heading"><div><span className="cw-eyebrow">YOUR COACHING WORKSPACE</span><h1>See the learning. Guide the next step.</h1><p>PBL projects, STEAM investigations and academic learning, in one place.</p></div><div className="cw-tools">{onAddStudent && <button className="gh-btn gh-btn-primary" onClick={onAddStudent}>Add a student</button>}<button className="gh-btn gh-btn-ghost" onClick={() => { window.location.hash = '#/pbl'; }}>{t('openPrograms')}</button><button className="gh-btn gh-btn-ghost" onClick={onManagement}>Management tools</button><button className="gh-btn gh-btn-ghost" disabled={data.state === 'loading'} onClick={() => setReload(n => n + 1)}><RefreshCw size={16} /> Refresh records</button></div></div>
+    <div className="cw-context"><div className="cw-class"><label htmlFor="cw-class">Class</label><select id="cw-class" className="gh-select" value={scope} onChange={e => { setClassId(e.target.value); onClassChange?.(e.target.value); setSelectedId(null); }}><option value="all">All · WLS · WHS</option><option value="cohort:cohort-wls">WLS · Grade 6–8</option><option value="cohort:cohort-whs">WHS · Grade 9–12</option>{data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div><strong>Legacy portfolio: {TERM.label}</strong><span className="cw-muted">{` · ${TERM.theme}`}</span></div><span className="cw-updated">{data.updatedAt ? `Loaded ${dateLabel(data.updatedAt)}` : 'Cloud records'}</span></div>
+    <nav className="cw-sections" aria-label="Coach progress sections">{VISIBLE_SECTIONS.map(([id, label, Icon]) => <button key={id} aria-current={section === id ? 'page' : undefined} onClick={() => { if (id === 'pbl') { window.location.hash = '#/pbl'; return; } setSection(id); setSelectedId(null); }}><Icon size={18} />{label}</button>)}</nav>
     {data.state === 'loading' && <Empty title="Loading your classes" text="Checking access and retrieving learner records." />}
     {data.state === 'unassigned' && <Empty title="Your coach class access needs checking" text="You are signed in, but verified coach and class access is missing. Ask an administrator to check your account’s class assignments."><button className="gh-btn gh-btn-primary" onClick={() => setReload(n => n + 1)}>Check access again</button><small>This checks your current access. It does not change permissions.</small></Empty>}
     {data.state === 'error' && <div role="alert"><Empty title="Class records are unavailable" text={data.error}><button className="gh-btn gh-btn-primary" onClick={() => setReload(n => n + 1)}>Try again</button></Empty></div>}
     {data.failedClassIds?.length > 0 && <p className="cw-warning" role="alert">Some class rosters could not be loaded. Learner totals and summaries are incomplete. Use Refresh records to try again.</p>}
     {section === 'community' && <CommunityFeed />}
+    {section === 'spark' && <SparkReviewDesk classes={data.classes} scope={scope} />}
     {section === 'pbl' && <div style={{ marginTop: '1rem' }}><ProgramLibrary isCoach={true} classIds={data.classes.map(c => c.id)} /></div>}
     {['academic','goals','calendar'].includes(section) && <SchoolLearningPanel classScope={scope} hideTabs initialArea={section} />}
     {data.state === 'ready' && ['overview','steam'].includes(section) && <>

@@ -6,12 +6,14 @@ const page = await browser.newPage(), errors = [], external = [];
 page.on('pageerror', (error) => errors.push(error.stack));
 await page.setRequestInterception(true);
 page.on('request', (request) => {
-  if (!request.url().startsWith(base) && !request.url().startsWith('data:')) { external.push(request.url()); request.abort(); }
+  if (request.url().startsWith('https://res.cloudinary.com/dkplz6vbx/') && request.resourceType() === 'image') request.continue(); // the mission video frames
+  else if (!request.url().startsWith(base) && !request.url().startsWith('data:')) { external.push(request.url()); request.abort(); }
   else request.continue();
 });
 const go = async (id) => {
-  await page.click(`[aria-controls="dashboard-slide-${id}"]`);
-  await page.waitForFunction((id) => document.querySelector(`[aria-controls="dashboard-slide-${id}"]`)?.getAttribute('aria-current') === 'step' && !document.querySelector(`[data-slide="${id}"]`)?.hasAttribute('inert'), {}, id);
+  if (await page.$eval('.sd-nav', (el) => getComputedStyle(el).display === 'none')) await page.select('.sd-nav-chooser select', id);
+  else await page.click(`[aria-controls="dashboard-slide-${id}"]`);
+  await page.waitForFunction((id) => document.querySelector(`.sd-nav-item[aria-controls="dashboard-slide-${id}"]`)?.getAttribute('aria-current') === 'page' && !document.querySelector(`[data-slide="${id}"]`)?.hasAttribute('inert'), {}, id);
   await page.waitForFunction((id) => {
     const track = document.querySelector('.sd-track'), panel = document.querySelector(`[data-slide="${id}"]`);
     return document.querySelector('.sd-grid-mode') || Math.abs(panel.getBoundingClientRect().left - track.getBoundingClientRect().left) < 3;
@@ -21,7 +23,7 @@ const click = async (selector, text) => {
   const found = await page.evaluate((selector, text) => { const el = [...document.querySelectorAll(selector)].find((e) => e.textContent.trim() === text); el?.click(); return !!el; }, selector, text);
   assert(found, `Missing control: ${text}`);
 };
-const active = () => page.$eval('.sd-indicator[aria-current=step]', (el) => el.getAttribute('aria-controls').replace('dashboard-slide-', ''));
+const active = () => page.$eval('.sd-nav-item[aria-current=page]', (el) => el.getAttribute('aria-controls').replace('dashboard-slide-', ''));
 const choose = async (label, value) => {
   const found = await page.evaluate((label, value) => { const el = [...document.querySelectorAll('label')].find((e) => e.textContent.startsWith(label))?.querySelector('select'); if (!el) return false; el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); return true; }, label, value);
   assert(found, `Missing select: ${label}`);
@@ -35,6 +37,10 @@ try {
   assert.equal(await page.$$eval('.sd-slide', (els) => els.length), 5);
   assert.equal(await page.$$eval('.sd-slide[inert]', (els) => els.length), 4);
   assert.equal(await page.$eval('.gh-sidebar-link', (el) => el.getAttribute('href')), '#/dashboard');
+  // My Quests: one next step up front; the whole plan is one tap away and starts closed.
+  assert.equal(await page.$$eval('section[aria-label="Your next step"] a', (els) => els.length), 1);
+  assert.equal(await page.$eval('details.lh-full-plan', (el) => el.open), false);
+  await page.click('details.lh-full-plan > summary');
   const columns = await page.evaluate(() => ['lh-academic-title', 'lh-pbl-title'].map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { x: r.x, y: r.y }; }));
   assert(columns[0].x < columns[1].x && Math.abs(columns[0].y - columns[1].y) < 5);
   assert.equal(await page.$eval('.lh-project a', (el) => el.getAttribute('href')), '#/pbl/programs/ecocool-smart-garden-2026/plan');
@@ -45,33 +51,34 @@ try {
   const before = await page.evaluate(() => JSON.stringify(localStorage));
   await click('#dashboard-slide-daily button', 'Show example courses');
   await page.click('.lh-example button');
-  assert((await page.$eval('#dashboard-slide-daily', (el) => el.textContent)).includes('Sample activity only. This does not change your learning record.'));
+  assert((await page.$eval('#dashboard-slide-daily', (el) => el.textContent)).includes('Just an example. It doesn’t change your record.'));
   assert.equal(await page.evaluate(() => JSON.stringify(localStorage)), before);
   await click('#dashboard-slide-daily button', 'Hide example courses');
-  await click('.sd-plan-tabs button', 'Ahead');
+  await click('.sd-plan-tabs button', 'Coming up');
   assert((await page.$eval('.sd-personal-tasks', (el) => el.innerText)).includes('Ask my coach for feedback'));
-  await click('.sd-plan-tabs button', 'Completed');
+  await click('.sd-plan-tabs button', 'Done');
   assert((await page.$eval('.sd-personal-tasks', (el) => el.innerText)).includes('Write my first reflection'));
   await click('.sd-plan-tabs button', 'Today');
   await page.click('.md-today-item');
   await page.waitForFunction(() => document.querySelector('.md-today-item').getAttribute('aria-pressed') === 'true');
+  await page.click('details.lh-full-plan > summary');
   await page.focus('.sd-track'); await page.keyboard.press('ArrowRight');
   await page.waitForFunction(() => document.querySelector('[data-slide=find]')?.getAttribute('aria-hidden') !== 'true');
-  assert((await page.$eval('#dashboard-slide-find', (el) => el.innerText)).includes('Suggested for you'), 'Find a Quest shows suggestions');
-  assert.equal(await page.$$eval('#dashboard-slide-find .ds-suggest-card', (els) => els.length > 0), true);
+  assert((await page.$eval('#dashboard-slide-find', (el) => el.innerText)).includes('Why it fits'), 'Find a Quest shows simple reasons');
+  assert.equal(await page.$$eval('#dashboard-slide-find .fq-card', (els) => els.length > 0 && els.every((el) => el.querySelectorAll('button, a').length === 1)), true);
   await page.type('#fq-q', 'garden'); await page.click('#dashboard-slide-find .fq-go');
   await page.waitForFunction(() => location.hash === '#/search/garden'); await page.evaluate(() => { history.back(); });
   await page.waitForFunction(() => !location.hash.startsWith('#/search'));
   await go('progress');
   assert.equal(await page.$eval('#dashboard-slide-progress .sd-goal', (el) => el.getAttribute('href')), '#/goals');
-  await click('#dashboard-slide-progress button', 'Achieved goals 1');
+  await click('#dashboard-slide-progress button', 'Goals I’ve finished 1');
   assert((await page.$eval('#dashboard-slide-progress', (el) => el.innerText)).includes('Keep a record of my first investigation'));
   assert.equal(await page.$$eval('[data-slide=goals]', (els) => els.length), 0, 'The separate Goals slide is gone');
   await go('daily');
   const wheelBox = await page.$eval('.sd-track', (el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + 80, width: r.width }; });
   await page.mouse.move(wheelBox.x, wheelBox.y);
   await page.mouse.wheel({ deltaX: wheelBox.width, deltaY: 0 });
-  await page.waitForFunction(() => document.querySelector('.sd-indicator[aria-current=step]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
+  await page.waitForFunction(() => document.querySelector('.sd-nav-item[aria-current=page]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
   await go('progress');
   assert.deepEqual(await page.$eval('.sd-record .sd-gauge', (el) => [el.getAttribute('aria-valuenow'), el.getAttribute('aria-valuemax'), el.getAttribute('aria-valuetext')]), ['6', '24', '6 of 24 sessions marked complete by you']);
   assert((await page.$eval('#dashboard-slide-progress', (el) => el.innerText)).includes('Not connected'));
@@ -85,8 +92,9 @@ try {
   if ((await page.$eval('.fs-bottom', (el) => el.innerText)).includes('Play sounds')) await click('.fs-bottom button', 'Play sounds');
   await click('.fs-controls button', 'Start focus');
   await go('universe');
-  assert((await page.$eval('#dashboard-slide-universe', (el) => el.textContent)).includes('No XP, rewards, unlocks or companion features are active'));
-  assert.equal(await page.$$eval('.ig-bay', (els) => els.filter((el) => el.textContent.includes('Not active')).length), 2);
+  assert.equal(await page.$$eval('.uv-mission', (els) => els.length > 0 && els.every((el) => el.querySelectorAll('button, a').length === 1)), true, 'One start button per preview');
+  assert.equal(await page.$$eval('#dashboard-slide-universe .ig-universe .ig-starfield', (els) => els.length), 1, 'The star plate is kept');
+  assert((await page.$eval('#dashboard-slide-universe', (el) => el.textContent)).includes('Enter My Universe'));
   await go('creative');
   assert.equal(await page.$eval('#md-note-title', (el) => el.value), 'My unfinished idea');
   assert((await page.$eval('.fs-controls', (el) => el.innerText)).includes('Pause'));
@@ -114,7 +122,7 @@ try {
   await page.reload({ waitUntil: 'networkidle0' });
   assert.equal(await active(), 'daily', 'Every new dashboard session opens the daily plan');
   assert.equal(await page.$eval('.md-root', (el) => el.dataset.theme), 'light');
-  assert.equal(await page.$eval('.sd-indicators button:nth-child(2)', (el) => el.getAttribute('aria-controls')), 'dashboard-slide-creative');
+  assert.equal(await page.$eval('.sd-nav li:nth-child(2) button', (el) => el.getAttribute('aria-controls')), 'dashboard-slide-creative');
   await page.click('[aria-label="Switch to grid view"]');
   assert.equal(await page.$$eval('.sd-slide[inert]', (els) => els.length), 0);
   await page.click('[aria-label="Switch to slide view"]');
@@ -133,20 +141,20 @@ try {
   await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: startX, y }] });
   for (let n = 1; n <= 10; n++) { await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: startX + (endX - startX) * n / 10, y }] }); await new Promise((resolve) => setTimeout(resolve, 20)); }
   await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await page.waitForFunction(() => document.querySelector('.sd-indicator[aria-current=step]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
+  await page.waitForFunction(() => document.querySelector('.sd-nav-item[aria-current=page]')?.getAttribute('aria-controls') !== 'dashboard-slide-daily');
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await go('universe');
   assert.equal(await page.$eval('.sd-track', (el) => getComputedStyle(el).scrollBehavior), 'auto');
-  for (const [state, expected] of [['empty', 'No current project could be found'], ['error', 'Your courses could not be loaded'], ['loading', 'Loading your projects']]) {
+  for (const [state, expected] of [['empty', 'No project yet'], ['error', 'Your courses could not be loaded'], ['loading', 'Loading your projects']]) {
     await page.goto(`${base}/?state=${state}`, { waitUntil: 'networkidle0' });
-    assert((await page.$eval('#dashboard-slide-daily', (el) => el.innerText)).includes(expected));
+    assert((await page.$eval('#dashboard-slide-daily', (el) => el.textContent)).includes(expected));
   }
   await page.goto(`${base}/?state=stale`, { waitUntil: 'networkidle0' });
   await go('progress');
   assert.equal(await page.$$eval('.sd-record .sd-gauge', (els) => els.length), 0, 'Unverified account progress has no gauge');
-  assert((await page.$eval('.sd-record', (el) => el.innerText)).includes('Account progress is unavailable'));
+  assert((await page.$eval('.sd-record', (el) => el.innerText)).includes('can’t load your progress'));
   await page.goto(`${base}/?learner=another-student`, { waitUntil: 'networkidle0' });
-  assert.equal(await page.$eval('.md-root', (el) => el.dataset.theme), 'dark', 'Another learner keeps the dark default, not this learner\'s light choice');
+  assert.equal(await page.$eval('.md-root', (el) => el.dataset.theme), undefined, 'Another learner follows the app theme, not this learner\'s choice');
   await page.setViewport({ width: 1440, height: 1000, isMobile: false, hasTouch: false });
   await page.goto(`${base}/?learner=preview-student`, { waitUntil: 'networkidle0' });
   await page.evaluate(() => localStorage.removeItem('hearisland.dashboard.prefs.v1:preview-student'));

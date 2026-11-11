@@ -16,6 +16,7 @@ import { App } from './app/App.jsx';
 import { LocaleProvider } from './app/i18n/LocaleProvider.jsx';
 import { ThemeProvider } from './app/theme/ThemeProvider.jsx';
 import { FocusMiniHost } from './features/focus/FocusWidget.jsx';
+import { SparkCompanionHost } from './features/sparkTutor/SparkCompanionHost.jsx';
 
 function Root() {
   const [userTheme, setUserTheme] = useState('light');
@@ -26,6 +27,7 @@ function Root() {
         <ThemeProvider userThemePreference={userTheme}>
           <App />
           <FocusMiniHost />
+          <SparkCompanionHost />
         </ThemeProvider>
       </AuthProvider>
     </LocaleProvider>

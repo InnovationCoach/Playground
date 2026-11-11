@@ -1023,6 +1023,61 @@ describe('pbl_programs: authoring and publishing', () => {
     await assertFails(deleteDoc(doc(coachA().firestore(), 'pbl_programs', 'prog-del')));
     await assertFails(deleteDoc(doc(studentA().firestore(), 'pbl_programs', 'prog-del')));
   });
+
+  it('enforces authorship on create and restricts updates to author or admin (Item 5)', async () => {
+    const coachADb = coachA().firestore();
+    const coachBDb = coachB().firestore();
+    const adminDb = testEnv.authenticatedContext('admin_user', { role: 'admin' }).firestore();
+
+    // 1. Coach A cannot set authorId/authorUid to coach_b
+    await assertFails(setDoc(doc(coachADb, 'pbl_programs', 'prog-forged'), {
+      ...programData,
+      authorUid: 'coach_b'
+    }));
+
+    // 2. Coach A can create with own authorUid
+    await assertSucceeds(setDoc(doc(coachADb, 'pbl_programs', 'prog-own'), {
+      ...programData,
+      authorUid: 'coach_a'
+    }));
+
+    // 3. Coach B CANNOT update Coach A's program
+    await assertFails(updateDoc(doc(coachBDb, 'pbl_programs', 'prog-own'), {
+      title: 'Hacked by Coach B'
+    }));
+
+    // 4. Coach A (author) CAN update own program
+    await assertSucceeds(updateDoc(doc(coachADb, 'pbl_programs', 'prog-own'), {
+      title: 'Legitimate update by author'
+    }));
+
+    // 5. Admin CAN update program
+    await assertSucceeds(updateDoc(doc(adminDb, 'pbl_programs', 'prog-own'), {
+      title: 'Admin update'
+    }));
+
+    // 6. Conflicting authorId and authorUid on create fails (R2-05)
+    await assertFails(setDoc(doc(coachADb, 'pbl_programs', 'prog-conflict'), {
+      ...programData,
+      authorId: 'coach_a',
+      authorUid: 'coach_b'
+    }));
+
+    // 7. Foreign-admin write denial (R2-05)
+    const progWithOrg = { ...programData, authorUid: 'coach_a', orgId: 'org-alpha' };
+    await assertSucceeds(setDoc(doc(coachADb, 'pbl_programs', 'prog-org'), progWithOrg));
+
+    const foreignAdminDb = testEnv.authenticatedContext('admin_beta', { role: 'admin', orgId: 'org-beta' }).firestore();
+    const sameOrgAdminDb = testEnv.authenticatedContext('admin_alpha', { role: 'admin', orgId: 'org-alpha' }).firestore();
+
+    await assertFails(updateDoc(doc(foreignAdminDb, 'pbl_programs', 'prog-org'), {
+      title: 'Overwritten by foreign admin'
+    }));
+
+    await assertSucceeds(updateDoc(doc(sameOrgAdminDb, 'pbl_programs', 'prog-org'), {
+      title: 'Legitimate same-org admin update'
+    }));
+  });
 });
 
 describe('WeLearn SPARK: enrolments and phaseProgress rules', () => {
@@ -1232,5 +1287,171 @@ describe('coach feedback and notification integrity', () => {
     await assertFails(setDoc(doc(db,'users','student_a','feedback','review'), feedback));
     await testEnv.withSecurityRulesDisabled(async ctx => updateDoc(doc(ctx.firestore(),'users','coach_a'),{classIds:[CLASS_A],status:'suspended'}));
     await assertFails(setDoc(doc(db,'users','student_a','feedback','review'), feedback));
+  });
+  it('allows only the assigned coach to write ratings and rejects student writes (Item 2)', async () => {
+    const path = ['users', 'student_a', 'ratings', 'rate_01'];
+    const ratingData = { coachId: 'coach_a', coachName: 'Sara', rating: 5, timestamp: Date.now() };
+    await assertFails(setDoc(doc(studentA().firestore(), ...path), ratingData));
+    await assertFails(setDoc(doc(studentA2().firestore(), ...path), ratingData));
+    await assertFails(setDoc(doc(coachB().firestore(), ...path), { ...ratingData, coachId: 'coach_b' }));
+    await assertSucceeds(setDoc(doc(coachA().firestore(), ...path), ratingData));
+    await assertFails(updateDoc(doc(studentA().firestore(), ...path), { rating: 1 }));
+    await assertSucceeds(updateDoc(doc(coachA().firestore(), ...path), { rating: 4 }));
+    // Rating author mutation attack must fail (R2-04)
+    await assertFails(updateDoc(doc(coachA().firestore(), ...path), { coachId: 'coach_b' }));
+    await assertSucceeds(deleteDoc(doc(coachA().firestore(), ...path)));
+  });
+});
+
+describe('WLS & WHS Cohort boundaries and join codes', () => {
+  const COHORT_WLS = 'cohort-wls';
+  const COHORT_WHS = 'cohort-whs';
+  const COHORT_TEST = 'cohort-test';
+
+  const coachClaimWls = () => testEnv.authenticatedContext('coach_wls_claim', { role: 'teacher', cohortIds: [COHORT_WLS] });
+  const coachClaimWhs = () => testEnv.authenticatedContext('coach_whs_claim', { role: 'teacher', cohortIds: [COHORT_WHS] });
+  const coachDocWhs = () => testEnv.authenticatedContext('coach_whs_doc', { role: 'teacher' });
+  const studentWls = () => testEnv.authenticatedContext('student_wls', { cohortId: COHORT_WLS });
+  const studentWhs = () => testEnv.authenticatedContext('student_whs', { cohortId: COHORT_WHS });
+  const studentNewbie = () => testEnv.authenticatedContext('student_newbie');
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      // Cohorts in cohorts/
+      await setDoc(doc(db, 'cohorts', COHORT_WLS), {
+        name: 'WeLearn Lower Secondary',
+        code: 'WLS',
+        grades: [6, 8],
+        joinCode: 'WLS1-2345',
+        status: 'active'
+      });
+      await setDoc(doc(db, 'cohorts', COHORT_WHS), {
+        name: 'WeLearn Higher Secondary',
+        code: 'WHS',
+        grades: [9, 12],
+        joinCode: 'WHS2-6789',
+        programId: 'prog-whs',
+        status: 'active'
+      });
+      await setDoc(doc(db, 'cohorts', COHORT_TEST), {
+        name: 'Test Cohort',
+        code: 'TEST',
+        joinCode: 'TEST-9999',
+        status: 'hidden'
+      });
+
+      // Coach with cohortIds on user doc (no claim)
+      await setDoc(doc(db, 'users', 'coach_whs_doc'), {
+        uid: 'coach_whs_doc',
+        role: 'teacher',
+        cohortIds: [COHORT_WHS],
+        status: 'active'
+      });
+
+      // Learners with gradeLevel and cohortId
+      await setDoc(doc(db, 'users', 'student_wls'), {
+        uid: 'student_wls',
+        displayName: 'WLS Student',
+        role: 'student',
+        gradeLevel: 7,
+        cohortId: COHORT_WLS,
+        classIds: ['archived_class_1']
+      });
+      await setDoc(doc(db, 'users', 'student_wls', 'goals', 'g_wls'), { title: 'WLS Goal' });
+
+      await setDoc(doc(db, 'users', 'student_whs'), {
+        uid: 'student_whs',
+        displayName: 'WHS Student',
+        role: 'student',
+        gradeLevel: 10,
+        cohortId: COHORT_WHS,
+        classIds: ['archived_class_2']
+      });
+      await setDoc(doc(db, 'users', 'student_whs', 'goals', 'g_whs'), { title: 'WHS Goal' });
+
+      await setDoc(doc(db, 'users', 'student_newbie'), {
+        uid: 'student_newbie',
+        displayName: 'New Student',
+        role: 'student'
+      });
+    });
+  });
+
+  it('coach can read learners and subcollections in their cohort via cohortIds claim', async () => {
+    const db = coachClaimWls().firestore();
+    // Coach with WLS claim can read WLS student profile and goals
+    await assertSucceeds(getDoc(doc(db, 'users', 'student_wls')));
+    await assertSucceeds(getDoc(doc(db, 'users', 'student_wls', 'goals', 'g_wls')));
+    // Coach with WLS claim CANNOT read WHS student
+    await assertFails(getDoc(doc(db, 'users', 'student_whs')));
+    await assertFails(getDoc(doc(db, 'users', 'student_whs', 'goals', 'g_whs')));
+  });
+
+  it('coach can read learners via cohortIds field on coach user document', async () => {
+    const db = coachDocWhs().firestore();
+    // Coach with WHS in user doc can read WHS student
+    await assertSucceeds(getDoc(doc(db, 'users', 'student_whs')));
+    await assertSucceeds(getDoc(doc(db, 'users', 'student_whs', 'goals', 'g_whs')));
+    // But cannot read WLS student
+    await assertFails(getDoc(doc(db, 'users', 'student_wls')));
+  });
+
+  it('coaches can read cohorts collection, but clients cannot write', async () => {
+    const dbCoach = coachClaimWls().firestore();
+    await assertSucceeds(getDoc(doc(dbCoach, 'cohorts', COHORT_WLS)));
+    await assertSucceeds(getDocs(collection(dbCoach, 'cohorts')));
+    // Direct client write is forbidden
+    await assertFails(setDoc(doc(dbCoach, 'cohorts', 'new_cohort'), { name: 'Unauthorized' }));
+    await assertFails(updateDoc(doc(dbCoach, 'cohorts', COHORT_WLS), { name: 'Modified' }));
+  });
+
+  it('learners can read their own cohort, but CANNOT read cohort-test or other cohorts', async () => {
+    const db = studentWls().firestore();
+    // Can read own cohort
+    await assertSucceeds(getDoc(doc(db, 'cohorts', COHORT_WLS)));
+    // CANNOT read other cohort (WHS)
+    await assertFails(getDoc(doc(db, 'cohorts', COHORT_WHS)));
+    // CANNOT read cohort-test
+    await assertFails(getDoc(doc(db, 'cohorts', COHORT_TEST)));
+    // CANNOT list cohorts collection (bulk read denied)
+    await assertFails(getDocs(collection(db, 'cohorts')));
+  });
+
+  it('learner can join cohort by presenting exact joinCode', async () => {
+    const db = studentNewbie().firestore();
+    // Presenting valid WLS code succeeds
+    await assertSucceeds(updateDoc(doc(db, 'users', 'student_newbie'), {
+      cohortId: COHORT_WLS,
+      enrolledVia: 'WLS1-2345',
+      updatedAt: serverTimestamp()
+    }));
+  });
+
+  it('joining cohort fails with wrong code, old code, or targeting cohort-test', async () => {
+    const db = studentNewbie().firestore();
+    // Wrong code
+    await assertFails(updateDoc(doc(db, 'users', 'student_newbie'), {
+      cohortId: COHORT_WLS,
+      enrolledVia: 'WRONG-CODE',
+      updatedAt: serverTimestamp()
+    }));
+    // Old Climate Champions code
+    await assertFails(updateDoc(doc(db, 'users', 'student_newbie'), {
+      cohortId: COHORT_WLS,
+      enrolledVia: 'CLIM-7A01',
+      updatedAt: serverTimestamp()
+    }));
+    // Cannot join cohort-test even with exact code
+    await assertFails(updateDoc(doc(db, 'users', 'student_newbie'), {
+      cohortId: COHORT_TEST,
+      enrolledVia: 'TEST-9999',
+      updatedAt: serverTimestamp()
+    }));
+    // Profile update cannot tamper with cohortId without code
+    await assertFails(updateDoc(doc(db, 'users', 'student_newbie'), {
+      cohortId: COHORT_WLS,
+      displayName: 'Sneaky'
+    }));
   });
 });

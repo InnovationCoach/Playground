@@ -22,12 +22,9 @@ import { subscribeToPblTransfers } from '../coach/studio/pblTransferService.js';
 import { getProgram } from '../../services/pblService.js';
 import { db, collection, query, where, getDocs } from '../../firebase.js';
 import { loadClasses } from '../coach/classCodes.js';
-import {
-  CONNECTED_EDMENTUM_COURSES,
-  getEdmentumConfig,
-  getEdmentumLearnerScores,
-  launchEdmentumCourse
-} from '../edmentum/edmentumService.js';
+import { providerStatus } from '../edmentum/providerState.js';
+import { ProviderStatusCard } from '../edmentum/ProviderStatusCard.jsx';
+import { useSchoolResource } from '../school/useSchoolWorkspace.js';
 import { CatalogCard, srOnly } from './CatalogCard.jsx';
 import '../admin/admin.css';
 import '../pbl/pbl.css';
@@ -76,14 +73,9 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
 
   const [customPrograms, setCustomPrograms] = useState(() => Object.values(getCustomPrograms()));
   const [remotePrograms, setRemotePrograms] = useState([]);
-  const [edScores, setEdScores] = useState(() => getEdmentumLearnerScores(uid));
-  const edConfig = useMemo(() => getEdmentumConfig(), []);
-
-  useEffect(() => {
-    const onScoreUpdated = () => setEdScores(getEdmentumLearnerScores(uid));
-    window.addEventListener('hearisland-edmentum-score-updated', onScoreUpdated);
-    return () => window.removeEventListener('hearisland-edmentum-score-updated', onScoreUpdated);
-  }, [uid]);
+  // Edmentum state comes only from the school service; see providerState.js.
+  const learningContext = useSchoolResource(uid && !isPrimary ? '/api/learning-context' : null);
+  const edStatus = providerStatus(learningContext.data?.providerStatus?.edmentum, learningContext);
 
   useEffect(() => {
     const onCustomChanged = () => {
@@ -390,61 +382,15 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
       )}
 
       <section className="gh-section" aria-labelledby="mc-edmentum">
-        <SectionHead id="mc-edmentum" icon={LibraryBig} bg="#eef6ff" fg="#1d5a8f" title={t('courses.provider.edmentum')} count={edConfig.connected && !isPrimary ? CONNECTED_EDMENTUM_COURSES.length : undefined} />
-        {edConfig.connected && !isPrimary ? (
-          <ul className="mc-edmentum-list">
-            {CONNECTED_EDMENTUM_COURSES.map((course) => {
-              const scoreRec = edScores[course.id];
-              const progress = scoreRec?.progressPercent ?? 0;
-              const avgScore = scoreRec?.averageScore ?? null;
-              return (
-                <li key={course.id} className="mc-edmentum-card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="mc-ed-badge">
-                      <Link2 size={12} /> {course.code}
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: '#8b949e' }}>{course.gradeRange}</span>
-                  </div>
-
-                  <div>
-                    <h3 className="mc-ed-title">{course.title}</h3>
-                    <p className="mc-ed-desc">{course.description}</p>
-                  </div>
-
-                  <div className="mc-ed-stats-row">
-                    <div className="mc-ed-stat-col">
-                      <span className="mc-ed-stat-val">{progress}%</span>
-                      <span className="mc-ed-stat-lbl">Coursework Progress</span>
-                    </div>
-                    {avgScore !== null && (
-                      <div className="mc-ed-stat-col" style={{ alignItems: 'flex-end' }}>
-                        <span className="mc-ed-stat-val" style={{ color: avgScore >= 80 ? '#3fb950' : '#d29922' }}>
-                          {avgScore}%
-                        </span>
-                        <span className="mc-ed-stat-lbl">AGS Average Score</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="mc-ed-launch-btn"
-                    onClick={async () => {
-                      const res = await launchEdmentumCourse(course.id, { uid, displayName });
-                      if (res?.launchUrl) window.open(res.launchUrl, '_blank', 'noopener,noreferrer');
-                    }}
-                  >
-                    <Rocket size={15} /> 1-Click Launch into Edmentum
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
+        <SectionHead id="mc-edmentum" icon={LibraryBig} bg="#eef6ff" fg="#1d5a8f" title={t('courses.provider.edmentum')} />
+        {isPrimary ? (
           <div className="gh-placeholder">
             <span className="gh-empty-icon"><Link2 size={20} aria-hidden="true" /></span>
             {t('courses.edmentumPending')}
           </div>
+        ) : (
+          // No course list or results until the provider contract (G0/G1) delivers them.
+          <ProviderStatusCard provider={t('courses.provider.edmentum')} status={edStatus} onRetry={learningContext.reload} />
         )}
       </section>
 

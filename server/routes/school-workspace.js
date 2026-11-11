@@ -6,13 +6,14 @@ import { installDraftRoutes, linkedActivity, runGeneration } from '../lib/ai/act
 import { validateActivity, validateActivityResponses, ActivityValidationError } from '../../src/features/activities/spec/activitySpec.js';
 import { validateSimulation } from '../../src/features/school/simulationModel.js';
 import { Router } from 'express';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { validateLessonAttachments } from '../lib/lessonMedia.js';
 import { randomBytes, createHash } from 'node:crypto';
 import { requireClaims } from '../middleware/auth.js';
 import { questContext, prepareXp, countSquadEvidence } from '../lib/quest.js';
 import { sendError } from '../lib/errors.js';
+import { normaliseJoinCode } from '../../src/utils/joinCode.js';
 import { PROGRAM_CATALOGUE, programById } from '../../src/features/pbl/content/programCatalogue.js';
 import { CALENDAR_REFERENCE } from '../../src/features/school/calendarReference.js';
 import { schoolCaller, schoolAccess, assignedClass, learnerAccess, staff, adminOnly, requireId, requireText, fail, validId, validateSupportCategory, validateSupportStatus } from '../lib/schoolScope.js';
@@ -46,7 +47,7 @@ const audit = (tx, schoolId, caller, action, entityId, details = {}) => tx.set(r
   ...details,
   createdAt: now()
 });
-router.use((req, res, next) => /^\/(learning-context|schools|program-enrollments)(\/|$)/.test(req.path) ? next() : next('router'));
+router.use((req, res, next) => /^\/(learning-context|schools|program-enrollments|classes)(\/|$)/.test(req.path) ? next() : next('router'));
 router.use(requireClaims);
 router.use((req, res, next) => {
   if (!['GET', 'HEAD'].includes(req.method) && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) return sendError(res, 400, 'VALIDATION', 'A JSON object is required.');
@@ -428,9 +429,86 @@ router.post('/program-enrollments/join', wrap(async (req, res) => {
     tx.update(userRef, {
       classIds: [...new Set([...(user.data().classIds || []), value.classId])]
     });
+    tx.update(getFirestore().collection('classes').doc(value.classId), {
+      learnerIds: FieldValue.arrayUnion(caller.uid),
+      updatedAt: FieldValue.serverTimestamp()
+    });
     audit(tx, value.schoolId, caller, 'PROGRAM_ENROLLED', membership.path);
   });
   res.json(result);
+}));
+router.post('/classes/join', wrap(async (req, res) => {
+  const caller = req.schoolCaller;
+  if (!caller || !['student', 'learner'].includes(caller.role)) fail(403, 'FORBIDDEN', 'Only learners can join a class with a code.');
+  const rawCode = requireText(req.body.code, 'Class code', 30);
+  const code = normaliseJoinCode(rawCode);
+  if (!code) fail(400, 'VALIDATION', 'That does not look like a class code. They are eight characters, like ABCD-2345.');
+  const db = getFirestore();
+  const codeRef = db.collection('classCodes').doc(code);
+  let resolvedClassId;
+  let resolvedClassName;
+
+  await db.runTransaction(async tx => {
+    const codeSnap = await tx.get(codeRef);
+    if (!codeSnap.exists) fail(404, 'NOT_FOUND', 'No class has that code. Check it with your teacher.');
+    const codeData = codeSnap.data() || {};
+    const { classId, className } = codeData;
+    if (!classId) fail(400, 'VALIDATION', 'That code is not set up correctly.');
+
+    const classRef = db.collection('classes').doc(classId);
+    const userRef = db.collection('users').doc(caller.uid);
+    const memberRef = db.collection('universeMemberships').doc(caller.uid);
+
+    const [cSnap, uSnap] = await Promise.all([tx.get(classRef), tx.get(userRef)]);
+    if (!cSnap.exists || cSnap.data().status === 'archived') fail(404, 'NOT_FOUND', 'Class not found or archived.');
+    const classData = cSnap.data();
+
+    // Cross-organization and cross-school boundary enforcement (R2-03)
+    const callerOrgId = caller.profile?.orgId || req.caller?.signedClaims?.orgId || req.caller?.orgId;
+    if (classData.orgId && callerOrgId && classData.orgId !== callerOrgId) {
+      fail(403, 'FORBIDDEN', 'Cannot join a class outside your organization.');
+    }
+    if (classData.schoolId && caller.schoolIds && Array.isArray(caller.schoolIds) && !caller.schoolIds.includes(classData.schoolId)) {
+      fail(403, 'FORBIDDEN', 'Learner is not enrolled in this school.');
+    }
+    if (uSnap.exists && uSnap.data().status === 'suspended') {
+      fail(403, 'FORBIDDEN', 'Suspended learners cannot join classes.');
+    }
+
+    resolvedClassId = classId;
+    resolvedClassName = className;
+
+    tx.update(classRef, {
+      learnerIds: FieldValue.arrayUnion(caller.uid),
+      updatedAt: FieldValue.serverTimestamp()
+    });
+    tx.update(userRef, {
+      classIds: FieldValue.arrayUnion(classId),
+      enrolledVia: code,
+      groupName: className || classId,
+      updatedAt: FieldValue.serverTimestamp()
+    });
+    tx.set(memberRef, {
+      classIds: FieldValue.arrayUnion(classId),
+      orgId: caller.orgId || classData.orgId || 'org-welearn',
+      role: 'student',
+      status: 'active',
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+  });
+
+  const { getAuth } = await import('firebase-admin/auth');
+  const user = await getAuth().getUser(caller.uid);
+  const existingClaims = user.customClaims || {};
+  const existingClassIds = Array.isArray(existingClaims.classIds) ? existingClaims.classIds : [];
+  if (!existingClassIds.includes(resolvedClassId)) {
+    await getAuth().setCustomUserClaims(caller.uid, {
+      ...existingClaims,
+      classIds: [...existingClassIds, resolvedClassId]
+    });
+  }
+
+  res.json({ status: 'ok', classId: resolvedClassId, className: resolvedClassName, reconciled: true });
 }));
 router.get('/schools/:schoolId/program-offerings/:offeringId/lessons', wrap(async (req, res) => {
   const {

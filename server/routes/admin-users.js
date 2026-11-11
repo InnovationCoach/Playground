@@ -18,9 +18,9 @@ const router = Router();
 const ROLES = ['admin', 'supervisor', 'teacher', 'student', 'parent'];
 const STATUSES = ['pending', 'active', 'suspended'];
 const GENDERS = ['female', 'male', 'nonbinary', 'prefer_not_to_say'];
-const COHORTS = ['primary', 'lower-secondary', 'higher-secondary'];
+const COHORTS = ['primary', 'lower-secondary', 'higher-secondary', 'cohort-lower-primary', 'cohort-higher-primary', 'cohort-wls', 'cohort-whs', 'wls', 'whs'];
 const AGE_BANDS = COHORTS;
-const EDITABLE = ['salutation', 'givenNames', 'surname', 'phone', 'gender', 'cohortId', 'cohort', 'ageBand', 'yearLevel', 'dateOfBirth', 'layoutOverride', 'programmeIds', 'locale'];
+const EDITABLE = ['salutation', 'givenNames', 'surname', 'phone', 'gender', 'cohortId', 'cohort', 'ageBand', 'yearLevel', 'gradeLevel', 'dateOfBirth', 'layoutOverride', 'programmeIds', 'locale'];
 const SORTABLE = ['surname', 'givenNames', 'createdAt', 'status', 'publicId', 'email', 'role'];
 
 const E164 = /^\+[1-9]\d{7,14}$/;
@@ -122,6 +122,7 @@ async function buildFullRecord(db, user, callerRole) {
       cohort: studentCohort,
       ageBand: studentCohort || user.ageBand || null,
       yearLevel: user.yearLevel || null,
+      gradeLevel: user.gradeLevel ?? null,
       consent: user.consent || null,
       layoutOverride: layoutSelection.staffOverride,
       layoutSelection
@@ -156,6 +157,7 @@ function formatListItem(u, activeLinkCountMap) {
       cohortId: u.cohortId || null,
       cohort: studentCohort,
       yearLevel: u.yearLevel || null,
+      gradeLevel: u.gradeLevel ?? null,
       ageBand: studentCohort || u.ageBand || null
     });
   }
@@ -293,10 +295,27 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
   let normalizedDob = null;
 
   if (body.role === 'student') {
-    if (!body.cohortId) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
-    const cohortSnap = await db.collection('cohorts').doc(body.cohortId).get();
-    if (!cohortSnap.exists) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
-    cohortDocData = cohortSnap.data();
+    if (body.gradeLevel !== undefined && body.gradeLevel !== null && body.gradeLevel !== '') {
+      const g = typeof body.gradeLevel === 'string' ? Number(body.gradeLevel.trim()) : Number(body.gradeLevel);
+      if (!Number.isInteger(g) || g < 6 || g > 12) {
+        return sendError(res, 400, 'VALIDATION', 'Grade level must be between 6 and 12.', 'gradeLevel');
+      }
+      const derivedCohort = g <= 8 ? 'cohort-wls' : 'cohort-whs';
+      if (body.cohortId && body.cohortId !== derivedCohort) {
+        return sendError(res, 400, 'VALIDATION', `Cohort ${body.cohortId} does not match grade level ${g}. Expected ${derivedCohort}.`, 'cohortId');
+      }
+      body.cohortId = derivedCohort;
+      body.gradeLevel = g;
+      body.cohort = derivedCohort === 'cohort-wls' ? 'lower-secondary' : 'higher-secondary';
+      body.ageBand = body.cohort;
+      const derivedSnap = await db.collection('cohorts').doc(derivedCohort).get();
+      cohortDocData = derivedSnap.exists ? derivedSnap.data() : null;
+    } else {
+      if (!body.cohortId) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+      const cohortSnap = await db.collection('cohorts').doc(body.cohortId).get();
+      if (!cohortSnap.exists) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+      cohortDocData = cohortSnap.data();
+    }
 
     const rawCohort = body.cohort || body.ageBand;
     const resolvedCohort = rawCohort === '13-15' ? 'lower-secondary' : rawCohort === '16-18' ? 'higher-secondary' : rawCohort;
@@ -365,7 +384,8 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
     role: body.role,
     orgId,
     schoolIds: body.schoolIds,
-    classIds: body.classIds || []
+    classIds: body.classIds || [],
+    ...(body.cohortId ? { cohortIds: [body.cohortId], cohortId: body.cohortId } : {})
   };
   await getAuth().setCustomUserClaims(uid, claims);
 
@@ -397,9 +417,11 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
   if (body.role === 'student') {
     Object.assign(userDoc, {
       cohortId: body.cohortId,
+      cohortIds: [body.cohortId],
       cohort: assignedCohort,
       ageBand: assignedCohort,
       yearLevel: body.yearLevel || null,
+      gradeLevel: body.gradeLevel ?? null,
       dateOfBirth: normalizedDob,
       layoutOverride: validatedOverride,
       // Per Mani (24 Oct 2026): no consent rules for now during testing/presentation
@@ -538,21 +560,36 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
     const authSnap = await db.collection('userLayoutAuthority').doc(user.uid).get();
     currentAuthority = authSnap.exists ? authSnap.data() : null;
 
-    if ('cohortId' in body) {
-      if (!body.cohortId || typeof body.cohortId !== 'string' || !body.cohortId.trim()) {
-        return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+    if ('gradeLevel' in body && body.gradeLevel !== null && body.gradeLevel !== '') {
+      const g = typeof body.gradeLevel === 'string' ? Number(body.gradeLevel.trim()) : Number(body.gradeLevel);
+      if (!Number.isInteger(g) || g < 6 || g > 12) {
+        return sendError(res, 400, 'VALIDATION', 'Grade level must be between 6 and 12.', 'gradeLevel');
       }
-      const cohortCheckSnap = await db.collection('cohorts').doc(body.cohortId.trim()).get();
-      if (!cohortCheckSnap.exists) {
-        return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+      const derivedCohort = g <= 8 ? 'cohort-wls' : 'cohort-whs';
+      if ('cohortId' in body && body.cohortId && body.cohortId !== derivedCohort) {
+        return sendError(res, 400, 'VALIDATION', `Cohort ${body.cohortId} does not match grade level ${g}. Expected ${derivedCohort}.`, 'cohortId');
       }
-    }
-    if ('cohort' in body && !COHORTS.includes(body.cohort)) {
-      return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohort');
-    }
-    if ('ageBand' in body) {
-      const mapped = body.ageBand === '13-15' ? 'lower-secondary' : body.ageBand === '16-18' ? 'higher-secondary' : body.ageBand;
-      if (!COHORTS.includes(mapped)) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'ageBand');
+      body.gradeLevel = g;
+      body.cohortId = derivedCohort;
+      body.cohort = derivedCohort === 'cohort-wls' ? 'lower-secondary' : 'higher-secondary';
+      body.ageBand = body.cohort;
+    } else {
+      if ('cohortId' in body) {
+        if (!body.cohortId || typeof body.cohortId !== 'string' || !body.cohortId.trim()) {
+          return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+        }
+        const cohortCheckSnap = await db.collection('cohorts').doc(body.cohortId.trim()).get();
+        if (!cohortCheckSnap.exists) {
+          return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+        }
+      }
+      if ('cohort' in body && !COHORTS.includes(body.cohort)) {
+        return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohort');
+      }
+      if ('ageBand' in body) {
+        const mapped = body.ageBand === '13-15' ? 'lower-secondary' : body.ageBand === '16-18' ? 'higher-secondary' : body.ageBand;
+        if (!COHORTS.includes(mapped)) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'ageBand');
+      }
     }
     if ('dateOfBirth' in body && body.dateOfBirth !== null && String(body.dateOfBirth).trim() !== '') {
       const dobCheck = parseVerifiedDob(body.dateOfBirth);
@@ -624,6 +661,10 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
     updates.ageBand = mapped;
   }
 
+  if (updates.cohortId && (!updates.cohortIds || !Array.isArray(updates.cohortIds))) {
+    updates.cohortIds = [updates.cohortId];
+  }
+
   if (!Object.keys(after).length) {
     const record = await buildFullRecord(db, user, req.caller.role);
     return res.json(record);
@@ -675,6 +716,19 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
     });
     delete after.programmeIds;
     delete before.programmeIds;
+  }
+
+  if (after.gradeLevel !== undefined && after.gradeLevel !== before.gradeLevel) {
+    await writeAuditLog(db, {
+      caller: req.caller,
+      subjectUid: user.uid,
+      action: 'GRADE_CHANGED',
+      summary: `Grade changed to ${after.gradeLevel} (cohort ${updates.cohortId})`,
+      details: {
+        before: { gradeLevel: before.gradeLevel ?? null, cohortId: before.cohortId ?? user.cohortId ?? null },
+        after: { gradeLevel: after.gradeLevel, cohortId: updates.cohortId }
+      }
+    });
   }
 
   if (Object.keys(after).length > 0) {

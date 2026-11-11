@@ -36,10 +36,13 @@ export const createLearner = onCall(async (request) => {
       email: request.data?.email,
       displayName: request.data?.displayName || request.data?.name,
       classId: request.data?.classId,
+      gradeLevel: request.data?.gradeLevel,
+      cohortId: request.data?.cohortId,
       caller: {
         uid: callerUid,
         role: callerRole,
-        classIds: request.auth.token.classIds || []
+        classIds: request.auth.token.classIds || [],
+        cohortIds: request.auth.token.cohortIds || []
       },
       password: request.data?.password
     });

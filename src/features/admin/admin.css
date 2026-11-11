@@ -339,13 +339,17 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
 @keyframes gh-pop { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
 
 /* ---------- My Courses ---------- */
-.gh-hero { position: relative; overflow: hidden; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; padding: 1.75rem 1.75rem; border-radius: 18px; background: linear-gradient(115deg, #003c69 0%, #34427f 55%, #8250a0 100%); color: #fff; margin-bottom: 0.5rem; }
-.gh-hero::after { content: ''; position: absolute; right: -80px; top: -90px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(150, 215, 0, 0.35), transparent 70%); pointer-events: none; }
+.gh-hero { position: relative; overflow: hidden; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; padding: 1.75rem 1.75rem; border-radius: 18px; background: linear-gradient(120deg, var(--gh-purple-50), var(--gh-surface)); border: 1px solid var(--gh-border); color: var(--gh-text); margin-bottom: 0.5rem; }
+.gh-hero::after { content: ''; position: absolute; right: -80px; top: -90px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(150, 215, 0, 0.18), transparent 70%); pointer-events: none; }
 .gh-hero > * { position: relative; z-index: 1; }
-.gh-hero h1 { color: #fff; font-size: 1.6rem; }
-.gh-hero p { margin: 0.3rem 0 0; color: rgba(255, 255, 255, 0.82); font-size: 0.93rem; }
+.gh-hero h1 { color: var(--gh-heading); font-size: 1.6rem; }
+.gh-hero p { margin: 0.3rem 0 0; color: var(--gh-text-2); font-size: 0.93rem; }
 .gh-hero .gh-input-icon { flex: 0 1 320px; }
-.gh-hero .gh-input { border-color: transparent; }
+.gh-hero .gh-input { border-color: var(--gh-border-strong); }
+[data-theme="dark"] .gh-hero h1 { color: #fff; }
+[data-theme="dark"] .gh-hero p { color: rgba(255, 255, 255, 0.82); }
+[data-theme="dark"] .gh-hero .gh-input { border-color: transparent; }
+[data-theme="dark"] .gh-hero { position: relative; overflow: hidden; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; padding: 1.75rem 1.75rem; border-radius: 18px; background: linear-gradient(115deg, #003c69 0%, #34427f 55%, #8250a0 100%); color: #fff; margin-bottom: 0.5rem; }
 .gh-section { margin-top: 2rem; }
 .gh-section-head { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.9rem; }
 .gh-section-head h2 { font-size: 1.05rem; font-weight: 700; }

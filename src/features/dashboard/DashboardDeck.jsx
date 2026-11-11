@@ -1,51 +1,54 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, ListChecks, Compass, ChartNoAxesCombined, PenTool, Orbit, Sparkles, Route } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, GalleryHorizontal, Paintbrush, ListChecks, Compass, ChartNoAxesCombined, PenTool, Orbit, Sparkles, Wrench, Route } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { SLIDES } from './slideModel.js';
+import { AllToolsPanel } from './AllToolsPanel.jsx';
 import './dashboardDeck.css';
 const SLIDE_ICONS = { daily: ListChecks, find: Compass, progress: ChartNoAxesCombined, creative: PenTool, universe: Orbit };
 
-/** Native touch/trackpad scrolling; every panel stays mounted to preserve drafts/audio. */
+/**
+ * The five dashboard sections, reached from the menu under the header. They are
+ * destinations, not steps. Native touch/trackpad scrolling still works, and every
+ * panel stays mounted to preserve drafts and audio when switching.
+ */
 export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, renderSlide, active, onActive, stats = {} }) {
-  const root = useRef(null), track = useRef(null), frame = useRef(null);
-  const reduced = useRef(false), fromScroll = useRef(false);
+  const root = useRef(null), track = useRef(null), frame = useRef(null), toolsButton = useRef(null);
+  const fromScroll = useRef(false);
   const [height, setHeight] = useState(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const currentActive = useRef(active);
   currentActive.current = active;
   const grid = prefs.dashboardLayout === 'grid';
   const orderKey = prefs.slideOrder.join('|');
-  const activeIndex = prefs.slideOrder.indexOf(active);
   const titleFor = (id) => prefs.slideTitles[id]?.trim() || SLIDES.find((slide) => slide.id === id).title;
+  const labelFor = (id) => { const template = SLIDES.find((slide) => slide.id === id); return titleFor(id) === template.title ? template.short : titleFor(id); };
   const measure = useCallback(() => {
-    const top = Math.max(0, root.current?.getBoundingClientRect().top || 0);
+    // The shell's place in the document, not on screen: a scrolled page must not make it taller.
+    const top = (root.current?.getBoundingClientRect().top || 0) + window.scrollY;
     setHeight(Math.max(420, (window.visualViewport?.height || window.innerHeight) - top - 8));
+    const header = document.querySelector('header.gh-topbar');
+    const stuck = header && ['sticky', 'fixed'].includes(getComputedStyle(header).position) ? header.offsetHeight : 0;
+    root.current?.style.setProperty('--sd-sticky-top', `${stuck}px`);
   }, []);
-  const scrollToSlide = useCallback((id, animate = true) => {
+  const scrollToSlide = useCallback((id) => {
     const index = prefs.slideOrder.indexOf(id);
     if (index < 0 || !track.current) return;
-    track.current.scrollTo({ left: index * track.current.clientWidth,
-      behavior: animate && !prefs.calm && !reduced.current ? 'smooth' : 'instant' });
-  }, [orderKey, prefs.calm]);
+    track.current.scrollTo({ left: index * track.current.clientWidth, behavior: 'instant' });
+  }, [orderKey]);
   const go = useCallback((id) => {
     onActive(id);
-    if (grid) document.getElementById(`dashboard-slide-${id}`)?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    if (grid) document.getElementById(`dashboard-slide-${id}`)?.scrollIntoView({ block: 'start', behavior: 'instant' });
     else scrollToSlide(id);
   }, [grid, onActive, scrollToSlide]);
 
-  useEffect(() => {
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const change = () => { reduced.current = media.matches; };
-    change(); media.addEventListener('change', change);
-    return () => media.removeEventListener('change', change);
-  }, []);
   useLayoutEffect(() => {
     measure();
-    const resize = () => { measure(); scrollToSlide(active, false); };
+    const resize = () => { measure(); scrollToSlide(active); };
     window.addEventListener('resize', resize);
     window.visualViewport?.addEventListener('resize', resize);
     return () => { window.removeEventListener('resize', resize); window.visualViewport?.removeEventListener('resize', resize); };
   }, [measure, scrollToSlide, active]);
-  useLayoutEffect(() => { if (!grid) scrollToSlide(active, false); }, [orderKey, grid]);
+  useLayoutEffect(() => { if (!grid) scrollToSlide(active); }, [orderKey, grid]);
   useEffect(() => {
     if (fromScroll.current) { fromScroll.current = false; return; }
     if (!grid) scrollToSlide(active);
@@ -73,6 +76,19 @@ export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, r
     return () => element.removeEventListener('wheel', wheel);
   }, [grid, orderKey, scrollToSlide, onActive]);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  // Fit-to-window view: the legacy body padding would otherwise let the page scroll and tuck the header under the top bar.
+  useEffect(() => {
+    if (grid) return undefined;
+    document.body.classList.add('sd-fit-page');
+    window.scrollTo(0, 0);
+    return () => document.body.classList.remove('sd-fit-page');
+  }, [grid]);
+  // The button can't take focus until the modal panel is gone, so this waits for it to close.
+  const toolsWereOpen = useRef(false);
+  useEffect(() => {
+    if (toolsWereOpen.current && !toolsOpen) toolsButton.current?.focus();
+    toolsWereOpen.current = toolsOpen;
+  }, [toolsOpen]);
 
   function onScroll() {
     if (grid) return;
@@ -86,6 +102,7 @@ export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, r
   function onKey(event) {
     if (grid || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     if (event.target.closest('input, textarea, select, [contenteditable="true"], [role="slider"], [role="tablist"]')) return;
+    const activeIndex = prefs.slideOrder.indexOf(active);
     const target = event.key === 'ArrowRight' ? activeIndex + 1 : event.key === 'ArrowLeft' ? activeIndex - 1
       : event.key === 'Home' ? 0 : event.key === 'End' ? prefs.slideOrder.length - 1 : -1;
     if (target >= 0 && target < prefs.slideOrder.length) { event.preventDefault(); go(prefs.slideOrder[target]); }
@@ -95,30 +112,42 @@ export function DashboardDeck({ prefs, update, syncState, name, onPersonalise, r
     <div className="sd-top">
       <div><span className="sd-brand"><Sparkles size={16} strokeWidth={1.7} />We Learn <b>SPARK</b></span><h1>My Dashboard <span>· {name || 'Your space'}</span></h1></div>
       <div className="sd-top-actions"><span className="studio-avatar" aria-hidden="true">{(name || 'S').slice(0, 1).toUpperCase()}</span>
-        <a className="sd-button" href={hrefFor.journey()} aria-label="Open Portfolio maker"><Route size={17} /><span>Portfolio maker</span></a>
+        <a className="sd-button sd-portfolio-link" href={hrefFor.journey()}><Route size={17} aria-hidden="true" /><span>Portfolio maker</span></a>
         <button className="sd-button" type="button" onClick={() => { if (grid) root.current?.scrollIntoView({ block: 'start', behavior: 'instant' }); update((s) => ({ ...s, dashboardLayout: grid ? 'slides' : 'grid' })); }} aria-label={grid ? 'Switch to slide view' : 'Switch to grid view'}>{grid ? <GalleryHorizontal size={17} /> : <LayoutGrid size={17} />}<span>{grid ? 'Slide view' : 'Grid view'}</span></button>
         <button className="sd-button" type="button" onClick={onPersonalise}><Paintbrush size={17} /><span>Personalise</span></button>
       </div>
     </div>
-    <div className="sd-track" ref={track} onScroll={onScroll} tabIndex={grid ? undefined : 0} aria-label="Learning slides. Use left and right arrows to navigate.">
+    <div className="sd-menu">
+      <nav className="sd-nav" aria-label="Dashboard sections">
+        <ul>{prefs.slideOrder.map((id) => {
+          const Icon = SLIDE_ICONS[id];
+          return <li key={id}><button type="button" className="sd-nav-item" onClick={() => go(id)} aria-current={active === id ? 'page' : undefined} aria-controls={`dashboard-slide-${id}`}>
+            <span className="sd-nav-icon"><Icon size={21} strokeWidth={1.9} aria-hidden="true" /></span>
+            <span className="sd-nav-text"><strong>{labelFor(id)}</strong><small>{SLIDES.find((slide) => slide.id === id).about}</small></span>
+            {stats[id] && <span className="sd-nav-stat" aria-label={stats[id].label}>{stats[id].text}</span>}
+          </button></li>;
+        })}</ul>
+      </nav>
+      <label className="sd-nav-chooser"><span>Go to</span>
+        <select value={active} onChange={(event) => go(event.target.value)}>
+          {prefs.slideOrder.map((id) => <option key={id} value={id}>{labelFor(id)}</option>)}
+        </select>
+      </label>
+      <button type="button" ref={toolsButton} className="sd-tools-button" aria-haspopup="dialog" onClick={() => setToolsOpen(true)}><Wrench size={20} strokeWidth={1.8} aria-hidden="true" /><span>All tools</span></button>
+    </div>
+    <p className="sd-sr" aria-live="polite">{`Showing ${labelFor(active)}`}</p>
+    <div className="sd-track" ref={track} onScroll={onScroll} tabIndex={grid ? undefined : 0} aria-label={grid ? 'Dashboard sections' : `${labelFor(active)} section`}>
       {prefs.slideOrder.map((id) => {
         const template = SLIDES.find((s) => s.id === id);
         return <section key={id} id={`dashboard-slide-${id}`} data-slide={id}
-          className={`sd-slide sd-page-${id}`} role="group" aria-roledescription={grid ? undefined : 'slide'}
-          aria-label={`${prefs.slideOrder.indexOf(id) + 1} of 5: ${titleFor(id)}`}
+          className={`sd-slide sd-page-${id}`} role="group" aria-label={titleFor(id)}
           aria-hidden={!grid && active !== id ? true : undefined} inert={!grid && active !== id ? '' : undefined}>
           <div className="sd-slide-content"><div className="sd-eyebrow">{template.eyebrow}</div>
             <h2>{titleFor(id)}</h2>{renderSlide(id)}</div>
         </section>;
       })}
     </div>
-    <div className="sd-dock">
-      <nav className="sd-indicators" aria-label="Choose a dashboard slide">{prefs.slideOrder.map((id, index) => {
-        const Icon = SLIDE_ICONS[id], template = SLIDES.find((slide) => slide.id === id);
-        return <button type="button" key={id} className="sd-indicator" onClick={() => go(id)} aria-label={stats[id] ? `${titleFor(id)}, ${stats[id].label}` : titleFor(id)} aria-current={active === id ? 'step' : undefined} aria-controls={`dashboard-slide-${id}`}><Icon size={17} strokeWidth={1.7} aria-hidden="true" /><span>{titleFor(id) === template.title ? template.short : titleFor(id)}</span>{stats[id] && <span className="sd-indicator-stat" aria-hidden="true">{stats[id].text}</span>}<span className="sd-indicator-index" aria-hidden="true">{index + 1}</span></button>;
-      })}</nav>
-      <div className="sd-arrows"><button type="button" className="sd-button" disabled={activeIndex === 0} aria-label="Previous slide" onClick={() => go(prefs.slideOrder[activeIndex - 1])}><ChevronLeft size={19} /></button><span aria-live="polite" aria-atomic="true" className="sd-page-number">{activeIndex + 1} / 5</span><button type="button" className="sd-button" disabled={activeIndex === 4} aria-label="Next slide" onClick={() => go(prefs.slideOrder[activeIndex + 1])}><ChevronRight size={19} /></button></div>
-    </div>
-    <div className="sd-save" role="status">{syncState === 'saving' ? 'Saving appearance…' : syncState === 'saved' ? 'Appearance saved to your account' : syncState === 'local-only' ? 'Appearance saved on this device · account sync unavailable' : 'Your space, at your pace'}</div>
+    <div className="sd-save" role="status">{syncState === 'saving' ? 'Saving appearance…' : syncState === 'local-only' ? 'Appearance saved on this device · account sync unavailable' : ''}</div>
+    {toolsOpen && <AllToolsPanel theme={prefs.theme} onClose={() => setToolsOpen(false)} />}
   </section>;
 }

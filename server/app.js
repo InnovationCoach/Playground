@@ -47,6 +47,7 @@ import { sendUniverseError } from './lib/universe/http.js';
 import schoolWorkspaceRouter from './routes/school-workspace.js';
 import personalizationRouter from './routes/personalization.js';
 import questRouter from './routes/quest.js';
+import { createSparkTutorRouter } from './routes/spark-tutor.js';
 
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const MODEL_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/;
@@ -223,6 +224,10 @@ export function createApp(options = {}) {
   app.use('/api', schoolWorkspaceRouter);
   app.use('/api', personalizationRouter);
   app.use('/api', questRouter);
+  app.use('/api/spark-tutor', createSparkTutorRouter({
+    adapter: options.sparkTutorAdapter,
+    engine: options.sparkTutorEngine
+  }));
 
   // ============= EXISTING AI ENDPOINTS =============
   async function callGemini(prompt, maxOutputTokens = 256, opts = {}) {

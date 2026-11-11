@@ -89,7 +89,7 @@ function Dashboard({ p }) {
     { id: 'pbl', icon: Rocket, label: t('parent.d.statPbl'), value: `${p.pbl.tasks.percent}%`, detail: t('parent.d.tasks', { done: p.pbl.tasks.done, total: p.pbl.tasks.total }), percent: p.pbl.tasks.percent, tone: 'purple' },
     { id: 'goals', icon: Target, label: t('parent.d.statGoals'), value: p.goals ? `${p.goals.steps.percent}%` : '–', detail: p.goals ? t('parent.d.stepsOf', { done: p.goals.steps.done, total: p.goals.steps.total }) : t('parent.d.notSet'), percent: p.goals?.steps.percent ?? 0, tone: 'green' },
     { id: 'comp', icon: Sparkles, label: t('parent.d.statCompetencies'), value: String(p.competencies.shown), detail: t('parent.d.ofTotal', { total: p.competencies.total }), percent: Math.round((100 * p.competencies.shown) / p.competencies.total), tone: 'magenta' },
-    { id: 'edm', icon: BookOpen, label: t('parent.d.statEdmentum'), value: edmAverage !== null ? `${edmAverage}%` : '–', detail: p.edmentum.status === 'connected' ? t('parent.d.courses', { count: edmCourses.length }) : t('parent.d.notConnected'), percent: edmAverage ?? 0, tone: 'navy' }
+    { id: 'edm', icon: BookOpen, label: t('parent.d.statEdmentum'), value: edmAverage !== null ? `${edmAverage}%` : '–', detail: edmCourses.length ? t('parent.d.courses', { count: edmCourses.length }) : t(EDM_STAT[p.edmentum.status] || 'parent.d.notConnected'), percent: edmAverage ?? 0, tone: 'navy' }
   ];
 
   return (
@@ -217,12 +217,18 @@ function GoalsSection({ goals, name, ago }) {
   );
 }
 
+const EDM_STAT = { access_pending: 'parent.d.accessPending', unknown: 'parent.d.statusUnknown' };
+const EDM_EMPTY = { not_connected: 'parent.d.edmNotConnected', access_pending: 'parent.d.edmPending', unknown: 'parent.d.edmUnknown' };
+const EDM_NOTICE = { stale: 'parent.d.edmStale', sync_failed: 'parent.d.edmFailed' };
+
 function EdmentumSection({ edm, ago }) {
   const { t } = useLocale();
   return (
     <Section id="edmentum" icon={BookOpen} tone="navy" title={t('parent.d.edmentum')} aside={edm.syncedAt ? t('parent.d.synced', { when: ago(edm.syncedAt) }) : null}>
-      {edm.status !== 'connected' ? (
-        <div className="pd-empty"><BookOpen size={20} aria-hidden="true" /><p>{t('parent.d.edmNotConnected')}</p></div>
+      {edm.synthetic && <p className="pd-small pd-sample" data-testid="edm-sample">{t('parent.d.sampleData')}</p>}
+      {EDM_NOTICE[edm.status] && <p className="pd-small" role="status">{t(EDM_NOTICE[edm.status])}</p>}
+      {EDM_EMPTY[edm.status] ? (
+        <div className="pd-empty"><BookOpen size={20} aria-hidden="true" /><p>{t(EDM_EMPTY[edm.status])}</p></div>
       ) : (
         <ul className="pd-courses">
           {edm.courses.map((c) => (

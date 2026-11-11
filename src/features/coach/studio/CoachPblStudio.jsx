@@ -502,10 +502,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
             className={`cp-nav-tab ${workspaceTab === 'edmentum' ? 'active' : ''}`}
             onClick={() => setWorkspaceTab('edmentum')}
           >
-            <Link2 size={16} /> Edmentum LTI 1.3
-            <span className="cp-tab-pill" style={{ color: '#7ee787', background: 'rgba(46, 160, 67, 0.15)' }}>
-              LTI 1.3 Ready
-            </span>
+            <Link2 size={16} /> Edmentum setup
           </button>
         </div>
       </nav>

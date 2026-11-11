@@ -18,7 +18,7 @@
  */
 
 // firebase-admin v14 ESM: auth() and firestore() are not on the default export.
-import { initializeApp, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import fs from 'fs';
 import path from 'path';
@@ -28,23 +28,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DRY_RUN = process.argv.includes('--dry-run');
 const CLEAN = process.argv.includes('--clean');
 
-const KEY_PATH = process.env.GOOGLE_APPLICATION_CREDENTIALS
-  || path.join(__dirname, 'firebase-admin-key.json');
-
-if (!fs.existsSync(KEY_PATH)) {
-  console.error(`\n  No service account key found at: ${KEY_PATH}\n`);
-  console.error('  Get one from the Firebase Console:');
-  console.error('    Project Settings -> Service Accounts -> Generate new private key');
-  console.error(`  Save it to scripts/firebase-admin-key.json (already gitignored),`);
-  console.error('  or set GOOGLE_APPLICATION_CREDENTIALS to its path.\n');
+const host = process.env.FIRESTORE_EMULATOR_HOST;
+if (!host || !/^(127\.0\.0\.1|localhost):\d+$/.test(host)) {
+  console.error('\nRefusing to run seed-coach-data outside local emulator. FIRESTORE_EMULATOR_HOST must be set.\n');
   process.exit(1);
 }
 
-initializeApp({ credential: cert(JSON.parse(fs.readFileSync(KEY_PATH, 'utf8'))) });
+const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || 'demo-hearisland-local';
+
+if (!getApps().length) {
+  initializeApp({ projectId: PROJECT_ID });
+}
 const db = getFirestore();
 
 const DAY = 86400000;
-const GROUP = 'Climate Champions 7A';
 
 // dailyStats documents are keyed by date, and the dashboard's engagement
 // calculations read the most recent ones - so generate them relative to today
@@ -57,6 +54,10 @@ const STUDENTS = [
     uid: 'student_test_1',
     displayName: 'Alex Test Student',
     email: 'alex.test@school.edu',
+    cohortId: 'cohort-wls',
+    cohortIds: ['cohort-wls'],
+    gradeLevel: 7,
+    groupName: 'WeLearn Lower Secondary',
     joinedDaysAgo: 7,
     dailyStats: [
       { daysAgo: 0, timeSpentMinutes: 55, sessionsCount: 3 },
@@ -90,6 +91,10 @@ const STUDENTS = [
     uid: 'student_test_2',
     displayName: 'Jordan Student',
     email: 'jordan.test@school.edu',
+    cohortId: 'cohort-wls',
+    cohortIds: ['cohort-wls'],
+    gradeLevel: 8,
+    groupName: 'WeLearn Lower Secondary',
     joinedDaysAgo: 5,
     dailyStats: [
       { daysAgo: 0, timeSpentMinutes: 45, sessionsCount: 2 },
@@ -120,6 +125,10 @@ const STUDENTS = [
     uid: 'student_test_3',
     displayName: 'Taylor Student',
     email: 'taylor.test@school.edu',
+    cohortId: 'cohort-whs',
+    cohortIds: ['cohort-whs'],
+    gradeLevel: 10,
+    groupName: 'WeLearn Higher Secondary',
     joinedDaysAgo: 3,
     dailyStats: [
       { daysAgo: 0, timeSpentMinutes: 46, sessionsCount: 3 },
@@ -176,7 +185,10 @@ async function seed() {
         uid: s.uid,
         displayName: s.displayName,
         email: s.email,
-        groupName: GROUP,
+        groupName: s.groupName,
+        cohortId: s.cohortId,
+        cohortIds: s.cohortIds,
+        gradeLevel: s.gradeLevel,
         role: 'student',
         isSeedData: true,
         createdAt: Date.now() - s.joinedDaysAgo * DAY

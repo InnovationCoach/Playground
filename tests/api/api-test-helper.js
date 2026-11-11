@@ -29,9 +29,10 @@ process.env.FIREBASE_AUTH_EMULATOR_HOST = AUTH_EMULATOR_HOST;
 process.env.FIRESTORE_EMULATOR_HOST = FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT = PROJECT_ID;
 process.env.GOOGLE_CLOUD_PROJECT = PROJECT_ID;
+process.env.SPARK_AI_TUTOR_ENABLED = 'true';
 
 export async function setupApiTestEnv(options = {}) {
-  const { universeRegistry = FIXTURE_RELEASES } = options;
+  const { universeRegistry = FIXTURE_RELEASES, ...appOptions } = options;
 
   if (!getApps().length) {
     initializeApp({ projectId: PROJECT_ID });
@@ -39,7 +40,7 @@ export async function setupApiTestEnv(options = {}) {
 
   const auth = getAuth();
   const db = getFirestore();
-  const app = createApp({ universeRegistry });
+  const app = createApp({ universeRegistry, ...appOptions });
 
   // Start server on random free port
   const server = await new Promise((resolve) => {
@@ -49,7 +50,7 @@ export async function setupApiTestEnv(options = {}) {
   const port = server.address().port;
   const baseUrl = `http://127.0.0.1:${port}`;
 
-  async function getIdToken(uid, claims = {}) {
+  async function getIdToken(uid, claims = null) {
     // Create or update user in auth emulator
     try {
       await auth.getUser(uid);
@@ -57,9 +58,11 @@ export async function setupApiTestEnv(options = {}) {
       await auth.createUser({ uid, email: `${uid}@welearn.test`, emailVerified: true });
     }
 
-    await auth.setCustomUserClaims(uid, claims);
+    if (claims !== null) {
+      await auth.setCustomUserClaims(uid, claims);
+    }
 
-    const customToken = await auth.createCustomToken(uid, claims);
+    const customToken = await auth.createCustomToken(uid);
 
     // Exchange custom token for ID token via Auth emulator REST endpoint
     const response = await fetch(

@@ -7,13 +7,7 @@ import {
   buildLtiResourceLinkLaunchToken,
   LTI_CONFIG
 } from '../server/lib/lti.js';
-import {
-  CONNECTED_EDMENTUM_COURSES,
-  getEdmentumConfig,
-  getEdmentumLearnerScores,
-  recordAgsScore,
-  launchEdmentumCourse
-} from '../src/features/edmentum/edmentumService.js';
+import { SYNTHETIC_EDMENTUM_COURSES } from '../src/features/edmentum/fixtures/syntheticEdmentum.js';
 
 describe('Edmentum LTI 1.3 Advantage & Rostering Integration', () => {
   it('generates valid RFC 7517 JWKS with RS256 RSA public key', () => {
@@ -56,7 +50,7 @@ describe('Edmentum LTI 1.3 Advantage & Rostering Integration', () => {
       displayName: 'Maya Patel',
       email: 'maya.patel@school.edu'
     };
-    const course = CONNECTED_EDMENTUM_COURSES[0];
+    const course = SYNTHETIC_EDMENTUM_COURSES[0];
 
     const token = buildLtiResourceLinkLaunchToken({
       user,
@@ -86,41 +80,7 @@ describe('Edmentum LTI 1.3 Advantage & Rostering Integration', () => {
     expect(agsClaim.lineitems).toContain('/api/lti/ags/lineitems');
   });
 
-  it('loads connected Edmentum courses with standards and specs', () => {
-    expect(CONNECTED_EDMENTUM_COURSES.length).toBeGreaterThanOrEqual(4);
-    const bio = CONNECTED_EDMENTUM_COURSES.find((c) => c.id === 'edmentum-bio-101');
-    expect(bio).toBeDefined();
-    expect(bio.title).toContain('Biology');
-    expect(bio.standards).toContain('NGSS HS-LS1');
-    expect(bio.targetLinkUri).toContain('platoweb.com');
-  });
-
-  it('records Assignment and Grade Services (AGS) scores and updates student progress', () => {
-    const studentUid = 'student-test-eval';
-    const scoreData = {
-      courseId: 'edmentum-bio-101',
-      title: 'Enzyme Virtual Lab Mastery Quiz',
-      scoreGiven: 96,
-      scoreMaximum: 100
-    };
-
-    const updated = recordAgsScore(studentUid, scoreData);
-    expect(updated).toBeDefined();
-    expect(updated.averageScore).toBeGreaterThanOrEqual(90);
-
-    const scores = getEdmentumLearnerScores(studentUid);
-    expect(scores['edmentum-bio-101']).toBeDefined();
-    expect(scores['edmentum-bio-101'].recent[0].title).toBe('Enzyme Virtual Lab Mastery Quiz');
-    expect(scores['edmentum-bio-101'].recent[0].scoreGiven).toBe(96);
-  });
-
-  it('executes 1-click launch flow for students into Edmentum', async () => {
-    const user = { uid: 'student-liam', displayName: 'Liam Chen' };
-    const launchResult = await launchEdmentumCourse('edmentum-eng-201', user);
-
-    expect(launchResult.success).toBe(true);
-    expect(launchResult.launchUrl).toContain('platoweb.com');
-    expect(launchResult.id_token).toBeDefined();
-    expect(launchResult.courseTitle).toContain('Principles of Engineering');
-  });
+  // Client-side connection, score and launch behaviour is covered by
+  // tests/edmentum-truthful-states.test.jsx (O0): no default "connected",
+  // no generated scores and no successful launch after a failure.
 });

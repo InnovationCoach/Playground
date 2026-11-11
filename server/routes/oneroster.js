@@ -1,7 +1,24 @@
 import { Router } from 'express';
 import { getFirestore } from 'firebase-admin/firestore';
+import { requireClaims } from '../middleware/auth.js';
+import { sendError } from '../lib/errors.js';
 
 const router = Router();
+
+function requireOneRosterAccess(req, res, next) {
+  if (!req.caller || !['admin', 'supervisor'].includes(req.caller.role)) {
+    return sendError(res, 403, 'FORBIDDEN', 'OneRoster endpoints are restricted to administrators.');
+  }
+  const tokenOrgId = req.caller.signedClaims?.orgId || req.callerUserData?.orgId;
+  if (!tokenOrgId || typeof tokenOrgId !== 'string') {
+    return sendError(res, 403, 'FORBIDDEN', 'Explicit organization context required for OneRoster.');
+  }
+  req.onerosterOrgId = tokenOrgId;
+  next();
+}
+
+router.use(requireClaims);
+router.use(requireOneRosterAccess);
 
 /**
  * OneRoster 1.1 / 1.2 REST API Endpoints
@@ -117,7 +134,8 @@ const FIXTURE_ENROLLMENTS = [
 router.get('/users', async (req, res) => {
   try {
     const db = getFirestore();
-    const snap = await db.collection('users').limit(50).get();
+    const orgId = req.onerosterOrgId;
+    const snap = await db.collection('users').where('orgId', '==', orgId).limit(50).get();
     if (!snap.empty) {
       const users = snap.docs.map((doc) => {
         const d = doc.data();
@@ -126,7 +144,7 @@ router.get('/users', async (req, res) => {
           status: 'active',
           dateLastModified: new Date().toISOString(),
           enabledUser: true,
-          orgSourcedIds: ['org-welearn-main'],
+          orgSourcedIds: [orgId],
           role: d.role === 'teacher' || d.role === 'coach' ? 'teacher' : 'student',
           username: d.email?.split('@')[0] || doc.id,
           givenName: (d.displayName || '').split(' ')[0] || 'User',
@@ -137,10 +155,10 @@ router.get('/users', async (req, res) => {
       return res.json({ users });
     }
   } catch {
-    // Emulator fallback
+    // Database query error
   }
 
-  res.json({ users: FIXTURE_USERS });
+  res.json({ users: [] });
 });
 
 /**

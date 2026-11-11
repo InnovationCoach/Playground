@@ -12,7 +12,8 @@
  *   #/pbl/programs/<programId>/<section>                 one program in the PBL library
  *   #/journey  #/journey/print                           design-thinking portfolio maker (+ PDF view)
  *   #/courses/discover                                   Course discovery (secondary learners)
- *   #/space  #/programs  #/portfolio[/<uid>]             My space, school programs, shareable portfolio
+ *   #/space  #/portfolio[/<uid>]                         My space, shareable portfolio
+ *   #/programs                                           old link: the Programs tab of PBL Studio
  *   #/community                                          community posts
  *   #/messages  #/messages/<convId>                      private messages
  *   #/goals                                              goal setting (secondary learners)
