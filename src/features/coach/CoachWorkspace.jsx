@@ -54,15 +54,18 @@ export function CoachWorkspace({ coachUser, onManagement, onAddStudent, rosterVe
           commit({ state: 'unassigned', learners: [], classes: [] });
           return;
         }
-        const classes = await Promise.all(ids.map(async id => {
+        const classes = (await Promise.all(ids.map(async id => {
           try {
             const snap = await getDoc(doc(db, 'classes', id));
             const exists = typeof snap?.exists === 'function' ? snap.exists() : !!snap?.exists;
-            return { id, name: exists ? snap.data().name || id : id };
+            if (!exists) return null;
+            const data = snap.data() || {};
+            if (data.status === 'archived' || data.status === 'hidden') return null;
+            return { id, name: data.name || id };
           } catch {
-            return { id, name: id };
+            return null;
           }
-        }));
+        }))).filter(Boolean);
         const failedBatches = [];
         const snapshots = await Promise.all(Array.from({ length: Math.ceil(ids.length / 10) }, (_, i) =>
           getDocs(query(collection(db, 'users'), where('classIds', 'array-contains-any', ids.slice(i * 10, i * 10 + 10)))).catch(err => {

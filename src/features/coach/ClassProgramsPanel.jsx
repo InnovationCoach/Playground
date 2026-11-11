@@ -4,24 +4,29 @@ import { PROGRAMS, programById } from '../pbl/programs/catalog.js';
 import { LIBRARY_PROGRAMS } from '../pbl/programs/libraryProgramsData.js';
 import { db, collection, getDocs } from '../../firebase.js';
 import { hrefFor } from '../../app/routes.js';
-import { loadClasses, issueCode, revokeCode, setClassProgram, explainError } from './classCodes.js';
+import { loadClasses, loadCohorts, issueCode, revokeCode, setClassProgram, explainError } from './classCodes.js';
 import './classPanel.css';
 
 /**
- * "My classes" on the coach dashboard: which PBL program each class runs and
- * the code learners use to join it. Generate, rotate and revoke all go
+ * "My cohorts & classes" on the coach dashboard: which PBL program each cohort/class runs and
+ * the code learners use to join it. Generate, rotate and revoke for classes go
  * straight to Firestore under the rules in firestore.rules (classCodes).
  */
 export function ClassProgramsPanel({ coachUser }) {
   const classIds = coachUser?.classIds || [];
+  const cohortIds = coachUser?.cohortIds || [];
   const [classes, setClasses] = useState(null);
   const [presenting, setPresenting] = useState(null);
   const [availablePrograms, setAvailablePrograms] = useState(() => PROGRAMS);
 
   const reload = useCallback(async () => {
-    setClasses(await loadClasses(classIds));
+    const [cohorts, classList] = await Promise.all([
+      loadCohorts(cohortIds),
+      loadClasses(classIds)
+    ]);
+    setClasses([...cohorts, ...classList]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classIds.join('|')]);
+  }, [cohortIds.join('|'), classIds.join('|')]);
 
   useEffect(() => { reload(); }, [reload]);
 
@@ -70,16 +75,16 @@ export function ClassProgramsPanel({ coachUser }) {
     <section className="cp-panel" aria-labelledby="cp-title">
       <div className="cp-head">
         <div>
-          <h2 id="cp-title"><Users size={20} aria-hidden="true" />My classes</h2>
-          <p>Choose the PBL program each class runs, and give learners the code to join it.</p>
+          <h2 id="cp-title"><Users size={20} aria-hidden="true" />My cohorts & classes</h2>
+          <p>Choose the PBL program each class runs, and give learners the code to join your cohort or class.</p>
         </div>
         <a className="cp-btn cp-btn-ghost" href={hrefFor.pbl('programs')}><Library size={16} aria-hidden="true" />Program library</a>
       </div>
 
       {classes === null ? (
-        <p className="cp-muted" role="status">Loading your classes…</p>
+        <p className="cp-muted" role="status">Loading your cohorts & classes…</p>
       ) : classes.length === 0 ? (
-        <p className="cp-muted">You have no classes assigned yet. Ask an administrator to add you to a class.</p>
+        <p className="cp-muted">You have no cohorts or classes assigned yet.</p>
       ) : (
         <ul className="cp-list">
           {classes.map((c) => (
@@ -152,7 +157,12 @@ function ClassRow({ cls, uid, availablePrograms = PROGRAMS, onChange, onPresent 
         <strong>{cls.name}</strong>
         <label className="cp-field">
           <span>PBL program</span>
-          <select value={cls.programId || ''} disabled={busy === 'program'} onChange={(e) => chooseProgram(e.target.value)}>
+          <select
+            value={cls.programId || ''}
+            disabled={cls.isCohort || busy === 'program'}
+            onChange={(e) => chooseProgram(e.target.value)}
+            title={cls.isCohort ? 'Cohort programs are assigned by school administration' : undefined}
+          >
             <option value="">No program yet</option>
             {availablePrograms.map((p) => (
               <option key={p.id} value={p.id}>
@@ -179,18 +189,24 @@ function ClassRow({ cls, uid, availablePrograms = PROGRAMS, onChange, onPresent 
                 {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}{copied ? 'Copied' : 'Copy'}
               </button>
               <button type="button" className="cp-btn" onClick={onPresent}><Presentation size={15} aria-hidden="true" />Show to class</button>
-              <button type="button" className="cp-btn" disabled={!!busy} onClick={() => setConfirm('rotate')}><RefreshCw size={15} aria-hidden="true" />New code</button>
-              <button type="button" className="cp-btn cp-btn-danger" disabled={!!busy} onClick={() => setConfirm('revoke')}><Ban size={15} aria-hidden="true" />Revoke</button>
+              {!cls.isCohort && (
+                <>
+                  <button type="button" className="cp-btn" disabled={!!busy} onClick={() => setConfirm('rotate')}><RefreshCw size={15} aria-hidden="true" />New code</button>
+                  <button type="button" className="cp-btn cp-btn-danger" disabled={!!busy} onClick={() => setConfirm('revoke')}><Ban size={15} aria-hidden="true" />Revoke</button>
+                </>
+              )}
             </div>
           </>
         ) : (
           <>
-            <span className="cp-muted">No code - learners cannot join this class.</span>
-            <div className="cp-actions">
-              <button type="button" className="cp-btn cp-btn-primary" disabled={!!busy} onClick={generate}>
-                <KeyRound size={15} aria-hidden="true" />{busy === 'code' ? 'Generating…' : 'Generate code'}
-              </button>
-            </div>
+            <span className="cp-muted">{cls.isCohort ? 'No code assigned to this cohort.' : 'No code - learners cannot join this class.'}</span>
+            {!cls.isCohort && (
+              <div className="cp-actions">
+                <button type="button" className="cp-btn cp-btn-primary" disabled={!!busy} onClick={generate}>
+                  <KeyRound size={15} aria-hidden="true" />{busy === 'code' ? 'Generating…' : 'Generate code'}
+                </button>
+              </div>
+            )}
           </>
         )}
 
@@ -233,7 +249,7 @@ function PresentCode({ cls, onClose }) {
       <p className="cp-present-code">{cls.joinCode || 'No code'}</p>
       <ol className="cp-present-steps">
         <li>Sign in to WeLearn SPARK (new? type the code when you sign up)</li>
-        <li>On Home, find <strong>Join your class</strong></li>
+        <li>On Home, find <strong>{cls.isCohort ? 'Join your cohort' : 'Join your class'}</strong></li>
         <li>Type the code - capitals and the dash are optional</li>
       </ol>
     </div>

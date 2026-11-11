@@ -26,13 +26,14 @@ function secureRandomInt(n) {
 
 const exists = (snap) => (typeof snap?.exists === 'function' ? snap.exists() : !!snap?.exists);
 
-/** The coach's classes, in claim order. A class that cannot be read is reported, not dropped. */
+/** The coach's active classes, in claim order. Archived or missing classes are excluded. */
 export async function loadClasses(classIds) {
-  return Promise.all((classIds || []).map(async (id) => {
+  const results = await Promise.all((classIds || []).map(async (id) => {
     try {
       const snap = await getDoc(doc(db, 'classes', id));
-      if (!exists(snap)) return { id, missing: true };
+      if (!exists(snap)) return null;
       const d = snap.data() || {};
+      if (d.status === 'archived' || d.status === 'hidden') return null;
       return {
         id, name: d.name || id, joinCode: d.joinCode || null, programId: d.programId || null,
         programMedia: Array.isArray(d.programMedia) ? d.programMedia : [],
@@ -40,9 +41,47 @@ export async function loadClasses(classIds) {
       };
     } catch (err) {
       console.warn('[Coach] Could not read class', id, err?.code || err?.message);
-      return { id, error: true };
+      return null;
     }
   }));
+  return results.filter(Boolean);
+}
+
+/**
+ * Load secondary programme cohorts (WLS, WHS).
+ * Reads the cohort documents from Firestore so the coach can view the cohort join code
+ * and assigned PBL program.
+ */
+export async function loadCohorts(cohortIds) {
+  const ids = Array.isArray(cohortIds) && cohortIds.length > 0
+    ? cohortIds
+    : ['cohort-wls', 'cohort-whs'];
+
+  const results = await Promise.all(ids.map(async (id) => {
+    try {
+      const snap = await getDoc(doc(db, 'cohorts', id));
+      if (!exists(snap)) return null;
+      const d = snap.data() || {};
+      if (d.status === 'hidden' || d.status === 'archived') return null;
+      const rawName = d.name;
+      const nameStr = typeof rawName === 'object' ? (rawName?.en || id) : (rawName || id);
+      const gradeHint = id === 'cohort-wls' ? ' (Grade 6–8)' : id === 'cohort-whs' ? ' (Grade 9–12)' : '';
+      return {
+        id,
+        name: `${nameStr}${gradeHint}`,
+        isCohort: true,
+        joinCode: d.joinCode || null,
+        programId: d.programId || null,
+        programMedia: Array.isArray(d.programMedia) ? d.programMedia : [],
+        programCovers: d.programCovers && typeof d.programCovers === 'object' ? d.programCovers : {}
+      };
+    } catch (err) {
+      console.warn('[Coach] Could not read cohort', id, err?.code || err?.message);
+      return null;
+    }
+  }));
+
+  return results.filter(Boolean);
 }
 
 /**
