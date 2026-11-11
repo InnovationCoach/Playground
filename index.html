@@ -76,8 +76,11 @@
     :root[data-theme="light"] .dashboard-welcome-hero { background: linear-gradient(115deg, #f0e8f7 0%, #e9f4ff 60%, #ffffff 100%); color: #003c69; border-color: #e2d3ef; box-shadow: 0 8px 24px -16px rgba(0, 60, 105, 0.25); }
     :root[data-theme="light"] .dashboard-welcome-hero p { color: #4a5d70; }
     :root[data-theme="light"] .activity-card-modern, :root[data-theme="light"] .home-hero, :root[data-theme="light"] .hero { background: #ffffff; border-color: #dadce6; }
-    :root[data-theme="light"] .home-hero h2, :root[data-theme="light"] .mission-title { color: #003c69; }
+    :root[data-theme="light"] .home-hero h2, :root[data-theme="light"] .mission-title, :root[data-theme="light"] .hero-text h2 { color: #003c69; }
+    :root[data-theme="light"] .home-hero h2 span { color: #6b3f86; }
+    :root[data-theme="light"] .brand-title { color: #003c69; }
     :root[data-theme="light"] .mission-features li, :root[data-theme="light"] .instruct-box p { color: #4a5d70; }
+    :root[data-theme="light"] .btn-ai-rec { background: #e0e7ff !important; color: #3730a3 !important; border-color: #6366f1 !important; }
     :root[data-theme="light"] .mission-card:hover { box-shadow: 0 12px 30px rgba(0, 60, 105, 0.15); }
     :root[data-theme="light"] select, :root[data-theme="light"] input[type="text"], :root[data-theme="light"] textarea.input-box, :root[data-theme="light"] input[type="number"] { background: #ffffff; }
     :root[data-theme="light"] .stat-box, :root[data-theme="light"] .mode-toggle-bar, :root[data-theme="light"] .mod-btn, :root[data-theme="light"] .instruct-box, :root[data-theme="light"] .simulator-card { background: #f7f8fb; }
@@ -639,7 +642,7 @@
             <button class="btn" onclick="openActivitySelectionModal()" style="background: var(--python-yellow); color: #000; font-size: 0.9rem; font-weight: 800; border-radius: 9999px; padding: 0.55rem 1.2rem;">
               ⚙️ Manage My Activities
             </button>
-            <button class="btn" onclick="askAiTutorQuick('Recommend which activity I should start first based on STEM progression')" style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe; border: 1px solid #6366f1; font-size: 0.85rem; font-weight: 700; border-radius: 9999px; padding: 0.45rem 1rem;">
+            <button class="btn btn-ai-rec" onclick="askAiTutorQuick('Recommend which activity I should start first based on STEM progression')" style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe; border: 1px solid #6366f1; font-size: 0.85rem; font-weight: 700; border-radius: 9999px; padding: 0.45rem 1rem;">
               🤖 AI Recommendation
             </button>
           </div>

@@ -326,6 +326,17 @@
   box-shadow: 0 4px 14px rgba(17, 24, 39, 0.25);
 }
 
+[data-theme="dark"] .gl-tabs {
+  background: var(--gh-surface, #1a1e27);
+  border-color: var(--gh-border, #3a4452);
+}
+
+[data-theme="dark"] .gl-tab.is-active {
+  background: var(--gh-purple, #8250a0);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(130, 80, 160, 0.45);
+}
+
 .gl-tab-badge {
   display: inline-block;
   padding: 0.15rem 0.5rem;
