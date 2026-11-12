@@ -36,7 +36,8 @@ export class SparkTutorEngine {
     userMessage,
     recentTurns = [],
     approvedResources = [],
-    assessmentRestricted = false
+    assessmentRestricted = false,
+    maxAssistanceLevel = null
   }) {
     const rawMessage = String(userMessage || '').trim();
 
@@ -55,6 +56,16 @@ export class SparkTutorEngine {
 
     // 2. Prompt Injection Defense
     const isInjectionAttempt = detectPromptInjection(rawMessage);
+    if (isInjectionAttempt) {
+      return {
+        reply: "I'm here to help you understand concepts and guide your learning. Let's focus on the topic we're working on together.",
+        assistanceLevel: session.assistanceLevel,
+        promptInjectionDetected: true,
+        transitionReason: 'PROMPT_INJECTION_DEFENSE',
+        suggestedActions: ['Continue current lesson', 'Ask a project question'],
+        detourOffer: null
+      };
+    }
     const sanitizedStudentMessage = wrapStudentInput(rawMessage);
 
     // 3. Check for Prerequisite Gaps & Detour Triggers
@@ -65,13 +76,14 @@ export class SparkTutorEngine {
 
     const shouldOfferRatiosDetour = session.mode === 'pbl_mentor' && !session.activeDetour && isMarsSolarProblem && strugglesWithRatios;
 
-    // 4. Resolve Assistance Ladder Transition
+    // 4. Resolve Assistance Ladder Transition (clamped to maxAssistanceLevel BEFORE response generation)
     const assistanceTransition = resolveAssistanceTransition({
       currentLevel: session.assistanceLevel,
       consecutiveFailures: session.consecutiveFailures || 0,
       studentMessage: rawMessage,
       assessmentRestricted,
-      prerequisiteMissing: shouldOfferRatiosDetour
+      prerequisiteMissing: shouldOfferRatiosDetour,
+      maxAssistanceLevel
     });
 
     const activeLevel = assistanceTransition.assistanceLevel;

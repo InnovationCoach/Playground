@@ -7,6 +7,24 @@ import { wrapStudentInput } from '../../safety.js';
 export const SAFEGUARDING_REFERRAL_MESSAGE =
   "That sounds really important. Please talk to your coach, teacher, or another adult you trust right now.";
 
+export const SAFEGUARDING_PATTERNS = [
+  {
+    // Self-harm & suicide ideation (excludes academic/literary study and casual slang with lol/haha)
+    pattern: /\b(kill myself|commit(ting)? suicide|attempt(ed|ing)? suicide|suicidal thoughts|feeling suicidal|(i am|i'm) suicidal|end my life|want to die|hurt myself|cut(ting)? myself|cut(ting)? my wrist|slit my wrist|take my own life|\bkms\b|hang myself|overdose|overdosed|overdosing|(going to|want to|ready to|plan to) end it all(?!.*?\b(lol|lmao|haha|jk|rofl|xd)\b)|rather be dead|better off dead|no reason to live|don'?t want to live|self-harm|self harm|bleed out|want to disappear forever)\b/i,
+    reason: 'SELF_HARM'
+  },
+  {
+    // Physical, sexual, and domestic abuse (excludes gaming/sports/metaphorical "beats me at chess")
+    pattern: /\b(being abused|touches me inappropriately|touches my private|hits me at home|abused by|abusing me|sexual(ly)? abuse[d]?|physical(ly)? abuse[d]?|domestic violence|beaten at home|beats me up|(mom|dad|father|mother|stepdad|stepmom|uncle|guardian|partner|boyfriend|husband) beats me(?!.*?\b(at|in)\s+(chess|tennis|game|cards|checkers|sports|fifa)\b)|hurts me at home)\b/i,
+    reason: 'ABUSE'
+  },
+  {
+    // Immediate danger, trafficking, abduction, threats
+    pattern: /\b((i am|i'm|my life is)\s+in danger\b|in immediate danger\b|someone is hurting me\b|scared to go home\b|forced (into sex|to touch|marriage|labo[u]?r)\b|forcing me to touch\b|traffick(ed|ing)\b|threatened to kill me\b|threatened to hurt me\b|stalking me\b|kidnapped\b)/i,
+    reason: 'IMMEDIATE_DANGER'
+  }
+];
+
 /**
  * Checks for safeguarding triggers (self-harm, abuse, immediate danger).
  */
@@ -14,13 +32,7 @@ export function checkSafeguarding(text) {
   if (!text || typeof text !== 'string') return { flagged: false, reason: null };
   const lower = text.toLowerCase();
 
-  const patterns = [
-    { pattern: /\b(kill myself|commit suicide|end my life|want to die|hurt myself)\b/, reason: 'SELF_HARM' },
-    { pattern: /\b(being abused|touches me|hits me at home|abused by)\b/, reason: 'ABUSE' },
-    { pattern: /\b(in danger|someone is hurting me|scared to go home)\b/, reason: 'IMMEDIATE_DANGER' }
-  ];
-
-  for (const { pattern, reason } of patterns) {
+  for (const { pattern, reason } of SAFEGUARDING_PATTERNS) {
     if (pattern.test(lower)) {
       return { flagged: true, reason };
     }

@@ -181,7 +181,10 @@ export async function recordSessionTurn({
   replyText,
   assistanceLevel,
   detourState = null,
-  clientTurnId = null
+  clientTurnId = null,
+  blocked = false,
+  flagged = false,
+  flaggedReason = null
 }) {
   const schoolId = session.schoolId;
   if (!schoolId) {
@@ -215,6 +218,9 @@ export async function recordSessionTurn({
     assistanceLevel,
     mode: session.mode,
     activeDetourId: detourState?.detourId || null,
+    blocked: Boolean(blocked),
+    flagged: Boolean(flagged),
+    flaggedReason: flaggedReason || null,
     createdAt: now
   };
 
@@ -225,7 +231,9 @@ export async function recordSessionTurn({
     uid: session.learnerUid,
     prompt: userMessage,
     reply: replyText,
-    blocked: false,
+    blocked: Boolean(blocked),
+    flagged: Boolean(flagged),
+    blockReason: flaggedReason || (blocked ? 'safeguarding' : undefined),
     endpoint: `spark-tutor:${session.mode}`,
     ageBand: session.ageBand
   });
@@ -282,7 +290,7 @@ export async function getSessionEvidence(sessionId, schoolId) {
 /**
  * Creates an authorized coach support request ("Ask my coach").
  */
-export async function createSparkSupportRequest({ session, caller, question, reason = 'LEARNER_INITIATED' }) {
+export async function createSparkSupportRequest({ session, caller, question, reason = 'LEARNER_INITIATED', priority = 'normal' }) {
   const schoolId = session.schoolId;
   if (!schoolId) {
     fail(500, 'STATE_ERROR', 'Session document is missing verified schoolId.');
@@ -292,6 +300,7 @@ export async function createSparkSupportRequest({ session, caller, question, rea
   const now = new Date().toISOString();
 
   const requestId = `sup_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const isSafeguarding = reason === 'SAFEGUARDING';
 
   const requestDoc = {
     id: requestId,
@@ -300,7 +309,8 @@ export async function createSparkSupportRequest({ session, caller, question, rea
     learnerName: caller.name || session.displayName || 'Learner',
     classId: session.classId,
     sessionId: session.sessionId,
-    category: 'academic',
+    category: isSafeguarding ? 'safeguarding' : 'academic',
+    priority: isSafeguarding ? 'urgent' : priority,
     topic: session.activeDetour ? session.activeDetour.topic : (session.projectContext?.projectId || 'General'),
     question: String(question || '').slice(0, 500) || 'Learner requested coach assistance during Spark tutoring.',
     assistanceLevelUsed: session.assistanceLevel,
@@ -321,6 +331,9 @@ export async function createSparkSupportRequest({ session, caller, question, rea
   session.supportDetails = {
     id: requestId,
     status: 'pending',
+    reason,
+    priority: requestDoc.priority,
+    category: requestDoc.category,
     question: requestDoc.question,
     requestedAt: now
   };
@@ -403,6 +416,10 @@ export async function getCoachSummariesForCaller(caller) {
  * School-wide assessmentLock cannot be bypassed by any class setting.
  */
 export async function getTutoringSettings(schoolId, scopeId = 'default') {
+  if (!validId(scopeId)) {
+    fail(400, 'VALIDATION', `Invalid scopeId '${scopeId}'.`);
+  }
+
   const db = getDb();
   const defaultDoc = await db.collection('schools').doc(schoolId)
     .collection('tutoringSettings').doc('default')
@@ -439,6 +456,10 @@ export async function getTutoringSettings(schoolId, scopeId = 'default') {
 }
 
 export async function updateTutoringSettings(schoolId, scopeId = 'default', updates = {}, caller) {
+  if (!validId(scopeId)) {
+    fail(400, 'VALIDATION', `Invalid scopeId '${scopeId}'.`);
+  }
+
   // Authorization check:
   // Only admins can modify school-wide default settings
   if (scopeId === 'default' && caller.role !== 'admin') {
@@ -453,25 +474,59 @@ export async function updateTutoringSettings(schoolId, scopeId = 'default', upda
     }
   }
 
+  // Validate allowedModes if supplied
+  const KNOWN_MODES = ['pbl_mentor', 'academic_tutor'];
+  if (updates.allowedModes !== undefined) {
+    if (!Array.isArray(updates.allowedModes) || updates.allowedModes.length === 0) {
+      fail(400, 'VALIDATION', 'allowedModes must be a non-empty array.');
+    }
+    for (const m of updates.allowedModes) {
+      if (!KNOWN_MODES.includes(m)) {
+        fail(400, 'VALIDATION', `allowedModes contains invalid mode '${m}'. Must be one of: ${KNOWN_MODES.join(', ')}.`);
+      }
+    }
+  }
+
+  // Validate maxAssistanceLevel if supplied
+  const VALID_LEVELS = ['elicit', 'hint', 'scaffold', 'analogous_example', 'guided_application'];
+  if (updates.maxAssistanceLevel !== undefined && !VALID_LEVELS.includes(updates.maxAssistanceLevel)) {
+    fail(400, 'VALIDATION', `Invalid maxAssistanceLevel '${updates.maxAssistanceLevel}'. Must be one of: ${VALID_LEVELS.join(', ')}.`);
+  }
+
+  // Validate disabledTopics if supplied
+  if (updates.disabledTopics !== undefined) {
+    if (!Array.isArray(updates.disabledTopics)) {
+      fail(400, 'VALIDATION', 'disabledTopics must be an array.');
+    }
+    if (updates.disabledTopics.length > 50) {
+      fail(400, 'VALIDATION', 'disabledTopics cannot exceed 50 items.');
+    }
+    for (const t of updates.disabledTopics) {
+      if (typeof t !== 'string' || t.length > 100) {
+        fail(400, 'VALIDATION', 'Each disabledTopic must be a string of at most 100 characters.');
+      }
+    }
+  }
+
   const db = getDb();
   const now = new Date().toISOString();
 
-  const validLevels = ['elicit', 'hint', 'scaffold', 'analogous_example', 'guided_application'];
   const sanitized = {
     scopeId,
-    allowedModes: Array.isArray(updates.allowedModes) ? updates.allowedModes : ['pbl_mentor', 'academic_tutor'],
-    maxAssistanceLevel: validLevels.includes(updates.maxAssistanceLevel) ? updates.maxAssistanceLevel : 'guided_application',
-    assessmentLock: Boolean(updates.assessmentLock),
-    disabledTopics: Array.isArray(updates.disabledTopics) ? updates.disabledTopics : [],
     updatedBy: caller.uid,
     updatedAt: now
   };
+
+  if (updates.allowedModes !== undefined) sanitized.allowedModes = updates.allowedModes;
+  if (updates.maxAssistanceLevel !== undefined) sanitized.maxAssistanceLevel = updates.maxAssistanceLevel;
+  if (updates.assessmentLock !== undefined) sanitized.assessmentLock = Boolean(updates.assessmentLock);
+  if (updates.disabledTopics !== undefined) sanitized.disabledTopics = updates.disabledTopics;
 
   await db.collection('schools').doc(schoolId)
     .collection('tutoringSettings').doc(scopeId)
     .set(sanitized, { merge: true });
 
-  return sanitized;
+  return await getTutoringSettings(schoolId, scopeId);
 }
 
 /**
