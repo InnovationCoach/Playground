@@ -4,10 +4,9 @@ import { SparkWordmark } from '../spark/SparkMark.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { LOCALES } from '../../app/i18n/messages.js';
 import { LOGO_URL } from '../../app/brand.js';
-import { signUpUser, signInUser, signInWithMicrosoft, logoutUser, getUserProfile, AGE_BANDS, DEFAULT_AGE_BAND } from '../../auth.js';
+import { signUpUser, signInUser, signInWithMicrosoft, logoutUser, AGE_BANDS, DEFAULT_AGE_BAND } from '../../auth.js';
 import { joinClassWithCode, JOIN_RESULT } from '../enrolment/joinClass.js';
 import { PasswordResetPanel } from './PasswordResetPanel.jsx';
-import { RequestAccessModal } from './RequestAccessModal.jsx';
 import { Alert, Field } from '../admin/ui/bits.jsx';
 import '../admin/admin.css';
 
@@ -32,7 +31,6 @@ export function LoginPage({ initialError, onBackToLanding }) {
   const [busy, setBusy] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [showPw, setShowPw] = useState(false);
-  const [accessRequestUser, setAccessRequestUser] = useState(null);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const isSignUp = mode === 'signup';
@@ -67,11 +65,8 @@ export function LoginPage({ initialError, onBackToLanding }) {
         return;
       }
 
-      // Check user profile for pending approval or first time
-      const profile = await getUserProfile(result.user.uid, result.user.email);
-      if (!profile || profile.status === 'pending' || profile.status === 'rejected') {
-        setAccessRequestUser(result.user);
-      }
+      // AuthProvider decides what happens next: an approved account opens Spark, anything else
+      // is limited to requesting access.
     } catch (err) {
       setAlert({ type: 'error', text: friendlyAuthError(err?.message, t) });
     } finally {
@@ -358,10 +353,6 @@ export function LoginPage({ initialError, onBackToLanding }) {
                 </span>
                 <div style={{ flex: 1, height: '1px', background: 'var(--gh-border, #e2e8f0)' }} />
               </div>
-
-              {accessRequestUser && (
-                <RequestAccessModal user={accessRequestUser} onClose={() => setAccessRequestUser(null)} />
-              )}
 
               <form onSubmit={onSubmit} className="gh-auth-form" noValidate={false}>
                 {alert && <Alert type={alert.type}>{alert.text}</Alert>}

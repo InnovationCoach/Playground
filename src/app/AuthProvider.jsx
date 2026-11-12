@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { subscribeToAuth, getUserProfile, logoutUser } from '../auth.js';
+import { subscribeToAuth, getUserProfile, logoutUser, isMicrosoftOnlyUser } from '../auth.js';
 import { getDevStoredUser } from '../firebase.js';
 import { startTimeTracking, stopTimeTracking } from '../utils/timeTracker.js';
 import { purgeUnscopedUserData, purgeUserDataFor } from '../utils/deviceData.js';
@@ -91,6 +91,15 @@ export function AuthProvider({ children, onThemeLoaded }) {
         setState({
           status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null,
           error: 'Could not load your profile. Please sign in again.'
+        });
+        return;
+      }
+
+      // A Microsoft-only session is usable only once the profile is approved and carries the
+      // identity the server verified. Until then it can do nothing but request access.
+      if (isMicrosoftOnlyUser(user) && !(profile.status === 'active' && profile.microsoftIdentity?.oid)) {
+        setState({
+          status: 'access-pending', user, profile: null, role: null, classIds: [], orgId: null, error: null
         });
         return;
       }

@@ -6,162 +6,84 @@ import { sendError } from '../lib/errors.js';
 import {
   submitOrGetAccessRequest,
   reviewAccessRequest,
-  validateMicrosoftIdentity,
-  verifyAccountLinking,
-  MANI_ADMIN_EMAIL
+  verifyMicrosoftIdToken,
+  completeMicrosoftLink,
+  isSsoApprover,
+  SsoError
 } from '../lib/microsoft-sso-auth.js';
 
 const router = Router();
 
+function fail(res, err, fallbackCode) {
+  if (err instanceof SsoError) return sendError(res, err.status, err.code, err.message);
+  console.error('[sso]', err);
+  return sendError(res, 500, fallbackCode, 'Something went wrong. Please try again.');
+}
+
 /**
  * First-time user submits an access request after signing in with Microsoft 365.
- * Idempotent: repeated submissions return the existing pending/reviewed record.
+ * The body must carry the Microsoft ID token, which is verified against the approved tenant.
+ * Idempotent: repeated submissions return the existing record.
  */
 router.post('/auth/access-request', requireClaims, async (req, res) => {
-  const db = getFirestore();
-  const callerToken = req.caller?.signedClaims;
-
-  if (!callerToken) {
-    return sendError(res, 401, 'UNAUTHENTICATED', 'Valid session token required.');
-  }
-
   try {
-    const { givenNames = '', surname = '', requestedRole = 'student', reason = '' } = req.body || {};
-    const result = await submitOrGetAccessRequest(db, callerToken, {
-      givenNames,
-      surname,
-      requestedRole,
-      reason
-    });
-
-    return res.status(result.isNew ? 201 : 200).json({
-      ok: true,
-      isNew: result.isNew,
-      duplicate: result.duplicate,
-      request: result.request
-    });
+    const { microsoftIdToken, givenNames = '', surname = '', requestedRole = 'student', reason = '' } = req.body || {};
+    const verified = await verifyMicrosoftIdToken(microsoftIdToken);
+    const result = await submitOrGetAccessRequest(getFirestore(), req.caller.signedClaims, { givenNames, surname, requestedRole, reason }, verified);
+    return res.status(result.isNew ? 201 : 200).json({ ok: true, isNew: result.isNew, duplicate: result.duplicate, request: result.request });
   } catch (err) {
-    const status = err.status || 400;
-    const code = err.code || 'VALIDATION';
-    return sendError(res, status, code, err.message);
+    return fail(res, err, 'VALIDATION');
   }
 });
 
-/**
- * Current user checks their own access request status.
- * Accessible even when the account status is 'pending' or 'rejected'.
- */
+/** The caller's own request status. Reachable while the account is pending or rejected. */
 router.get('/auth/access-request/me', requireClaims, async (req, res) => {
-  const db = getFirestore();
-  const uid = req.caller.uid;
-
   try {
-    const docSnap = await db.collection('accessRequests').doc(`req_${uid}`).get();
-    if (!docSnap.exists) {
-      return res.json({
-        ok: true,
-        hasRequest: false,
-        request: null
-      });
-    }
-
-    return res.json({
-      ok: true,
-      hasRequest: true,
-      request: docSnap.data()
-    });
+    const snap = await getFirestore().collection('accessRequests').doc(`req_${req.caller.uid}`).get();
+    return res.json({ ok: true, hasRequest: snap.exists, request: snap.exists ? snap.data() : null });
   } catch (err) {
-    return sendError(res, 500, 'INTERNAL', err.message);
+    return fail(res, err, 'INTERNAL');
   }
 });
 
 /**
- * Verify and record account linking from password account to Microsoft 365.
+ * An existing Spark account finishes linking Microsoft 365 after the client attached the provider.
+ * Requires an administrator registration for this account; see completeMicrosoftLink.
  */
-router.post('/auth/verify-linking', requireClaims, async (req, res) => {
-  const db = getFirestore();
-  const auth = getAuth();
-  const uid = req.caller.uid;
-
+router.post('/auth/link-microsoft', requireClaims, async (req, res) => {
   try {
-    const authUser = await auth.getUser(uid);
-    const existingProfile = req.callerUserData || {};
-    const existingClaims = req.caller.signedClaims || {};
-
-    const check = verifyAccountLinking(existingProfile, existingClaims, authUser);
-    if (!check.valid) {
-      return sendError(res, 400, 'LINKING_FAILED', check.error);
-    }
-
-    return res.json({
-      ok: true,
-      linked: true,
-      uid: check.uid,
-      email: check.email
-    });
+    const verified = await verifyMicrosoftIdToken((req.body || {}).microsoftIdToken);
+    const result = await completeMicrosoftLink(getFirestore(), getAuth(), req.caller.signedClaims, verified);
+    return res.json({ ok: true, linked: true, ...result });
   } catch (err) {
-    return sendError(res, 500, 'INTERNAL', err.message);
+    return fail(res, err, 'LINKING_FAILED');
   }
 });
 
-/**
- * List all access requests for administrative review.
- * Bound strictly to Mani (mani@welearn.org) with admin role.
- */
+/** Pending and decided requests, for the designated approver only. */
 router.get('/admin/access-requests', requireClaims, async (req, res) => {
-  const caller = req.caller;
-  if (!caller || caller.email?.toLowerCase() !== MANI_ADMIN_EMAIL || caller.role !== 'admin') {
-    return sendError(res, 403, 'FORBIDDEN', 'Only Mani (Platform Lead, Platform Admin) may review access requests.');
+  if (!isSsoApprover(req.caller)) {
+    return sendError(res, 403, 'FORBIDDEN', 'Only a designated Spark administrator may review access requests.');
   }
-
-  const db = getFirestore();
-  const statusFilter = req.query.status || 'pending'; // 'pending' | 'approved' | 'rejected' | 'all'
-
   try {
-    let query = db.collection('accessRequests');
-    if (statusFilter !== 'all') {
-      query = query.where('status', '==', statusFilter);
-    }
-
+    const status = req.query.status || 'pending';
+    let query = getFirestore().collection('accessRequests');
+    if (status !== 'all') query = query.where('status', '==', status);
     const snap = await query.get();
-    const requests = snap.docs.map((d) => d.data());
-    return res.json({
-      ok: true,
-      total: requests.length,
-      items: requests
-    });
+    const items = snap.docs.map((d) => d.data());
+    return res.json({ ok: true, total: items.length, items });
   } catch (err) {
-    return sendError(res, 500, 'INTERNAL', err.message);
+    return fail(res, err, 'INTERNAL');
   }
 });
 
-/**
- * Approve or reject an access request.
- * Bound strictly to Mani (mani@welearn.org) with admin role.
- */
 router.post('/admin/access-requests/:id/review', requireClaims, async (req, res) => {
-  const caller = req.caller;
-  const requestId = req.params.id;
   const { decision, assignedRole = 'student', rejectionReason = '' } = req.body || {};
-
-  const db = getFirestore();
-  const auth = getAuth();
-
   try {
-    const result = await reviewAccessRequest(db, auth, caller, requestId, {
-      decision,
-      assignedRole,
-      rejectionReason
-    });
-
-    return res.json({
-      ok: true,
-      ...result
-    });
+    const result = await reviewAccessRequest(getFirestore(), getAuth(), req.caller, req.params.id, { decision, assignedRole, rejectionReason });
+    return res.json({ ok: true, ...result });
   } catch (err) {
-    const status = err.status || 400;
-    const code = err.code || 'REVIEW_FAILED';
-    return sendError(res, status, code, err.message);
+    return fail(res, err, 'REVIEW_FAILED');
   }
 });
 

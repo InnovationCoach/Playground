@@ -468,7 +468,42 @@ describe('API: Admin Users Management', () => {
       const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
       const res = await env.request('GET', '/api/admin/users/student_bkk', { token });
       expect(res.status).toBe(200);
-      expect(res.body.auth.microsoft).toEqual({ linked: false, email: null, subject: null });
+      expect(res.body.auth.microsoft).toMatchObject({ linked: false, verified: false, email: null, registeredUpn: null });
+    });
+  });
+
+  describe('Microsoft account registration (admin-managed linking)', () => {
+    const adminToken = () => env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+
+    it('registers an official address for an existing profile and shows it on the record', async () => {
+      const res = await env.request('POST', '/api/admin/users/student_bkk/microsoft-link', { token: await adminToken(), body: { upn: 'Student.Bkk@WeLearn.org' } });
+      expect(res.status).toBe(200);
+      expect(res.body.auth.microsoft).toMatchObject({ linked: false, verified: false, registeredUpn: 'student.bkk@welearn.org' });
+      expect((await env.db.collection('msLinkExpectations').doc('student_bkk').get()).data().upn).toBe('student.bkk@welearn.org');
+      const audit = await env.db.collection('auditLogs').where('subjectUid', '==', 'student_bkk').where('action', '==', 'MICROSOFT_LINK_REGISTERED').get();
+      expect(audit.size).toBe(1);
+    });
+
+    it('rejects addresses outside @welearn.org and unknown accounts', async () => {
+      const token = await adminToken();
+      const bad = await env.request('POST', '/api/admin/users/student_online/microsoft-link', { token, body: { upn: 'someone@gmail.com' } });
+      expect(bad.status).toBe(400);
+      expect(bad.body.error.field).toBe('upn');
+      expect((await env.request('POST', '/api/admin/users/nobody/microsoft-link', { token, body: { upn: 'a@welearn.org' } })).status).toBe(404);
+    });
+
+    it('will not register the same Microsoft account for two different Spark accounts', async () => {
+      const res = await env.request('POST', '/api/admin/users/student_online/microsoft-link', { token: await adminToken(), body: { upn: 'student.bkk@welearn.org' } });
+      expect(res.status).toBe(409);
+      expect((await env.db.collection('msLinkExpectations').doc('student_online').get()).exists).toBe(false);
+    });
+
+    it('is admin only, and an unused registration can be withdrawn', async () => {
+      const sup = await env.getIdToken('sup_bkk', { role: 'supervisor', orgId: 'org-welearn', schoolIds: ['sch-bkk'] });
+      expect((await env.request('POST', '/api/admin/users/student_bkk/microsoft-link', { token: sup, body: { upn: 'x@welearn.org' } })).status).toBe(403);
+      const del = await env.request('DELETE', '/api/admin/users/student_bkk/microsoft-link', { token: await adminToken() });
+      expect(del.status).toBe(200);
+      expect(del.body.auth.microsoft.registeredUpn).toBeNull();
     });
   });
 });

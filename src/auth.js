@@ -91,6 +91,12 @@ export async function getUserProfile(userId, optionalEmail = null) {
     const docExists = typeof docSnap?.exists === 'function' ? docSnap.exists() : !!docSnap?.exists;
     const currentEmail = (optionalEmail || auth.currentUser?.email || "").toLowerCase();
 
+    if (!docExists && isMicrosoftOnlyUser(auth.currentUser)) {
+      // A first-time Microsoft sign-in must not create a profile: access is granted only after an
+      // administrator approves the request, so nothing is written and no role is guessed.
+      return { uid: userId, email: currentEmail, displayName: currentEmail.split("@")[0], role: "student", status: "pending", pendingApproval: true, classIds: [] };
+    }
+
     if (!docExists) {
       // First sign-in for an account whose profile write did not land. Recreate
       // it as a student; rules reject any other role on create anyway.
@@ -145,6 +151,23 @@ export async function signInUser(email, password) {
   }
 }
 
+// The Microsoft OpenID Connect ID token from the last popup, kept in memory only. The server
+// verifies it against the approved tenant; nothing about the tenant is trusted from the browser.
+let microsoftIdToken = null;
+
+function tokenFresh(token) {
+  try {
+    const exp = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).exp;
+    return typeof exp === "number" && exp * 1000 > Date.now() + 60000;
+  } catch { return false; }
+}
+
+/** True when every sign-in method on the account is Microsoft (a first-time Microsoft user). */
+export function isMicrosoftOnlyUser(user) {
+  const providers = (user?.providerData || []).map((p) => p.providerId);
+  return providers.length > 0 && providers.every((id) => id === "microsoft.com");
+}
+
 /**
  * Sign in user with Microsoft 365 OAuth (Single-Tenant WeLearn)
  */
@@ -153,11 +176,24 @@ export async function signInWithMicrosoft() {
     const provider = getMicrosoftOAuthProvider();
     if (!provider) throw new Error("Microsoft sign-in is not initialized.");
     const result = await auth.signInWithPopup(provider);
+    microsoftIdToken = result.credential?.idToken || null;
     return { success: true, user: result.user };
   } catch (error) {
     console.error("[Auth] Error signing in with Microsoft:", error);
     return { success: false, error: error.message, code: error.code };
   }
+}
+
+/** A fresh Microsoft ID token for the server to verify; asks the user to re-confirm if needed. */
+export async function getMicrosoftIdToken() {
+  if (microsoftIdToken && tokenFresh(microsoftIdToken)) return microsoftIdToken;
+  const user = auth.currentUser;
+  const provider = getMicrosoftOAuthProvider();
+  if (!user || !provider) throw new Error("Microsoft sign-in is not available.");
+  const result = await user.reauthenticateWithPopup(provider);
+  microsoftIdToken = result.credential?.idToken || null;
+  if (!microsoftIdToken) throw new Error("Microsoft did not return a sign-in token.");
+  return microsoftIdToken;
 }
 
 /**
@@ -171,7 +207,18 @@ export async function linkWithMicrosoft() {
     const provider = getMicrosoftOAuthProvider();
     if (!provider) throw new Error("Microsoft provider is not initialized.");
     const result = await user.linkWithPopup(provider);
-    return { success: true, user: result.user };
+    microsoftIdToken = result.credential?.idToken || null;
+    if (!microsoftIdToken) throw new Error("Microsoft did not return a sign-in token.");
+    // The provider is attached, but it only counts once the server verifies the identity against
+    // the account an administrator registered.
+    const res = await fetch("/api/auth/link-microsoft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${await result.user.getIdToken(true)}` },
+      body: JSON.stringify({ microsoftIdToken })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, error: data.error?.message || "Linking could not be completed.", code: data.error?.code };
+    return { success: true, user: result.user, upn: data.upn };
   } catch (error) {
     console.error("[Auth] Error linking Microsoft account:", error);
     return { success: false, error: error.message, code: error.code };

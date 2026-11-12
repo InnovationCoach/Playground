@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ShieldCheck, Clock, XCircle, LogOut } from 'lucide-react';
-import { logoutUser } from '../../auth.js';
+import { logoutUser, getMicrosoftIdToken } from '../../auth.js';
 
 export function RequestAccessModal({ user, onClose }) {
   const [loading, setLoading] = useState(true);
@@ -41,13 +41,14 @@ export function RequestAccessModal({ user, onClose }) {
     setError(null);
     try {
       const token = await user.getIdToken();
+      const microsoftIdToken = await getMicrosoftIdToken();
       const res = await fetch('/api/auth/access-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(form)
+        body: JSON.stringify({ ...form, microsoftIdToken })
       });
       const data = await res.json();
       if (!res.ok) {

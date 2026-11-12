@@ -5,6 +5,7 @@ import { requireClaims } from '../middleware/auth.js';
 import { sendError } from '../lib/errors.js';
 import { paginateArray } from '../lib/pagination.js';
 import { generateUniquePublicId } from '../lib/publicId.js';
+import { registerExpectedMicrosoftLink, SsoError } from '../lib/microsoft-sso-auth.js';
 import { writeAuditLog } from '../lib/audit.js';
 import { isEmailConfigured, sendEmail } from '../lib/email.js';
 import {
@@ -74,6 +75,7 @@ function microsoftLink(authUser) {
 
 async function buildFullRecord(db, user, callerRole) {
   const authUser = await getAuth().getUser(user.uid).catch(() => null);
+  const expectationSnap = await db.collection('msLinkExpectations').doc(user.uid).get();
   const links = await buildLinkSummaries(db, user);
 
   const record = {
@@ -102,7 +104,12 @@ async function buildFullRecord(db, user, callerRole) {
       createdAt: authUser?.metadata?.creationTime || user.createdAt || null,
       disabled: authUser ? authUser.disabled : (user.status === 'suspended'),
       providers: (authUser?.providerData || []).map((p) => p.providerId),
-      microsoft: microsoftLink(authUser)
+      microsoft: {
+        ...microsoftLink(authUser),
+        verified: Boolean(user.microsoftIdentity?.oid),
+        upn: user.microsoftIdentity?.upn || null,
+        registeredUpn: expectationSnap.exists ? expectationSnap.data().upn : null
+      }
     },
     counts: {
       classes: (user.classIds || []).length,
@@ -1129,6 +1136,31 @@ router.post('/:uid/assign-public-id', requireClaims, requireAdmin, async (req, r
   const updatedSnap = await userRef.get();
   const record = await buildFullRecord(db, updatedSnap.data(), req.caller.role);
   return res.json(record);
+});
+
+// POST /api/admin/users/:uid/microsoft-link
+// Registers the official Microsoft 365 account this profile will link to. The learner (or staff
+// member) then links from Settings; the server finalizes only if the verified identity matches.
+router.post('/:uid/microsoft-link', requireClaims, requireAdmin, async (req, res) => {
+  const db = getFirestore();
+  try {
+    await registerExpectedMicrosoftLink(db, req.caller, req.params.uid, req.body?.upn);
+  } catch (err) {
+    if (err instanceof SsoError) return sendError(res, err.status, err.code, err.message, err.code === 'VALIDATION' ? 'upn' : undefined);
+    throw err;
+  }
+  const snap = await db.collection('users').doc(req.params.uid).get();
+  return res.json(await buildFullRecord(db, snap.data(), req.caller.role));
+});
+
+// DELETE /api/admin/users/:uid/microsoft-link  (withdraw a registration that was not used)
+router.delete('/:uid/microsoft-link', requireClaims, requireAdmin, async (req, res) => {
+  const db = getFirestore();
+  const snap = await db.collection('users').doc(req.params.uid).get();
+  if (!snap.exists) return sendError(res, 404, 'NOT_FOUND', 'No such account.');
+  await db.collection('msLinkExpectations').doc(req.params.uid).delete();
+  await writeAuditLog(db, { caller: req.caller, subjectUid: req.params.uid, action: 'MICROSOFT_LINK_WITHDRAWN', summary: 'Microsoft 365 registration withdrawn' });
+  return res.json(await buildFullRecord(db, snap.data(), req.caller.role));
 });
 
 // GET /api/admin/users/:uid/history

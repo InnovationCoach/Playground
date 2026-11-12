@@ -7,7 +7,7 @@ import { useLocale } from '../../../app/i18n/LocaleProvider.jsx';
 import { STAFF_ROLES } from '../../../app/roles.js';
 import {
   getUser, getUserHistory, setUserRole, suspendUser, unsuspendUser, resendActivation,
-  changeUserEmail, assignPublicId, issueParentInvite, revokeParentLink, createParentLink, setUserPassword, listUsers
+  changeUserEmail, assignPublicId, registerMicrosoftLink, withdrawMicrosoftLink, issueParentInvite, revokeParentLink, createParentLink, setUserPassword, listUsers
 } from '../../../services/api/endpoints.js';
 import { describeApiError } from '../../../services/api/apiClient.js';
 import { useAsync } from '../ui/useAsync.js';
@@ -90,10 +90,10 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
                 : <span className="gh-muted">{t('account.sparkId.none')}</span>}</span>
               <span><Mail size={15} aria-hidden="true" />{user.email}</span>
               <span title={t('account.microsoft')}>
-                {user.auth?.microsoft?.linked
+                {user.auth?.microsoft?.linked && user.auth?.microsoft?.verified
                   ? <CircleCheck size={15} aria-hidden="true" />
                   : <CircleAlert size={15} aria-hidden="true" />}
-                {user.auth?.microsoft?.linked ? t('account.microsoft.linked') : t('account.microsoft.notLinked')}
+                {user.auth?.microsoft?.linked && user.auth?.microsoft?.verified ? t('account.microsoft.linked') : t('account.microsoft.notLinked')}
               </span>
               {schoolNames && <span><School size={15} aria-hidden="true" />{schoolNames}</span>}
             </div>
@@ -159,7 +159,7 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
                     </>
                   )}
                   {item(t('account.signInMethod'), providerLabel(user.auth?.providers, t))}
-                  {item(t('account.microsoft'), <MicrosoftStatus user={user} />)}
+                  {item(t('account.microsoft'), <MicrosoftStatus user={user} onWithdraw={perms.editAccounts ? async () => { try { done(null, await withdrawMicrosoftLink(user.uid)); } catch (err) { setNotice({ type: 'error', text: describeApiError(err, t) }); } } : null} />)}
                   {item(t('account.uid'), <CopyValue value={user.uid} />)}
                   {item(t('account.lastSignIn'), user.auth?.lastSignInAt ? when(user.auth.lastSignInAt) : t('account.never'))}
                   {item(t('account.created'), `${formatDate(user.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}${user.createdBy?.name ? ` · ${user.createdBy.name}` : ''}`)}
@@ -211,6 +211,9 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
                 {user.role === 'student' && !user.publicId && (
                   <Action icon={Sparkles} onClick={() => setDialog('assignId')}>{t('account.action.assignId')}</Action>
                 )}
+                {!user.auth?.microsoft?.verified && (
+                  <Action icon={Link2} onClick={() => setDialog('registerMs')}>{t('account.action.registerMicrosoft')}</Action>
+                )}
                 <Action icon={KeyRound} onClick={() => setDialog('password')}>{t('account.action.setPassword')}</Action>
                 {(user.role === 'parent' || user.role === 'student') && (
                   <Action icon={Link2} onClick={() => setDialog('link')}>
@@ -245,6 +248,7 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
                        confirmLabel={t('account.action.unsuspend')} run={() => unsuspendUser(user.uid)}
                        onClose={() => setDialog(null)} onDone={(res) => done(null, res)} />
       )}
+      {dialog === 'registerMs' && <RegisterMicrosoftDialog user={user} onClose={() => setDialog(null)} onDone={(res) => done(t('account.microsoft.registerSuccess'), res)} />}
       {dialog === 'assignId' && (
         <ConfirmDialog icon={Sparkles} title={t('account.assignId.title', { name: user.displayName })} body={t('account.assignId.body')}
                        confirmLabel={t('account.action.assignId')} run={() => assignPublicId(user.uid)}
@@ -276,29 +280,61 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
   );
 }
 
-function MicrosoftStatus({ user }) {
+function MicrosoftStatus({ user, onWithdraw }) {
   const { t } = useLocale();
   const ms = user.auth?.microsoft;
+  const line = (icon, color, label, extra) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+      {icon === 'ok'
+        ? <CircleCheck size={15} aria-hidden="true" style={{ color }} />
+        : <CircleAlert size={15} aria-hidden="true" style={{ color }} />}
+      <strong>{label}</strong>{extra}
+    </span>
+  );
+  if (ms?.linked && ms?.verified) {
+    return line('ok', 'var(--gh-green, #15803d)', t('account.microsoft.verified'), ms.upn || ms.email ? <span className="gh-muted">· {ms.upn || ms.email}</span> : null);
+  }
   if (ms?.linked) {
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-        <CircleCheck size={15} aria-hidden="true" style={{ color: 'var(--gh-green, #15803d)' }} />
-        <strong>{t('account.microsoft.linked')}</strong>
-        {ms.email && <span className="gh-muted">· {ms.email}</span>}
-      </span>
-    );
+    return line('warn', 'var(--gh-amber, #b45309)', t('account.microsoft.unverified'), ms.email ? <span className="gh-muted">· {ms.email}</span> : null);
   }
   const official = (user.email || '').toLowerCase().endsWith('@welearn.org');
   return (
     <span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-        <CircleAlert size={15} aria-hidden="true" style={{ color: 'var(--gh-amber, #b45309)' }} />
-        <strong>{t('account.microsoft.notLinked')}</strong>
-      </span>
-      <span className="gh-muted" style={{ display: 'block', fontSize: '0.85rem' }}>
-        {official ? t('account.microsoft.notLinkedHint') : t('account.microsoft.nonOrgEmail')}
-      </span>
+      {ms?.registeredUpn
+        ? line('warn', 'var(--gh-amber, #b45309)', t('account.microsoft.registered'), (
+          <>
+            <span className="gh-muted">· {ms.registeredUpn}</span>
+            {onWithdraw && <button type="button" className="gh-btn gh-btn-sm gh-btn-ghost" onClick={onWithdraw}>{t('account.microsoft.withdraw')}</button>}
+          </>
+        ))
+        : line('warn', 'var(--gh-amber, #b45309)', t('account.microsoft.notLinked'))}
+      {!ms?.registeredUpn && (
+        <span className="gh-muted" style={{ display: 'block', fontSize: '0.85rem' }}>
+          {official ? t('account.microsoft.notLinkedHint') : t('account.microsoft.nonOrgEmail')}
+        </span>
+      )}
     </span>
+  );
+}
+
+function RegisterMicrosoftDialog({ user, onClose, onDone }) {
+  const { t } = useLocale();
+  const [upn, setUpn] = useState(user.auth?.microsoft?.registeredUpn || '');
+  const s = useSubmit(() => registerMicrosoftLink(user.uid, upn.trim()), onDone);
+  return (
+    <Modal title={t('account.microsoft.registerTitle', { name: user.displayName })} icon={Link2} onClose={onClose}>
+      <form onSubmit={s.submit}>
+        <p>{t('account.microsoft.registerBody')}</p>
+        <Field id="f-upn" label={t('account.microsoft.upn')} error={s.error?.field === 'upn' ? s.errorText : null}>
+          {(a) => <input className="gh-input" type="email" value={upn} onChange={(e) => setUpn(e.target.value)} placeholder="name@welearn.org" required autoFocus {...a} />}
+        </Field>
+        {s.error?.field !== 'upn' && <div style={{ marginTop: '0.75rem' }}><Alert type="error">{s.errorText}</Alert></div>}
+        <div className="gh-modal-foot">
+          <button type="button" className="gh-btn" onClick={onClose}>{t('common.cancel')}</button>
+          <button type="submit" className="gh-btn gh-btn-accent" disabled={s.busy || !upn.trim()}>{s.busy ? t('common.saving') : t('account.action.registerMicrosoft')}</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

@@ -14,7 +14,7 @@ vi.mock('../src/services/api/endpoints.js', () => ({
   getUser: vi.fn(), getUserHistory: vi.fn(), setUserRole: vi.fn(), suspendUser: vi.fn(), unsuspendUser: vi.fn(),
   resendActivation: vi.fn(), changeUserEmail: vi.fn(), issueParentInvite: vi.fn(), revokeParentLink: vi.fn(),
   createParentLink: vi.fn(), setUserPassword: vi.fn(), listUsers: vi.fn(), assignPublicId: vi.fn(),
-  createUser: vi.fn(), updateUser: vi.fn()
+  createUser: vi.fn(), updateUser: vi.fn(), registerMicrosoftLink: vi.fn(), withdrawMicrosoftLink: vi.fn()
 }));
 import { getUser, assignPublicId } from '../src/services/api/endpoints.js';
 import { AccountDetail } from '../src/features/admin/accounts/AccountDetail.jsx';
@@ -86,10 +86,32 @@ describe('Admin learner profile: Spark ID', () => {
   });
 
   it('shows the linked Microsoft email when an identity is attached', async () => {
-    getUser.mockResolvedValue({ ...base, publicId: 'AAA-BBB-CCC-DDD', auth: { providers: ['password', 'microsoft.com'], microsoft: { linked: true, email: 'ping@welearn.org' } } });
+    getUser.mockResolvedValue({ ...base, publicId: 'AAA-BBB-CCC-DDD', auth: { providers: ['password', 'microsoft.com'], microsoft: { linked: true, verified: true, email: 'ping@welearn.org', upn: 'ping@welearn.org' } } });
     await render();
-    expect(host.textContent).toContain('account.microsoft.linked');
+    expect(host.textContent).toContain('account.microsoft.verified');
     expect(host.textContent).toContain('ping@welearn.org');
     expect(host.textContent).not.toContain('account.microsoft.notLinked');
+    expect(button('account.action.registerMicrosoft')).toBeUndefined();
+  });
+
+  it('does not call an attached but unverified Microsoft provider linked', async () => {
+    getUser.mockResolvedValue({ ...base, publicId: 'AAA-BBB-CCC-DDD', auth: { providers: ['password', 'microsoft.com'], microsoft: { linked: true, verified: false, email: 'ping@welearn.org' } } });
+    await render();
+    expect(host.textContent).toContain('account.microsoft.unverified');
+    expect(host.textContent).not.toContain('account.microsoft.verified');
+  });
+
+  it('shows a registered Microsoft account that is waiting to be linked, with a way to withdraw it', async () => {
+    getUser.mockResolvedValue({ ...base, publicId: 'AAA-BBB-CCC-DDD', auth: { providers: ['password'], microsoft: { linked: false, verified: false, registeredUpn: 'ping@welearn.org' } } });
+    await render();
+    expect(host.textContent).toContain('account.microsoft.registered');
+    expect(host.textContent).toContain('ping@welearn.org');
+    expect(button('account.microsoft.withdraw')).toBeTruthy();
+  });
+
+  it('offers to register a Microsoft account until one is verified', async () => {
+    getUser.mockResolvedValue({ ...base, publicId: 'AAA-BBB-CCC-DDD', auth: { providers: ['password'], microsoft: { linked: false } } });
+    await render();
+    expect(button('account.action.registerMicrosoft')).toBeTruthy();
   });
 });

@@ -325,6 +325,25 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     return ok(fullRecord(u, caller));
   });
 
+  route('POST', '/api/admin/users/:uid/microsoft-link', ADMIN, ({ params, body, caller }) => {
+    const u = findUser(params.uid);
+    if (!u) return fail(404, 'NOT_FOUND', 'No such account.');
+    const upn = String(body?.upn || '').trim().toLowerCase();
+    if (!/^[^\s@]+@welearn\.org$/.test(upn)) return fail(400, 'VALIDATION', 'Enter the official @welearn.org Microsoft account.', 'upn');
+    if (db.users.some((x) => x.uid !== u.uid && x.auth?.microsoft?.registeredUpn === upn)) return fail(409, 'CONFLICT', 'That Microsoft account is already registered for a different Spark account.');
+    u.auth.microsoft = { ...(u.auth.microsoft || { linked: false, email: null, subject: null }), registeredUpn: upn, verified: false };
+    audit(caller, u, 'MICROSOFT_LINK_REGISTERED', 'Microsoft 365 account registered for linking', { upn });
+    return ok(fullRecord(u, caller));
+  });
+
+  route('DELETE', '/api/admin/users/:uid/microsoft-link', ADMIN, ({ params, caller }) => {
+    const u = findUser(params.uid);
+    if (!u) return fail(404, 'NOT_FOUND', 'No such account.');
+    if (u.auth.microsoft) u.auth.microsoft.registeredUpn = null;
+    audit(caller, u, 'MICROSOFT_LINK_WITHDRAWN', 'Microsoft 365 registration withdrawn');
+    return ok(fullRecord(u, caller));
+  });
+
   route('POST', '/api/admin/users/:uid/unsuspend', ADMIN, ({ params, caller }) => {
     const u = findUser(params.uid);
     if (!u) return fail(404, 'NOT_FOUND', 'No such account.');

@@ -17,6 +17,7 @@ import { DailyGoalsNotice } from '../features/goals/DailyGoalsNotice.jsx';
 import { ParentPortal } from '../features/parent/ParentPortal.jsx';
 import { Worksheet, TeacherGuide, PrimaryResources } from '../features/primary/print/PrintSheets.jsx';
 import { LoginPage } from '../features/auth/LoginPage.jsx';
+import { RequestAccessModal } from '../features/auth/RequestAccessModal.jsx';
 import { SparkLandingPage } from '../features/landing/SparkLandingPage.jsx';
 import { Sidebar, readCollapsed, writeCollapsed } from '../features/shell/Sidebar.jsx';
 import { Header } from '../features/shell/Header.jsx';
@@ -272,6 +273,10 @@ export function App() {
         </div>
       </>
     );
+  }
+
+  if (status === 'access-pending') {
+    return <RequestAccessModal user={user} onClose={signOut} />;
   }
 
   if (status === 'signed-out') {
