@@ -1454,4 +1454,110 @@ describe('WLS & WHS Cohort boundaries and join codes', () => {
       displayName: 'Sneaky'
     }));
   });
+
+  describe('P0-01 Mastery Identity & Submission Anti-Tampering Rules', () => {
+    it('blocks student from creating account with masteryLearnerId, masteryExternalId, or mastery', async () => {
+      const studentMal = testEnv.authenticatedContext('student_mal');
+      const db = studentMal.firestore();
+
+      // Attempting to set masteryLearnerId on create must fail
+      await assertFails(setDoc(doc(db, 'users', 'student_mal'), {
+        role: 'student',
+        classIds: [],
+        schoolIds: [],
+        masteryLearnerId: 9999
+      }));
+
+      // Attempting to set masteryExternalId on create must fail
+      await assertFails(setDoc(doc(db, 'users', 'student_mal'), {
+        role: 'student',
+        classIds: [],
+        schoolIds: [],
+        masteryExternalId: 'SPARK-HACK'
+      }));
+
+      // Attempting to set mastery object on create must fail
+      await assertFails(setDoc(doc(db, 'users', 'student_mal'), {
+        role: 'student',
+        classIds: [],
+        schoolIds: [],
+        mastery: { learnerId: 9999 }
+      }));
+    });
+
+    it('blocks student from updating account with masteryLearnerId, masteryExternalId, or mastery', async () => {
+      // Seed a clean student account using admin context
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'users', 'student_clean'), {
+          role: 'student',
+          displayName: 'Clean Student',
+          classIds: [CLASS_A],
+          schoolIds: ['sch-1']
+        });
+      });
+
+      const studentClean = testEnv.authenticatedContext('student_clean');
+      const db = studentClean.firestore();
+
+      // Normal display name update succeeds
+      await assertSucceeds(updateDoc(doc(db, 'users', 'student_clean'), {
+        displayName: 'Updated Student Name'
+      }));
+
+      // Adding masteryLearnerId must fail
+      await assertFails(updateDoc(doc(db, 'users', 'student_clean'), {
+        masteryLearnerId: 9999
+      }));
+
+      // Adding masteryExternalId must fail
+      await assertFails(updateDoc(doc(db, 'users', 'student_clean'), {
+        masteryExternalId: 'SPARK-TAMPER'
+      }));
+
+      // Adding mastery object must fail
+      await assertFails(updateDoc(doc(db, 'users', 'student_clean'), {
+        mastery: { learnerId: 9999 }
+      }));
+    });
+
+    it('blocks student from injecting mastery payload on submission create', async () => {
+      const studentSub = testEnv.authenticatedContext('student_sub');
+      const db = studentSub.firestore();
+
+      // Ensure student is in CLASS_A
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'users', 'student_sub'), {
+          role: 'student',
+          classIds: [CLASS_A],
+          schoolIds: []
+        });
+      });
+
+      // Legitimate submission without mastery succeeds
+      await assertSucceeds(setDoc(doc(db, 'submissions', 'sub_legit'), {
+        studentId: 'student_sub',
+        classId: CLASS_A,
+        activityId: 'activity-mars-1',
+        createdAt: Date.now(),
+        status: 'pending',
+        xpAwarded: 0,
+        coachFeedback: ''
+      }));
+
+      // Submission with injected mastery object must fail
+      await assertFails(setDoc(doc(db, 'submissions', 'sub_tampered'), {
+        studentId: 'student_sub',
+        classId: CLASS_A,
+        activityId: 'activity-mars-1',
+        createdAt: Date.now(),
+        status: 'pending',
+        xpAwarded: 0,
+        coachFeedback: '',
+        mastery: {
+          learnerId: 9999,
+          evidenceId: 8888
+        }
+      }));
+    });
+  });
 });

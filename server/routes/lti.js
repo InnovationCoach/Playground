@@ -12,17 +12,16 @@ import { sendError } from '../lib/errors.js';
 
 const router = Router();
 
-// Fail-closed gate: Edmentum LTI integration is disabled by default for pilot
-router.use((req, res, next) => {
-  if (process.env.EDMENTUM_LTI_ENABLED !== 'true') {
-    return sendError(
-      res,
-      503,
-      'FEATURE_DISABLED',
-      'Edmentum LTI integration is currently disabled for this environment.'
-    );
-  }
-  next();
+// Server-authoritative fail-closed containment:
+// Edmentum LTI integration is prototype/incomplete and unconditionally excluded from the pilot candidate.
+// Even if EDMENTUM_LTI_ENABLED is accidentally set, requests fail-closed with 503 PILOT_EXCLUDED.
+router.use((req, res) => {
+  return sendError(
+    res,
+    503,
+    'PILOT_EXCLUDED',
+    'Edmentum LTI 1.3 integration is incomplete and unconditionally disabled for the pilot candidate.'
+  );
 });
 
 /**
