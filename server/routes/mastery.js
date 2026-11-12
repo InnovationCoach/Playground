@@ -97,25 +97,27 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
 
   const db = getFirestore();
   const subRef = db.collection('submissions').doc(submissionId);
-  const subSnap = await subRef.get();
 
+  // 1. Initial Fetch & Scope Verification
+  const subSnap = await subRef.get();
   if (!subSnap.exists) {
     fail(404, 'NOT_FOUND', 'Submission not found.');
   }
 
   const sub = subSnap.data();
-  const schoolId = sub.schoolId || caller.schoolIds[0] || '15';
+  const schoolId = sub.schoolId || caller.schoolIds[0] || 15;
   const classId = sub.classId;
   const studentId = sub.studentId;
 
-  // 1. Verify Scope
+  if (!studentId) {
+    fail(400, 'BAD_REQUEST', 'Submission has no associated studentId.');
+  }
+
   await schoolAccess(caller, schoolId);
   if (classId) {
     await assignedClass(caller, schoolId, classId);
   }
-  if (studentId) {
-    await learnerAccess(caller, schoolId, studentId, classId);
-  }
+  await learnerAccess(caller, schoolId, studentId, classId);
 
   // 2. Validate Competency Mapping
   const targetCompName = requestedCompetency || (Array.isArray(sub.competencies) && sub.competencies[0]) || null;
@@ -133,66 +135,130 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
 
   const credit = mappingEval.credit;
 
-  // 3. Resolve Mastery Learner
+  // 3. Concurrency Lock & Idempotency Check via Atomic Transaction
+  const lockResult = await db.runTransaction(async (tx) => {
+    const doc = await tx.get(subRef);
+    if (!doc.exists) {
+      throw { status: 404, code: 'NOT_FOUND', message: 'Submission not found.' };
+    }
+    const currentData = doc.data();
+    const existingMastery = currentData.mastery || {};
+
+    // Idempotency: If already recorded with EARNED status for this credit, return success immediately
+    if (existingMastery.status === 'recorded' && existingMastery.creditStatus === 'EARNED' && existingMastery.creditId === credit.id) {
+      return { state: 'already_recorded', mastery: existingMastery };
+    }
+
+    // Concurrency Lock: If in progress within the last 45 seconds, reject concurrent request
+    const now = Date.now();
+    if (existingMastery.status === 'in_progress' && (now - (existingMastery.updatedAt || 0) < 45000)) {
+      return { state: 'locked', mastery: existingMastery };
+    }
+
+    // Acquire lock
+    tx.set(subRef, {
+      mastery: {
+        status: 'in_progress',
+        evidenceId: existingMastery.evidenceId || null,
+        learnerId: existingMastery.learnerId || null,
+        creditId: credit.id,
+        lockedBy: caller.uid,
+        updatedAt: now
+      }
+    }, { merge: true });
+
+    return { state: 'acquired', existingMastery };
+  });
+
+  if (lockResult.state === 'already_recorded') {
+    return res.json({
+      success: true,
+      alreadyRecorded: true,
+      sparkApproved: true,
+      mastery: lockResult.mastery
+    });
+  }
+
+  if (lockResult.state === 'locked') {
+    return res.status(409).json({
+      success: false,
+      code: 'RECORDING_IN_PROGRESS',
+      error: 'A Mastery recording operation for this submission is currently in progress. Please wait a moment and refresh.'
+    });
+  }
+
+  const existingMastery = lockResult.existingMastery || {};
+
+  // 4. Resolve Mastery Learner (P0-01: Server-authoritative resolution, fail-closed, no student-supplied override)
   const userRef = db.collection('users').doc(studentId);
   const userSnap = await userRef.get();
   const userData = userSnap.exists ? userSnap.data() : {};
 
-  let masteryLearnerId = userData.masteryLearnerId || sub.mastery?.learnerId || null;
+  const expectedExternalId = `SPARK-${studentId.replace(/[^A-Za-z0-9]/g, '').slice(0, 14)}`;
+  let masteryLearnerId = null;
 
-  if (!masteryLearnerId) {
-    // Search sandbox by email or student ID
+  // Check cached verified masteryLearnerId on user profile
+  if (userData.masteryLearnerId) {
     try {
-      const searchTarget = userData.email || studentId;
-      const found = await masteryClient.searchLearners(15, searchTarget);
-      if (found.length > 0) {
-        masteryLearnerId = found[0].id;
+      const verified = await masteryClient.getLearner(userData.masteryLearnerId);
+      if (verified && (verified.id === userData.masteryLearnerId || String(verified.id) === String(userData.masteryLearnerId))) {
+        masteryLearnerId = verified.id;
       }
     } catch (err) {
-      console.warn('[Mastery] Search learner failed, will attempt create:', err.message);
+      console.warn(`[Mastery] Cached learner ${userData.masteryLearnerId} verification failed:`, err.message);
     }
   }
 
+  // If not verified from cache, perform exact lookup by externalId in school sandbox
   if (!masteryLearnerId) {
-    // In sandbox, provision or link test learner
     try {
-      const names = (userData.displayName || sub.studentName || 'Learner').split(' ');
-      const firstName = names[0] || 'Learner';
-      const lastName = names.slice(1).join(' ') || 'Spark';
-      const email = userData.email || `${studentId}@sandbox.welearn.org`;
-      const externalId = `SPARK-${studentId.replace(/[^A-Za-z0-9]/g, '').slice(0, 14)}`;
+      const candidates = await masteryClient.searchLearners(schoolId, expectedExternalId);
+      const exactMatches = candidates.filter(c => c.externalId === expectedExternalId);
 
-      const created = await masteryClient.createLearner(15, {
-        firstName,
-        lastName,
-        email,
-        externalId,
-        sendEmail: false
-      });
-      masteryLearnerId = created.id;
+      if (exactMatches.length === 1) {
+        masteryLearnerId = exactMatches[0].id;
+        // Cache verified mapping on user document
+        await userRef.set({
+          masteryLearnerId: exactMatches[0].id,
+          masteryExternalId: expectedExternalId
+        }, { merge: true });
+      } else if (exactMatches.length > 1) {
+        // Release lock
+        await subRef.set({ mastery: { status: 'failed', error: 'Ambiguous learner mapping', updatedAt: Date.now() } }, { merge: true });
+        return res.status(422).json({
+          success: false,
+          code: 'AMBIGUOUS_MASTERY_LEARNER',
+          error: `Multiple learners found in Mastery sandbox matching externalId ${expectedExternalId}.`,
+          ordinaryApprovalAvailable: true
+        });
+      }
     } catch (err) {
-      console.error('[Mastery] Failed creating learner in sandbox:', err.message);
-      return res.status(502).json({
-        success: false,
-        code: 'MASTERY_LEARNER_UNAVAILABLE',
-        error: `Could not link or create learner in Mastery sandbox: ${err.message}`
-      });
-    }
-
-    // Cache masteryLearnerId on the user record for subsequent evaluations
-    try {
-      await userRef.set({ masteryLearnerId }, { merge: true });
-    } catch (err) {
-      console.warn('[Mastery] Failed caching masteryLearnerId on user:', err.message);
+      console.warn(`[Mastery] Search by externalId failed:`, err.message);
     }
   }
 
-  // 4. Safe Replay / Idempotency Check
-  const existingMastery = sub.mastery || {};
+  // If still not resolved, fail closed. Do NOT implicitly create learners during evaluation recording.
+  if (!masteryLearnerId) {
+    await subRef.set({
+      mastery: {
+        status: 'failed',
+        error: `Unregistered learner: externalId ${expectedExternalId} not provisioned in Mastery sandbox school ${schoolId}`,
+        updatedAt: Date.now()
+      }
+    }, { merge: true });
+
+    return res.status(422).json({
+      success: false,
+      code: 'UNREGISTERED_MASTERY_LEARNER',
+      error: `Learner ${studentId} (externalId: ${expectedExternalId}) is not registered in Mastery sandbox school ${schoolId}. Learner must be provisioned before recording competencies.`,
+      ordinaryApprovalAvailable: true
+    });
+  }
+
+  // 5. Evidence Container: Idempotently reuse existing or create once
   let evidenceId = existingMastery.evidenceId || null;
   let evidenceNewlyCreated = false;
 
-  // If evidence already exists, reuse it. Otherwise, create container.
   if (!evidenceId) {
     try {
       const title = `${sub.projectTitle || 'PBL Project'} — ${sub.milestoneTitle || 'Milestone Evidence'}`;
@@ -202,7 +268,7 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
       evidenceId = evResult?.id || evResult;
       evidenceNewlyCreated = true;
 
-      // Immediately write partial evidence progress to Firestore to guarantee safe retry
+      // Immediately persist evidenceId so any subsequent retry reuses it
       await subRef.set({
         mastery: {
           status: 'in_progress',
@@ -214,16 +280,28 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
       }, { merge: true });
     } catch (err) {
       console.error('[Mastery] Failed creating evidence container:', err.message);
+      await subRef.set({
+        mastery: {
+          status: 'failed',
+          learnerId: masteryLearnerId,
+          creditId: credit.id,
+          error: `Evidence creation failed: ${err.message}`,
+          failedAt: Date.now()
+        }
+      }, { merge: true });
+
       return res.status(502).json({
         success: false,
         code: 'EVIDENCE_CREATION_FAILED',
         error: `Failed to create evidence in Mastery: ${err.message}`,
+        creditAwarded: false,
+        commentPosted: false,
         canRetry: true
       });
     }
   }
 
-  // 5. Associate Credit & Award Competency
+  // 6. Associate Credit & Award Competency
   try {
     // Bulk attach credit to evidence container
     await masteryClient.attachCompetenciesToEvidence(evidenceId, [
@@ -235,17 +313,21 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
       status: 'EARNED'
     });
 
-    // 6. Post Coach Comment to Evidence (if feedback is provided and not already commented)
+    // 7. Post Coach Formative Feedback (truthfully track whether comment succeeded)
+    let commentPosted = false;
     if (coachFeedback && !existingMastery.commentPosted) {
       try {
         await masteryClient.addEvidenceComment(evidenceId, { content: coachFeedback });
+        commentPosted = true;
       } catch (commentErr) {
-        // Comment failure should not invalidate earned credit, but is noted
-        console.warn('[Mastery] Failed adding comment to evidence:', commentErr.message);
+        console.warn('[Mastery] Formative comment failed:', commentErr.message);
+        commentPosted = false;
       }
+    } else if (existingMastery.commentPosted) {
+      commentPosted = true;
     }
 
-    // 7. Confirmed Mastery Record
+    // 8. Confirmed Mastery Record
     const masteryRecord = {
       status: 'recorded',
       creditStatus: 'EARNED',
@@ -257,7 +339,7 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
       learnerId: masteryLearnerId,
       recordedAt: Date.now(),
       recordedBy: caller.uid,
-      commentPosted: Boolean(coachFeedback),
+      commentPosted,
       error: null
     };
 
@@ -267,7 +349,12 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
 
     return res.json({
       success: true,
-      mastery: masteryRecord
+      sparkApproved: true,
+      mastery: {
+        ...masteryRecord,
+        evidenceCreated: true,
+        creditAwarded: true
+      }
     });
   } catch (err) {
     console.error('[Mastery] Failed awarding credit or updating evidence:', err.message);
@@ -288,8 +375,10 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
       success: false,
       code: 'MASTERY_RECORDING_FAILED',
       error: err.message,
-      partialSuccess: true,
+      partialSuccess: Boolean(evidenceId),
       evidenceId,
+      creditAwarded: false,
+      commentPosted: false,
       canRetry: true
     });
   }

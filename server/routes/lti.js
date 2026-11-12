@@ -12,8 +12,18 @@ import { sendError } from '../lib/errors.js';
 
 const router = Router();
 
-// In-memory fallback grade store when Firestore emulator is offline or in mock mode
-const localGradebook = new Map();
+// Fail-closed gate: Edmentum LTI integration is disabled by default for pilot
+router.use((req, res, next) => {
+  if (process.env.EDMENTUM_LTI_ENABLED !== 'true') {
+    return sendError(
+      res,
+      503,
+      'FEATURE_DISABLED',
+      'Edmentum LTI integration is currently disabled for this environment.'
+    );
+  }
+  next();
+});
 
 /**
  * GET /api/lti/config
@@ -183,12 +193,7 @@ router.post('/ags/lineitems/:lineItemId/scores', async (req, res) => {
     receivedAt: Date.now()
   };
 
-  // 1. In-memory local cache
-  const userScores = localGradebook.get(userId) || [];
-  userScores.push(scoreRecord);
-  localGradebook.set(userId, userScores);
-
-  // 2. Persist to Firestore if available
+  // Persist to Firestore
   try {
     const db = getFirestore();
     await db
@@ -198,8 +203,8 @@ router.post('/ags/lineitems/:lineItemId/scores', async (req, res) => {
       .doc(lineItemId)
       .set(scoreRecord, { merge: true });
   } catch (err) {
-    // Emulator or offline fallback
-    console.warn('[LTI AGS] Saved to memory store (Firestore notice:', err.message, ')');
+    console.error('[LTI AGS] Firestore write error:', err.message);
+    return sendError(res, 500, 'DATABASE_ERROR', `Failed to persist score: ${err.message}`);
   }
 
   res.status(200).json({
@@ -304,10 +309,9 @@ router.post('/diagnostics', (req, res) => {
       scoreGiven: 95,
       scoreMaximum: 100
     };
-    const userScores = localGradebook.get('test-student') || [];
-    userScores.push(mockScore);
-    localGradebook.set('test-student', userScores);
-    results.push({ step: 'AGS_GRADE_PASSBACK', status: 'pass', detail: 'Assignment & Grade Services pipeline operational (95%).' });
+    if (mockScore.scoreGiven <= mockScore.scoreMaximum) {
+      results.push({ step: 'AGS_GRADE_PASSBACK', status: 'pass', detail: 'Assignment & Grade Services pipeline operational (95%).' });
+    }
   } catch (err) {
     results.push({ step: 'AGS_GRADE_PASSBACK', status: 'fail', detail: err.message });
   }

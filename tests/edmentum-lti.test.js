@@ -80,6 +80,28 @@ describe('Edmentum LTI 1.3 Advantage & Rostering Integration', () => {
     expect(agsClaim.lineitems).toContain('/api/lti/ags/lineitems');
   });
 
+  it('fails closed with 503 FEATURE_DISABLED when EDMENTUM_LTI_ENABLED is not enabled', async () => {
+    const originalEnv = process.env.EDMENTUM_LTI_ENABLED;
+    delete process.env.EDMENTUM_LTI_ENABLED;
+
+    const { default: ltiRouter } = await import('../server/routes/lti.js');
+    let statusCode = null;
+    let responseBody = null;
+    const req = { method: 'GET', url: '/config', headers: {} };
+    const res = {
+      status(s) { statusCode = s; return this; },
+      json(j) { responseBody = j; return this; }
+    };
+
+    ltiRouter.handle(req, res, () => {});
+    expect(statusCode).toBe(503);
+    expect(responseBody.error.code).toBe('FEATURE_DISABLED');
+
+    if (originalEnv !== undefined) {
+      process.env.EDMENTUM_LTI_ENABLED = originalEnv;
+    }
+  });
+
   // Client-side connection, score and launch behaviour is covered by
   // tests/edmentum-truthful-states.test.jsx (O0): no default "connected",
   // no generated scores and no successful launch after a failure.
