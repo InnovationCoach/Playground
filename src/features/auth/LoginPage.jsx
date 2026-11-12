@@ -275,13 +275,25 @@ export function LoginPage({ initialError }) {
                 </button>
               </form>
 
-              <p className="gh-auth-switch">
-                {isSignUp ? t('auth.haveAccount') : t('auth.noAccount')}{' '}
-                <button type="button" className="gh-linkish" onClick={() => { setMode(isSignUp ? 'signin' : 'signup'); setAlert(null); }}>
-                  {isSignUp ? t('auth.signInLink') : t('auth.signUpLink')}
-                </button>
-              </p>
-              {isSignUp && <p className="gh-hint" style={{ textAlign: 'center' }}>{t('auth.staffNote')}</p>}
+              {isSignUp ? (
+                <>
+                  <p className="gh-auth-switch">
+                    {t('auth.haveAccount')}{' '}
+                    <button type="button" className="gh-linkish" onClick={() => { setMode('signin'); setAlert(null); }}>
+                      {t('auth.signInLink')}
+                    </button>
+                  </p>
+                  <p className="gh-hint" style={{ textAlign: 'center' }}>{t('auth.staffNote')}</p>
+                </>
+              ) : (
+                <p className="gh-auth-switch">
+                  {t('auth.needHelp')}{' '}
+                  {t('auth.contactAdmin')}{' '}
+                  <a href="mailto:mani@welearn.org" className="gh-linkish">
+                    mani@welearn.org
+                  </a>
+                </p>
+              )}
             </>
           )}
         </div>
