@@ -7,8 +7,7 @@ vi.mock('../src/firebase.js', () => ({
   auth:{currentUser:{uid:'coach-1',displayName:'Sara',getIdTokenResult:vi.fn()}}, db:{},
   getDoc:vi.fn(), getDocs:vi.fn(), setDoc:vi.fn(),
   doc:(_db,...parts)=>parts.join('/'), collection:(_db,...parts)=>parts.join('/'),
-  query:(ref,filter)=>({ref,filter}), where:(field,op,value)=>({field,op,value}),
-  usingEmulators: false
+  query:(ref,filter)=>({ref,filter}), where:(field,op,value)=>({field,op,value})
 }));
 vi.mock('../src/features/community/CommunityFeed.jsx', () => ({CommunityFeed:()=>null}));
 vi.mock('../src/features/school/SchoolLearningPanel.jsx', () => ({SchoolLearningPanel:()=>null}));
@@ -19,6 +18,7 @@ import { CoachWorkspace } from '../src/features/coach/CoachWorkspace.jsx';
 import { LearnerFeedback } from '../src/features/coach/LearnerFeedback.jsx';
 import { LocaleProvider } from '../src/app/i18n/LocaleProvider.jsx';
 import { StudentInviteDialog, StudentSetupLink } from '../src/features/coach/StudentInviteDialog.jsx';
+import { menuFor } from '../src/features/shell/Sidebar.jsx';
 
 let host, root;
 const snapshot = values => ({docs:values.map(([id,value])=>({id,data:()=>value}))});
@@ -92,5 +92,36 @@ describe('coach workspace pilot fixes', () => {
     expect(schoolRequest).toHaveBeenCalledWith('POST','/api/coach/students/anna/setup-link',{body:{}});
     expect(host.querySelector('input').value).toBe('https://example.test/setup');
     expect(host.textContent).toContain('No email has been sent');
+  });
+  it('automatically derives cohort-wls and ageBand 13-15 when grade 7 is selected', async () => {
+    schoolRequest.mockResolvedValueOnce({items:[{id:'class-1',name:'Year 7 Climate'}]}).mockResolvedValueOnce({student:{displayName:'Leo',groupName:'Year 7 Climate'},setupLink:'https://example.test/setup'});
+    await render(<StudentInviteDialog onCreated={()=>{}} onClose={()=>{}} />);
+    await input(host.querySelector('[name=displayName]'),'Leo');
+    await input(host.querySelector('[name=email]'),'leo@school.edu');
+    await act(async()=>{
+      const gradeField = host.querySelector('[name=gradeLevel]');
+      gradeField.value = '7';
+      gradeField.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+    expect(host.querySelector('[name=ageBand]').value).toBe('13-15');
+    await act(async()=>host.querySelector('form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+    expect(schoolRequest).toHaveBeenLastCalledWith('POST','/api/coach/students',{
+      body: {
+        displayName: 'Leo',
+        email: 'leo@school.edu',
+        classId: 'class-1',
+        ageBand: '13-15',
+        gradeLevel: 7,
+        cohortId: 'cohort-wls'
+      }
+    });
+  });
+  it('includes messages in the coach sidebar navigation', () => {
+    const coachMenu = menuFor('coach');
+    const allItems = coachMenu.flatMap(section => section.items);
+    const messagesItem = allItems.find(item => item.key === 'messages');
+    expect(messagesItem).toBeDefined();
+    expect(messagesItem.href).toBe('#/messages');
+    expect(messagesItem.label).toBe('nav.messages');
   });
 });

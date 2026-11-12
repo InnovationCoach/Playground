@@ -1066,7 +1066,8 @@ router.get('/schools/:schoolId/learners', wrap(async (req, res) => {
     items: list.map(l => ({
       id: l.id,
       displayName: l.displayName || l.givenNames || 'Learner',
-      classIds: l.classIds || []
+      classIds: l.classIds || [],
+      status: l.status || 'active'
     })).sort((a, b) => a.displayName.localeCompare(b.displayName))
   });
 }));

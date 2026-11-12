@@ -9,7 +9,14 @@ export function StudentInviteDialog({ onClose, onCreated, initialClassId = 'all'
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [form, setForm] = useState({ displayName: '', email: '', classId: initialClassId === 'all' ? '' : initialClassId, ageBand: '' });
+  const [form, setForm] = useState({
+    displayName: '',
+    email: '',
+    classId: initialClassId === 'all' ? '' : initialClassId,
+    ageBand: '',
+    gradeLevel: '',
+    cohortId: ''
+  });
   useEffect(() => {
     const previous = document.activeElement;
     dialog.current.showModal();
@@ -31,7 +38,15 @@ export function StudentInviteDialog({ onClose, onCreated, initialClassId = 'all'
     if (busy || result) return;
     setBusy(true); setError('');
     try {
-      const created = await schoolRequest('POST', '/api/coach/students', { body: form });
+      const payload = {
+        displayName: form.displayName,
+        email: form.email,
+        classId: form.classId,
+        ageBand: form.ageBand,
+        ...(form.gradeLevel ? { gradeLevel: Number(form.gradeLevel) } : {}),
+        ...(form.cohortId ? { cohortId: form.cohortId } : {})
+      };
+      const created = await schoolRequest('POST', '/api/coach/students', { body: payload });
       setResult(created);
       onCreated?.(created.student);
     } catch (err) { setError(err.message || 'Student setup failed. Check the roster before retrying.'); }
@@ -56,7 +71,41 @@ export function StudentInviteDialog({ onClose, onCreated, initialClassId = 'all'
         <label>Student full name<input autoComplete="off" name="displayName" required maxLength={160} value={form.displayName} onChange={change} /></label>
         <label>Student email<input type="email" autoComplete="off" name="email" required maxLength={254} value={form.email} onChange={change} /></label>
         <label>Class<select name="classId" required value={form.classId} onChange={change}>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-        <label>Learning age band<select name="ageBand" required value={form.ageBand} onChange={change}><option value="">Choose an age band</option><option value="primary">Primary</option><option value="13-15">13–15</option><option value="16-18">16–18</option></select></label>
+        <label>Grade level (Secondary)
+          <select name="gradeLevel" value={form.gradeLevel} onChange={e => {
+            const val = e.target.value;
+            const g = val ? Number(val) : null;
+            const derivedCohort = g ? (g <= 8 ? 'cohort-wls' : 'cohort-whs') : '';
+            const derivedAgeBand = g ? (g <= 8 ? '13-15' : '16-18') : form.ageBand;
+            setForm(f => ({
+              ...f,
+              gradeLevel: val,
+              cohortId: derivedCohort,
+              ageBand: derivedAgeBand || f.ageBand
+            }));
+          }}>
+            <option value="">No grade specified (Primary / general)</option>
+            <optgroup label="Lower Secondary · WLS (Ages 11–14)">
+              <option value="6">Grade 6 (WLS)</option>
+              <option value="7">Grade 7 (WLS)</option>
+              <option value="8">Grade 8 (WLS)</option>
+            </optgroup>
+            <optgroup label="Higher Secondary · WHS (Ages 15–18)">
+              <option value="9">Grade 9 (WHS)</option>
+              <option value="10">Grade 10 (WHS)</option>
+              <option value="11">Grade 11 (WHS)</option>
+              <option value="12">Grade 12 (WHS)</option>
+            </optgroup>
+          </select>
+        </label>
+        <label>Learning age band
+          <select name="ageBand" required value={form.ageBand} onChange={change}>
+            <option value="">Choose an age band</option>
+            <option value="primary">Primary (Ages 6–11)</option>
+            <option value="13-15">Lower Secondary / WLS (Ages 11–14)</option>
+            <option value="16-18">Higher Secondary / WHS (Ages 15–18)</option>
+          </select>
+        </label>
         <button className="gh-btn gh-btn-primary" type="submit">{busy ? 'Creating student…' : 'Create student account'}</button>
       </fieldset>
       <button className="gh-btn gh-btn-ghost" type="button" disabled={busy} onClick={onClose}>Cancel</button>
