@@ -121,7 +121,7 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
 
   function fullRecord(u, caller) {
     const { auth, ...rest } = u;
-    const record = { ...rest, auth: { ...auth } };
+    const record = { ...rest, auth: { providers: ['password'], microsoft: { linked: false, email: null, subject: null }, ...auth } };
     if (caller.role !== 'admin') delete record.dateOfBirth;
     const links = linkSummaries(u);
     record.counts = { classes: u.classIds.length, ...(u.role === 'parent' ? { children: links.length } : {}), ...(u.role === 'student' ? { parents: links.length } : {}) };
@@ -310,6 +310,18 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     Object.assign(u, { status: 'suspended', suspendedAt: now(), suspendedBy: actorFor(caller), statusBeforeSuspension: before });
     u.auth.disabled = true;
     audit(caller, u, 'ACCOUNT_SUSPENDED', 'Account suspended', { reason });
+    return ok(fullRecord(u, caller));
+  });
+
+  route('POST', '/api/admin/users/:uid/assign-public-id', ADMIN, ({ params, caller }) => {
+    const u = findUser(params.uid);
+    if (!u) return fail(404, 'NOT_FOUND', 'No such account.');
+    if (u.role !== 'student') return fail(400, 'VALIDATION', 'Only learners have a Spark ID.');
+    if (!u.publicId) {
+      u.publicId = makePublicId(rand, new Set(db.users.map((x) => x.publicId)));
+      u.updatedAt = now(); u.updatedBy = actorFor(caller);
+      audit(caller, u, 'PUBLIC_ID_ASSIGNED', 'Spark ID assigned', { publicId: u.publicId });
+    }
     return ok(fullRecord(u, caller));
   });
 

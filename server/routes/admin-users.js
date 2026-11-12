@@ -65,6 +65,13 @@ async function buildLinkSummaries(db, user) {
   return summaries;
 }
 
+// The Microsoft 365 identity attached to a Firebase account, read from the Auth
+// record (never from the profile email), so "linked" means a provider really is attached.
+function microsoftLink(authUser) {
+  const ms = (authUser?.providerData || []).find((p) => p.providerId === 'microsoft.com');
+  return ms ? { linked: true, email: ms.email || null, subject: ms.uid || null } : { linked: false, email: null, subject: null };
+}
+
 async function buildFullRecord(db, user, callerRole) {
   const authUser = await getAuth().getUser(user.uid).catch(() => null);
   const links = await buildLinkSummaries(db, user);
@@ -93,7 +100,9 @@ async function buildFullRecord(db, user, callerRole) {
     auth: {
       lastSignInAt: authUser?.metadata?.lastSignInTime || null,
       createdAt: authUser?.metadata?.creationTime || user.createdAt || null,
-      disabled: authUser ? authUser.disabled : (user.status === 'suspended')
+      disabled: authUser ? authUser.disabled : (user.status === 'suspended'),
+      providers: (authUser?.providerData || []).map((p) => p.providerId),
+      microsoft: microsoftLink(authUser)
     },
     counts: {
       classes: (user.classIds || []).length,
@@ -1065,6 +1074,61 @@ router.post('/:uid/set-password', requireClaims, requireAdmin, async (req, res) 
   });
 
   return res.json({ success: true, message: 'Password updated successfully' });
+});
+
+// POST /api/admin/users/:uid/assign-public-id
+// Gives a learner their one stable Spark ID. Idempotent: an account that already
+// has one is returned unchanged. The ID is claimed in `publicIds` in the same
+// transaction as the profile write, so two IDs can never collide or be reissued.
+router.post('/:uid/assign-public-id', requireClaims, requireAdmin, async (req, res) => {
+  const db = getFirestore();
+  const userRef = db.collection('users').doc(req.params.uid);
+  let assigned = null;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const candidate = await generateUniquePublicId(db);
+    try {
+      const outcome = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(userRef);
+        if (!snap.exists) return { notFound: true };
+        const user = snap.data();
+        if (user.role !== 'student') return { notStudent: true };
+        if (user.publicId) return { existing: user.publicId };
+        const idRef = db.collection('publicIds').doc(candidate);
+        if ((await tx.get(idRef)).exists) return { taken: true };
+        const now = new Date().toISOString();
+        tx.create(idRef, { uid: user.uid, createdAt: now });
+        tx.update(userRef, {
+          publicId: candidate,
+          updatedAt: now,
+          updatedBy: { uid: req.caller.uid, name: req.caller.displayName }
+        });
+        return { created: candidate };
+      });
+      if (outcome.notFound) return sendError(res, 404, 'NOT_FOUND', 'No such account.');
+      if (outcome.notStudent) return sendError(res, 400, 'VALIDATION', 'Only learners have a Spark ID.');
+      if (outcome.taken) continue;
+      assigned = outcome;
+      break;
+    } catch (err) {
+      if (attempt === 4) throw err;
+    }
+  }
+  if (!assigned) return sendError(res, 500, 'INTERNAL', 'Could not reserve a free Spark ID. Try again.');
+
+  if (assigned.created) {
+    await writeAuditLog(db, {
+      caller: req.caller,
+      subjectUid: req.params.uid,
+      action: 'PUBLIC_ID_ASSIGNED',
+      summary: 'Spark ID assigned',
+      details: { publicId: assigned.created }
+    });
+  }
+
+  const updatedSnap = await userRef.get();
+  const record = await buildFullRecord(db, updatedSnap.data(), req.caller.role);
+  return res.json(record);
 });
 
 // GET /api/admin/users/:uid/history
