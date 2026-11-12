@@ -45,3 +45,30 @@ describe('Evaluation Desk while student submissions are not connected', () => {
     expect(host.textContent).toContain('No submissions yet.');
   });
 });
+
+it('simulates both Mastery choices without submitting a review', async () => {
+  window.history.replaceState(null, '', '?emulators=1');
+  fetchSubmissions.mockResolvedValue([]);
+  const clickButton = (label) => act(async () => {
+    [...host.querySelectorAll('button')].find((button) => button.textContent.trim() === label).click();
+  });
+
+  try {
+    await render();
+    await clickButton('Preview Mastery transcript');
+    const toggle = host.querySelector('[aria-label="Mastery transcript preview"] input');
+    expect(toggle.checked).toBe(false);
+    await act(async () => toggle.click());
+    expect(host.textContent).toContain('MCA 1372');
+    await clickButton('Simulate approval and Mastery credit');
+    expect(host.textContent).toContain('Simulated approval and Mastery credit.');
+
+    await clickButton('Hide sample');
+    await clickButton('Preview Mastery transcript');
+    await clickButton('Simulate approval');
+    expect(host.textContent).toContain('Simulated approval.');
+    expect(fetchSubmissions).toHaveBeenCalledTimes(1);
+  } finally {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+});

@@ -71,7 +71,9 @@ export function formatSubmissionDoc(id, data, studentData = {}) {
     coachFeedback: data.coachFeedback || '',
     xpAwarded: Number(data.xpAwarded) || 0,
     evaluatedBy: data.evaluatedBy || null,
-    evaluatedAt: data.evaluatedAt || null
+    evaluatedAt: data.evaluatedAt || null,
+    mastery: data.mastery || null,
+    schoolId: data.schoolId || ''
   };
 }
 

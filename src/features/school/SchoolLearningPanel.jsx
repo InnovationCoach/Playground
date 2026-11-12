@@ -529,7 +529,7 @@ function SchoolCalendar({
   const from = view === 'year' ? `${year}-01-01` : `${month}-01`,
     to = view === 'year' ? `${year}-12-31` : `${month}-${String(new Date(year, index + 1, 0).getDate()).padStart(2, '0')}`;
   const base = schoolPath(school.id, 'calendar-events'),
-    events = useSchoolResource(`${base}?from=${from}&to=${to}`, true);
+    events = useSchoolResource(`${base}?from=${from}&to=${to}`, false);
   const blank = {
     title: '',
     startDate: today(),
@@ -553,7 +553,7 @@ function SchoolCalendar({
     list = events.data?.items || [];
   return <div><div className="sw-inline-form"><Field label="Calendar month"><input type="month" required value={month} onChange={e => {
           if (e.target.value) setMonth(e.target.value);
-        }} /></Field><Field label="View"><select value={view} onChange={e => setView(e.target.value)}><option value="year">Year</option><option value="agenda">Agenda</option><option value="month">Month</option></select></Field></div><p className="sw-muted">School timezone: {school.timezone}. Updates checked every 30 seconds. {canManage ? 'You can manage school events.' : 'School events are managed by coaches and the admin.'}</p>
+        }} /></Field><Field label="View"><select value={view} onChange={e => setView(e.target.value)}><option value="year">Year</option><option value="agenda">Agenda</option><option value="month">Month</option></select></Field></div><p className="sw-muted">School timezone: {school.timezone}. {canManage ? 'You can manage school events.' : 'School events are managed by coaches and the admin.'}</p>
     {role === 'admin' && <details className="sw-card"><summary>Review and import the school’s 2026–2027 calendar</summary><p>Confirm these supplied school dates before importing. Existing reference entries and admin edits will be preserved.</p><ul>{CALENDAR_REFERENCE.map(event => <li key={event.id}>{event.startDate}{event.endDate !== event.startDate ? ` – ${event.endDate}` : ''} · {event.title}</li>)}</ul><button disabled={state.busy} className="gh-btn gh-btn-primary" onClick={() => run(() => mutateSchool('POST', schoolPath(school.id, 'calendar-reference/import'), {
         confirmYear: '2026-2027'
       }), 'Reference calendar imported. Existing entries were preserved.')}>Confirm and import reference dates</button></details>}
