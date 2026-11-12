@@ -29,7 +29,10 @@ describe('providerStatus', () => {
   });
 
   it('treats a failed request as unknown, even when an older response said connected', () => {
-    const s = providerStatus('connected', { error: { code: 'UNAVAILABLE' } });
+    const s = providerStatus(
+      { state: 'connected', capabilities: { launch: true } },
+      { error: { code: 'UNAVAILABLE' } }
+    );
     expect(s.state).toBe(PROVIDER_STATES.UNKNOWN);
     expect(s.canLaunch).toBe(false);
   });
@@ -42,6 +45,13 @@ describe('providerStatus', () => {
     expect(providerStatus('connected').canLaunch).toBe(false);
     expect(providerStatus({ state: 'connected', capabilities: { launch: true } }).canLaunch).toBe(true);
     expect(providerStatus({ state: 'stale', capabilities: { launch: true } }).canLaunch).toBe(false);
+  });
+
+  it('keeps pilot access pending even when the response contains a launch capability', () => {
+    const status = providerStatus({ state: 'access_pending', capabilities: { launch: true } });
+    expect(status.state).toBe(PROVIDER_STATES.ACCESS_PENDING);
+    expect(status.canLaunch).toBe(false);
+    expect(hasProviderData(status)).toBe(false);
   });
 
   it('keeps source dates and marks synthetic data', () => {
