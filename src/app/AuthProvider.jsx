@@ -194,7 +194,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
             orgId: devClaims.orgId,
             schoolIds: devClaims.schoolIds,
             status: 'active',
-            ageBand: '16-18',
+            ageBand: devUser.ageBand || '13-15',
             themePreference: 'light'
           };
           window.currentUserRole = devProfile.role;

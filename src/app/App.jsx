@@ -17,6 +17,7 @@ import { DailyGoalsNotice } from '../features/goals/DailyGoalsNotice.jsx';
 import { ParentPortal } from '../features/parent/ParentPortal.jsx';
 import { Worksheet, TeacherGuide, PrimaryResources } from '../features/primary/print/PrintSheets.jsx';
 import { LoginPage } from '../features/auth/LoginPage.jsx';
+import { SparkLandingPage } from '../features/landing/SparkLandingPage.jsx';
 import { Sidebar, readCollapsed, writeCollapsed } from '../features/shell/Sidebar.jsx';
 import { Header } from '../features/shell/Header.jsx';
 import { StudentDashboard } from '../features/student/StudentDashboard.jsx';
@@ -194,7 +195,7 @@ export function App() {
     || CONSOLE_ROLES.includes(role)
     || role === 'parent'
     || isCoachScreen
-    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard', 'spark', 'space', 'programs', 'journey', 'portfolio', 'coach'].includes(route?.screen)
+    || ['settings', 'courses', 'resources', 'worksheet', 'guide', 'pbl', 'goals', 'messages', 'homeSearch', 'futureSkills', 'dashboard', 'spark', 'space', 'programs', 'journey', 'portfolio', 'coach', 'landing', 'login'].includes(route?.screen)
   );
 
   useEffect(() => {
@@ -274,7 +275,32 @@ export function App() {
   }
 
   if (status === 'signed-out') {
-    return <LoginPage initialError={error} />;
+    if (route?.screen === 'login') {
+      return (
+        <LoginPage
+          initialError={error}
+          onBackToLanding={() => setHash(hrefFor.landing())}
+        />
+      );
+    }
+    return (
+      <SparkLandingPage
+        onSignIn={() => setHash(hrefFor.login())}
+      />
+    );
+  }
+
+  // A signed-in user explicitly visiting #/landing
+  if (route?.screen === 'landing') {
+    return (
+      <SparkLandingPage
+        onSignIn={() => {
+          if (role === 'student') setHash(hrefFor.dashboard());
+          else if (role === 'teacher' || role === 'coach') setHash(hrefFor.coach());
+          else setHash(hrefFor.spark());
+        }}
+      />
+    );
   }
 
   // Printable primary material: open to every signed-in role (it is teaching

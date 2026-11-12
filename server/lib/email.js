@@ -16,6 +16,7 @@ export async function sendEmail({ to, template, locale = 'en', data = {} }) {
   const subjectMap = {
     activation: { en: 'Activate your WeLearn account', zh: '激活您的 WeLearn 帐户', th: 'เปิดใช้งานบัญชี WeLearn ของคุณ' },
     'change-email': { en: 'Confirm your email change', zh: '确认您的电子邮件变更', th: 'ยืนยันการเปลี่ยนอีเมลของคุณ' },
+    'access-request-received': { en: 'New WeLearn Spark access request', zh: '新的 WeLearn Spark 访问请求', th: 'คำขอเข้าถึง WeLearn Spark ใหม่' },
     'parent-weekly': { en: 'WeLearn Weekly Summary', zh: 'WeLearn 每周摘要', th: 'สรุปประจำสัปดาห์ WeLearn' }
   };
 

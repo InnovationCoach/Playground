@@ -13,7 +13,8 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  serverTimestamp
+  serverTimestamp,
+  getMicrosoftOAuthProvider
 } from "./firebase.js";
 
 /**
@@ -141,6 +142,39 @@ export async function signInUser(email, password) {
   } catch (error) {
     console.error("Error signing in:", error);
     return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Sign in user with Microsoft 365 OAuth (Single-Tenant WeLearn)
+ */
+export async function signInWithMicrosoft() {
+  try {
+    const provider = getMicrosoftOAuthProvider();
+    if (!provider) throw new Error("Microsoft sign-in is not initialized.");
+    const result = await auth.signInWithPopup(provider);
+    return { success: true, user: result.user };
+  } catch (error) {
+    console.error("[Auth] Error signing in with Microsoft:", error);
+    return { success: false, error: error.message, code: error.code };
+  }
+}
+
+/**
+ * Explicitly link existing signed-in user's account to Microsoft 365.
+ * Preserves Firebase UID, custom claims, and existing records.
+ */
+export async function linkWithMicrosoft() {
+  const user = auth.currentUser;
+  if (!user) return { success: false, error: "No authenticated user to link." };
+  try {
+    const provider = getMicrosoftOAuthProvider();
+    if (!provider) throw new Error("Microsoft provider is not initialized.");
+    const result = await user.linkWithPopup(provider);
+    return { success: true, user: result.user };
+  } catch (error) {
+    console.error("[Auth] Error linking Microsoft account:", error);
+    return { success: false, error: error.message, code: error.code };
   }
 }
 

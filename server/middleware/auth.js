@@ -35,6 +35,16 @@ export async function requireClaims(req, res, next) {
       return sendError(res, 401, 'UNAUTHENTICATED', 'Your account has been suspended.');
     }
 
+    // Block pending or rejected accounts from all endpoints except access-request and session status
+    const allowedPendingPaths = ['/auth/access-request', '/auth/access-request/me', '/me'];
+    const currentPath = req.path || '';
+    if (userData.status === 'pending' && !allowedPendingPaths.includes(currentPath)) {
+      return sendError(res, 403, 'ACCESS_PENDING', 'Your account access request is pending administrator approval.');
+    }
+    if (userData.status === 'rejected' && !['/auth/access-request/me', '/me'].includes(currentPath)) {
+      return sendError(res, 403, 'ACCESS_REJECTED', 'Your access request was rejected by platform administration.');
+    }
+
     const role = decoded.role || userData.role || 'student';
     const orgId = decoded.orgId || userData.orgId || 'org-welearn';
     const schoolIds = decoded.schoolIds || userData.schoolIds || [];

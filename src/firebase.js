@@ -37,6 +37,9 @@ export function getDevStoredUser() {
       uid: u.uid || 'coach_rivera_local',
       email: u.email || 'coach.rivera@school.edu',
       displayName: u.displayName || 'Coach Sam Rivera',
+      role,
+      classIds,
+      orgId: u.orgId || 'org-welearn',
       getIdToken: async () => 'mock-dev-token',
       getIdTokenResult: async () => ({ claims: { role, classIds, orgId: u.orgId || 'org-welearn', schoolIds: ['sch-bkk', 'school-main'] } })
     };
@@ -97,6 +100,22 @@ export function onIdTokenChanged(authInstance, callback) {
   const targetAuth = (authInstance && authInstance.onIdTokenChanged) ? authInstance : auth;
   const cb = typeof authInstance === 'function' ? authInstance : callback;
   return targetAuth.onIdTokenChanged(cb);
+}
+
+export function getMicrosoftOAuthProvider() {
+  if (typeof firebase === 'undefined' || !firebase.auth || !firebase.auth.OAuthProvider) {
+    return null;
+  }
+  const provider = new firebase.auth.OAuthProvider('microsoft.com');
+  provider.setCustomParameters({
+    tenant: 'd96d8911-c39b-488b-9236-489bd6a80b00',
+    prompt: 'select_account'
+  });
+  provider.addScope('email');
+  provider.addScope('profile');
+  provider.addScope('openid');
+  provider.addScope('User.Read');
+  return provider;
 }
 
 // Firestore helper functions
