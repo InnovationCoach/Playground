@@ -4,6 +4,7 @@ import {
   Award, Shield, ExternalLink, Activity, BookOpen, Wrench, Eye
 } from 'lucide-react';
 import { hrefFor } from '../../../app/routes.js';
+import '../studio/coachStudio.css';
 
 const WELEARN_8_STAGES = [
   'Curiosity', 'Research', 'Ideation', 'Prototype',

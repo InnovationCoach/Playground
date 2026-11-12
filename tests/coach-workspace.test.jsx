@@ -124,4 +124,52 @@ describe('coach workspace pilot fixes', () => {
     expect(messagesItem.href).toBe('#/messages');
     expect(messagesItem.label).toBe('nav.messages');
   });
+  it('saves coach work ratings adhering to work_rating schema without feedbackText', async () => {
+    setDoc.mockResolvedValueOnce(undefined);
+    await render(<LearnerFeedback learnerUid="anna" workId="pbl-pilot" />);
+    const starBtn = host.querySelector('button[aria-label="Rate 4 of 5 stars"]');
+    expect(starBtn).toBeDefined();
+    await act(async () => {
+      starBtn.click();
+    });
+    expect(setDoc).toHaveBeenCalledWith('users/anna/feedback/rating_coach-1', expect.objectContaining({
+      coachId: 'coach-1',
+      coachName: 'Sara',
+      rating: 4,
+      type: 'work_rating',
+      workId: 'pbl-pilot'
+    }));
+    // Crucial for firestore.rules: feedbackText must not be present on work_rating
+    const payload = setDoc.mock.calls[0][1];
+    expect(payload.feedbackText).toBeUndefined();
+    expect(payload.rating).toBe(4);
+    expect(host.textContent).toContain('Rating saved (4 of 5)');
+  });
+  it('delivers unified Today home with pending reviews, at-risk pacing, messages, and no legacy management tools', async () => {
+    getDocs
+      .mockResolvedValueOnce(snapshot([['learner-1', { role: 'student', displayName: 'Alex', classIds: ['class-1'], status: 'pending' }]]))
+      .mockResolvedValueOnce(snapshot([])); // activityProgress
+    await render(<CoachWorkspace coachUser={{ uid: 'coach-1' }} />);
+    // Verify Today section is active
+    expect(host.textContent).toContain('Today');
+    expect(host.textContent).toContain('Pending Reviews & Setup');
+    expect(host.textContent).toContain('At-Risk Pacing');
+    expect(host.textContent).toContain('Learner Messages');
+    // Verify legacy Management tools button is retired
+    expect(host.textContent).not.toContain('Management tools');
+  });
+  it('renders Studio Supervision section with 8-stage PBL cycle tracking', async () => {
+    getDocs
+      .mockResolvedValueOnce(snapshot([['learner-1', { role: 'student', displayName: 'Maya', classIds: ['class-1'], status: 'active', currentStageIndex: 2 }]]))
+      .mockResolvedValueOnce(snapshot([]));
+    await render(<CoachWorkspace coachUser={{ uid: 'coach-1' }} />);
+    const supervisionBtn = Array.from(host.querySelectorAll('nav.cw-sections button')).find(b => b.textContent.includes('Studio Supervision'));
+    expect(supervisionBtn).toBeDefined();
+    await act(async () => {
+      supervisionBtn.click();
+    });
+    expect(host.textContent).toContain('Learner Progress & 8-Stage PBL Cycle');
+    expect(host.textContent).toContain('Maya');
+    expect(host.textContent).toContain('Ideation');
+  });
 });
