@@ -190,6 +190,71 @@ export default function App() {
       {/* Provisional Choices Banner */}
       <AssumptionsBanner activeProgramId={activeProgramId} />
 
+      {/* All 11 PBL Programs Catalog Strip (branch: DonPBL) */}
+      <section
+        aria-label="All 11 PBL Programs on branch DonPBL"
+        className="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4"
+      >
+        <div className="bg-white rounded-xl border border-stone-200 p-3.5 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                DonPBL Catalog ({PROGRAM_LIST.length} Complete 12-Week Programs)
+              </span>
+              <span className="text-xs text-stone-500">
+                Select any PBL program below to inspect its 7 Design Thinking phases, 12-week sessions, rubrics, and interactive simulator:
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+            {PROGRAM_LIST.map((prog, idx) => {
+              const isSelected = prog.id === activeProgramId;
+              return (
+                <button
+                  key={prog.id}
+                  type="button"
+                  onClick={() => setActiveProgramId(prog.id)}
+                  className={`text-left p-2.5 rounded-lg border transition-all flex flex-col justify-between ${
+                    isSelected
+                      ? 'bg-emerald-900 text-white border-emerald-900 shadow-xs'
+                      : 'bg-stone-50/80 hover:bg-stone-100 text-stone-800 border-stone-200'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span
+                        className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                          isSelected
+                            ? 'bg-emerald-700 text-emerald-100'
+                            : 'bg-stone-200/80 text-stone-600'
+                        }`}
+                      >
+                        #{idx + 1}
+                      </span>
+                      {isSelected && (
+                        <span className="text-[10px] font-semibold text-emerald-200">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs font-bold leading-snug line-clamp-2">
+                      {prog.title}
+                    </div>
+                  </div>
+                  <div
+                    className={`text-[10px] mt-1.5 truncate ${
+                      isSelected ? 'text-emerald-200' : 'text-stone-500'
+                    }`}
+                  >
+                    {prog.theme}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* Main App Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
         {simulationState === 'loading' ? (
