@@ -55,7 +55,8 @@ export function LoginPage({ initialError, onBackToLanding }) {
         return;
       }
 
-      const email = (result.user.email || '').toLowerCase();
+      const msProvider = (result.user.providerData || []).find((p) => p.providerId === 'microsoft.com');
+      const email = (msProvider?.email || result.user.email || '').toLowerCase();
       if (!email.endsWith('@welearn.org')) {
         await logoutUser();
         setAlert({
