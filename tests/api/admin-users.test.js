@@ -403,4 +403,107 @@ describe('API: Admin Users Management', () => {
       expect(res.body.error.code).toBe('VALIDATION');
     });
   });
+
+  describe('POST /api/admin/users/:uid/assign-public-id', () => {
+    const noId = (uid, extra = {}) => env.db.collection('users').doc(uid).set({
+      uid, email: `${uid}@welearn.test`, role: 'student', givenNames: 'No', surname: 'Id', displayName: 'No Id',
+      status: 'active', orgId: 'org-welearn', schoolIds: ['sch-bkk'], classIds: [], createdAt: '2026-09-01T00:00:00.000Z', ...extra
+    });
+    const adminToken = () => env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+
+    it('assigns one ID, reserves it in publicIds, and writes an audit entry', async () => {
+      await noId('learner_new');
+      const res = await env.request('POST', '/api/admin/users/learner_new/assign-public-id', { token: await adminToken() });
+      expect(res.status).toBe(200);
+      expect(res.body.publicId).toMatch(/^([A-Z0-9]{3}-){3}[A-Z0-9]{3}$/);
+      expect((await env.db.collection('users').doc('learner_new').get()).data().publicId).toBe(res.body.publicId);
+      const reserved = await env.db.collection('publicIds').doc(res.body.publicId).get();
+      expect(reserved.exists).toBe(true);
+      expect(reserved.data().uid).toBe('learner_new');
+      const audit = await env.db.collection('auditLogs').where('subjectUid', '==', 'learner_new').where('action', '==', 'PUBLIC_ID_ASSIGNED').get();
+      expect(audit.size).toBe(1);
+    });
+
+    it('is idempotent: a second call keeps the same ID and reserves nothing more', async () => {
+      await noId('learner_twice');
+      const token = await adminToken();
+      const first = await env.request('POST', '/api/admin/users/learner_twice/assign-public-id', { token });
+      const before = (await env.db.collection('publicIds').get()).size;
+      const second = await env.request('POST', '/api/admin/users/learner_twice/assign-public-id', { token });
+      expect(second.status).toBe(200);
+      expect(second.body.publicId).toBe(first.body.publicId);
+      expect((await env.db.collection('publicIds').get()).size).toBe(before);
+      const audit = await env.db.collection('auditLogs').where('subjectUid', '==', 'learner_twice').where('action', '==', 'PUBLIC_ID_ASSIGNED').get();
+      expect(audit.size).toBe(1);
+    });
+
+    it('never changes an ID the learner already has', async () => {
+      const res = await env.request('POST', '/api/admin/users/student_bkk/assign-public-id', { token: await adminToken() });
+      expect(res.status).toBe(200);
+      expect(res.body.publicId).toBe('STU-0011-2233-4455');
+    });
+
+    it('refuses non-admins, non-learners and unknown accounts', async () => {
+      await noId('learner_guard');
+      const sup = await env.getIdToken('sup_bkk', { role: 'supervisor', orgId: 'org-welearn', schoolIds: ['sch-bkk'] });
+      expect((await env.request('POST', '/api/admin/users/learner_guard/assign-public-id', { token: sup })).status).toBe(403);
+      expect((await env.request('POST', '/api/admin/users/learner_guard/assign-public-id')).status).toBe(401);
+      expect((await env.request('POST', '/api/admin/users/sup_bkk/assign-public-id', { token: await adminToken() })).status).toBe(400);
+      expect((await env.request('POST', '/api/admin/users/does_not_exist/assign-public-id', { token: await adminToken() })).status).toBe(404);
+      expect((await env.db.collection('users').doc('learner_guard').get()).data().publicId).toBeUndefined();
+    });
+
+    it('gives concurrent requests for different learners different IDs', async () => {
+      await Promise.all(['c1', 'c2', 'c3', 'c4'].map((n) => noId(`learner_conc_${n}`)));
+      const token = await adminToken();
+      const results = await Promise.all(['c1', 'c2', 'c3', 'c4'].map((n) => env.request('POST', `/api/admin/users/learner_conc_${n}/assign-public-id`, { token })));
+      const ids = results.map((r) => r.body.publicId);
+      expect(results.every((r) => r.status === 200)).toBe(true);
+      expect(new Set(ids).size).toBe(4);
+    });
+  });
+
+  describe('Microsoft 365 link status on the account record', () => {
+    it('reports not linked for a password-only account', async () => {
+      const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+      const res = await env.request('GET', '/api/admin/users/student_bkk', { token });
+      expect(res.status).toBe(200);
+      expect(res.body.auth.microsoft).toMatchObject({ linked: false, verified: false, email: null, registeredUpn: null });
+    });
+  });
+
+  describe('Microsoft account registration (admin-managed linking)', () => {
+    const adminToken = () => env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+
+    it('registers an official address for an existing profile and shows it on the record', async () => {
+      const res = await env.request('POST', '/api/admin/users/student_bkk/microsoft-link', { token: await adminToken(), body: { upn: 'Student.Bkk@WeLearn.org' } });
+      expect(res.status).toBe(200);
+      expect(res.body.auth.microsoft).toMatchObject({ linked: false, verified: false, registeredUpn: 'student.bkk@welearn.org' });
+      expect((await env.db.collection('msLinkExpectations').doc('student_bkk').get()).data().upn).toBe('student.bkk@welearn.org');
+      const audit = await env.db.collection('auditLogs').where('subjectUid', '==', 'student_bkk').where('action', '==', 'MICROSOFT_LINK_REGISTERED').get();
+      expect(audit.size).toBe(1);
+    });
+
+    it('rejects addresses outside @welearn.org and unknown accounts', async () => {
+      const token = await adminToken();
+      const bad = await env.request('POST', '/api/admin/users/student_online/microsoft-link', { token, body: { upn: 'someone@gmail.com' } });
+      expect(bad.status).toBe(400);
+      expect(bad.body.error.field).toBe('upn');
+      expect((await env.request('POST', '/api/admin/users/nobody/microsoft-link', { token, body: { upn: 'a@welearn.org' } })).status).toBe(404);
+    });
+
+    it('will not register the same Microsoft account for two different Spark accounts', async () => {
+      const res = await env.request('POST', '/api/admin/users/student_online/microsoft-link', { token: await adminToken(), body: { upn: 'student.bkk@welearn.org' } });
+      expect(res.status).toBe(409);
+      expect((await env.db.collection('msLinkExpectations').doc('student_online').get()).exists).toBe(false);
+    });
+
+    it('is admin only, and an unused registration can be withdrawn', async () => {
+      const sup = await env.getIdToken('sup_bkk', { role: 'supervisor', orgId: 'org-welearn', schoolIds: ['sch-bkk'] });
+      expect((await env.request('POST', '/api/admin/users/student_bkk/microsoft-link', { token: sup, body: { upn: 'x@welearn.org' } })).status).toBe(403);
+      const del = await env.request('DELETE', '/api/admin/users/student_bkk/microsoft-link', { token: await adminToken() });
+      expect(del.status).toBe(200);
+      expect(del.body.auth.microsoft.registeredUpn).toBeNull();
+    });
+  });
 });

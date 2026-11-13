@@ -80,6 +80,41 @@ describe('Edmentum LTI 1.3 Advantage & Rostering Integration', () => {
     expect(agsClaim.lineitems).toContain('/api/lti/ags/lineitems');
   });
 
+  it('unconditionally fails closed with 503 PILOT_EXCLUDED across all endpoints even if EDMENTUM_LTI_ENABLED=true', async () => {
+    const originalEnv = process.env.EDMENTUM_LTI_ENABLED;
+    process.env.EDMENTUM_LTI_ENABLED = 'true'; // Simulate accidental true configuration
+
+    const { default: ltiRouter } = await import('../server/routes/lti.js');
+    const endpointsToTest = [
+      { method: 'GET', url: '/config' },
+      { method: 'GET', url: '/jwks' },
+      { method: 'POST', url: '/launch/diag-bio-01' },
+      { method: 'POST', url: '/ags/lineitems/diag-bio-01/scores' },
+      { method: 'POST', url: '/diagnostics' }
+    ];
+
+    for (const ep of endpointsToTest) {
+      let statusCode = null;
+      let responseBody = null;
+      const req = { method: ep.method, url: ep.url, headers: {} };
+      const res = {
+        status(s) { statusCode = s; return this; },
+        json(j) { responseBody = j; return this; }
+      };
+
+      ltiRouter.handle(req, res, () => {});
+      expect(statusCode).toBe(503);
+      expect(responseBody.error.code).toBe('PILOT_EXCLUDED');
+      expect(responseBody.error.message).toContain('unconditionally disabled');
+    }
+
+    if (originalEnv !== undefined) {
+      process.env.EDMENTUM_LTI_ENABLED = originalEnv;
+    } else {
+      delete process.env.EDMENTUM_LTI_ENABLED;
+    }
+  });
+
   // Client-side connection, score and launch behaviour is covered by
   // tests/edmentum-truthful-states.test.jsx (O0): no default "connected",
   // no generated scores and no successful launch after a failure.

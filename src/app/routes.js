@@ -75,11 +75,15 @@ export function parseRoute(hash) {
   if (head === 'spark') return { screen: 'spark' };
   if (head === 'coach') return a === 'studio' ? { screen: 'spark' } : { screen: 'coach' };
   if (head === 'canva') return { screen: 'canva' };
+  if (head === 'landing' || head === 'about') return { screen: 'landing' };
+  if (head === 'login' || head === 'signin') return { screen: 'login' };
   if (head === 'edmentum') return { screen: 'edmentum' };
   return null;
 }
 
 export const hrefFor = {
+  landing: () => '#/landing',
+  login: () => '#/login',
   edmentum: () => '#/edmentum',
   list: (kind) => `#/admin/${kind}`,
   billing: () => '#/admin/billing',

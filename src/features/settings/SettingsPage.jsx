@@ -3,7 +3,7 @@ import { Languages, LockKeyhole, UserRound, Sun, Moon, Monitor, Flag } from 'luc
 import { useSchoolResource, mutateSchool, schoolPath, serviceMessage } from '../school/useSchoolWorkspace.js';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { LOCALES } from '../../app/i18n/messages.js';
-import { changePassword, saveLocale, saveThemePreference } from '../../auth.js';
+import { changePassword, saveLocale, saveThemePreference, linkWithMicrosoft } from '../../auth.js';
 import { useTheme } from '../../app/theme/ThemeProvider.jsx';
 import { Field, Alert } from '../admin/ui/bits.jsx';
 import { Avatar } from '../shell/Avatar.jsx';
@@ -41,6 +41,7 @@ export function SettingsPage({ user, profile, role, embedded }) {
       <ThemeCard uid={user.uid} />
       <LanguageCard uid={user.uid} />
       <PasswordCard />
+      <MicrosoftCard user={user} />
       {role === 'admin' && <SchoolFeaturesCard />}
     </>
   );
@@ -55,6 +56,31 @@ function CardHead({ icon: Icon, title, desc, id }) {
         <h3 id={id}>{title}</h3>
         {desc && <p className="gh-card-desc">{desc}</p>}
       </div>
+    </div>
+  );
+}
+
+function MicrosoftCard({ user }) {
+  const { t } = useLocale();
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const [linked, setLinked] = useState(() => (user.providerData || []).some((p) => p.providerId === 'microsoft.com'));
+
+  async function link() {
+    setBusy(true); setNotice(null);
+    const result = await linkWithMicrosoft();
+    setBusy(false);
+    if (result.success) { setLinked(true); setNotice({ type: 'success', text: t('settings.microsoft.success') }); }
+    else if (result.code !== 'auth/popup-closed-by-user') setNotice({ type: 'error', text: result.error });
+  }
+
+  return (
+    <div className="gh-card">
+      <CardHead icon={LockKeyhole} title={t('settings.microsoft.title')} desc={linked ? t('settings.microsoft.linked') : t('settings.microsoft.desc')} />
+      {!linked && (
+        <button type="button" className="gh-btn gh-btn-accent" onClick={link} disabled={busy}>{busy ? t('common.saving') : t('settings.microsoft.button')}</button>
+      )}
+      {notice && <div style={{ marginTop: '0.75rem' }}><Alert type={notice.type}>{notice.text}</Alert></div>}
     </div>
   );
 }

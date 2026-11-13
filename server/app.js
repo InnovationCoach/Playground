@@ -48,6 +48,8 @@ import schoolWorkspaceRouter from './routes/school-workspace.js';
 import personalizationRouter from './routes/personalization.js';
 import questRouter from './routes/quest.js';
 import { createSparkTutorRouter } from './routes/spark-tutor.js';
+import masteryRouter from './routes/mastery.js';
+import accessRequestsRouter from './routes/access-requests.js';
 
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const MODEL_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/;
@@ -208,6 +210,7 @@ export function createApp(options = {}) {
 
   // ============= NEW PHASE 0 CONTRACT ENDPOINTS =============
   app.use('/api', sessionRouter);
+  app.use('/api', accessRequestsRouter);
   app.use('/api/admin/users', adminUsersRouter);
   app.use('/api/coach/students', coachStudentsRouter);
   app.use('/api/admin', referenceRouter);
@@ -231,6 +234,7 @@ export function createApp(options = {}) {
     rateLimitMaxRequests: options.sparkTutorRateLimitMaxRequests,
     rateLimitWindowMs: options.sparkTutorRateLimitWindowMs
   }));
+  app.use('/api/mastery', masteryRouter);
 
   // ============= EXISTING AI ENDPOINTS =============
   async function callGemini(prompt, maxOutputTokens = 256, opts = {}) {

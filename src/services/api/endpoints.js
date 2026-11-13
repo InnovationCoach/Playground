@@ -20,6 +20,9 @@ export const setUserRole = (uid, role) => apiRequest('PUT', `/api/admin/users/${
 export const setUserAssignments = (uid, body) => apiRequest('PUT', `/api/admin/users/${enc(uid)}/assignments`, { body });
 export const suspendUser = (uid, reason) => apiRequest('POST', `/api/admin/users/${enc(uid)}/suspend`, { body: { reason } });
 export const unsuspendUser = (uid) => apiRequest('POST', `/api/admin/users/${enc(uid)}/unsuspend`);
+export const assignPublicId = (uid) => apiRequest('POST', `/api/admin/users/${enc(uid)}/assign-public-id`);
+export const registerMicrosoftLink = (uid, upn) => apiRequest('POST', `/api/admin/users/${enc(uid)}/microsoft-link`, { body: { upn } });
+export const withdrawMicrosoftLink = (uid) => apiRequest('DELETE', `/api/admin/users/${enc(uid)}/microsoft-link`);
 export const resendActivation = (uid) => apiRequest('POST', `/api/admin/users/${enc(uid)}/resend-activation`);
 export const changeUserEmail = (uid, newEmail) => apiRequest('POST', `/api/admin/users/${enc(uid)}/change-email`, { body: { newEmail } });
 export const getUserHistory = (uid, query) => apiRequest('GET', `/api/admin/users/${enc(uid)}/history`, { query });

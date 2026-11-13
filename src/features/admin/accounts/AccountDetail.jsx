@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   ArrowLeft, IdCard, Mail, School, Pencil, KeyRound, AtSign, Send, UserPlus, ShieldBan, ShieldCheck,
-  Unlink, UserRound, History, ChevronLeft, ChevronRight, CircleCheck, CircleAlert, Link2, Clock, Plus, Check
+  Unlink, UserRound, History, ChevronLeft, ChevronRight, CircleCheck, CircleAlert, Link2, Clock, Plus, Check, Copy, Sparkles
 } from 'lucide-react';
 import { useLocale } from '../../../app/i18n/LocaleProvider.jsx';
 import { STAFF_ROLES } from '../../../app/roles.js';
 import {
   getUser, getUserHistory, setUserRole, suspendUser, unsuspendUser, resendActivation,
-  changeUserEmail, issueParentInvite, revokeParentLink, createParentLink, setUserPassword, listUsers
+  changeUserEmail, assignPublicId, registerMicrosoftLink, withdrawMicrosoftLink, issueParentInvite, revokeParentLink, createParentLink, setUserPassword, listUsers
 } from '../../../services/api/endpoints.js';
 import { describeApiError } from '../../../services/api/apiClient.js';
 import { useAsync } from '../ui/useAsync.js';
@@ -85,8 +85,16 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
               <RoleBadge role={user.role} /><StatusBadge status={user.status} />
             </h1>
             <div className="gh-profile-meta">
-              <span><IdCard size={15} aria-hidden="true" /><span className="gh-mono">{user.publicId}</span></span>
+              <span><IdCard size={15} aria-hidden="true" />{user.publicId
+                ? <span className="gh-mono" title={t('account.sparkId')}>{user.publicId}</span>
+                : <span className="gh-muted">{t('account.sparkId.none')}</span>}</span>
               <span><Mail size={15} aria-hidden="true" />{user.email}</span>
+              <span title={t('account.microsoft')}>
+                {user.auth?.microsoft?.linked && user.auth?.microsoft?.verified
+                  ? <CircleCheck size={15} aria-hidden="true" />
+                  : <CircleAlert size={15} aria-hidden="true" />}
+                {user.auth?.microsoft?.linked && user.auth?.microsoft?.verified ? t('account.microsoft.linked') : t('account.microsoft.notLinked')}
+              </span>
               {schoolNames && <span><School size={15} aria-hidden="true" />{schoolNames}</span>}
             </div>
           </div>
@@ -114,16 +122,28 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
         <div className="gh-detail-grid">
           <div>
             {dialog === 'edit' ? (
+              <>
+              {user.role === 'student' && (
+                <div className="gh-card" style={{ marginBottom: '1rem' }}>
+                  <dl className="gh-dl">
+                    {item(t('account.sparkId'), user.publicId ? <CopyValue value={user.publicId} /> : <span className="gh-muted">{t('account.sparkId.none')}</span>)}
+                  </dl>
+                </div>
+              )}
               <AccountForm
                 kind={user.role === 'student' ? 'students' : user.role === 'parent' ? 'parents' : 'staff'}
                 user={user}
                 onCancel={() => setDialog(null)}
                 onDone={(res) => done(null, res)}
               />
+              </>
             ) : (
               <div className="gh-card">
                 <div className="gh-card-head"><h3>{t('account.details')}</h3></div>
                 <dl className="gh-dl">
+                  {(user.role === 'student' || user.publicId) && item(t('account.sparkId'), user.publicId
+                    ? <CopyValue value={user.publicId} />
+                    : <span className="gh-muted">{t('account.sparkId.none')}</span>)}
                   {item(t('form.givenNames'), user.givenNames)}
                   {item(t('form.surname'), user.surname)}
                   {item(t('form.phone'), user.phone)}
@@ -138,6 +158,9 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
                       {'dateOfBirth' in user && item(t('form.dateOfBirth'), user.dateOfBirth && formatDate(user.dateOfBirth))}
                     </>
                   )}
+                  {item(t('account.signInMethod'), providerLabel(user.auth?.providers, t))}
+                  {item(t('account.microsoft'), <MicrosoftStatus user={user} onWithdraw={perms.editAccounts ? async () => { try { done(null, await withdrawMicrosoftLink(user.uid)); } catch (err) { setNotice({ type: 'error', text: describeApiError(err, t) }); } } : null} />)}
+                  {item(t('account.uid'), <CopyValue value={user.uid} />)}
                   {item(t('account.lastSignIn'), user.auth?.lastSignInAt ? when(user.auth.lastSignInAt) : t('account.never'))}
                   {item(t('account.created'), `${formatDate(user.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}${user.createdBy?.name ? ` · ${user.createdBy.name}` : ''}`)}
                   {user.updatedAt && item(t('account.updated'), `${formatDate(user.updatedAt, { dateStyle: 'medium', timeStyle: 'short' })}${user.updatedBy?.name ? ` · ${user.updatedBy.name}` : ''}`)}
@@ -185,6 +208,12 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
               <div className="gh-card-head"><h3>{t('account.actions')}</h3></div>
               <div className="gh-actions">
                 <Action icon={Pencil} onClick={() => setDialog('edit')}>{t('account.action.editDetails')}</Action>
+                {user.role === 'student' && !user.publicId && (
+                  <Action icon={Sparkles} onClick={() => setDialog('assignId')}>{t('account.action.assignId')}</Action>
+                )}
+                {!user.auth?.microsoft?.verified && (
+                  <Action icon={Link2} onClick={() => setDialog('registerMs')}>{t('account.action.registerMicrosoft')}</Action>
+                )}
                 <Action icon={KeyRound} onClick={() => setDialog('password')}>{t('account.action.setPassword')}</Action>
                 {(user.role === 'parent' || user.role === 'student') && (
                   <Action icon={Link2} onClick={() => setDialog('link')}>
@@ -219,6 +248,12 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
                        confirmLabel={t('account.action.unsuspend')} run={() => unsuspendUser(user.uid)}
                        onClose={() => setDialog(null)} onDone={(res) => done(null, res)} />
       )}
+      {dialog === 'registerMs' && <RegisterMicrosoftDialog user={user} onClose={() => setDialog(null)} onDone={(res) => done(t('account.microsoft.registerSuccess'), res)} />}
+      {dialog === 'assignId' && (
+        <ConfirmDialog icon={Sparkles} title={t('account.assignId.title', { name: user.displayName })} body={t('account.assignId.body')}
+                       confirmLabel={t('account.action.assignId')} run={() => assignPublicId(user.uid)}
+                       onClose={() => setDialog(null)} onDone={(res) => done(t('account.assignId.success'), res)} />
+      )}
       {dialog === 'role' && <RoleDialog user={user} onClose={() => setDialog(null)} onDone={(res) => done(null, res)} />}
       {dialog === 'email' && <EmailDialog user={user} onClose={() => setDialog(null)} onDone={(res) => done(null, res)} />}
       {dialog === 'invite' && <InviteDialog user={user} onClose={() => { setDialog(null); refresh(); }} />}
@@ -242,6 +277,87 @@ export function AccountDetail({ uid, perms, callerUid, onOpen, onBack, flash }) 
                        onClose={() => setDialog(null)} onDone={(res) => done(null, res)} />
       )}
     </div>
+  );
+}
+
+function MicrosoftStatus({ user, onWithdraw }) {
+  const { t } = useLocale();
+  const ms = user.auth?.microsoft;
+  const line = (icon, color, label, extra) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+      {icon === 'ok'
+        ? <CircleCheck size={15} aria-hidden="true" style={{ color }} />
+        : <CircleAlert size={15} aria-hidden="true" style={{ color }} />}
+      <strong>{label}</strong>{extra}
+    </span>
+  );
+  if (ms?.linked && ms?.verified) {
+    return line('ok', 'var(--gh-green, #15803d)', t('account.microsoft.verified'), ms.upn || ms.email ? <span className="gh-muted">· {ms.upn || ms.email}</span> : null);
+  }
+  if (ms?.linked) {
+    return line('warn', 'var(--gh-amber, #b45309)', t('account.microsoft.unverified'), ms.email ? <span className="gh-muted">· {ms.email}</span> : null);
+  }
+  const official = (user.email || '').toLowerCase().endsWith('@welearn.org');
+  return (
+    <span>
+      {ms?.registeredUpn
+        ? line('warn', 'var(--gh-amber, #b45309)', t('account.microsoft.registered'), (
+          <>
+            <span className="gh-muted">· {ms.registeredUpn}</span>
+            {onWithdraw && <button type="button" className="gh-btn gh-btn-sm gh-btn-ghost" onClick={onWithdraw}>{t('account.microsoft.withdraw')}</button>}
+          </>
+        ))
+        : line('warn', 'var(--gh-amber, #b45309)', t('account.microsoft.notLinked'))}
+      {!ms?.registeredUpn && (
+        <span className="gh-muted" style={{ display: 'block', fontSize: '0.85rem' }}>
+          {official ? t('account.microsoft.notLinkedHint') : t('account.microsoft.nonOrgEmail')}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function RegisterMicrosoftDialog({ user, onClose, onDone }) {
+  const { t } = useLocale();
+  const [upn, setUpn] = useState(user.auth?.microsoft?.registeredUpn || '');
+  const s = useSubmit(() => registerMicrosoftLink(user.uid, upn.trim()), onDone);
+  return (
+    <Modal title={t('account.microsoft.registerTitle', { name: user.displayName })} icon={Link2} onClose={onClose}>
+      <form onSubmit={s.submit}>
+        <p>{t('account.microsoft.registerBody')}</p>
+        <Field id="f-upn" label={t('account.microsoft.upn')} error={s.error?.field === 'upn' ? s.errorText : null}>
+          {(a) => <input className="gh-input" type="email" value={upn} onChange={(e) => setUpn(e.target.value)} placeholder="name@welearn.org" required autoFocus {...a} />}
+        </Field>
+        {s.error?.field !== 'upn' && <div style={{ marginTop: '0.75rem' }}><Alert type="error">{s.errorText}</Alert></div>}
+        <div className="gh-modal-foot">
+          <button type="button" className="gh-btn" onClick={onClose}>{t('common.cancel')}</button>
+          <button type="submit" className="gh-btn gh-btn-accent" disabled={s.busy || !upn.trim()}>{s.busy ? t('common.saving') : t('account.action.registerMicrosoft')}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function providerLabel(providers, t) {
+  if (!providers?.length) return null;
+  return providers.map((p) => (p === 'microsoft.com' ? t('account.provider.microsoft') : p === 'password' ? t('account.provider.password') : p)).join(', ');
+}
+
+/** A monospace value with a copy button, for IDs an admin pastes into other systems. */
+function CopyValue({ value }) {
+  const { t } = useLocale();
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* clipboard unavailable */ }
+  };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+      <span className="gh-mono" style={{ wordBreak: 'break-all' }}>{value}</span>
+      <button type="button" className="gh-btn gh-btn-sm gh-btn-ghost" onClick={copy} aria-label={t('account.copy')} title={t('account.copy')}>
+        {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+        <span className="gh-sr-only" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{copied ? t('account.copied') : t('account.copy')}</span>
+      </button>
+    </span>
   );
 }
 

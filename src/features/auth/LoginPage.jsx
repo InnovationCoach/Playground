@@ -4,7 +4,7 @@ import { SparkWordmark } from '../spark/SparkMark.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { LOCALES } from '../../app/i18n/messages.js';
 import { LOGO_URL } from '../../app/brand.js';
-import { signUpUser, signInUser, AGE_BANDS, DEFAULT_AGE_BAND } from '../../auth.js';
+import { signUpUser, signInUser, signInWithMicrosoft, logoutUser, AGE_BANDS, DEFAULT_AGE_BAND } from '../../auth.js';
 import { joinClassWithCode, JOIN_RESULT } from '../enrolment/joinClass.js';
 import { PasswordResetPanel } from './PasswordResetPanel.jsx';
 import { Alert, Field } from '../admin/ui/bits.jsx';
@@ -23,7 +23,7 @@ import '../admin/admin.css';
  * accounts are created by the school once a parent has consented, which is why
  * the age list offers secondary bands only.
  */
-export function LoginPage({ initialError }) {
+export function LoginPage({ initialError, onBackToLanding }) {
   const { t, locale, setLocale } = useLocale();
   const [mode, setMode] = useState('signin');
   const [form, setForm] = useState({ email: '', password: '', displayName: '', classCode: '', ageBand: DEFAULT_AGE_BAND });
@@ -35,6 +35,45 @@ export function LoginPage({ initialError }) {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const isSignUp = mode === 'signup';
 
+  async function handleMicrosoftSignIn() {
+    setBusy(true);
+    setAlert(null);
+    try {
+      const result = await signInWithMicrosoft();
+      if (!result.success) {
+        if (result.code === 'auth/account-exists-with-different-credential') {
+          setAlert({
+            type: 'error',
+            text: 'An account already exists with this email address. Please sign in below using your password, then link your Microsoft 365 account.'
+          });
+        } else if (result.code === 'auth/popup-closed-by-user') {
+          // Closed by user, no error needed
+        } else {
+          const base = friendlyAuthError(result.error, t);
+          setAlert({ type: 'error', text: result.code ? `${base} (${result.code})` : base });
+        }
+        return;
+      }
+
+      const email = (result.user.email || '').toLowerCase();
+      if (!email.endsWith('@welearn.org')) {
+        await logoutUser();
+        setAlert({
+          type: 'error',
+          text: 'Access restricted: Only verified @welearn.org Microsoft accounts are permitted.'
+        });
+        return;
+      }
+
+      // AuthProvider decides what happens next: an approved account opens Spark, anything else
+      // is limited to requesting access.
+    } catch (err) {
+      setAlert({ type: 'error', text: friendlyAuthError(err?.message, t) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const isLocalDev = Boolean(
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
@@ -45,7 +84,17 @@ export function LoginPage({ initialError }) {
   function handleDevLogin(targetRole = 'coach_rivera') {
     if (!import.meta.env.DEV || !isLocalDev) return;
     let devUser;
-    if (targetRole === 'coach_rivera') {
+    if (targetRole === 'admin' || targetRole === 'marketing') {
+      devUser = {
+        uid: 'oTcev6lYyEOQV4zrdU7feb1YNNG2',
+        email: 'Marketing@welearnthailand.com',
+        displayName: 'Marketing Admin',
+        role: 'admin',
+        classIds: [],
+        schoolIds: ['school-wpr', 'sch-bkk'],
+        orgId: 'org-welearn'
+      };
+    } else if (targetRole === 'coach_rivera') {
       devUser = {
         uid: 'coach_rivera_local',
         email: 'coach.rivera@school.edu',
@@ -106,11 +155,17 @@ export function LoginPage({ initialError }) {
         const result = await signInUser(form.email, form.password);
         if (!result.success) {
           if (import.meta.env.DEV && isLocalDev && (
+            form.email.toLowerCase().includes('marketing') ||
+            form.email.toLowerCase().includes('admin') ||
             form.email.includes('coach') ||
             form.email.includes('teacher') ||
             form.email.includes('school.edu') ||
             form.password === 'review123'
           )) {
+            if (form.email.toLowerCase().includes('marketing') || form.email.toLowerCase().includes('admin')) {
+              handleDevLogin('admin');
+              return;
+            }
             handleDevLogin(form.email.includes('okafor') ? 'coach_okafor' : 'coach_rivera');
             return;
           }
@@ -120,11 +175,17 @@ export function LoginPage({ initialError }) {
       }
     } catch (err) {
       if (import.meta.env.DEV && isLocalDev && (
+        form.email.toLowerCase().includes('marketing') ||
+        form.email.toLowerCase().includes('admin') ||
         form.email.includes('coach') ||
         form.email.includes('teacher') ||
         form.email.includes('school.edu') ||
         form.password === 'review123'
       )) {
+        if (form.email.toLowerCase().includes('marketing') || form.email.toLowerCase().includes('admin')) {
+          handleDevLogin('admin');
+          return;
+        }
         handleDevLogin(form.email.includes('okafor') ? 'coach_okafor' : 'coach_rivera');
         return;
       }
@@ -156,6 +217,29 @@ export function LoginPage({ initialError }) {
 
       <main className="gh-auth-main">
         <div className="gh-auth-card">
+          {onBackToLanding && (
+            <div style={{ marginBottom: '1rem' }}>
+              <button
+                type="button"
+                onClick={onBackToLanding}
+                className="gh-auth-back-link"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  fontSize: '0.86rem',
+                  fontWeight: 700,
+                  color: 'var(--gh-purple, #8250a0)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                ← Back to WeLearn SPARK Overview
+              </button>
+            </div>
+          )}
           <div className="gh-auth-row" style={{ marginBottom: '2rem' }}>
             <img src={LOGO_URL} alt="WeLearn" style={{ height: 38 }} className="gh-auth-mobile-logo-img" />
             <label>
@@ -218,9 +302,57 @@ export function LoginPage({ initialError }) {
                     >
                       Student Alex
                     </button>
+                    <button
+                      type="button"
+                      className="gh-btn"
+                      onClick={() => handleDevLogin('admin')}
+                      style={{ fontSize: '0.82rem', padding: '0.5rem 0.6rem', textAlign: 'center', height: 'auto', minHeight: '36px', border: '1px solid var(--gh-purple, #8250a0)', background: 'rgba(130, 80, 160, 0.08)', color: 'var(--gh-purple, #8250a0)', fontWeight: 700 }}
+                    >
+                      Marketing Admin
+                    </button>
                   </div>
                 </div>
               )}
+
+              {/* Microsoft 365 SSO Button */}
+              <button
+                type="button"
+                className="gh-btn gh-btn-block"
+                onClick={handleMicrosoftSignIn}
+                disabled={busy}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.65rem',
+                  background: '#ffffff',
+                  color: '#1e293b',
+                  border: '1px solid var(--gh-border, #cbd5e1)',
+                  borderRadius: '10px',
+                  padding: '0.65rem 1rem',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  marginBottom: '1rem',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                  cursor: 'pointer'
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true">
+                  <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                  <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                  <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                  <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                </svg>
+                Sign in with Microsoft 365
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', margin: '0.75rem 0 1.25rem', color: '#94a3b8' }}>
+                <div style={{ flex: 1, height: '1px', background: 'var(--gh-border, #e2e8f0)' }} />
+                <span style={{ padding: '0 0.75rem', fontSize: '0.74rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  or use password
+                </span>
+                <div style={{ flex: 1, height: '1px', background: 'var(--gh-border, #e2e8f0)' }} />
+              </div>
 
               <form onSubmit={onSubmit} className="gh-auth-form" noValidate={false}>
                 {alert && <Alert type={alert.type}>{alert.text}</Alert>}
@@ -275,13 +407,25 @@ export function LoginPage({ initialError }) {
                 </button>
               </form>
 
-              <p className="gh-auth-switch">
-                {isSignUp ? t('auth.haveAccount') : t('auth.noAccount')}{' '}
-                <button type="button" className="gh-linkish" onClick={() => { setMode(isSignUp ? 'signin' : 'signup'); setAlert(null); }}>
-                  {isSignUp ? t('auth.signInLink') : t('auth.signUpLink')}
-                </button>
-              </p>
-              {isSignUp && <p className="gh-hint" style={{ textAlign: 'center' }}>{t('auth.staffNote')}</p>}
+              {isSignUp ? (
+                <>
+                  <p className="gh-auth-switch">
+                    {t('auth.haveAccount')}{' '}
+                    <button type="button" className="gh-linkish" onClick={() => { setMode('signin'); setAlert(null); }}>
+                      {t('auth.signInLink')}
+                    </button>
+                  </p>
+                  <p className="gh-hint" style={{ textAlign: 'center' }}>{t('auth.staffNote')}</p>
+                </>
+              ) : (
+                <p className="gh-auth-switch">
+                  {t('auth.needHelp')}{' '}
+                  {t('auth.contactAdmin')}{' '}
+                  <a href="mailto:mani@welearn.org" className="gh-linkish">
+                    mani@welearn.org
+                  </a>
+                </p>
+              )}
             </>
           )}
         </div>

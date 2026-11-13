@@ -393,7 +393,7 @@ textarea.gh-input { min-height: 88px; resize: vertical; }
 .gh-auth-form { display: grid; gap: 1rem; margin-top: 1.5rem; }
 .gh-auth-row { display: flex; justify-content: space-between; align-items: center; }
 .gh-auth-switch { text-align: center; font-size: 0.88rem; color: var(--gh-text-2); margin-top: 1.5rem; }
-.gh-linkish { background: none; border: none; padding: 0; color: var(--gh-purple-text); font: 600 0.86rem var(--gh-font); cursor: pointer; }
+.gh-linkish { background: none; border: none; padding: 0; color: var(--gh-purple-text); font: 600 0.86rem var(--gh-font); cursor: pointer; text-decoration: none; }
 .gh-linkish:hover { color: var(--gh-purple-text); text-decoration: underline; }
 .gh-auth .gh-segmented { display: flex; }
 .gh-auth .gh-segmented button { flex: 1; }

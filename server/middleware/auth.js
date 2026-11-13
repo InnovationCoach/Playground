@@ -2,6 +2,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initAdmin } from '../auth.js';
 import { sendError } from '../lib/errors.js';
+import { microsoftSessionAllowed } from '../lib/microsoft-sso-auth.js';
 
 /**
  * Express middleware for Admin, Parent, and Session endpoints.
@@ -33,6 +34,24 @@ export async function requireClaims(req, res, next) {
     // Immediate refusal for suspended accounts
     if (userData.status === 'suspended' || decoded.disabled) {
       return sendError(res, 401, 'UNAUTHENTICATED', 'Your account has been suspended.');
+    }
+
+    // Block pending or rejected accounts from all endpoints except access-request and session status
+    const allowedPendingPaths = ['/auth/access-request', '/auth/access-request/me', '/me'];
+    const currentPath = req.path || '';
+    if (userData.status === 'pending' && !allowedPendingPaths.includes(currentPath)) {
+      return sendError(res, 403, 'ACCESS_PENDING', 'Your account access request is pending administrator approval.');
+    }
+    if (userData.status === 'rejected' && !['/auth/access-request/me', '/me'].includes(currentPath)) {
+      return sendError(res, 403, 'ACCESS_REJECTED', 'Your access request was rejected by platform administration.');
+    }
+
+    // A Microsoft-signed session counts only once the profile is approved and carries a
+    // server-verified Microsoft identity. A first-time sign-in, or a provider link that was never
+    // finalized, reaches the access-request endpoints and nothing else.
+    if (decoded.firebase?.sign_in_provider === 'microsoft.com' && !microsoftSessionAllowed(userData)
+        && !['/auth/access-request', '/auth/access-request/me', '/me'].includes(currentPath)) {
+      return sendError(res, 403, 'ACCESS_PENDING', 'Your Microsoft account is not approved for Spark yet.');
     }
 
     const role = decoded.role || userData.role || 'student';
