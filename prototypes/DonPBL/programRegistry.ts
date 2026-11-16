@@ -2,13 +2,19 @@
  * Program Registry for WeLearn PBL Studio
  * Location: prototypes/DonPBL/programRegistry.ts
  * 
- * Complete 6-program catalog (all fitting a 12-week, 120-hour term):
- * - Program 1: Entrepreneurship: Product Creation (12 Weeks / 120h • 18 Sessions)
- * - Program 2: Project Genesis Engine: Storytelling IP (12 Weeks / 120h • 24 Sessions)
- * - Program 3: The Passion Project Blueprint (12 Weeks / 120h • 24 Sessions)
- * - Program 4: Quantitative Biomechanics & Bio-Inspired Robotics (12 Weeks / 120h • 24 Sessions)
- * - Program 5: Hex-City Thailand: Modular Resilient Floating City (12 Weeks / 120h • 24 Sessions)
- * - Program 6: EcoCool: Smart Urban Heat & Community Garden Monitor (12 Weeks / 120h • 24 Sessions)
+ * Complete 12-program catalog (all fitting a 12-week, 120-hour term):
+ * - Program 1: Robo-Buddy Companion: Build, Code & Care for a 3D-Printed Walking Desk Pet (12 Weeks / 120h • 24 Sessions)
+ * - Program 2: StreetPaws — The Community Animal Rescue App (12 Weeks / 120h • 24 Sessions)
+ * - Program 3: Project Voyager: 3D-Printed RC Truck & Solar Charging Bay (12 Weeks / 120h • 24 Sessions)
+ * - Program 4: Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics (12 Weeks / 120h • 24 Sessions)
+ * - Program 5: Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting (12 Weeks / 120h • 24 Sessions)
+ * - Program 6: Project Exodus: Building Our New Home in Space (12 Weeks / 120h • 24 Sessions)
+ * - Program 7: Entrepreneurship: Creating a Product (12 Weeks / 120h • 18 Sessions)
+ * - Program 8: Project "Genesis Engine": Build Your Own Movie Universe! (12 Weeks / 120h • 24 Sessions)
+ * - Program 9: The Passion Project Blueprint: Discovering Your Next Big Idea (12 Weeks / 120h • 24 Sessions)
+ * - Program 10: Quantitative Biomechanics & Bio-Inspired Robotics (12 Weeks / 120h • 24 Sessions)
+ * - Program 11: Hex-City Thailand: Modular Resilient Floating City (12 Weeks / 120h • 24 Sessions)
+ * - Program 12: EcoCool: Smart Urban Heat & Community Garden Monitor (12 Weeks / 120h • 24 Sessions)
  * 
  * Stub Program (excluded from PROGRAM_REGISTRY and PROGRAM_LIST until phases are authored):
  * - CleanStream: Smart Urban Stormwater & Micro-Filter Sentinel (status: 'stub')
@@ -32,28 +38,161 @@ import type {
 } from './programData';
 import { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS } from './hexCityProgram';
 import type { HexCityRole, CrisisScenario } from './hexCityProgram';
-import { BIOMECHANICS_PROGRAM, BIOMIMETIC_TRACKS } from './biomechanicsProgram';
-import type { BiomimeticTrack } from './biomechanicsProgram';
+import {
+  BIOMECHANICS_PROGRAM,
+  BIOMIMETIC_TRACKS,
+  BIOMECHANICS_60_DAY_SCHEDULE,
+  BIOMECHANICS_OLDER_STUDENT_PILLARS,
+  BIOMECHANICS_GAMIFICATION_BADGES
+} from './biomechanicsProgram';
+import type {
+  BiomimeticTrack,
+  BiomechanicsWeekSchedule,
+  BiomechanicsSpecialPillar,
+  BiomechanicsBadge
+} from './biomechanicsProgram';
 import { PASSION_BLUEPRINT_PROGRAM, FRICTION_STRATEGIES } from './passionBlueprintProgram';
 import type { FrictionStrategy } from './passionBlueprintProgram';
 import { 
   STORYTELLING_PROGRAM, 
   GENESIS_CHARACTERS_FIXTURE, 
-  GENESIS_WORLD_RULES_FIXTURE
+  GENESIS_WORLD_RULES_FIXTURE,
+  GENESIS_DELIVERABLES,
+  GENESIS_12_WEEK_ROADMAP,
+  GENESIS_SUCCESS_CHECKLIST,
+  GENESIS_GAMIFICATION_BADGES
 } from './storytellingProgram';
-import type { CharacterProfile, WorldRule } from './storytellingProgram';
+import type {
+  CharacterProfile,
+  WorldRule,
+  StoryBeat,
+  GenesisDeliverableSpec,
+  GenesisWeekSchedule,
+  GenesisSuccessCriterion,
+  GenesisGamificationBadge
+} from './storytellingProgram';
 import {
   ENTREPRENEURSHIP_PROGRAM,
   ENTREPRENEURSHIP_BADGES,
   ENTREPRENEURSHIP_LEVELS,
-  ENTREPRENEURSHIP_SIMULATION_PRESETS
+  ENTREPRENEURSHIP_SIMULATION_PRESETS,
+  ENTREPRENEURSHIP_PDF_ACTIVITIES
 } from './entrepreneurshipProgram';
 import type {
   StartupBadge,
   MarketSimulationState,
   GamificationLevel,
-  SimulationPreset
+  SimulationPreset,
+  EntrepreneurshipPhaseActivity
 } from './entrepreneurshipProgram';
+import {
+  INTERSTELLAR_ARK_PROGRAM,
+  EXOPLANET_CANDIDATES,
+  ARK_PROPULSION_OPTIONS,
+  ARK_CRISIS_SCENARIOS,
+  ARK_WELEARN_MTC_RUBRIC,
+  ARK_GAMIFICATION_LEVELS,
+  ARK_GAMIFICATION_BADGES
+} from './interstellarArkProgram';
+import type {
+  ExoplanetCandidate,
+  ArkPropulsionOption,
+  ArkCrisisScenario,
+  ArkMtcRubricItem,
+  ArkGamificationBadge,
+  ArkGamificationLevel
+} from './interstellarArkProgram';
+import {
+  KINETIC_ENERGY_PROGRAM,
+  KINETIC_TRANSDUCER_OPTIONS,
+  KINETIC_SITE_BOTTLENECKS,
+  KINETIC_DELIVERABLES,
+  KINETIC_WELEARN_SKILLS_TABLE,
+  KINETIC_GAMIFICATION_BADGES
+} from './kineticEnergyProgram';
+import type {
+  KineticTransducerOption,
+  KineticSiteBottleneck,
+  KineticSkillPracticeItem,
+  KineticDeliverableSpec,
+  KineticGamificationBadge
+} from './kineticEnergyProgram';
+import {
+  VITAL_FLOW_PROGRAM,
+  VITAL_FLOW_PUMP_OPTIONS,
+  VITAL_FLOW_VALVE_OPTIONS,
+  VITAL_FLOW_VASCULAR_PATHWAYS,
+  VITAL_FLOW_DELIVERABLES,
+  VITAL_FLOW_WELEARN_SKILLS_TABLE,
+  VITAL_FLOW_GAMIFICATION_BADGES
+} from './vitalFlowProgram';
+import type {
+  VitalFlowPumpOption,
+  VitalFlowValveOption,
+  VitalFlowVascularZone,
+  VitalFlowDeliverableSpec,
+  VitalFlowSkillPracticeItem,
+  VitalFlowGamificationBadge
+} from './vitalFlowProgram';
+import {
+  VOYAGER_PROGRAM,
+  VOYAGER_TEAM_ROLES,
+  VOYAGER_12_WEEK_SCHEDULE,
+  VOYAGER_ACTIVITY_GUIDES,
+  VOYAGER_WELEARN_MTC_RUBRIC,
+  VOYAGER_MTC_REFLECTION_QUESTIONS,
+  VOYAGER_GAMIFICATION_BADGES
+} from './voyagerProgram';
+import type {
+  VoyagerTeamRole,
+  VoyagerWeekDeliverable,
+  VoyagerActivityGuideStep,
+  VoyagerWeLearnCompetencyRubric,
+  VoyagerMtcReflectionQuestion,
+  VoyagerGamificationBadge
+} from './voyagerProgram';
+import {
+  STREETPAWS_PROGRAM,
+  STREETPAWS_CORE_FEATURES,
+  STREETPAWS_MTC_COMPETENCIES,
+  STREETPAWS_DAILY_ESL_ROUTINE,
+  STREETPAWS_12_WEEK_CURRICULUM,
+  STREETPAWS_PITCH_SLIDES,
+  STREETPAWS_ESL_PITCH_SCRIPT,
+  STREETPAWS_ASSESSMENT_RUBRIC,
+  STREETPAWS_GAMIFICATION_BADGES
+} from './streetPawsProgram';
+import type {
+  StreetPawsCoreFeature,
+  StreetPawsMtcCompetency,
+  StreetPawsDailyRoutineBlock,
+  StreetPawsWeekPlan,
+  StreetPawsPitchSlide,
+  StreetPawsEslPitchSpeaker,
+  StreetPawsRubricRow,
+  StreetPawsBadge
+} from './streetPawsProgram';
+import {
+  ROBO_BUDDY_PROGRAM,
+  ROBO_BUDDY_DELIVERABLES,
+  ROBO_BUDDY_HARDWARE_TABLE,
+  ROBO_BUDDY_WEEKLY_RHYTHM,
+  ROBO_BUDDY_TEAM_ROLES,
+  ROBO_BUDDY_12_WEEK_CURRICULUM,
+  ROBO_BUDDY_PINOUT_GUIDE,
+  ROBO_BUDDY_MTC_RUBRIC,
+  ROBO_BUDDY_GAMIFICATION_BADGES
+} from './roboBuddyProgram';
+import type {
+  RoboBuddyDeliverableSpec,
+  RoboBuddyHardwareComparisonRow,
+  RoboBuddyWeeklyRhythmDay,
+  RoboBuddyTeamRole,
+  RoboBuddyWeekPlan,
+  RoboBuddyPinoutVersion,
+  RoboBuddyMtcRubricRow,
+  RoboBuddyBadge
+} from './roboBuddyProgram';
 
 export { 
   SCHOOL_SCHEDULE_CONFIG, 
@@ -73,26 +212,169 @@ export type {
 export { HEX_CITY_PROGRAM, HEX_CITY_ROLES, CRISIS_SCENARIOS };
 export type { HexCityRole, CrisisScenario };
 
-export { BIOMECHANICS_PROGRAM, BIOMIMETIC_TRACKS };
-export type { BiomimeticTrack };
+export {
+  BIOMECHANICS_PROGRAM,
+  BIOMIMETIC_TRACKS,
+  BIOMECHANICS_60_DAY_SCHEDULE,
+  BIOMECHANICS_OLDER_STUDENT_PILLARS,
+  BIOMECHANICS_GAMIFICATION_BADGES
+};
+export type {
+  BiomimeticTrack,
+  BiomechanicsWeekSchedule,
+  BiomechanicsSpecialPillar,
+  BiomechanicsBadge
+};
 
 export { PASSION_BLUEPRINT_PROGRAM, FRICTION_STRATEGIES };
 export type { FrictionStrategy };
 
-export { STORYTELLING_PROGRAM, GENESIS_CHARACTERS_FIXTURE, GENESIS_WORLD_RULES_FIXTURE };
-export type { CharacterProfile, WorldRule };
+export {
+  STORYTELLING_PROGRAM,
+  GENESIS_CHARACTERS_FIXTURE,
+  GENESIS_WORLD_RULES_FIXTURE,
+  GENESIS_DELIVERABLES,
+  GENESIS_12_WEEK_ROADMAP,
+  GENESIS_SUCCESS_CHECKLIST,
+  GENESIS_GAMIFICATION_BADGES
+};
+export type {
+  CharacterProfile,
+  WorldRule,
+  StoryBeat,
+  GenesisDeliverableSpec,
+  GenesisWeekSchedule,
+  GenesisSuccessCriterion,
+  GenesisGamificationBadge
+};
 
 export {
   ENTREPRENEURSHIP_PROGRAM,
   ENTREPRENEURSHIP_BADGES,
   ENTREPRENEURSHIP_LEVELS,
-  ENTREPRENEURSHIP_SIMULATION_PRESETS
+  ENTREPRENEURSHIP_SIMULATION_PRESETS,
+  ENTREPRENEURSHIP_PDF_ACTIVITIES
 };
 export type {
   StartupBadge,
   MarketSimulationState,
   GamificationLevel,
-  SimulationPreset
+  SimulationPreset,
+  EntrepreneurshipPhaseActivity
+};
+
+export {
+  INTERSTELLAR_ARK_PROGRAM,
+  EXOPLANET_CANDIDATES,
+  ARK_PROPULSION_OPTIONS,
+  ARK_CRISIS_SCENARIOS,
+  ARK_WELEARN_MTC_RUBRIC,
+  ARK_GAMIFICATION_LEVELS,
+  ARK_GAMIFICATION_BADGES
+};
+export type {
+  ExoplanetCandidate,
+  ArkPropulsionOption,
+  ArkCrisisScenario,
+  ArkMtcRubricItem,
+  ArkGamificationBadge,
+  ArkGamificationLevel
+};
+
+export {
+  KINETIC_ENERGY_PROGRAM,
+  KINETIC_TRANSDUCER_OPTIONS,
+  KINETIC_SITE_BOTTLENECKS,
+  KINETIC_DELIVERABLES,
+  KINETIC_WELEARN_SKILLS_TABLE,
+  KINETIC_GAMIFICATION_BADGES
+};
+export type {
+  KineticTransducerOption,
+  KineticSiteBottleneck,
+  KineticSkillPracticeItem,
+  KineticDeliverableSpec,
+  KineticGamificationBadge
+};
+
+export {
+  VITAL_FLOW_PROGRAM,
+  VITAL_FLOW_PUMP_OPTIONS,
+  VITAL_FLOW_VALVE_OPTIONS,
+  VITAL_FLOW_VASCULAR_PATHWAYS,
+  VITAL_FLOW_DELIVERABLES,
+  VITAL_FLOW_WELEARN_SKILLS_TABLE,
+  VITAL_FLOW_GAMIFICATION_BADGES
+};
+export type {
+  VitalFlowPumpOption,
+  VitalFlowValveOption,
+  VitalFlowVascularZone,
+  VitalFlowDeliverableSpec,
+  VitalFlowSkillPracticeItem,
+  VitalFlowGamificationBadge
+};
+
+export {
+  VOYAGER_PROGRAM,
+  VOYAGER_TEAM_ROLES,
+  VOYAGER_12_WEEK_SCHEDULE,
+  VOYAGER_ACTIVITY_GUIDES,
+  VOYAGER_WELEARN_MTC_RUBRIC,
+  VOYAGER_MTC_REFLECTION_QUESTIONS,
+  VOYAGER_GAMIFICATION_BADGES
+};
+export type {
+  VoyagerTeamRole,
+  VoyagerWeekDeliverable,
+  VoyagerActivityGuideStep,
+  VoyagerWeLearnCompetencyRubric,
+  VoyagerMtcReflectionQuestion,
+  VoyagerGamificationBadge
+};
+
+export {
+  STREETPAWS_PROGRAM,
+  STREETPAWS_CORE_FEATURES,
+  STREETPAWS_MTC_COMPETENCIES,
+  STREETPAWS_DAILY_ESL_ROUTINE,
+  STREETPAWS_12_WEEK_CURRICULUM,
+  STREETPAWS_PITCH_SLIDES,
+  STREETPAWS_ESL_PITCH_SCRIPT,
+  STREETPAWS_ASSESSMENT_RUBRIC,
+  STREETPAWS_GAMIFICATION_BADGES
+};
+export type {
+  StreetPawsCoreFeature,
+  StreetPawsMtcCompetency,
+  StreetPawsDailyRoutineBlock,
+  StreetPawsWeekPlan,
+  StreetPawsPitchSlide,
+  StreetPawsEslPitchSpeaker,
+  StreetPawsRubricRow,
+  StreetPawsBadge
+};
+
+export {
+  ROBO_BUDDY_PROGRAM,
+  ROBO_BUDDY_DELIVERABLES,
+  ROBO_BUDDY_HARDWARE_TABLE,
+  ROBO_BUDDY_WEEKLY_RHYTHM,
+  ROBO_BUDDY_TEAM_ROLES,
+  ROBO_BUDDY_12_WEEK_CURRICULUM,
+  ROBO_BUDDY_PINOUT_GUIDE,
+  ROBO_BUDDY_MTC_RUBRIC,
+  ROBO_BUDDY_GAMIFICATION_BADGES
+};
+export type {
+  RoboBuddyDeliverableSpec,
+  RoboBuddyHardwareComparisonRow,
+  RoboBuddyWeeklyRhythmDay,
+  RoboBuddyTeamRole,
+  RoboBuddyWeekPlan,
+  RoboBuddyPinoutVersion,
+  RoboBuddyMtcRubricRow,
+  RoboBuddyBadge
 };
 
 /**
@@ -184,6 +466,12 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
 };
 
 export const PROGRAM_REGISTRY: Record<string, PblProgram> = {
+  'robo-buddy-companion-2026': ROBO_BUDDY_PROGRAM,
+  'streetpaws-animal-rescue-2026': STREETPAWS_PROGRAM,
+  'project-voyager-rc-solar-2026': VOYAGER_PROGRAM,
+  'project-vital-flow-2026': VITAL_FLOW_PROGRAM,
+  'kinetic-smart-energy-2026': KINETIC_ENERGY_PROGRAM,
+  'interstellar-ark-horizon-2026': INTERSTELLAR_ARK_PROGRAM,
   'entrepreneurship-product-creation-2026': ENTREPRENEURSHIP_PROGRAM,
   'storytelling-genesis-2026': STORYTELLING_PROGRAM,
   'passion-project-blueprint-2026': PASSION_BLUEPRINT_PROGRAM,

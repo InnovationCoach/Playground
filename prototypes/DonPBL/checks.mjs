@@ -367,13 +367,529 @@ async function main() {
     const seededRun1 = simulateMarketStep(initialState, 20, 15, makeSeededRng(42));
     const seededRun2 = simulateMarketStep(initialState, 20, 15, makeSeededRng(42));
     assert.deepEqual(seededRun1, seededRun2);
+
+    // Also test simulateArkBiosphere deterministic 500-colonist ECLSS and crisis survival math
+    const { simulateArkBiosphere } = pbl;
+    const nominalArk = simulateArkBiosphere({
+      colonistCount: 500,
+      hydroponicAreaSqM: 1650,
+      algaeBioreactorLiters: 3200,
+      waterRecoveryEfficiencyPct: 98.5,
+      restorativeSpacePct: 22,
+      repairDroneBays: 6,
+      prototypingCostTHB: 1310
+    });
+    assert.equal(nominalArk.colonists, 500);
+    assert.equal(nominalArk.targetDailyKcal, 1250000);
+    assert.equal(nominalArk.dailyKcalProduced, 1375000);
+    assert.equal(nominalArk.withinThbBudget, true);
+    assert.equal(nominalArk.isSelfSustaining, true);
+
+    const badArk = simulateArkBiosphere({
+      hydroponicAreaSqM: Number.NaN,
+      algaeBioreactorLiters: Number.POSITIVE_INFINITY,
+      waterRecoveryEfficiencyPct: -50,
+      restorativeSpacePct: 200,
+      repairDroneBays: -2,
+      prototypingCostTHB: 2000
+    });
+    assert.equal(badArk.withinThbBudget, false);
+    assert.equal(badArk.isSelfSustaining, false);
+
+    // Also test simulateKineticHarvesting deterministic rectifier, 50-step capacitor & Honest ROI math
+    const { simulateKineticHarvesting } = pbl;
+    const schottkyKinetic = simulateKineticHarvesting({
+      joulesPerStepRaw: 3.2,
+      dailyFootstepsPerTile: 4800,
+      tileCount: 16,
+      surfaceTempDeltaC: 5,
+      diodeType: 'schottky-1n5819',
+      capacitorMicrofarads: 1000,
+      verticalDeflectionMm: 4.0,
+      unitCostUSD: 41,
+      deploymentScale: 'pilot-100',
+      includeSmartSensorCoBenefit: true
+    });
+    const siliconKinetic = simulateKineticHarvesting({
+      joulesPerStepRaw: 3.2,
+      dailyFootstepsPerTile: 4800,
+      tileCount: 16,
+      surfaceTempDeltaC: 5,
+      diodeType: 'silicon-1n4007',
+      capacitorMicrofarads: 1000,
+      verticalDeflectionMm: 4.0,
+      unitCostUSD: 41,
+      deploymentScale: 'pilot-100',
+      includeSmartSensorCoBenefit: true
+    });
+    assert.ok(
+      schottkyKinetic.netJoulesPerStep > siliconKinetic.netJoulesPerStep,
+      '1N5819 Schottky bridge must harvest more net Joules/step than 1N4007 Silicon bridge'
+    );
+    assert.ok(
+      schottkyKinetic.capacitorVoltage50Steps > siliconKinetic.capacitorVoltage50Steps,
+      '1N5819 Schottky bridge must reach a higher 50-step 1000uF capacitor voltage than 1N4007 Silicon'
+    );
+    assert.equal(schottkyKinetic.adaTripFreeSafe, true);
+    assert.ok(schottkyKinetic.estimatedPaybackYears < 5);
+
+    const unsafeKinetic = simulateKineticHarvesting({
+      joulesPerStepRaw: Number.NaN,
+      dailyFootstepsPerTile: Number.POSITIVE_INFINITY,
+      tileCount: -5,
+      surfaceTempDeltaC: -10,
+      diodeType: 'schottky-1n5819',
+      capacitorMicrofarads: 1000,
+      verticalDeflectionMm: 6.5,
+      unitCostUSD: 50,
+      deploymentScale: 'prototype-1',
+      includeSmartSensorCoBenefit: false
+    });
+    assert.equal(unsafeKinetic.adaTripFreeSafe, false);
+    for (const val of Object.values(unsafeKinetic)) {
+      if (typeof val === 'number') {
+        assert.ok(Number.isFinite(val), `Expected finite number from simulateKineticHarvesting, got ${val}`);
+      }
+    }
+
+    // Also test simulateVitalFlowCirculation deterministic closed-loop fluid dynamics & V1.0 vs V2.0 hemodynamic math
+    const { simulateVitalFlowCirculation } = pbl;
+    const v2Circulation = simulateVitalFlowCirculation({
+      strokeVolumeMl: 48,
+      pumpCadenceBpm: 72,
+      peakSystolicMmHg: 115,
+      valveBackflowPreventionPct: 92,
+      valveForwardDropMmHg: 6,
+      totalNetworkVolumeMl: 420,
+      lungStationConnected: true,
+      sharp90DegreeBendCount: 2,
+      jointSealQualityPct: 95,
+      prototypeVersion: 'v2_upgraded'
+    });
+    const v1Circulation = simulateVitalFlowCirculation({
+      strokeVolumeMl: 40,
+      pumpCadenceBpm: 60,
+      peakSystolicMmHg: 115,
+      valveBackflowPreventionPct: 28,
+      valveForwardDropMmHg: 2,
+      totalNetworkVolumeMl: 420,
+      lungStationConnected: true,
+      sharp90DegreeBendCount: 12,
+      jointSealQualityPct: 55,
+      prototypeVersion: 'v1_baseline'
+    });
+    assert.ok(
+      v2Circulation.netForwardFlowMlPerMin > v1Circulation.netForwardFlowMlPerMin,
+      'V2.0 with check-valves must deliver higher net forward flow than unvalved V1.0'
+    );
+    assert.ok(
+      v2Circulation.distalToePerfusionMmHg > v1Circulation.distalToePerfusionMmHg,
+      'V2.0 with fewer sharp 90-degree bends and reinforced seals must deliver higher distal toe pressure than V1.0'
+    );
+    assert.equal(v2Circulation.perfusedDigitsCount, 20);
+    assert.equal(v2Circulation.aneurysmLeakCount, 0);
+    assert.equal(v2Circulation.clinicalVerdict, 'viable_extremity_perfusion');
+    assert.equal(v1Circulation.clinicalVerdict, 'critical_hypoperfusion_or_leak');
+
+    const badCirculation = simulateVitalFlowCirculation({
+      strokeVolumeMl: Number.NaN,
+      pumpCadenceBpm: Number.POSITIVE_INFINITY,
+      peakSystolicMmHg: Number.NaN,
+      valveBackflowPreventionPct: -50,
+      valveForwardDropMmHg: -10,
+      totalNetworkVolumeMl: 0,
+      lungStationConnected: false,
+      sharp90DegreeBendCount: -4,
+      jointSealQualityPct: 200,
+      prototypeVersion: 'v1_baseline'
+    });
+    for (const val of Object.values(badCirculation)) {
+      if (typeof val === 'number') {
+        assert.ok(Number.isFinite(val), `Expected finite number from simulateVitalFlowCirculation, got ${val}`);
+      }
+    }
+
+    // Also test simulateVoyagerRcSolar deterministic 3D-printed RC Truck Shell & Solar Charging Bay math
+    const { simulateVoyagerRcSolar } = pbl;
+    const optimalVoyager = simulateVoyagerRcSolar({
+      truckLengthMm: 310,
+      truckWidthMm: 165,
+      shellWallThicknessMm: 2.8,
+      wheelArchClearanceMm: 12,
+      infillPct: 18,
+      wallLoops: 3,
+      batteryType: 'li_ion_2s_2000mah',
+      solarPanelWatts: 20,
+      solarRoofAngleDeg: 22,
+      bayExtraClearanceCm: 5,
+      totalBudgetTHB: 2400
+    });
+    const brittleVoyager = simulateVoyagerRcSolar({
+      truckLengthMm: 310,
+      truckWidthMm: 165,
+      shellWallThicknessMm: 1.5,
+      wheelArchClearanceMm: 4,
+      infillPct: 10,
+      wallLoops: 2,
+      batteryType: 'lipo_2s_2200mah',
+      solarPanelWatts: 10,
+      solarRoofAngleDeg: 5,
+      bayExtraClearanceCm: 2,
+      totalBudgetTHB: 3800
+    });
+    assert.equal(optimalVoyager.wallThicknessStatus, 'optimal_2.5_to_3mm');
+    assert.equal(optimalVoyager.printBedSections, 2);
+    assert.equal(optimalVoyager.wheelsRubFree, true);
+    assert.equal(optimalVoyager.bayClearanceSafe, true);
+    assert.equal(optimalVoyager.angleOptimal, true);
+    assert.equal(optimalVoyager.withinThbBudget, true);
+    assert.equal(optimalVoyager.designReviewReady, true);
+    assert.equal(brittleVoyager.wallThicknessStatus, 'too_thin_cracks');
+    assert.equal(brittleVoyager.wheelsRubFree, false);
+    assert.equal(brittleVoyager.bayClearanceSafe, false);
+    assert.equal(brittleVoyager.angleOptimal, false);
+    assert.equal(brittleVoyager.withinThbBudget, false);
+    assert.equal(brittleVoyager.designReviewReady, false);
+
+    const badVoyager = simulateVoyagerRcSolar({
+      truckLengthMm: Number.NaN,
+      truckWidthMm: Number.POSITIVE_INFINITY,
+      shellWallThicknessMm: Number.NaN,
+      wheelArchClearanceMm: -5,
+      infillPct: 200,
+      wallLoops: -1,
+      batteryType: 'li_ion_2s_2000mah',
+      solarPanelWatts: -10,
+      solarRoofAngleDeg: 90,
+      bayExtraClearanceCm: -3,
+      totalBudgetTHB: 5000
+    });
+    for (const val of Object.values(badVoyager)) {
+      if (typeof val === 'number') {
+        assert.ok(Number.isFinite(val), `Expected finite number from simulateVoyagerRcSolar, got ${val}`);
+      }
+    }
+
+    // Also test simulateStreetPawsApp deterministic THB budget, 15-THB bowl & 3-click UX math
+    const { simulateStreetPawsApp } = pbl;
+    const sustainableStreetPaws = simulateStreetPawsApp({
+      neighborhoodAnimalsCount: 10,
+      dogFoodBag15KgPriceTHB: 600,
+      partnerPetShopDiscountPct: 10,
+      vetCheckAndVaccineCostTHB: 500,
+      animalsNeedingVaccinePerMonth: 2,
+      sosSurgeryGoalTHB: 2000,
+      microDonationBowlTHB: 15,
+      monthlyMicroDonationCount: 260,
+      monthlyPartnerSponsorTHB: 2500,
+      clicksToReportSos: 3,
+      feedingMapTotalPins: 6,
+      feedingMapGreenVerifiedPins: 5,
+      qrStationWeatherproofAndWorking: true,
+      usabilityTestersCount: 5,
+      beforeAfterImprovementsCount: 3
+    });
+    const deficitStreetPaws = simulateStreetPawsApp({
+      neighborhoodAnimalsCount: 25,
+      dogFoodBag15KgPriceTHB: 600,
+      partnerPetShopDiscountPct: 0,
+      vetCheckAndVaccineCostTHB: 500,
+      animalsNeedingVaccinePerMonth: 5,
+      sosSurgeryGoalTHB: 4000,
+      microDonationBowlTHB: 15,
+      monthlyMicroDonationCount: 20,
+      monthlyPartnerSponsorTHB: 0,
+      clicksToReportSos: 6,
+      feedingMapTotalPins: 6,
+      feedingMapGreenVerifiedPins: 1,
+      qrStationWeatherproofAndWorking: false,
+      usabilityTestersCount: 2,
+      beforeAfterImprovementsCount: 1
+    });
+    assert.equal(sustainableStreetPaws.bagsNeededPerMonth, 6);
+    assert.equal(sustainableStreetPaws.grossMonthlyFoodTHB, 3600);
+    assert.equal(sustainableStreetPaws.netMonthlyFoodTHB, 3240);
+    assert.equal(sustainableStreetPaws.threeClickRulePassed, true);
+    assert.equal(sustainableStreetPaws.usabilityTargetMet, true);
+    assert.equal(sustainableStreetPaws.financiallySustainable, true);
+    assert.equal(sustainableStreetPaws.showcaseReady, true);
+    assert.equal(deficitStreetPaws.threeClickRulePassed, false);
+    assert.equal(deficitStreetPaws.usabilityTargetMet, false);
+    assert.equal(deficitStreetPaws.financiallySustainable, false);
+    assert.equal(deficitStreetPaws.showcaseReady, false);
+
+    const badStreetPaws = simulateStreetPawsApp({
+      neighborhoodAnimalsCount: Number.NaN,
+      dogFoodBag15KgPriceTHB: Number.POSITIVE_INFINITY,
+      partnerPetShopDiscountPct: -20,
+      vetCheckAndVaccineCostTHB: Number.NaN,
+      animalsNeedingVaccinePerMonth: -5,
+      sosSurgeryGoalTHB: -100,
+      microDonationBowlTHB: 0,
+      monthlyMicroDonationCount: Number.NaN,
+      monthlyPartnerSponsorTHB: -500,
+      clicksToReportSos: 99,
+      feedingMapTotalPins: 0,
+      feedingMapGreenVerifiedPins: -2,
+      qrStationWeatherproofAndWorking: false,
+      usabilityTestersCount: -3,
+      beforeAfterImprovementsCount: Number.NaN
+    });
+    for (const val of Object.values(badStreetPaws)) {
+      if (typeof val === 'number') {
+        assert.ok(Number.isFinite(val), `Expected finite number from simulateStreetPawsApp, got ${val}`);
+      }
+    }
+
+    // Also test simulateRoboBuddyCompanion deterministic 4-servo Otto gait, Tamagotchi state machine & 40-point benchmark math
+    const { simulateRoboBuddyCompanion } = pbl;
+    const readyRoboBuddy = simulateRoboBuddyCompanion({
+      hardwareVersion: 'microbit',
+      leftHipAngleDeg: 90,
+      rightHipAngleDeg: 90,
+      leftFootAngleDeg: 90,
+      rightFootAngleDeg: 90,
+      servosCenteredBeforeAssembly: true,
+      batteryPackUsed: '4xaa_6v_external',
+      rubberFootGripsAdded: true,
+      cablesZipTied: true,
+      hoursSinceLastFed: 1,
+      hoursSinceLastPetted: 1,
+      touchPetEventsCount: 3,
+      lightFeedEventsCount: 2,
+      alarmTriggered: false,
+      dismissHeadTouches: 3,
+      ultrasonicWaveDistanceCm: 10,
+      walkingTestsPassedOf20: 19,
+      alarmTestsPassedOf10: 10,
+      sensorCareTestsPassedOf10: 9
+    });
+    const uncalibratedRoboBuddy = simulateRoboBuddyCompanion({
+      hardwareVersion: 'arduino-nano',
+      leftHipAngleDeg: 75,
+      rightHipAngleDeg: 108,
+      leftFootAngleDeg: 72,
+      rightFootAngleDeg: 110,
+      servosCenteredBeforeAssembly: false,
+      batteryPackUsed: 'usb_computer_only',
+      rubberFootGripsAdded: false,
+      cablesZipTied: false,
+      hoursSinceLastFed: 9,
+      hoursSinceLastPetted: 8,
+      touchPetEventsCount: 0,
+      lightFeedEventsCount: 0,
+      alarmTriggered: true,
+      dismissHeadTouches: 1,
+      ultrasonicWaveDistanceCm: 40,
+      walkingTestsPassedOf20: 8,
+      alarmTestsPassedOf10: 4,
+      sensorCareTestsPassedOf10: 4
+    });
+    assert.equal(readyRoboBuddy.benchTest1Passed, true);
+    assert.equal(readyRoboBuddy.benchTest2Passed, true);
+    assert.equal(readyRoboBuddy.currentMood, 'Happy');
+    assert.equal(readyRoboBuddy.alarmDismissed, true);
+    assert.equal(readyRoboBuddy.totalBenchmarkPassedOf40, 38);
+    assert.equal(readyRoboBuddy.prototypeV2Ready, true);
+    assert.equal(uncalibratedRoboBuddy.benchTest1Passed, false);
+    assert.equal(uncalibratedRoboBuddy.currentMood, 'Alarm Ringing');
+    assert.equal(uncalibratedRoboBuddy.alarmDismissed, false);
+    assert.equal(uncalibratedRoboBuddy.prototypeV2Ready, false);
+
+    const badRoboBuddy = simulateRoboBuddyCompanion({
+      hardwareVersion: 'microbit',
+      leftHipAngleDeg: Number.NaN,
+      rightHipAngleDeg: Number.POSITIVE_INFINITY,
+      leftFootAngleDeg: -50,
+      rightFootAngleDeg: 300,
+      servosCenteredBeforeAssembly: false,
+      batteryPackUsed: 'usb_computer_only',
+      rubberFootGripsAdded: false,
+      cablesZipTied: false,
+      hoursSinceLastFed: Number.NaN,
+      hoursSinceLastPetted: -10,
+      touchPetEventsCount: -5,
+      lightFeedEventsCount: Number.NaN,
+      alarmTriggered: true,
+      dismissHeadTouches: -2,
+      ultrasonicWaveDistanceCm: Number.NaN,
+      walkingTestsPassedOf20: 99,
+      alarmTestsPassedOf10: -3,
+      sensorCareTestsPassedOf10: Number.NaN
+    });
+    for (const val of Object.values(badRoboBuddy)) {
+      if (typeof val === 'number') {
+        assert.ok(Number.isFinite(val), `Expected finite number from simulateRoboBuddyCompanion, got ${val}`);
+      }
+    }
   });
 
   // 8. Test PROGRAM_REGISTRY and PROGRAM_LIST alignment
   await runCheck('8. PROGRAM_REGISTRY keys match program.id and PROGRAM_LIST has identical IDs in order', () => {
-    const { PROGRAM_REGISTRY, PROGRAM_LIST, CLEAN_STREAM_PROGRAM } = pbl;
+    const {
+      PROGRAM_REGISTRY,
+      PROGRAM_LIST,
+      CLEAN_STREAM_PROGRAM,
+      ARK_CRISIS_SCENARIOS,
+      ARK_WELEARN_MTC_RUBRIC,
+      ARK_GAMIFICATION_BADGES,
+      EXOPLANET_CANDIDATES,
+      KINETIC_TRANSDUCER_OPTIONS,
+      KINETIC_SITE_BOTTLENECKS,
+      KINETIC_DELIVERABLES,
+      KINETIC_WELEARN_SKILLS_TABLE,
+      KINETIC_GAMIFICATION_BADGES,
+      VITAL_FLOW_PUMP_OPTIONS,
+      VITAL_FLOW_VALVE_OPTIONS,
+      VITAL_FLOW_VASCULAR_PATHWAYS,
+      VITAL_FLOW_DELIVERABLES,
+      VITAL_FLOW_WELEARN_SKILLS_TABLE,
+      VITAL_FLOW_GAMIFICATION_BADGES,
+      VOYAGER_TEAM_ROLES,
+      VOYAGER_12_WEEK_SCHEDULE,
+      VOYAGER_ACTIVITY_GUIDES,
+      VOYAGER_WELEARN_MTC_RUBRIC,
+      VOYAGER_MTC_REFLECTION_QUESTIONS,
+      VOYAGER_GAMIFICATION_BADGES,
+      STREETPAWS_CORE_FEATURES,
+      STREETPAWS_MTC_COMPETENCIES,
+      STREETPAWS_DAILY_ESL_ROUTINE,
+      STREETPAWS_12_WEEK_CURRICULUM,
+      STREETPAWS_PITCH_SLIDES,
+      STREETPAWS_ESL_PITCH_SCRIPT,
+      STREETPAWS_ASSESSMENT_RUBRIC,
+      STREETPAWS_GAMIFICATION_BADGES,
+      ROBO_BUDDY_DELIVERABLES,
+      ROBO_BUDDY_HARDWARE_TABLE,
+      ROBO_BUDDY_WEEKLY_RHYTHM,
+      ROBO_BUDDY_TEAM_ROLES,
+      ROBO_BUDDY_12_WEEK_CURRICULUM,
+      ROBO_BUDDY_PINOUT_GUIDE,
+      ROBO_BUDDY_MTC_RUBRIC,
+      ROBO_BUDDY_GAMIFICATION_BADGES,
+      BIOMIMETIC_TRACKS,
+      BIOMECHANICS_60_DAY_SCHEDULE,
+      BIOMECHANICS_OLDER_STUDENT_PILLARS,
+      BIOMECHANICS_GAMIFICATION_BADGES,
+      ENTREPRENEURSHIP_PDF_ACTIVITIES,
+      ENTREPRENEURSHIP_BADGES,
+      ENTREPRENEURSHIP_LEVELS,
+      ENTREPRENEURSHIP_SIMULATION_PRESETS,
+      GENESIS_DELIVERABLES,
+      GENESIS_12_WEEK_ROADMAP,
+      GENESIS_SUCCESS_CHECKLIST,
+      GENESIS_GAMIFICATION_BADGES
+    } = pbl;
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
-    assert.equal(registryKeys.length, 6, 'Expected 6 complete programs in PROGRAM_REGISTRY');
+    assert.equal(registryKeys.length, 12, 'Expected 12 complete programs in PROGRAM_REGISTRY');
+    assert.ok('robo-buddy-companion-2026' in PROGRAM_REGISTRY, 'robo-buddy-companion-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['robo-buddy-companion-2026'].title,
+      'Robo-Buddy Companion: Build, Code & Care for a 3D-Printed Walking Desk Pet',
+      'Expected Robo-Buddy Companion title'
+    );
+    assert.equal(ROBO_BUDDY_DELIVERABLES.length, 3, 'Expected 3 Core Deliverables for Robo-Buddy Companion');
+    assert.equal(ROBO_BUDDY_HARDWARE_TABLE.length, 8, 'Expected 8 hardware comparison rows in ROBO_BUDDY_HARDWARE_TABLE');
+    assert.equal(ROBO_BUDDY_WEEKLY_RHYTHM.length, 5, 'Expected 5 days (Monday–Friday) in ROBO_BUDDY_WEEKLY_RHYTHM');
+    assert.equal(ROBO_BUDDY_TEAM_ROLES.length, 4, 'Expected 4 Student Team Roles in ROBO_BUDDY_TEAM_ROLES');
+    assert.equal(ROBO_BUDDY_12_WEEK_CURRICULUM.length, 12, 'Expected 12 weeks in ROBO_BUDDY_12_WEEK_CURRICULUM');
+    assert.equal(ROBO_BUDDY_PINOUT_GUIDE.length, 2, 'Expected 2 hardware versions in ROBO_BUDDY_PINOUT_GUIDE');
+    assert.equal(ROBO_BUDDY_MTC_RUBRIC.length, 7, 'Expected all 7 WeLearn Future Skills in ROBO_BUDDY_MTC_RUBRIC');
+    assert.equal(ROBO_BUDDY_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges in ROBO_BUDDY_GAMIFICATION_BADGES');
+
+    assert.ok('streetpaws-animal-rescue-2026' in PROGRAM_REGISTRY, 'streetpaws-animal-rescue-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['streetpaws-animal-rescue-2026'].title,
+      'StreetPaws — The Community Animal Rescue App',
+      'Expected StreetPaws — The Community Animal Rescue App title'
+    );
+    assert.equal(STREETPAWS_CORE_FEATURES.length, 4, 'Expected 4 Core App Features for StreetPaws');
+    assert.equal(STREETPAWS_MTC_COMPETENCIES.length, 6, 'Expected 6 Selected WeLearn MTC Competencies for StreetPaws');
+    assert.equal(STREETPAWS_DAILY_ESL_ROUTINE.length, 4, 'Expected 4 blocks in STREETPAWS_DAILY_ESL_ROUTINE');
+    assert.equal(STREETPAWS_12_WEEK_CURRICULUM.length, 12, 'Expected 12 weeks in STREETPAWS_12_WEEK_CURRICULUM');
+    assert.equal(STREETPAWS_PITCH_SLIDES.length, 8, 'Expected 8 slides in STREETPAWS_PITCH_SLIDES');
+    assert.equal(STREETPAWS_ESL_PITCH_SCRIPT.length, 4, 'Expected 4 speakers in STREETPAWS_ESL_PITCH_SCRIPT');
+    assert.equal(STREETPAWS_ASSESSMENT_RUBRIC.length, 6, 'Expected 6 rows in STREETPAWS_ASSESSMENT_RUBRIC');
+    assert.equal(STREETPAWS_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for StreetPaws');
+
+    assert.ok('project-voyager-rc-solar-2026' in PROGRAM_REGISTRY, 'project-voyager-rc-solar-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['project-voyager-rc-solar-2026'].title,
+      'Project Voyager: 3D-Printed RC Truck & Solar Charging Bay',
+      'Expected Project Voyager: 3D-Printed RC Truck & Solar Charging Bay title'
+    );
+    assert.equal(VOYAGER_TEAM_ROLES.length, 5, 'Expected 5 ESL-Friendly Team Roles for Project Voyager');
+    assert.equal(VOYAGER_12_WEEK_SCHEDULE.length, 12, 'Expected 12 weeks in VOYAGER_12_WEEK_SCHEDULE');
+    assert.equal(VOYAGER_ACTIVITY_GUIDES.length, 7, 'Expected 7 activity guides (Guide A 1–4 + Guide B 1–3) in VOYAGER_ACTIVITY_GUIDES');
+    assert.equal(VOYAGER_WELEARN_MTC_RUBRIC.length, 7, 'Expected 7 WeLearn/MTC competencies in VOYAGER_WELEARN_MTC_RUBRIC');
+    assert.equal(VOYAGER_MTC_REFLECTION_QUESTIONS.length, 12, 'Expected 12 Final MTC Portfolio Reflection Questions');
+    assert.equal(VOYAGER_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Project Voyager');
+
+    assert.ok('storytelling-genesis-2026' in PROGRAM_REGISTRY, 'storytelling-genesis-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['storytelling-genesis-2026'].title,
+      'Project "Genesis Engine": Build Your Own Movie Universe!',
+      'Expected Project "Genesis Engine": Build Your Own Movie Universe! title'
+    );
+    assert.equal(GENESIS_DELIVERABLES.length, 3, 'Expected 3 Final Deliverables for Project Genesis Engine');
+    assert.equal(GENESIS_12_WEEK_ROADMAP.length, 12, 'Expected 12 weeks in GENESIS_12_WEEK_ROADMAP');
+    assert.equal(GENESIS_SUCCESS_CHECKLIST.length, 4, 'Expected 4 scoring criteria in GENESIS_SUCCESS_CHECKLIST');
+    assert.equal(GENESIS_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Project Genesis Engine');
+
+    assert.ok('entrepreneurship-product-creation-2026' in PROGRAM_REGISTRY, 'entrepreneurship-product-creation-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['entrepreneurship-product-creation-2026'].title,
+      'Entrepreneurship: Creating a Product',
+      'Expected Entrepreneurship: Creating a Product title'
+    );
+    assert.equal(ENTREPRENEURSHIP_PDF_ACTIVITIES.length, 11, 'Expected all 11 activities across Phases 1–5 from Entrepreneurship: Creating a Product PDF');
+    assert.equal(ENTREPRENEURSHIP_BADGES.length, 7, 'Expected 7 gamification badges for Entrepreneurship: Creating a Product');
+    assert.equal(ENTREPRENEURSHIP_LEVELS.length, 7, 'Expected 7 gamification levels for Entrepreneurship: Creating a Product');
+    assert.equal(ENTREPRENEURSHIP_SIMULATION_PRESETS.length, 4, 'Expected 4 simulation presets for Entrepreneurship: Creating a Product');
+
+    assert.ok('biomechanics-robotics-2026' in PROGRAM_REGISTRY, 'biomechanics-robotics-2026 must be registered');
+    assert.equal(BIOMIMETIC_TRACKS.length, 3, 'Expected 3 Day-26 Biomimetic Engineering Projects');
+    assert.equal(BIOMECHANICS_60_DAY_SCHEDULE.length, 12, 'Expected 12 weeks in BIOMECHANICS_60_DAY_SCHEDULE');
+    const totalBiomechDays = BIOMECHANICS_60_DAY_SCHEDULE.reduce((acc, w) => acc + w.days.length, 0);
+    assert.equal(totalBiomechDays, 60, 'Expected 60 daily studio activities (Days 1–60) in BIOMECHANICS_60_DAY_SCHEDULE');
+    assert.equal(BIOMECHANICS_OLDER_STUDENT_PILLARS.length, 4, 'Expected 4 Older-Student Special Pillars');
+    assert.equal(BIOMECHANICS_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Biomechanics');
+
+    assert.ok('project-vital-flow-2026' in PROGRAM_REGISTRY, 'project-vital-flow-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['project-vital-flow-2026'].title,
+      'Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics',
+      'Expected Project Vital Flow title'
+    );
+    assert.equal(VITAL_FLOW_PUMP_OPTIONS.length, 4, 'Expected 4 manual pump options for Project Vital Flow');
+    assert.equal(VITAL_FLOW_VALVE_OPTIONS.length, 4, 'Expected 4 valve options for Project Vital Flow');
+    assert.equal(VITAL_FLOW_VASCULAR_PATHWAYS.length, 5, 'Expected 5 anatomical vascular pathways for Project Vital Flow');
+    assert.equal(VITAL_FLOW_DELIVERABLES.length, 3, 'Expected 3 core deliverables for Project Vital Flow');
+    assert.equal(VITAL_FLOW_WELEARN_SKILLS_TABLE.length, 7, 'Expected 7 WeLearn Future Skills for Project Vital Flow');
+    assert.equal(VITAL_FLOW_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Project Vital Flow');
+
+    assert.ok('kinetic-smart-energy-2026' in PROGRAM_REGISTRY, 'kinetic-smart-energy-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['kinetic-smart-energy-2026'].title,
+      'Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting',
+      'Expected Kinetic and Smart Energy Harvesting title'
+    );
+    assert.equal(KINETIC_TRANSDUCER_OPTIONS.length, 4, 'Expected 4 kinetic/thermal transducer options');
+    assert.equal(KINETIC_SITE_BOTTLENECKS.length, 3, 'Expected 3 site bottleneck options');
+    assert.equal(KINETIC_DELIVERABLES.length, 3, 'Expected 3 core deliverables for Kinetic Energy');
+    assert.equal(KINETIC_WELEARN_SKILLS_TABLE.length, 7, 'Expected 7 WeLearn Future Skills for Kinetic Energy');
+    assert.equal(KINETIC_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Kinetic Energy');
+
+    assert.ok('interstellar-ark-horizon-2026' in PROGRAM_REGISTRY, 'interstellar-ark-horizon-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['interstellar-ark-horizon-2026'].title,
+      'Project Exodus: Building Our New Home in Space',
+      'Expected Project Exodus title'
+    );
+    assert.equal(ARK_CRISIS_SCENARIOS.length, 6, 'Expected all 6 Space Emergency Game Cards');
+    assert.equal(ARK_WELEARN_MTC_RUBRIC.length, 7, 'Expected all 7 WeLearn Future Skills in rubric');
+    assert.equal(ARK_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges for Project Exodus');
+    assert.equal(EXOPLANET_CANDIDATES.length, 4, 'Expected 4 Goldilocks Exoplanet candidates');
 
     for (const [key, prog] of Object.entries(PROGRAM_REGISTRY)) {
       assert.equal(prog.id, key, `Registry key ${key} must equal program.id (${prog.id})`);

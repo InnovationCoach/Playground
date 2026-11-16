@@ -1,9 +1,10 @@
 /**
- * Explicit Named Barrel for DonPBL UI Components
+ * Explicit Named Barrel for Don's PBL Prototype UI
  * Location: prototypes/DonPBL/ui/pbl.ts
- * 
+ *
  * Uses explicit named re-exports (`export { ... }` and `export type { ... }`)
- * rather than `export *` to prevent silent symbol collisions across modules.
+ * rather than `export *` so symbol collisions are caught at build time and
+ * files can run cleanly under type-stripping, Vite/Rolldown, or esbuild.
  */
 
 export {
@@ -15,13 +16,13 @@ export {
 } from '../programData';
 
 export type {
+  ConfirmationRecord,
   PblProgram,
   ProgramPhase,
   PhaseSession,
-  ConfirmationRecord,
   SchoolScheduleConfig,
-  LearnerAgeConfig,
   AgeTierTrack,
+  LearnerAgeConfig,
   HardwareInventoryConfig,
   CopilotDeploymentConfig
 } from '../programData';
@@ -35,40 +36,142 @@ export {
   CRISIS_SCENARIOS,
   BIOMECHANICS_PROGRAM,
   BIOMIMETIC_TRACKS,
+  BIOMECHANICS_60_DAY_SCHEDULE,
+  BIOMECHANICS_OLDER_STUDENT_PILLARS,
+  BIOMECHANICS_GAMIFICATION_BADGES,
   PASSION_BLUEPRINT_PROGRAM,
   FRICTION_STRATEGIES,
   STORYTELLING_PROGRAM,
   GENESIS_CHARACTERS_FIXTURE,
   GENESIS_WORLD_RULES_FIXTURE,
+  GENESIS_DELIVERABLES,
+  GENESIS_12_WEEK_ROADMAP,
+  GENESIS_SUCCESS_CHECKLIST,
+  GENESIS_GAMIFICATION_BADGES,
   ENTREPRENEURSHIP_PROGRAM,
   ENTREPRENEURSHIP_BADGES,
   ENTREPRENEURSHIP_LEVELS,
-  ENTREPRENEURSHIP_SIMULATION_PRESETS
+  ENTREPRENEURSHIP_SIMULATION_PRESETS,
+  ENTREPRENEURSHIP_PDF_ACTIVITIES,
+  INTERSTELLAR_ARK_PROGRAM,
+  EXOPLANET_CANDIDATES,
+  ARK_PROPULSION_OPTIONS,
+  ARK_CRISIS_SCENARIOS,
+  ARK_WELEARN_MTC_RUBRIC,
+  ARK_GAMIFICATION_LEVELS,
+  ARK_GAMIFICATION_BADGES,
+  KINETIC_ENERGY_PROGRAM,
+  KINETIC_TRANSDUCER_OPTIONS,
+  KINETIC_SITE_BOTTLENECKS,
+  KINETIC_DELIVERABLES,
+  KINETIC_WELEARN_SKILLS_TABLE,
+  KINETIC_GAMIFICATION_BADGES,
+  VITAL_FLOW_PROGRAM,
+  VITAL_FLOW_PUMP_OPTIONS,
+  VITAL_FLOW_VALVE_OPTIONS,
+  VITAL_FLOW_VASCULAR_PATHWAYS,
+  VITAL_FLOW_DELIVERABLES,
+  VITAL_FLOW_WELEARN_SKILLS_TABLE,
+  VITAL_FLOW_GAMIFICATION_BADGES,
+  VOYAGER_PROGRAM,
+  VOYAGER_TEAM_ROLES,
+  VOYAGER_12_WEEK_SCHEDULE,
+  VOYAGER_ACTIVITY_GUIDES,
+  VOYAGER_WELEARN_MTC_RUBRIC,
+  VOYAGER_MTC_REFLECTION_QUESTIONS,
+  VOYAGER_GAMIFICATION_BADGES,
+  STREETPAWS_PROGRAM,
+  STREETPAWS_CORE_FEATURES,
+  STREETPAWS_MTC_COMPETENCIES,
+  STREETPAWS_DAILY_ESL_ROUTINE,
+  STREETPAWS_12_WEEK_CURRICULUM,
+  STREETPAWS_PITCH_SLIDES,
+  STREETPAWS_ESL_PITCH_SCRIPT,
+  STREETPAWS_ASSESSMENT_RUBRIC,
+  STREETPAWS_GAMIFICATION_BADGES,
+  ROBO_BUDDY_PROGRAM,
+  ROBO_BUDDY_DELIVERABLES,
+  ROBO_BUDDY_HARDWARE_TABLE,
+  ROBO_BUDDY_WEEKLY_RHYTHM,
+  ROBO_BUDDY_TEAM_ROLES,
+  ROBO_BUDDY_12_WEEK_CURRICULUM,
+  ROBO_BUDDY_PINOUT_GUIDE,
+  ROBO_BUDDY_MTC_RUBRIC,
+  ROBO_BUDDY_GAMIFICATION_BADGES
 } from '../programRegistry';
 
 export type {
   HexCityRole,
   CrisisScenario,
   BiomimeticTrack,
+  BiomechanicsWeekSchedule,
+  BiomechanicsSpecialPillar,
+  BiomechanicsBadge,
   FrictionStrategy,
   CharacterProfile,
   WorldRule,
+  StoryBeat,
+  GenesisDeliverableSpec,
+  GenesisWeekSchedule,
+  GenesisSuccessCriterion,
+  GenesisGamificationBadge,
   StartupBadge,
   MarketSimulationState,
   GamificationLevel,
-  SimulationPreset
+  SimulationPreset,
+  EntrepreneurshipPhaseActivity,
+  ExoplanetCandidate,
+  ArkPropulsionOption,
+  ArkCrisisScenario,
+  ArkMtcRubricItem,
+  ArkGamificationBadge,
+  ArkGamificationLevel,
+  KineticTransducerOption,
+  KineticSiteBottleneck,
+  KineticSkillPracticeItem,
+  KineticDeliverableSpec,
+  KineticGamificationBadge,
+  VitalFlowPumpOption,
+  VitalFlowValveOption,
+  VitalFlowVascularZone,
+  VitalFlowDeliverableSpec,
+  VitalFlowSkillPracticeItem,
+  VitalFlowGamificationBadge,
+  VoyagerTeamRole,
+  VoyagerWeekDeliverable,
+  VoyagerActivityGuideStep,
+  VoyagerWeLearnCompetencyRubric,
+  VoyagerMtcReflectionQuestion,
+  VoyagerGamificationBadge,
+  StreetPawsCoreFeature,
+  StreetPawsMtcCompetency,
+  StreetPawsDailyRoutineBlock,
+  StreetPawsWeekPlan,
+  StreetPawsPitchSlide,
+  StreetPawsEslPitchSpeaker,
+  StreetPawsRubricRow,
+  StreetPawsBadge,
+  RoboBuddyDeliverableSpec,
+  RoboBuddyHardwareComparisonRow,
+  RoboBuddyWeeklyRhythmDay,
+  RoboBuddyTeamRole,
+  RoboBuddyWeekPlan,
+  RoboBuddyPinoutVersion,
+  RoboBuddyMtcRubricRow,
+  RoboBuddyBadge
 } from '../programRegistry';
 
 export {
+  SYNTHETIC_FIXTURE_NOTICE,
   COMPETENCY_DOMAINS,
   CORE_COMPETENCIES,
+  NGSS_DIMENSIONS,
   NGSS_RUBRIC_LEVELS,
   NGSS_ALIGNMENT_ITEMS,
   SAMPLE_STUDENT_PROJECT,
   MOCK_COHORT,
-  MOCK_TEACHER,
   INITIAL_COACH_FEEDBACK,
-  SYNTHETIC_FIXTURE_NOTICE
+  MOCK_TEACHER
 } from '../mockFixtures';
 
 export type {
@@ -85,25 +188,30 @@ export {
   KINDS,
   safeLink,
   getPhaseProgress,
-  getCompetencyCoverage,
   evaluateReadiness,
+  getCompetencyCoverage,
   validateAndAddEvidence,
   generateMockCopilotReply,
   calculateUnitEconomics,
-  simulateMarketStep
+  simulateMarketStep,
+  simulateArkBiosphere,
+  simulateKineticHarvesting,
+  simulateVitalFlowCirculation,
+  simulateVoyagerRcSolar,
+  simulateStreetPawsApp,
+  simulateRoboBuddyCompanion
 } from '../engine';
 
 export type {
   PhaseId,
   EvidenceKind,
-  ReadinessCheck,
   ReadinessResult
 } from '../engine';
 
 export {
+  projectDocId,
   createLocalStore,
-  createMemoryStore,
-  projectDocId
+  createMemoryStore
 } from '../store';
 
 export type {

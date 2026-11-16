@@ -36,8 +36,14 @@ export const SCHOOL_COVERS = {};
 
 /** Look and feel per program. Content stays in the prototype; this is presentation only. */
 const IDENTITY = {
+  'robo-buddy-companion-2026': { icon: 'Bot', tone: 'purple', short: 'Robo-Buddy' },
+  'streetpaws-animal-rescue-2026': { icon: 'HeartHandshake', tone: 'amber', short: 'StreetPaws' },
+  'project-voyager-rc-solar-2026': { icon: 'Truck', tone: 'sky', short: 'Project Voyager' },
+  'project-vital-flow-2026': { icon: 'Activity', tone: 'magenta', short: 'Vital Flow' },
+  'kinetic-smart-energy-2026': { icon: 'Zap', tone: 'green', short: 'Kinetic Energy' },
+  'interstellar-ark-horizon-2026': { icon: 'Rocket', tone: 'navy', short: 'Project Exodus' },
   'entrepreneurship-product-creation-2026': { icon: 'Store', tone: 'amber', short: 'Entrepreneurship' },
-  'storytelling-genesis-2026': { icon: 'Clapperboard', tone: 'magenta', short: 'Storytelling' },
+  'storytelling-genesis-2026': { icon: 'Clapperboard', tone: 'magenta', short: 'Genesis Engine' },
   'passion-project-blueprint-2026': { icon: 'Sparkles', tone: 'purple', short: 'Passion Project' },
   'biomechanics-robotics-2026': { icon: 'Hand', tone: 'navy', short: 'Biomechanics' },
   'hex-city-thailand-2026': { icon: 'Building2', tone: 'sky', short: 'Hex-City' },

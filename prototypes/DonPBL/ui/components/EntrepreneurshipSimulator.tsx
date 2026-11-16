@@ -13,12 +13,15 @@ import {
   Coins,
   Save,
   Play,
-  RotateCcw
+  RotateCcw,
+  BookOpen,
+  Clock
 } from 'lucide-react';
 import {
   ENTREPRENEURSHIP_BADGES,
   ENTREPRENEURSHIP_LEVELS,
   ENTREPRENEURSHIP_SIMULATION_PRESETS,
+  ENTREPRENEURSHIP_PDF_ACTIVITIES,
   calculateUnitEconomics,
   simulateMarketStep
 } from '../pbl';
@@ -34,34 +37,50 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
   onClose,
   onSaveToPortfolio
 }) => {
-  const [activeTab, setActiveTab] = useState<'sandbox' | 'economics' | 'gamification'>('sandbox');
+  const [activeTab, setActiveTab] = useState<'sandbox' | 'economics' | 'worksheets' | 'gamification'>('sandbox');
   const [selectedPresetId, setSelectedPresetId] = useState<string>(
-    ENTREPRENEURSHIP_SIMULATION_PRESETS[0]?.id || 'preset-solar-locker'
+    ENTREPRENEURSHIP_SIMULATION_PRESETS[0]?.id || 'preset-brass-pocket'
   );
 
-  // Unit Economics state (Thai Baht)
+  // Phase 4: Unit Economics state (Thai Baht)
   const [unitFloorCostTHB, setUnitFloorCostTHB] = useState<number>(
-    ENTREPRENEURSHIP_SIMULATION_PRESETS[0]?.unitFloorCostTHB || 180
+    ENTREPRENEURSHIP_SIMULATION_PRESETS[0]?.unitFloorCostTHB || 45
   );
   const [desiredGrossMarginPct, setDesiredGrossMarginPct] = useState<number>(
-    ENTREPRENEURSHIP_SIMULATION_PRESETS[0]?.targetGrossMarginPct || 64
+    ENTREPRENEURSHIP_SIMULATION_PRESETS[0]?.targetGrossMarginPct || 62.5
   );
   const [fixedStartupCapitalExpenseTHB, setFixedStartupCapitalExpenseTHB] = useState<number>(
-    ENTREPRENEURSHIP_SIMULATION_PRESETS[0]?.fixedStartupExpenseTHB || 1500
+    ENTREPRENEURSHIP_SIMULATION_SIM_DEFAULT_FIXED()
   );
+
+  // Phase 1–5 Interactive Worksheet State (from PDF)
+  const [whoBlank, setWhoBlank] = useState<string>('Middle school brass musicians');
+  const [whatBlank, setWhatBlank] = useState<string>(
+    'struggle to store maintenance tools and music sheets safely without crushing them'
+  );
+  const [whyBlank, setWhyBlank] = useState<string>(
+    'standard instrument cases only fit the instrument body and lack small, soft pockets for extra items'
+  );
+  const [feasibilityScore, setFeasibilityScore] = useState<number>(5);
+  const [desirabilityScore, setDesirabilityScore] = useState<number>(5);
+  const [durabilityScore, setDurabilityScore] = useState<number>(4);
+  const [catchphraseOldWay, setCatchphraseOldWay] = useState<string>('stuffing valve oil and sheets into tight instrument cases');
+  const [catchphraseProductName, setCatchphraseProductName] = useState<string>('BrassGuard Soft Pocket');
+  const [catchphraseMainBenefit, setCatchphraseMainBenefit] = useState<string>('instant clip-on padded tool storage');
+  const [catchphraseMainProblem, setCatchphraseMainProblem] = useState<string>('dented brass parts or lost accessories');
 
   // Market Simulation state
   const [silentRuleCompliancePct, setSilentRuleCompliancePct] = useState<number>(92);
   const [unitsToProduceBatch, setUnitsToProduceBatch] = useState<number>(12);
   const [simWeek, setSimWeek] = useState<number>(1);
   const [marketState, setMarketState] = useState({
-    cashReserveTHB: ENTREPRENEURSHIP_SIMULATION_PRESETS[0]?.starterCashTHB || 5000,
+    cashReserveTHB: ENTREPRENEURSHIP_SIMULATION_PRESETS[0]?.starterCashTHB || 2500,
     unitsProduced: 10,
     unitsSold: 8,
     adoptersReached: 8,
     marketReputationScore: 78,
-    latestRevenue: 4000,
-    latestCost: 1800
+    latestRevenue: 960,
+    latestCost: 450
   });
 
   const [earnedBadges, setEarnedBadges] = useState<string[]>([
@@ -70,6 +89,10 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
     'badge-silent-observer',
     'badge-unit-economics-master'
   ]);
+
+  function ENTREPRENEURSHIP_SIMULATION_SIM_DEFAULT_FIXED() {
+    return ENTREPRENEURSHIP_SIMULATION_PRESETS[0]?.fixedStartupExpenseTHB || 1200;
+  }
 
   if (!isOpen) return null;
 
@@ -82,6 +105,10 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
     desiredGrossMarginPct,
     fixedStartupCapitalExpenseTHB
   });
+
+  const problemStatementSentence = `${whoBlank} ${whatBlank} because ${whyBlank}.`;
+  const catchphraseSentence = `Unlike ${catchphraseOldWay}, ${catchphraseProductName} gives you ${catchphraseMainBenefit} without ${catchphraseMainProblem}.`;
+  const ideaTotalScore = feasibilityScore + desirabilityScore + durabilityScore;
 
   const handleSelectPreset = (presetId: string) => {
     const preset = ENTREPRENEURSHIP_SIMULATION_PRESETS.find((p) => p.id === presetId);
@@ -148,19 +175,19 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
     if (!onSaveToPortfolio) return;
     const summary = [
       `Venture Preset: ${activePreset?.name} (${activePreset?.track.toUpperCase()} Track — ${activePreset?.category})`,
-      `Unit Floor Cost: ฿${economics.unitFloorCostTHB} THB | Retail Price: ฿${economics.retailPriceTHB} THB | Unit Contribution Margin: ฿${economics.unitContributionMarginTHB} THB (${economics.desiredGrossMarginPct}%)`,
-      `Break-Even Target: ${economics.breakEvenUnits} units (Fixed Startup CapEx: ฿${fixedStartupCapitalExpenseTHB} THB)`,
-      `Market Sandbox (Week ${simWeek}): ${marketState.unitsSold}/${marketState.unitsProduced} units sold | Cash Reserve: ฿${marketState.cashReserveTHB.toFixed(0)} THB | Adopters Reached: ${marketState.adoptersReached}/25`,
-      `Silent Rule Compliance: ${silentRuleCompliancePct}% | Reputation Score: ${marketState.marketReputationScore}/100`,
-      `Founder Gamification Rank: Level ${currentLevel.level} (${currentLevel.title} — ${totalEarnedXP} XP, ${earnedBadges.length} badges unlocked)`
+      `Phase 1 Problem Statement: "${problemStatementSentence}"`,
+      `Phase 2 Idea Score: ${ideaTotalScore}/15 (Feasibility ${feasibilityScore}/5, Desirability ${desirabilityScore}/5, Durability ${durabilityScore}/5)`,
+      `Phase 4 Final 4 Numbers (THB): Unit Cost = ฿${economics.unitFloorCostTHB} THB | Selling Price = ฿${economics.retailPriceTHB} THB | Profit per Unit = ฿${economics.unitContributionMarginTHB} THB (${economics.desiredGrossMarginPct}%) | Break-Even Units = ${economics.breakEvenUnits} units (One-Time Startup Costs: ฿${fixedStartupCapitalExpenseTHB} THB)`,
+      `Phase 5 Catchphrase: "${catchphraseSentence}"`,
+      `Market Sandbox (Week ${simWeek}): ${marketState.unitsSold}/${marketState.unitsProduced} units sold | Cash Reserve: ฿${marketState.cashReserveTHB.toFixed(0)} THB | First-25 Customers Reached: ${marketState.adoptersReached}/25 | Silent Rule Score: ${silentRuleCompliancePct}%`
     ].join('\n');
 
-    onSaveToPortfolio(`${activePreset?.name} — Week ${simWeek} Telemetry`, summary);
+    onSaveToPortfolio(`${activePreset?.name} — Venture & THB Cost Sheet`, summary);
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white border border-stone-200 rounded-2xl max-w-5xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-white border border-stone-200 rounded-2xl max-w-6xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
         {/* Modal Header */}
         <div className="bg-stone-900 text-white px-6 py-4 flex items-center justify-between border-b border-stone-800">
           <div className="flex items-center gap-3">
@@ -170,14 +197,14 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold tracking-tight">
-                  Venture Lab: Product Creation Simulator & Startup Gamification
+                  Entrepreneurship: Creating a Product — Venture & THB Economics Lab
                 </h2>
                 <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-900/70 text-emerald-300 border border-emerald-700">
                   Level {currentLevel.level}: {currentLevel.title} ({totalEarnedXP} XP)
                 </span>
               </div>
               <p className="text-xs text-stone-400">
-                Simulate physical/digital product tracks, test "The Silent Rule" usability, model Thai Baht unit economics, and unlock founder badges.
+                Phase 1 Problem Diary & Interviews • Phase 2 Crazy 8s • Phase 3 Silent Rule & v1.1 • Phase 4 THB COGS & Break-Even • Phase 5 3-Minute Sales Pitch
               </p>
             </div>
           </div>
@@ -191,7 +218,7 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
 
         {/* Navigation Tabs */}
         <div className="bg-stone-100 px-6 py-2 border-b border-stone-200 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => setActiveTab('sandbox')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
@@ -201,7 +228,7 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
               }`}
             >
               <Play className="w-3.5 h-3.5" />
-              1. Digital Twin Market Sandbox
+              1. Phase 3 Silent Rule & First-25 Sandbox
             </button>
             <button
               onClick={() => setActiveTab('economics')}
@@ -212,7 +239,18 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
               }`}
             >
               <Calculator className="w-3.5 h-3.5" />
-              2. Unit Economics & Break-Even Lab (THB)
+              2. Phase 4 Costs, Price & Break-Even (THB)
+            </button>
+            <button
+              onClick={() => setActiveTab('worksheets')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                activeTab === 'worksheets'
+                  ? 'bg-stone-900 text-white shadow-xs'
+                  : 'text-stone-600 hover:bg-stone-200'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              3. Phases 1–5 Activities, Crazy 8s & 3-Min Pitch
             </button>
             <button
               onClick={() => setActiveTab('gamification')}
@@ -223,13 +261,15 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
               }`}
             >
               <Trophy className="w-3.5 h-3.5" />
-              3. Founder XP & Achievement Badges ({earnedBadges.length}/{ENTREPRENEURSHIP_BADGES.length})
+              4. Founder XP & Badges ({earnedBadges.length}/{ENTREPRENEURSHIP_BADGES.length})
             </button>
           </div>
 
           <span className="text-xs font-mono text-stone-600">
-            Active Track:{' '}
-            <strong className="text-emerald-800 uppercase">{activePreset?.track}</strong>
+            Track:{' '}
+            <strong className="text-emerald-800 uppercase">
+              {activePreset?.track === 'physical' ? 'Option A: Physical Product' : 'Option B: Digital Solution'}
+            </strong>
           </span>
         </div>
 
@@ -241,7 +281,7 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
               <div className="lg:col-span-5 space-y-4">
                 <div className="bg-white p-4 rounded-xl border border-stone-200 space-y-3">
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500">
-                    Select Venture Prototype Preset
+                    Choose Physical Product (Option A) or Digital Solution (Option B)
                   </label>
                   <div className="space-y-2">
                     {ENTREPRENEURSHIP_SIMULATION_PRESETS.map((preset) => (
@@ -278,12 +318,12 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
                 {/* Production & Silent Rule Sliders */}
                 <div className="bg-white p-4 rounded-xl border border-stone-200 space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500">
-                    Weekly Production & Silent-Rule Controls
+                    Phase 3 Silent Rule & Weekly Batch Controls
                   </h3>
 
                   <div>
                     <div className="flex justify-between text-xs font-medium mb-1">
-                      <span className="text-stone-700">Batch Units to Produce / Provision</span>
+                      <span className="text-stone-700">Batch Units to Make / Provision</span>
                       <span className="font-mono font-bold text-emerald-700">
                         {unitsToProduceBatch} units (฿
                         {unitsToProduceBatch * economics.unitFloorCostTHB} THB)
@@ -301,7 +341,7 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
 
                   <div>
                     <div className="flex justify-between text-xs font-medium mb-1">
-                      <span className="text-stone-700">"The Silent Rule" Usability Score</span>
+                      <span className="text-stone-700">Phase 3 Activity 2: "The Silent Rule" & Version 1.1 Score</span>
                       <span className="font-mono font-bold text-indigo-700">
                         {silentRuleCompliancePct}%
                       </span>
@@ -315,7 +355,7 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
                       className="w-full accent-indigo-600"
                     />
                     <p className="text-[11px] text-stone-500 mt-1">
-                      Session 11 Rule: Hand the prototype to the tester and remain 100% silent. Higher intuitive usability increases weekly customer conversion.
+                      Give your model to 3 classmates who have never seen it. Stay completely quiet (do not explain, help, or say sorry), then fix at least 2 things in Version 1.1.
                     </p>
                   </div>
 
@@ -325,7 +365,7 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
                       className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs"
                     >
                       <Play className="w-3.5 h-3.5" />
-                      Simulate Next Market Week (Week {simWeek + 1})
+                      Simulate Launch Week (Week {simWeek + 1})
                     </button>
                     <button
                       onClick={() => handleSelectPreset(selectedPresetId)}
@@ -344,7 +384,7 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
                   <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-3">
                     <div>
                       <span className="text-[11px] font-mono uppercase text-emerald-700 font-semibold">
-                        Week {simWeek} Telemetry • {activePreset?.category}
+                        Week {simWeek} Launch Telemetry • {activePreset?.category}
                       </span>
                       <h3 className="text-base font-bold text-stone-900 mt-0.5">
                         {activePreset?.name}
@@ -365,35 +405,35 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
                   {/* Metrics Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="p-3 rounded-lg bg-stone-50 border border-stone-200">
-                      <div className="text-[11px] text-stone-500">Cash Reserve</div>
+                      <div className="text-[11px] text-stone-500">Cash Reserve (THB)</div>
                       <div className="text-lg font-bold text-emerald-700 font-mono">
                         ฿{Math.round(marketState.cashReserveTHB).toLocaleString()}
                       </div>
                     </div>
                     <div className="p-3 rounded-lg bg-stone-50 border border-stone-200">
-                      <div className="text-[11px] text-stone-500">Cumulative Sold</div>
+                      <div className="text-[11px] text-stone-500">Units Sold / Made</div>
                       <div className="text-lg font-bold text-stone-900 font-mono">
                         {marketState.unitsSold} / {marketState.unitsProduced}
                       </div>
                     </div>
                     <div className="p-3 rounded-lg bg-stone-50 border border-stone-200">
-                      <div className="text-[11px] text-stone-500">25-Adopter Funnel</div>
+                      <div className="text-[11px] text-stone-500">First 25 Customers</div>
                       <div className="text-lg font-bold text-indigo-700 font-mono">
                         {marketState.adoptersReached} / 25
                       </div>
                     </div>
                     <div className="p-3 rounded-lg bg-stone-50 border border-stone-200">
-                      <div className="text-[11px] text-stone-500">Market Reputation</div>
+                      <div className="text-[11px] text-stone-500">User Test Score</div>
                       <div className="text-lg font-bold text-stone-900 font-mono">
                         {marketState.marketReputationScore}/100
                       </div>
                     </div>
                   </div>
 
-                  {/* Common Frictions to Resolve */}
+                  {/* Common Frictions to Resolve in Version 1.1 */}
                   <div className="p-3.5 rounded-lg bg-stone-50 border border-stone-200 space-y-1.5 text-xs">
                     <div className="font-bold text-stone-800">
-                      Observed Silent-Rule Friction Points to Resolve:
+                      Phase 3 Activity 2 Mistakes Observed Under "The Silent Rule" (Fixed in Version 1.1):
                     </div>
                     <ul className="list-disc list-inside text-stone-600 space-y-1">
                       {activePreset?.commonFrictions.map((f, i) => (
@@ -416,11 +456,11 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
                       <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                     )}
                     <div className="text-xs space-y-1">
-                      <div className="font-bold">Venture Simulator Diagnostic</div>
+                      <div className="font-bold">Phase 4 & 5 Readiness Check</div>
                       <p className="leading-relaxed">
                         {reachedBreakEven
-                          ? `Venture has sold ${marketState.unitsSold} units, surpassing the ${economics.breakEvenUnits}-unit break-even threshold and reaching ${marketState.adoptersReached} real-world adopters! Ready for the Session 16 3-Minute Angel Pitch.`
-                          : `You need ${Math.max(0, economics.breakEvenUnits - marketState.unitsSold)} more unit sales to cover your ฿${fixedStartupCapitalExpenseTHB} THB startup capital expense. Run another weekly batch or improve Silent Rule usability to boost conversion.`}
+                          ? `You have sold ${marketState.unitsSold} units, paying back your ฿${fixedStartupCapitalExpenseTHB} THB One-Time Startup Costs (${economics.breakEvenUnits} Break-Even Units) and reaching ${marketState.adoptersReached} of your first 25 customers!`
+                          : `You need ${Math.max(0, economics.breakEvenUnits - marketState.unitsSold)} more unit sales to pay back your ฿${fixedStartupCapitalExpenseTHB} THB One-Time Startup Costs. Simulate another week or refine your Phase 4 pricing.`}
                       </p>
                     </div>
                   </div>
@@ -435,21 +475,29 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-emerald-600" />
                   <h3 className="text-sm font-bold text-stone-900">
-                    Session 14: Unit Floor Cost & Margin Inputs (THB)
+                    Phase 4: Calculating Costs and Prices (Thai Baht — THB)
                   </h3>
+                </div>
+
+                <div className="bg-stone-50 p-3 rounded-lg border border-stone-200 text-[11px] text-stone-600 space-y-1">
+                  <div>
+                    <strong>Activity 1 Pack-Division Examples:</strong>
+                  </div>
+                  <div>• Physical Example: A 100 THB roll of strap makes 5 bags = <strong>20 THB per bag</strong> (+ bags, labels, stickers).</div>
+                  <div>• Digital Example: A 350 THB monthly website fee shared by 50 users = <strong>7 THB per user</strong> (+ payment fees).</div>
                 </div>
 
                 <div className="space-y-3">
                   <div>
                     <div className="flex justify-between text-xs font-medium mb-1">
-                      <span>Unit Floor Cost (Materials + Packaging + Compute per unit)</span>
+                      <span>1. Unit Cost (Unit Floor Cost / COGS per 1 unit)</span>
                       <span className="font-mono font-bold">฿{unitFloorCostTHB} THB</span>
                     </div>
                     <input
                       type="range"
-                      min={15}
+                      min={5}
                       max={600}
-                      step={5}
+                      step={1}
                       value={unitFloorCostTHB}
                       onChange={(e) => setUnitFloorCostTHB(Number(e.target.value))}
                       className="w-full accent-emerald-600"
@@ -458,14 +506,16 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
 
                   <div>
                     <div className="flex justify-between text-xs font-medium mb-1">
-                      <span>Target Gross Margin (%)</span>
-                      <span className="font-mono font-bold">{desiredGrossMarginPct}%</span>
+                      <span>Desired Profit Margin (Physical: 50%–65% | Digital: 70%–85%)</span>
+                      <span className="font-mono font-bold">
+                        {desiredGrossMarginPct}% ({(desiredGrossMarginPct / 100).toFixed(2)})
+                      </span>
                     </div>
                     <input
                       type="range"
-                      min={15}
+                      min={20}
                       max={85}
-                      step={5}
+                      step={2.5}
                       value={desiredGrossMarginPct}
                       onChange={(e) => setDesiredGrossMarginPct(Number(e.target.value))}
                       className="w-full accent-emerald-600"
@@ -474,16 +524,16 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
 
                   <div>
                     <div className="flex justify-between text-xs font-medium mb-1">
-                      <span>Fixed Startup Capital Expense (Tooling, Jigs, Domain, Samples)</span>
+                      <span>One-Time Startup Costs (Scissors, Glue Guns, Domain Names, Software)</span>
                       <span className="font-mono font-bold">
                         ฿{fixedStartupCapitalExpenseTHB} THB
                       </span>
                     </div>
                     <input
                       type="range"
-                      min={300}
-                      max={10000}
-                      step={100}
+                      min={200}
+                      max={5000}
+                      step={50}
                       value={fixedStartupCapitalExpenseTHB}
                       onChange={(e) => setFixedStartupCapitalExpenseTHB(Number(e.target.value))}
                       className="w-full accent-emerald-600"
@@ -494,39 +544,238 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
 
               <div className="bg-white p-5 rounded-xl border border-stone-200 space-y-4">
                 <h3 className="text-sm font-bold text-stone-900">
-                  Calculated Unit Economics & Break-Even Output
+                  Phase 4, Activity 2, Step 5: Your Final 4 Numbers Clearly Written Down
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200">
-                    <div className="text-xs text-stone-500">Recommended Retail Price</div>
+                    <div className="text-xs text-stone-500">1. Unit Cost (Unit Floor Cost)</div>
+                    <div className="text-xl font-bold text-stone-900 font-mono mt-0.5">
+                      ฿{economics.unitFloorCostTHB} THB
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200">
+                    <div className="text-xs text-stone-500">2. Selling Price (Retail Price)</div>
                     <div className="text-xl font-bold text-stone-900 font-mono mt-0.5">
                       ฿{economics.retailPriceTHB} THB
                     </div>
                   </div>
                   <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
-                    <div className="text-xs text-emerald-800">Contribution Margin / Unit</div>
+                    <div className="text-xs text-emerald-800">3. Profit per Unit (Margin)</div>
                     <div className="text-xl font-bold text-emerald-900 font-mono mt-0.5">
-                      ฿{economics.unitContributionMarginTHB} THB ({economics.desiredGrossMarginPct}%)
+                      ฿{economics.unitContributionMarginTHB} THB ({economics.actualMarginPct}%)
                     </div>
                   </div>
                   <div className="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-200">
-                    <div className="text-xs text-indigo-800">Break-Even Sales Volume</div>
+                    <div className="text-xs text-indigo-800">4. Break-Even Units</div>
                     <div className="text-xl font-bold text-indigo-900 font-mono mt-0.5">
                       {economics.breakEvenUnits} Units
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200">
-                    <div className="text-xs text-stone-500">Margin Target Status</div>
-                    <div className="text-sm font-bold text-stone-900 mt-1 uppercase font-mono">
-                      {economics.desiredGrossMarginPct >= 50
-                        ? 'Healthy Startup Margin (≥50%)'
-                        : 'Low Margin Warning (<50%)'}
+                </div>
+                <div className="text-xs text-stone-700 leading-relaxed bg-stone-50 p-3.5 rounded-lg border border-stone-200 space-y-1.5 font-mono">
+                  <div>
+                    SellingPrice = UnitCost / (1 - DesiredProfitMargin) = {economics.unitFloorCostTHB} / (1 - {(desiredGrossMarginPct / 100).toFixed(2)}) = ฿{economics.retailPriceTHB} THB
+                  </div>
+                  <div>
+                    Break-EvenUnits = One-TimeStartupCosts / (SellingPrice - UnitCost) = {fixedStartupCapitalExpenseTHB} / ({economics.retailPriceTHB} - {economics.unitFloorCostTHB}) = {economics.breakEvenUnits} units
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'worksheets' && (
+            <div className="space-y-6">
+              {/* Interactive Problem Statement, Crazy 8s Scorer & Catchphrase / 3-Min Pitch Builder */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Phase 1 Activity 3 & Phase 2 Activity 2 */}
+                <div className="bg-white p-5 rounded-xl border border-stone-200 space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                    Phase 1, Activity 3: Writing the Problem Statement (Who / What / Why)
+                  </h3>
+                  <div className="space-y-2.5 text-xs">
+                    <div>
+                      <label className="font-semibold text-stone-700 block mb-1">Who (A specific group of people):</label>
+                      <input
+                        type="text"
+                        value={whoBlank}
+                        onChange={(e) => setWhoBlank(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded border border-stone-300 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-stone-700 block mb-1">What (The clear problem):</label>
+                      <input
+                        type="text"
+                        value={whatBlank}
+                        onChange={(e) => setWhatBlank(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded border border-stone-300 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-stone-700 block mb-1">Why (The main cause):</label>
+                      <input
+                        type="text"
+                        value={whyBlank}
+                        onChange={(e) => setWhyBlank(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded border border-stone-300 text-xs"
+                      />
+                    </div>
+                    <div className="p-3 rounded-lg bg-emerald-50/80 border border-emerald-200 text-emerald-950">
+                      <span className="font-bold block mb-0.5">Combined 1-Sentence Problem Statement:</span>
+                      <p className="italic">"{problemStatementSentence}"</p>
+                      <span className="text-[10px] text-emerald-700 block mt-1">
+                        Step 4 Check: Make sure you did NOT mention your product name here!
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-stone-200 space-y-2.5 text-xs">
+                    <h4 className="font-bold uppercase tracking-wider text-stone-700">
+                      Phase 2, Activity 2: Choosing Your Best Idea (1–5 Scoring Chart)
+                    </h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="p-2.5 bg-stone-50 rounded border border-stone-200">
+                        <span className="font-semibold block">Feasibility (1–5)</span>
+                        <span className="text-[10px] text-stone-500 block mb-1">Build in 1–2 wks?</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={5}
+                          value={feasibilityScore}
+                          onChange={(e) => setFeasibilityScore(Math.min(5, Math.max(1, Number(e.target.value))))}
+                          className="w-full px-2 py-1 rounded border border-stone-300 font-mono font-bold"
+                        />
+                      </div>
+                      <div className="p-2.5 bg-stone-50 rounded border border-stone-200">
+                        <span className="font-semibold block">Desirability (1–5)</span>
+                        <span className="text-[10px] text-stone-500 block mb-1">Do people want it?</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={5}
+                          value={desirabilityScore}
+                          onChange={(e) => setDesirabilityScore(Math.min(5, Math.max(1, Number(e.target.value))))}
+                          className="w-full px-2 py-1 rounded border border-stone-300 font-mono font-bold"
+                        />
+                      </div>
+                      <div className="p-2.5 bg-stone-50 rounded border border-stone-200">
+                        <span className="font-semibold block">Durability (1–5)</span>
+                        <span className="text-[10px] text-stone-500 block mb-1">Survives &gt;2 min use?</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={5}
+                          value={durabilityScore}
+                          onChange={(e) => setDurabilityScore(Math.min(5, Math.max(1, Number(e.target.value))))}
+                          className="w-full px-2 py-1 rounded border border-stone-300 font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-2 bg-stone-900 text-white rounded-lg font-mono text-xs">
+                      <span>Total Idea Score (out of 15):</span>
+                      <span className="font-bold text-emerald-400">{ideaTotalScore} / 15</span>
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-stone-600 leading-relaxed bg-stone-50 p-3 rounded-lg border border-stone-200">
-                  <strong>Formula Check:</strong> At ฿{economics.retailPriceTHB} THB retail price and ฿{economics.unitFloorCostTHB} THB floor cost, your team nets ฿{economics.unitContributionMarginTHB} THB per unit sold. You must sell <strong>{economics.breakEvenUnits} units</strong> to recover your ฿{fixedStartupCapitalExpenseTHB} THB initial setup costs.
-                </p>
+
+                {/* Phase 5 Activity 1 & Activity 2: Catchphrase & 4-Part 3-Minute Sales Pitch */}
+                <div className="bg-white p-5 rounded-xl border border-stone-200 space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-800">
+                    Phase 5, Activity 1 & 2: Catchphrase & The 3-Minute Sales Pitch
+                  </h3>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="font-semibold text-stone-700 block mb-0.5">Old Way of Doing Things:</label>
+                        <input
+                          type="text"
+                          value={catchphraseOldWay}
+                          onChange={(e) => setCatchphraseOldWay(e.target.value)}
+                          className="w-full px-2 py-1 rounded border border-stone-300 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-semibold text-stone-700 block mb-0.5">Your Product Name:</label>
+                        <input
+                          type="text"
+                          value={catchphraseProductName}
+                          onChange={(e) => setCatchphraseProductName(e.target.value)}
+                          className="w-full px-2 py-1 rounded border border-stone-300 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-semibold text-stone-700 block mb-0.5">Main Benefit:</label>
+                        <input
+                          type="text"
+                          value={catchphraseMainBenefit}
+                          onChange={(e) => setCatchphraseMainBenefit(e.target.value)}
+                          className="w-full px-2 py-1 rounded border border-stone-300 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-semibold text-stone-700 block mb-0.5">Main Problem Avoided:</label>
+                        <input
+                          type="text"
+                          value={catchphraseMainProblem}
+                          onChange={(e) => setCatchphraseMainProblem(e.target.value)}
+                          className="w-full px-2 py-1 rounded border border-stone-300 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-indigo-50/80 border border-indigo-200 text-indigo-950">
+                      <span className="font-bold block mb-0.5">1-Sentence Catchphrase (Value Proposition):</span>
+                      <p className="italic">"{catchphraseSentence}"</p>
+                    </div>
+                  </div>
+
+                  {/* 4 Timed Parts of the 3-Minute Sales Pitch */}
+                  <div className="space-y-2 pt-2 border-t border-stone-200 text-xs">
+                    <div className="font-bold text-stone-800 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-indigo-700" />
+                      The 3-Minute Sales Pitch (4 Timed Parts + &lt;20s Q&A):
+                    </div>
+                    <div className="space-y-1.5 text-[11px]">
+                      <div className="p-2 rounded bg-stone-50 border border-stone-200">
+                        <strong className="text-stone-900">Part 1 (0:00–0:45) The Problem:</strong> Explain the main problem from your diary + read a real quote from someone you interviewed in Phase 1. (Reach Part 2 by 45s!)
+                      </div>
+                      <div className="p-2 rounded bg-stone-50 border border-stone-200">
+                        <strong className="text-stone-900">Part 2 (0:45–1:45) The Solution:</strong> Show your working model or click through your app screens. Explain the improvements made in Version 1.1 after Silent Rule user testing.
+                      </div>
+                      <div className="p-2 rounded bg-stone-50 border border-stone-200">
+                        <strong className="text-stone-900">Part 3 (1:45–2:30) The Money (Business Model):</strong> Show your 4 numbers in Thai Baht (THB): Unit Cost (฿{economics.unitFloorCostTHB}), Selling Price (฿{economics.retailPriceTHB}), Profit (฿{economics.unitContributionMarginTHB}), and Break-Even ({economics.breakEvenUnits} units).
+                      </div>
+                      <div className="p-2 rounded bg-stone-50 border border-stone-200">
+                        <strong className="text-stone-900">Part 4 (2:30–3:00) The Next Step:</strong> Say exactly what you need to start making the real product (e.g., "We need 1,500 THB for materials" or "We need 10 testers to try the app").
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Complete 5-Phase / 11-Activity Reference from the PDF */}
+              <div className="bg-white p-5 rounded-xl border border-stone-200 space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700">
+                  Complete 5-Phase / 11-Activity Guide (From Attached PDF)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {ENTREPRENEURSHIP_PDF_ACTIVITIES.map((act) => (
+                    <div key={act.id} className="p-3.5 rounded-lg bg-stone-50 border border-stone-200 text-xs space-y-1.5">
+                      <div className="text-[10px] font-mono uppercase text-emerald-700 font-semibold">
+                        {act.phaseTitle} • {act.timeAllocation}
+                      </div>
+                      <div className="font-bold text-stone-900">{act.activityTitle}</div>
+                      <p className="text-[11px] text-stone-600">
+                        <strong>Goal:</strong> {act.goal}
+                      </p>
+                      <p className="text-[11px] text-stone-500">
+                        <strong>Materials:</strong> {act.materials}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -616,8 +865,7 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
         {/* Footer Actions */}
         <div className="bg-white px-6 py-3.5 border-t border-stone-200 flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-stone-500">
-            All simulation telemetry runs 100% locally in-memory inside{' '}
-            <code className="font-mono">prototypes/DonPBL/</code>.
+            Entrepreneurship: Creating a Product • 5 Phases & 11 Activities • Thai Baht (THB) Unit Economics
           </div>
           <div className="flex items-center gap-2">
             {onSaveToPortfolio && (
@@ -626,7 +874,7 @@ export const EntrepreneurshipSimulator: React.FC<EntrepreneurshipSimulatorProps>
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs"
               >
                 <Save className="w-3.5 h-3.5" />
-                Save Simulation & Unit Economics to Portfolio
+                Save Venture & THB Cost Sheet to Portfolio
               </button>
             )}
             <button

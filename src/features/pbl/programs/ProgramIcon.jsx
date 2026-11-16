@@ -1,7 +1,13 @@
-import { Store, Clapperboard, Sparkles, Hand, Building2, Sprout, Droplets, Compass } from 'lucide-react';
+import {
+  Store, Clapperboard, Sparkles, Hand, Building2, Sprout, Droplets, Compass,
+  Rocket, Zap, Activity, Truck, HeartHandshake, Bot
+} from 'lucide-react';
 
 /** Icons are named in catalog.js so the catalogue stays plain data. */
-const ICONS = { Store, Clapperboard, Sparkles, Hand, Building2, Sprout, Droplets, Compass };
+const ICONS = {
+  Store, Clapperboard, Sparkles, Hand, Building2, Sprout, Droplets, Compass,
+  Rocket, Zap, Activity, Truck, HeartHandshake, Bot
+};
 
 export function ProgramIcon({ name, size = 20 }) {
   const Icon = ICONS[name] || Compass;

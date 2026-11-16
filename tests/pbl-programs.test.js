@@ -8,12 +8,14 @@ import { competencyById } from '../src/features/pbl/content/competencies.js';
 import { parseRoute, hrefFor } from '../src/app/routes.js';
 
 describe('program catalogue', () => {
-  it('loads every program from the prototype registry with sessions in order', () => {
-    expect(PROGRAMS.length).toBeGreaterThanOrEqual(6);
+  it('loads all 12 programs from the prototype registry with sessions in order and explicit identity', () => {
+    expect(PROGRAMS.length).toBe(12);
     for (const p of PROGRAMS) {
       expect(p.phases.map((ph) => ph.id)).toEqual(['explore', 'empathise', 'define', 'ideate', 'prototype', 'test', 'share']);
       const nums = p.sessions.map((s) => s.sessionNumber);
       expect(nums).toEqual([...nums].sort((a, b) => a - b));
+      expect(p.identity.icon).toBeDefined();
+      expect(p.identity.tone).toBeDefined();
     }
   });
 

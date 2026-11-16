@@ -489,3 +489,673 @@ export function simulateMarketStep(
     latestCost: productionCost
   };
 }
+
+/**
+ * Pure deterministic calculator for the Interstellar Ark 500-Colonist Closed-Loop Biosphere (ECLSS),
+ * 1,500 THB classroom prototyping budget, and Red-Team stochastic crisis survival margins.
+ * Guarded against NaN and Infinity.
+ */
+export function simulateArkBiosphere(params: {
+  colonistCount?: number;
+  hydroponicAreaSqM: number;
+  algaeBioreactorLiters: number;
+  waterRecoveryEfficiencyPct: number;
+  restorativeSpacePct: number;
+  repairDroneBays: number;
+  prototypingCostTHB: number;
+  caloricShockPct?: number;
+  waterShockPct?: number;
+  moraleShockPts?: number;
+}) {
+  const colonists = Number.isFinite(params.colonistCount) && (params.colonistCount || 0) > 0
+    ? Math.floor(params.colonistCount!)
+    : 500;
+  const hydroArea = Number.isFinite(params.hydroponicAreaSqM) ? Math.max(0, params.hydroponicAreaSqM) : 0;
+  const algaeLiters = Number.isFinite(params.algaeBioreactorLiters) ? Math.max(0, params.algaeBioreactorLiters) : 0;
+  const waterRecPct = Number.isFinite(params.waterRecoveryEfficiencyPct)
+    ? Math.min(100, Math.max(0, params.waterRecoveryEfficiencyPct))
+    : 0;
+  const restorativePct = Number.isFinite(params.restorativeSpacePct)
+    ? Math.min(50, Math.max(0, params.restorativeSpacePct))
+    : 0;
+  const droneBays = Number.isFinite(params.repairDroneBays) ? Math.max(0, Math.floor(params.repairDroneBays)) : 0;
+  const protoTHB = Number.isFinite(params.prototypingCostTHB) ? Math.max(0, Math.round(params.prototypingCostTHB)) : 0;
+
+  const calShock = Number.isFinite(params.caloricShockPct)
+    ? Math.min(95, Math.max(0, params.caloricShockPct!))
+    : 0;
+  const waterShock = Number.isFinite(params.waterShockPct)
+    ? Math.min(95, Math.max(0, params.waterShockPct!))
+    : 0;
+  const moraleShock = Number.isFinite(params.moraleShockPts)
+    ? Math.max(0, params.moraleShockPts!)
+    : 0;
+
+  // Target: 2,500 kcal/colonist/day -> 1,250,000 kcal/day for 500 colonists
+  const targetDailyKcal = colonists * 2500;
+  // Hydroponics yields ~620 kcal/m2/day; Spirulina bioreactors yield ~110 kcal/L/day (immune to root-rot blight)
+  const effectiveHydroKcal = Math.round(hydroArea * 620 * (1 - calShock / 100));
+  const algaeKcal = Math.round(algaeLiters * 110);
+  const dailyKcalProduced = effectiveHydroKcal + algaeKcal;
+  const caloricSufficiencyPct = targetDailyKcal > 0
+    ? Math.min(150, Math.round((dailyKcalProduced / targetDailyKcal) * 1000) / 10)
+    : 0;
+
+  // Oxygen loop: hydro + algae O2 generation vs colonist demand
+  const o2TargetUnits = colonists;
+  const o2GeneratedUnits = hydroArea * 0.24 + algaeLiters * 0.065;
+  const oxygenSufficiencyPct = o2TargetUnits > 0
+    ? Math.min(150, Math.round((o2GeneratedUnits / o2TargetUnits) * 1000) / 10)
+    : 0;
+
+  // Water loop net efficiency after crisis shock + drone repair recovery (+1.5% per drone bay under shock)
+  const droneRecoveryBoost = waterShock > 0 ? Math.min(waterShock, droneBays * 2.5) : 0;
+  const netWaterLoopPct = Math.min(100, Math.max(0, Math.round((waterRecPct - waterShock + droneRecoveryBoost) * 10) / 10));
+
+  // Crew psychological morale (0..100)
+  const baseMorale = 52 + restorativePct * 1.6 + (caloricSufficiencyPct >= 100 ? 12 : -15) + droneBays * 2;
+  const moraleScore = Math.min(100, Math.max(0, Math.round(baseMorale - moraleShock)));
+
+  const withinThbBudget = protoTHB <= 1500;
+  const isSelfSustaining =
+    caloricSufficiencyPct >= 100 &&
+    oxygenSufficiencyPct >= 100 &&
+    netWaterLoopPct >= 95 &&
+    moraleScore >= 65 &&
+    withinThbBudget;
+
+  return {
+    colonists,
+    targetDailyKcal,
+    dailyKcalProduced,
+    caloricSufficiencyPct,
+    oxygenSufficiencyPct,
+    netWaterLoopPct,
+    moraleScore,
+    prototypingCostTHB: protoTHB,
+    withinThbBudget,
+    isSelfSustaining
+  };
+}
+
+/**
+ * Pure deterministic calculator for Smart Cities & Adaptive Infrastructure: Kinetic & Smart Energy Harvesting.
+ * Models:
+ * - Activity 2.2 ("Lossless" Rectifier Lab): 1N5819 Schottky (0.25V drop/diode) vs. 1N4007 Silicon (0.7V drop/diode) charging a capacitor over 50 footsteps
+ * - Activity 2.1 & 5.1: Daily Joules, Daily Wh, and Annual kWh across a multi-tile bottleneck installation
+ * - Activity 4.2 & Week 8: ADA/Universal Design <5.0mm vertical deflection trip-free safety check
+ * - Activity 5.2 ("Honest ROI" Financial Simulator): BOM scaling (1 vs. 100 vs. 10,000 units), LCOE, and Smart-Sensor Co-Benefit payback
+ */
+export function simulateKineticHarvesting(params: {
+  joulesPerStepRaw: number;
+  dailyFootstepsPerTile: number;
+  tileCount: number;
+  surfaceTempDeltaC: number;
+  diodeType: 'schottky-1n5819' | 'silicon-1n4007';
+  capacitorMicrofarads: number;
+  verticalDeflectionMm: number;
+  unitCostUSD: number;
+  deploymentScale: 'prototype-1' | 'pilot-100' | 'city-10000';
+  includeSmartSensorCoBenefit?: boolean;
+}) {
+  const rawJoules = Number.isFinite(params.joulesPerStepRaw) ? Math.max(0, params.joulesPerStepRaw) : 0;
+  const footsteps = Number.isFinite(params.dailyFootstepsPerTile) ? Math.max(0, Math.floor(params.dailyFootstepsPerTile)) : 0;
+  const tiles = Number.isFinite(params.tileCount) ? Math.max(1, Math.floor(params.tileCount)) : 1;
+  const tempDelta = Number.isFinite(params.surfaceTempDeltaC) ? Math.max(0, params.surfaceTempDeltaC) : 0;
+  const capUf = Number.isFinite(params.capacitorMicrofarads) ? Math.max(100, params.capacitorMicrofarads) : 1000;
+  const deflectionMm = Number.isFinite(params.verticalDeflectionMm) ? Math.max(0, params.verticalDeflectionMm) : 0;
+  const unitCost = Number.isFinite(params.unitCostUSD) ? Math.max(1, params.unitCostUSD) : 40;
+
+  // Full-wave bridge rectifier efficiency: 1N5819 Schottky retains ~88% vs 1N4007 Silicon ~68% on low-voltage spikes
+  const rectifierEfficiency = params.diodeType === 'schottky-1n5819' ? 0.88 : 0.68;
+  const netJoulesPerStep = Math.round(rawJoules * rectifierEfficiency * 1000) / 1000;
+
+  // Activity 2.2: 50-footstep capacitor charge test (E = 0.5 * C * V^2 -> V = sqrt(2*E / C))
+  const energy50StepsJoules = Math.round(netJoulesPerStep * 50 * 0.0015 * 10000) / 10000;
+  const capFarads = capUf / 1_000_000;
+  const capacitorVoltage50Steps = capFarads > 0
+    ? Math.min(25, Math.round(Math.sqrt((2 * energy50StepsJoules) / capFarads) * 100) / 100)
+    : 0;
+
+  // Thermal Seebeck bonus per tile per day (Joules) when ΔT > 0
+  const thermalDailyJoulesPerTile = Math.round(tempDelta * 145 * rectifierEfficiency);
+  const dailyJoulesPerTile = Math.round(footsteps * netJoulesPerStep + thermalDailyJoulesPerTile);
+  const totalDailyJoules = dailyJoulesPerTile * tiles;
+  const totalDailyWattHours = Math.round((totalDailyJoules / 3600) * 100) / 100;
+  const annualKwh = Math.round(((totalDailyWattHours * 365) / 1000) * 1000) / 1000;
+
+  // Safety & ADA Universal Design check (< 5.0mm vertical deflection)
+  const adaTripFreeSafe = deflectionMm < 5.0;
+
+  // Activity 5.2 Honest ROI & BOM scaling
+  const totalHardwareCapexUSD = Math.round(unitCost * tiles * 100) / 100;
+  // Direct electricity offset ($0.18/kWh) + optional batteryless IoT foot-traffic sensor & avoided wiring co-benefit ($18/tile/yr)
+  const annualDirectEnergySavingsUSD = Math.round(annualKwh * 0.18 * 100) / 100;
+  const annualSensorCoBenefitUSD = params.includeSmartSensorCoBenefit ? tiles * 18 : 0;
+  const totalAnnualValueUSD = Math.round((annualDirectEnergySavingsUSD + annualSensorCoBenefitUSD) * 100) / 100;
+
+  const estimatedPaybackYears = totalAnnualValueUSD > 0
+    ? Math.round((totalHardwareCapexUSD / totalAnnualValueUSD) * 10) / 10
+    : 999;
+
+  return {
+    rectifierEfficiencyPct: Math.round(rectifierEfficiency * 100),
+    netJoulesPerStep,
+    energy50StepsJoules,
+    capacitorVoltage50Steps,
+    dailyJoulesPerTile,
+    totalDailyJoules,
+    totalDailyWattHours,
+    annualKwh,
+    adaTripFreeSafe,
+    totalHardwareCapexUSD,
+    annualDirectEnergySavingsUSD,
+    annualSensorCoBenefitUSD,
+    totalAnnualValueUSD,
+    estimatedPaybackYears
+  };
+}
+
+/**
+ * Pure deterministic calculator for Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics.
+ * Models:
+ * - Activity 2.3 & 3.1: Pump stroke volume (mL/stroke), pumping cadence (BPM), and theoretical vs. net cardiac output (mL/min)
+ * - Activity 3.2 & 5.3: One-way check-valve backflow prevention (%) vs. retrograde regurgitation loss
+ * - Activity 4.1, 5.1 & 5.4: Tubing geometry (sharp 90-degree bends vs. sweeping curves), capillary straw branching, and distal extremity reach (% of 20 digits perfused + time-to-reach toes in seconds)
+ * - Activity 4.2 & 5.2: Joint seal reinforcement vs. peak systolic pressure (mmHg) -> structural "aneurysm" leak count
+ */
+export function simulateVitalFlowCirculation(params: {
+  strokeVolumeMl: number;
+  pumpCadenceBpm: number;
+  peakSystolicMmHg: number;
+  valveBackflowPreventionPct: number;
+  valveForwardDropMmHg: number;
+  totalNetworkVolumeMl: number;
+  lungStationConnected: boolean;
+  sharp90DegreeBendCount: number;
+  jointSealQualityPct: number;
+  prototypeVersion: 'v1_baseline' | 'v2_upgraded';
+}) {
+  const strokeMl = Number.isFinite(params.strokeVolumeMl) ? Math.max(5, Math.min(120, params.strokeVolumeMl)) : 45;
+  const bpm = Number.isFinite(params.pumpCadenceBpm) ? Math.max(10, Math.min(140, Math.floor(params.pumpCadenceBpm))) : 60;
+  const peakMmHg = Number.isFinite(params.peakSystolicMmHg) ? Math.max(20, Math.min(220, params.peakSystolicMmHg)) : 110;
+  const valveEffPct = Number.isFinite(params.valveBackflowPreventionPct) ? Math.max(0, Math.min(100, params.valveBackflowPreventionPct)) : 88;
+  const valveDrop = Number.isFinite(params.valveForwardDropMmHg) ? Math.max(0, Math.min(40, params.valveForwardDropMmHg)) : 8;
+  const networkVolMl = Number.isFinite(params.totalNetworkVolumeMl) ? Math.max(100, Math.min(2000, params.totalNetworkVolumeMl)) : 420;
+  const bends = Number.isFinite(params.sharp90DegreeBendCount) ? Math.max(0, Math.min(30, Math.floor(params.sharp90DegreeBendCount))) : 4;
+  const sealQuality = Number.isFinite(params.jointSealQualityPct) ? Math.max(20, Math.min(100, params.jointSealQualityPct)) : 85;
+  const isV2 = params.prototypeVersion === 'v2_upgraded';
+
+  // At very high BPM (>95), manual ventricle has incomplete diastolic refill
+  const diastolicRefillFactor = bpm <= 85 ? 1.0 : Math.max(0.55, 1.0 - (bpm - 85) * 0.008);
+  const valveForwardFactor = 0.35 + 0.65 * (valveEffPct / 100);
+  const v2EfficiencyBoost = isV2 ? 1.12 : 1.0;
+
+  // Effective forward mL per stroke
+  const effectiveStrokeMl = Math.round(strokeMl * diastolicRefillFactor * valveForwardFactor * v2EfficiencyBoost * 10) / 10;
+  const grossCardiacOutputMlPerMin = Math.round(strokeMl * bpm);
+  const netForwardFlowMlPerMin = Math.round(effectiveStrokeMl * bpm);
+
+  // Pressure drop across lung reservoir (12 mmHg), check valves, and sharp 90-degree tubing bends (3.5 mmHg per bend)
+  const lungPressureDropMmHg = params.lungStationConnected ? 12 : 0;
+  const bendResistanceLossMmHg = Math.round(bends * (isV2 ? 2.0 : 3.5) * 10) / 10;
+
+  // Joint seal threshold: if peak systolic pressure exceeds seal rating, "aneurysm" leaks occur and bleed pressure
+  const sealPressureCapacityMmHg = Math.round(55 + (sealQuality / 100) * (isV2 ? 105 : 85));
+  const overPressureMmHg = Math.max(0, peakMmHg - sealPressureCapacityMmHg);
+  const aneurysmLeakCount = overPressureMmHg > 0
+    ? Math.max(1, Math.ceil(overPressureMmHg / 12)) + (sealQuality < 70 ? 2 : 0)
+    : sealQuality < 65
+    ? 1
+    : 0;
+  const leakPressureLossMmHg = aneurysmLeakCount * 9;
+
+  // Distal perfusion pressure reaching the 135cm lower-extremity toe straw beds (needs >= 45 mmHg for 100% toe reach)
+  const distalToePerfusionMmHg = Math.max(
+    0,
+    Math.round((peakMmHg - valveDrop - lungPressureDropMmHg - bendResistanceLossMmHg - leakPressureLossMmHg) * 10) / 10
+  );
+
+  // Extremity reach (% of 20 digits: 10 fingers + 10 toes perfused)
+  const extremityReachPct = distalToePerfusionMmHg >= 45
+    ? 100
+    : Math.max(0, Math.min(100, Math.round((distalToePerfusionMmHg / 45) * 100)));
+  const perfusedDigitsCount = Math.round((extremityReachPct / 100) * 20);
+
+  // Ideal strokes to circulate total network volume vs actual time-to-reach toes (seconds)
+  const idealStrokesPerCycle = Math.max(1, Math.ceil(networkVolMl / Math.max(1, strokeMl)));
+  const actualStrokesPerCycle = Math.max(1, Math.ceil(networkVolMl / Math.max(1, effectiveStrokeMl)));
+  const timeToReachToesSeconds = netForwardFlowMlPerMin > 0 && distalToePerfusionMmHg > 10
+    ? Math.round(((networkVolMl * 0.65) / (netForwardFlowMlPerMin / 60)) * (1 + bends * 0.04) * 10) / 10
+    : 999;
+
+  // Backflow contamination %
+  const backflowMixingPct = Math.max(0, Math.round((100 - valveEffPct) * (1 + bends * 0.02)));
+
+  const clinicalVerdict: 'viable_extremity_perfusion' | 'partial_ischemia_warning' | 'critical_hypoperfusion_or_leak' =
+    params.lungStationConnected &&
+    extremityReachPct === 100 &&
+    aneurysmLeakCount === 0 &&
+    backflowMixingPct <= 15 &&
+    timeToReachToesSeconds <= 30
+      ? 'viable_extremity_perfusion'
+      : extremityReachPct >= 75 && aneurysmLeakCount <= 1 && params.lungStationConnected
+      ? 'partial_ischemia_warning'
+      : 'critical_hypoperfusion_or_leak';
+
+  return {
+    effectiveStrokeMl,
+    grossCardiacOutputMlPerMin,
+    netForwardFlowMlPerMin,
+    sealPressureCapacityMmHg,
+    aneurysmLeakCount,
+    distalToePerfusionMmHg,
+    extremityReachPct,
+    perfusedDigitsCount,
+    idealStrokesPerCycle,
+    actualStrokesPerCycle,
+    timeToReachToesSeconds,
+    backflowMixingPct,
+    clinicalVerdict
+  };
+}
+
+/**
+ * Pure deterministic calculator for Project Voyager: 3D-Printed RC Truck & Solar Charging Bay.
+ * Models:
+ * - Guide A (Voyager RC Truck Body/Shell):
+ *   - "Box-Fit" & "No-Go Zones" wheel clearance (needs >= 8mm so tires don't rub when turning/bouncing)
+ *   - CAD Shelling wall thickness (optimal 2.5mm to 3.0mm: <2.5mm cracks over bumps; >3.0mm is too heavy for the motor)
+ *   - 3D Printer bed split check (>220mm length splits into 2–3 parts: Front Hood, Middle Cab, Back Bed)
+ *   - Filament mass & print time based on 15%–20% infill and 3 wall loops
+ * - Guide B (Solar Charging Bay) & Electrical System:
+ *   - Bay parking clearance (needs >= 5cm extra space on all sides of the completed truck)
+ *   - Solar roof tilt angle (optimal 15° to 30° toward the sun)
+ *   - Battery chemistry (Li-ion vs. LiPo), driving runtime (mins), solar recharge time (mins), and THB budget compliance
+ */
+export function simulateVoyagerRcSolar(params: {
+  truckLengthMm: number;
+  truckWidthMm: number;
+  shellWallThicknessMm: number;
+  wheelArchClearanceMm: number;
+  infillPct: number;
+  wallLoops: number;
+  batteryType: 'li_ion_2s_2000mah' | 'lipo_2s_2200mah';
+  solarPanelWatts: number;
+  solarRoofAngleDeg: number;
+  bayExtraClearanceCm: number;
+  totalBudgetTHB: number;
+}) {
+  const lengthMm = Number.isFinite(params.truckLengthMm) ? Math.max(150, Math.min(480, params.truckLengthMm)) : 310;
+  const widthMm = Number.isFinite(params.truckWidthMm) ? Math.max(100, Math.min(280, params.truckWidthMm)) : 165;
+  const wallMm = Number.isFinite(params.shellWallThicknessMm) ? Math.max(1.0, Math.min(6.0, params.shellWallThicknessMm)) : 2.8;
+  const wheelClearanceMm = Number.isFinite(params.wheelArchClearanceMm) ? Math.max(0, Math.min(30, params.wheelArchClearanceMm)) : 12;
+  const infill = Number.isFinite(params.infillPct) ? Math.max(5, Math.min(60, Math.round(params.infillPct))) : 18;
+  const loops = Number.isFinite(params.wallLoops) ? Math.max(1, Math.min(6, Math.round(params.wallLoops))) : 3;
+  const panelWatts = Number.isFinite(params.solarPanelWatts) ? Math.max(5, Math.min(60, params.solarPanelWatts)) : 20;
+  const roofAngle = Number.isFinite(params.solarRoofAngleDeg) ? Math.max(0, Math.min(60, params.solarRoofAngleDeg)) : 22;
+  const bayClearanceCm = Number.isFinite(params.bayExtraClearanceCm) ? Math.max(0, Math.min(20, params.bayExtraClearanceCm)) : 5;
+  const budgetTHB = Number.isFinite(params.totalBudgetTHB) ? Math.max(0, Math.round(params.totalBudgetTHB)) : 2400;
+
+  // Guide A Step 4: Wall thickness check (2.5mm to 3.0mm optimal)
+  const wallThicknessStatus: 'optimal_2.5_to_3mm' | 'too_thin_cracks' | 'too_thick_heavy' =
+    wallMm < 2.5 ? 'too_thin_cracks' : wallMm > 3.0 ? 'too_thick_heavy' : 'optimal_2.5_to_3mm';
+
+  // Guide A Step 5: Split for 220mm x 220mm printer bed
+  const printBedSections = lengthMm > 330 ? 3 : lengthMm > 220 ? 2 : 1;
+
+  // Shell mass in grams and 3D print time in hours
+  const shellMassGrams = Math.round(
+    (lengthMm * widthMm * 0.0022) * (wallMm / 2.75) * (0.75 + (infill / 100) * 0.8 + loops * 0.08)
+  );
+  const estimatedPrintHours = Math.round((shellMassGrams / 28) * 10) / 10;
+
+  // No-Go Zone tire rub check (needs >= 8mm arch clearance)
+  const wheelsRubFree = wheelClearanceMm >= 8;
+
+  // Guide B Step 1: Bay clearance check (>= 5cm on all sides)
+  const bayClearanceSafe = bayClearanceCm >= 5;
+  const bayInteriorWidthCm = Math.round((widthMm / 10 + bayClearanceCm * 2) * 10) / 10;
+  const bayInteriorLengthCm = Math.round((lengthMm / 10 + bayClearanceCm * 2) * 10) / 10;
+
+  // Guide B Step 2: Solar roof tilt angle efficiency (optimal 15° to 30°)
+  const angleOptimal = roofAngle >= 15 && roofAngle <= 30;
+  const angleDeviation = roofAngle < 15 ? 15 - roofAngle : roofAngle > 30 ? roofAngle - 30 : 0;
+  const solarAngleEfficiencyPct = Math.max(55, Math.round(96 - angleDeviation * 1.2));
+  const effectiveSolarChargeWatts = Math.round(panelWatts * (solarAngleEfficiencyPct / 100) * 0.82 * 10) / 10;
+
+  // Battery capacity Wh (7.4V * 2.0Ah = 14.8Wh for Li-ion; 7.4V * 2.2Ah = 16.28Wh for LiPo)
+  const batteryCapacityWh = params.batteryType === 'li_ion_2s_2000mah' ? 14.8 : 16.28;
+  // Motor power draw increases if shell is heavy (>3.0mm wall) or wheels rub
+  const massPenaltyFactor = 1 + Math.max(0, (shellMassGrams - 240) * 0.0015) + (wheelsRubFree ? 0 : 0.25);
+  const avgMotorDrawWatts = Math.round(18 * massPenaltyFactor * 10) / 10;
+
+  const drivingRuntimeMinutes = avgMotorDrawWatts > 0
+    ? Math.round((batteryCapacityWh / avgMotorDrawWatts) * 60 * 10) / 10
+    : 0;
+  const solarChargeTimeMinutes = effectiveSolarChargeWatts > 0
+    ? Math.round(((batteryCapacityWh * 1.1) / effectiveSolarChargeWatts) * 60 * 10) / 10
+    : 999;
+
+  // Track test lap time (seconds)
+  const trackLapTimeSeconds = Math.round((24.0 * massPenaltyFactor + (wallThicknessStatus === 'too_thin_cracks' ? 4.5 : 0)) * 10) / 10;
+
+  const withinThbBudget = budgetTHB <= 3000;
+  const designReviewReady =
+    wallThicknessStatus === 'optimal_2.5_to_3mm' &&
+    wheelsRubFree &&
+    bayClearanceSafe &&
+    angleOptimal &&
+    infill >= 15 &&
+    loops >= 3 &&
+    withinThbBudget;
+
+  return {
+    wallThicknessStatus,
+    printBedSections,
+    shellMassGrams,
+    estimatedPrintHours,
+    wheelsRubFree,
+    bayClearanceSafe,
+    bayInteriorWidthCm,
+    bayInteriorLengthCm,
+    angleOptimal,
+    solarAngleEfficiencyPct,
+    effectiveSolarChargeWatts,
+    batteryCapacityWh,
+    avgMotorDrawWatts,
+    drivingRuntimeMinutes,
+    solarChargeTimeMinutes,
+    trackLapTimeSeconds,
+    withinThbBudget,
+    designReviewReady
+  };
+}
+
+/**
+ * Pure deterministic calculator for StreetPaws — The Community Animal Rescue App.
+ * Models:
+ * - Week 6 Real-World Operations, Budget & Sustainability (Thai Baht — THB):
+ *   - 15kg Dog Food Bag = 600 THB (feeds 10 dogs for 5 days = 12 THB per dog/day)
+ *   - Basic Vet Check + Vaccine = 500 THB per animal
+ *   - "Buy 1 Bowl of Food for 15 THB" micro-donation button + partner pet store discount (e.g., 10%)
+ * - Week 3 & Speaker 3 UX Rule: <= 3 clicks to report a sick animal or complete core tasks
+ * - Week 4 & Week 7 Live Volunteer Feeding Map: Red Pins (Hungry Pack) vs. Green Pins (Fed Today with photo verification)
+ * - Week 9 Physical Touchpoint: Weather-proof Community Feeding & QR Station
+ * - Week 10 Usability Testing: >= 5 outside testers and >= 3 "Before & After" Version 2.0 fixes
+ */
+export function simulateStreetPawsApp(params: {
+  neighborhoodAnimalsCount: number;
+  dogFoodBag15KgPriceTHB: number;
+  partnerPetShopDiscountPct: number;
+  vetCheckAndVaccineCostTHB: number;
+  animalsNeedingVaccinePerMonth: number;
+  sosSurgeryGoalTHB: number;
+  microDonationBowlTHB: number;
+  monthlyMicroDonationCount: number;
+  monthlyPartnerSponsorTHB: number;
+  clicksToReportSos: number;
+  feedingMapTotalPins: number;
+  feedingMapGreenVerifiedPins: number;
+  qrStationWeatherproofAndWorking: boolean;
+  usabilityTestersCount: number;
+  beforeAfterImprovementsCount: number;
+}) {
+  const animals = Number.isFinite(params.neighborhoodAnimalsCount)
+    ? Math.max(1, Math.min(100, Math.round(params.neighborhoodAnimalsCount)))
+    : 10;
+  const bagPriceTHB = Number.isFinite(params.dogFoodBag15KgPriceTHB)
+    ? Math.max(100, Math.min(3000, Math.round(params.dogFoodBag15KgPriceTHB)))
+    : 600;
+  const discountPct = Number.isFinite(params.partnerPetShopDiscountPct)
+    ? Math.max(0, Math.min(50, Math.round(params.partnerPetShopDiscountPct)))
+    : 10;
+  const vaccinePriceTHB = Number.isFinite(params.vetCheckAndVaccineCostTHB)
+    ? Math.max(0, Math.min(5000, Math.round(params.vetCheckAndVaccineCostTHB)))
+    : 500;
+  const vaccinesPerMonth = Number.isFinite(params.animalsNeedingVaccinePerMonth)
+    ? Math.max(0, Math.min(50, Math.round(params.animalsNeedingVaccinePerMonth)))
+    : 2;
+  const sosGoalTHB = Number.isFinite(params.sosSurgeryGoalTHB)
+    ? Math.max(0, Math.min(20000, Math.round(params.sosSurgeryGoalTHB)))
+    : 2000;
+  const bowlPriceTHB = Number.isFinite(params.microDonationBowlTHB)
+    ? Math.max(5, Math.min(200, Math.round(params.microDonationBowlTHB)))
+    : 15;
+  const microDonations = Number.isFinite(params.monthlyMicroDonationCount)
+    ? Math.max(0, Math.min(5000, Math.round(params.monthlyMicroDonationCount)))
+    : 260;
+  const sponsorTHB = Number.isFinite(params.monthlyPartnerSponsorTHB)
+    ? Math.max(0, Math.min(50000, Math.round(params.monthlyPartnerSponsorTHB)))
+    : 2500;
+  const clicks = Number.isFinite(params.clicksToReportSos)
+    ? Math.max(1, Math.min(12, Math.round(params.clicksToReportSos)))
+    : 3;
+  const totalPins = Number.isFinite(params.feedingMapTotalPins)
+    ? Math.max(1, Math.min(50, Math.round(params.feedingMapTotalPins)))
+    : 6;
+  const greenPins = Number.isFinite(params.feedingMapGreenVerifiedPins)
+    ? Math.max(0, Math.min(totalPins, Math.round(params.feedingMapGreenVerifiedPins)))
+    : 5;
+  const testers = Number.isFinite(params.usabilityTestersCount)
+    ? Math.max(0, Math.min(50, Math.round(params.usabilityTestersCount)))
+    : 5;
+  const fixes = Number.isFinite(params.beforeAfterImprovementsCount)
+    ? Math.max(0, Math.min(25, Math.round(params.beforeAfterImprovementsCount)))
+    : 3;
+
+  // Week 6 Math: 15kg bag feeds 10 dogs for 5 days = 50 animal-days per bag
+  const animalDaysPerMonth = animals * 30;
+  const bagsNeededPerMonth = Math.round((animalDaysPerMonth / 50) * 10) / 10;
+  const grossMonthlyFoodTHB = Math.round(bagsNeededPerMonth * bagPriceTHB);
+  const netMonthlyFoodTHB = Math.round(grossMonthlyFoodTHB * (1 - discountPct / 100));
+  const costPerAnimalPerDayTHB = Math.round((netMonthlyFoodTHB / animalDaysPerMonth) * 10) / 10;
+
+  const monthlyVetAndVaccineTHB = vaccinesPerMonth * vaccinePriceTHB + sosGoalTHB;
+  const totalMonthlyExpenseTHB = netMonthlyFoodTHB + monthlyVetAndVaccineTHB;
+
+  const monthlyMicroDonationIncomeTHB = microDonations * bowlPriceTHB;
+  const totalMonthlyIncomeTHB = monthlyMicroDonationIncomeTHB + sponsorTHB;
+  const monthlySurplusOrDeficitTHB = totalMonthlyIncomeTHB - totalMonthlyExpenseTHB;
+  const breakEvenBowlsNeeded = bowlPriceTHB > 0
+    ? Math.max(0, Math.ceil(Math.max(0, totalMonthlyExpenseTHB - sponsorTHB) / bowlPriceTHB))
+    : 0;
+
+  const feedingMapRedPins = Math.max(0, totalPins - greenPins);
+  const feedingCoveragePct = Math.round((greenPins / totalPins) * 100);
+
+  const threeClickRulePassed = clicks <= 3;
+  const usabilityTargetMet = testers >= 5 && fixes >= 3;
+  const financiallySustainable = monthlySurplusOrDeficitTHB >= 0;
+
+  const showcaseReady =
+    threeClickRulePassed &&
+    usabilityTargetMet &&
+    financiallySustainable &&
+    params.qrStationWeatherproofAndWorking &&
+    feedingCoveragePct >= 75;
+
+  return {
+    bagsNeededPerMonth,
+    grossMonthlyFoodTHB,
+    netMonthlyFoodTHB,
+    costPerAnimalPerDayTHB,
+    monthlyVetAndVaccineTHB,
+    totalMonthlyExpenseTHB,
+    monthlyMicroDonationIncomeTHB,
+    totalMonthlyIncomeTHB,
+    monthlySurplusOrDeficitTHB,
+    breakEvenBowlsNeeded,
+    feedingMapRedPins,
+    feedingMapGreenPins: greenPins,
+    feedingCoveragePct,
+    threeClickRulePassed,
+    usabilityTargetMet,
+    financiallySustainable,
+    showcaseReady
+  };
+}
+
+/**
+ * Pure simulation helper for "Robo-Buddy Companion: Build, Code & Care for a 3D-Printed Walking Desk Pet":
+ * Models Version A (BBC micro:bit V2 + INEX PROJECT:BIT) vs. Version B (Arduino Nano + I/O Shield),
+ * Week 7 4-Servo Otto Gait & 90° Pre-Centering / ±5° Posture Trim (Bench Test 1),
+ * Week 3 & Week 8 Tamagotchi Virtual Pet Brain (Hunger, Happiness, Energy & 5-Mood State Machine, Bench Test 2),
+ * Week 9 Smart Alarm & Dismiss Rule (Head Touch x3 or Ultrasonic Wave <= 15cm),
+ * and Week 10 40-Point Stress-Test Benchmark (20 Walking + 10 Alarm + 10 Sensor Care tests).
+ */
+export function simulateRoboBuddyCompanion(params: {
+  hardwareVersion: 'microbit' | 'arduino-nano';
+  leftHipAngleDeg: number;
+  rightHipAngleDeg: number;
+  leftFootAngleDeg: number;
+  rightFootAngleDeg: number;
+  servosCenteredBeforeAssembly: boolean;
+  batteryPackUsed: '4xaa_6v_external' | 'usb_computer_only';
+  rubberFootGripsAdded: boolean;
+  cablesZipTied: boolean;
+  hoursSinceLastFed: number;
+  hoursSinceLastPetted: number;
+  touchPetEventsCount: number;
+  lightFeedEventsCount: number;
+  alarmTriggered: boolean;
+  dismissHeadTouches: number;
+  ultrasonicWaveDistanceCm: number;
+  walkingTestsPassedOf20: number;
+  alarmTestsPassedOf10: number;
+  sensorCareTestsPassedOf10: number;
+}) {
+  const clampAngle = (v: number) =>
+    Number.isFinite(v) ? Math.max(60, Math.min(120, Math.round(v))) : 90;
+
+  const leftHipAngleDeg = clampAngle(params.leftHipAngleDeg);
+  const rightHipAngleDeg = clampAngle(params.rightHipAngleDeg);
+  const leftFootAngleDeg = clampAngle(params.leftFootAngleDeg);
+  const rightFootAngleDeg = clampAngle(params.rightFootAngleDeg);
+
+  const hoursFed = Number.isFinite(params.hoursSinceLastFed)
+    ? Math.max(0, Math.min(24, Math.round(params.hoursSinceLastFed)))
+    : 2;
+  const hoursPetted = Number.isFinite(params.hoursSinceLastPetted)
+    ? Math.max(0, Math.min(24, Math.round(params.hoursSinceLastPetted)))
+    : 2;
+  const petEvents = Number.isFinite(params.touchPetEventsCount)
+    ? Math.max(0, Math.min(20, Math.round(params.touchPetEventsCount)))
+    : 2;
+  const feedEvents = Number.isFinite(params.lightFeedEventsCount)
+    ? Math.max(0, Math.min(20, Math.round(params.lightFeedEventsCount)))
+    : 2;
+  const headTouches = Number.isFinite(params.dismissHeadTouches)
+    ? Math.max(0, Math.min(10, Math.round(params.dismissHeadTouches)))
+    : 0;
+  const waveDistCm = Number.isFinite(params.ultrasonicWaveDistanceCm)
+    ? Math.max(2, Math.min(200, Math.round(params.ultrasonicWaveDistanceCm)))
+    : 30;
+
+  const walkPassed = Number.isFinite(params.walkingTestsPassedOf20)
+    ? Math.max(0, Math.min(20, Math.round(params.walkingTestsPassedOf20)))
+    : 18;
+  const alarmPassed = Number.isFinite(params.alarmTestsPassedOf10)
+    ? Math.max(0, Math.min(10, Math.round(params.alarmTestsPassedOf10)))
+    : 9;
+  const sensorPassed = Number.isFinite(params.sensorCareTestsPassedOf10)
+    ? Math.max(0, Math.min(10, Math.round(params.sensorCareTestsPassedOf10)))
+    : 9;
+
+  // Week 7 Servo Calibration & Posture Trim (±5 degrees from 90° center)
+  const hipTrimDeviationDeg = Math.abs(leftHipAngleDeg - 90) + Math.abs(rightHipAngleDeg - 90);
+  const footTrimDeviationDeg = Math.abs(leftFootAngleDeg - 90) + Math.abs(rightFootAngleDeg - 90);
+  const totalTrimDeviationDeg = hipTrimDeviationDeg + footTrimDeviationDeg;
+
+  const allServosWithinTrim =
+    Math.abs(leftHipAngleDeg - 90) <= 5 &&
+    Math.abs(rightHipAngleDeg - 90) <= 5 &&
+    Math.abs(leftFootAngleDeg - 90) <= 5 &&
+    Math.abs(rightFootAngleDeg - 90) <= 5;
+
+  const externalBatterySafe = params.batteryPackUsed === '4xaa_6v_external';
+
+  const rawStability =
+    100 -
+    totalTrimDeviationDeg * 2.5 +
+    (params.servosCenteredBeforeAssembly ? 10 : -25) +
+    (externalBatterySafe ? 10 : -35) +
+    (params.rubberFootGripsAdded ? 8 : 0) +
+    (params.cablesZipTied ? 5 : 0);
+  const postureStabilityScore = Math.max(0, Math.min(100, Math.round(rawStability)));
+
+  // Week 7 Bench Test 1: Walk 5 steps without tipping over
+  const benchTest1Passed =
+    Boolean(params.servosCenteredBeforeAssembly) &&
+    externalBatterySafe &&
+    allServosWithinTrim &&
+    postureStabilityScore >= 75;
+
+  // Week 3 & Week 8 Virtual Pet Brain stats (0..100)
+  // Hunger: 0 = full, 100 = starving
+  const hungerStat = Math.max(0, Math.min(100, Math.round(hoursFed * 12 - feedEvents * 20)));
+  // Happiness: 100 = joyful, 0 = lonely
+  const happinessStat = Math.max(0, Math.min(100, Math.round(85 - hoursPetted * 10 + petEvents * 15)));
+  // Energy: 100 = rested, 0 = exhausted
+  const energyStat = Math.max(
+    0,
+    Math.min(100, Math.round(90 - (hoursFed + hoursPetted) * 4 + feedEvents * 8))
+  );
+
+  // Week 9 Smart Alarm Dismiss Rule: 3 head touches OR ultrasonic wave <= 15cm
+  const alarmDismissed = !params.alarmTriggered || headTouches >= 3 || waveDistCm <= 15;
+
+  // 5-State Mood Machine: Happy, Hungry, Sleepy, Bored, Alarm Ringing
+  let currentMood: 'Happy' | 'Hungry' | 'Sleepy' | 'Bored' | 'Alarm Ringing' = 'Happy';
+  if (params.alarmTriggered && !alarmDismissed) {
+    currentMood = 'Alarm Ringing';
+  } else if (hungerStat >= 65) {
+    currentMood = 'Hungry';
+  } else if (energyStat <= 35) {
+    currentMood = 'Sleepy';
+  } else if (happinessStat <= 45) {
+    currentMood = 'Bored';
+  } else {
+    currentMood = 'Happy';
+  }
+
+  // Week 8 Bench Test 2: Sensor Care & Mood transitions verified
+  const benchTest2Passed = petEvents >= 1 && feedEvents >= 1 && externalBatterySafe;
+
+  // Week 10 40-Point Benchmark Scorecard
+  const totalBenchmarkPassedOf40 = walkPassed + alarmPassed + sensorPassed;
+  const benchmarkPassRatePct = Math.round((totalBenchmarkPassedOf40 / 40) * 100);
+
+  const prototypeV2Ready =
+    benchTest1Passed &&
+    benchTest2Passed &&
+    alarmDismissed &&
+    Boolean(params.rubberFootGripsAdded) &&
+    Boolean(params.cablesZipTied) &&
+    totalBenchmarkPassedOf40 >= 32;
+
+  return {
+    leftHipAngleDeg,
+    rightHipAngleDeg,
+    leftFootAngleDeg,
+    rightFootAngleDeg,
+    totalTrimDeviationDeg,
+    allServosWithinTrim,
+    externalBatterySafe,
+    postureStabilityScore,
+    benchTest1Passed,
+    hungerStat,
+    happinessStat,
+    energyStat,
+    currentMood,
+    alarmDismissed,
+    benchTest2Passed,
+    walkPassed,
+    alarmPassed,
+    sensorPassed,
+    totalBenchmarkPassedOf40,
+    benchmarkPassRatePct,
+    prototypeV2Ready
+  };
+}
+

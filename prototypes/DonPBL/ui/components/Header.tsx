@@ -27,6 +27,12 @@ interface HeaderProps {
   onOpenPassionSimulator?: () => void;
   onOpenStorySimulator?: () => void;
   onOpenEntrepreneurshipSimulator?: () => void;
+  onOpenArkSimulator?: () => void;
+  onOpenKineticSimulator?: () => void;
+  onOpenVitalFlowSimulator?: () => void;
+  onOpenVoyagerSimulator?: () => void;
+  onOpenStreetPawsSimulator?: () => void;
+  onOpenRoboBuddySimulator?: () => void;
   onOpenCopilot: () => void;
   onOpenIntegration: () => void;
   onOpenAssumptions: () => void;
@@ -50,6 +56,12 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPassionSimulator,
   onOpenStorySimulator,
   onOpenEntrepreneurshipSimulator,
+  onOpenArkSimulator,
+  onOpenKineticSimulator,
+  onOpenVitalFlowSimulator,
+  onOpenVoyagerSimulator,
+  onOpenStreetPawsSimulator,
+  onOpenRoboBuddySimulator,
   onOpenCopilot,
   onOpenIntegration,
   onOpenAssumptions,
@@ -150,7 +162,61 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Action Controls & Role Switcher */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Quick interactive tools */}
-          {activeProgramId === 'entrepreneurship-product-creation-2026' ? (
+          {activeProgramId === 'robo-buddy-companion-2026' ? (
+            <button
+              onClick={onOpenRoboBuddySimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-700 hover:bg-indigo-800 rounded-md transition-colors shadow-2xs"
+              title="Open Robo-Buddy Companion Lab: 4-Servo Otto Gait, Tamagotchi Virtual Pet Brain, Smart Alarm & Version A/B Pinout"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Robo-Buddy Gait, Tamagotchi &amp; Smart Alarm Lab
+            </button>
+          ) : activeProgramId === 'streetpaws-animal-rescue-2026' ? (
+            <button
+              onClick={onOpenStreetPawsSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-md transition-colors shadow-2xs"
+              title="Open StreetPaws Simulator: 4 App Pillars, THB Sustainability Budget, 12-Week ESL Curriculum & 10-Minute Pitch Script"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              StreetPaws Rescue App &amp; THB Impact Lab
+            </button>
+          ) : activeProgramId === 'project-voyager-rc-solar-2026' ? (
+            <button
+              onClick={onOpenVoyagerSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-sky-700 hover:bg-sky-800 rounded-md transition-colors shadow-2xs"
+              title="Open Project Voyager Simulator: 3D-Printed RC Truck Shell, Solar Charging Bay, 5 Roles & WeLearn/MTC Rubric"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Voyager 3D RC Truck &amp; Solar Bay Lab
+            </button>
+          ) : activeProgramId === 'project-vital-flow-2026' ? (
+            <button
+              onClick={onOpenVitalFlowSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 rounded-md transition-colors shadow-2xs"
+              title="Open Project Vital Flow Simulator: Heart Pump, Check-Valves, Vascular Blueprint & Extremity Reach Audit"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Vital Flow Circulatory &amp; Leak Audit Lab
+            </button>
+          ) : activeProgramId === 'kinetic-smart-energy-2026' ? (
+            <button
+              onClick={onOpenKineticSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors shadow-2xs"
+              title="Open Kinetic & Smart Energy Harvesting Lab: Lossless Rectifier, 3-Panel A1 Blueprint & Honest ROI Simulator"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Kinetic Tile &amp; Honest ROI Lab
+            </button>
+          ) : activeProgramId === 'interstellar-ark-horizon-2026' ? (
+            <button
+              onClick={onOpenArkSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-700 hover:bg-indigo-800 rounded-md transition-colors shadow-2xs"
+              title="Open Project Exodus: Spaceship, Recycling Loop, Space Emergency Game Cards & New Planet Rulebook Simulator"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Project Exodus Simulator &amp; Emergency Cards
+            </button>
+          ) : activeProgramId === 'entrepreneurship-product-creation-2026' ? (
             <button
               onClick={onOpenEntrepreneurshipSimulator}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-md transition-colors shadow-2xs"
