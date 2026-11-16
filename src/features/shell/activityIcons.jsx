@@ -1,4 +1,4 @@
-import { TreePalm, Shield, CodeXml, Waves, Sun, FlaskConical, Microscope, Hexagon, Compass, BookOpen } from 'lucide-react';
+import { TreePalm, Shield, CodeXml, Waves, Sun, FlaskConical, Microscope, Hexagon, HeartPulse, Compass, BookOpen } from 'lucide-react';
 
 /**
  * One line icon and colour tone per activity, replacing the emoji in the
@@ -14,6 +14,7 @@ const ICONS = {
   so2: { Icon: FlaskConical, bg: '#fbeaf2', fg: '#9a1f5e' },
   plants: { Icon: Microscope, bg: '#f2fadf', fg: '#4a6a00' },
   hexgrid: { Icon: Hexagon, bg: '#eef0fb', fg: '#3b4a9a' },
+  surgery: { Icon: HeartPulse, bg: '#fff0f2', fg: '#b91c1c' },
   junior: { Icon: Compass, bg: '#fdf0e6', fg: '#9a4a0f' }
 };
 

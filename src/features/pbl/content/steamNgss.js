@@ -163,6 +163,18 @@ export const STEAM_NGSS = {
       ets: { name: 'ETS1.B Developing Possible Solutions', lookFor: 'Compares team layouts using the model and justifies the chosen one.' }
     },
     bridge: 'Testing a hypothesis in a model before building - a full mini-project.'
+  },
+  surgery: {
+    pes: [
+      { code: 'MS-LS1-3', title: 'Use argument supported by evidence for how the body is a system of interacting subsystems' },
+      { code: 'HS-LS1-2', title: 'Develop and use a model to illustrate the hierarchical organization of interacting systems' }
+    ],
+    rubric: {
+      sep: { name: 'Developing and Using Models', lookFor: 'Locates all 7 organs accurately inside the 3D human body model and explains their positions.' },
+      dci: { name: 'LS1.A Structure and Function', lookFor: 'Connects each organ’s anatomical structure and location to its physiological function.' },
+      ccc: { name: 'Systems and System Models', lookFor: 'Explains how organs work together across nervous, circulatory, respiratory, and digestive systems.' }
+    },
+    bridge: 'Precision spatial modeling and anatomy — connecting 3D CAD design with human body systems.'
   }
 };
 

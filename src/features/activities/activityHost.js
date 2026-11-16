@@ -43,6 +43,9 @@ export const REACT_ACTIVITIES = [
   { id: 'hexgrid', label: '⬡ Activity 8: Project Hex-Grid',
     description: 'Test hypotheses in a floating-city model of Bangkok.',
     keywords: 'hex grid floating city bangkok project pbl team hypothesis energy food waste' },
+  { id: 'surgery', label: '🫀 Activity 9: Surgery 3D Anatomy',
+    description: 'Extract 3D organs without touching the conductive edges — by Ana Isa Palazuelos.',
+    keywords: 'surgery anatomy 3d organs brain heart lungs liver stomach intestine stl steam' },
   // The primary (ages 6-11) section. Offered to every student while it is being
   // tested; primary-age accounts are sent straight there by App.jsx.
   { id: 'junior', label: '🧭 Junior Explorers',

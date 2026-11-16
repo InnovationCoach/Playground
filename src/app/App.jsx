@@ -36,6 +36,7 @@ import { SolarCarChallenge } from '../features/activities/solarCar/SolarCarChall
 import { So2SulfateSimulation } from '../features/activities/so2Sulfate/So2SulfateSimulation.jsx';
 import { PlantMicroscopeLab } from '../features/activities/plantLab/PlantMicroscopeLab.jsx';
 import { ProjectHexGrid } from '../features/activities/hexGrid/ProjectHexGrid.jsx';
+import { SurgerySimulation } from '../features/activities/surgery/SurgerySimulation.jsx';
 import { JuniorExplorers } from '../features/primary/JuniorExplorers.jsx';
 import { PblStudio } from '../features/pbl/PblStudio.jsx';
 import { CommunityFeed } from '../features/community/CommunityFeed.jsx';
@@ -188,8 +189,8 @@ export function App() {
   }, [status, role, view]);
 
   // Growth Hub and Coach screens follow effectiveTheme; legacy activity scenes
-  // (solar, so2, plants, hexgrid) remain dark.
-  const isLegacyDarkScene = role === 'student' && !isPrimary && !route?.screen && ['solar', 'so2', 'plants', 'hexgrid'].includes(view);
+  // (solar, so2, plants, hexgrid, surgery) remain dark.
+  const isLegacyDarkScene = role === 'student' && !isPrimary && !route?.screen && ['solar', 'so2', 'plants', 'hexgrid', 'surgery'].includes(view);
   const isCoachScreen = role === 'teacher' || role === 'coach';
   const isLightCapableScreen = !isLegacyDarkScene && (
     status !== 'ready'
@@ -212,6 +213,8 @@ export function App() {
   const headerProps = {
     email: user?.email,
     displayName: profile?.displayName,
+    avatar: profile?.avatar || null,
+    onProfileSaved: refreshProfile,
     role,
     uid: user?.uid,
     onSignOut: signOut,
@@ -570,6 +573,7 @@ export function App() {
           {view === 'plants' && <PlantMicroscopeLab uid={user.uid} />}
           {view === 'hexgrid' && <ProjectHexGrid uid={user.uid} scenario={activityScenario}
             onExit={activityScenario ? () => { setActivityScenario(null); setHash(hrefFor.dashboard()); } : undefined} />}
+          {view === 'surgery' && <SurgerySimulation uid={user.uid} />}
           {view === 'junior' && <JuniorExplorers uid={user.uid} displayName={profile?.displayName} />}
         </>
       )}
