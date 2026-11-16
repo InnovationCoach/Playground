@@ -18,7 +18,7 @@ import { TERM } from '../content/pblModel.js';
 import { db, doc, setDoc } from '../../../firebase.js';
 import { subscribeToPblTransfers } from '../../coach/studio/pblTransferService.js';
 import { toolkitFor } from './tools/index.js';
-import { ToolFor, FounderPanel } from './tools/EntrepreneurshipTools.jsx';
+import { KitTool, KitPanel } from './tools/ToolHost.jsx';
 import { confettiFrom, buzz } from '../../goals/celebrate.js';
 import { useProgramProgress } from './useProgramProgress.js';
 import { ProgramIcon } from './ProgramIcon.jsx';
@@ -353,7 +353,7 @@ function DetailView({ program: p, section, cover, isCoach = false, progress = nu
         </div>
 
         {summary && <LearnerBar program={p} progress={progress} summary={summary} apply={apply} uid={uid} onSelectSession={handleSelectSession} />}
-        {kit && progress?.startedAt && <FounderPanel program={p} progress={progress} />}
+        {kit && progress?.startedAt && <KitPanel kit={kit} program={p} progress={progress} />}
         </div>
         <div className="pg-hero-aside"><ProgramPoster program={p} cover={cover} size="hero" /></div>
       </section>
@@ -547,10 +547,10 @@ function Toolkit({ program: p, kit, tools }) {
             <span className="pt-card-emoji" aria-hidden="true">{t.emoji}</span>
             <div className="pb-grow">
               <h3 id={`pt-${t.id}`} className="pb-h3">{t.title}</h3>
-              <p className="pb-sub">{t.blurb} Used in session{t.sessions.length > 1 ? 's' : ''} {t.sessions.join(' and ')}.</p>
+              <p className="pb-sub">{t.blurb} Used in session{t.sessions.length > 1 ? 's' : ''} {t.sessions.length > 2 ? t.sessions.join(', ') : t.sessions.join(' and ')}.</p>
             </div>
           </div>
-          <ToolFor id={t.id} data={tools.data(t.id)} save={(d) => tools.save(t.id, d)} />
+          <KitTool programId={p.id} id={t.id} data={tools.data(t.id)} save={(d) => tools.save(t.id, d)} peek={tools.data} />
         </section>
       ))}
     </div>
@@ -790,7 +790,6 @@ const CONFIDENCE = [
   { n: 1, face: '😵', label: 'Lost' }, { n: 2, face: '🤔', label: 'Getting there' }, { n: 3, face: '🙂', label: 'Okay' },
   { n: 4, face: '😎', label: 'Confident' }, { n: 5, face: '🧑‍🏫', label: 'I could teach it' }
 ];
-const TOOL_EMOJI = { 'friction-log': '🔍', 'unbiased-listener': '🎙️', 'crazy-8s': '⚡', 'unit-economics': '📊', 'pitch-timer': '🎤' };
 
 function MultiModalSubmissions({ session: s, progress, apply, say }) {
   const submissions = progress?.sessions[s.sessionNumber]?.submissions || {};
@@ -939,6 +938,7 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
   const done = isSessionDone(entry, s);
   const steps = entry?.steps || [];
   const toolId = kit?.sessionTools[s.sessionNumber];
+  const toolEmoji = kit?.tools.find((t) => t.id === toolId)?.emoji || '🛠️';
   const bodyId = `pg-session-${s.sessionNumber}`;
   const reflectRef = useRef(null);
   const xp = kit?.sessionXp;
@@ -1000,7 +1000,7 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
           <span className="pg-session-meta">Mission {s.sessionNumber} · Week {s.week} · <Clock size={12} aria-hidden="true" /> {s.durationMin} min</span>
           <strong>{s.title}</strong>
           <span className="pg-mission-tags">
-            {toolId && <span className="pg-tag pg-tag-tool">{TOOL_EMOJI[toolId]} Hands-on tool</span>}
+            {toolId && <span className="pg-tag pg-tag-tool">{toolEmoji} Hands-on tool</span>}
             {progress && s.activities.length > 0 && <span className="pg-tag">{steps.length}/{s.activities.length} steps</span>}
             {xp && <span className="pg-tag pg-tag-xp">+{xp} XP</span>}
           </span>
@@ -1055,8 +1055,8 @@ function SessionCard({ program, session: s, isCoach, progress, apply, defaultOpe
           )}
 
           {toolId && (
-            <Stage icon={TOOL_EMOJI[toolId]} title="Use the tool">
-              <ToolFor id={toolId} data={tools.data(toolId)} save={(d) => tools.save(toolId, d)} />
+            <Stage icon={toolEmoji} title="Use the tool">
+              <KitTool programId={program.id} id={toolId} data={tools.data(toolId)} save={(d) => tools.save(toolId, d)} peek={tools.data} />
             </Stage>
           )}
 
@@ -1283,11 +1283,12 @@ function Checks({ program: p, kit }) {
           <ul className="pg-issues">
             <li data-level="warn"><TriangleAlert size={16} aria-hidden="true" /><span>
               Each finished session gives {kit.sessionXp} XP. The program's badges add up to {kit.badges.reduce((n, b) => n + b.xpAward, 0).toLocaleString()} XP
-              and its top level needs more, so sessions carry the rest. This number is the platform's, not Don's: confirm it with him.
+              {kit.levels ? 'and its top level needs more, so sessions carry the rest.' : 'on top of that.'} This number is the platform's, not Don's: confirm it with him.
             </span></li>
             <li data-level="warn"><TriangleAlert size={16} aria-hidden="true" /><span>
-              Only badges a tool can check unlock on their own. The others (interviews, the silent usability lab, the live pitch) need
-              a coach to award them, and there is no coach award button yet.
+              Only badges a tool can check unlock on their own
+              ({kit.badges.filter((b) => kit.autoBadge(b.id)).map((b) => b.name).join(', ') || 'none in this program'}).
+              The other {kit.badges.filter((b) => !kit.autoBadge(b.id)).length} need a coach to award them, and there is no coach award button yet.
             </span></li>
           </ul>
         </section>
