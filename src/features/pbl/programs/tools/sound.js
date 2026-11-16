@@ -18,3 +18,17 @@ export function beep(freq = 660, seconds = 0.15) {
     osc.stop(ctx.currentTime + seconds + 0.02);
   } catch { /* no audio */ }
 }
+
+/**
+ * Tool feedback sounds: 'ding' when a check passes or a badge rule is met,
+ * 'pop' for a small tap that changes something (a pin fed, a card swiped).
+ */
+const TOOL_SOUNDS = { ding: [[880, 0.12], [1320, 0.22]], pop: [[520, 0.07]] };
+
+export function playToolSound(kind = 'pop') {
+  const notes = TOOL_SOUNDS[kind] || TOOL_SOUNDS.pop;
+  notes.forEach(([freq, seconds], i) => {
+    if (i === 0) beep(freq, seconds);
+    else setTimeout(() => beep(freq, seconds), i * 110);
+  });
+}

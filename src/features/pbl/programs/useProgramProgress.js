@@ -28,7 +28,8 @@ export function useProgramProgress(uid, program) {
   const [syncState, setSyncState] = useState('idle');
   const cloudTimer = useRef(null);
   const fadeTimer = useRef(null);
-  const docPath = `${uid}/activityProgress/${progressDocId(programId)}`;
+  const primaryDocPath = `${uid}/programProgress/${programId}`;
+  const legacyDocPath = `${uid}/activityProgress/${progressDocId(programId)}`;
 
   // Switching programs must not show the previous program's progress.
   useEffect(() => {
@@ -42,8 +43,12 @@ export function useProgramProgress(uid, program) {
     let cancelled = false;
     (async () => {
       try {
-        const snap = await getDoc(doc(db, 'users', docPath));
-        const exists = typeof snap.exists === 'function' ? snap.exists() : snap.exists;
+        let snap = await getDoc(doc(db, 'users', primaryDocPath));
+        let exists = typeof snap.exists === 'function' ? snap.exists() : snap.exists;
+        if (!exists) {
+          snap = await getDoc(doc(db, 'users', legacyDocPath));
+          exists = typeof snap.exists === 'function' ? snap.exists() : snap.exists;
+        }
         if (cancelled || !exists) return;
         const remote = hydrateProgress(snap.data(), program);
         const local = readLocalProgress(uid, program);
@@ -61,7 +66,7 @@ export function useProgramProgress(uid, program) {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, docPath]);
+  }, [uid, primaryDocPath, legacyDocPath]);
 
   useEffect(() => {
     if (!progress.updatedAt || progress.programId !== programId) return undefined;
@@ -79,7 +84,7 @@ export function useProgramProgress(uid, program) {
     cloudTimer.current = setTimeout(async () => {
       setSyncState('saving');
       try {
-        await setDoc(doc(db, 'users', docPath), { ...progress, activityId: progressDocId(programId) });
+        await setDoc(doc(db, 'users', primaryDocPath), { ...progress, activityId: progressDocId(programId) });
         setSyncState('saved');
         clearTimeout(fadeTimer.current);
         fadeTimer.current = setTimeout(() => {
@@ -95,7 +100,7 @@ export function useProgramProgress(uid, program) {
       clearTimeout(cloudTimer.current);
       clearTimeout(fadeTimer.current);
     };
-  }, [progress, uid, programId, docPath]);
+  }, [progress, uid, programId, primaryDocPath]);
 
   /** Apply a pure update: `fn(progress) => progress`. */
   const apply = useCallback((fn) => setProgress((p) => fn(p)), []);

@@ -412,6 +412,37 @@ service cloud.firestore {
         );
     }
 
+    function isValidProgramProgress(data, programId) {
+      return data is map
+        && data.keys().hasOnly([
+          'programId',
+          'version',
+          'sessionKeys',
+          'startedAt',
+          'sessions',
+          'tools',
+          'badges',
+          'updatedAt',
+          'activityId'
+        ])
+        && data.programId == programId
+        && data.programId is string
+        && data.programId.size() <= 80
+        && data.version is int
+        && data.version >= 1
+        && data.version <= 10
+        && data.sessionKeys in ['course', 'legacy']
+        && (data.startedAt == null || data.startedAt is int)
+        && (data.updatedAt == null || data.updatedAt is int)
+        && data.badges is list
+        && data.badges.size() <= 50
+        && data.sessions is map
+        && data.sessions.size() <= 60
+        && data.tools is map
+        && data.tools.size() <= 20
+        && (!('activityId' in data) || (data.activityId is string && data.activityId.size() <= 80));
+    }
+
     // ---------------------------------------------------------------------
     // Personalization and portfolio grants are served exclusively by the scoped API.
     match /learnerSpaces/{uid} { allow read, write: if false; }
@@ -496,6 +527,13 @@ service cloud.firestore {
         allow read: if isOwner(userId) || isCoachOf(userId);
         allow create, update: if isOwner(userId)
           && (docId != 'universe-v1' || isValidUniverseExplorerPrefs(request.resource.data));
+        allow delete: if isOwner(userId);
+      }
+
+      match /programProgress/{programId} {
+        allow read: if isOwner(userId) || isCoachOf(userId);
+        allow create, update: if isOwner(userId)
+          && isValidProgramProgress(request.resource.data, programId);
         allow delete: if isOwner(userId);
       }
 

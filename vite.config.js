@@ -46,6 +46,9 @@ export default defineConfig({
           if (id.includes('src/features/coach/studio/')) {
             return 'coach-pbl-studio';
           }
+          if (id.includes('src/features/pbl/programs/tools/')) {
+            return 'pbl-tools';
+          }
           if (id.includes('prototypes/DonPBL/')) {
             return 'prototype-donpbl';
           }
