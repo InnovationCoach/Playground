@@ -995,3 +995,167 @@ export function simulateStreetPawsApp(params: {
     showcaseReady
   };
 }
+
+/**
+ * Pure simulation helper for "Robo-Buddy Companion: Build, Code & Care for a 3D-Printed Walking Desk Pet":
+ * Models Version A (BBC micro:bit V2 + INEX PROJECT:BIT) vs. Version B (Arduino Nano + I/O Shield),
+ * Week 7 4-Servo Otto Gait & 90° Pre-Centering / ±5° Posture Trim (Bench Test 1),
+ * Week 3 & Week 8 Tamagotchi Virtual Pet Brain (Hunger, Happiness, Energy & 5-Mood State Machine, Bench Test 2),
+ * Week 9 Smart Alarm & Dismiss Rule (Head Touch x3 or Ultrasonic Wave <= 15cm),
+ * and Week 10 40-Point Stress-Test Benchmark (20 Walking + 10 Alarm + 10 Sensor Care tests).
+ */
+export function simulateRoboBuddyCompanion(params: {
+  hardwareVersion: 'microbit' | 'arduino-nano';
+  leftHipAngleDeg: number;
+  rightHipAngleDeg: number;
+  leftFootAngleDeg: number;
+  rightFootAngleDeg: number;
+  servosCenteredBeforeAssembly: boolean;
+  batteryPackUsed: '4xaa_6v_external' | 'usb_computer_only';
+  rubberFootGripsAdded: boolean;
+  cablesZipTied: boolean;
+  hoursSinceLastFed: number;
+  hoursSinceLastPetted: number;
+  touchPetEventsCount: number;
+  lightFeedEventsCount: number;
+  alarmTriggered: boolean;
+  dismissHeadTouches: number;
+  ultrasonicWaveDistanceCm: number;
+  walkingTestsPassedOf20: number;
+  alarmTestsPassedOf10: number;
+  sensorCareTestsPassedOf10: number;
+}) {
+  const clampAngle = (v: number) =>
+    Number.isFinite(v) ? Math.max(60, Math.min(120, Math.round(v))) : 90;
+
+  const leftHipAngleDeg = clampAngle(params.leftHipAngleDeg);
+  const rightHipAngleDeg = clampAngle(params.rightHipAngleDeg);
+  const leftFootAngleDeg = clampAngle(params.leftFootAngleDeg);
+  const rightFootAngleDeg = clampAngle(params.rightFootAngleDeg);
+
+  const hoursFed = Number.isFinite(params.hoursSinceLastFed)
+    ? Math.max(0, Math.min(24, Math.round(params.hoursSinceLastFed)))
+    : 2;
+  const hoursPetted = Number.isFinite(params.hoursSinceLastPetted)
+    ? Math.max(0, Math.min(24, Math.round(params.hoursSinceLastPetted)))
+    : 2;
+  const petEvents = Number.isFinite(params.touchPetEventsCount)
+    ? Math.max(0, Math.min(20, Math.round(params.touchPetEventsCount)))
+    : 2;
+  const feedEvents = Number.isFinite(params.lightFeedEventsCount)
+    ? Math.max(0, Math.min(20, Math.round(params.lightFeedEventsCount)))
+    : 2;
+  const headTouches = Number.isFinite(params.dismissHeadTouches)
+    ? Math.max(0, Math.min(10, Math.round(params.dismissHeadTouches)))
+    : 0;
+  const waveDistCm = Number.isFinite(params.ultrasonicWaveDistanceCm)
+    ? Math.max(2, Math.min(200, Math.round(params.ultrasonicWaveDistanceCm)))
+    : 30;
+
+  const walkPassed = Number.isFinite(params.walkingTestsPassedOf20)
+    ? Math.max(0, Math.min(20, Math.round(params.walkingTestsPassedOf20)))
+    : 18;
+  const alarmPassed = Number.isFinite(params.alarmTestsPassedOf10)
+    ? Math.max(0, Math.min(10, Math.round(params.alarmTestsPassedOf10)))
+    : 9;
+  const sensorPassed = Number.isFinite(params.sensorCareTestsPassedOf10)
+    ? Math.max(0, Math.min(10, Math.round(params.sensorCareTestsPassedOf10)))
+    : 9;
+
+  // Week 7 Servo Calibration & Posture Trim (±5 degrees from 90° center)
+  const hipTrimDeviationDeg = Math.abs(leftHipAngleDeg - 90) + Math.abs(rightHipAngleDeg - 90);
+  const footTrimDeviationDeg = Math.abs(leftFootAngleDeg - 90) + Math.abs(rightFootAngleDeg - 90);
+  const totalTrimDeviationDeg = hipTrimDeviationDeg + footTrimDeviationDeg;
+
+  const allServosWithinTrim =
+    Math.abs(leftHipAngleDeg - 90) <= 5 &&
+    Math.abs(rightHipAngleDeg - 90) <= 5 &&
+    Math.abs(leftFootAngleDeg - 90) <= 5 &&
+    Math.abs(rightFootAngleDeg - 90) <= 5;
+
+  const externalBatterySafe = params.batteryPackUsed === '4xaa_6v_external';
+
+  const rawStability =
+    100 -
+    totalTrimDeviationDeg * 2.5 +
+    (params.servosCenteredBeforeAssembly ? 10 : -25) +
+    (externalBatterySafe ? 10 : -35) +
+    (params.rubberFootGripsAdded ? 8 : 0) +
+    (params.cablesZipTied ? 5 : 0);
+  const postureStabilityScore = Math.max(0, Math.min(100, Math.round(rawStability)));
+
+  // Week 7 Bench Test 1: Walk 5 steps without tipping over
+  const benchTest1Passed =
+    Boolean(params.servosCenteredBeforeAssembly) &&
+    externalBatterySafe &&
+    allServosWithinTrim &&
+    postureStabilityScore >= 75;
+
+  // Week 3 & Week 8 Virtual Pet Brain stats (0..100)
+  // Hunger: 0 = full, 100 = starving
+  const hungerStat = Math.max(0, Math.min(100, Math.round(hoursFed * 12 - feedEvents * 20)));
+  // Happiness: 100 = joyful, 0 = lonely
+  const happinessStat = Math.max(0, Math.min(100, Math.round(85 - hoursPetted * 10 + petEvents * 15)));
+  // Energy: 100 = rested, 0 = exhausted
+  const energyStat = Math.max(
+    0,
+    Math.min(100, Math.round(90 - (hoursFed + hoursPetted) * 4 + feedEvents * 8))
+  );
+
+  // Week 9 Smart Alarm Dismiss Rule: 3 head touches OR ultrasonic wave <= 15cm
+  const alarmDismissed = !params.alarmTriggered || headTouches >= 3 || waveDistCm <= 15;
+
+  // 5-State Mood Machine: Happy, Hungry, Sleepy, Bored, Alarm Ringing
+  let currentMood: 'Happy' | 'Hungry' | 'Sleepy' | 'Bored' | 'Alarm Ringing' = 'Happy';
+  if (params.alarmTriggered && !alarmDismissed) {
+    currentMood = 'Alarm Ringing';
+  } else if (hungerStat >= 65) {
+    currentMood = 'Hungry';
+  } else if (energyStat <= 35) {
+    currentMood = 'Sleepy';
+  } else if (happinessStat <= 45) {
+    currentMood = 'Bored';
+  } else {
+    currentMood = 'Happy';
+  }
+
+  // Week 8 Bench Test 2: Sensor Care & Mood transitions verified
+  const benchTest2Passed = petEvents >= 1 && feedEvents >= 1 && externalBatterySafe;
+
+  // Week 10 40-Point Benchmark Scorecard
+  const totalBenchmarkPassedOf40 = walkPassed + alarmPassed + sensorPassed;
+  const benchmarkPassRatePct = Math.round((totalBenchmarkPassedOf40 / 40) * 100);
+
+  const prototypeV2Ready =
+    benchTest1Passed &&
+    benchTest2Passed &&
+    alarmDismissed &&
+    Boolean(params.rubberFootGripsAdded) &&
+    Boolean(params.cablesZipTied) &&
+    totalBenchmarkPassedOf40 >= 32;
+
+  return {
+    leftHipAngleDeg,
+    rightHipAngleDeg,
+    leftFootAngleDeg,
+    rightFootAngleDeg,
+    totalTrimDeviationDeg,
+    allServosWithinTrim,
+    externalBatterySafe,
+    postureStabilityScore,
+    benchTest1Passed,
+    hungerStat,
+    happinessStat,
+    energyStat,
+    currentMood,
+    alarmDismissed,
+    benchTest2Passed,
+    walkPassed,
+    alarmPassed,
+    sensorPassed,
+    totalBenchmarkPassedOf40,
+    benchmarkPassRatePct,
+    prototypeV2Ready
+  };
+}
+

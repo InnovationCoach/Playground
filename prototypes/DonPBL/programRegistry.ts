@@ -2,18 +2,19 @@
  * Program Registry for WeLearn PBL Studio
  * Location: prototypes/DonPBL/programRegistry.ts
  * 
- * Complete 11-program catalog (all fitting a 12-week, 120-hour term):
- * - Program 1: StreetPaws — The Community Animal Rescue App (12 Weeks / 120h • 24 Sessions)
- * - Program 2: Project Voyager: 3D-Printed RC Truck & Solar Charging Bay (12 Weeks / 120h • 24 Sessions)
- * - Program 3: Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics (12 Weeks / 120h • 24 Sessions)
- * - Program 4: Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting (12 Weeks / 120h • 24 Sessions)
- * - Program 5: Project Exodus: Building Our New Home in Space (12 Weeks / 120h • 24 Sessions)
- * - Program 6: Entrepreneurship: Creating a Product (12 Weeks / 120h • 18 Sessions)
- * - Program 7: Project "Genesis Engine": Build Your Own Movie Universe! (12 Weeks / 120h • 24 Sessions)
- * - Program 8: The Passion Project Blueprint: Discovering Your Next Big Idea (12 Weeks / 120h • 24 Sessions)
- * - Program 9: Quantitative Biomechanics & Bio-Inspired Robotics (12 Weeks / 120h • 24 Sessions)
- * - Program 10: Hex-City Thailand: Modular Resilient Floating City (12 Weeks / 120h • 24 Sessions)
- * - Program 11: EcoCool: Smart Urban Heat & Community Garden Monitor (12 Weeks / 120h • 24 Sessions)
+ * Complete 12-program catalog (all fitting a 12-week, 120-hour term):
+ * - Program 1: Robo-Buddy Companion: Build, Code & Care for a 3D-Printed Walking Desk Pet (12 Weeks / 120h • 24 Sessions)
+ * - Program 2: StreetPaws — The Community Animal Rescue App (12 Weeks / 120h • 24 Sessions)
+ * - Program 3: Project Voyager: 3D-Printed RC Truck & Solar Charging Bay (12 Weeks / 120h • 24 Sessions)
+ * - Program 4: Project Vital Flow: Biomedical Engineering & Closed-Loop Fluid Dynamics (12 Weeks / 120h • 24 Sessions)
+ * - Program 5: Smart Cities & Adaptive Infrastructure: Kinetic and Smart Energy Harvesting (12 Weeks / 120h • 24 Sessions)
+ * - Program 6: Project Exodus: Building Our New Home in Space (12 Weeks / 120h • 24 Sessions)
+ * - Program 7: Entrepreneurship: Creating a Product (12 Weeks / 120h • 18 Sessions)
+ * - Program 8: Project "Genesis Engine": Build Your Own Movie Universe! (12 Weeks / 120h • 24 Sessions)
+ * - Program 9: The Passion Project Blueprint: Discovering Your Next Big Idea (12 Weeks / 120h • 24 Sessions)
+ * - Program 10: Quantitative Biomechanics & Bio-Inspired Robotics (12 Weeks / 120h • 24 Sessions)
+ * - Program 11: Hex-City Thailand: Modular Resilient Floating City (12 Weeks / 120h • 24 Sessions)
+ * - Program 12: EcoCool: Smart Urban Heat & Community Garden Monitor (12 Weeks / 120h • 24 Sessions)
  * 
  * Stub Program (excluded from PROGRAM_REGISTRY and PROGRAM_LIST until phases are authored):
  * - CleanStream: Smart Urban Stormwater & Micro-Filter Sentinel (status: 'stub')
@@ -171,6 +172,27 @@ import type {
   StreetPawsRubricRow,
   StreetPawsBadge
 } from './streetPawsProgram';
+import {
+  ROBO_BUDDY_PROGRAM,
+  ROBO_BUDDY_DELIVERABLES,
+  ROBO_BUDDY_HARDWARE_TABLE,
+  ROBO_BUDDY_WEEKLY_RHYTHM,
+  ROBO_BUDDY_TEAM_ROLES,
+  ROBO_BUDDY_12_WEEK_CURRICULUM,
+  ROBO_BUDDY_PINOUT_GUIDE,
+  ROBO_BUDDY_MTC_RUBRIC,
+  ROBO_BUDDY_GAMIFICATION_BADGES
+} from './roboBuddyProgram';
+import type {
+  RoboBuddyDeliverableSpec,
+  RoboBuddyHardwareComparisonRow,
+  RoboBuddyWeeklyRhythmDay,
+  RoboBuddyTeamRole,
+  RoboBuddyWeekPlan,
+  RoboBuddyPinoutVersion,
+  RoboBuddyMtcRubricRow,
+  RoboBuddyBadge
+} from './roboBuddyProgram';
 
 export { 
   SCHOOL_SCHEDULE_CONFIG, 
@@ -333,6 +355,28 @@ export type {
   StreetPawsBadge
 };
 
+export {
+  ROBO_BUDDY_PROGRAM,
+  ROBO_BUDDY_DELIVERABLES,
+  ROBO_BUDDY_HARDWARE_TABLE,
+  ROBO_BUDDY_WEEKLY_RHYTHM,
+  ROBO_BUDDY_TEAM_ROLES,
+  ROBO_BUDDY_12_WEEK_CURRICULUM,
+  ROBO_BUDDY_PINOUT_GUIDE,
+  ROBO_BUDDY_MTC_RUBRIC,
+  ROBO_BUDDY_GAMIFICATION_BADGES
+};
+export type {
+  RoboBuddyDeliverableSpec,
+  RoboBuddyHardwareComparisonRow,
+  RoboBuddyWeeklyRhythmDay,
+  RoboBuddyTeamRole,
+  RoboBuddyWeekPlan,
+  RoboBuddyPinoutVersion,
+  RoboBuddyMtcRubricRow,
+  RoboBuddyBadge
+};
+
 /**
  * Stub program kept outside PROGRAM_REGISTRY and PROGRAM_LIST until dedicated
  * stormwater sessions are authored.
@@ -422,6 +466,7 @@ export const CLEAN_STREAM_PROGRAM: PblProgram = {
 };
 
 export const PROGRAM_REGISTRY: Record<string, PblProgram> = {
+  'robo-buddy-companion-2026': ROBO_BUDDY_PROGRAM,
   'streetpaws-animal-rescue-2026': STREETPAWS_PROGRAM,
   'project-voyager-rc-solar-2026': VOYAGER_PROGRAM,
   'project-vital-flow-2026': VITAL_FLOW_PROGRAM,

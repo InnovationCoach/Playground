@@ -88,7 +88,16 @@ export {
   STREETPAWS_PITCH_SLIDES,
   STREETPAWS_ESL_PITCH_SCRIPT,
   STREETPAWS_ASSESSMENT_RUBRIC,
-  STREETPAWS_GAMIFICATION_BADGES
+  STREETPAWS_GAMIFICATION_BADGES,
+  ROBO_BUDDY_PROGRAM,
+  ROBO_BUDDY_DELIVERABLES,
+  ROBO_BUDDY_HARDWARE_TABLE,
+  ROBO_BUDDY_WEEKLY_RHYTHM,
+  ROBO_BUDDY_TEAM_ROLES,
+  ROBO_BUDDY_12_WEEK_CURRICULUM,
+  ROBO_BUDDY_PINOUT_GUIDE,
+  ROBO_BUDDY_MTC_RUBRIC,
+  ROBO_BUDDY_GAMIFICATION_BADGES
 } from '../programRegistry';
 
 export type {
@@ -141,7 +150,15 @@ export type {
   StreetPawsPitchSlide,
   StreetPawsEslPitchSpeaker,
   StreetPawsRubricRow,
-  StreetPawsBadge
+  StreetPawsBadge,
+  RoboBuddyDeliverableSpec,
+  RoboBuddyHardwareComparisonRow,
+  RoboBuddyWeeklyRhythmDay,
+  RoboBuddyTeamRole,
+  RoboBuddyWeekPlan,
+  RoboBuddyPinoutVersion,
+  RoboBuddyMtcRubricRow,
+  RoboBuddyBadge
 } from '../programRegistry';
 
 export {
@@ -181,7 +198,8 @@ export {
   simulateKineticHarvesting,
   simulateVitalFlowCirculation,
   simulateVoyagerRcSolar,
-  simulateStreetPawsApp
+  simulateStreetPawsApp,
+  simulateRoboBuddyCompanion
 } from '../engine';
 
 export type {

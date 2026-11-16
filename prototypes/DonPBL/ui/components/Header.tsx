@@ -32,6 +32,7 @@ interface HeaderProps {
   onOpenVitalFlowSimulator?: () => void;
   onOpenVoyagerSimulator?: () => void;
   onOpenStreetPawsSimulator?: () => void;
+  onOpenRoboBuddySimulator?: () => void;
   onOpenCopilot: () => void;
   onOpenIntegration: () => void;
   onOpenAssumptions: () => void;
@@ -60,6 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenVitalFlowSimulator,
   onOpenVoyagerSimulator,
   onOpenStreetPawsSimulator,
+  onOpenRoboBuddySimulator,
   onOpenCopilot,
   onOpenIntegration,
   onOpenAssumptions,
@@ -160,7 +162,16 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Action Controls & Role Switcher */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Quick interactive tools */}
-          {activeProgramId === 'streetpaws-animal-rescue-2026' ? (
+          {activeProgramId === 'robo-buddy-companion-2026' ? (
+            <button
+              onClick={onOpenRoboBuddySimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-700 hover:bg-indigo-800 rounded-md transition-colors shadow-2xs"
+              title="Open Robo-Buddy Companion Lab: 4-Servo Otto Gait, Tamagotchi Virtual Pet Brain, Smart Alarm & Version A/B Pinout"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Robo-Buddy Gait, Tamagotchi &amp; Smart Alarm Lab
+            </button>
+          ) : activeProgramId === 'streetpaws-animal-rescue-2026' ? (
             <button
               onClick={onOpenStreetPawsSimulator}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-md transition-colors shadow-2xs"

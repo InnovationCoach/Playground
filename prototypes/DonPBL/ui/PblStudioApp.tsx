@@ -20,6 +20,7 @@ import { KineticEnergySimulator } from './components/KineticEnergySimulator';
 import { VitalFlowSimulator } from './components/VitalFlowSimulator';
 import { VoyagerSimulator } from './components/VoyagerSimulator';
 import { StreetPawsSimulator } from './components/StreetPawsSimulator';
+import { RoboBuddySimulator } from './components/RoboBuddySimulator';
 import { AiCopilotModal } from './components/AiCopilotModal';
 import { EvidenceModal } from './components/EvidenceModal';
 import { IntegrationDrawer } from './components/IntegrationDrawer';
@@ -68,6 +69,7 @@ export default function App() {
   const [isVitalFlowSimulatorOpen, setIsVitalFlowSimulatorOpen] = useState(false);
   const [isVoyagerSimulatorOpen, setIsVoyagerSimulatorOpen] = useState(false);
   const [isStreetPawsSimulatorOpen, setIsStreetPawsSimulatorOpen] = useState(false);
+  const [isRoboBuddySimulatorOpen, setIsRoboBuddySimulatorOpen] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [evidenceModalPhase, setEvidenceModalPhase] = useState<string>('prototype');
@@ -181,6 +183,7 @@ export default function App() {
         onOpenVitalFlowSimulator={() => setIsVitalFlowSimulatorOpen(true)}
         onOpenVoyagerSimulator={() => setIsVoyagerSimulatorOpen(true)}
         onOpenStreetPawsSimulator={() => setIsStreetPawsSimulatorOpen(true)}
+        onOpenRoboBuddySimulator={() => setIsRoboBuddySimulatorOpen(true)}
         onOpenCopilot={() => handleOpenCopilot()}
         onOpenIntegration={() => setIsIntegrationDrawerOpen(true)}
         onOpenAssumptions={() => setIsIntegrationDrawerOpen(true)}
@@ -190,9 +193,9 @@ export default function App() {
       {/* Provisional Choices Banner */}
       <AssumptionsBanner activeProgramId={activeProgramId} />
 
-      {/* All 11 PBL Programs Catalog Strip (branch: DonPBL) */}
+      {/* All 12 PBL Programs Catalog Strip (branch: DonPBL) */}
       <section
-        aria-label="All 11 PBL Programs on branch DonPBL"
+        aria-label="All 12 PBL Programs on branch DonPBL"
         className="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4"
       >
         <div className="bg-white rounded-xl border border-stone-200 p-3.5 shadow-2xs">
@@ -462,6 +465,24 @@ export default function App() {
             handleUpdateProject(res.updatedProject);
           }
           setIsStreetPawsSimulatorOpen(false);
+        }}
+      />
+
+      <RoboBuddySimulator
+        isOpen={isRoboBuddySimulatorOpen}
+        onClose={() => setIsRoboBuddySimulatorOpen(false)}
+        onSaveToPortfolio={(title, summary) => {
+          const res = validateAndAddEvidence(activeProject, {
+            title,
+            phase: 'test',
+            kind: 'data',
+            body: summary,
+            competencies: ['ctps-05', 'ct-02', 'ent-04', 'lc-03', 'ec-05', 'sea-01', 'sdl-04']
+          });
+          if (res.success && res.updatedProject) {
+            handleUpdateProject(res.updatedProject);
+          }
+          setIsRoboBuddySimulatorOpen(false);
         }}
       />
 

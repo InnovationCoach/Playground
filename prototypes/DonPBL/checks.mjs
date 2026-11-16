@@ -640,6 +640,88 @@ async function main() {
         assert.ok(Number.isFinite(val), `Expected finite number from simulateStreetPawsApp, got ${val}`);
       }
     }
+
+    // Also test simulateRoboBuddyCompanion deterministic 4-servo Otto gait, Tamagotchi state machine & 40-point benchmark math
+    const { simulateRoboBuddyCompanion } = pbl;
+    const readyRoboBuddy = simulateRoboBuddyCompanion({
+      hardwareVersion: 'microbit',
+      leftHipAngleDeg: 90,
+      rightHipAngleDeg: 90,
+      leftFootAngleDeg: 90,
+      rightFootAngleDeg: 90,
+      servosCenteredBeforeAssembly: true,
+      batteryPackUsed: '4xaa_6v_external',
+      rubberFootGripsAdded: true,
+      cablesZipTied: true,
+      hoursSinceLastFed: 1,
+      hoursSinceLastPetted: 1,
+      touchPetEventsCount: 3,
+      lightFeedEventsCount: 2,
+      alarmTriggered: false,
+      dismissHeadTouches: 3,
+      ultrasonicWaveDistanceCm: 10,
+      walkingTestsPassedOf20: 19,
+      alarmTestsPassedOf10: 10,
+      sensorCareTestsPassedOf10: 9
+    });
+    const uncalibratedRoboBuddy = simulateRoboBuddyCompanion({
+      hardwareVersion: 'arduino-nano',
+      leftHipAngleDeg: 75,
+      rightHipAngleDeg: 108,
+      leftFootAngleDeg: 72,
+      rightFootAngleDeg: 110,
+      servosCenteredBeforeAssembly: false,
+      batteryPackUsed: 'usb_computer_only',
+      rubberFootGripsAdded: false,
+      cablesZipTied: false,
+      hoursSinceLastFed: 9,
+      hoursSinceLastPetted: 8,
+      touchPetEventsCount: 0,
+      lightFeedEventsCount: 0,
+      alarmTriggered: true,
+      dismissHeadTouches: 1,
+      ultrasonicWaveDistanceCm: 40,
+      walkingTestsPassedOf20: 8,
+      alarmTestsPassedOf10: 4,
+      sensorCareTestsPassedOf10: 4
+    });
+    assert.equal(readyRoboBuddy.benchTest1Passed, true);
+    assert.equal(readyRoboBuddy.benchTest2Passed, true);
+    assert.equal(readyRoboBuddy.currentMood, 'Happy');
+    assert.equal(readyRoboBuddy.alarmDismissed, true);
+    assert.equal(readyRoboBuddy.totalBenchmarkPassedOf40, 38);
+    assert.equal(readyRoboBuddy.prototypeV2Ready, true);
+    assert.equal(uncalibratedRoboBuddy.benchTest1Passed, false);
+    assert.equal(uncalibratedRoboBuddy.currentMood, 'Alarm Ringing');
+    assert.equal(uncalibratedRoboBuddy.alarmDismissed, false);
+    assert.equal(uncalibratedRoboBuddy.prototypeV2Ready, false);
+
+    const badRoboBuddy = simulateRoboBuddyCompanion({
+      hardwareVersion: 'microbit',
+      leftHipAngleDeg: Number.NaN,
+      rightHipAngleDeg: Number.POSITIVE_INFINITY,
+      leftFootAngleDeg: -50,
+      rightFootAngleDeg: 300,
+      servosCenteredBeforeAssembly: false,
+      batteryPackUsed: 'usb_computer_only',
+      rubberFootGripsAdded: false,
+      cablesZipTied: false,
+      hoursSinceLastFed: Number.NaN,
+      hoursSinceLastPetted: -10,
+      touchPetEventsCount: -5,
+      lightFeedEventsCount: Number.NaN,
+      alarmTriggered: true,
+      dismissHeadTouches: -2,
+      ultrasonicWaveDistanceCm: Number.NaN,
+      walkingTestsPassedOf20: 99,
+      alarmTestsPassedOf10: -3,
+      sensorCareTestsPassedOf10: Number.NaN
+    });
+    for (const val of Object.values(badRoboBuddy)) {
+      if (typeof val === 'number') {
+        assert.ok(Number.isFinite(val), `Expected finite number from simulateRoboBuddyCompanion, got ${val}`);
+      }
+    }
   });
 
   // 8. Test PROGRAM_REGISTRY and PROGRAM_LIST alignment
@@ -677,6 +759,14 @@ async function main() {
       STREETPAWS_ESL_PITCH_SCRIPT,
       STREETPAWS_ASSESSMENT_RUBRIC,
       STREETPAWS_GAMIFICATION_BADGES,
+      ROBO_BUDDY_DELIVERABLES,
+      ROBO_BUDDY_HARDWARE_TABLE,
+      ROBO_BUDDY_WEEKLY_RHYTHM,
+      ROBO_BUDDY_TEAM_ROLES,
+      ROBO_BUDDY_12_WEEK_CURRICULUM,
+      ROBO_BUDDY_PINOUT_GUIDE,
+      ROBO_BUDDY_MTC_RUBRIC,
+      ROBO_BUDDY_GAMIFICATION_BADGES,
       BIOMIMETIC_TRACKS,
       BIOMECHANICS_60_DAY_SCHEDULE,
       BIOMECHANICS_OLDER_STUDENT_PILLARS,
@@ -691,7 +781,22 @@ async function main() {
       GENESIS_GAMIFICATION_BADGES
     } = pbl;
     const registryKeys = Object.keys(PROGRAM_REGISTRY);
-    assert.equal(registryKeys.length, 11, 'Expected 11 complete programs in PROGRAM_REGISTRY');
+    assert.equal(registryKeys.length, 12, 'Expected 12 complete programs in PROGRAM_REGISTRY');
+    assert.ok('robo-buddy-companion-2026' in PROGRAM_REGISTRY, 'robo-buddy-companion-2026 must be registered');
+    assert.equal(
+      PROGRAM_REGISTRY['robo-buddy-companion-2026'].title,
+      'Robo-Buddy Companion: Build, Code & Care for a 3D-Printed Walking Desk Pet',
+      'Expected Robo-Buddy Companion title'
+    );
+    assert.equal(ROBO_BUDDY_DELIVERABLES.length, 3, 'Expected 3 Core Deliverables for Robo-Buddy Companion');
+    assert.equal(ROBO_BUDDY_HARDWARE_TABLE.length, 8, 'Expected 8 hardware comparison rows in ROBO_BUDDY_HARDWARE_TABLE');
+    assert.equal(ROBO_BUDDY_WEEKLY_RHYTHM.length, 5, 'Expected 5 days (Monday–Friday) in ROBO_BUDDY_WEEKLY_RHYTHM');
+    assert.equal(ROBO_BUDDY_TEAM_ROLES.length, 4, 'Expected 4 Student Team Roles in ROBO_BUDDY_TEAM_ROLES');
+    assert.equal(ROBO_BUDDY_12_WEEK_CURRICULUM.length, 12, 'Expected 12 weeks in ROBO_BUDDY_12_WEEK_CURRICULUM');
+    assert.equal(ROBO_BUDDY_PINOUT_GUIDE.length, 2, 'Expected 2 hardware versions in ROBO_BUDDY_PINOUT_GUIDE');
+    assert.equal(ROBO_BUDDY_MTC_RUBRIC.length, 7, 'Expected all 7 WeLearn Future Skills in ROBO_BUDDY_MTC_RUBRIC');
+    assert.equal(ROBO_BUDDY_GAMIFICATION_BADGES.length, 7, 'Expected 7 gamification badges in ROBO_BUDDY_GAMIFICATION_BADGES');
+
     assert.ok('streetpaws-animal-rescue-2026' in PROGRAM_REGISTRY, 'streetpaws-animal-rescue-2026 must be registered');
     assert.equal(
       PROGRAM_REGISTRY['streetpaws-animal-rescue-2026'].title,

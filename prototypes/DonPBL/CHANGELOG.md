@@ -9,6 +9,14 @@
 
 ## Change Log Entries
 
+### [2026-10-21] - Added "Robo-Buddy Companion: Build, Code & Care for a 3D-Printed Walking Desk Pet" PBL (12 Weeks / 120 Hours)
+- **Program Curriculum (`prototypes/DonPBL/roboBuddyProgram.ts`):**
+  - Added `ROBO_BUDDY_PROGRAM` (`id: 'robo-buddy-companion-2026'`), a 12-week, 120-hour, 24-session curriculum structured across all 7 Design Thinking phases (`explore` [1, 1], `empathise` [2, 2], `define` [3, 4], `ideate` [5, 6], `prototype` [7, 9], `test` [10, 11], `share` [12, 12]).
+  - Incorporated the **3 Core Deliverables (`ROBO_BUDDY_DELIVERABLES`)** (`1. A Working Walking Desk Robot`, `2. Virtual Pet & Smart Alarm Code`, `3. A Complete MTC Digital Portfolio`), the **8-Row Hardware Comparison Table (`ROBO_BUDDY_HARDWARE_TABLE`)** comparing **Version A: BBC micro:bit V2 + INEX PROJECT:BIT Expansion Board** vs. **Version B: Arduino Nano + Nano I/O Expansion Shield**, the **Monday–Friday 2-Hour Weekly Studio Rhythm (`ROBO_BUDDY_WEEKLY_RHYTHM`)**, and the **4 Student Team Roles (`ROBO_BUDDY_TEAM_ROLES`)** (`1. Lead Builder (Mechanical Engineer)`, `2. Lead Coder (Software Engineer)`, `3. 3D & Visual Designer (CAD & UI Lead)`, `4. Project Manager (Documentation & Testing Lead)`).
+  - Embedded the complete **12-Week Monday–Friday Curriculum (`ROBO_BUDDY_12_WEEK_CURRICULUM`)**, the **Quick-Reference Pinout & Wiring Guide (`ROBO_BUDDY_PINOUT_GUIDE`)** with the mandatory 4xAA (6V) external battery rule (never power 4 servos from computer USB alone), the **7-Skill WeLearn Future Skills & MTC Competency Rubric (`ROBO_BUDDY_MTC_RUBRIC`)**, and **7 Robo-Buddy Gamification Badges (`ROBO_BUDDY_GAMIFICATION_BADGES`)**.
+- **Interactive Simulator & Gamification (`prototypes/DonPBL/ui/components/RoboBuddySimulator.tsx` & `engine.ts`):**
+  - Added `simulateRoboBuddyCompanion` in `engine.ts` and `RoboBuddySimulator.tsx` featuring an interactive 4-Servo Otto Gait & 90° Pre-Centering Lab, Tamagotchi Virtual Pet Brain (`Hunger`, `Happiness`, `Energy` & 5-Mood State Machine: `Happy`, `Hungry`, `Sleepy`, `Bored`, `Alarm Ringing`), Smart Alarm & Dismiss Rule Tester (`Head Touch x3` or `Ultrasonic Wave < 15cm`), Week 10 40-Point Benchmark Scorecard (`20` Walking + `10` Alarm + `10` Sensor Care tests), Version A vs. Version B Hardware & Pinout Inspector, 12-Week Daily Plan Browser, and 7-Skill MTC Rubric & Badges.
+
 ### [2026-10-21] - Added "StreetPaws — The Community Animal Rescue App" PBL (12 Weeks / 120 Hours)
 - **Program Curriculum (`prototypes/DonPBL/streetPawsProgram.ts`):**
   - Added `STREETPAWS_PROGRAM` (`id: 'streetpaws-animal-rescue-2026'`), a 12-week, 120-hour, 24-session curriculum structured across all 7 Design Thinking phases (`explore` [1, 1], `empathise` [2, 2], `define` [3, 4], `ideate` [5, 6], `prototype` [7, 9], `test` [10, 11], `share` [12, 12]).
