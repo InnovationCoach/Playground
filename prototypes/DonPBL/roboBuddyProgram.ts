@@ -721,12 +721,12 @@ export const ROBO_BUDDY_PROGRAM: PblProgram = {
   title: 'Robo-Buddy Companion: Build, Code & Care for a 3D-Printed Walking Desk Pet',
   subtitle:
     'A 12-week, 120-hour mechatronics, 3D CAD, and embedded coding studio where student teams design, 3D-print, wire, and program a 4-servo bipedal walking desk companion with a Tamagotchi virtual pet brain and interactive Smart Alarm.',
-  status: 'active',
+  status: 'provisional_prototype',
   theme: 'Mechatronics, Bipedal Robotics, 3D CAD & Embedded State Machines',
   drivingQuestion:
     'How might we design, 3D-print, wire, and code a 4-servo walking desk companion robot that expresses emotions like a virtual pet, responds to human touch and light care, and helps students manage their study and wake-up routines?',
   realProblem: {
-    type: 'social',
+    type: 'both',
     summary:
       'Students studying at home often struggle with screen fatigue, missed study breaks, and passive phone alarms that are too easy to snooze without waking up—while standard robotics kits often feel like cold mechanical exercises rather than lovable companions.',
     peopleImpact:
@@ -829,10 +829,24 @@ export const ROBO_BUDDY_PROGRAM: PblProgram = {
   phases: [
     {
       id: 'explore',
-      title: 'Explore',
+      title: '1. Explore — Week 1: Bipedal Balance & First 90° Servo Calibration',
+      strap: 'PHASE 1: EXPLORE (Week 1) • Bipedal Center of Gravity, 4xAA Power Safety & First 90° Servo Test',
       weeks: [1, 1],
-      summary:
-        'Week 1 (10h): Unpack bipedal center-of-gravity mechanics, compare Version A (micro:bit) vs. Version B (Arduino Nano), learn the external 4xAA battery rule, center a single SG90 servo to 90°, and program a greeting face and chirp.',
+      goal:
+        'Unpack bipedal center-of-gravity mechanics, compare Version A (micro:bit) vs. Version B (Arduino Nano), learn the external 4xAA battery rule, center a single SG90 servo to 90°, and program a greeting face and chirp.',
+      tasks: [
+        'Play the unplugged Human Bipedal Balance game and sketch how shifting hip weight over the standing foot enables a 2-legged step.',
+        'Unbox Version A (BBC micro:bit V2 + INEX PROJECT:BIT) or Version B (Arduino Nano + I/O Shield) and assign the 4 Team Roles.',
+        'Command a single SG90 180° servo to 0°, 90°, and 180° on external 4xAA battery power and program a Happy face + greeting chirp.'
+      ],
+      evidence: [
+        'Team Role Charter & Center-of-Gravity Balance Sketch',
+        'Week 1 90° Servo Centering Photo & Greeting Face/Chirp Code'
+      ],
+      aiPromptStarters: [
+        'Explain in simple terms why a 2-legged robot must tilt its ankle to shift its center of gravity before lifting its other foot.',
+        'Why does powering 4 SG90 servo motors from a laptop USB port cause a microcontroller brownout, and how does a 4xAA (6V) battery pack solve this?'
+      ],
       competencies: ['ctps-05', 'sdl-03', 'lc-03'],
       stretchCompetencies: ['ct-02'],
       sessions: [
@@ -840,59 +854,78 @@ export const ROBO_BUDDY_PROGRAM: PblProgram = {
           sessionNumber: 1,
           week: 1,
           title: 'Bipedal Balance Mechanics, Hardware Unbox & The External Battery Rule',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Explain why a 2-legged walker must tilt its ankle to shift its center of gravity over the standing foot before lifting the opposite leg.',
-            'Identify all 8 core hardware subsystems on Version A (micro:bit + PROJECT:BIT) or Version B (Arduino Nano + I/O Shield).',
-            'Explain why 4 servos require an external 4xAA (6V) battery pack rather than computer USB power alone.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Explain why a 2-legged walker must tilt its ankle to shift its center of gravity over the standing foot and why 4 servos require an external 4xAA (6V) battery pack.',
+          activities: [
             'Play the unplugged Human Bipedal Balance game and sketch where the center of mass moves during a step.',
-            'Unbox the team hardware kit, verify all 4 servos are 180° positional SG90s, and assign the 4 Team Roles.',
+            'Unbox the team hardware kit, verify all 4 servos are 180° positional SG90s, and assign the 4 Team Roles (Lead Builder, Lead Coder, 3D Designer, Project Manager).',
             'Wire the 4xAA battery pack to the expansion shield and verify safe power switching.'
           ],
-          teacherFacilitation: [
-            'Demonstrate the "foot-against-the-wall" balance test so students feel center-of-gravity shifting in their own bodies.',
-            'Check every team’s SG90 bag to confirm 180° positional servos and external battery polarity.'
-          ],
-          deliverable: 'Team Role Charter + Center-of-Gravity Balance Sketch.',
+          learnerChoices: {
+            question: 'Which microcontroller hardware track will your team use for your Robo-Buddy?',
+            options: [
+              { id: 'ver-a-microbit', label: 'Version A: BBC micro:bit V2 + PROJECT:BIT', description: 'MakeCode blocks or MicroPython with built-in 5x5 LED matrix and speaker.' },
+              { id: 'ver-b-nano', label: 'Version B: Arduino Nano + I/O Shield', description: 'Arduino C/C++ with Otto DIY servo library, I2C OLED display, and D13 buzzer.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'note',
             prompt: 'Upload your Center-of-Gravity sketch and explain why 4 servos cannot be powered by computer USB alone.',
             targetCompetencies: ['ctps-05', 'lc-03']
-          }
+          },
+          reflectionPrompt: 'What happened when you tried to lift one foot while standing with your other shoulder and foot pressed flat against a wall?',
+          teacherTips: 'Check every team’s SG90 bag to confirm 180° positional servos (not 360° continuous rotation) and verify external battery polarity.'
         },
         {
           sessionNumber: 2,
           week: 1,
           title: 'First 90° Servo Calibration, LED/OLED Face & Buzzer Greeting',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Command an SG90 servo to 0°, 90°, and 180° and explain why 90° pre-centering is required before attaching horns.',
-            'Display an expressive face on the 5x5 LED matrix or I2C OLED and play a greeting melody on the piezo buzzer.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Command an SG90 servo to 0°, 90°, and 180°, explain why 90° pre-centering is required before attaching horns, and display a greeting face with sound.',
+          activities: [
             'Write and flash the 90° Servo Centering script on Port S1 / Pin D2 and attach a temporary horn marker.',
-            'Program a Happy face (`^_^`) and a 3-note R2-D2 greeting chirp triggered on startup.'
+            'Program a Happy face (`^_^`) on the 5x5 LED matrix or OLED display and a 3-note R2-D2 greeting chirp on startup.',
+            'Friday Milestone 1: Demonstrate 1 centered 90° servo, 1 facial expression, and 1 sound effect.'
           ],
-          teacherFacilitation: [
-            'Show what happens mechanically if a servo horn is screwed on at 0° when the code expects 90° (the leg jams into the body).'
-          ],
-          deliverable: 'Friday Milestone 1: Centered 90° Servo + Greeting Face & Chirp Demo.',
+          learnerChoices: {
+            question: 'What personality greeting will your Robo-Buddy perform on startup?',
+            options: [
+              { id: 'cheerful-chirp', label: 'Cheerful R2-D2 Rising Arpeggio', description: 'Bright 3-note ascending melody with blinking happy eyes.' },
+              { id: 'sleepy-yawn', label: 'Sleepy Wake-Up Stretch', description: 'Slow wake-up tone transitioning from closed eyes (-_-) to wide eyes (^_^).' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'code',
             prompt: 'Log your Week 1 servo centering and greeting code along with a photo of your 90° test setup.',
             targetCompetencies: ['sdl-03', 'ct-02']
-          }
+          },
+          reflectionPrompt: 'Why would screwing a leg onto a servo at 0° when the code expects 90° cause the robot chassis to jam?',
+          teacherTips: 'Demonstrate with a spare servo how attaching a horn before centering to 90° causes mechanical binding.'
         }
       ]
     },
     {
       id: 'empathise',
-      title: 'Empathise',
+      title: '2. Empathise — Week 2: Desk Companion Interviews & 3-Sensor Discovery',
+      strap: 'PHASE 1: EMPATHIZE (Week 2) • Student Study Routine Interviews, Persona Card & Ultrasonic/Touch/Light Lab',
       weeks: [2, 2],
-      summary:
-        'Week 2 (10h): Interview classmates/family about study routines and wake-up alarms, build an Empathy Map & User Persona, and test the Ultrasonic, Capacitive Touch, and LDR Light sensors.',
+      goal:
+        'Interview classmates/family about study routines and wake-up alarms, build an Empathy Map & User Persona, and test the Ultrasonic, Capacitive Touch, and LDR Light sensors.',
+      tasks: [
+        'Interview at least 4 students or family members about morning wake-up struggles, study distractions, and desk companions.',
+        'Synthesize quotes into a 4-quadrant Empathy Map and a concrete User Persona Card.',
+        'Wire and calibrate the HC-SR04 Ultrasonic Sensor ("Eyes"), TTP223 Touch Sensor ("Head Pet"), and LDR Light Sensor ("Flashlight Feeding").'
+      ],
+      evidence: [
+        'Completed Empathy Map & Target User Persona Card',
+        '3-Sensor Calibration Table (Ambient vs. Triggered Readings)'
+      ],
+      aiPromptStarters: [
+        'Help our team write 5 open-ended interview questions to discover why students snooze their morning alarms or lose focus at their study desks.',
+        'How do we choose a reliable threshold value for an LDR light sensor so classroom ceiling lights do not accidentally trigger "feeding" mode?'
+      ],
       competencies: ['sea-01', 'ent-04', 'ctps-05'],
       stretchCompetencies: ['ec-05'],
       sessions: [
@@ -900,56 +933,77 @@ export const ROBO_BUDDY_PROGRAM: PblProgram = {
           sessionNumber: 3,
           week: 2,
           title: 'Student Desk Habit Interviews, Empathy Map & User Persona',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Conduct structured empathy interviews about morning wake-up struggles, study focus, and desk companions.',
-            'Synthesize user quotes into an Empathy Map and a concrete User Persona Card.'
+          durationMin: 300,
+          learningGoal:
+            'Conduct structured empathy interviews about morning wake-up struggles, study focus, and desk companions and synthesize findings into a User Persona.',
+          activities: [
+            'Design a 5-question interview guide and interview at least 4 peers or family members.',
+            'Complete the 4-quadrant Empathy Map (Says, Thinks, Does, Feels) and create your target User Persona Card.'
           ],
-          studentTasks: [
-            'Interview at least 4 peers or family members about why they snooze alarms or lose focus at their desks.',
-            'Complete the 4-quadrant Empathy Map (Says, Thinks, Does, Feels) and create your target User Persona.'
-          ],
-          teacherFacilitation: [
-            'Coach students to ask open-ended "Tell me about the last time you overslept or got distracted studying..." questions.'
-          ],
-          deliverable: 'Completed Empathy Map + Target User Persona Card.',
+          learnerChoices: {
+            question: 'Which primary user struggle will your Robo-Buddy focus on solving?',
+            options: [
+              { id: 'heavy-sleeper', label: 'The Serial Alarm Snoozer', description: 'Needs an active dancing alarm that requires 3 head pets or a close hand wave to stop.' },
+              { id: 'pomodoro-studier', label: 'The Tired Solo Studier', description: 'Needs a friendly desk companion that reminds them to take study breaks and rewards care.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'feedback',
             prompt: 'Record 3 direct quotes from your interviews and summarize your target User Persona.',
             targetCompetencies: ['sea-01', 'ent-04']
-          }
+          },
+          reflectionPrompt: 'What surprised you most about why your interviewees ignore phone alarms or study timers?',
+          teacherTips: 'Coach students to ask "Tell me about the last time you..." rather than yes/no questions.'
         },
         {
           sessionNumber: 4,
           week: 2,
           title: '3-Sensor Discovery Lab: Ultrasonic Eyes, Touch Petting & Flashlight Feeding',
-          durationMinutes: 300,
-          learningObjectives: [
+          durationMin: 300,
+          learningGoal:
             'Wire and read live values from the HC-SR04 Ultrasonic Sensor (`cm`), TTP223 Touch Sensor (`0/1`), and LDR Light Sensor (`0–1023`).',
-            'Establish reliable classroom threshold values for hand-wave detection (`<= 15cm`) and flashlight feeding.'
-          ],
-          studentTasks: [
+          activities: [
             'Connect all 3 sensors to the expansion board and record baseline vs. triggered readings in a Calibration Table.',
-            'Write a quick test rule: Touch -> Happy beep; Flashlight -> Eating animation; Hand wave `< 15cm` -> Surprise eyes.'
+            'Write a quick test rule: Touch -> Happy beep; Flashlight -> Eating animation; Hand wave `<= 15cm` -> Surprise eyes.',
+            'Friday Milestone 2: Present User Persona Card and live readings from all 3 sensors.'
           ],
-          teacherFacilitation: [
-            'Help teams measure ambient classroom light vs. flashlight beam intensity so their LDR threshold does not false-trigger.'
-          ],
-          deliverable: 'Friday Milestone 2: 3-Sensor Calibration Table & Live Sensor Reaction Demo.',
+          learnerChoices: {
+            question: 'How will your user "feed" and "comfort" your Robo-Buddy?',
+            options: [
+              { id: 'light-and-touch', label: 'Flashlight Snack + Head Petting', description: 'Shining a phone flashlight into the LDR sensor feeds the pet; touching the head boosts happiness.' },
+              { id: 'wave-and-touch', label: 'Ultrasonic High-Five + Head Petting', description: 'Holding a hand within 10cm gives a high-five; petting the head calms the pet.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'data',
             prompt: 'Upload your 3-Sensor Calibration Table (ambient vs. triggered readings for Ultrasonic, Touch, and Light).',
             targetCompetencies: ['ctps-05', 'sdl-03']
-          }
+          },
+          reflectionPrompt: 'Why is it important to measure ambient classroom light before picking a fixed number for your flashlight threshold?',
+          teacherTips: 'Have teams log both sunny-window and shaded-desk light readings in their Calibration Table.'
         }
       ]
     },
     {
       id: 'define',
-      title: 'Define',
+      title: '3. Define — Weeks 3–4: Tamagotchi State Machine & 1:1 Cardboard Mockup',
+      strap: 'PHASE 2: DEFINE & IDEATE (Weeks 3–4) • 5-Mood Tamagotchi Flowchart, Caliper Measurements & Cardboard Box-Fit',
       weeks: [3, 4],
-      summary:
-        'Weeks 3–4 (20h): Define the User Problem Statement, architect the 5-Mood Tamagotchi Virtual Pet State Machine (`Happy`, `Hungry`, `Sleepy`, `Bored`, `Alarm Ringing`) and Smart Alarm rules, measure components with calipers, and build a 1:1 cardboard fit-check mockup.',
+      goal:
+        'Define the User Problem Statement, architect the 5-Mood Tamagotchi Virtual Pet State Machine (`Happy`, `Hungry`, `Sleepy`, `Bored`, `Alarm Ringing`) and Smart Alarm rules, measure components with calipers, and build a 1:1 cardboard fit-check mockup.',
+      tasks: [
+        'Write the team Problem Statement and define the 3 Tamagotchi variables (`Hunger`, `Happiness`, `Energy`).',
+        'Draw the 5-Mood State Machine Flowchart (`Happy`, `Hungry`, `Sleepy`, `Bored`, `Alarm Ringing`) and Smart Alarm Dismiss Rule (`3 Head Touches` or `Wave <= 15cm`).',
+        'Sketch 8 character concepts (Crazy 8s), measure components with digital calipers (`+1.0mm` tolerance), and build a 1:1 cardboard fit-check mockup.'
+      ],
+      evidence: [
+        'Signed Problem Statement & 5-Mood Tamagotchi State Machine Flowchart',
+        'Caliper Measurement Sheet, Orthographic Blueprint & 1:1 Cardboard Box-Fit Photos'
+      ],
+      aiPromptStarters: [
+        'Check our 5-Mood Tamagotchi State Machine (`Happy`, `Hungry`, `Sleepy`, `Bored`, `Alarm Ringing`) for any missing transitions or dead-end states.',
+        'We measured our SG90 servo at 22.5mm x 11.8mm. How much extra clearance should we add in Tinkercad so the 3D-printed PLA hole is neither too tight nor too loose?'
+      ],
       competencies: ['ctps-05', 'ct-02', 'ent-04'],
       stretchCompetencies: ['sdl-04'],
       sessions: [
@@ -957,102 +1011,130 @@ export const ROBO_BUDDY_PROGRAM: PblProgram = {
           sessionNumber: 5,
           week: 3,
           title: 'Problem Statement & Tamagotchi Virtual Pet Variables (Hunger, Happiness, Energy)',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Write a clear Problem Statement and "How Might We" question anchored in Week 2 user data.',
-            'Define the 3 Tamagotchi numerical state variables (`Hunger`, `Happiness`, `Energy`) and their decay/care rates.'
+          durationMin: 300,
+          learningGoal:
+            'Write a clear Problem Statement and define the 3 Tamagotchi numerical state variables (`Hunger`, `Happiness`, `Energy`) and their decay/care rates.',
+          activities: [
+            'Synthesize Week 2 interview data into a `[User] needs a way to [Action] because [Insight]` Problem Statement.',
+            'Create a variable specification table showing how `Hunger` (0–100), `Happiness` (0–100), and `Energy` (0–100) change over time and when cared for.'
           ],
-          studentTasks: [
-            'Draft and peer-review the team’s Problem Statement.',
-            'Create a variable specification table showing how `Hunger`, `Happiness`, and `Energy` change every minute and when petted or fed.'
-          ],
-          teacherFacilitation: [
-            'Show how accelerated demo timers (e.g., 10 seconds = 1 virtual hour) allow teams to test pet care in class without waiting hours.'
-          ],
-          deliverable: 'Team Problem Statement + Tamagotchi Variable Specification Table.',
+          learnerChoices: {
+            question: 'How fast should your Virtual Pet stats change during classroom demo mode vs. normal desk mode?',
+            options: [
+              { id: 'fast-demo-mode', label: 'Dual-Speed Timer (10s Demo / 30m Desk)', description: 'Includes a button toggle to speed up stat decay during 5-minute classroom demonstrations.' },
+              { id: 'event-driven-mode', label: 'Accelerated Studio Timer (60s Tick)', description: 'Updates Hunger and Happiness every 60 seconds for continuous classroom interaction.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'note',
             prompt: 'Submit your Problem Statement and the exact math rules for Hunger, Happiness, and Energy.',
             targetCompetencies: ['ent-04', 'ctps-05']
-          }
+          },
+          reflectionPrompt: 'How does having a Demo Speed toggle help you test and showcase a virtual pet without waiting 4 hours for it to get hungry?',
+          teacherTips: 'Encourage every team to code a "Fast Demo Mode" constant so they can demonstrate all 5 moods in under 2 minutes.'
         },
         {
           sessionNumber: 6,
           week: 3,
           title: '5-Mood State Machine Flowchart & Smart Alarm Dismiss Logic',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Draw a complete 5-State Mood Diagram (`Happy`, `Hungry`, `Sleepy`, `Bored`, `Alarm Ringing`) with unambiguous transition conditions.',
-            'Specify the Smart Alarm Dismiss Rule (`3 Head Touches` OR `Ultrasonic Hand Wave <= 15cm`).'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Draw a complete 5-State Mood Diagram (`Happy`, `Hungry`, `Sleepy`, `Bored`, `Alarm Ringing`) and specify the Smart Alarm Dismiss Rule.',
+          activities: [
             'Draw the 5-Mood State Diagram showing every arrow, sensor trigger, LED face, sound, and servo motion.',
-            'Trace 3 edge-case scenarios through the flowchart with a partner team to verify there are no dead-end states.'
+            'Specify the Smart Alarm Dismiss Rule (`dismissHeadTouches >= 3` OR `ultrasonicCm <= 15`).',
+            'Friday Milestone 3: Peer review of Problem Statement and 5-Mood State Diagram.'
           ],
-          teacherFacilitation: [
-            'Verify every state diagram clearly prioritizes `Alarm Ringing` until the user completes the physical dismiss action.'
-          ],
-          deliverable: 'Friday Milestone 3: Verified 5-Mood State Machine Diagram & Smart Alarm Spec.',
+          learnerChoices: {
+            question: 'What physical interaction will your Smart Alarm require before it stops ringing?',
+            options: [
+              { id: 'dual-dismiss', label: '3 Head Touches OR Hand Wave <= 15cm', description: 'Requires deliberate repeated petting (3x) or a close hand wave in front of the ultrasonic eyes.' },
+              { id: 'combo-dismiss', label: '3 Head Touches AND Flashlight Beam', description: 'Requires turning on the room/phone light AND petting the robot 3 times to prove you are awake.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload a clear photo or diagram of your 5-Mood Tamagotchi State Machine and Smart Alarm rules.',
             targetCompetencies: ['ctps-05', 'ct-02']
-          }
+          },
+          reflectionPrompt: 'What happens if two conditions are true at the same time (e.g., the alarm is ringing AND Hunger is over 70)? Which state should win?',
+          teacherTips: 'Verify every state diagram clearly prioritizes `Alarm Ringing` at the top of the `if / else if` chain.'
         },
         {
           sessionNumber: 7,
           week: 4,
           title: 'Crazy 8s Character Ideation & Digital Caliper Component Measurement',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Generate 8 distinct robot character concepts and select the strongest design using a 3-criterion Decision Matrix.',
-            'Measure servos, ultrasonic eyes, expansion shield, and 4xAA battery pack to `0.1mm` accuracy using digital calipers.'
+          durationMin: 300,
+          learningGoal:
+            'Generate 8 robot character concepts and measure servos, ultrasonic eyes, expansion shield, and 4xAA battery pack to `0.1mm` accuracy using digital calipers.',
+          activities: [
+            'Complete the Crazy 8s character sketching sprint and score the top 3 designs on Printability, Center-of-Gravity Balance, and Character Appeal.',
+            'Measure the SG90 servos (`22.5 × 11.8 × 22.7mm`), HC-SR04 eyes (`45 × 20mm`, `16mm` cylinders), expansion board, and 4xAA battery box with digital calipers.'
           ],
-          studentTasks: [
-            'Complete the Crazy 8s character sketching sprint and score the top 3 designs on Printability, Stability, and Character Appeal.',
-            'Record exact millimeter dimensions + `+1.0mm` 3D print clearance tolerances for every hardware part.'
-          ],
-          teacherFacilitation: [
-            'Remind designers that oversized heavy ears or backpacks held far behind the hips will tip the robot backward!'
-          ],
-          deliverable: 'Crazy 8s Sketches + Caliper Measurement & Tolerance Sheet.',
+          learnerChoices: {
+            question: 'Which character silhouette will your team model for your 3D-printed Robo-Buddy?',
+            options: [
+              { id: 'cyber-pet', label: 'Cyber Pet (Ears & Visor)', description: 'Compact low-center-of-gravity head with cat/shiba ears and front LED/OLED visor.' },
+              { id: 'astro-bot', label: 'Astro-Bot (Rounded Helmet & Backpack)', description: 'Rounded helmet housing ultrasonic eyes with a balanced torso battery bay.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'data',
             prompt: 'Record your caliper measurements (in mm) for the SG90 servo, HC-SR04 eyes, expansion board, and battery pack.',
             targetCompetencies: ['ct-02', 'ctps-05']
-          }
+          },
+          reflectionPrompt: 'Why must we add `+0.5mm` to `+1.0mm` of clearance tolerance to our caliper measurements when modeling holes in 3D CAD?',
+          teacherTips: 'Remind designers that melted PLA expands slightly during printing, so a zero-clearance hole will be too tight.'
         },
         {
           sessionNumber: 8,
           week: 4,
           title: 'Orthographic Blueprint & 1:1 Cardboard Box-Fit Mockup',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Draw a 1:1 scale Front, Side, and Top orthographic blueprint of the robot head and body.',
-            'Construct a 1:1 cardboard mockup and verify that all physical electronics fit inside with wire routing room.'
+          durationMin: 300,
+          learningGoal:
+            'Draw a 1:1 scale Front, Side, and Top orthographic blueprint and construct a 1:1 cardboard mockup to verify component fit.',
+          activities: [
+            'Draft the 1:1 orthographic views on millimeter grid paper with `2.5mm–3.0mm` wall thickness.',
+            'Cut and tape the 1:1 cardboard torso and head mockup; test-fit the real 4xAA battery pack, expansion shield, and servos inside.',
+            'Friday Milestone 4: Pass the Cardboard Box-Fit Gate Review.'
           ],
-          studentTasks: [
-            'Draft the 1:1 orthographic views on millimeter grid paper.',
-            'Cut and tape the 1:1 cardboard torso and head mockup; place the real 4xAA battery pack, expansion shield, and servos inside to check clearances.'
-          ],
-          teacherFacilitation: [
-            'Run the Cardboard Gate Check: do not approve 3D CAD printing until the real battery pack and USB cable fit cleanly in the cardboard model.'
-          ],
-          deliverable: 'Friday Milestone 4: Passed 1:1 Cardboard Box-Fit Mockup & Orthographic Blueprint.',
+          learnerChoices: {
+            question: 'How will your 3D-printed head attach to the lower body torso so batteries remain easy to swap?',
+            options: [
+              { id: 'sliding-lip', label: 'Friction Lip + Side Screw Tabs', description: 'Recessed inner lip that aligns the head and secures with two M2/M3 side screws.' },
+              { id: 'hinged-hood', label: 'Snap-Fit Top Lid', description: 'Body houses servos and battery; top character shell lifts off for instant battery access.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload photos of your 1:1 cardboard mockup holding the real battery pack and expansion board.',
             targetCompetencies: ['ct-02', 'sdl-04']
-          }
+          },
+          reflectionPrompt: 'What clearance or wire-routing issue did you discover in your cardboard mockup that saved you from a failed 6-hour 3D print?',
+          teacherTips: 'Do not approve 3D printing in Week 5 until the real battery pack and USB plug fit inside the Week 4 cardboard mockup.'
         }
       ]
     },
     {
       id: 'ideate',
-      title: 'Ideate',
+      title: '4. Ideate — Weeks 5–6: 3D CAD Shell Modeling, Slicing & Flat-Bench Dry Run',
+      strap: 'PHASE 3: PROTOTYPE PREP (Weeks 5–6) • Tinkercad/Fusion 360 CAD (`2.5–3.0mm` Walls), Slicing & Bench Wiring',
       weeks: [5, 6],
-      summary:
-        'Weeks 5–6 (20h): Model the custom 3D head, body, legs, and feet in Tinkercad/Fusion 360 (`2.5mm–3.0mm` wall thickness), slice with `20%` infill and `3` wall loops, 3D-print and post-process all parts, and run a complete flat-bench electronics dry run.',
+      goal:
+        'Model the custom 3D head, body, legs, and feet in Tinkercad/Fusion 360 (`2.5mm–3.0mm` wall thickness), slice with `20%` infill and `3` wall loops, 3D-print and post-process all parts, and run a complete flat-bench electronics dry run.',
+      tasks: [
+        'Model the bipedal legs, wide flat feet, lower torso (`2.5mm–3.0mm` walls), and custom character head in Tinkercad or Fusion 360.',
+        'Slice all 6 `.STL` parts (`0.20mm` layer height, `3` wall loops, `15%–20%` infill), 3D-print, and clean support material.',
+        'Wire and test all 4 servos, 3 sensors, and buzzer on the flat bench using the 4xAA external battery pack.'
+      ],
+      evidence: [
+        'Orthographic 3D CAD Screenshots & Exported `.STL` File Manifest',
+        'Slicer Preview Screenshot, Cleaned 3D-Printed Parts Photo & Flat-Bench Wiring Log'
+      ],
+      aiPromptStarters: [
+        'Review our 3D CAD checklist for an Otto-style bipedal robot: what cutouts and wire pass-through holes are most commonly forgotten?',
+        'Why do 3 wall loops (perimeters) add more strength to 3D-printed servo mounting brackets than simply increasing infill from 20% to 50%?'
+      ],
       competencies: ['ct-02', 'ctps-05', 'sdl-03'],
       stretchCompetencies: ['lc-03'],
       sessions: [
@@ -1060,102 +1142,131 @@ export const ROBO_BUDDY_PROGRAM: PblProgram = {
           sessionNumber: 9,
           week: 5,
           title: '3D CAD Studio I: Bipedal Legs, Feet & Lower Torso Servo Mounts',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Model or customize the bipedal legs, wide flat feet, and lower body shell with `2.5mm–3.0mm` wall thickness.',
-            'Place accurate cutouts for the Left/Right Hip servos and ankle wire routing channels.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Model or customize the bipedal legs, wide flat feet, and lower body shell with `2.5mm–3.0mm` wall thickness and accurate servo cutouts.',
+          activities: [
             'Model the Left/Right Legs and Left/Right Feet in Tinkercad or Fusion 360, ensuring flat soles and ankle horn clearances.',
-            'Hollow the lower body shell to `2.5mm–3.0mm` walls and cut the two hip servo bays + wire pass-through holes.'
+            'Hollow the lower body shell to `2.5mm–3.0mm` walls and cut the two hip servo bays + `8mm` leg wire pass-through holes.'
           ],
-          teacherFacilitation: [
-            'Verify students include a `6mm–8mm` wire channel in the bottom of the torso so foot servo plugs can pass through!'
-          ],
-          deliverable: 'CAD Model of Legs, Feet, and Lower Torso.',
+          learnerChoices: {
+            question: 'Which CAD modeling environment will your 3D Designer use?',
+            options: [
+              { id: 'tinkercad', label: 'Tinkercad (Boolean Solid & Hole Grouping)', description: 'Fast, visual block-based CSG modeling ideal for remixing Otto bipedal shells.' },
+              { id: 'fusion360', label: 'Autodesk Fusion 360 (Parametric Sketches)', description: 'Parametric timeline modeling with exact millimeter constraints and fillets.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload orthographic screenshots of your CAD legs, feet, and lower torso showing wall thickness and servo cutouts.',
             targetCompetencies: ['ct-02', 'ctps-05']
-          }
+          },
+          reflectionPrompt: 'How did you ensure the foot servo cables can pass smoothly from the ankles up into the body without catching on the leg joints?',
+          teacherTips: 'Verify every torso model has bottom wire pass-through slots at least `8mm` wide so the 3-pin DuPont servo connector can fit through.'
         },
         {
           sessionNumber: 10,
           week: 5,
           title: '3D CAD Studio II: Custom Character Head, Sensor Sockets & STL Export',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Model the custom character head with `16.5mm` ultrasonic eye cutouts, LED/OLED face window, and top touch-sensor pad.',
-            'Audit all 6 `.STL` parts for manifold geometry, overhang angles, and center-of-gravity balance.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Model the custom character head with `16.5mm` ultrasonic eye cutouts, LED/OLED face window, and top touch-sensor pad, and export validated `.STL` files.',
+          activities: [
             'Complete the custom 3D head shell with ultrasonic eyes, display window, touch sensor slot, and character ears/visor.',
-            'Run the Coach CAD Pre-Flight Checklist and export `.STL` files for Head, Body, 2 Legs, and 2 Feet.'
+            'Run the Coach CAD Pre-Flight Checklist and export `.STL` files for Head, Body, 2 Legs, and 2 Feet.',
+            'Friday Milestone 5: Validated `.STL` Package Ready for 3D Printing.'
           ],
-          teacherFacilitation: [
-            'Check that the head can be opened/removed easily so students can swap AA batteries in under 60 seconds.'
-          ],
-          deliverable: 'Friday Milestone 5: Validated `.STL` Package Ready for 3D Printing.',
+          learnerChoices: {
+            question: 'How will your Robo-Buddy display its 5 Tamagotchi facial expressions through the 3D-printed head?',
+            options: [
+              { id: 'microbit-window', label: 'Front Cutout Window for micro:bit 5x5 LED Matrix', description: 'Frames the micro:bit V2 board at the front of the head so the 5x5 LEDs and touch logo are accessible.' },
+              { id: 'oled-bezel', label: 'Recessed Bezel for 0.96" I2C OLED Mouth/Face', description: 'Mounts the 4-pin I2C OLED display below the HC-SR04 ultrasonic eyes.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Submit screenshots of your final 6 CAD components and confirm wall thickness (`2.5mm–3.0mm`).',
             targetCompetencies: ['ct-02', 'sdl-03']
-          }
+          },
+          reflectionPrompt: 'How did you keep your character head lightweight and centered over the hips so the robot does not become top-heavy?',
+          teacherTips: 'Check that the head can be opened easily so AA batteries can be replaced in under 60 seconds.'
         },
         {
           sessionNumber: 11,
           week: 6,
           title: '3D Slicing (`20%` Infill, `3` Wall Loops) & Flat-Bench Electronics Integration',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Configure 3D slicer parameters (`0.20mm` layer height, `3` wall loops, `15%–20%` infill, minimal supports) and launch prints.',
-            'Wire all 4 servos, 3 sensors, and buzzer on the flat bench using the 4xAA external battery pack.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Configure 3D slicer parameters (`0.20mm` layer height, `3` wall loops, `15%–20%` infill) and wire all 4 servos, 3 sensors, and buzzer on the flat bench.',
+          activities: [
             'Slice the team’s `.STL` files, record estimated print time and filament grams, and start the 3D print job.',
-            'Assemble the complete "Flat-Bench Robot" wiring harness and test each pin according to the Quick-Reference Pinout Guide.'
+            'Assemble the complete "Flat-Bench Robot" wiring harness on the desk and label each servo plug (`LH`, `RH`, `LF`, `RF`) with masking tape.'
           ],
-          teacherFacilitation: [
-            'Have students label each servo plug (`LH`, `RH`, `LF`, `RF`) with masking tape flags before placing them inside the body.'
-          ],
-          deliverable: 'Slicer Setup Log + Labeled Flat-Bench Electronics Rig.',
+          learnerChoices: {
+            question: 'How will you orient your robot head and torso on the 3D printer build plate?',
+            options: [
+              { id: 'flat-opening-down', label: 'Flat Opening Facing Print Bed', description: 'Minimizes internal support material inside the electronics cavity.' },
+              { id: 'base-down-tree-supports', label: 'Base Down with Tree Supports on Eye Socket Overhangs', description: 'Keeps bottom servo mounts ultra-flat while supporting the 16.5mm eye sockets.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'data',
             prompt: 'Record your slicer settings (layer height, wall loops, infill %, print time, grams of PLA) and upload a photo of your labeled flat-bench wiring.',
             targetCompetencies: ['sdl-03', 'lc-03']
-          }
+          },
+          reflectionPrompt: 'Why is labeling all 4 servo plugs (`LH`, `RH`, `LF`, `RF`) before threading them through the legs essential for debugging?',
+          teacherTips: 'Have teams test all 4 servos on the flat bench before mounting them into the 3D-printed plastic.'
         },
         {
           sessionNumber: 12,
           week: 6,
           title: '3D Print Post-Processing & Mechanical Dry-Fit Tolerance Audit',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Safely remove support structures and clean 3D-printed sockets.',
-            'Dry-fit servos and sensors into the printed chassis and log any tolerance adjustments.'
+          durationMin: 300,
+          learningGoal:
+            'Safely remove support structures and dry-fit servos and sensors into the 3D-printed chassis.',
+          activities: [
+            'Remove supports with flush cutters, deburr edges, and test-fit the 4 SG90 servos, HC-SR04 eyes, and expansion board into the printed parts.',
+            'Verify the head snaps or screws cleanly onto the torso without pinching wires.',
+            'Friday Milestone 6: Cleaned 3D-Printed Chassis + Dry-Fit Tolerance Sign-Off.'
           ],
-          studentTasks: [
-            'Remove supports, sand rough edges, and test-fit the 4 SG90 servos, HC-SR04 eyes, and expansion board into the printed parts.',
-            'Verify the head snaps or screws cleanly onto the torso without pinching wires.'
-          ],
-          teacherFacilitation: [
-            'Show students how to use a small needle file rather than forcing a tight servo into a PLA socket (which can crack thin walls).'
-          ],
-          deliverable: 'Friday Milestone 6: Cleaned 3D-Printed Chassis + Dry-Fit Tolerance Sign-Off.',
+          learnerChoices: {
+            question: 'If a 3D-printed servo slot is 0.4mm too tight during dry-fitting, how will your team fix it?',
+            options: [
+              { id: 'needle-file', label: 'Precision Needle File & Caliper Re-Check', description: 'Carefully file the inner PLA edges by 0.2mm per side without cracking the wall.' },
+              { id: 'cad-reprint', label: 'Adjust CAD Tolerance & Re-Print Bracket', description: 'Update the parametric cutout dimension in CAD and re-print the affected sub-part.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload a photo of all cleaned 3D-printed parts dry-fitted with servos and sensors.',
             targetCompetencies: ['ctps-05', 'sdl-03']
-          }
+          },
+          reflectionPrompt: 'How closely did your physical 3D print match your caliper measurements from Week 4?',
+          teacherTips: 'Remind students to wear safety glasses when clipping PLA support material with flush cutters.'
         }
       ]
     },
     {
       id: 'prototype',
-      title: 'Prototype',
+      title: '5. Prototype — Weeks 7–9: 90° Assembly, Walking Gait, Tamagotchi Code & Smart Alarm',
+      strap: 'PHASE 3: PROTOTYPE BUILD (Weeks 7–9) • Bench Test 1 (5-Step Walk), Bench Test 2 (Tamagotchi) & Prototype V1.0 Lock',
       weeks: [7, 9],
-      summary:
-        'Weeks 7–9 (30h): Center all 4 servos to 90° before mechanical assembly, calibrate software posture trim (`±5°`), pass **Bench Test 1** (5-step walk), code the Tamagotchi Virtual Pet Brain (**Bench Test 2**), integrate the Smart Alarm & Dismiss Rule, and lock **Prototype V1.0**.',
+      goal:
+        'Center all 4 servos to 90° before mechanical assembly, calibrate software posture trim (`±5°`), pass **Bench Test 1** (5-step walk), code the Tamagotchi Virtual Pet Brain (**Bench Test 2**), integrate the Smart Alarm & Dismiss Rule, and lock **Prototype V1.0**.',
+      tasks: [
+        'Week 7: Electronically center all 4 servos to 90° before tightening horn screws, calibrate `±5°` posture trim, and pass **Bench Test 1** (5 walking steps forward without tipping).',
+        'Week 8: Code the 5-Mood Tamagotchi Virtual Pet Brain (`Hunger`, `Happiness`, `Energy`) with Touch Petting and Flashlight Feeding to pass **Bench Test 2**.',
+        'Week 9: Integrate the Smart Alarm & physical Dismiss Rule (`3 Head Touches` or `Ultrasonic Wave <= 15cm`), close the 3D shell, and lock **Prototype V1.0**.'
+      ],
+      evidence: [
+        'Bench Test 1 Video (5 Steps Forward) & 4-Servo Trim Offset Table',
+        'Bench Test 2 Video (Tamagotchi Mood Transitions) & Commented State-Machine Code',
+        'Completed Untethered Prototype V1.0 Photos & Smart Alarm Dismiss Log'
+      ],
+      aiPromptStarters: [
+        'Our Robo-Buddy leans slightly to the left when standing at 90°. How do we use software trim offsets (`leftFootTrim`, `rightFootTrim`) so its feet sit flat on the desk?',
+        'Show us how to write a non-blocking timer loop so our robot can check the Touch and Ultrasonic sensors continuously while waiting for the next Tamagotchi hunger tick.'
+      ],
       competencies: ['ctps-05', 'ct-02', 'sdl-04', 'lc-03'],
       stretchCompetencies: ['ent-04'],
       sessions: [
@@ -1163,148 +1274,181 @@ export const ROBO_BUDDY_PROGRAM: PblProgram = {
           sessionNumber: 13,
           week: 7,
           title: 'Mandatory 90° Servo Pre-Centering & Bipedal Chassis Assembly',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Electronically command all 4 SG90 servos to 90° prior to fastening servo horns and leg linkages.',
-            'Assemble the hips, legs, ankles, and feet with clean internal cable routing.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Electronically command all 4 SG90 servos to 90° prior to fastening servo horns and assemble the hips, legs, ankles, and feet.',
+          activities: [
             'Power the 4 servos from the 4xAA battery pack, run the 90° Centering script, and align legs and feet dead-straight before tightening horn screws.',
             'Route the Left and Right Foot servo wires up through the leg slots into the torso.'
           ],
-          teacherFacilitation: [
-            'Inspect every robot before horn screws are tightened to confirm 90° electrical centering.'
-          ],
-          deliverable: 'Assembled 4-Servo Bipedal Lower Chassis (Centered at 90°).',
+          learnerChoices: {
+            question: 'How will your Lead Builder verify that all 4 servos are truly at 90° before screwing on the plastic horns?',
+            options: [
+              { id: 'live-powered-align', label: 'Press-Fit Horns While Powered at 90°', description: 'Keep the 90° centering sketch running on 4xAA power while aligning the legs perpendicular to the torso.' },
+              { id: 'sweep-then-park', label: '0°–180°–90° Sweep Verification', description: 'Run a script that sweeps 45° -> 135° -> parks at 90° so you can hear and see each servo settle at center.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload a photo of your assembled legs and feet standing at the 90° neutral position.',
             targetCompetencies: ['ctps-05', 'sdl-03']
-          }
+          },
+          reflectionPrompt: 'Why do servo horns have small gear splines that sometimes sit 3°–4° off-center even when you align them carefully by hand?',
+          teacherTips: 'Inspect every robot before horn screws are tightened to confirm 90° electrical centering.'
         },
         {
           sessionNumber: 14,
           week: 7,
           title: 'Software Posture Trim (±5°) & 4-Phase Walking Gait (Bench Test 1)',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Calibrate individual servo trim offsets (`±5°`) so the robot stands level without leaning.',
-            'Program the 4-phase weight-shift walking gait and pass **Bench Test 1** (5 steps forward without tipping).'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Calibrate individual servo trim offsets (`±5°`) and program the 4-phase weight-shift walking gait to pass **Bench Test 1**.',
+          activities: [
             'Determine exact neutral angles (e.g., `LH=89°`, `RH=91°`, `LF=90°`, `RF=88°`) and save them as constants.',
-            'Code the `walkForward()`, `turnLeft()`, `turnRight()`, and `happyDance()` functions and run **Bench Test 1**.'
+            'Code the 4-phase bipedal walk cycle (`Tilt Right Foot -> Swing Left Hip -> Tilt Left Foot -> Swing Right Hip`) and run **Bench Test 1** (5 steps without tipping).'
           ],
-          teacherFacilitation: [
-            'If a robot tips forward/backward during step transitions, help students reduce the hip swing angle (e.g., `±20°` instead of `±35°`) or slow the step delay.'
-          ],
-          deliverable: 'Friday Milestone 7 — BENCH TEST 1 PASSED: 5 Continuous Walking Steps on Battery Power.',
+          learnerChoices: {
+            question: 'How will your team tune your walking gait if the robot wobbles during step transitions?',
+            options: [
+              { id: 'smaller-stride', label: 'Compact 20° Hip Stride + Smooth Step Delay', description: 'Uses a conservative ±20° hip swing and 25° foot tilt for maximum stability.' },
+              { id: 'micro-step-interpolation', label: 'Incremental 2° Loop Easing', description: 'Moves servos in 2° increments every 15ms instead of jumping instantly between angles.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'code',
             prompt: 'Submit your 4-Servo Trim Offset Table, walking gait code, and Bench Test 1 observation log.',
             targetCompetencies: ['ctps-05', 'sdl-04']
-          }
+          },
+          reflectionPrompt: 'How did adjusting your foot tilt angle affect whether the opposite foot cleared the desk surface cleanly?',
+          teacherTips: 'If a robot tips forward during a step, check that the 4xAA battery pack is centered over the hips rather than pushed against the front wall.'
         },
         {
           sessionNumber: 15,
           week: 8,
           title: 'Coding the Tamagotchi Virtual Pet Timers & 5 Mood Displays',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Implement non-blocking stat timers for `Hunger`, `Happiness`, and `Energy` in MakeCode/MicroPython or C/C++.',
-            'Render distinct LED/OLED facial expressions and audio chirps for `Happy`, `Hungry`, `Sleepy`, and `Bored`.'
-          ],
-          studentTasks: [
-            'Code the background stat loop and mood selector (`IF Hunger >= 65 -> Hungry`, `ELSE IF Energy <= 35 -> Sleepy`, `ELSE IF Happiness <= 45 -> Bored`, `ELSE -> Happy`).',
+          durationMin: 300,
+          learningGoal:
+            'Implement non-blocking stat timers for `Hunger`, `Happiness`, and `Energy` and render distinct expressions for all 5 moods.',
+          activities: [
+            'Code the background stat loop and mood selector (`IF Alarm -> Alarm Ringing`, `ELSE IF Hunger >= 65 -> Hungry`, `ELSE IF Energy <= 35 -> Sleepy`, `ELSE IF Happiness <= 45 -> Bored`, `ELSE -> Happy`).',
             'Create custom facial animations and sound cues for each mood state.'
           ],
-          teacherFacilitation: [
-            'Show students how to avoid long `delay()` calls that freeze sensor polling while the robot is waiting between animations.'
-          ],
-          deliverable: 'Working 5-Mood Tamagotchi Display & Audio Loop.',
+          learnerChoices: {
+            question: 'How will your Robo-Buddy express each of its 5 moods physically as well as visually?',
+            options: [
+              { id: 'foot-tap-dances', label: 'Mood-Specific Ankle & Hip Micro-Dances', description: 'Happy does a joyful wiggle; Hungry stomps one foot; Sleepy droops slightly; Bored sways slowly.' },
+              { id: 'audio-melody-pack', label: '5 Distinct R2-D2 Emotion Melodies', description: 'Pairs each LED/OLED face with a recognizable multi-note pitch contour.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'code',
             prompt: 'Upload your Tamagotchi mood state-machine code and describe how each mood looks and sounds.',
             targetCompetencies: ['ct-02', 'sdl-04']
-          }
+          },
+          reflectionPrompt: 'Why does using a 10-second `delay(10000)` freeze the robot so it ignores your hand when you try to pet it?',
+          teacherTips: 'Show students how to use `input.runningTime()` (MakeCode) or `millis()` (Arduino) for non-blocking timers.'
         },
         {
           sessionNumber: 16,
           week: 8,
           title: 'Interactive Care Loops: Touch Petting & Flashlight Feeding (Bench Test 2)',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Connect the TTP223 Touch Sensor and LDR Light Sensor to update live Tamagotchi stats and trigger celebratory servo dances.',
-            'Pass **Bench Test 2** by demonstrating real-time mood recovery from `Hungry` and `Bored` to `Happy`.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Connect the Touch Sensor and LDR Light Sensor to update live Tamagotchi stats and pass **Bench Test 2**.',
+          activities: [
             'Code the Touch Petting handler (`Happiness +15`, heart face, foot wiggle) and Flashlight Feeding handler (`Hunger -20`, chomp animation).',
-            'Run **Bench Test 2** with the Coach: let the pet become Hungry and Bored, then feed it with a flashlight and pet its head back to Happy.'
+            'Friday Milestone 8 — Run **Bench Test 2**: demonstrate real-time mood recovery from `Hungry` and `Bored` to `Happy`.'
           ],
-          teacherFacilitation: [
-            'Verify that sensor inputs are debounced so a single touch or light flash registers cleanly.'
-          ],
-          deliverable: 'Friday Milestone 8 — BENCH TEST 2 PASSED: Interactive Sensor Care & Mood Transitions.',
+          learnerChoices: {
+            question: 'What happens if a user over-feeds or continuously pets the Robo-Buddy?',
+            options: [
+              { id: 'clamp-at-100', label: 'Stat Clamping (0–100) + Joyful Spin Dance', description: 'Clamps Hunger at 0 and Happiness at 100 and triggers a special celebration dance.' },
+              { id: 'cooldown-timer', label: '3-Second Sensor Debounce Cooldown', description: 'Prevents a single long touch or flashlight shine from counting as 50 separate events.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'data',
             prompt: 'Log your Bench Test 2 results showing stat values before and after Flashlight Feeding and Head Petting.',
             targetCompetencies: ['ctps-05', 'ct-02']
-          }
+          },
+          reflectionPrompt: 'How did you prevent holding your finger on the touch sensor for 2 seconds from instantly maxing out Happiness?',
+          teacherTips: 'Verify that every team clamps `Hunger`, `Happiness`, and `Energy` cleanly between `0` and `100`.'
         },
         {
           sessionNumber: 17,
           week: 9,
           title: 'Smart Study/Wake-Up Alarm & Physical Dismiss Rule Implementation',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Program the Smart Alarm countdown/trigger state with urgent buzzer melody and servo dance.',
-            'Enforce the physical Dismiss Rule: require `3 Head Touches` OR `Ultrasonic Wave <= 15cm` to stop the alarm.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Program the Smart Alarm trigger state and enforce the physical Dismiss Rule (`3 Head Touches` OR `Ultrasonic Wave <= 15cm`).',
+          activities: [
             'Code the `Alarm Ringing` state that overrides normal moods when the study/wake-up timer expires.',
             'Implement and test the dual dismiss condition (`dismissHeadTouches >= 3 || ultrasonicCm <= 15`) so the user must physically interact with the robot.'
           ],
-          teacherFacilitation: [
-            'Have teams test false-dismiss prevention: the alarm must NOT turn off on 1 accidental touch or when someone walks 1 meter away.'
-          ],
-          deliverable: 'Verified Smart Alarm & Physical Dismiss Routine.',
+          learnerChoices: {
+            question: 'How will a student set or trigger the Smart Study/Wake-Up Alarm on your Robo-Buddy?',
+            options: [
+              { id: 'pomodoro-button', label: 'Pomodoro Study Timer + Demo Trigger Button', description: 'Starts a 25-minute study timer (or 15-second demo countdown) via button/touch combo.' },
+              { id: 'light-dawn-alarm', label: 'Morning Dawn Light + Countdown Alarm', description: 'Triggers when countdown expires or morning light hits the LDR sensor.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'code',
             prompt: 'Submit your Smart Alarm trigger and dismiss code snippet and test log.',
             targetCompetencies: ['ctps-05', 'ent-04']
-          }
+          },
+          reflectionPrompt: 'Why is requiring 3 separate head touches or a close `<= 15cm` hand wave much more effective at waking a student up than a single tap?',
+          teacherTips: 'Have teams test that walking past the desk 1 meter away does NOT accidentally dismiss the ultrasonic alarm.'
         },
         {
           sessionNumber: 18,
           week: 9,
           title: 'Full Enclosure Assembly, Wire Harness Management & Prototype V1.0 Lock',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Mount the battery pack, expansion board, and all sensors inside the 3D-printed torso and head.',
-            'Demonstrate a complete untethered **Prototype V1.0** running on 4xAA battery power.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Mount the battery pack, expansion board, and all sensors inside the 3D-printed torso and head and demonstrate untethered **Prototype V1.0**.',
+          activities: [
             'Close the 3D-printed head and body shell, secure the battery pack near the center of mass, and check that hip servos rotate freely.',
-            'Run a full 10-minute untethered desk test of Prototype V1.0.'
+            'Friday Milestone 9: Run a full 10-minute untethered desk test of Prototype V1.0 on 4xAA battery power.'
           ],
-          teacherFacilitation: [
-            'Celebrate every team reaching Prototype V1.0 Lock and preview the Week 10 40-Trial Stress-Test Benchmark.'
-          ],
-          deliverable: 'Friday Milestone 9: Complete Untethered Prototype V1.0 Locked.',
+          learnerChoices: {
+            question: 'How will you route and secure the internal jumper wires inside the torso?',
+            options: [
+              { id: 'braided-harness', label: 'Braided / Twisted Servo Wire Bundles', description: 'Twists each 3-wire servo lead and routes it along the back wall away from the hip horns.' },
+              { id: 'zip-tie-anchors', label: 'Internal Zip-Tie Loops & Tape Channels', description: 'Bundles excess wire length neatly above the battery pack.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload front, side, and internal wiring photos of your completed Prototype V1.0.',
             targetCompetencies: ['lc-03', 'sdl-04']
-          }
+          },
+          reflectionPrompt: 'How did closing the head shell change the robot’s center of gravity compared to when the electronics were open on the bench?',
+          teacherTips: 'Have teams re-check their 4 servo trim angles once the full weight of the head and battery pack is mounted.'
         }
       ]
     },
     {
       id: 'test',
-      title: 'Test',
+      title: '6. Test — Weeks 10–11: 40-Point Reliability Benchmark, V2.0 Upgrades & User Manual',
+      strap: 'PHASE 4: TEST & ITERATE (Weeks 10–11) • 40-Trial Stress Test (20 Walk + 10 Alarm + 10 Care), Rubber Foot Grips & Manual',
       weeks: [10, 11],
-      summary:
-        'Weeks 10–11 (20h): Execute the 40-Point Reliability Benchmark (`20` walking + `10` alarm + `10` sensor care trials), add rubber foot grips and cable zip-ties for **Prototype V2.0**, publish the 1-Page Quick-Start User Manual, and rehearse the 6-slide showcase pitch.',
+      goal:
+        'Execute the 40-Point Reliability Benchmark (`20` walking + `10` alarm + `10` sensor care trials), add rubber foot grips and cable zip-ties for **Prototype V2.0**, publish the 1-Page Quick-Start User Manual, and rehearse the 6-slide showcase pitch.',
+      tasks: [
+        'Run the 40-Point Reliability Benchmark (20 Walking Trials + 10 Smart Alarm Trials + 10 Sensor Care Trials) and log every pass/fail.',
+        'Upgrade to **Prototype V2.0**: add rubber grip pads or hot-glue traction dots to the feet, zip-tie loose wires, and conduct blind peer usability testing.',
+        'Create the 1-Page Illustrated Quick-Start User Manual, curate the MTC Digital Portfolio, and rehearse the 5-minute 6-slide pitch.'
+      ],
+      evidence: [
+        'Completed 40-Point Reliability Scorecard & Failure/Fix Log',
+        'Before/After Prototype V1.0 vs. V2.0 Upgrade Photos & Peer Tester Notes',
+        '1-Page Illustrated Quick-Start User Manual PDF & 6-Slide Showcase Deck'
+      ],
+      aiPromptStarters: [
+        'During our 20 walking trials, our Robo-Buddy slipped on smooth varnished desks in 6 trials. What mechanical and gait adjustments will improve traction and balance for Prototype V2.0?',
+        'Help us structure a clear, kid-friendly 1-Page Quick-Start User Manual so a visitor at the Pet Adoption Fair can feed, pet, and test our Robo-Buddy in 30 seconds.'
+      ],
       competencies: ['ctps-05', 'sdl-04', 'ec-05', 'ent-04'],
       stretchCompetencies: ['sea-01'],
       sessions: [
@@ -1312,102 +1456,128 @@ export const ROBO_BUDDY_PROGRAM: PblProgram = {
           sessionNumber: 19,
           week: 10,
           title: 'The 40-Point Reliability Benchmark (20 Walk + 10 Alarm + 10 Sensor Care Trials)',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Execute 40 quantitative reliability trials and calculate pass rates across locomotion, alarm dismissal, and sensor care.',
-            'Identify mechanical and software failure modes from empirical test data.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Execute 40 quantitative reliability trials and identify mechanical and software failure modes from empirical test data.',
+          activities: [
             'Run 20 walking trials (5 steps per trial on a smooth desk), 10 Smart Alarm trigger/dismiss trials, and 10 Touch/Light care trials.',
-            'Record every pass/fail in the 40-Point Scorecard and diagnose the top 3 failure causes (e.g., smooth plastic feet slipping on varnished desks).'
+            'Record every pass/fail in the 40-Point Scorecard and diagnose the top 3 failure causes.'
           ],
-          teacherFacilitation: [
-            'Emphasize engineering honesty: a documented failure in Trial #7 that leads to a real V2.0 fix earns higher MTC credit than faking a 40/40 score!'
-          ],
-          deliverable: 'Completed 40-Point Reliability Benchmark Scorecard & Root-Cause Failure Log.',
+          learnerChoices: {
+            question: 'How will your Project Manager organize the 40-trial stress test so the data is accurate and unbiased?',
+            options: [
+              { id: 'two-surface-test', label: 'Standardized Desk Track + Stopwatch Log', description: 'Marks a 30cm start/finish line on the desk and logs every stumble, drift, or false trigger.' },
+              { id: 'cross-team-audit', label: 'Partner Team QA Auditor', description: 'Has a neighbouring team witness and sign off on each block of 10 trials.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'data',
             prompt: 'Submit your 40-Point Benchmark Table (Pass/Fail counts for 20 Walk, 10 Alarm, 10 Sensor Care tests) and top 3 failure causes.',
             targetCompetencies: ['ctps-05', 'sdl-04']
-          }
+          },
+          reflectionPrompt: 'Which of the 3 benchmark categories (Walking, Smart Alarm, or Sensor Care) had the lowest pass rate on V1.0, and why?',
+          teacherTips: 'Remind teams that documenting real failures honestly and fixing them in V2.0 is the core of engineering mastery.'
         },
         {
           sessionNumber: 20,
           week: 10,
           title: 'Prototype V2.0 Upgrades (Rubber Foot Grips, Zip-Tied Cables & Threshold Tuning)',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Implement mechanical and software upgrades to resolve Week 10 benchmark failures.',
-            'Conduct blind peer usability testing with another team and reach `>= 32/40` (`>= 80%`) reliability on **Prototype V2.0**.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Implement mechanical and software upgrades to resolve Week 10 benchmark failures and reach `>= 32/40` (`>= 80%`) reliability on **Prototype V2.0**.',
+          activities: [
             'Apply rubber grip pads or textured hot-glue traction dots to both feet, zip-tie internal servo cables away from hip gears, and tune sensor thresholds.',
             'Swap Robo-Buddies with a partner team for blind usability testing and re-run failed benchmark trials on Prototype V2.0.'
           ],
-          teacherFacilitation: [
-            'Verify teams photograph Before (V1.0) vs. After (V2.0) upgrades for their MTC portfolios.'
-          ],
-          deliverable: 'Friday Milestone 10: Verified Prototype V2.0 (`>= 32/40` Benchmark Passed) + Peer Usability Notes.',
+          learnerChoices: {
+            question: 'Which traction upgrade will your team apply to the soles of your 3D-printed feet?',
+            options: [
+              { id: 'rubber-pads', label: 'Self-Adhesive Neoprene / Silicone Grip Strips', description: 'Provides uniform high friction and dampens foot impact vibration.' },
+              { id: 'hot-glue-tread', label: 'Textured Hot-Glue Grip Dots (Cooled Before Use)', description: 'Creates custom non-slip tread bars across the front and heel of each foot.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'feedback',
             prompt: 'Upload Before/After V1.0 vs. V2.0 upgrade photos, updated benchmark score, and peer tester feedback.',
             targetCompetencies: ['ctps-05', 'ent-04']
-          }
+          },
+          reflectionPrompt: 'By how many percentage points did your 40-trial pass rate improve after adding foot grip pads and tuning your code for V2.0?',
+          teacherTips: 'Ensure hot-glue tread dots are 100% cool and flat before placing the robot on classroom desks.'
         },
         {
           sessionNumber: 21,
           week: 11,
           title: '1-Page Quick-Start User Manual & Aesthetic Character Finishing',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Create a clear, illustrated 1-Page Quick-Start User Manual & Pet Adoption Guide.',
-            'Apply final non-structural character detailing without shifting the robot’s center of gravity.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Create a clear, illustrated 1-Page Quick-Start User Manual & Pet Adoption Guide and apply final character detailing.',
+          activities: [
             'Design the 1-Page User Manual covering: (1) Meet Your Robo-Buddy, (2) 5 Mood Icons Legend, (3) How to Feed & Pet, (4) Smart Alarm Dismiss Rules, and (5) 4xAA Battery Care.',
             'Add final paint, decals, or lightweight 3D details and re-verify balance.'
           ],
-          teacherFacilitation: [
-            'Test the User Manual by asking a student from another group to operate the robot using only the printed sheet.'
-          ],
-          deliverable: '1-Page Illustrated Quick-Start User Manual PDF + Finished Robo-Buddy V2.0.',
+          learnerChoices: {
+            question: 'What visual format will your team use for your 1-Page Quick-Start User Manual?',
+            options: [
+              { id: 'illustrated-care-card', label: 'Illustrated "Pet Adoption & Care Card"', description: 'Combines an adoption certificate with visual icons for feeding, petting, and alarm rules.' },
+              { id: 'technical-quick-start', label: 'Annotated Diagram + Pinout Quick-Start Sheet', description: 'Shows a labeled diagram of the robot alongside step-by-step operating instructions.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'note',
             prompt: 'Submit your 1-Page Quick-Start User Manual text/layout and photo of your finished Robo-Buddy.',
             targetCompetencies: ['ec-05', 'ct-02']
-          }
+          },
+          reflectionPrompt: 'Could a classmate from another team operate your Robo-Buddy using ONLY your 1-Page User Manual without you explaining anything out loud?',
+          teacherTips: 'Run a 5-minute "Silent Manual Test" where a peer tests the robot using only the printed sheet.'
         },
         {
           sessionNumber: 22,
           week: 11,
           title: 'MTC Digital Portfolio Curation & 6-Slide Showcase Pitch Rehearsal',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Assemble a complete 12-week engineering evidence trail in the MTC Digital Portfolio.',
-            'Deliver a timed 5-minute Dress Rehearsal Pitch with every team member speaking.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Assemble a complete 12-week engineering evidence trail in the MTC Digital Portfolio and rehearse a timed 5-minute pitch.',
+          activities: [
             'Verify all 3 Core Deliverables are uploaded and tagged in the MTC portfolio.',
             'Build the 6-slide pitch deck and run a timed 5-minute Dress Rehearsal with live robot demo.'
           ],
-          teacherFacilitation: [
-            'Time each rehearsal strictly at 5 minutes and coach speakers to show their failure-and-fix story clearly.'
-          ],
-          deliverable: 'Friday Milestone 11: Complete 6-Slide Deck & Dress Rehearsal Sign-Off.',
+          learnerChoices: {
+            question: 'How will your 4 team members divide the 5-minute Showcase Pitch?',
+            options: [
+              { id: 'role-based-handoff', label: '4-Role Specialist Handoff (75 Seconds Each)', description: 'Project Manager (Problem & QA), 3D Designer (CAD Shell), Lead Builder (4-Servo Mechanics), Lead Coder (Tamagotchi & Live Demo).' },
+              { id: 'story-and-live-demo', label: '2-Minute Story + 3-Minute Interactive Live Demo', description: 'Brief slide overview followed by a guided live demonstration of walking, feeding, and alarm dismissal.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Upload your 6-Slide Showcase Deck summary and dress rehearsal feedback notes.',
             targetCompetencies: ['ec-05', 'lc-03']
-          }
+          },
+          reflectionPrompt: 'What backup plan does your team have if a battery runs low during the live showcase demo?',
+          teacherTips: 'Have every team prepare both fresh AA batteries and a 30-second backup video clip of their V2.0 robot in action.'
         }
       ]
     },
     {
       id: 'share',
-      title: 'Share',
+      title: '7. Share — Week 12: The Robo-Buddy Pet Adoption Fair & MTC Reflection',
+      strap: 'PHASE 5: SHOWCASE & REFLECT (Week 12) • Live Pet Adoption Fair Booth, 5-Minute Pitch & 7-Skill MTC Portfolio Lock',
       weeks: [12, 12],
-      summary:
-        'Week 12 (10h): Host the **Robo-Buddy Pet Adoption Fair & Robotics Showcase**, deliver the 5-minute live pitch and interactive desk demo, and complete the final 7-Skill WeLearn MTC Reflection.',
+      goal:
+        'Host the **Robo-Buddy Pet Adoption Fair & Robotics Showcase**, deliver the 5-minute live pitch and interactive desk demo, and complete the final 7-Skill WeLearn MTC Reflection.',
+      tasks: [
+        'Set up the team’s Pet Adoption Booth with Prototype V2.0, fresh 4xAA batteries, printed 1-Page User Manual, and flashlight for visitors.',
+        'Deliver the 5-minute live showcase pitch and guide visiting students, teachers, and parents as they pet, feed, and test the Robo-Buddy.',
+        'Complete the final individual 7-Skill WeLearn MTC Competency Reflection and lock the Digital Portfolio.'
+      ],
+      evidence: [
+        'Live Pet Adoption Fair Showcase Pitch & Booth Photos',
+        'Final Locked MTC Digital Portfolio & Signed 7-Skill Reflection'
+      ],
+      aiPromptStarters: [
+        'Quiz our team with 5 tough technical judge questions about our 4-servo walking gait, 90° calibration, and Tamagotchi state machine so we can practice crisp answers.',
+        'Help me review my final 7-Skill MTC Reflection to make sure I cited specific evidence from Weeks 1–12 for each WeLearn Future Skill.'
+      ],
       competencies: ['ec-05', 'lc-03', 'sea-01', 'sdl-04'],
       stretchCompetencies: ['ent-04'],
       sessions: [
@@ -1415,49 +1585,56 @@ export const ROBO_BUDDY_PROGRAM: PblProgram = {
           sessionNumber: 23,
           week: 12,
           title: 'The Robo-Buddy Pet Adoption Fair & Live Robotics Showcase!',
-          durationMinutes: 300,
-          learningObjectives: [
+          durationMin: 300,
+          learningGoal:
             'Deliver a persuasive 5-minute engineering pitch and live demonstration of walking, virtual pet care, and Smart Alarm dismissal.',
-            'Defend mechanical, CAD, and software design choices in response to visitor and judge questions.'
-          ],
-          studentTasks: [
+          activities: [
             'Set up the team’s Pet Adoption Booth with Prototype V2.0, printed Quick-Start User Manual, CAD/wiring poster, and flashlight for visitors.',
             'Present the 5-minute live showcase pitch and guide visitors as they pet, feed, and test the Robo-Buddy.'
           ],
-          teacherFacilitation: [
-            'Evaluate each team across the 7-Skill WeLearn Future Skills & MTC Rubric during live booth visits.'
-          ],
-          deliverable: 'Live 5-Minute Pet Adoption Fair Pitch & Interactive Desk Demo.',
+          learnerChoices: {
+            question: 'How will visitors interact with your Robo-Buddy at your Pet Adoption Booth?',
+            options: [
+              { id: 'care-challenge', label: '"Cure the Grumpy Pet" Visitor Challenge', description: 'Visitors use the flashlight and head touch sensor to turn a Hungry/Bored Robo-Buddy back to Happy.' },
+              { id: 'alarm-race', label: '"Beat the Morning Alarm" Live Demo', description: 'Visitors trigger the dancing alarm and race to dismiss it via 3 head touches or a <= 15cm wave.' }
+            ]
+          },
           evidenceToCollect: {
             kind: 'media',
             prompt: 'Document your Pet Adoption Fair booth, live robot demo, and visitor feedback.',
             targetCompetencies: ['ec-05', 'lc-03', 'ent-04']
-          }
+          },
+          reflectionPrompt: 'How did visitors react when your Robo-Buddy responded to their touch or flashlight beam in real time?',
+          teacherTips: 'Evaluate each team across the 7-Skill WeLearn Future Skills & MTC Rubric during live booth visits.'
         },
         {
           sessionNumber: 24,
           week: 12,
           title: 'Final MTC Digital Portfolio Lock & 7-Skill Growth Reflection',
-          durationMinutes: 300,
-          learningObjectives: [
-            'Reflect with evidence on personal growth across all 7 WeLearn Future Skills.',
-            'Lock the final MTC Digital Portfolio for Foundational or Advanced Competency Credit.'
-          ],
-          studentTasks: [
+          durationMin: 300,
+          learningGoal:
+            'Reflect with evidence on personal growth across all 7 WeLearn Future Skills and lock the final MTC Digital Portfolio.',
+          activities: [
             'Complete the individual 7-Skill MTC Reflection citing specific artifacts (90° calibration, CAD shell, Tamagotchi state machine, and Week 10 V2.0 fixes).',
-            'Participate in the cohort celebration circle and archive final code and `.STL` files.'
+            'Friday Milestone 12: Lock final MTC Digital Portfolio and celebrate in the closing circle!'
           ],
-          teacherFacilitation: [
-            'Conduct final 1-on-1 or team portfolio sign-offs and award Robo-Buddy Studio Badges.'
-          ],
-          deliverable: 'Friday Milestone 12: Locked MTC Digital Portfolio & Signed 7-Skill Reflection.',
+          learnerChoices: {
+            question: 'Which engineering artifact are you most proud to feature at the top of your MTC Digital Portfolio?',
+            options: [
+              { id: 'v2-mechatronics', label: 'Prototype V2.0 4-Servo Walker & CAD Shell', description: 'Highlights mechanical design, 90° calibration, and the 40-trial reliability upgrade.' },
+              { id: 'tamagotchi-code', label: '5-Mood Tamagotchi State Machine & Smart Alarm Code', description: 'Highlights embedded software architecture, sensor thresholds, and non-blocking timers.' }
+            ]
+          },
           evidenceToCollect: {
-            kind: 'note',
+            kind: 'reflection',
             prompt: 'Submit your final 7-Skill WeLearn MTC Reflection highlighting your proudest engineering iteration.',
             targetCompetencies: ['sdl-04', 'sea-01']
-          }
+          },
+          reflectionPrompt: 'Looking back from Week 1 to Week 12, what was the single hardest bug your team solved, and what did it teach you as an engineer?',
+          teacherTips: 'Conduct final portfolio sign-offs and award Robo-Buddy Studio Badges.'
         }
       ]
     }
   ]
 };
+
