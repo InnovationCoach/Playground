@@ -48,3 +48,8 @@ export function getCustomProgramById(id) {
   const all = getCustomPrograms();
   return all[id] || null;
 }
+
+export function getCustomProgramsList() {
+  const all = getCustomPrograms();
+  return Object.values(all);
+}

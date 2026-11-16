@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { KeyRound, Copy, Check, RefreshCw, Ban, Presentation, X, ExternalLink, Library, Users } from 'lucide-react';
 import { PROGRAMS, programById } from '../pbl/programs/catalog.js';
 import { LIBRARY_PROGRAMS } from '../pbl/programs/libraryProgramsData.js';
+import { getCustomPrograms } from './programs/customProgramsStore.js';
 import { db, collection, getDocs } from '../../firebase.js';
 import { hrefFor } from '../../app/routes.js';
 import { loadClasses, issueCode, revokeCode, setClassProgram, explainError } from './classCodes.js';
@@ -48,27 +49,48 @@ export function ClassProgramsPanel({ coachUser }) {
     let cancelled = false;
     async function fetchPblPrograms() {
       try {
-        const snap = await getDocs(collection(db, 'pbl_programs'));
+        const snap = await getDocs(collection(db, 'pbl_programs')).catch(() => null);
         const map = new Map();
         const seenTitles = new Set();
         const norm = (s) => (s || '').trim().toLowerCase();
 
-        snap.forEach((d) => {
-          const data = d.data();
-          const title = data.title || d.id;
-          const key = norm(title);
-          if (seenTitles.has(key)) return;
-          seenTitles.add(key);
-          map.set(d.id, {
-            id: d.id,
-            title,
-            identity: { short: title.slice(0, 24) },
-            source: data.source || 'studio',
-            ageBand: data.ageBand || data.targetAgeRange || '11-16'
+        // 1. Remote Firestore custom programs
+        if (snap) {
+          snap.forEach((d) => {
+            const data = d.data();
+            if (!data) return;
+            const title = data.title || d.id;
+            const key = norm(title);
+            if (seenTitles.has(key)) return;
+            seenTitles.add(key);
+            map.set(d.id, {
+              id: d.id,
+              title,
+              identity: data.identity || { short: title.slice(0, 24) },
+              source: data.source || 'studio',
+              ageBand: data.ageBand || data.targetAgeRange || '11-16'
+            });
           });
-        });
+        }
 
-        // Add prototype PROGRAMS and LIBRARY_PROGRAMS if not already present
+        // 2. Local custom programs authored in studio
+        const custom = getCustomPrograms();
+        for (const [id, c] of Object.entries(custom)) {
+          const title = c.title || c.unitTitle || id;
+          const key = norm(title);
+          if (!map.has(id) && !seenTitles.has(key)) {
+            seenTitles.add(key);
+            map.set(id, {
+              id,
+              title,
+              identity: c.identity || { short: title.slice(0, 24) },
+              source: c.source || 'studio',
+              ageBand: c.ageBand || c.targetAgeRange || '11-16'
+            });
+          }
+        }
+
+        // 3. Add prototype PROGRAMS and LIBRARY_PROGRAMS if not already present
         for (const p of PROGRAMS) {
           const key = norm(p.title || p.id);
           if (!map.has(p.id) && !seenTitles.has(key)) {
@@ -94,8 +116,20 @@ export function ClassProgramsPanel({ coachUser }) {
         console.warn('[ClassProgramsPanel] Could not load pbl_programs from Firestore:', err?.message);
       }
     }
+
     fetchPblPrograms();
-    return () => { cancelled = true; };
+
+    const handleCustomChange = () => {
+      fetchPblPrograms();
+    };
+    window.addEventListener('pbl-custom-programs-changed', handleCustomChange);
+    window.addEventListener('pbl-program-published', handleCustomChange);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('pbl-custom-programs-changed', handleCustomChange);
+      window.removeEventListener('pbl-program-published', handleCustomChange);
+    };
   }, []);
 
   const patch = (id, next) => setClasses((list) => list.map((c) => (c.id === id ? { ...c, ...next } : c)));

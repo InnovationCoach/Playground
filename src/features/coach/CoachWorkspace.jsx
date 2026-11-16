@@ -45,10 +45,10 @@ export function CoachWorkspace({ coachUser, onAddStudent, rosterVersion = 0, ini
         if (!auth.currentUser) throw new Error('Sign-in required');
         let claims = {};
         try {
-          const res = await auth.currentUser.getIdTokenResult(true);
+          const res = await auth.currentUser.getIdTokenResult();
           claims = res?.claims || {};
-        } catch (tokenErr) {
-          throw tokenErr;
+        } catch {
+          claims = {};
         }
 
         const effectiveRole = claims.role;

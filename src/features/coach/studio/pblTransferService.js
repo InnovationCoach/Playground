@@ -143,8 +143,12 @@ export function convertUnitToProgram(unit, coachUid = null) {
  * @returns {Promise<{success: boolean, programId: string, programTitle: string, searchUrl: string, studentUrl: string}>}
  */
 export async function publishProgramToCatalog(pblUnit, coachUid, classId = null) {
-  const program = convertUnitToProgram(pblUnit);
-  if (coachUid) program.authorId = coachUid;
+  const currentUid = coachUid || (typeof window !== 'undefined' ? window.currentUserUid : null);
+  const program = convertUnitToProgram(pblUnit, currentUid);
+  if (currentUid) {
+    program.authorId = currentUid;
+    program.authorUid = currentUid;
+  }
   program.status = 'published';
   program.visibility = 'centre';
   const now = Date.now();
@@ -206,8 +210,12 @@ export async function publishProgramToCatalog(pblUnit, coachUid, classId = null)
  * @returns {Promise<{success: boolean, programId: string, studentUrl: string}>}
  */
 export async function publishAndTransferToStudent(pblUnit, studentUid, coachUid, classId = null) {
-  const program = convertUnitToProgram(pblUnit);
-  if (coachUid) program.authorId = coachUid;
+  const currentUid = coachUid || (typeof window !== 'undefined' ? window.currentUserUid : null);
+  const program = convertUnitToProgram(pblUnit, currentUid);
+  if (currentUid) {
+    program.authorId = currentUid;
+    program.authorUid = currentUid;
+  }
   const now = Date.now();
 
   // Save to Firestore via publishProgram service (atomic batch + strict contract validation)
@@ -254,6 +262,9 @@ export async function publishAndTransferToStudent(pblUnit, studentUid, coachUid,
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('pbl-program-transferred', {
       detail: { programId: program.id, studentUid, program }
+    }));
+    window.dispatchEvent(new CustomEvent('pbl-custom-programs-changed', {
+      detail: { programId: program.id }
     }));
   }
 

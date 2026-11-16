@@ -17,7 +17,7 @@ import {
   COPILOT_DEPLOYMENT_CONFIG
 } from '../../../../prototypes/DonPBL/programRegistry.ts';
 import { competencyById } from '../content/competencies.js';
-import { getCustomProgramById } from '../../coach/programs/customProgramsStore.js';
+import { getCustomPrograms, getCustomProgramById } from '../../coach/programs/customProgramsStore.js';
 import { LIBRARY_PROGRAMS } from './libraryProgramsData.js';
 import { numberCourseSessions } from './sessionNumbering.js';
 import { registerProgramLookup } from './progress.js';
@@ -118,12 +118,19 @@ export function normaliseProgram(raw) {
   const sessions = phases.flatMap((ph) => ph.sessions).sort((a, b) => a.sessionNumber - b.sessionNumber);
   const listing = (PROGRAM_LIST || []).find((l) => l.id === raw.id);
 
+  const rawIdentity = raw.identity || {};
+  const defaultIdentity = IDENTITY[raw.id] || { icon: 'Compass', tone: 'purple', short: raw.title || 'Program' };
   const program = {
     ...raw,
     phases,
     sessions,
     renumbered,
-    identity: { ...(IDENTITY[raw.id] || { icon: 'Compass', tone: 'purple', short: raw.title || 'Program' }), cover: SCHOOL_COVERS[raw.id] || null },
+    identity: {
+      icon: rawIdentity.icon || defaultIdentity.icon,
+      tone: rawIdentity.tone || defaultIdentity.tone,
+      short: rawIdentity.short || defaultIdentity.short,
+      cover: rawIdentity.cover || SCHOOL_COVERS[raw.id] || null
+    },
     listedAs: listing?.theme || null,
     sharesPhasesWith: null,
     issues: []
@@ -225,6 +232,19 @@ export const programById = (id) => {
   if (lib) return normaliseProgram(lib) || lib;
   return null;
 };
+
+export function getAllPrograms() {
+  const custom = Object.values(getCustomPrograms());
+  const customNormalized = custom.map(normaliseProgram).filter(Boolean);
+  const map = new Map();
+  for (const p of PROGRAMS) {
+    map.set(p.id, p);
+  }
+  for (const p of customNormalized) {
+    map.set(p.id, p);
+  }
+  return Array.from(map.values());
+}
 
 registerProgramLookup(programById);
 

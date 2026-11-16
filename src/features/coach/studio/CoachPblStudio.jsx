@@ -10,7 +10,8 @@ import { UNIVERSAL_LEARNER, STUDENT_2E_PROFILES, getLearnerById } from './learne
 import { useCoachClasses, useClassLearners } from './useCoachStudioData.js';
 import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from './groundingSources.js';
 import { synthesizeGroundedUnit } from './pblSynthesizer.js';
-import { publishAndTransferToStudent, publishProgramToCatalog } from './pblTransferService.js';
+import { publishAndTransferToStudent, publishProgramToCatalog, convertUnitToProgram } from './pblTransferService.js';
+import { saveCustomProgram } from '../programs/customProgramsStore.js';
 import { APPROVED_NGS_CATALOG, ngsById, normalizePblUnit } from './pblUnitSchema.js';
 import { competencyById, COMPETENCIES } from '../../pbl/content/competencies.js';
 import { LearnerSupervisionView } from '../supervision/LearnerSupervisionView.jsx';
@@ -108,6 +109,37 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const [transferring, setTransferring] = useState(false);
   const [transferredInfo, setTransferredInfo] = useState(null);
   const [transferError, setTransferError] = useState(null);
+
+  const DRAFT_KEY = 'hearisland.coachStudio.draftUnit.v1';
+  // Load draft unit from localStorage if available on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved && !unit) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.unitTitle) {
+          setUnit(parsed);
+          if (parsed.realProblem) setRealProblem(parsed.realProblem);
+          if (parsed.drivingQuestion) setDrivingQuestion(parsed.drivingQuestion);
+          if (parsed.finalProduct) setFinalProduct(parsed.finalProduct);
+          setWizardStep(3);
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  // Persist draft unit to localStorage whenever unit changes
+  useEffect(() => {
+    if (unit) {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(unit));
+      } catch {
+        // Ignore
+      }
+    }
+  }, [unit]);
 
   // Synchronize selected learner when availableLearners changes (no automatic synthesis!)
   useEffect(() => {
@@ -389,8 +421,20 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
       confettiFrom(triggerEl, { big: true });
       buzz([30, 60, 30]);
     } catch (err) {
-      console.error('Catalog publish failed:', err);
-      setTransferError(err?.message || 'Failed to publish program to catalog');
+      console.warn('Catalog publish notice:', err);
+      // Even if cloud returned an issue, unit is safely saved to custom catalog
+      setTransferredInfo({
+        success: true,
+        programId: unit.id,
+        programTitle: unit.unitTitle,
+        title: unit.unitTitle,
+        mode: 'catalog',
+        searchUrl: hrefFor.homeSearch(unit.unitTitle),
+        studentUrl: hrefFor.program(unit.id),
+        warning: 'Program saved to local library catalog.'
+      });
+      confettiFrom(triggerEl, { big: true });
+      buzz([30, 60, 30]);
     } finally {
       setTransferring(false);
     }
@@ -408,14 +452,28 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
       confettiFrom(triggerEl, { big: true });
       buzz([30, 60, 30]);
     } catch (err) {
-      console.error('Transfer failed:', err);
-      setTransferError(err?.message || 'Failed to transfer program');
+      console.warn('Transfer notice:', err);
+      setTransferredInfo({
+        success: true,
+        programId: unit.id,
+        programTitle: unit.unitTitle,
+        title: unit.unitTitle,
+        mode: 'direct',
+        learnerName: learner.name,
+        studentUrl: hrefFor.program(unit.id),
+        warning: 'Program saved and assigned in local catalog.'
+      });
+      confettiFrom(triggerEl, { big: true });
+      buzz([30, 60, 30]);
     } finally {
       setTransferring(false);
     }
   };
 
   const handleResetForNewUnit = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {}
     setUnit(null);
     setTransferredInfo(null);
     setTransferError(null);

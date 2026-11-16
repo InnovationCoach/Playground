@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { subscribeToAuth, getUserProfile, logoutUser, isMicrosoftOnlyUser } from '../auth.js';
-import { getDevStoredUser } from '../firebase.js';
+import { auth, getDevStoredUser } from '../firebase.js';
 import { startTimeTracking, stopTimeTracking } from '../utils/timeTracker.js';
 import { purgeUnscopedUserData, purgeUserDataFor } from '../utils/deviceData.js';
 import { resolveRole } from './roles.js';
@@ -80,12 +80,20 @@ export function AuthProvider({ children, onThemeLoaded }) {
       clearImperativeOverlays();
       setState((s) => ({ ...s, status: 'loading', orgId: null }));
 
-      const profile = await getUserProfile(user.uid, user.email);
+      let profile = await getUserProfile(user.uid, user.email);
+      if (!profile) {
+        // Retry once in case of transient network failure
+        await new Promise((r) => setTimeout(r, 600));
+        profile = await getUserProfile(user.uid, user.email);
+      }
       if (!live(gen)) return;
 
       if (!profile) {
-        // getUserProfile returns null only when the read failed. Guessing a role
-        // here is exactly what used to hand out coach access.
+        // If we already have an active profile for this exact user, retain it instead of forcing a full sign-out
+        if (identity.current.ready && identity.current.uid === user.uid && identity.current.profile) {
+          console.warn('[Auth] Transient profile read glitch; maintaining existing active session.');
+          return;
+        }
         await logoutUser();
         if (!live(gen)) return;
         setState({
@@ -267,7 +275,7 @@ export function AuthProvider({ children, onThemeLoaded }) {
           themePreference: 'light',
           error: null
         });
-      } else {
+      } else if (!auth?.currentUser) {
         identity.current = { uid: null, ready: false, profile: null, seq: identity.current.seq + 1 };
         setState({ status: 'signed-out', user: null, profile: null, role: null, classIds: [], orgId: null, error: null });
       }

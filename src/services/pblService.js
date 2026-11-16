@@ -65,6 +65,7 @@ export const PblProgramContractSchema = z.object({
   ageBand: z.string().default('11-16'),
   durationWeeks: z.number().default(12),
   authorId: z.string().default('coach'),
+  authorUid: z.string().optional(),
   source: z.enum(['studio', 'library']).default('studio'),
   status: z.enum(['draft', 'published', 'archived']).default('published'),
   visibility: z.enum(['class', 'centre']).default('class'),
@@ -72,7 +73,7 @@ export const PblProgramContractSchema = z.object({
   tags: z.array(z.string()).default([]),
   createdAt: z.number().default(() => Date.now()),
   updatedAt: z.number().default(() => Date.now()),
-});
+}).passthrough();
 
 export function validateProgramContract(program) {
   return PblProgramContractSchema.safeParse(program);
@@ -403,6 +404,9 @@ export async function publishProgram(draft, { assignTo = {}, dbInstance = db } =
     throw new Error(`Data Contract validation failed: ${issueMsg}`);
   }
   const programData = validation.data;
+  if (!programData.authorUid && programData.authorId) {
+    programData.authorUid = programData.authorId;
+  }
 
   // Prepare batch write
   const batch = writeBatch(dbInstance);
