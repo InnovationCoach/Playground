@@ -50,6 +50,7 @@ import { createGoalSettingModal } from '../components/Goals/GoalSettingModal.js'
 import { showGoalsPanel } from '../integrations/goalSettingIntegration.js';
 
 const LowerSecondaryShell = lazy(() => import('../features/lowerSecondary/LowerSecondaryShell.jsx').then((m) => ({ default: m.LowerSecondaryShell })));
+const TinkerStudio = lazy(() => import('../features/tinker/TinkerStudio.jsx'));
 
 const KNOWN_VIEWS = new Set(ACTIVITY_NAV.map((a) => a.id));
 
@@ -139,9 +140,12 @@ export function App() {
   useEffect(() => {
     if (status !== 'ready' || role !== 'student' || !user || isPrimary) return;
 
+    const senPref = localStorage.getItem('senEnabled');
+    const isSenEnabled = senPref === null ? true : senPref === 'true';
+
     initializeSENGlobally({
       userId: user.uid,
-      senEnabled: localStorage.getItem('senEnabled') === 'true',
+      senEnabled: isSenEnabled,
       geminiEndpoint: `${API_BASE}/api`
     });
 
@@ -340,6 +344,32 @@ export function App() {
               <JourneyPortfolio uid={user.uid} profile={profile} printView={route.print} />
             </div>
           )}
+      </>
+    );
+  }
+ 
+  if (route?.screen === 'tinker') {
+    return (
+      <>
+        <Header {...headerProps} />
+        <div
+          className="gh-app gh-app-fullscreen"
+          style={{
+            padding: '0.5rem 0.8rem',
+            margin: 0,
+            maxWidth: '100%',
+            width: '100%',
+            height: 'calc(100vh - 64px)',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
+          <Suspense fallback={<p className="pt-hint">Loading 3D Creative Studio…</p>}>
+            <TinkerStudio onBack={() => { window.location.hash = '#/space'; }} />
+          </Suspense>
+        </div>
       </>
     );
   }

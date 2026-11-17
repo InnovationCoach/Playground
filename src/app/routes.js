@@ -54,6 +54,7 @@ export function parseRoute(hash) {
     return { screen: 'admin', page: 'pilot' };
   }
   if (head === 'portfolio') return { screen: 'portfolio', uid: a || null };
+  if (head === 'tinker' || (head === 'space' && a === '3d')) return { screen: 'tinker' };
   if (head === 'space') return { screen: 'space' };
   if (head === 'journey') return { screen: 'journey', print: a === 'print' };
   if (head === 'settings') return { screen: 'settings' };
@@ -120,5 +121,6 @@ export const hrefFor = {
   dashboard: () => '#/dashboard',
   spark: () => '#/spark',
   coach: () => '#/coach/dashboard',
-  canva: () => '#/canva'
+  canva: () => '#/canva',
+  tinker: () => '#/tinker'
 };

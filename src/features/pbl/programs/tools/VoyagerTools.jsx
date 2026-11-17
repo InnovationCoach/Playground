@@ -3,6 +3,7 @@ import {
   STAGES, ROLES, WEEKS, FRIDAY_PARTS, cleanLog, logReport, fridayComplete, VOCAB
 } from './voyager.js';
 import { Slider, Seg, Tile, Gauge, Check, Vocab, BadgeLine, ModelNote, useDing } from './ToolBits.jsx';
+import { Print3DViewer } from './Print3DViewer.jsx';
 import { playToolSound } from './sound.js';
 
 const TONE = 'sky';
@@ -52,7 +53,7 @@ function ShellChecker({ data, save, bayData }) {
         </div>
 
         <div className="pt-stack">
-          <BedView s={s} r={r} />
+          <Print3DViewer s={s} r={r} onUpdateShell={(patch) => set(patch)} />
           <p className={r.fitsBed ? 'pt-ok' : 'pt-warn'} role="status">
             {r.fitsBed ? `✓ Each part is ${r.partLen} × ${s.widthMm} mm: it fits the ${BED_MM} × ${BED_MM} mm bed.`
               : r.tooWide ? `The shell is ${s.widthMm} mm wide, wider than the ${BED_MM} mm bed. Narrow it or split it down the middle in CAD.`
