@@ -152,7 +152,8 @@ export const PblMilestoneSchema = z.object({
   evidencePrompt: z.string().default('Submit your milestone evidence or demo.'),
   allowedSubmissions: z.array(z.enum(['video', 'github', 'prototype', 'note', 'photo', 'data'])).default(['video', 'github', 'prototype']),
   coachCue: z.string().default('Guide learner initiation and review prototype iterations.'),
-  competencies: z.array(PblCompetencyRefSchema).default([])
+  competencies: z.array(PblCompetencyRefSchema).default([]),
+  contentBlocks: z.array(z.any()).default([])
 });
 
 export const PBL_STAGES = [
@@ -194,6 +195,12 @@ export const QuizItemSchema = z.object({
 export const PblUnitSchema = z.object({
   id: z.string().default(() => `pbl-${Date.now()}`),
   unitTitle: z.string().min(1),
+  subtitle: z.string().optional().default(''),
+  introduction: z.string().optional().default(''),
+  coverImage: z.string().optional().default(''),
+  category: z.string().optional().default(''),
+  tags: z.array(z.string()).optional().default([]),
+  tone: z.string().optional().default('purple'),
   theme: z.string().min(1),
   drivingQuestion: z.string().min(1),
   unitType: z.enum(['pbl_unit', 'steam_activity', 'milestones', 'quiz']).default('pbl_unit'),

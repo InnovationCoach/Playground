@@ -5,9 +5,11 @@
  */
 
 import { hrefFor } from '../../../app/routes.js';
-import { saveCustomProgram } from '../programs/customProgramsStore.js';
-import { publishProgram } from '../../../services/pblService.js';
+import { saveCustomProgram, getCustomPrograms } from '../programs/customProgramsStore.js';
+import { publishProgram, normaliseContractProgram } from '../../../services/pblService.js';
 import { generateSearchTokens } from '../../pbl/programs/libraryProgramsData.js';
+import { auth, db, doc, setDoc, collection, getDocs } from '../../../firebase.js';
+import { normalizeContentBlocks } from './richContentModel.js';
 
 const BROADCAST_CHANNEL_NAME = 'hearisland_pbl_transfer_channel';
 
@@ -15,13 +17,13 @@ const BROADCAST_CHANNEL_NAME = 'hearisland_pbl_transfer_channel';
  * Transforms an authored PblUnit into a complete PblProgram shape compatible
  * with WeLearn's ProgramDetail component and catalog.
  */
-export function convertUnitToProgram(unit, coachUid = null) {
+export function convertUnitToProgram(unit, coachUid = null, { status = 'published' } = {}) {
   const unitCompetencyRefs = Array.isArray(unit.competencies) ? unit.competencies : [];
   const unitCompetencyIds = unitCompetencyRefs
     .map((c) => (typeof c === 'string' ? c : c?.id))
     .filter(Boolean);
 
-  const phases = unit.milestones.map((m) => {
+  const phases = (unit.milestones || []).map((m) => {
     const milestoneCompetencyIds = (Array.isArray(m.competencies) && m.competencies.length > 0
       ? m.competencies
       : unitCompetencyRefs)
@@ -63,12 +65,15 @@ export function convertUnitToProgram(unit, coachUid = null) {
 
     return {
       id: `phase-${m.stageNumber}`,
-      title: `Stage ${m.stageNumber}: ${m.stageName}`,
-      strap: `Week ${m.week} · ${m.title}`,
+      phaseId: `phase-${m.stageNumber}`,
+      stageName: m.stageName || '',
+      title: m.title && m.title.trim() ? m.title.trim() : `Stage ${m.stageNumber}: ${m.stageName}`,
+      strap: `Week ${m.week} · ${m.stageName || m.title}`,
       weeks: [m.week, m.week],
-      goal: m.learningGoal,
-      tasks: m.activities,
-      evidence: [m.evidencePrompt],
+      goal: m.learningGoal || '',
+      learningGoal: m.learningGoal || '',
+      tasks: m.activities || [],
+      evidence: m.evidencePrompt ? [m.evidencePrompt] : [],
       aiPromptStarters: [
         `Help me brainstorm alternative solutions for ${unit.drivingQuestion}`,
         `Explain how to calibrate MakerSpace tools for ${m.stageName}`,
@@ -76,6 +81,8 @@ export function convertUnitToProgram(unit, coachUid = null) {
       ],
       competencies: phaseCompetencies,
       stretchCompetencies: unitCompetencyIds.length > 2 ? unitCompetencyIds.slice(2) : ['ct-10'],
+      coachCue: m.coachCue || '',
+      contentBlocks: normalizeContentBlocks(m.contentBlocks),
       sessions: [session]
     };
   });
@@ -83,23 +90,36 @@ export function convertUnitToProgram(unit, coachUid = null) {
   const sessions = phases.flatMap((p) => p.sessions);
   const isUniversal = !unit.targetLearner?.name || unit.targetLearner?.isUniversal || unit.targetLearner?.id === 'universal-all';
   const learnerName = isUniversal ? 'All Learners' : (unit.targetLearner?.name || 'All Learners');
-  const tags = [
-    unit.theme,
+  const customTags = Array.isArray(unit.tags) ? unit.tags.map((t) => String(t).trim()).filter(Boolean) : [];
+  const derivedTags = [
+    unit.category || unit.theme,
     ...(unit.makerSpaceSpecs || []).map((s) => s.toolType?.split(' ')?.[0]).filter(Boolean),
     ...unitCompetencyIds.map((id) => String(id).toLowerCase()),
-    'stem', 'makerspace', 'pbl', 'rover', 'robotics'
-  ];
-  const searchTokens = generateSearchTokens(unit.unitTitle, unit.theme, tags, unit.drivingQuestion);
+    'pbl'
+  ].filter(Boolean);
+  const tags = Array.from(new Set([...customTags, ...derivedTags]));
+  const theme = unit.category || unit.theme || 'General STEM';
+  const searchTokens = generateSearchTokens(unit.unitTitle, theme, tags, unit.drivingQuestion);
+  const tone = unit.tone || 'amber';
+  const coverImage = typeof unit.coverImage === 'string' ? unit.coverImage.trim() : '';
 
   return {
     id: unit.id,
-    title: unit.unitTitle,
-    subtitle: isUniversal
-      ? `${unit.theme} · Open Library Program`
-      : `${unit.theme} · 2e Customized for ${learnerName}`,
-    theme: unit.theme,
-    drivingQuestion: unit.drivingQuestion,
-    status: 'published',
+    slug: unit.id,
+    title: unit.unitTitle || 'Untitled Learning Program',
+    subtitle: unit.subtitle && unit.subtitle.trim()
+      ? unit.subtitle.trim()
+      : (isUniversal
+        ? `${theme} · Open Library Program`
+        : `${theme} · 2e Customized for ${learnerName}`),
+    introduction: unit.introduction || '',
+    overview: unit.introduction || '',
+    coverImage,
+    category: unit.category || theme,
+    tone,
+    theme,
+    drivingQuestion: unit.drivingQuestion || 'How might we design an impactful solution?',
+    status,
     visibility: 'centre',
     tags,
     searchTokens,
@@ -107,16 +127,16 @@ export function convertUnitToProgram(unit, coachUid = null) {
     competencies: unitCompetencyRefs,
     realProblem: unit.realProblem,
     targetAgeRange: isUniversal ? 'Ages 12–18 (Secondary PBL)' : 'Ages 12–16 (2e Adapted Secondary)',
-    durationWeeks: 12,
+    durationWeeks: Math.max(8, phases.length),
     totalSessions: sessions.length,
     materialsAndKit: {
-      microcontrollers: unit.makerSpaceSpecs.filter((s) => s.toolType.includes('Microcontroller')).map((s) => s.specs),
+      microcontrollers: (unit.makerSpaceSpecs || []).filter((s) => s.toolType?.includes('Microcontroller')).map((s) => s.specs),
       sensorsAndActuators: ['Grove Capacitive Sensors', 'Ultrasonic HC-SR04', 'Servo / DC Motors'],
-      fabricationMaterials: unit.makerSpaceSpecs.map((s) => `${s.toolType}: ${s.specs}`),
+      fabricationMaterials: (unit.makerSpaceSpecs || []).map((s) => `${s.toolType}: ${s.specs}`),
       softwareAndTools: ['Blender 4.2 / CAD', 'MicroPython Web Editor', 'Bambu Studio']
     },
     teacherGuidance: {
-      safetyProtocol: unit.makerSpaceSpecs.map((s) => s.safetyGuidelines),
+      safetyProtocol: (unit.makerSpaceSpecs || []).map((s) => s.safetyGuidelines),
       pedagogicalScaffolding: unit.targetLearner?.appliedAccommodations || [],
       aiEthicsRules: ['AI as Co-Pilot for ideation & coding', 'Learner explains every design decision']
     },
@@ -125,13 +145,90 @@ export function convertUnitToProgram(unit, coachUid = null) {
     sessions,
     identity: {
       icon: 'Store',
-      tone: 'amber',
-      short: unit.unitTitle.slice(0, 24)
+      tone,
+      short: (unit.unitTitle || 'Program').slice(0, 24),
+      ...(coverImage ? { cover: coverImage } : {})
     },
     targetLearner: unit.targetLearner,
-    makerSpaceSpecs: unit.makerSpaceSpecs,
+    makerSpaceSpecs: unit.makerSpaceSpecs || [],
     issues: []
   };
+}
+
+/**
+ * Saves a program as a draft without publishing to learners.
+ * Preserves the exact `unit.id` so re-saving or later publishing never creates duplicate records.
+ * @param {object} pblUnit
+ * @param {string} coachUid
+ * @returns {Promise<{success: boolean, programId: string, program: object, cloudSaved: boolean}>}
+ */
+export async function saveProgramDraft(pblUnit, coachUid) {
+  const currentUid = coachUid || auth?.currentUser?.uid || (typeof window !== 'undefined' ? window.currentUserUid : null) || 'coach';
+  const program = convertUnitToProgram(pblUnit, currentUid, { status: 'draft' });
+  program.authorId = currentUid;
+  program.authorUid = currentUid;
+  program.status = 'draft';
+  program.updatedAt = Date.now();
+  program.createdAt = pblUnit.createdAt || program.updatedAt;
+
+  let cloudSaved = false;
+  if (db && auth?.currentUser) {
+    try {
+      await setDoc(doc(db, 'pbl_programs', program.id), program, { merge: true });
+      cloudSaved = true;
+    } catch (err) {
+      console.warn('[PBL Draft] Cloud draft save notice:', err?.message);
+    }
+  }
+
+  saveCustomProgram(program);
+  return {
+    success: true,
+    programId: program.id,
+    program,
+    cloudSaved
+  };
+}
+
+/**
+ * Lists all coach-authored programs (both drafts and published), deduplicated by ID.
+ * @param {string} [coachUid]
+ * @returns {Promise<Array<object>>}
+ */
+export async function listCoachPrograms(coachUid) {
+  const byId = new Map();
+
+  // 1. Local custom programs
+  const local = getCustomPrograms();
+  for (const [id, raw] of Object.entries(local)) {
+    const norm = normaliseContractProgram({ id, ...raw });
+    if (norm) byId.set(norm.id, norm);
+  }
+
+  // 2. Remote Firestore programs (when signed in)
+  if (db && auth?.currentUser) {
+    try {
+      const snap = await getDocs(collection(db, 'pbl_programs'));
+      if (snap) {
+        snap.forEach((d) => {
+          const data = d.data();
+          if (!data) return;
+          const norm = normaliseContractProgram({ id: d.id, ...data });
+          if (!norm) return;
+          if (!coachUid || norm.authorId === coachUid || data.authorUid === coachUid || norm.source === 'studio') {
+            const existing = byId.get(norm.id);
+            if (!existing || (norm.updatedAt || 0) >= (existing.updatedAt || 0)) {
+              byId.set(norm.id, norm);
+            }
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('[PBL Programs] Could not list remote programs:', err?.message);
+    }
+  }
+
+  return Array.from(byId.values()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
 
 /**
