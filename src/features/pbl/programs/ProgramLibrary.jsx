@@ -63,8 +63,8 @@ export function ProgramLibrary({ uid, isCoach, classIds = [] }) {
   }, []);
 
   const q = query.trim().toLowerCase();
-  const shown = useMemo(() => programsList.filter((p) => !q
-    || [p.title, p.theme, p.drivingQuestion, p.subtitle].some((t) => t?.toLowerCase().includes(q))), [programsList, q]);
+  const shown = useMemo(() => programsList.filter((p) => (isCoach || p.status !== 'draft') && (!q
+    || [p.title, p.theme, p.category, p.drivingQuestion, p.subtitle, ...(Array.isArray(p.tags) ? p.tags : [])].some((t) => t?.toLowerCase().includes(q)))), [programsList, q, isCoach]);
 
   return (
     <div className="pg-library">
@@ -132,20 +132,30 @@ function ProgramCard({ program: p, uid, isCoach, classNames, cover }) {
   const blocking = issues.filter((i) => i.level === 'block').length;
   const sessions = Array.isArray(p.sessions) ? p.sessions : [];
   const tone = p.identity?.tone || 'purple';
+  const tags = Array.isArray(p.tags) ? p.tags.filter(Boolean).slice(0, 3) : [];
 
   return (
     <a className="pg-card" data-tone={tone} data-assigned={classNames ? true : undefined} href={hrefFor.program(p.id)}>
       <div className="pg-card-cover">
         <ProgramPoster program={p} cover={cover} />
         {p.sharesPhasesWith && <span className="pg-outline-tag">Outline only</span>}
+        {isCoach && p.status === 'draft' && <span className="pg-outline-tag">Draft</span>}
       </div>
       {classNames && (
         <div className="pg-card-classes"><School size={14} aria-hidden="true" />{isCoach ? 'Running in ' : 'Your class: '}{classNames.join(', ')}</div>
       )}
       <div className="pg-card-body">
         <strong className="pg-card-title">{p.title}</strong>
-        <span className="pg-card-theme">{p.theme}</span>
+        <span className="pg-card-theme">{p.category || p.theme}</span>
+        {p.subtitle && <p className="pg-card-dq" style={{ WebkitLineClamp: 2, fontWeight: 500 }}>{p.subtitle}</p>}
         <p className="pg-card-dq">{p.drivingQuestion}</p>
+        {tags.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.2rem' }}>
+            {tags.map((t) => (
+              <span key={t} style={{ fontSize: '0.7rem', padding: '0.1rem 0.45rem', borderRadius: 999, background: 'var(--gh-subtle)', color: 'var(--gh-text-2)' }}>#{t}</span>
+            ))}
+          </div>
+        )}
         <ul className="pg-meta" aria-label="Program facts">
           <li><CalendarDays size={14} aria-hidden="true" />{p.durationWeeks || 12} weeks</li>
           <li><Layers size={14} aria-hidden="true" />{sessions.length} sessions</li>

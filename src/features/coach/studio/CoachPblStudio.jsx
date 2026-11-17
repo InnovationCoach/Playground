@@ -4,13 +4,18 @@ import {
   AlertTriangle, Users, Bot, ArrowRight, ExternalLink, Send, ChevronDown, ChevronRight,
   Layers, Video, GitBranch, Box, RefreshCw, Eye, Check, Clock, ShieldCheck, Link2,
   Globe, Search, Sun, Moon, Plus, Trash2, ArrowLeft, Lightbulb, HelpCircle,
-  FileCode, Play, RotateCcw
+  FileCode, Play, RotateCcw, Save, FolderOpen, Palette
 } from 'lucide-react';
 import { UNIVERSAL_LEARNER, STUDENT_2E_PROFILES, getLearnerById } from './learnerProfiles.js';
 import { useCoachClasses, useClassLearners } from './useCoachStudioData.js';
 import { DEFAULT_GROUNDING_SOURCES, calculateTotalTokens } from './groundingSources.js';
 import { synthesizeGroundedUnit } from './pblSynthesizer.js';
-import { publishAndTransferToStudent, publishProgramToCatalog, convertUnitToProgram } from './pblTransferService.js';
+import {
+  publishAndTransferToStudent,
+  publishProgramToCatalog,
+  convertUnitToProgram,
+  saveProgramDraft
+} from './pblTransferService.js';
 import { saveCustomProgram } from '../programs/customProgramsStore.js';
 import { APPROVED_NGS_CATALOG, ngsById, normalizePblUnit } from './pblUnitSchema.js';
 import { competencyById, COMPETENCIES } from '../../pbl/content/competencies.js';
@@ -27,7 +32,13 @@ import { GroupedCompetencyPicker } from './GroupedCompetencyPicker.jsx';
 import { STARTER_TEMPLATES } from './starterTemplates.js';
 import { fetchAndSummarizeUrl } from './urlSummarizer.js';
 import { generateExtraMaterials } from './extraMaterialsGenerator.js';
+import { RichPhaseEditor } from './RichPhaseEditor.jsx';
+import { ProgramCoverPanel } from './ProgramCoverPanel.jsx';
+import { ProgramPreviewModal } from './ProgramPreviewModal.jsx';
+import { MyProgramsModal } from './MyProgramsModal.jsx';
+import { createBlankEightPhaseUnit, programToUnit } from './richContentModel.js';
 import './coachStudio.css';
+import './richEditor.css';
 
 export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision' }) {
   const { effectiveTheme, setUserTheme } = useTheme();
@@ -109,6 +120,13 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
   const [transferring, setTransferring] = useState(false);
   const [transferredInfo, setTransferredInfo] = useState(null);
   const [transferError, setTransferError] = useState(null);
+
+  // Program Maker Rich Editor, Drafts & Preview State
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showMyProgramsModal, setShowMyProgramsModal] = useState(false);
+  const [showCoverPanel, setShowCoverPanel] = useState(true);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftStatusMsg, setDraftStatusMsg] = useState('');
 
   const DRAFT_KEY = 'hearisland.coachStudio.draftUnit.v1';
   // Load draft unit from localStorage if available on mount
@@ -470,6 +488,50 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (!unit) return;
+    setSavingDraft(true);
+    setDraftStatusMsg('');
+    try {
+      const res = await saveProgramDraft(unit, coachUser?.uid);
+      setUnit((prev) => (prev ? { ...prev, id: res.programId, status: 'draft', updatedAt: Date.now() } : prev));
+      setDraftStatusMsg(res.cloudSaved
+        ? 'Draft saved to cloud & local workspace (not published to students).'
+        : 'Draft saved locally (not published to students).');
+    } catch (err) {
+      setDraftStatusMsg(err?.message || 'Could not save draft.');
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const handleCreateBlankProgram = () => {
+    const blank = createBlankEightPhaseUnit(coachUser?.uid);
+    setUnit(blank);
+    setTransferredInfo(null);
+    setTransferError(null);
+    setDraftStatusMsg('');
+    setSelectedMilestoneIndex(0);
+    setShowCoverPanel(true);
+    setWorkspaceTab('studio');
+    setWizardStep(3);
+  };
+
+  const handleOpenSavedProgram = (savedProgram) => {
+    const converted = programToUnit(savedProgram);
+    setUnit(converted);
+    setRealProblem(converted.realProblem || '');
+    setDrivingQuestion(converted.drivingQuestion || '');
+    setFinalProduct(converted.finalProduct || '');
+    setTransferredInfo(null);
+    setTransferError(null);
+    setDraftStatusMsg('');
+    setSelectedMilestoneIndex(0);
+    setShowCoverPanel(true);
+    setWorkspaceTab('studio');
+    setWizardStep(3);
+  };
+
   const handleResetForNewUnit = () => {
     try {
       localStorage.removeItem(DRAFT_KEY);
@@ -477,6 +539,7 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
     setUnit(null);
     setTransferredInfo(null);
     setTransferError(null);
+    setDraftStatusMsg('');
     setRealProblem('');
     setDrivingQuestion('');
     setFinalProduct('');
@@ -494,12 +557,26 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
           <div>
             <h1 className="cp-title">AI PBL Authoring & Mentorship Studio</h1>
             <p className="cp-subtitle">
-              4-Step Guided Curriculum Wizard • One-Click Catalog & Student Transfer
+              4-Step Guided Curriculum Wizard • Rich 8-Phase Program Maker
             </p>
           </div>
         </div>
 
         <div className="cp-header-actions">
+          <button
+            type="button"
+            className="cp-btn-switch"
+            onClick={() => setShowMyProgramsModal(true)}
+          >
+            <FolderOpen size={15} /> My Programs & Drafts
+          </button>
+          <button
+            type="button"
+            className="cp-btn-switch"
+            onClick={handleCreateBlankProgram}
+          >
+            <Plus size={15} /> Blank 8-Phase Program
+          </button>
           <button
             type="button"
             className="cp-btn-switch cp-btn-theme"
@@ -1070,6 +1147,45 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
 
               {unit && (
                 <>
+                  {/* Program Maker Action Bar: Cover & Visuals, Save Draft, Full Preview */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem', marginBottom: '0.9rem', padding: '0.75rem 1rem', borderRadius: 12, border: '1px solid var(--cp-border-strong)', background: 'var(--cp-surface)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <strong style={{ fontSize: '0.95rem', color: 'var(--cp-heading)' }}>{unit.unitTitle || 'Untitled Learning Program'}</strong>
+                      <span className="cp-badge-pill">{unit.status === 'published' ? 'Published' : 'Draft'}</span>
+                      {draftStatusMsg && (
+                        <span style={{ fontSize: '0.78rem', color: 'var(--cp-green)' }}>{draftStatusMsg}</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className={`re-quick-btn ${showCoverPanel ? 'is-active' : ''}`}
+                        onClick={() => setShowCoverPanel((v) => !v)}
+                      >
+                        <Palette size={14} /> {showCoverPanel ? 'Hide Cover & Visuals' : 'Cover & Visuals'}
+                      </button>
+                      <button
+                        type="button"
+                        className="re-quick-btn"
+                        onClick={() => setShowPreviewModal(true)}
+                      >
+                        <Eye size={14} /> Preview Program
+                      </button>
+                      <button
+                        type="button"
+                        className="re-quick-btn is-active"
+                        onClick={handleSaveDraft}
+                        disabled={savingDraft}
+                      >
+                        <Save size={14} /> {savingDraft ? 'Saving Draft…' : 'Save Draft'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {showCoverPanel && (
+                    <ProgramCoverPanel unit={unit} onUpdateField={updateUnitField} />
+                  )}
+
                   {/* Top Bar: Driving Question Banner & Auto-Save Indicator */}
                   <div className="cp-dq-banner" style={{ marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
@@ -1186,87 +1302,24 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
 
                   {/* Main Review & In-line Editor Layout (Split vs Full) */}
                   <div className={viewMode === 'split' ? 'cp-split-layout' : ''}>
-                    {/* Left Pane: Detailed Milestone Editor (Shown in timeline and split view) */}
+                    {/* Left Pane: Document-Style Rich Phase Editor (Shown in timeline and split view) */}
                     {(viewMode === 'timeline' || viewMode === 'split') && (
                       <div className="cp-card">
                         <div className="cp-card-header">
                           <h3 className="cp-card-title">
-                            <Layers size={16} /> Stage {unit.milestones[selectedMilestoneIndex]?.stageNumber}: {unit.milestones[selectedMilestoneIndex]?.stageName}
+                            <Layers size={16} /> Phase {unit.milestones[selectedMilestoneIndex]?.stageNumber || selectedMilestoneIndex + 1} Document Editor
                           </h3>
-                          <span className="cp-badge-pill">Week {unit.milestones[selectedMilestoneIndex]?.week} • 90m</span>
+                          <span className="cp-badge-pill">
+                            Week {unit.milestones[selectedMilestoneIndex]?.week || selectedMilestoneIndex + 1} • {(unit.milestones[selectedMilestoneIndex]?.contentBlocks || []).length} blocks
+                          </span>
                         </div>
 
                         {unit.milestones[selectedMilestoneIndex] && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                            <div className="cp-input-group">
-                              <label className="cp-label">Milestone Title</label>
-                              <input
-                                type="text"
-                                className="cp-input"
-                                value={unit.milestones[selectedMilestoneIndex].title}
-                                onChange={(e) => updateMilestone(selectedMilestoneIndex, { title: e.target.value })}
-                              />
-                            </div>
-
-                            <div className="cp-input-group">
-                              <label className="cp-label">Learning Goal</label>
-                              <textarea
-                                className="cp-input"
-                                rows={2}
-                                value={unit.milestones[selectedMilestoneIndex].learningGoal}
-                                onChange={(e) => updateMilestone(selectedMilestoneIndex, { learningGoal: e.target.value })}
-                              />
-                            </div>
-
-                            {/* Checklist Activities */}
-                            <div className="cp-input-group">
-                              <label className="cp-label">Milestone Checklist Activities</label>
-                              <ul className="cp-activities-list">
-                                {unit.milestones[selectedMilestoneIndex].activities.map((act, actIdx) => (
-                                  <li key={actIdx} className="cp-activity-item">
-                                    <CheckCircle2 size={15} style={{ color: 'var(--cp-green)', flexShrink: 0 }} />
-                                    <input
-                                      type="text"
-                                      className="cp-input"
-                                      style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
-                                      value={act}
-                                      onChange={(e) => {
-                                        const newActs = [...unit.milestones[selectedMilestoneIndex].activities];
-                                        newActs[actIdx] = e.target.value;
-                                        updateMilestone(selectedMilestoneIndex, { activities: newActs });
-                                      }}
-                                    />
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-
-                            {/* MakerSpace Tools Assigned */}
-                            <div className="cp-input-group">
-                              <label className="cp-label">MakerSpace Tools Assigned</label>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                                {unit.milestones[selectedMilestoneIndex].makerSpaceTools.map((tool, tIdx) => (
-                                  <span key={tIdx} className="cp-chip cp-chip-trait" style={{ fontSize: '0.75rem' }}>
-                                    <Wrench size={11} style={{ marginRight: '0.25rem' }} /> {tool}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Coach Daily Intervention Cue */}
-                            <div className="cp-cue-box">
-                              <span className="cp-cue-title">
-                                <Bot size={13} /> {unit.coachCues?.leadCoach || 'Lead Coach'} Intervention Cue
-                              </span>
-                              <textarea
-                                className="cp-input"
-                                rows={2}
-                                style={{ background: 'transparent', borderColor: 'var(--cp-purple-border)', fontSize: '0.8rem' }}
-                                value={unit.milestones[selectedMilestoneIndex].coachCue}
-                                onChange={(e) => updateMilestone(selectedMilestoneIndex, { coachCue: e.target.value })}
-                              />
-                            </div>
-                          </div>
+                          <RichPhaseEditor
+                            milestone={unit.milestones[selectedMilestoneIndex]}
+                            phaseIndex={selectedMilestoneIndex}
+                            onChangeMilestone={(patch) => updateMilestone(selectedMilestoneIndex, patch)}
+                          />
                         )}
                       </div>
                     )}
@@ -1676,23 +1729,45 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
               </div>
 
               {/* Step 4 Footer */}
-              <div className="cp-step-footer">
+              <div className="cp-step-footer" style={{ flexWrap: 'wrap', gap: '0.6rem' }}>
                 <button
                   type="button"
                   className="cp-btn-prev-step"
                   onClick={() => setWizardStep(3)}
                 >
-                  <ArrowLeft size={15} /> Back to Review
+                  <ArrowLeft size={15} /> Back to Editor
                 </button>
 
-                <button
-                  type="button"
-                  className="cp-btn-prev-step"
-                  onClick={handleResetForNewUnit}
-                >
-                  <Sparkles size={15} /> Create Another Unit
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="cp-btn-prev-step"
+                    onClick={() => setShowPreviewModal(true)}
+                  >
+                    <Eye size={15} /> Preview Student Experience
+                  </button>
+                  <button
+                    type="button"
+                    className="cp-btn-prev-step"
+                    onClick={handleSaveDraft}
+                    disabled={savingDraft || !unit}
+                  >
+                    <Save size={15} /> {savingDraft ? 'Saving Draft…' : 'Save as Draft'}
+                  </button>
+                  <button
+                    type="button"
+                    className="cp-btn-prev-step"
+                    onClick={handleResetForNewUnit}
+                  >
+                    <Sparkles size={15} /> Create Another Unit
+                  </button>
+                </div>
               </div>
+              {draftStatusMsg && (
+                <p role="status" style={{ marginTop: '0.75rem', fontSize: '0.84rem', color: 'var(--cp-green)', fontWeight: 600 }}>
+                  {draftStatusMsg}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -1702,6 +1777,21 @@ export function CoachPblStudio({ coachUser, navigate, initialTab = 'supervision'
       {workspaceTab === 'edmentum' && (
         <EdmentumIntegrationConsole coachUser={coachUser} />
       )}
+
+      {/* Modals: Student Experience Preview & My Programs / Drafts */}
+      <ProgramPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        unit={unit}
+        initialPhaseIndex={selectedMilestoneIndex}
+      />
+      <MyProgramsModal
+        isOpen={showMyProgramsModal}
+        onClose={() => setShowMyProgramsModal(false)}
+        coachUid={coachUser?.uid}
+        onSelectProgram={handleOpenSavedProgram}
+        onCreateBlank={handleCreateBlankProgram}
+      />
     </div>
   );
 }

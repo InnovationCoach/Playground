@@ -85,11 +85,14 @@ export function coverError(url) {
   return e?.type === 'image' ? null : 'Use a Cloudinary image link (res.cloudinary.com/…/image/upload/…). Tip: download your Canva poster as PNG and upload it to Cloudinary.';
 }
 
-/** The class cover if a coach set one, then the school's cover, then none (the drawn poster). */
+/** The class cover if a coach set one, then the program's uploaded cover, then the school's cover, then none. */
 export function coverFor(program, classCovers = []) {
   for (const covers of classCovers) {
     const url = covers?.[program.id];
     if (url && !coverError(url)) return { url, source: 'class' };
+  }
+  if (typeof program.coverImage === 'string' && /^(https:\/\/|http:\/\/|data:image\/)/i.test(program.coverImage.trim())) {
+    return { url: program.coverImage.trim(), source: 'program' };
   }
   if (program.identity?.cover && !coverError(program.identity.cover)) return { url: program.identity.cover, source: 'school' };
   return null;

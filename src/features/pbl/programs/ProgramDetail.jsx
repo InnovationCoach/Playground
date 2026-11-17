@@ -29,6 +29,8 @@ import { useClassPrograms } from './useClassPrograms.js';
 import { coverFor } from './programMedia.js';
 import { ProgramPoster } from './ProgramPoster.jsx';
 import { ProgramMediaProvider, MediaGallery, MediaManager, SessionMedia } from './ProgramMediaPanel.jsx';
+import { RichContentRenderer } from './RichContentRenderer.jsx';
+import '../../coach/studio/richEditor.css';
 
 const SECTIONS = [
   { id: 'overview', label: 'Overview', icon: Compass },
@@ -613,6 +615,18 @@ function Overview({ program: p }) {
 
   return (
     <div className="pg-overview">
+      {(p.introduction || (Array.isArray(p.tags) && p.tags.length > 0)) && (
+        <section className="gh-card" style={{ gridColumn: '1 / -1' }}>
+          <h3 className="pb-h3"><Sparkles size={17} aria-hidden="true" />Program introduction</h3>
+          {p.introduction && <p className="pg-problem" style={{ whiteSpace: 'pre-wrap' }}>{p.introduction}</p>}
+          {Array.isArray(p.tags) && p.tags.length > 0 && (
+            <div className="rc-chip-row" style={{ marginTop: '0.5rem' }}>
+              {p.tags.map((t) => <span key={t} className="rc-chip">#{t}</span>)}
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="gh-card">
         <h3 className="pb-h3"><Target size={17} aria-hidden="true" />The real problem</h3>
         <p className="pg-problem">{realProblem.summary}</p>
@@ -744,6 +758,35 @@ function TermPlan({ program: p, isCoach, progress, apply, kit, tools, say, selec
           </div>
           <p>{phase.goal || phase.learningGoal}</p>
         </div>
+
+        {Array.isArray(phase.contentBlocks) && phase.contentBlocks.length > 0 && (
+          <div className="gh-card" style={{ marginBottom: '1rem' }}>
+            <RichContentRenderer
+              blocks={phase.contentBlocks}
+              checkedMap={progress?.stages?.[phase.id || phase.phaseId]?.checkedItems || {}}
+              onToggleCheck={apply ? (itemKey) => {
+                const stageKey = phase.id || phase.phaseId;
+                apply((prevProg) => {
+                  const curStage = prevProg.stages?.[stageKey] || {};
+                  const curChecks = curStage.checkedItems || {};
+                  return {
+                    ...prevProg,
+                    stages: {
+                      ...prevProg.stages,
+                      [stageKey]: {
+                        ...curStage,
+                        checkedItems: {
+                          ...curChecks,
+                          [itemKey]: !curChecks[itemKey]
+                        }
+                      }
+                    }
+                  };
+                });
+              } : null}
+            />
+          </div>
+        )}
 
         <div className="pb-phase-grid">
           <div className="pb-col">

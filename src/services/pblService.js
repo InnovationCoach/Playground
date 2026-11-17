@@ -146,7 +146,9 @@ export function normaliseContractProgram(raw) {
       quiz: Array.isArray(ph.quiz) ? ph.quiz : [],
       checklist: Array.isArray(ph.checklist) ? ph.checklist : (Array.isArray(ph.tasks) ? ph.tasks.map((t, i) => ({ id: `task-${i + 1}`, label: typeof t === 'string' ? t : (t.label || ''), required: true })) : []),
       instructions: ph.instructions || ph.goal || ph.learningGoal || '',
-      resources: Array.isArray(ph.resources) ? ph.resources : []
+      resources: Array.isArray(ph.resources) ? ph.resources : [],
+      stageName: ph.stageName || '',
+      contentBlocks: Array.isArray(ph.contentBlocks) ? ph.contentBlocks : []
     };
   });
 
@@ -219,9 +221,14 @@ export function normaliseContractProgram(raw) {
     assumptions: Array.isArray(raw.assumptions) ? raw.assumptions : [],
     identity: raw.identity || {
       icon: 'Compass',
-      tone: 'amber',
-      short: raw.identity?.short || (title.length > 24 ? `${title.slice(0, 21)}…` : title)
+      tone: raw.tone || 'amber',
+      short: raw.identity?.short || (title.length > 24 ? `${title.slice(0, 21)}…` : title),
+      ...(raw.coverImage ? { cover: raw.coverImage } : {})
     },
+    coverImage: raw.coverImage || raw.identity?.cover || '',
+    introduction: raw.introduction || raw.overview || '',
+    category: raw.category || theme || '',
+    tone: raw.tone || raw.identity?.tone || 'amber',
     issues: Array.isArray(raw.issues) ? raw.issues : []
   };
 }
