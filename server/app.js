@@ -18,6 +18,7 @@ import {
   executeWithRetry,
   withTimeout,
   handleAiError,
+  getGeminiErrorStatus,
   createRateLimiter,
   getFriendlyFeedbackFallback
 } from './lib/ai-resilience.js';
@@ -50,6 +51,7 @@ import questRouter from './routes/quest.js';
 import { createSparkTutorRouter } from './routes/spark-tutor.js';
 import masteryRouter from './routes/mastery.js';
 import accessRequestsRouter from './routes/access-requests.js';
+import print3dRouter from './routes/print3d.js';
 
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const MODEL_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/;
@@ -101,9 +103,11 @@ export function createApp(options = {}) {
   const auditTimeoutMs = Number(options.auditTimeoutMs) > 0 ? Number(options.auditTimeoutMs) : 2500;
   const retryBackoffMs = Number(options.retryBackoffMs) >= 0 ? Number(options.retryBackoffMs) : 1000;
 
+  const FALLBACK_GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  let genAI = null;
   let sdkModel = null;
   if (!customAdapter && geminiConfig.configured) {
-    const genAI = new GoogleGenerativeAI(geminiConfig.apiKey);
+    genAI = new GoogleGenerativeAI(geminiConfig.apiKey);
     sdkModel = genAI.getGenerativeModel({ model: geminiConfig.modelName, safetySettings: SAFETY_SETTINGS });
   }
 
@@ -235,22 +239,58 @@ export function createApp(options = {}) {
     rateLimitWindowMs: options.sparkTutorRateLimitWindowMs
   }));
   app.use('/api/mastery', masteryRouter);
+  app.use('/api/3dprint', print3dRouter);
+
+  function generationConfigFor(modelName, maxOutputTokens) {
+    const cfg = { maxOutputTokens, temperature: 0.7, topP: 0.9 };
+    if (String(modelName || '').startsWith('gemini-2.5')) {
+      cfg.thinkingConfig = THINKING_OFF;
+    }
+    return cfg;
+  }
 
   // ============= EXISTING AI ENDPOINTS =============
   async function callGemini(prompt, maxOutputTokens = 256, opts = {}) {
     const { cohort, ageBand, uid, endpoint = 'unknown', systemExtra = '' } = opts;
     const band = resolveCohort(cohort || ageBand);
     const activeModel = getActiveModel();
+    const systemInstruction = { parts: [{ text: buildSystemInstruction(band, systemExtra) }] };
+    const contents = [{ role: 'user', parts: [{ text: prompt }] }];
 
-    const result = await executeWithRetry(
-      () => activeModel.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        systemInstruction: { parts: [{ text: buildSystemInstruction(band, systemExtra) }] },
-        generationConfig: { maxOutputTokens, temperature: 0.7, topP: 0.9, thinkingConfig: THINKING_OFF }
-      }),
-      1,
-      retryBackoffMs
-    );
+    let result;
+    try {
+      result = await executeWithRetry(
+        () => activeModel.generateContent({
+          contents,
+          systemInstruction,
+          generationConfig: generationConfigFor(geminiConfig.modelName, maxOutputTokens)
+        }),
+        1,
+        retryBackoffMs
+      );
+    } catch (primaryErr) {
+      if (customAdapter || !genAI || getGeminiErrorStatus(primaryErr) !== 502) {
+        throw primaryErr;
+      }
+      const fallbacks = FALLBACK_GEMINI_MODELS.filter((m) => m !== geminiConfig.modelName);
+      let lastErr = primaryErr;
+      for (const fallbackModelName of fallbacks) {
+        try {
+          console.warn(`[AI Model Fallback] ${geminiConfig.modelName} unavailable (${endpoint}); trying ${fallbackModelName}`);
+          const fallbackModel = genAI.getGenerativeModel({ model: fallbackModelName, safetySettings: SAFETY_SETTINGS });
+          result = await fallbackModel.generateContent({
+            contents,
+            systemInstruction,
+            generationConfig: generationConfigFor(fallbackModelName, maxOutputTokens)
+          });
+          lastErr = null;
+          break;
+        } catch (fbErr) {
+          lastErr = fbErr;
+        }
+      }
+      if (lastErr) throw lastErr;
+    }
 
     const { text, blocked, reason } = extractText(result);
     await logConversation({ uid, prompt, reply: text, blocked, blockReason: reason, endpoint, ageBand: band });
