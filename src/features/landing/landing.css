@@ -689,29 +689,6 @@
   line-height: 1.6;
 }
 
-/* FINAL CTA BOX */
-.spark-final-cta {
-  background: linear-gradient(135deg, var(--wl-midnight) 0%, #1e1b4b 100%);
-  border-radius: 24px;
-  padding: 4rem 2rem;
-  text-align: center;
-  color: #ffffff;
-  box-shadow: 0 20px 40px rgba(15, 44, 76, 0.2);
-}
-
-.spark-final-cta h2 {
-  color: #ffffff;
-  font-size: clamp(2rem, 4vw, 2.75rem);
-  margin-bottom: 1rem;
-}
-
-.spark-final-cta p {
-  color: #cbd5e1;
-  font-size: 1.15rem;
-  max-width: 600px;
-  margin: 0 auto 2rem;
-}
-
 /* FOOTER */
 .spark-footer {
   background: #ffffff;
@@ -720,6 +697,18 @@
   font-size: 0.85rem;
   color: #64748b;
   text-align: center;
+}
+
+.spark-footer-link {
+  color: var(--wl-purple);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.spark-footer-link:hover,
+.spark-footer-link:focus-visible {
+  color: var(--wl-purple-dark);
 }
 
 /* RESPONSIVE BREAKPOINTS */

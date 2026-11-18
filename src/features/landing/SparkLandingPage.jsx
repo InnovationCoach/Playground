@@ -163,7 +163,7 @@ export function SparkLandingPage({ onSignIn }) {
     },
     {
       q: 'Can my child try it?',
-      a: 'Book a Discovery Call and we will show you SPARK live.'
+      a: 'Book a Discovery Call (link at the bottom of this page) and we will show you SPARK live.'
     }
   ];
 
@@ -207,13 +207,6 @@ export function SparkLandingPage({ onSignIn }) {
           <div className="spark-nav-cta">
             <button
               type="button"
-              className="spark-btn-lime"
-              onClick={() => setContactOpen(true)}
-            >
-              Book a Discovery Call
-            </button>
-            <button
-              type="button"
               className="spark-btn-secondary"
               onClick={onSignIn}
             >
@@ -238,14 +231,6 @@ export function SparkLandingPage({ onSignIn }) {
         </p>
 
         <div className="spark-hero-actions">
-          <button
-            type="button"
-            className="spark-btn-lime"
-            onClick={() => setContactOpen(true)}
-            style={{ fontSize: '1.05rem', padding: '0.85rem 1.85rem' }}
-          >
-            Book a Discovery Call
-          </button>
           <button
             type="button"
             className="spark-btn-secondary"
@@ -779,7 +764,7 @@ export function SparkLandingPage({ onSignIn }) {
         </div>
       </section>
 
-      {/* 10. FAQ + FINAL CTA */}
+      {/* 10. FAQ */}
       <section id="faq" className="spark-section spark-section-cloud">
         <div className="spark-section-container">
           <div className="spark-section-header">
@@ -807,22 +792,6 @@ export function SparkLandingPage({ onSignIn }) {
               </div>
             ))}
           </div>
-
-          {/* Final CTA Box */}
-          <div className="spark-final-cta">
-            <h2>Curious what your child could build?</h2>
-            <p>
-              Schedule a Discovery Call with our learning centre team to tour SPARK and see how personalized project inquiry works.
-            </p>
-            <button
-              type="button"
-              className="spark-btn-lime"
-              onClick={() => setContactOpen(true)}
-              style={{ fontSize: '1.1rem', padding: '0.9rem 2.2rem' }}
-            >
-              Book a Discovery Call
-            </button>
-          </div>
         </div>
       </section>
 
@@ -837,6 +806,14 @@ export function SparkLandingPage({ onSignIn }) {
             <span>Mastery Transcript Consortium</span>
             <span>UK & US Pathways</span>
           </div>
+          <a
+            href="https://welearnthailand.com/discovery-call"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="spark-footer-link"
+          >
+            Book a Discovery Call
+          </a>
           <div>© {new Date().getFullYear()} WeLearn Academy. All rights reserved.</div>
         </div>
       </footer>
