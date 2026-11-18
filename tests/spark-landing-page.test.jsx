@@ -88,25 +88,19 @@ describe('SparkLandingPage Component', () => {
     expect(onSignIn).toHaveBeenCalled();
   });
 
-  it('opens and closes Contact Admin modal', () => {
+  it('shows Book a Discovery Call only as a footer link', () => {
     const dom = mount(<SparkLandingPage onSignIn={vi.fn()} />);
 
-    // Modal initially closed
-    expect(dom.querySelector('.spark-modal-overlay')).toBeNull();
-
-    // Click Contact Admin button
-    const contactBtn = [...dom.querySelectorAll('button')].find((b) =>
-      b.textContent.includes('Contact Admin')
+    const ctaLinks = [...dom.querySelectorAll('a')].filter((a) =>
+      a.textContent.includes('Book a Discovery Call')
     );
-    act(() => contactBtn.click());
-
-    expect(dom.querySelector('.spark-modal-overlay')).not.toBeNull();
-    expect(dom.textContent).toContain('Connect with WeLearn SPARK Admin');
-
-    // Click close button
-    const closeBtn = dom.querySelector('.spark-modal-close');
-    act(() => closeBtn.click());
-    expect(dom.querySelector('.spark-modal-overlay')).toBeNull();
+    expect(ctaLinks).toHaveLength(1);
+    const [link] = ctaLinks;
+    expect(link.closest('footer')).toBeTruthy();
+    expect(link.classList.contains('spark-btn-lime')).toBe(false);
+    expect(link.getAttribute('href')).toBe('https://welearnthailand.com/discovery-call');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer');
   });
 });
 
