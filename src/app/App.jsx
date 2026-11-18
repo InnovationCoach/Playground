@@ -8,6 +8,7 @@ import { CONSOLE_ROLES } from './roles.js';
 import { AdminConsole } from '../features/admin/AdminConsole.jsx';
 import { SettingsPage } from '../features/settings/SettingsPage.jsx';
 import { MyCourses } from '../features/courses/MyCourses.jsx';
+import { CoursesHub } from '../features/courses/CoursesHub.jsx';
 import { HomeSearch } from '../features/home/HomeSearch.jsx';
 import { GoalsPage } from '../features/goals/GoalsPage.jsx';
 import { FutureSkillsPage } from '../features/futureSkills/FutureSkillsPage.jsx';
@@ -27,6 +28,7 @@ import { JourneyPortfolio } from '../features/journey/JourneyPortfolio.jsx';
 import { SchoolLearningPanel } from '../features/school/SchoolLearningPanel.jsx';
 import { LiveCourseDiscovery } from '../features/courses/LiveCourseDiscovery.jsx';
 import { CoachDashboardHost } from '../features/coach/CoachDashboardHost.jsx';
+import { MyLearnersPage } from '../features/coach/myLearners/MyLearnersPage.jsx';
 import { CoachPblStudio } from '../features/coach/studio/CoachPblStudio.jsx';
 import { CanvaPage } from '../features/canva/CanvaPage.jsx';
 import { EdmentumIntegrationConsole } from '../features/edmentum/EdmentumIntegrationConsole.jsx';
@@ -85,7 +87,9 @@ export function App() {
     // A scenario (e.g. My Universe's Thalassa station) applies only to the activity it was opened with.
     setActivityScenario(typeof options?.scenario === 'string' ? options.scenario : null);
     setView(next);
-    if (next === 'coach') setHash('#/coach/dashboard');
+    // The legacy router calls switchPhase('coach') for every #/coach/... address,
+    // so a coach sub-page (a learner's profile) must keep its address.
+    if (next === 'coach') { if (!/^#\/coach\/./.test(window.location.hash)) setHash('#/coach/dashboard'); }
     // Leaving a hash screen (My Courses, Settings) for a view-state screen.
     else if (signedInRef.current && (parseRoute(window.location.hash) || hashScreenRef.current)) clearHash();
   }, [setHash, clearHash]);
@@ -419,8 +423,18 @@ export function App() {
           <Header {...headerProps} />
           {consoleNav}
           <div className="gh-app">
-            <MyCourses isPrimary={false} onOpenActivity={navigate} displayName={profile?.displayName}
-                       uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
+            <CoursesHub
+              role={role}
+              coachUser={{ uid: user?.uid, email: user?.email, displayName: profile?.displayName, role }}
+              isPrimary={false}
+              onOpenActivity={navigate}
+              displayName={profile?.displayName}
+              uid={user?.uid}
+              classIds={profile?.classIds || []}
+              onJoined={refreshProfile}
+              initialTab={route.mode || 'my'}
+              initialDraftId={route.draftId || null}
+            />
           </div>
         </>
       );
@@ -529,8 +543,18 @@ export function App() {
         <LiveCourseDiscovery uid={user?.uid} classIds={profile?.classIds || []} name={profile?.displayName} onOpenActivity={navigate} />
       ) : route?.screen === 'courses' ? (
         <div className="gh-app">
-          <MyCourses isPrimary={isPrimary} onOpenActivity={navigate} displayName={profile?.displayName}
-                     uid={user?.uid} classIds={profile?.classIds || []} onJoined={refreshProfile} />
+          <CoursesHub
+            role={role}
+            coachUser={{ uid: user?.uid, email: user?.email, displayName: profile?.displayName, role }}
+            isPrimary={isPrimary}
+            onOpenActivity={navigate}
+            displayName={profile?.displayName}
+            uid={user?.uid}
+            classIds={profile?.classIds || []}
+            onJoined={refreshProfile}
+            initialTab={route.mode || 'my'}
+            initialDraftId={route.draftId || null}
+          />
         </div>
       ) : route?.screen === 'edmentum' ? (
         <div className="gh-app">
@@ -547,6 +571,18 @@ export function App() {
         <div className="gh-app">
           <CanvaPage uid={user?.uid} role={role} profile={profile} />
         </div>
+      ) : (role === 'teacher' || role === 'coach') && route?.screen === 'coach' && (route.page === 'learner' || route.page === 'report') ? (
+        <div className="gh-app">
+          <MyLearnersPage
+            coachUser={{
+              uid: user.uid,
+              email: user.email,
+              displayName: profile?.displayName || user.email?.split('@')[0] || 'Coach'
+            }}
+            route={route}
+            navigate={setHash}
+          />
+        </div>
       ) : (role === 'teacher' || role === 'coach') && (route?.screen === 'coach' || !route?.screen) ? (
         <div className="gh-app" style={{ minHeight: 'calc(100vh - 64px)' }}>
           <CoachDashboardHost
@@ -558,6 +594,7 @@ export function App() {
               role: profile?.role || role
             }}
             orgId={orgId}
+            initialTab={route?.page === 'classes' ? 'classes' : 'learners'}
           />
         </div>
       ) : (

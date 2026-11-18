@@ -47,7 +47,14 @@ export function LocaleProvider({ children }) {
 
 export function useLocale() {
   const ctx = useContext(LocaleContext);
-  if (!ctx) throw new Error('useLocale must be used inside <LocaleProvider>');
+  if (!ctx) {
+    return {
+      locale: 'en',
+      setLocale: () => {},
+      t: (key, vars) => translate('en', key, vars),
+      formatDate: (value, opts) => formatDate(value, 'en', opts)
+    };
+  }
   return ctx;
 }
 

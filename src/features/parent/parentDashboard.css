@@ -11,7 +11,7 @@
 .pd-hero-text { min-width: 0; }
 .pd-active { display: inline-flex; align-items: center; gap: 0.35rem; margin: 0.45rem 0 0; font-size: 0.82rem; color: var(--gh-text-3); }
 
-.pd-stats { list-style: none; padding: 0; margin: 0 0 1.25rem; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; }
+.pd-stats { list-style: none; padding: 0; margin: 0 0 1.25rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.85rem; }
 .pd-stat { background: var(--gh-surface); border: 1px solid var(--gh-border); border-radius: var(--gh-radius); padding: 0.95rem 1rem; display: grid; gap: 0.45rem; box-shadow: var(--gh-shadow-sm); }
 .pd-stat-label { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--gh-text-2); font-weight: 600; }
 .pd-stat-value { font: 700 1.65rem/1 var(--gh-font-display); color: var(--gh-heading); }
@@ -135,6 +135,14 @@ p.pd-small { margin: 0.35rem 0 0; }
 .pd-starters { display: grid; gap: 0.7rem; }
 .pd-starters li { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; align-items: start; font-size: 0.9rem; line-height: 1.45; background: var(--gh-green-50); padding: 0.7rem 0.8rem; border-radius: 10px; color: var(--gh-text); }
 .pd-starters svg { color: var(--gh-green-text); margin-top: 0.15rem; }
+
+.pd-live-indicator { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 700; color: var(--gh-green-text); background: var(--gh-green-50); padding: 0.2rem 0.55rem; border-radius: 999px; }
+.pd-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gh-green-text); animation: pdPulse 2s infinite ease-in-out; }
+@keyframes pdPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+
+.pd-badges-list { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.55rem; }
+.pd-badge-chip { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.75rem; border-radius: 999px; background: var(--gh-surface); border: 1px solid var(--gh-border); box-shadow: var(--gh-shadow-sm); font-size: 0.84rem; font-weight: 600; color: var(--gh-heading); }
+.pd-badge-chip svg { color: var(--gh-amber-text); flex: none; }
 
 .pd-privacy > summary { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 600; color: var(--gh-text-2); }
 .pd-privacy-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.85rem; }

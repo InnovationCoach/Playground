@@ -8,6 +8,7 @@ const STORAGE_KEY = 'hearisland.custom_pbl_programs.v1';
 function getStorage() {
   try {
     if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
+    if (typeof globalThis !== 'undefined' && globalThis.localStorage) return globalThis.localStorage;
   } catch {
     // Ignore
   }

@@ -23,6 +23,16 @@ export function ParentChildDashboard({ childUid, section = null, onBack }) {
   const res = useAsync(() => getChildProgress(childUid), [childUid]);
   const p = res.data;
 
+  // Live auto-refresh: poll every 12 seconds when tab is active
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!document.hidden && typeof res.reload === 'function') {
+        res.reload();
+      }
+    }, 12000);
+    return () => clearInterval(timer);
+  }, [childUid, res.reload]);
+
   // A SPARK Home card can open one section (#/parent/:uid/goals): scroll to it once the data is in.
   useEffect(() => {
     if (!p || !section) return;
@@ -88,6 +98,8 @@ function Dashboard({ p }) {
   const stats = [
     { id: 'pbl', icon: Rocket, label: t('parent.d.statPbl'), value: `${p.pbl.tasks.percent}%`, detail: t('parent.d.tasks', { done: p.pbl.tasks.done, total: p.pbl.tasks.total }), percent: p.pbl.tasks.percent, tone: 'purple' },
     { id: 'goals', icon: Target, label: t('parent.d.statGoals'), value: p.goals ? `${p.goals.steps.percent}%` : '–', detail: p.goals ? t('parent.d.stepsOf', { done: p.goals.steps.done, total: p.goals.steps.total }) : t('parent.d.notSet'), percent: p.goals?.steps.percent ?? 0, tone: 'green' },
+    { id: 'badges', icon: Trophy, label: t('parent.d.statBadges'), value: String(p.badges?.earnedCount ?? 0), detail: t('parent.d.badgesOfTotal', { count: p.badges?.earnedCount ?? 0, total: p.badges?.totalCount ?? 13 }), percent: p.badges?.percent ?? 0, tone: 'magenta' },
+    { id: 'duration', icon: Clock, label: t('parent.d.statDuration'), value: p.duration?.formatted || '0m', detail: t('parent.d.activeDays', { count: p.duration?.activeDays ?? 0 }), percent: Math.min(100, Math.round(((p.duration?.totalMinutes || 0) * 100) / 300)), tone: 'green' },
     { id: 'comp', icon: Sparkles, label: t('parent.d.statCompetencies'), value: String(p.competencies.shown), detail: t('parent.d.ofTotal', { total: p.competencies.total }), percent: Math.round((100 * p.competencies.shown) / p.competencies.total), tone: 'magenta' },
     { id: 'edm', icon: BookOpen, label: t('parent.d.statEdmentum'), value: edmAverage !== null ? `${edmAverage}%` : '–', detail: edmCourses.length ? t('parent.d.courses', { count: edmCourses.length }) : t(EDM_STAT[p.edmentum.status] || 'parent.d.notConnected'), percent: edmAverage ?? 0, tone: 'navy' }
   ];
@@ -97,7 +109,12 @@ function Dashboard({ p }) {
       <div className="pd-hero">
         <Avatar name={p.child.displayName} seed={p.child.uid} size={64} />
         <div className="pd-hero-text">
-          <h1>{p.child.displayName}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <h1>{p.child.displayName}</h1>
+            <span className="pd-live-indicator" title="Live progress sync active">
+              <span className="pd-live-dot" /> {t('parent.d.live')}
+            </span>
+          </div>
           <p className="gh-sub">{[p.child.yearLevel, p.child.schoolName, p.child.cohortCode].filter(Boolean).join(' · ')}</p>
           <p className="pd-active"><Clock size={14} aria-hidden="true" />{p.lastActiveAt ? t('parent.d.lastActive', { when: ago(p.lastActiveAt) }) : t('parent.d.neverActive')}</p>
         </div>
@@ -117,6 +134,7 @@ function Dashboard({ p }) {
       <div className="pd-grid">
         <div className="pd-col">
           <PblSection p={p} name={name} />
+          <BadgesSection badges={p.badges} />
           <GoalsSection goals={p.goals} name={name} ago={ago} />
         </div>
         <div className="pd-col">
@@ -336,6 +354,29 @@ function RecentSection({ recent, ago }) {
           ))}
         </ol>
       ) : <p className="gh-muted">{t('parent.d.recentNone')}</p>}
+    </Section>
+  );
+}
+
+function BadgesSection({ badges }) {
+  const { t } = useLocale();
+  if (!badges || !badges.items || !badges.items.length) {
+    return (
+      <Section id="badges" icon={Trophy} tone="magenta" title={t('parent.d.badges')} aside="0 unlocked">
+        <p className="gh-muted">{t('parent.d.badgesNone')}</p>
+      </Section>
+    );
+  }
+  return (
+    <Section id="badges" icon={Trophy} tone="magenta" title={t('parent.d.badges')} aside={t('parent.d.badgesOfTotal', { count: badges.earnedCount, total: badges.totalCount })}>
+      <ul className="pd-badges-list">
+        {badges.items.map((b) => (
+          <li key={b.id} className="pd-badge-chip" title={b.hint}>
+            <Trophy size={15} aria-hidden="true" />
+            <span>{b.label}</span>
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }

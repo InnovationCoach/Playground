@@ -228,6 +228,10 @@ export function AdminConsole({ route, role, user, profile, navigate, embedded = 
            aria-current={route.screen === 'admin' && route.page === 'leave' ? 'page' : undefined}>
           <HeartHandshake size={18} strokeWidth={2} aria-hidden="true" />{t('nav.leaveRequests')}
         </a>
+        <a href={hrefFor.inventory()} className="gh-nav-link"
+           aria-current={route.screen === 'admin' && route.page === 'inventory' ? 'page' : undefined}>
+          <Boxes size={18} strokeWidth={2} aria-hidden="true" />{t('nav.inventory')}
+        </a>
         <div className="gh-side-label">{t('nav.teaching')}</div>
         <a
           href="#/admin/learning"

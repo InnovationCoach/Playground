@@ -5,7 +5,10 @@
  *   #/admin/users/<uid>                                  one account
  *   #/admin/new/<kind>                                   create
  *   #/spark                                              SPARK Home: every role's landing page
- *   #/coach/dashboard                                    Coach Dashboard (teachers)
+ *   #/coach/dashboard                                    My Learners: the coach's home (teachers)
+ *   #/coach/learners/<uid>[/<tab>]                       one learner's profile (overview, projects, evidence, notes)
+ *   #/coach/learners/<uid>/report                        Prepare Parent Report for that learner
+ *   #/coach/classes                                      classes, join codes and the earlier class tools
  *   #/settings   #/courses   #/parent  #/parent/:childUid[/:section]  everyone else
  *   #/primary-resources  #/worksheet/<id>  #/guide/<id>  printable primary material
  *   #/pbl  #/pbl/<tab>                                   PBL Studio (term project)
@@ -32,6 +35,8 @@ const KINDS = ['staff', 'students', 'parents'];
 export const PARENT_SECTIONS = ['pbl', 'goals', 'competencies', 'edmentum'];
 /** Sections of the lower-secondary shell. Every other layout shows My Dashboard for these addresses. */
 const DASHBOARD_SECTIONS = ['learning', 'universe', 'portfolio'];
+/** Tabs of a learner's profile in My Learners; the first is the default. */
+export const COACH_TABS = ['overview', 'projects', 'evidence', 'notes'];
 
 export function parseRoute(hash) {
   const parts = String(hash || '').replace(/^#\/?/, '').split('/').filter(Boolean).map((p) => {
@@ -62,7 +67,12 @@ export function parseRoute(hash) {
   if (head === 'guide' && a) return { screen: 'guide', activityId: a };
   if (head === 'programs') return { screen: 'pbl', tab: 'programs' };
   if (head === 'courses' && a === 'discover') return { screen: 'courses', discover: true };
-  if (head === 'courses') return { screen: 'courses' };
+  if (head === 'courses') {
+    if (a === 'create') return { screen: 'courses', mode: 'create', draftId: b || null };
+    if (a === 'import') return { screen: 'courses', mode: 'import', draftId: b || null };
+    if (a === 'drafts') return { screen: 'courses', mode: 'drafts' };
+    return { screen: 'courses' };
+  }
   if (head === 'pbl' && a === 'programs' && b) return { screen: 'pbl', tab: 'programs', programId: b, section: c || null };
   if (head === 'pbl') return { screen: 'pbl', tab: a || null };
   if (head === 'parent') return { screen: 'parent', childUid: a || null, section: (a && PARENT_SECTIONS.includes(b)) ? b : null };
@@ -73,7 +83,15 @@ export function parseRoute(hash) {
   if (head === 'future-skills') return { screen: 'futureSkills' };
   if (head === 'dashboard') return DASHBOARD_SECTIONS.includes(a) ? { screen: 'dashboard', section: a } : { screen: 'dashboard' };
   if (head === 'spark') return { screen: 'spark' };
-  if (head === 'coach') return a === 'studio' ? { screen: 'spark' } : { screen: 'coach' };
+  if (head === 'coach') {
+    if (a === 'studio') return { screen: 'spark' };
+    if (a === 'learners' && b) {
+      if (c === 'report') return { screen: 'coach', page: 'report', uid: b };
+      return { screen: 'coach', page: 'learner', uid: b, tab: COACH_TABS.includes(c) ? c : 'overview' };
+    }
+    if (a === 'classes') return { screen: 'coach', page: 'classes' };
+    return { screen: 'coach', page: 'home' };
+  }
   if (head === 'canva') return { screen: 'canva' };
   if (head === 'landing' || head === 'about') return { screen: 'landing' };
   if (head === 'login' || head === 'signin') return { screen: 'login' };
@@ -99,12 +117,19 @@ export const hrefFor = {
   detail: (uid) => `#/admin/users/${encodeURIComponent(uid)}`,
   create: (kind) => `#/admin/new/${kind}`,
   settings: () => '#/settings',
-  courses: () => '#/courses',
+  courses: (mode, draftId) => {
+    if (mode === 'create') return `#/courses/create${draftId ? `/${encodeURIComponent(draftId)}` : ''}`;
+    if (mode === 'import') return `#/courses/import${draftId ? `/${encodeURIComponent(draftId)}` : ''}`;
+    if (mode === 'drafts') return '#/courses/drafts';
+    return '#/courses';
+  },
   courseDiscovery: () => '#/courses/discover',
   programs: () => '#/pbl/programs',
   space: () => '#/space',
   journey: () => '#/journey',
   portfolio: () => '#/portfolio',
+  createCourse: (draftId) => `#/courses/create${draftId ? `/${encodeURIComponent(draftId)}` : ''}`,
+  importCourse: () => '#/courses/import',
   parent: () => '#/parent',
   parentChild: (uid, section) => `#/parent/${encodeURIComponent(uid)}${section ? `/${section}` : ''}`,
   resources: () => '#/primary-resources',
@@ -120,5 +145,8 @@ export const hrefFor = {
   dashboard: () => '#/dashboard',
   spark: () => '#/spark',
   coach: () => '#/coach/dashboard',
+  coachLearner: (uid, tab) => `#/coach/learners/${encodeURIComponent(uid)}${tab && tab !== 'overview' ? `/${tab}` : ''}`,
+  coachReport: (uid) => `#/coach/learners/${encodeURIComponent(uid)}/report`,
+  coachClasses: () => '#/coach/classes',
   canva: () => '#/canva'
 };

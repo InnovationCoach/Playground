@@ -13,8 +13,8 @@ const ALLOWED = {
   student: ['courses', 'programs', 'space', 'journey', 'portfolio', 'pbl', 'goals', 'dashboard', 'futureSkills', 'homeSearch', 'community', 'spark', 'settings', 'canva'],
   teacher: ['coach', 'pbl', 'resources', 'community', 'spark', 'settings', 'canva', 'messages'],
   parent: ['parent', 'settings', 'spark'],
-  supervisor: ['admin', 'pbl', 'settings', 'resources', 'spark', 'canva'],
-  admin: ['admin', 'pbl', 'settings', 'resources', 'spark', 'canva']
+  supervisor: ['admin', 'courses', 'pbl', 'settings', 'resources', 'spark', 'canva'],
+  admin: ['admin', 'courses', 'pbl', 'settings', 'resources', 'spark', 'canva']
 };
 const t = (key, vars) => translate('en', key, vars);
 
@@ -95,7 +95,7 @@ describe('SPARK Home configuration', () => {
 describe('routes', () => {
   it('parses SPARK, the coach dashboard, parent sections and a search query', () => {
     expect(parseRoute(hrefFor.spark())).toEqual({ screen: 'spark' });
-    expect(parseRoute(hrefFor.coach())).toEqual({ screen: 'coach' });
+    expect(parseRoute(hrefFor.coach())).toEqual({ screen: 'coach', page: 'home' });
     expect(parseRoute('#/parent/abc/edmentum').section).toBe('edmentum');
     expect(parseRoute('#/parent/abc/nonsense').section).toBeNull();
     expect(parseRoute(hrefFor.homeSearch('solar car'))).toEqual({ screen: 'homeSearch', q: 'solar car' });

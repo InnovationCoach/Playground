@@ -36,6 +36,10 @@ describe('buildChildProgress', () => {
     expect(p.goals.habit.count).toBe(5);
     expect(p.goals.habit.target).toBe(5);
     expect(p.activities.done).toBe(2);
+    expect(p.badges.earnedCount).toBeGreaterThan(0);
+    expect(p.duration.totalMinutes).toBe(270);
+    expect(p.duration.formatted).toBe('4h 30m');
+    expect(p.duration.activeDays).toBe(5);
     const tagged = new Set(childRecords('active', NOW.getTime()).pblProject.evidence.flatMap((e) => e.competencies));
     expect(p.competencies.shown).toBe(tagged.size);
     expect(p.competencies.total).toBe(COMPETENCIES.length);

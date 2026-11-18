@@ -274,9 +274,8 @@ describe('routes', () => {
     expect(parseRoute('#/admin/new/wizards')).toEqual({ screen: 'admin', page: 'pilot' });
     expect(parseRoute('#/settings')).toEqual({ screen: 'settings' });
     expect(parseRoute('#/courses')).toEqual({ screen: 'courses' });
-    expect(parseRoute('#/coach/dashboard')).toEqual({ screen: 'coach' });
+    expect(parseRoute('#/coach/dashboard')).toEqual({ screen: 'coach', page: 'home' });
     expect(parseRoute('#/unknown/route')).toBeNull();
-    expect(parseRoute('#/coach/dashboard')).toEqual({screen:'coach'});
     expect(parseRoute('#/programs')).toEqual({ screen: 'pbl', tab: 'programs' });
     expect(parseRoute('')).toBeNull();
   });

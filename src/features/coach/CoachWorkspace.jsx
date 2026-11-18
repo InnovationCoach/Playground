@@ -19,6 +19,7 @@ import { SparkReviewDesk, SparkSafeguardingBanner } from '../sparkTutor/SparkRev
 import { useSparkSummaries } from '../sparkTutor/useSparkSummaries.js';
 import { sparkTutorUiEnabled } from '../sparkTutor/sparkTutorModel.js';
 import { LearnerSupervisionView } from './supervision/LearnerSupervisionView.jsx';
+import { hrefFor } from '../../app/routes.js';
 
 const SECTIONS = [['overview', 'Today', LayoutDashboard], ['supervision', 'Studio Supervision', Users], ['pbl', 'PBL programs', BookOpen], ['steam', 'STEAM Activities', FlaskConical], ['academic', 'Academic Progress', GraduationCap], ['goals', 'Learning Goals', FileText], ['calendar', 'School Calendar', LayoutDashboard], ['community', 'Posts for students', FileText]];
 // The Spark Review Desk appears only where the companion is switched on.
@@ -299,6 +300,7 @@ function Stat({ icon: Icon, label, value, caption, emptyHint }) { return <div cl
 function LearnerReview({ learner, section, onClose }) {
   const pbl = projectProgress(learner.records);
   return <div><div className="cw-review-header"><div><span className="cw-eyebrow">LEARNER WORK</span><h2>{learner.displayName || learner.email || 'Learner'}</h2></div><button className="cw-close" aria-label="Close learner review" onClick={onClose}><X size={19} /></button></div>
+    <a className="gh-btn gh-btn-ghost cw-record-link" href={hrefFor.coachLearner(learner.uid)}>Open coaching record <ArrowUpRight size={14} /></a><p className="cw-muted cw-record-hint">Check-ins, goals, private notes and the parent report.</p>
     {learner.recordError ? <p role="alert" className="cw-warning">{learner.recordError}</p> : section === 'steam' ? <><p className="cw-muted">Completion appears only when explicitly recorded.</p>{STEAM_ACTIVITIES.map(([id, name]) => {
       const record = learner.records[id], status = activityProgress(id, record);
       return <section className="cw-activity" key={id}><h3>{name}</h3><span className="cw-pill">{status.status}</span><p>{status.detail}</p>{record && <><small>{dateLabel(record.updatedAt)}</small><ActivityEvidence id={id} record={record} /></>}</section>;

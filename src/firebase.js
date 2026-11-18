@@ -203,6 +203,22 @@ export function serverTimestamp() {
   return new Date();
 }
 
+/** Removes a field in an update. */
+export function deleteField() {
+  if (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.delete) {
+    return firebase.firestore.FieldValue.delete();
+  }
+  return null;
+}
+
+/** A Firestore Timestamp (needed for TTL fields such as `expireAt`). */
+export function timestampFromMillis(ms) {
+  if (typeof firebase !== 'undefined' && firebase.firestore?.Timestamp?.fromMillis) {
+    return firebase.firestore.Timestamp.fromMillis(ms);
+  }
+  return new Date(ms);
+}
+
 export function increment(n = 1) {
   if (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.increment) {
     return firebase.firestore.FieldValue.increment(n);

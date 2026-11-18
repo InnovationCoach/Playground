@@ -86,3 +86,6 @@
   border-top-color: #3a4452;
 }
 
+
+.cw-record-link { display:inline-flex; align-items:center; gap:6px; text-decoration:none; font-size:13px; }
+.cw-record-hint { font-size:12px; margin:6px 0 16px; }

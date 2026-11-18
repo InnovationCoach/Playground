@@ -9,6 +9,8 @@
  *
  * `{name}` placeholders are filled by t(key, { name }).
  */
+import { ML_MESSAGES } from '../../features/coach/myLearners/i18n.js';
+
 export const LOCALES = [
   { code: 'en', label: 'English' },
   { code: 'zh', label: '中文' },
@@ -17,6 +19,7 @@ export const LOCALES = [
 
 export const messages = {
   en: {
+    ...ML_MESSAGES.en,
     'app.name': 'WeLearn SPARK',
     'common.loading': 'Loading…',
     'common.save': 'Save',
@@ -52,6 +55,12 @@ export const messages = {
     'nav.settings': 'Settings',
     'nav.myCourses': 'My Courses',
     'nav.programs':'Coach programs',
+    'nav.courses': 'Courses',
+    'nav.createCourse': 'Create Course',
+    'nav.importCourse': 'Import Course',
+    'courses.hubTitle': 'Course Management & Curriculum',
+    'courses.hubSubtitle': 'Create, import, and oversee courses aligned with the WeLearn curriculum framework.',
+    'courses.drafts': 'Drafts',
     'nav.home': 'Home',
     'nav.myDashboard': 'My Dashboard',
     'nav.searchPrograms': 'Find a Quest',
@@ -647,6 +656,13 @@ export const messages = {
     'parent.d.privacy': 'What {name} shares with you',
     'parent.d.shared': 'You can see',
     'parent.d.notShared': 'Private to {name}',
+    'parent.d.statBadges': 'Badges earned',
+    'parent.d.badgesOfTotal': '{count} of {total} unlocked',
+    'parent.d.statDuration': 'Time on platform',
+    'parent.d.activeDays': '{count} active days',
+    'parent.d.badges': 'Badges & Milestones',
+    'parent.d.badgesNone': 'No badges unlocked yet.',
+    'parent.d.live': 'Live',
 
     'errors.UNAUTHENTICATED': 'Your session has expired. Please sign in again.',
     'errors.FORBIDDEN': 'You do not have permission to do that.',
@@ -817,6 +833,7 @@ export const messages = {
   },
 
   zh: {
+    ...ML_MESSAGES.zh,
     'app.name': 'WeLearn SPARK',
     'common.loading': '加载中…',
     'common.save': '保存',
@@ -852,6 +869,12 @@ export const messages = {
     'nav.settings': '设置',
     'nav.myCourses': '我的课程',
     'nav.programs':'教练项目',
+    'nav.courses': '课程',
+    'nav.createCourse': '创建课程',
+    'nav.importCourse': '导入课程',
+    'courses.hubTitle': '课程管理与教学体系',
+    'courses.hubSubtitle': '创建、导入和管理符合 WeLearn 课程框架的课程。',
+    'courses.drafts': '草稿',
     'nav.home': '首页',
     'nav.myDashboard': '我的面板',
     'nav.searchPrograms': '寻找任务',
@@ -1440,6 +1463,13 @@ export const messages = {
     'parent.d.privacy': '{name} 与您分享的内容',
     'parent.d.shared': '您可以看到',
     'parent.d.notShared': '仅 {name} 可见',
+    'parent.d.statBadges': '获得徽章',
+    'parent.d.badgesOfTotal': '已解锁 {count}/{total}',
+    'parent.d.statDuration': '平台学习时长',
+    'parent.d.activeDays': '活跃天数：{count} 天',
+    'parent.d.badges': '徽章与里程碑',
+    'parent.d.badgesNone': '尚未解锁徽章。',
+    'parent.d.live': '实时',
 
     'errors.UNAUTHENTICATED': '登录已过期，请重新登录。',
     'errors.FORBIDDEN': '您没有执行此操作的权限。',
@@ -1617,6 +1647,7 @@ export const messages = {
   },
 
   th: {
+    ...ML_MESSAGES.th,
     'app.name': 'WeLearn SPARK',
     'common.loading': 'กำลังโหลด…',
     'common.save': 'บันทึก',
@@ -1652,6 +1683,12 @@ export const messages = {
     'nav.settings': 'การตั้งค่า',
     'nav.myCourses': 'รายวิชาของฉัน',
     'nav.programs':'โปรแกรมจากโค้ช',
+    'nav.courses': 'รายวิชา',
+    'nav.createCourse': 'สร้างรายวิชา',
+    'nav.importCourse': 'นำเข้ารายวิชา',
+    'courses.hubTitle': 'การจัดการรายวิชาและหลักสูตร',
+    'courses.hubSubtitle': 'สร้าง นำเข้า และดูแลรายวิชาที่สอดคล้องกับกรอบหลักสูตร WeLearn',
+    'courses.drafts': 'ฉบับร่าง',
     'nav.home': 'หน้าหลัก',
     'nav.myDashboard': 'แดชบอร์ดของฉัน',
     'nav.searchPrograms': 'ค้นหาเควสต์',
@@ -2240,6 +2277,13 @@ export const messages = {
     'parent.d.privacy': 'สิ่งที่ {name} แบ่งปันกับคุณ',
     'parent.d.shared': 'คุณเห็นได้',
     'parent.d.notShared': 'เป็นส่วนตัวของ {name}',
+    'parent.d.statBadges': 'เหรียญรางวัลที่ได้รับ',
+    'parent.d.badgesOfTotal': 'ปลดล็อกแล้ว {count} จาก {total}',
+    'parent.d.statDuration': 'เวลาเรียนบนแพลตฟอร์ม',
+    'parent.d.activeDays': 'ใช้งาน {count} วัน',
+    'parent.d.badges': 'เหรียญรางวัลและความสำเร็จ',
+    'parent.d.badgesNone': 'ยังไม่มีเหรียญรางวัลที่ปลดล็อก',
+    'parent.d.live': 'สด',
 
     'errors.UNAUTHENTICATED': 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง',
     'errors.FORBIDDEN': 'คุณไม่มีสิทธิ์ทำรายการนี้',

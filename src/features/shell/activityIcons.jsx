@@ -1,3 +1,4 @@
+import React from 'react';
 import { TreePalm, Shield, CodeXml, Waves, Sun, FlaskConical, Microscope, Hexagon, Compass, BookOpen } from 'lucide-react';
 
 /**

@@ -16,10 +16,10 @@ const HOST_TABS = [
   ['leave', 'Day-off requests', CalendarOff]
 ];
 
-export function CoachDashboardHost({ coachUser, orgId = null }) {
+export function CoachDashboardHost({ coachUser, orgId = null, initialTab = 'learners' }) {
   const effectiveOrgId = orgId || coachUser?.orgId || null;
   const { effectiveTheme, setUserTheme } = useTheme();
-  const [tab, setTab] = useState('learners');
+  const [tab, setTab] = useState(initialTab);
   const [invite, setInvite] = useState(false);
   const [classId, setClassId] = useState('all');
   const [rosterVersion, setRosterVersion] = useState(0);

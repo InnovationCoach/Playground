@@ -13,6 +13,25 @@ This plan covers what is left in the project notes. Each item has an owner, a de
 | D4 | Keep or delete the ~4,700 lines of unused React components. | Mani | Affects the bundle and what is reviewed. Default: delete what is not imported, after a list review. |
 | D5 | Is the deploy freeze lifted? The freeze was set on 2026-09-30 "until every page is complete". | Mani | Gates the staging and live steps below. |
 
+## Decisions taken (2026-10-26, relayed by the user)
+| # | Decision | Status |
+|---|---|---|
+| D1 | Consent gate removed | Confirmed by Mani in writing |
+| D2 | `role: 'learner'` is a real value; coaches may change `activeProgramId` | Decided yes. Gemini to confirm the rules match. |
+| D3 | Canva: public integration for now. Enterprise later. | Decided. Workstream E follows the public path. |
+| D4 | Dead code | `refactor/clean-legacy-components` included in `release/live-candidate` (Mani, 2026-10-29). |
+| D5 | Deploy freeze lifted, "let's deploy" | **Not yet a written go for a named step.** See below. |
+| PL | Plant Lab lab book visible to coaches and to parents | Coaches: yes. Parents: approved by Mani in writing, 2026-10-26, under the rule in PD below. |
+| PD | Parent visibility: parents see what coaches see about the child's learning output, except the parent privacy list and 2e support notes | **Approved by Mani in writing, 2026-10-26.** |
+
+**D5, what is needed before any deploy:** a written go from Mani for each named step (the release branch, then a Hosting preview channel, then live). A release branch does not exist yet. Gemini's integration prompt is the next step.
+
+**Resolved by PD (approved 2026-10-26).** The original conflict was: "anything coaches can see, parents can too" conflicts with two rules already in the docs:
+- `docs/PARENT-DASHBOARD-CONTRACT.md` (tested privacy): parents never see the child's mood check-ins and notes, evidence text, AI logs, sparks, goal strengths/supports/phrases, or recharge choices. Coaches can read several of these today (goals, dailyStats, evidence).
+- `docs/lms-plan.html` (W2E): 2e support notes are visible only to the learner's own teachers.
+
+Proposed wording for Mani to confirm: "Parents see whatever a coach sees about the child's learning output (work, evidence, Plant Lab book, progress), except the privacy list above and 2e support notes." Until confirmed, the Plant Lab book is coach-only.
+
 ## 2. Consent (D1), done 2026-10-26
 The gate is not enforced in code. No source file reads the consent fields. The requirement lives in:
 - `docs/parent-engagement-contract.md` D2 and section 5
