@@ -25,6 +25,17 @@ import { LOGO_URL } from '../../app/brand.js';
 import { ContactAdminModal } from './ContactAdminModal.jsx';
 import './landing.css';
 
+// Fixed, decorative star positions (same seeded recipe as My Universe): still, never animated.
+const HERO_STARS = (() => {
+  let seed = 7;
+  const next = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  return Array.from({ length: 90 }, (_, i) => ({
+    x: next() * 100,
+    y: next() * 60,
+    r: i % 9 === 0 ? 0.26 : i % 3 === 0 ? 0.16 : 0.1
+  }));
+})();
+
 export function SparkLandingPage({ onSignIn }) {
   const [contactOpen, setContactOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
@@ -218,6 +229,26 @@ export function SparkLandingPage({ onSignIn }) {
 
       {/* 1. HERO SECTION */}
       <section id="hero" className="spark-hero-section">
+        {/* SPARK Night background layer: the same still sky learners see in My Universe */}
+        <div className="spark-hero-bg" aria-hidden="true">
+          <svg className="spark-hero-stars" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice" focusable="false">
+            {HERO_STARS.map((star, i) => (
+              <circle key={i} cx={star.x} cy={star.y} r={star.r} />
+            ))}
+            <polyline className="spark-hero-constellation" points="4,40 8,36 12,38 15,33" />
+            <polyline className="spark-hero-constellation lit" points="85,22 89,27 93,24 96,29" />
+            {[[4, 40], [8, 36], [12, 38], [15, 33]].map(([x, y]) => (
+              <circle key={`a${x}`} className="spark-hero-node" cx={x} cy={y} r=".3" />
+            ))}
+            {[[85, 22], [89, 27], [93, 24], [96, 29]].map(([x, y]) => (
+              <circle key={`b${x}`} className="spark-hero-node lit" cx={x} cy={y} r=".36" />
+            ))}
+          </svg>
+          <span className="spark-hero-glow purple" />
+          <span className="spark-hero-glow lime" />
+          <span className="spark-hero-stripe" />
+        </div>
+
         <div className="spark-hero-badge">
           <Sparkles size={14} /> Built for Gifted & Twice-Exceptional Learners
         </div>
