@@ -76,3 +76,21 @@ export function reflectionItem(stage, text, existing) {
     phaseReflection: true
   };
 }
+
+/** Competency ids an item or PBL Studio entry is linked to (always an array). */
+export const linkedCompetencies = (entry) => (Array.isArray(entry?.competencies) ? entry.competencies : []);
+
+/**
+ * How many pieces of evidence in this stage show each of the stage's
+ * competencies (core + stretch). Counts portfolio uploads and PBL Studio
+ * entries; competencies outside the stage's list are not counted here.
+ */
+export function stageCompetencyCoverage(stage, group) {
+  const ids = [...stage.competencies, ...stage.stretch];
+  const counts = Object.fromEntries(ids.map((id) => [id, 0]));
+  for (const entry of [...group.evidence, ...group.studio]) {
+    for (const id of new Set(linkedCompetencies(entry))) if (id in counts) counts[id] += 1;
+  }
+  const core = stage.competencies.filter((id) => counts[id] > 0).length;
+  return { counts, core, coreTotal: stage.competencies.length };
+}

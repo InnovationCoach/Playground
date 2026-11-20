@@ -19,7 +19,7 @@ import { uploadLearnerFile } from '../src/features/personalization/usePersonaliz
 import { LocaleProvider } from '../src/app/i18n/LocaleProvider.jsx';
 import { JourneyPortfolio } from '../src/features/journey/JourneyPortfolio.jsx';
 import { menuFor } from '../src/features/shell/Sidebar.jsx';
-import { STAGES, kindForFile, titleFromFile, wordCount, groupJourney, stageStatus, journeyProgress, reflectionItem } from '../src/features/journey/journeyModel.js';
+import { STAGES, kindForFile, titleFromFile, wordCount, groupJourney, stageStatus, journeyProgress, reflectionItem, stageCompetencyCoverage } from '../src/features/journey/journeyModel.js';
 import { normalizeItem } from '../src/features/personalization/personalizationModel.js';
 
 let host, root;
@@ -82,6 +82,27 @@ describe('journey model', () => {
     expect(normalizeItem({ ...base, phase: 'test' }, 'u1')).toMatchObject({ phase: 'test' });
     expect(normalizeItem(base, 'u1')).not.toHaveProperty('phase');
   });
+  it('links evidence only to the competencies listed for its stage', () => {
+    const base = { kind: 'writing', title: 'Spark list', body: 'x', audiences: [], phase: 'explore' };
+    expect(normalizeItem({ ...base, competencies: ['sdl-05', 'ct-11', 'sdl-05'] }, 'u1').competencies).toEqual(['sdl-05', 'ct-11']);
+    expect(normalizeItem({ ...base, competencies: [] }, 'u1').competencies).toEqual([]);
+    expect(normalizeItem(base, 'u1')).not.toHaveProperty('competencies');
+    expect(() => normalizeItem({ ...base, competencies: ['ec-05'] }, 'u1')).toThrow(/this stage/);
+    expect(() => normalizeItem({ ...base, competencies: 'sdl-05' }, 'u1')).toThrow();
+    expect(() => normalizeItem({ ...base, phase: undefined, competencies: ['sdl-05'] }, 'u1')).toThrow(/this stage/);
+    expect(() => normalizeItem({ ...base, phaseReflection: true, competencies: ['sdl-05'] }, 'u1')).toThrow(/this stage/);
+  });
+  it('counts linked evidence per stage competency, uploads and PBL Studio alike', () => {
+    const explore = STAGES[0];
+    const groups = groupJourney(
+      [{ id: 'a', phase: 'explore', kind: 'image', title: 'P', competencies: ['sdl-05', 'ctps-03'] }, { id: 'b', phase: 'explore', kind: 'writing', title: 'N', body: 'x', competencies: ['sdl-05', 'ct-11'] }],
+      { evidence: [{ id: 's', phase: 'explore', title: 'Spark', competencies: ['sdl-05', 'ec-05'] }] }
+    );
+    const cov = stageCompetencyCoverage(explore, groups.explore);
+    expect(cov.counts).toMatchObject({ 'sdl-05': 3, 'ctps-03': 1, 'ct-11': 1, 'ctps-01': 0 });
+    expect(cov.counts).not.toHaveProperty('ec-05');
+    expect(cov).toMatchObject({ core: 2, coreTotal: 5 });
+  });
 });
 
 describe('Portfolio maker', () => {
@@ -128,6 +149,41 @@ describe('Portfolio maker', () => {
     expect(space.current.saveItem).toHaveBeenCalledWith(item, true);
   });
 
+  it('shows the stage competencies with how much evidence each has', async () => {
+    space.current = makeSpace([{ id: 'n1', revision: 1, kind: 'writing', title: 'Tally', body: '14', link: '', media: null, audiences: [], phase: 'explore', competencies: ['ctps-03'] }]);
+    await render(<JourneyPortfolio uid="u1" profile={{ displayName: 'Akira' }} />);
+    const cov = host.querySelector('.jp-covwrap');
+    expect(cov.textContent).toContain('1 of 5 have evidence');
+    expect(cov.textContent).toContain('1.1.5Learning Curiosity');
+    expect(cov.textContent).toContain('Stretch (advanced)');
+    expect(host.querySelector('.jp-cov[data-has]').textContent).toContain('Data Interpretation');
+    expect(host.querySelector('.jp-linked').textContent).toContain('Data Interpretation');
+  });
+
+  it('lets a learner tick competencies on existing evidence and saves them', async () => {
+    const item = { id: 'n1', revision: 2, kind: 'image', title: 'Photo', body: '', link: '', media: { path: 'learnerMedia/u1/a/p.png', name: 'p.png' }, audiences: [], phase: 'explore' };
+    space.current = makeSpace([item]);
+    await render(<JourneyPortfolio uid="u1" profile={{ displayName: 'Akira' }} />);
+    expect(host.textContent).toContain('Not linked to a competency yet.');
+    await act(async () => { host.querySelector('[aria-label="Link competencies: Photo"]').click(); });
+    const boxes = [...host.querySelectorAll('.jp-comp-check input')];
+    expect(boxes).toHaveLength(6);
+    await act(async () => { boxes[0].click(); boxes[5].click(); });
+    await act(async () => { button('Save links').click(); });
+    expect(space.current.saveItem).toHaveBeenCalledWith({ ...item, competencies: ['sdl-05', 'ct-11'] });
+  });
+
+  it('includes the competency checklist when adding a note', async () => {
+    space.current = makeSpace([]);
+    await render(<JourneyPortfolio uid="u1" profile={{ displayName: 'Akira' }} />);
+    await act(async () => { button('Add a note or link').click(); });
+    await type(host.querySelector('.jp-form input'), 'Spark list');
+    await type(host.querySelector('.jp-form textarea'), 'Three surprises');
+    await act(async () => { host.querySelectorAll('.jp-comp-check input')[1].click(); });
+    await act(async () => { host.querySelector('.jp-form button[type=submit]').click(); });
+    expect(space.current.saveItem).toHaveBeenCalledWith(expect.objectContaining({ title: 'Spark list', phase: 'explore', competencies: ['ctps-01'] }));
+  });
+
   it('renders a printable document and prints it', async () => {
     space.current = makeSpace([{ id: 'r', phase: 'explore', kind: 'writing', title: 'R', body: 'My reflection', phaseReflection: true }]);
     const print = vi.spyOn(window, 'print').mockImplementation(() => {});
@@ -136,6 +192,7 @@ describe('Portfolio maker', () => {
     expect(host.querySelectorAll('.jd-stage')).toHaveLength(7);
     expect(host.textContent).toContain('My reflection');
     expect(host.textContent).toContain('No reflection written yet.');
+    expect(host.querySelector('.jd-cov').textContent).toContain('1.1.5 Learning Curiosity');
     expect(document.body.classList.contains('jp-printing')).toBe(true);
     await act(async () => { button('Print or save as PDF').click(); });
     expect(print).toHaveBeenCalled();
