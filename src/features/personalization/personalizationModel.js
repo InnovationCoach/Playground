@@ -2,6 +2,8 @@ import {PHASES} from '../pbl/content/pblModel.js';
 
 /** Design-thinking stages a portfolio entry can belong to (Portfolio maker). */
 export const PHASE_IDS = PHASES.map(p => p.id);
+/** Competency ids a learner may link to evidence in each stage: the core list plus stretch. */
+export const STAGE_COMPETENCIES = Object.fromEntries(PHASES.map(p => [p.id, [...p.competencies, ...p.stretch]]));
 
 export const PALETTES = {
   plum: {label: 'Plum', accent: '#623580', ink: '#202b38'},
@@ -61,6 +63,15 @@ export function normalizeItem(value, uid) {
     if (!result.phase || result.kind !== 'writing') invalid('A stage reflection must be written work with a stage.');
     if (!result.body) invalid('Write your reflection before saving.');
     result.phaseReflection = true;
+  }
+  // Competencies this evidence shows, chosen by the learner from the stage's own
+  // list. Only written when sent: an empty list clears the links (PATCH merges
+  // fields), and editors that never send the key leave existing links alone.
+  if (value.competencies !== undefined && value.competencies !== null) {
+    if (!Array.isArray(value.competencies) || value.competencies.length > 12 || value.competencies.some(id => typeof id !== 'string')) invalid('Choose competencies from the list for this stage.');
+    const allowed = result.phase && !result.phaseReflection ? STAGE_COMPETENCIES[result.phase] : [];
+    if (value.competencies.some(id => !allowed.includes(id))) invalid('Link only competencies listed for this stage.');
+    if (result.phase && !result.phaseReflection) result.competencies = [...new Set(value.competencies)];
   }
   return result;
 }

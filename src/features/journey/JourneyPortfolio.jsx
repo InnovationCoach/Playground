@@ -8,12 +8,13 @@ import { MediaImage, MediaVideo, mediaKind } from '../media/MediaViewer.jsx';
  * so file checks, size limits and privacy settings stay exactly the same.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Upload, FileText, Image as ImageIcon, Film, Box, Code2, Link2, Pencil, Trash2, Check, Download, ArrowLeft, Printer, Lightbulb, Lock } from 'lucide-react';
+import { Upload, FileText, Image as ImageIcon, Film, Box, Code2, Link2, Pencil, Trash2, Check, Download, ArrowLeft, Printer, Lightbulb, Lock, Target } from 'lucide-react';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { usePersonalization, uploadLearnerFile } from '../personalization/usePersonalization.js';
 import { usePblProject } from '../pbl/engine/usePblProject.js';
 import { TERM } from '../pbl/content/pblModel.js';
-import { STAGES, kindForFile, titleFromFile, wordCount, groupJourney, stageStatus, journeyProgress, reflectionItem } from './journeyModel.js';
+import { competencyById } from '../pbl/content/competencies.js';
+import { STAGES, kindForFile, titleFromFile, wordCount, groupJourney, stageStatus, journeyProgress, reflectionItem, linkedCompetencies, stageCompetencyCoverage } from './journeyModel.js';
 import './journey.css';
 
 const KIND_ICON = { image: ImageIcon, recording: Film, model: Box, code: Code2, writing: FileText };
@@ -69,6 +70,7 @@ export function JourneyPortfolio({ uid, profile, printView = false }) {
           <h2 id="jp-stage-title">{stage.title}</h2>
           <p className="jp-goal"><strong>{t('journey.goalLabel')}:</strong> {stage.goal}</p>
           {stage.evidence?.length > 0 && <p className="jp-ideas"><Lightbulb size={16} aria-hidden="true" /><strong>{t('journey.suggested')}:</strong> {stage.evidence.join(' · ')}</p>}
+          <StageCompetencies stage={stage} group={groups[stage.id]} t={t} />
         </div>
         <div className="jp-columns">
           <EvidenceColumn key={`ev-${stage.id}`} stage={stage} group={groups[stage.id]} space={space} uid={uid} t={t} />
@@ -126,7 +128,7 @@ function EvidenceColumn({ stage, group, space, uid, t }) {
         {group.studio.map((entry) => (
           <li key={`studio-${entry.id}`} className="jp-ev jp-ev-studio">
             <span className="jp-ev-icon" aria-hidden="true"><FileText size={20} /></span>
-            <div className="jp-ev-body"><small>{t('journey.fromStudio')}</small><strong>{entry.title}</strong>{entry.body && <p>{entry.body}</p>}{entry.link && <a href={entry.link} target="_blank" rel="noopener noreferrer">{entry.link}</a>}</div>
+            <div className="jp-ev-body"><small>{t('journey.fromStudio')}</small><strong>{entry.title}</strong>{entry.body && <p>{entry.body}</p>}{entry.link && <a href={entry.link} target="_blank" rel="noopener noreferrer">{entry.link}</a>}<LinkedChips ids={linkedCompetencies(entry)} stage={stage} t={t} /></div>
           </li>
         ))}
       </ul>
@@ -139,15 +141,17 @@ function EvidenceForm({ stage, item, space, t, onDone }) {
   const [title, setTitle] = useState(item?.title || '');
   const [body, setBody] = useState(item?.body || '');
   const [link, setLink] = useState(item?.link || '');
+  const [competencies, setCompetencies] = useState(() => linkedCompetencies(item));
   return (
     <form className="jp-form" onSubmit={async (e) => {
       e.preventDefault();
       const base = item || { kind: 'writing', media: null, audiences: [], phase: stage.id };
-      if (await space.saveItem({ ...base, title: title.trim(), body, link: link.trim() })) onDone();
+      if (await space.saveItem({ ...base, title: title.trim(), body, link: link.trim(), competencies })) onDone();
     }}>
       <label>{t('journey.titleLabel')}<input required maxLength={160} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
       <label>{t('journey.caption')}<textarea maxLength={12000} rows={3} value={body} onChange={(e) => setBody(e.target.value)} /></label>
       <label>{t('journey.link')}<input type="url" pattern="https://.*" value={link} onChange={(e) => setLink(e.target.value)} /></label>
+      <CompetencyChecklist stage={stage} value={competencies} onChange={setCompetencies} t={t} />
       <div className="jp-row">
         <button type="submit" className="jp-btn jp-btn-primary" disabled={space.busy}>{t('journey.save')}</button>
         <button type="button" className="jp-btn jp-btn-ghost" onClick={onDone}>{t('journey.cancel')}</button>
@@ -159,7 +163,9 @@ function EvidenceForm({ stage, item, space, t, onDone }) {
 function EvidenceCard({ item, stage, space, t }) {
   const [editing, setEditing] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [linking, setLinking] = useState(false);
   const Icon = KIND_ICON[item.kind] || FileText;
+  const linked = linkedCompetencies(item);
   if (editing) return <li className="jp-ev"><EvidenceForm stage={stage} item={item} space={space} t={t} onDone={() => setEditing(false)} /></li>;
   return (
     <li className="jp-ev">
@@ -174,16 +180,109 @@ function EvidenceCard({ item, stage, space, t }) {
           : <audio controls preload="metadata" src={item.media.url} />)}
         {item.media && !['image', 'recording'].includes(item.kind) && <small>{item.media.name}</small>}
         {item.link && <a href={item.link} target="_blank" rel="noopener noreferrer">{item.link}</a>}
+        {linking
+          ? <CompetencyEditor item={item} stage={stage} space={space} t={t} onDone={() => setLinking(false)} />
+          : linked.length > 0
+            ? <LinkedChips ids={linked} stage={stage} t={t} />
+            : <p className="jp-comp-nudge">{t('journey.compNone')}</p>}
         {confirm
           ? <div className="jp-row" role="alert"><span>{t('journey.confirmRemove', { title: item.title })}</span>
               <button type="button" className="jp-btn jp-btn-danger" disabled={space.busy} onClick={() => space.saveItem(item, true)}>{t('journey.remove')}</button>
               <button type="button" className="jp-btn jp-btn-ghost" onClick={() => setConfirm(false)}>{t('journey.keep')}</button></div>
           : <div className="jp-row">
+              {!linking && <button type="button" className="jp-btn jp-btn-small" aria-label={`${t('journey.compLink')}: ${item.title}`} onClick={() => setLinking(true)}><Target size={15} aria-hidden="true" />{t('journey.compLink')}</button>}
               <button type="button" className="jp-icon-btn" aria-label={`${t('journey.edit')}: ${item.title}`} title={t('journey.edit')} onClick={() => setEditing(true)}><Pencil size={16} aria-hidden="true" /></button>
               <button type="button" className="jp-icon-btn" aria-label={`${t('journey.remove')}: ${item.title}`} onClick={() => setConfirm(true)}><Trash2 size={16} aria-hidden="true" /></button>
             </div>}
       </div>
     </li>
+  );
+}
+
+/** The stage's competencies with how much linked evidence each one has. */
+function StageCompetencies({ stage, group, t }) {
+  const { counts, core, coreTotal } = stageCompetencyCoverage(stage, group);
+  const chip = (id, stretch) => {
+    const c = competencyById(id);
+    if (!c) return null;
+    const n = counts[id];
+    return (
+      <li key={id} className="jp-cov" data-has={n > 0 || undefined} data-stretch={stretch || undefined} title={c.statement}>
+        {n > 0 ? <Check size={14} aria-hidden="true" /> : <span className="jp-cov-dot" aria-hidden="true" />}
+        <span className="jp-code">{c.code}</span>{c.title}
+        <span className="jp-cov-n">{n > 0 ? t('journey.compCount', { n }) : <span className="jp-sr">{t('journey.compMissing')}</span>}</span>
+      </li>
+    );
+  };
+  return (
+    <div className="jp-covwrap">
+      <p className="jp-cov-head"><Target size={16} aria-hidden="true" /><strong>{t('journey.compTitle')}</strong><span className="jp-muted">{t('journey.compCoverage', { done: core, total: coreTotal })}</span></p>
+      <ul className="jp-cov-list" aria-label={t('journey.compCore')}>{stage.competencies.map((id) => chip(id, false))}</ul>
+      {stage.stretch.length > 0 && <>
+        <p className="jp-comps-sub">{t('journey.compStretch')}</p>
+        <ul className="jp-cov-list" aria-label={t('journey.compStretch')}>{stage.stretch.map((id) => chip(id, true))}</ul>
+      </>}
+    </div>
+  );
+}
+
+/** Tick-boxes for the competencies a piece of evidence shows (stage list only). */
+function CompetencyChecklist({ stage, value, onChange, t }) {
+  const toggle = (id) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  const groups = [['journey.compCore', stage.competencies, false], ['journey.compStretch', stage.stretch, true]];
+  return (
+    <fieldset className="jp-comps">
+      <legend>{t('journey.compLegend')}</legend>
+      {groups.map(([label, ids, stretch]) => ids.length > 0 && (
+        <div key={label}>
+          <p className="jp-comps-sub">{t(label)}</p>
+          <ul>
+            {ids.map((id) => {
+              const c = competencyById(id);
+              if (!c) return null;
+              return (
+                <li key={id}>
+                  <label className="jp-comp-check" data-stretch={stretch || undefined}>
+                    <input type="checkbox" checked={value.includes(id)} onChange={() => toggle(id)} />
+                    <span className="jp-comp-text"><span><span className="jp-code">{c.code}</span>{c.title}</span><small>{c.statement}</small></span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </fieldset>
+  );
+}
+
+function CompetencyEditor({ item, stage, space, t, onDone }) {
+  const [value, setValue] = useState(() => linkedCompetencies(item));
+  return (
+    <form className="jp-form jp-comp-editor" onSubmit={async (e) => {
+      e.preventDefault();
+      if (await space.saveItem({ ...item, competencies: value })) onDone();
+    }}>
+      <CompetencyChecklist stage={stage} value={value} onChange={setValue} t={t} />
+      <div className="jp-row">
+        <button type="submit" className="jp-btn jp-btn-primary" disabled={space.busy}>{t('journey.compSave')}</button>
+        <button type="button" className="jp-btn jp-btn-ghost" onClick={onDone}>{t('journey.cancel')}</button>
+      </div>
+    </form>
+  );
+}
+
+/** Compact chips for the competencies an entry is linked to. */
+function LinkedChips({ ids, stage, t }) {
+  if (!ids.length) return null;
+  return (
+    <ul className="jp-linked" aria-label={t('journey.compShows')}>
+      {ids.map((id) => {
+        const c = competencyById(id);
+        if (!c) return null;
+        return <li key={id} data-stretch={stage?.stretch.includes(id) || undefined} title={c.statement}><span className="jp-code">{c.code}</span>{c.title}</li>;
+      })}
+    </ul>
   );
 }
 
@@ -251,6 +350,8 @@ function JourneyDocument({ space, groups, progress, name, t }) {
               <p className="jd-goal">{s.goal}</p>
               <h3>{t('journey.reflection')}</h3>
               <p className="jd-reflection">{g.reflection?.body || t('journey.noReflection')}</p>
+              <h3>{t('journey.compTitle')}</h3>
+              <PrintCoverage stage={s} group={g} t={t} />
               <h3>{t('journey.evidence')}</h3>
               {!g.evidence.length && !g.studio.length && <p className="jd-muted">{t('journey.noEvidence')}</p>}
               <div className="jd-evidence">
@@ -262,12 +363,13 @@ function JourneyDocument({ space, groups, progress, name, t }) {
                       {item.body && <span className="jd-body">{item.body}</span>}
                       {item.media && item.kind !== 'image' && <span className="jd-muted">{t('journey.printMedia', { name: item.media.name })}</span>}
                       {item.link && <span className="jd-link">{item.link}</span>}
+                      <PrintLinked ids={linkedCompetencies(item)} t={t} />
                     </figcaption>
                   </figure>
                 ))}
                 {g.studio.map((entry) => (
                   <figure key={`s-${entry.id}`} className="jd-ev jd-ev-writing">
-                    <figcaption><small className="jd-muted">{t('journey.fromStudio')}</small><strong>{entry.title}</strong>{entry.body && <span className="jd-body">{entry.body}</span>}{entry.link && <span className="jd-link">{entry.link}</span>}</figcaption>
+                    <figcaption><small className="jd-muted">{t('journey.fromStudio')}</small><strong>{entry.title}</strong>{entry.body && <span className="jd-body">{entry.body}</span>}{entry.link && <span className="jd-link">{entry.link}</span>}<PrintLinked ids={linkedCompetencies(entry)} t={t} /></figcaption>
                   </figure>
                 ))}
               </div>
@@ -277,4 +379,25 @@ function JourneyDocument({ space, groups, progress, name, t }) {
       </article>
     </div>
   );
+}
+
+function PrintLinked({ ids, t }) {
+  const names = ids.map(competencyById).filter(Boolean).map((c) => `${c.code} ${c.title}`);
+  if (!names.length) return null;
+  return <span className="jd-comps"><strong>{t('journey.compShows')}:</strong> {names.join(' · ')}</span>;
+}
+
+function PrintCoverage({ stage, group, t }) {
+  const { counts } = stageCompetencyCoverage(stage, group);
+  const row = (id, stretch) => {
+    const c = competencyById(id);
+    if (!c) return null;
+    return (
+      <li key={id}>
+        <span>{c.code} {c.title}{stretch ? ` (${t('journey.compStretchShort')})` : ''}</span>
+        <span>{counts[id] > 0 ? t('journey.compCount', { n: counts[id] }) : t('journey.compMissing')}</span>
+      </li>
+    );
+  };
+  return <ul className="jd-cov">{stage.competencies.map((id) => row(id, false))}{stage.stretch.map((id) => row(id, true))}</ul>;
 }
