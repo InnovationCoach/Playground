@@ -8,9 +8,20 @@ import { hrefFor } from '../../app/routes.js';
 import { loadClasses, issueCode, revokeCode, setClassProgram, explainError } from './classCodes.js';
 import './classPanel.css';
 
+/** Badge and picker labels for each class cohort. */
+export const CLASS_COHORT_LABELS = {
+  WPR: 'Primary · WPR (Grades 1–5)',
+  WLS: 'Lower Secondary · WLS (Ages 11–14)',
+  WHS: 'Higher Secondary · WHS (Ages 15–18)'
+};
+
 export function cohortForClass(cls) {
   if (!cls) return 'WLS';
   const rawCohort = String(cls.cohort || cls.cohortId || '').toUpperCase();
+  // WeLearn Primary (Grades 1–5), plus the older age-based primary cohorts.
+  if (rawCohort.includes('WPR') || rawCohort.includes('PRIMARY')) {
+    return 'WPR';
+  }
   if (rawCohort.includes('WHS') || rawCohort.includes('HIGH') || rawCohort.includes('SENIOR')) {
     return 'WHS';
   }
@@ -18,12 +29,31 @@ export function cohortForClass(cls) {
     return 'WLS';
   }
   const str = `${cls.name || ''} ${cls.id || ''}`.toLowerCase();
+  // Name-based: "Primary", "Grade 3", "G4". Not "wpr": it is also the school's name.
+  if (/\b(primary|grade\s*[1-5]|g[1-5])\b/i.test(str)) {
+    return 'WPR';
+  }
   // Year 10, 11, 12, WPR 11, 12, etc. -> Higher Secondary (WHS, Ages 15-18)
   if (/\b(year\s*1[0-2]|yr\s*1[0-2]|1[0-2][a-z]?|higher|whs|senior)\b/i.test(str)) {
     return 'WHS';
   }
   // Default to Lower Secondary (WLS, Ages 11-14)
   return 'WLS';
+}
+
+/**
+ * Whether a program's age band suits a cohort. Each program is listed once in
+ * the class picker: under the class's own cohort when it fits, otherwise under
+ * "Other age bands". Programs with no age band fit every cohort. WPR covers
+ * Grades 1–5, roughly ages 6–10.
+ */
+export function programFitsCohort(program, cohort) {
+  const ages = `${program?.ageBand || ''} ${program?.targetAgeRange || ''}`.match(/\d+/g)?.map(Number) || [];
+  if (!ages.length) return true;
+  const min = Math.min(...ages);
+  const max = Math.max(...ages);
+  if (cohort === 'WPR') return min <= 10 && max >= 6;
+  return cohort === 'WHS' ? max >= 15 : min <= 14 && max >= 11;
 }
 
 /**
@@ -36,7 +66,7 @@ export function ClassProgramsPanel({ coachUser }) {
   const [classes, setClasses] = useState(null);
   const [presenting, setPresenting] = useState(null);
   const [availablePrograms, setAvailablePrograms] = useState(() => PROGRAMS);
-  const [cohortFilter, setCohortFilter] = useState('all'); // 'all' | 'WLS' | 'WHS'
+  const [cohortFilter, setCohortFilter] = useState('all'); // 'all' | 'WPR' | 'WLS' | 'WHS'
 
   const reload = useCallback(async () => {
     setClasses(await loadClasses(classIds));
@@ -135,8 +165,7 @@ export function ClassProgramsPanel({ coachUser }) {
   const patch = (id, next) => setClasses((list) => list.map((c) => (c.id === id ? { ...c, ...next } : c)));
 
   const classList = classes || [];
-  const wlsCount = classList.filter((c) => cohortForClass(c) === 'WLS').length;
-  const whsCount = classList.filter((c) => cohortForClass(c) === 'WHS').length;
+  const countFor = (code) => classList.filter((c) => cohortForClass(c) === code).length;
   const filteredClasses = classList.filter((c) => cohortFilter === 'all' || cohortForClass(c) === cohortFilter);
 
   return (
@@ -161,20 +190,20 @@ export function ClassProgramsPanel({ coachUser }) {
           >
             All Cohorts ({classes.length})
           </button>
-          <button
-            type="button"
-            className={`cp-cohort-filter-btn ${cohortFilter === 'WLS' ? 'is-active' : ''}`}
-            onClick={() => setCohortFilter('WLS')}
-          >
-            Lower Secondary &ldquo;WLS&rdquo; ({wlsCount}) · Ages 11–14
-          </button>
-          <button
-            type="button"
-            className={`cp-cohort-filter-btn ${cohortFilter === 'WHS' ? 'is-active' : ''}`}
-            onClick={() => setCohortFilter('WHS')}
-          >
-            Higher Secondary &ldquo;WHS&rdquo; ({whsCount}) · Ages 15–18
-          </button>
+          {[
+            ['WPR', 'Primary', 'Grades 1–5'],
+            ['WLS', 'Lower Secondary', 'Ages 11–14'],
+            ['WHS', 'Higher Secondary', 'Ages 15–18']
+          ].map(([code, name, range]) => (
+            <button
+              key={code}
+              type="button"
+              className={`cp-cohort-filter-btn ${cohortFilter === code ? 'is-active' : ''}`}
+              onClick={() => setCohortFilter(code)}
+            >
+              {name} &ldquo;{code}&rdquo; ({countFor(code)}) · {range}
+            </button>
+          ))}
         </div>
       )}
 
@@ -212,7 +241,6 @@ function ClassRow({ cls, uid, availablePrograms = PROGRAMS, onChange, onPresent 
   const [copied, setCopied] = useState(false);
   const program = availablePrograms.find((p) => p.id === cls.programId) || programById(cls.programId);
   const cohort = cohortForClass(cls);
-  const isWLS = cohort === 'WLS';
 
   if (cls.missing || cls.error) {
     return (
@@ -257,28 +285,26 @@ function ClassRow({ cls, uid, availablePrograms = PROGRAMS, onChange, onPresent 
       <div className="cp-class">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
           <strong>{cls.name}</strong>
-          <span className={`cp-cohort-badge ${isWLS ? 'cp-cohort-wls' : 'cp-cohort-whs'}`}>
-            {isWLS ? 'Lower Secondary · WLS (Ages 11–14)' : 'Higher Secondary · WHS (Ages 15–18)'}
+          <span className={`cp-cohort-badge cp-cohort-${cohort.toLowerCase()}`}>
+            {CLASS_COHORT_LABELS[cohort]}
           </span>
         </div>
         <label className="cp-field">
           <span>PBL program</span>
           <select value={cls.programId || ''} disabled={busy === 'program'} onChange={(e) => chooseProgram(e.target.value)}>
             <option value="">No program yet</option>
-            <optgroup label="Lower Secondary (WLS) · Ages 11–14">
-              {availablePrograms.filter((p) => !p.ageBand || p.ageBand.includes('11') || p.ageBand.includes('14') || p.targetAgeRange?.includes('11')).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title || p.identity?.short}{p.source === 'studio' ? ' (Studio)' : ''}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Higher Secondary (WHS) · Ages 15–18">
-              {availablePrograms.filter((p) => p.ageBand?.includes('15') || p.ageBand?.includes('16') || p.ageBand?.includes('18') || p.targetAgeRange?.includes('15') || (!p.ageBand && !p.targetAgeRange)).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title || p.identity?.short}{p.source === 'studio' ? ' (Studio)' : ''}
-                </option>
-              ))}
-            </optgroup>
+            {[
+              [CLASS_COHORT_LABELS[cohort], availablePrograms.filter((p) => programFitsCohort(p, cohort))],
+              ['Other age bands', availablePrograms.filter((p) => !programFitsCohort(p, cohort))]
+            ].filter(([, list]) => list.length).map(([label, list]) => (
+              <optgroup key={label} label={label}>
+                {list.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title || p.identity?.short}{p.source === 'studio' ? ' (Studio)' : ''}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </label>
         {program && (

@@ -9,6 +9,7 @@ import { TERM, PHASES } from '../pbl/content/pblModel.js';
 import { safeLink } from '../pbl/engine/pblProject.js';
 import { activityProgress, dateLabel, projectProgress, STEAM_ACTIVITIES } from './progressModel.js';
 import { isRosterLearner } from './learners/rosterFilter.js';
+import { COHORT_OPTIONS, COHORT_SCOPES, learnerCohortId } from './learners/learnerCohort.js';
 import '../admin/admin.css';
 import './coachWorkspace.css';
 import { CommunityFeed } from '../community/CommunityFeed.jsx';
@@ -173,8 +174,8 @@ export function CoachWorkspace({ coachUser, onAddStudent, rosterVersion = 0, ini
 
   // Loaded once for every tab so a safeguarding concern is never hidden on the desk.
   const spark = useSparkSummaries(sparkTutorUiEnabled);
-  const scope = data.classes.some(c => c.id === classId) ? classId : 'all';
-  const classLearners = data.learners.filter(l => scope === 'all' || (scope.startsWith('cohort:') ? l.cohortId === scope.slice(7) : l.classIds?.includes(scope)));
+  const scope = COHORT_SCOPES.includes(classId) || data.classes.some(c => c.id === classId) ? classId : 'all';
+  const classLearners = data.learners.filter(l => scope === 'all' || (scope.startsWith('cohort:') ? learnerCohortId(l) === scope.slice(7) : l.classIds?.includes(scope)));
   const learners = classLearners.filter(l => `${l.displayName || ''} ${l.email || ''}`.toLowerCase().includes(search.trim().toLowerCase()));
   const selected = learners.find(l => l.uid === selectedId);
   const projects = classLearners.map(l => !l.recordError && projectProgress(l.records)).filter(Boolean);
@@ -184,7 +185,7 @@ export function CoachWorkspace({ coachUser, onAddStudent, rosterVersion = 0, ini
 
   return <main className="gh-app cw-app"><div className="cw-page">
     <div className="cw-heading"><div><span className="cw-eyebrow">YOUR COACHING WORKSPACE</span><h1>See the learning. Guide the next step.</h1><p>PBL projects, STEAM investigations and academic learning, in one place.</p></div><div className="cw-tools">{onAddStudent && <button className="gh-btn gh-btn-primary" onClick={onAddStudent}>Add a student</button>}<button className="gh-btn gh-btn-ghost" onClick={() => { setSection('pbl'); setSelectedId(null); }}>{t('openPrograms')}</button><button className="gh-btn gh-btn-ghost" disabled={data.state === 'loading'} onClick={() => setReload(n => n + 1)}><RefreshCw size={16} /> Refresh records</button></div></div>
-    <div className="cw-context"><div className="cw-class"><label htmlFor="cw-class">Class</label><select id="cw-class" className="gh-select" value={scope} onChange={e => { setClassId(e.target.value); onClassChange?.(e.target.value); setSelectedId(null); }}><option value="all">All · WLS · WHS</option><option value="cohort:cohort-wls">WLS · Grade 6–8</option><option value="cohort:cohort-whs">WHS · Grade 9–12</option>{data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div><strong>Legacy portfolio: {TERM.label}</strong><span className="cw-muted">{` · ${TERM.theme}`}</span></div><span className="cw-updated">{data.updatedAt ? `Loaded ${dateLabel(data.updatedAt)}` : 'Cloud records'}</span></div>
+    <div className="cw-context"><div className="cw-class"><label htmlFor="cw-class">Class</label><select id="cw-class" className="gh-select" value={scope} onChange={e => { setClassId(e.target.value); onClassChange?.(e.target.value); setSelectedId(null); }}><option value="all">All · WPR · WLS · WHS</option>{COHORT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}{data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div><strong>Legacy portfolio: {TERM.label}</strong><span className="cw-muted">{` · ${TERM.theme}`}</span></div><span className="cw-updated">{data.updatedAt ? `Loaded ${dateLabel(data.updatedAt)}` : 'Cloud records'}</span></div>
     {section !== 'spark' && <SparkSafeguardingBanner summaries={spark} onOpen={() => { setSection('spark'); setSelectedId(null); }} />}
     <nav className="cw-sections" aria-label="Coach progress sections">{VISIBLE_SECTIONS.map(([id, label, Icon]) => <button key={id} aria-current={section === id ? 'page' : undefined} onClick={() => { setSection(id); setSelectedId(null); }}><Icon size={18} />{label}</button>)}</nav>
     {data.state === 'loading' && <Empty title="Loading your classes" text="Checking access and retrieving learner records." />}
@@ -208,7 +209,7 @@ export function CoachWorkspace({ coachUser, onAddStudent, rosterVersion = 0, ini
       </div>
     )}
     {section === 'pbl' && <div style={{ marginTop: '1rem' }}><ProgramLibrary isCoach={true} classIds={data.classes.map(c => c.id)} /></div>}
-    {['academic','goals','calendar'].includes(section) && <SchoolLearningPanel classScope={scope} hideTabs initialArea={section} />}
+    {['academic','goals','calendar'].includes(section) && <SchoolLearningPanel classScope={scope.startsWith('cohort:') ? 'all' : scope} hideTabs initialArea={section} />}
     {data.state === 'ready' && ['overview','steam'].includes(section) && <>
       {section === 'overview' && <>
         <div className="cw-today-grid" aria-label="Today focus areas">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { schoolRequest } from '../../services/api/apiClient.js';
+import { cohortForGrade } from '../../utils/schoolCohorts.js';
 
 export function StudentInviteDialog({ onClose, onCreated, initialClassId = 'all' }) {
   const dialog = useRef(null);
@@ -71,12 +72,13 @@ export function StudentInviteDialog({ onClose, onCreated, initialClassId = 'all'
         <label>Student full name<input autoComplete="off" name="displayName" required maxLength={160} value={form.displayName} onChange={change} /></label>
         <label>Student email<input type="email" autoComplete="off" name="email" required maxLength={254} value={form.email} onChange={change} /></label>
         <label>Class<select name="classId" required value={form.classId} onChange={change}>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-        <label>Grade level (Secondary)
+        <label>Grade level
           <select name="gradeLevel" value={form.gradeLevel} onChange={e => {
             const val = e.target.value;
             const g = val ? Number(val) : null;
-            const derivedCohort = g ? (g <= 8 ? 'cohort-wls' : 'cohort-whs') : '';
-            const derivedAgeBand = g ? (g <= 8 ? '13-15' : '16-18') : form.ageBand;
+            const cohort = g ? cohortForGrade(g) : null;
+            const derivedCohort = cohort?.cohortId || '';
+            const derivedAgeBand = cohort ? (cohort.code === 'WPR' ? 'primary' : cohort.code === 'WLS' ? '13-15' : '16-18') : form.ageBand;
             setForm(f => ({
               ...f,
               gradeLevel: val,
@@ -84,7 +86,10 @@ export function StudentInviteDialog({ onClose, onCreated, initialClassId = 'all'
               ageBand: derivedAgeBand || f.ageBand
             }));
           }}>
-            <option value="">No grade specified (Primary / general)</option>
+            <option value="">No grade specified</option>
+            <optgroup label="Primary · WPR (Grades 1–5)">
+              {[1, 2, 3, 4, 5].map(g => <option key={g} value={g}>Grade {g} (WPR)</option>)}
+            </optgroup>
             <optgroup label="Lower Secondary · WLS (Ages 11–14)">
               <option value="6">Grade 6 (WLS)</option>
               <option value="7">Grade 7 (WLS)</option>
@@ -101,7 +106,7 @@ export function StudentInviteDialog({ onClose, onCreated, initialClassId = 'all'
         <label>Learning age band
           <select name="ageBand" required value={form.ageBand} onChange={change}>
             <option value="">Choose an age band</option>
-            <option value="primary">Primary (Ages 6–11)</option>
+            <option value="primary">Primary / WPR (Grades 1–5)</option>
             <option value="13-15">Lower Secondary / WLS (Ages 11–14)</option>
             <option value="16-18">Higher Secondary / WHS (Ages 15–18)</option>
           </select>
