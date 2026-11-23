@@ -23,6 +23,7 @@ router.use(requireOneRosterAccess);
 
 function toArray(payload) {
   if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.Results)) return payload.Results;
   if (Array.isArray(payload?.Data)) return payload.Data;
   return [];
 }

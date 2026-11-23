@@ -269,14 +269,14 @@ router.get('/ags/lineitems', requireAgsScope('https://purl.imsglobal.org/spec/lt
 
   try {
     const programsRaw = await edmentumClient.getPrograms();
-    const programs = Array.isArray(programsRaw) ? programsRaw : (programsRaw?.Data || []);
+    const programs = Array.isArray(programsRaw) ? programsRaw : (programsRaw?.Results || programsRaw?.Data || []);
     const targetProgramId = req.query?.programId || edmentumClient.defaultProgramId || programs[0]?.ProgramId;
     if (!targetProgramId) {
       return res.json([]);
     }
 
     const classesRaw = await edmentumClient.getProgramClasses(targetProgramId, { pageSize: 100 });
-    const classes = Array.isArray(classesRaw) ? classesRaw : (classesRaw?.Data || []);
+    const classes = Array.isArray(classesRaw) ? classesRaw : (classesRaw?.Results || classesRaw?.Data || []);
     const lineItems = classes
       .filter((c) => c && c.ClassId != null && c.IsActive !== false)
       .map((c) => ({

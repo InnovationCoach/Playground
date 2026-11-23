@@ -147,11 +147,17 @@ export function createEdmentumRouter({ client = edmentumClient } = {}) {
         classes = classes.filter((c) => String(c.ClassId) === String(targetClassId));
       }
 
+      const getLearnerId = (entry) => (
+        entry != null && typeof entry === 'object'
+          ? (entry.UserId ?? entry.LearnerUserId)
+          : entry
+      );
+
       // Pre-filter using ClassDetail.Learners so we only fetch metrics for enrolled classes
       if (edmentumUser?.UserId != null) {
         classes = classes.filter((cls) => {
           if (!Array.isArray(cls.Learners)) return true;
-          return cls.Learners.some((l) => (l.UserId ?? l.LearnerUserId) === edmentumUser.UserId);
+          return cls.Learners.some((l) => Number(getLearnerId(l)) === Number(edmentumUser.UserId));
         });
       }
 
@@ -168,14 +174,15 @@ export function createEdmentumRouter({ client = edmentumClient } = {}) {
           ? cls.Learners
           : toArray(await client.getClassUsers(cid).catch(() => []));
         const assignment = edmentumUser?.UserId != null
-          ? learnersList.find((u) => (u.UserId ?? u.LearnerUserId) === edmentumUser.UserId)
+          ? learnersList.find((u) => Number(getLearnerId(u)) === Number(edmentumUser.UserId))
           : null;
 
         if (edmentumUser?.UserId != null && learnersList.length > 0 && !assignment) {
           continue;
         }
 
-        enrolledClasses.push({ ...cls, IsComplete: assignment?.IsComplete ?? false });
+        const isComplete = assignment && typeof assignment === 'object' ? Boolean(assignment.IsComplete) : false;
+        enrolledClasses.push({ ...cls, IsComplete: isComplete });
 
         const [progress, grades, timeOnTask, activities, scores] = await Promise.all([
           client.getClassProgress(cid).catch(() => []),
