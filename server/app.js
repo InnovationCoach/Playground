@@ -52,6 +52,7 @@ import { createSparkTutorRouter } from './routes/spark-tutor.js';
 import masteryRouter from './routes/mastery.js';
 import accessRequestsRouter from './routes/access-requests.js';
 import print3dRouter from './routes/print3d.js';
+import tinkerProxyRouter from './routes/tinkerProxy.js';
 
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const MODEL_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/;
@@ -240,6 +241,7 @@ export function createApp(options = {}) {
   }));
   app.use('/api/mastery', masteryRouter);
   app.use('/api/3dprint', print3dRouter);
+  app.use('/api/tinker', tinkerProxyRouter);
 
   function generationConfigFor(modelName, maxOutputTokens) {
     const cfg = { maxOutputTokens, temperature: 0.7, topP: 0.9 };
