@@ -23,6 +23,8 @@ import { getProgram } from '../../services/pblService.js';
 import { db, collection, query, where, getDocs } from '../../firebase.js';
 import { loadClasses } from '../coach/classCodes.js';
 import { providerStatus } from '../edmentum/providerState.js';
+import { useEdmentumDashboard } from '../edmentum/useEdmentumDashboard.js';
+import { openEdmentumLtiCourse } from '../edmentum/edmentumDashboardService.js';
 import { ProviderStatusCard } from '../edmentum/ProviderStatusCard.jsx';
 import { useSchoolResource } from '../school/useSchoolWorkspace.js';
 import { CatalogCard, srOnly } from './CatalogCard.jsx';
@@ -76,6 +78,7 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
   // Edmentum state comes only from the school service; see providerState.js.
   const learningContext = useSchoolResource(uid && !isPrimary ? '/api/learning-context' : null);
   const edStatus = providerStatus(learningContext.data?.providerStatus?.edmentum, learningContext);
+  const edmentumDashboard = useEdmentumDashboard('student', {}, { enabled: Boolean(uid) });
 
   useEffect(() => {
     const onCustomChanged = () => {
@@ -382,8 +385,43 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
       )}
 
       <section className="gh-section" aria-labelledby="mc-edmentum">
-        <SectionHead id="mc-edmentum" icon={LibraryBig} bg="#eef6ff" fg="#1d5a8f" title={t('courses.provider.edmentum')} />
-        {isPrimary ? (
+        <SectionHead id="mc-edmentum" icon={LibraryBig} bg="#eef6ff" fg="#1d5a8f" title={t('courses.provider.edmentum')}
+                     count={edmentumDashboard.data?.providerStatus === 'connected' ? edmentumDashboard.data.enrolledClasses?.length : undefined} />
+        {edmentumDashboard.loading ? (
+          <div className="gh-placeholder" role="status">Loading your Edmentum courses…</div>
+        ) : edmentumDashboard.data?.providerStatus === 'connected' && (edmentumDashboard.data?.enrolledClasses?.length || 0) > 0 ? (
+          <ul className="gh-course-grid">
+            {edmentumDashboard.data.enrolledClasses.map((course) => (
+              <li className="gh-course-card" key={course.classId} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                  <strong style={{ fontSize: 15 }}>{course.courseName || course.name}</strong>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                    {course.progressPercent != null ? `${course.progressPercent}%` : '—'}
+                  </span>
+                </div>
+                <div style={{ width: '100%', height: 6, borderRadius: 999, background: 'rgba(15,23,42,0.08)', overflow: 'hidden' }} aria-hidden="true">
+                  <div style={{ width: `${course.progressPercent ?? 0}%`, height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #0ea5e9, #10b981)' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--gh-text-2, #64748b)' }}>
+                  <span>{course.activitiesCompleted != null && course.activitiesTotal != null ? `${course.activitiesCompleted}/${course.activitiesTotal} activities` : 'In progress'}</span>
+                  <span>{course.currentGrade != null ? `Grade: ${course.currentGrade}%` : 'No grade yet'}</span>
+                </div>
+                <a
+                  className="sd-link"
+                  href={edmentumDashboard.data?.edmentumPortalUrl || 'https://f1.apps.elf.edmentum.com/courseware'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openEdmentumLtiCourse(course, edmentumDashboard.data?.edmentumPortalUrl || 'https://f1.apps.elf.edmentum.com/courseware');
+                  }}
+                >
+                  Open in Edmentum <ArrowRight size={15} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : isPrimary ? (
           <div className="gh-placeholder">
             <span className="gh-empty-icon"><Link2 size={20} aria-hidden="true" /></span>
             {t('courses.edmentumPending')}

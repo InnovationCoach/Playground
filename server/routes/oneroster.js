@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getFirestore } from 'firebase-admin/firestore';
 import { requireClaims } from '../middleware/auth.js';
 import { sendError } from '../lib/errors.js';
+import { edmentumClient } from '../lib/edmentumClient.js';
 
 const router = Router();
 
@@ -20,113 +21,19 @@ function requireOneRosterAccess(req, res, next) {
 router.use(requireClaims);
 router.use(requireOneRosterAccess);
 
-/**
- * OneRoster 1.1 / 1.2 REST API Endpoints
- * Enables automated bi-directional student & class rostering exchange with Edmentum
- */
+function toArray(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.Data)) return payload.Data;
+  return [];
+}
 
-// Synthetic fixture users for OneRoster when in mock/emulator mode
-const FIXTURE_USERS = [
-  {
-    sourcedId: 'usr-student-liam',
-    status: 'active',
-    dateLastModified: new Date().toISOString(),
-    enabledUser: true,
-    orgSourcedIds: ['org-welearn-main'],
-    role: 'student',
-    username: 'liam.chen',
-    userIds: [{ type: 'SIS', identifier: 'SIS-LIAM-01' }],
-    givenName: 'Liam',
-    familyName: 'Chen',
-    email: 'liam.chen@school.edu',
-    grades: ['8']
-  },
-  {
-    sourcedId: 'usr-student-maya',
-    status: 'active',
-    dateLastModified: new Date().toISOString(),
-    enabledUser: true,
-    orgSourcedIds: ['org-welearn-main'],
-    role: 'student',
-    username: 'maya.patel',
-    userIds: [{ type: 'SIS', identifier: 'SIS-MAYA-02' }],
-    givenName: 'Maya',
-    familyName: 'Patel',
-    email: 'maya.patel@school.edu',
-    grades: ['7']
-  },
-  {
-    sourcedId: 'usr-coach-donovan',
-    status: 'active',
-    dateLastModified: new Date().toISOString(),
-    enabledUser: true,
-    orgSourcedIds: ['org-welearn-main'],
-    role: 'teacher',
-    username: 'coach.donovan',
-    userIds: [{ type: 'SIS', identifier: 'SIS-DONOVAN' }],
-    givenName: 'Donovan',
-    familyName: 'Rivera',
-    email: 'coach.rivera@school.edu'
-  }
-];
-
-const FIXTURE_CLASSES = [
-  {
-    sourcedId: 'cls-sec-eng-01',
-    status: 'active',
-    dateLastModified: new Date().toISOString(),
-    title: 'Senior Engineering & Innovation',
-    classCode: 'ENG-2026',
-    classType: 'scheduled',
-    courseSourcedId: 'crs-edmentum-stem',
-    schoolSourcedId: 'org-welearn-main',
-    termSourcedIds: ['term-2026-t1']
-  },
-  {
-    sourcedId: 'cls-sec-sci-02',
-    status: 'active',
-    dateLastModified: new Date().toISOString(),
-    title: 'Integrated Science & Biology',
-    classCode: 'BIO-2026',
-    classType: 'scheduled',
-    courseSourcedId: 'crs-edmentum-bio',
-    schoolSourcedId: 'org-welearn-main',
-    termSourcedIds: ['term-2026-t1']
-  }
-];
-
-const FIXTURE_ENROLLMENTS = [
-  {
-    sourcedId: 'enr-liam-eng',
-    status: 'active',
-    dateLastModified: new Date().toISOString(),
-    userSourcedId: 'usr-student-liam',
-    classSourcedId: 'cls-sec-eng-01',
-    schoolSourcedId: 'org-welearn-main',
-    role: 'student',
-    primary: true
-  },
-  {
-    sourcedId: 'enr-maya-sci',
-    status: 'active',
-    dateLastModified: new Date().toISOString(),
-    userSourcedId: 'usr-student-maya',
-    classSourcedId: 'cls-sec-sci-02',
-    schoolSourcedId: 'org-welearn-main',
-    role: 'student',
-    primary: true
-  },
-  {
-    sourcedId: 'enr-coach-eng',
-    status: 'active',
-    dateLastModified: new Date().toISOString(),
-    userSourcedId: 'usr-coach-donovan',
-    classSourcedId: 'cls-sec-eng-01',
-    schoolSourcedId: 'org-welearn-main',
-    role: 'teacher',
-    primary: true
-  }
-];
+async function resolveTargetProgramId(req) {
+  if (req.query?.programId) return String(req.query.programId);
+  if (edmentumClient.defaultProgramId) return String(edmentumClient.defaultProgramId);
+  const programs = toArray(await edmentumClient.getPrograms());
+  const courseware = programs.find((p) => p.Application === 3) || programs[0];
+  return courseware?.ProgramId != null ? String(courseware.ProgramId) : null;
+}
 
 /**
  * GET /api/oneroster/v1p1/users
@@ -135,68 +42,137 @@ router.get('/users', async (req, res) => {
   try {
     const db = getFirestore();
     const orgId = req.onerosterOrgId;
-    const snap = await db.collection('users').where('orgId', '==', orgId).limit(50).get();
+    const snap = await db.collection('users').where('orgId', '==', orgId).limit(200).get();
     if (!snap.empty) {
       const users = snap.docs.map((doc) => {
         const d = doc.data();
+        const parts = String(d.displayName || '').trim().split(/\s+/).filter(Boolean);
         return {
           sourcedId: doc.id,
-          status: 'active',
-          dateLastModified: new Date().toISOString(),
-          enabledUser: true,
+          status: d.status === 'inactive' ? 'tobedeleted' : 'active',
+          dateLastModified: d.updatedAt || new Date().toISOString(),
+          enabledUser: d.status !== 'inactive',
           orgSourcedIds: [orgId],
-          role: d.role === 'teacher' || d.role === 'coach' ? 'teacher' : 'student',
-          username: d.email?.split('@')[0] || doc.id,
-          givenName: (d.displayName || '').split(' ')[0] || 'User',
-          familyName: (d.displayName || '').split(' ').slice(1).join(' ') || '',
+          role: d.role === 'teacher' || d.role === 'coach' ? 'teacher' : (d.role === 'admin' ? 'administrator' : 'student'),
+          username: d.edmentumPlatoName || d.email?.split('@')[0] || doc.id,
+          userIds: d.edmentumUserId ? [{ type: 'Edmentum', identifier: String(d.edmentumUserId) }] : [],
+          givenName: parts[0] || d.firstName || 'User',
+          familyName: parts.slice(1).join(' ') || d.lastName || '',
           email: d.email || ''
         };
       });
       return res.json({ users });
     }
-  } catch {
-    // Database query error
+    return res.json({ users: [] });
+  } catch (err) {
+    return sendError(res, err.status || 500, err.code || 'INTERNAL', err.message || 'Unable to load OneRoster users.');
   }
-
-  res.json({ users: [] });
 });
 
 /**
  * GET /api/oneroster/v1p1/classes
  */
-router.get('/classes', (req, res) => {
-  res.json({ classes: FIXTURE_CLASSES });
+router.get('/classes', async (req, res) => {
+  if (!edmentumClient.isConfigured()) {
+    return res.json({ classes: [] });
+  }
+  try {
+    const programId = await resolveTargetProgramId(req);
+    if (!programId) return res.json({ classes: [] });
+    const rawClasses = toArray(await edmentumClient.getProgramClassDetails(programId, { pageSize: 100 }));
+    const nowIso = new Date().toISOString();
+    const classes = rawClasses.map((c) => ({
+      sourcedId: String(c.ClassId),
+      status: c.IsActive === false ? 'tobedeleted' : 'active',
+      dateLastModified: nowIso,
+      title: c.Name || c.CourseName || `Class ${c.ClassId}`,
+      classCode: String(c.ClassId),
+      classType: 'scheduled',
+      courseSourcedId: c.CourseId != null ? String(c.CourseId) : String(c.ClassId),
+      schoolSourcedId: req.onerosterOrgId,
+      termSourcedIds: []
+    }));
+    return res.json({ classes });
+  } catch (err) {
+    return sendError(res, err.status || 502, err.code || 'EDMENTUM_API_ERROR', err.message || 'Unable to load OneRoster classes.');
+  }
 });
 
 /**
  * GET /api/oneroster/v1p1/enrollments
  */
-router.get('/enrollments', (req, res) => {
-  res.json({ enrollments: FIXTURE_ENROLLMENTS });
+router.get('/enrollments', async (req, res) => {
+  if (!edmentumClient.isConfigured()) {
+    return res.json({ enrollments: [] });
+  }
+  try {
+    const programId = await resolveTargetProgramId(req);
+    if (!programId) return res.json({ enrollments: [] });
+    const rawClasses = toArray(await edmentumClient.getProgramClassDetails(programId, { pageSize: 100 }));
+    const nowIso = new Date().toISOString();
+    const enrollments = [];
+    for (const cls of rawClasses) {
+      for (const learner of Array.isArray(cls.Learners) ? cls.Learners : []) {
+        if (learner?.UserId == null) continue;
+        enrollments.push({
+          sourcedId: `enr-${cls.ClassId}-${learner.UserId}`,
+          status: 'active',
+          dateLastModified: nowIso,
+          userSourcedId: String(learner.UserId),
+          classSourcedId: String(cls.ClassId),
+          schoolSourcedId: req.onerosterOrgId,
+          role: 'student',
+          primary: true
+        });
+      }
+      for (const instructor of Array.isArray(cls.Instructors) ? cls.Instructors : []) {
+        if (instructor?.UserId == null) continue;
+        enrollments.push({
+          sourcedId: `enr-${cls.ClassId}-t-${instructor.UserId}`,
+          status: 'active',
+          dateLastModified: nowIso,
+          userSourcedId: String(instructor.UserId),
+          classSourcedId: String(cls.ClassId),
+          schoolSourcedId: req.onerosterOrgId,
+          role: 'teacher',
+          primary: true
+        });
+      }
+    }
+    return res.json({ enrollments });
+  } catch (err) {
+    return sendError(res, err.status || 502, err.code || 'EDMENTUM_API_ERROR', err.message || 'Unable to load OneRoster enrollments.');
+  }
 });
 
 /**
  * GET /api/oneroster/v1p1/courses
  */
-router.get('/courses', (req, res) => {
-  res.json({
-    courses: [
-      {
-        sourcedId: 'crs-edmentum-bio',
-        status: 'active',
-        title: 'Edmentum Biology (NGSS Aligned)',
-        courseCode: 'EDM-BIO-101',
-        orgSourcedId: 'org-welearn-main'
-      },
-      {
-        sourcedId: 'crs-edmentum-stem',
-        status: 'active',
-        title: 'Edmentum Engineering & Maker Robotics',
-        courseCode: 'EDM-ENG-201',
-        orgSourcedId: 'org-welearn-main'
+router.get('/courses', async (req, res) => {
+  if (!edmentumClient.isConfigured()) {
+    return res.json({ courses: [] });
+  }
+  try {
+    const programId = await resolveTargetProgramId(req);
+    if (!programId) return res.json({ courses: [] });
+    const rawClasses = toArray(await edmentumClient.getProgramClassDetails(programId, { pageSize: 100 }));
+    const byCourse = new Map();
+    for (const c of rawClasses) {
+      const courseId = String(c.CourseId ?? c.ClassId);
+      if (!byCourse.has(courseId)) {
+        byCourse.set(courseId, {
+          sourcedId: courseId,
+          status: c.IsActive === false ? 'tobedeleted' : 'active',
+          title: c.CourseName || c.Name || `Course ${courseId}`,
+          courseCode: courseId,
+          orgSourcedId: req.onerosterOrgId
+        });
       }
-    ]
-  });
+    }
+    return res.json({ courses: Array.from(byCourse.values()) });
+  } catch (err) {
+    return sendError(res, err.status || 502, err.code || 'EDMENTUM_API_ERROR', err.message || 'Unable to load OneRoster courses.');
+  }
 });
 
 export default router;

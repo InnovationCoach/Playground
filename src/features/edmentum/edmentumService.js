@@ -46,5 +46,11 @@ export async function launchEdmentumCourse(course, { role } = {}) {
   if (!data || typeof data.launchUrl !== 'string' || !data.launchUrl || typeof data.id_token !== 'string' || !data.id_token) {
     return { ok: false, code: 'BAD_RESPONSE', message: LAUNCH_ERRORS.BAD_RESPONSE };
   }
-  return { ok: true, launchUrl: data.launchUrl, idToken: data.id_token, courseTitle: data.courseTitle || course.title };
+  return {
+    ok: true,
+    launchUrl: data.launchUrl,
+    idToken: data.id_token,
+    courseTitle: data.courseTitle || course.title,
+    ...(data.oidcStartUrl ? { oidcStartUrl: data.oidcStartUrl } : {})
+  };
 }

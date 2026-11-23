@@ -19,6 +19,7 @@ import { SparkReviewDesk, SparkSafeguardingBanner } from '../sparkTutor/SparkRev
 import { useSparkSummaries } from '../sparkTutor/useSparkSummaries.js';
 import { sparkTutorUiEnabled } from '../sparkTutor/sparkTutorModel.js';
 import { LearnerSupervisionView } from './supervision/LearnerSupervisionView.jsx';
+import { CoachEdmentumCards } from '../edmentum/EdmentumDashboardCards.jsx';
 
 const SECTIONS = [['overview', 'Today', LayoutDashboard], ['supervision', 'Studio Supervision', Users], ['pbl', 'PBL programs', BookOpen], ['steam', 'STEAM Activities', FlaskConical], ['academic', 'Academic Progress', GraduationCap], ['goals', 'Learning Goals', FileText], ['calendar', 'School Calendar', LayoutDashboard], ['community', 'Posts for students', FileText]];
 // The Spark Review Desk appears only where the companion is switched on.
@@ -279,6 +280,7 @@ export function CoachWorkspace({ coachUser, onAddStudent, rosterVersion = 0, ini
             <button key={id} onClick={() => { setSection(id); }}><span className={`cw-domain-icon cw-${id}`}><Icon size={22} /></span><strong>{title}</strong><p>{text}</p><span>{action}<ArrowUpRight size={16} /></span></button>
           )}
         </div>
+        <CoachEdmentumCards />
       </>}
       {unavailable > 0 && <p className="cw-warning" role="status">{unavailable} learner record sets could not be read. PBL summaries include only available records.</p>}
       <div className="cw-workspace"><section className="cw-roster"><div className="cw-roster-heading"><div><h2>{section === 'overview' ? 'Your learners' : section === 'pbl' ? 'Existing Sustainable Futures portfolios' : 'STEAM activity progress'}</h2><p>{learners.length} of {classLearners.length} learners · Select a learner to inspect work</p></div><label className="cw-search"><Search size={16} /><span className="cw-sr">Search learners</span><input type="search" placeholder="Search learners" value={search} onChange={e => setSearch(e.target.value)} /></label></div>

@@ -115,7 +115,7 @@ export function App() {
   // Show or hide the legacy activity containers to match the current view.
   useEffect(() => {
     // Hash screens (My Courses, Settings) replace the activity area entirely.
-    if (status !== 'ready' || role !== 'student' || isPrimary || hashScreen) {
+    if (status !== 'ready' || role !== 'student' || hashScreen) {
       hideAllActivities();
       return;
     }
@@ -126,7 +126,7 @@ export function App() {
       hideAllActivities();
       if (isReactActivity(view)) trackActivityOpen(view);
     }
-  }, [view, status, role, isPrimary, hashScreen]);
+  }, [view, status, role, hashScreen]);
 
   // A coach landing on a deep link, or a student who tried one.
   useEffect(() => {
@@ -138,7 +138,7 @@ export function App() {
   // app; they are initialised once per signed-in student and are unaffected by
   // React re-renders.
   useEffect(() => {
-    if (status !== 'ready' || role !== 'student' || !user || isPrimary) return;
+    if (status !== 'ready' || role !== 'student' || !user) return;
 
     const senPref = localStorage.getItem('senEnabled');
     const isSenEnabled = senPref === null ? true : senPref === 'true';
@@ -150,40 +150,40 @@ export function App() {
     });
 
     try { renderSENToggle('sen-preference-toggle'); } catch { /* optional widget */ }
-    // Goal setting no longer opens itself here: secondary learners get the
+    // Goal setting no longer opens itself here: learners get the
     // daily goals notification (DailyGoalsNotice) and the #/goals page instead.
-  }, [status, role, user, isPrimary]);
+  }, [status, role, user]);
 
-  // Students land on My Dashboard; other roles keep SPARK Home, once per
-  // sign-in, unless the address they opened asked for a screen. The address is
-  // read as it was when the page loaded or the user signed out: the legacy
-  // router rewrites a coach's empty hash to #/coach/dashboard before this runs.
+  // Students (including Primary) land on My Dashboard; other roles keep SPARK Home, once per
+  // sign-in, unless the address they opened asked for a screen.
   const landedRef = useRef(null);
   const openedHashRef = useRef(window.location.hash);
   useEffect(() => {
     if (status === 'signed-out') { landedRef.current = null; openedHashRef.current = window.location.hash; return; }
-    if (status !== 'ready' || !role || isPrimary || !user) return;
+    if (status !== 'ready' || !role || !user) return;
     if (landedRef.current === user.uid) return;
     landedRef.current = user.uid;
-    const destination = signInDestination(role, isPrimary, openedHashRef.current);
+    const destination = role === 'student' && isPrimary
+      ? (openedHashRef.current && openedHashRef.current !== '#' ? null : hrefFor.dashboard())
+      : signInDestination(role, isPrimary, openedHashRef.current);
     if (destination) setHash(destination);
   }, [status, role, isPrimary, user, setHash]);
 
-  // A secondary learner with no screen in the address (the logo, or the legacy
+  // A learner with no screen in the address (the logo, or the legacy
   // switchPhase('home')) goes back to My Dashboard. Activities keep their view.
   useEffect(() => {
-    if (status !== 'ready' || role !== 'student' || isPrimary || hashScreen || view !== 'home') return;
+    if (status !== 'ready' || role !== 'student' || hashScreen || view !== 'home') return;
     if (landedRef.current !== user?.uid) return; // let the sign-in landing run first
     if (parseRoute(window.location.hash)) return;
     setHash(hrefFor.dashboard());
-  }, [status, role, isPrimary, hashScreen, view, user, setHash]);
+  }, [status, role, hashScreen, view, user, setHash]);
 
-  // "My Dashboard" keeps its goals panel (secondary learners only, as before).
+  // "My Dashboard" keeps its goals panel.
   useEffect(() => {
-    if (status !== 'ready' || role !== 'student' || isPrimary || !user || hashScreen || view !== 'home') return undefined;
+    if (status !== 'ready' || role !== 'student' || !user || hashScreen || view !== 'home') return undefined;
     const t = setTimeout(() => { showGoalsPanel(user.uid).catch(() => {}); }, 0);
     return () => clearTimeout(t);
-  }, [status, role, isPrimary, user, hashScreen, view]);
+  }, [status, role, user, hashScreen, view]);
 
   // Coaches must never land on a student activity view.
   useEffect(() => {
@@ -193,7 +193,7 @@ export function App() {
 
   // Growth Hub and Coach screens follow effectiveTheme; legacy activity scenes
   // (solar, so2, plants, hexgrid) remain dark.
-  const isLegacyDarkScene = role === 'student' && !isPrimary && !route?.screen && ['solar', 'so2', 'plants', 'hexgrid'].includes(view);
+  const isLegacyDarkScene = role === 'student' && !route?.screen && ['solar', 'so2', 'plants', 'hexgrid'].includes(view);
   const isCoachScreen = role === 'teacher' || role === 'coach';
   const isLightCapableScreen = !isLegacyDarkScene && (
     status !== 'ready'
@@ -237,7 +237,7 @@ export function App() {
     return view === 'home' ? null : view;
   })();
   const closeMenu = useCallback(() => setMenuOpen(false), []);
-  const sidebar = status === 'ready' && role && !isPrimary ? (
+  const sidebar = status === 'ready' && role ? (
     <Sidebar role={role} active={activeKey} onNavigate={navigate} onOpenCourses={() => setHash(hrefFor.courses())}
              onOpenGoals={openGoals} open={menuOpen} onClose={closeMenu} collapsed={collapsed}
              onToggleCollapsed={() => setCollapsed((c) => { writeCollapsed(!c); return !c; })} />
@@ -332,7 +332,7 @@ export function App() {
   // Learner spaces: My space (personal dashboard with cover and profile
   // images) and the portfolio maker are secondary learners'
   // own screens. A shared portfolio link opens read-only for permitted viewers.
-  if (role === 'student' && !isPrimary && ['space', 'journey'].includes(route?.screen)) {
+  if (role === 'student' && ['space', 'journey'].includes(route?.screen)) {
     return (
       <>
         <Header {...headerProps} />
@@ -513,33 +513,23 @@ export function App() {
     );
   }
 
-  if (isPrimary) {
-    return (
-      <>
-        <Header {...headerProps} />
-        <JuniorExplorers uid={user.uid} displayName={profile?.displayName} />
-        <SchoolLearningPanel initialArea="calendar" hideTabs />
-      </>
-    );
-  }
-
   return (
     <>
       <Header {...headerProps} />
       {sidebar}
 
       {/* Student Onboarding & Interactive Guided Tour */}
-      {role === 'student' && user && !isPrimary && (
+      {role === 'student' && user && (
         <StudentOnboardingModal user={user} profile={profile} />
       )}
 
       {/* Not on Goal setting or My Dashboard: both show today's checklist, and two copies of the plan on one screen would overwrite each other. */}
-      {role === 'student' && !isPrimary && user && !['goals', 'dashboard', 'spark'].includes(route?.screen) && <DailyGoalsNotice uid={user.uid} />}
+      {role === 'student' && user && !['goals', 'dashboard', 'spark'].includes(route?.screen) && <DailyGoalsNotice uid={user.uid} />}
 
       {route?.screen === 'spark' ? spark
-      : route?.screen === 'dashboard' && role === 'student' && !isPrimary ? (
+      : route?.screen === 'dashboard' && role === 'student' ? (
         <MyDashboard key={user?.uid} uid={user?.uid} orgId={orgId} profile={profile} classIds={profile?.classIds || []} onJoined={refreshProfile}
-                     onOpenActivity={navigate} />
+                     onOpenActivity={navigate} isPrimary={isPrimary} />
       ) : route?.screen === 'futureSkills' && role === 'student' ? (
         <FutureSkillsPage isPrimary={isPrimary} />
       ) : (route?.screen === 'pbl' || route?.screen === 'programs') && (role === 'student' || role === 'teacher' || role === 'coach') ? (
@@ -548,14 +538,14 @@ export function App() {
                      classIds={role === 'student' ? (profile?.classIds || []) : (classIds || profile?.classIds || [])}
                      onOpenActivity={navigate} displayName={profile?.displayName} />
         </div>
-      ) : (!isPrimary && route?.screen === 'homeSearch') ? (
+      ) : route?.screen === 'homeSearch' ? (
         <HomeSearch uid={user?.uid} displayName={profile?.displayName} onOpenActivity={navigate} initialQuery={route.q}
                     classIds={profile?.classIds || []} activeProgramId={profile?.activeProgramId} />
-      ) : role === 'student' && !isPrimary && route?.screen === 'goals' ? (
+      ) : role === 'student' && route?.screen === 'goals' ? (
         <div className="gh-app">
-          <GoalsPage uid={user?.uid} displayName={profile?.displayName} />
+          <GoalsPage uid={user?.uid} displayName={profile?.displayName} profile={profile} />
         </div>
-      ) : route?.screen === 'courses' && route.discover && role === 'student' && !isPrimary ? (
+      ) : route?.screen === 'courses' && route.discover && role === 'student' ? (
         <LiveCourseDiscovery uid={user?.uid} classIds={profile?.classIds || []} name={profile?.displayName} onOpenActivity={navigate} />
       ) : route?.screen === 'courses' ? (
         <div className="gh-app">

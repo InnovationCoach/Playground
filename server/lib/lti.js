@@ -11,14 +11,16 @@ import crypto from 'node:crypto';
  */
 
 export const LTI_CONFIG = {
-  issuer: process.env.LTI_ISSUER || 'https://welearn.spark.org',
-  clientId: process.env.EDMENTUM_CLIENT_ID || 'welearn-edmentum-client',
-  deploymentId: process.env.EDMENTUM_DEPLOYMENT_ID || 'welearn-prod-deployment-01',
-  authLoginUrl: process.env.EDMENTUM_AUTH_URL || 'https://auth.edmentum.com/lti/authorize',
-  tokenUrl: process.env.EDMENTUM_TOKEN_URL || 'https://auth.edmentum.com/oauth2/token',
-  jwksUrl: process.env.LTI_JWKS_URL || 'https://welearn.spark.org/api/lti/jwks',
-  oidcInitiationUrl: process.env.LTI_OIDC_URL || 'https://welearn.spark.org/api/lti/login_initiations',
-  agsUrl: process.env.LTI_AGS_URL || 'https://welearn.spark.org/api/lti/ags',
+  get issuer() { return process.env.LTI_ISSUER || 'https://welearn.org/'; },
+  get clientId() { return process.env.LTI_CLIENT_ID || 'welearn-edmentum-client'; },
+  get deploymentId() { return process.env.EDMENTUM_DEPLOYMENT_ID || 'welearn-prod-deployment-01'; },
+  get authLoginUrl() { return process.env.EDMENTUM_AUTH_URL || 'https://public.apps.elf.edmentum.com/lti/login'; },
+  get launchUrl() { return process.env.EDMENTUM_LTI_LAUNCH_URL || 'https://public.apps.elf.edmentum.com/lti/launch'; },
+  get tokenUrl() { return process.env.EDMENTUM_LTI_TOKEN_URL || 'https://auth.edmentum.com/connect/token'; },
+  get toolJwksUrl() { return process.env.EDMENTUM_LTI_JWKS_URL || 'https://public.apps.elf.edmentum.com/lti/jwks'; },
+  get jwksUrl() { return process.env.LTI_JWKS_URL || 'https://welearn.org/api/lti/jwks'; },
+  get oidcInitiationUrl() { return process.env.LTI_OIDC_URL || 'https://welearn.org/api/lti/login_initiations'; },
+  get agsUrl() { return process.env.LTI_AGS_URL || 'https://welearn.org/api/lti/ags'; },
   keyId: 'welearn-lti-key-2026'
 };
 
@@ -28,11 +30,20 @@ let cachedKeyPair = null;
 export function getOrCreateKeyPair() {
   if (cachedKeyPair) return cachedKeyPair;
 
-  const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
-    modulusLength: 2048,
-    publicKeyEncoding: { type: 'spki', format: 'pem' },
-    privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-  });
+  const envPrivate = process.env.LTI_PRIVATE_KEY ? process.env.LTI_PRIVATE_KEY.replace(/\\n/g, '\n') : '';
+  const envPublic = process.env.LTI_PUBLIC_KEY ? process.env.LTI_PUBLIC_KEY.replace(/\\n/g, '\n') : '';
+
+  let privateKey = envPrivate;
+  let publicKey = envPublic;
+  if (!privateKey || !publicKey) {
+    const generated = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+    });
+    privateKey = generated.privateKey;
+    publicKey = generated.publicKey;
+  }
 
   const jwkObj = crypto.createPublicKey(publicKey).export({ type: 'pkcs1', format: 'jwk' });
 
@@ -127,7 +138,8 @@ export function buildLtiResourceLinkLaunchToken({
   user,
   course,
   targetLinkUri,
-  roles = ['http://purl.imsglobal.org/vocab/lis/v2/membership#Learner']
+  roles = ['http://purl.imsglobal.org/vocab/lis/v2/membership#Learner'],
+  nonce = null
 }) {
   const now = Math.floor(Date.now() / 1000);
   const payload = {
@@ -137,7 +149,7 @@ export function buildLtiResourceLinkLaunchToken({
     aud: LTI_CONFIG.clientId,
     exp: now + 3600, // 1 hour
     iat: now,
-    nonce: crypto.randomUUID(),
+    nonce: nonce || crypto.randomUUID(),
 
     // User Profile Information
     name: user.displayName || 'Student',
