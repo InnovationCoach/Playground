@@ -3,12 +3,21 @@ import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, TransformControls } from '@react-three/drei';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import {
-  Box, Circle, Triangle, Type, Copy, Trash2, Maximize2, Minimize2,
-  Download, Save, Sparkles, Grid, Ruler,
-  ArrowLeft, Layers, Check, Flame, Move, RotateCw, Scaling,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowDown
+  ArrowLeft, Copy, Trash2, Maximize2, Minimize2, Download, Save, Sparkles, Ruler,
+  Move, RotateCw, Scaling, Check, PenTool, Car, Combine, Ungroup, ChevronDown,
+  ArrowDownToLine, Crosshair, SlidersHorizontal, GraduationCap, Workflow, ScanSearch,
+  WandSparkles, LayoutTemplate, ShieldCheck, Smartphone, Box
 } from 'lucide-react';
+import { TINKER_LESSONS, getUnlockedTools, runLocalMeshDiagnostics, autoFixLocalShapes } from './lessonToolsConfig.js';
+import { GeoNodesPanel } from './GeoNodesPanel.jsx';
+import { AiCopilotDrawer } from './AiCopilotDrawer.jsx';
+import { SolarCarKitPanel } from './SolarCarKitPanel.jsx';
+import { EngineeringDrawingModal } from './EngineeringDrawingModal.jsx';
+import { combineShapes, ungroupShape } from './combineUtils.js';
+import { SketchTo3DModal } from './SketchTo3DModal.jsx';
+import './tinkerStudio.css';
 
 /**
  * SPARK TinkerStudio - General 3D Creative CAD & Digital Fabrication Toolkit
@@ -41,10 +50,12 @@ const PALETTE_COLORS = [
 
 const TEMPLATES = {
   blank: {
+    label: 'Blank',
     name: 'New Blank Workplane',
     shapes: []
   },
   keychain: {
+    label: 'Keychain',
     name: 'Custom Keychain with Loop',
     shapes: [
       { id: 'base', type: 'box', name: 'Base Tag', x: 0, y: 3, z: 0, w: 70, h: 6, d: 28, rotX: 0, rotY: 0, rotZ: 0, color: '#3b82f6', isHole: false },
@@ -53,6 +64,7 @@ const TEMPLATES = {
     ]
   },
   pencil_holder: {
+    label: 'Pencil Cup',
     name: 'Desktop Pencil Cup',
     shapes: [
       { id: 'cup_body', type: 'cylinder', name: 'Outer Cup', x: 0, y: 45, z: 0, w: 60, h: 90, d: 60, rotX: 0, rotY: 0, rotZ: 0, color: '#10b981', isHole: false },
@@ -60,6 +72,7 @@ const TEMPLATES = {
     ]
   },
   rocket: {
+    label: 'Rocket',
     name: 'Mini Space Rocket',
     shapes: [
       { id: 'body', type: 'cylinder', name: 'Fuselage', x: 0, y: 35, z: 0, w: 24, h: 70, d: 24, rotX: 0, rotY: 0, rotZ: 0, color: '#ffffff', isHole: false },
@@ -69,6 +82,7 @@ const TEMPLATES = {
     ]
   },
   nameplate: {
+    label: 'Nameplate',
     name: 'Desk Nameplate & Stand',
     shapes: [
       { id: 'stand', type: 'box', name: 'Stand Base', x: 0, y: 4, z: 0, w: 100, h: 8, d: 35, rotX: 0, rotY: 0, rotZ: 0, color: '#1e293b', isHole: false },
@@ -98,10 +112,12 @@ function WorkplaneGrid({ snapMm = 1 }) {
   );
 }
 
-// Render Individual Shape Mesh with Selection & Gizmos
+// Render Individual Shape Mesh with Click Selection, Direct Workplane Drag, Corner/Height Resize Handles & Gizmos
 function ShapeObject({ shape, isSelected, onSelect, transformMode, snapGrid, onTransformChange, onDraggingChanged }) {
   const meshRef = useRef();
   const transformRef = useRef();
+  const [hovered, setHovered] = useState(false);
+  const [activeDrag, setActiveDrag] = useState(null); // { kind: 'move' | 'corner' | 'height', ... }
 
   // Create geometry based on shape type
   const geom = useMemo(() => {
@@ -136,69 +152,208 @@ function ShapeObject({ shape, isSelected, onSelect, transformMode, snapGrid, onT
         g.center();
         return g;
       }
+      case 'sketch': {
+        const pts = Array.isArray(shape.points) && shape.points.length >= 3
+          ? shape.points
+          : [[-0.5, -0.5], [0.5, -0.5], [0, 0.5]];
+        const s = new THREE.Shape();
+        s.moveTo(pts[0][0] * shape.w, -pts[0][1] * shape.d);
+        for (let i = 1; i < pts.length; i += 1) {
+          s.lineTo(pts[i][0] * shape.w, -pts[i][1] * shape.d);
+        }
+        s.closePath();
+        const g = new THREE.ExtrudeGeometry(s, {
+          depth: shape.h,
+          bevelEnabled: true,
+          bevelThickness: 0.5,
+          bevelSize: 0.4,
+          bevelSegments: 2
+        });
+        g.rotateX(-Math.PI / 2);
+        g.center();
+        return g;
+      }
       default:
         return new THREE.BoxGeometry(shape.w, shape.h, shape.d);
     }
-  }, [shape.type, shape.w, shape.h, shape.d]);
+  }, [shape.type, shape.w, shape.h, shape.d, shape.points]);
 
-  // Material: Solid vibrant color vs Hole translucent cutter
+  useEffect(() => () => geom.dispose(), [geom]);
+
+  // Material: Solid vibrant color vs Hole translucent cutter vs Composite hit-box
   const material = useMemo(() => {
+    if (shape.type === 'composite') {
+      return new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0,
+        depthWrite: false
+      });
+    }
     if (shape.isHole) {
       return new THREE.MeshStandardMaterial({
         color: '#94a3b8',
         transparent: true,
-        opacity: 0.38,
+        opacity: hovered ? 0.52 : 0.38,
         roughness: 0.4
       });
     }
     return new THREE.MeshStandardMaterial({
       color: shape.color || '#3b82f6',
       roughness: 0.35,
-      metalness: 0.15
+      metalness: 0.15,
+      emissive: hovered ? '#ffffff' : '#000000',
+      emissiveIntensity: hovered ? 0.12 : 0
     });
-  }, [shape.color, shape.isHole]);
+  }, [shape.type, shape.color, shape.isHole, hovered]);
 
-  // Listen for TransformControls dragging to disable camera OrbitControls
+  useEffect(() => () => material.dispose(), [material]);
+
+  useEffect(() => {
+    document.body.style.cursor = activeDrag ? 'grabbing' : hovered ? 'pointer' : 'auto';
+    return () => { document.body.style.cursor = 'auto'; };
+  }, [hovered, activeDrag]);
+
+  // Listen for TransformControls dragging to disable camera OrbitControls (re-binds whenever selection changes)
   useEffect(() => {
     const tc = transformRef.current;
     if (!tc) return;
     const onDragChange = (e) => {
       if (onDraggingChanged) onDraggingChanged(e.value);
-      if (!e.value) {
-        // Drag finished: ensure scale reset
-        if (meshRef.current && transformMode === 'scale') {
-          meshRef.current.scale.set(1, 1, 1);
-        }
+      if (!e.value && meshRef.current && transformMode === 'scale') {
+        meshRef.current.scale.set(1, 1, 1);
       }
     };
     tc.addEventListener('dragging-changed', onDragChange);
     return () => tc.removeEventListener('dragging-changed', onDragChange);
-  }, [transformMode, onDraggingChanged]);
+  }, [isSelected, transformMode, onDraggingChanged]);
+
+  // Direct pointer drag on workplane (move) or bounding-box handles (corner / height resize)
+  useEffect(() => {
+    if (!activeDrag) return;
+    const { kind, camera, domElement, plane, startPoint, startShape, sx, sz } = activeDrag;
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+    const hit = new THREE.Vector3();
+    const snap = (val) => Math.round(val / snapGrid) * snapGrid;
+
+    const onMove = (ev) => {
+      const rect = domElement.getBoundingClientRect();
+      ndc.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+      ndc.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      if (!raycaster.ray.intersectPlane(plane, hit)) return;
+
+      if (kind === 'move') {
+        const dx = hit.x - startPoint.x;
+        const dz = hit.z - startPoint.z;
+        onTransformChange({
+          x: snap(startShape.x + dx),
+          z: snap(startShape.z + dz)
+        });
+      } else if (kind === 'corner') {
+        const dx = (hit.x - startPoint.x) * sx;
+        const dz = (hit.z - startPoint.z) * sz;
+        const newW = Math.max(4, snap(startShape.w + dx));
+        const newD = Math.max(4, snap(startShape.d + dz));
+        const actualDw = newW - startShape.w;
+        const actualDd = newD - startShape.d;
+        onTransformChange({
+          w: newW,
+          d: newD,
+          x: Math.round(startShape.x + (actualDw / 2) * sx),
+          z: Math.round(startShape.z + (actualDd / 2) * sz)
+        });
+      } else if (kind === 'height') {
+        const dy = hit.y - startPoint.y;
+        const newH = Math.max(2, snap(startShape.h + dy));
+        const deltaH = newH - startShape.h;
+        onTransformChange({
+          h: newH,
+          y: Math.max(Math.round(newH / 2), Math.round(startShape.y + deltaH / 2))
+        });
+      }
+    };
+
+    const onUp = () => {
+      setActiveDrag(null);
+      if (onDraggingChanged) onDraggingChanged(false);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, [activeDrag, snapGrid, onTransformChange, onDraggingChanged]);
+
+  const startWorkplaneMove = (e) => {
+    e.stopPropagation();
+    onSelect(shape.id, Boolean(e.nativeEvent?.shiftKey));
+    if (transformMode !== 'translate') return;
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -e.point.y);
+    if (onDraggingChanged) onDraggingChanged(true);
+    setActiveDrag({
+      kind: 'move',
+      camera: e.camera,
+      domElement: e.nativeEvent.target,
+      plane,
+      startPoint: e.point.clone(),
+      startShape: { ...shape }
+    });
+  };
+
+  const startCornerResize = (sx, sz) => (e) => {
+    e.stopPropagation();
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -e.point.y);
+    if (onDraggingChanged) onDraggingChanged(true);
+    setActiveDrag({
+      kind: 'corner',
+      sx,
+      sz,
+      camera: e.camera,
+      domElement: e.nativeEvent.target,
+      plane,
+      startPoint: e.point.clone(),
+      startShape: { ...shape }
+    });
+  };
+
+  const startHeightResize = (e) => {
+    e.stopPropagation();
+    const camDir = new THREE.Vector3();
+    e.camera.getWorldDirection(camDir);
+    camDir.y = 0;
+    if (camDir.lengthSq() < 0.001) camDir.set(0, 0, 1);
+    camDir.normalize();
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(camDir, e.point);
+    if (onDraggingChanged) onDraggingChanged(true);
+    setActiveDrag({
+      kind: 'height',
+      camera: e.camera,
+      domElement: e.nativeEvent.target,
+      plane,
+      startPoint: e.point.clone(),
+      startShape: { ...shape }
+    });
+  };
 
   const handleTransformChange = () => {
     if (!meshRef.current) return;
 
     if (transformMode === 'scale') {
       const s = meshRef.current.scale;
-      // If scaled via gizmo handle, update dimensions (W, H, D in mm)
       if (Math.abs(s.x - 1) > 0.005 || Math.abs(s.y - 1) > 0.005 || Math.abs(s.z - 1) > 0.005) {
         const newW = Math.max(2, Math.round(shape.w * Math.abs(s.x)));
         const newH = Math.max(2, Math.round(shape.h * Math.abs(s.y)));
         const newD = Math.max(2, Math.round(shape.d * Math.abs(s.z)));
 
-        // Reset mesh scale so geometry size remains true millimeter scale
         meshRef.current.scale.set(1, 1, 1);
 
-        // Auto adjust elevation so bottom remains on workplane
         const deltaH = newH - shape.h;
         const newY = Math.max(Math.round(newH / 2), Math.round(shape.y + deltaH / 2));
 
-        onTransformChange({
-          w: newW,
-          h: newH,
-          d: newD,
-          y: newY
-        });
+        onTransformChange({ w: newW, h: newH, d: newD, y: newY });
       }
     } else if (transformMode === 'translate') {
       const pos = meshRef.current.position;
@@ -217,6 +372,10 @@ function ShapeObject({ shape, isSelected, onSelect, transformMode, snapGrid, onT
     }
   };
 
+  const halfW = shape.w / 2;
+  const halfH = shape.h / 2;
+  const halfD = shape.d / 2;
+
   return (
     <>
       <mesh
@@ -231,10 +390,9 @@ function ShapeObject({ shape, isSelected, onSelect, transformMode, snapGrid, onT
         material={material}
         castShadow
         receiveShadow
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          onSelect(shape.id);
-        }}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+        onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+        onPointerDown={startWorkplaneMove}
       >
         {/* Selection Bounding Highlight */}
         {isSelected && (
@@ -242,6 +400,70 @@ function ShapeObject({ shape, isSelected, onSelect, transformMode, snapGrid, onT
             <edgesGeometry args={[geom]} />
             <lineBasicMaterial color="#f59e0b" linewidth={3} />
           </lineSegments>
+        )}
+
+        {/* Composite Children Meshes */}
+        {shape.type === 'composite' && Array.isArray(shape.children) && (
+          <group
+            scale={[
+              (shape.w || 1) / (shape.baseW || shape.w || 1),
+              (shape.h || 1) / (shape.baseH || shape.h || 1),
+              (shape.d || 1) / (shape.baseD || shape.d || 1)
+            ]}
+          >
+            {shape.children.map((child, idx) => (
+              <mesh
+                key={child.id || idx}
+                position={[child.x || 0, child.y || 0, child.z || 0]}
+                rotation={[
+                  THREE.MathUtils.degToRad(child.rotX || 0),
+                  THREE.MathUtils.degToRad(child.rotY || 0),
+                  THREE.MathUtils.degToRad(child.rotZ || 0)
+                ]}
+                castShadow
+                receiveShadow
+              >
+                {child.type === 'cylinder' ? (
+                  <cylinderGeometry args={[(child.w || 10) / 2, (child.w || 10) / 2, child.h || 10, 32]} />
+                ) : child.type === 'sphere' ? (
+                  <sphereGeometry args={[(child.w || 10) / 2, 24, 24]} />
+                ) : child.type === 'cone' ? (
+                  <coneGeometry args={[(child.w || 10) / 2, child.h || 10, 24]} />
+                ) : (
+                  <boxGeometry args={[child.w || 10, child.h || 10, child.d || 10]} />
+                )}
+                <meshStandardMaterial
+                  color={child.isHole ? '#94a3b8' : (child.color || '#3b82f6')}
+                  transparent={Boolean(child.isHole)}
+                  opacity={child.isHole ? 0.35 : 1}
+                  roughness={0.35}
+                />
+              </mesh>
+            ))}
+          </group>
+        )}
+
+        {/* Tinkercad-style Direct Resize Handles (4 Base Corners for W/D + Top Handle for H) */}
+        {isSelected && (
+          <group>
+            {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz]) => (
+              <mesh
+                key={`${sx}_${sz}`}
+                position={[sx * halfW, -halfH + 1.5, sz * halfD]}
+                onPointerDown={startCornerResize(sx, sz)}
+              >
+                <boxGeometry args={[3.6, 3.6, 3.6]} />
+                <meshBasicMaterial color="#ffffff" />
+              </mesh>
+            ))}
+            <mesh
+              position={[0, halfH + 2.5, 0]}
+              onPointerDown={startHeightResize}
+            >
+              <boxGeometry args={[3.8, 3.8, 3.8]} />
+              <meshBasicMaterial color="#f59e0b" />
+            </mesh>
+          </group>
         )}
       </mesh>
 
@@ -261,6 +483,61 @@ function ShapeObject({ shape, isSelected, onSelect, transformMode, snapGrid, onT
   );
 }
 
+// Line-art primitive icons for the left rail (24×24, stroke = currentColor).
+const PRIMITIVES = [
+  { type: 'box', label: 'Box', title: 'Add 3D solid box' },
+  { type: 'cylinder', label: 'Cylinder', title: 'Add 3D cylinder' },
+  { type: 'sphere', label: 'Sphere', title: 'Add 3D sphere' },
+  { type: 'roof', label: 'Roof', title: 'Add triangular roof' },
+  { type: 'cone', label: 'Cone', title: 'Add cone' },
+  { type: 'torus', label: 'Torus', title: 'Add torus ring' },
+  { type: 'wedge', label: 'Wedge', title: 'Add wedge ramp' }
+];
+
+function PrimitiveIcon({ type, size = 22 }) {
+  const p = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  let body;
+  switch (type) {
+    case 'box':
+      body = (<><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" {...p} /><path d="M4 7.5 12 12l8-4.5M12 12v9" {...p} /></>);
+      break;
+    case 'cylinder':
+      body = (<><ellipse cx="12" cy="6" rx="7" ry="2.8" {...p} /><path d="M5 6v12c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8V6" {...p} /></>);
+      break;
+    case 'sphere':
+      body = (<><circle cx="12" cy="12" r="8.5" {...p} /><ellipse cx="12" cy="12" rx="8.5" ry="3.2" {...p} /><path d="M12 3.5c-2.6 2.4-2.6 14.6 0 17" {...p} opacity="0.55" /></>);
+      break;
+    case 'roof':
+      body = (<><path d="M3 18 9 7l12 0-6 11H3Z" {...p} /><path d="M9 7 15 18" {...p} /></>);
+      break;
+    case 'cone':
+      body = (<><path d="M12 3 5 18M12 3l7 15" {...p} /><ellipse cx="12" cy="18" rx="7" ry="2.6" {...p} /></>);
+      break;
+    case 'torus':
+      body = (<><ellipse cx="12" cy="12" rx="9" ry="5.5" {...p} /><ellipse cx="12" cy="11.4" rx="3.6" ry="1.7" {...p} /></>);
+      break;
+    case 'wedge':
+      body = (<><path d="M3 18h13l5-4H8L3 18Z" {...p} /><path d="M3 18V8l5 6M3 8l5-1 13 7" {...p} /></>);
+      break;
+    default:
+      body = <rect x="4" y="4" width="16" height="16" rx="2" {...p} />;
+  }
+  return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{body}</svg>;
+}
+
+const DIMENSIONS = [
+  { key: 'w', label: 'Width', axis: 'X' },
+  { key: 'd', label: 'Depth', axis: 'Z' },
+  { key: 'h', label: 'Height', axis: 'Y' }
+];
+
+const RIGHT_TABS = [
+  { id: 'inspector', label: 'Inspector', Icon: SlidersHorizontal },
+  { id: 'training', label: 'Training', Icon: GraduationCap },
+  { id: 'geonodes', label: 'GeoNodes', Icon: Workflow },
+  { id: 'solar', label: 'Solar Kit', Icon: Car }
+];
+
 export function TinkerStudio({ onBack }) {
   const [shapes, setShapes] = useState(() => {
     const saved = localStorage.getItem('spark_tinker_project');
@@ -277,8 +554,115 @@ export function TinkerStudio({ onBack }) {
   const [snapGrid, setSnapGrid] = useState(1);
   const [isDraggingGizmo, setIsDraggingGizmo] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
+  const [activeLessonId, setActiveLessonId] = useState('full_cad');
+  const [toolValues, setToolValues] = useState({ extrude: 5, bevel: 1.5, loop_cut: 1, inset: 2 });
+  const [diagnostics, setDiagnostics] = useState(null);
+  const [rightTab, setRightTab] = useState('inspector'); // 'inspector' | 'training' | 'geonodes' | 'solar'
+  const [exportMenu, setExportMenu] = useState(null); // { top, right } while the Export dropdown is open
+  const exportBtnRef = useRef(null);
+  const exportMenuRef = useRef(null);
+  const [showBlueprint, setShowBlueprint] = useState(false);
+  const [showSketchModal, setShowSketchModal] = useState(false);
+  const [multiSelectedIds, setMultiSelectedIds] = useState(['cup_body']);
+  const [liveCode, setLiveCode] = useState('');
+
+  const handleSelectShape = (id, isShift = false) => {
+    setSelectedId(id);
+    if (isShift) {
+      setMultiSelectedIds((prev) =>
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      );
+    } else {
+      setMultiSelectedIds([id]);
+    }
+  };
+
+  const handleCombineSelected = () => {
+    const res = combineShapes(shapes, multiSelectedIds);
+    if (!res) return;
+    setShapes(res.shapes);
+    setSelectedId(res.combined.id);
+    setMultiSelectedIds([res.combined.id]);
+    setStatusMessage(`✓ Combined ${res.combined.children.length} objects into "${res.combined.name}"`);
+    setTimeout(() => setStatusMessage(null), 3000);
+  };
+
+  const handleUngroupSelected = () => {
+    const res = ungroupShape(shapes, selectedId);
+    if (!res) return;
+    setShapes(res.shapes);
+    setSelectedId(res.restoredIds[0] || null);
+    setMultiSelectedIds(res.restoredIds);
+    setStatusMessage(`✓ Ungrouped into ${res.restoredIds.length} objects`);
+    setTimeout(() => setStatusMessage(null), 2500);
+  };
+
+  const handleExportAr = (fmt = 'glb') => {
+    if (fmt === 'usdz') {
+      setStatusMessage('✓ .USDZ export ready when connected to Blender bpy worker');
+      setTimeout(() => setStatusMessage(null), 3000);
+      return;
+    }
+    const exportGroup = new THREE.Group();
+    shapes.filter((s) => !s.isHole).forEach((s) => {
+      const geom = new THREE.BoxGeometry(s.w, s.h, s.d);
+      const mat = new THREE.MeshStandardMaterial({ color: s.color || '#3b82f6' });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set(s.x, s.y, s.z);
+      exportGroup.add(mesh);
+    });
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      exportGroup,
+      (result) => {
+        const blob = new Blob([result], { type: 'model/gltf-binary' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${projectName.replace(/\s+/g, '_').toLowerCase()}.glb`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setStatusMessage('✓ Exported .GLB for AR / WebXR!');
+        setTimeout(() => setStatusMessage(null), 3000);
+      },
+      () => {},
+      { binary: true }
+    );
+  };
 
   const controlsRef = useRef();
+  const activeLesson = TINKER_LESSONS[activeLessonId] || TINKER_LESSONS.full_cad;
+  const unlockedTools = useMemo(() => getUnlockedTools(activeLessonId), [activeLessonId]);
+
+  const handleCheckMesh = () => {
+    const report = runLocalMeshDiagnostics(shapes, activeLesson.maxTriangles);
+    setDiagnostics(report);
+    setStatusMessage(report.passed ? `✓ Mesh passed (${report.score}/100)` : `⚠ ${report.issues.length} mesh issue(s) found`);
+    setTimeout(() => setStatusMessage(null), 3500);
+  };
+
+  const handleAutoFix = () => {
+    const fixed = autoFixLocalShapes(shapes);
+    setShapes(fixed);
+    const report = runLocalMeshDiagnostics(fixed, activeLesson.maxTriangles);
+    setDiagnostics(report);
+    setStatusMessage(`✓ Auto-Fix applied! Score: ${report.score}/100`);
+    setTimeout(() => setStatusMessage(null), 3500);
+  };
+
+  const handleApplyUnlockedTool = (tool) => {
+    if (!selectedShape) return;
+    const val = toolValues[tool.id] ?? tool.defaultVal;
+    if (tool.id === 'extrude') {
+      const nextH = Math.max(2, Math.round(selectedShape.h + val));
+      const delta = nextH - selectedShape.h;
+      updateSelected({ h: nextH, y: Math.max(Math.round(nextH / 2), Math.round(selectedShape.y + delta / 2)) });
+    } else if (tool.id === 'inset') {
+      updateSelected({ w: Math.max(4, Math.round(selectedShape.w - val * 2)), d: Math.max(4, Math.round(selectedShape.d - val * 2)) });
+    }
+    setStatusMessage(`✓ Applied ${tool.label} (${val} ${tool.unit})`);
+    setTimeout(() => setStatusMessage(null), 2500);
+  };
 
   // Keyboard Shortcuts (W: Translate, E: Rotate, R: Scale, Del: Delete)
   useEffect(() => {
@@ -328,6 +712,7 @@ export function TinkerStudio({ onBack }) {
 
     setShapes((prev) => [...prev, newShape]);
     setSelectedId(newId);
+    setMultiSelectedIds([newId]);
   };
 
   // Duplicate Selected Shape
@@ -343,14 +728,58 @@ export function TinkerStudio({ onBack }) {
     };
     setShapes((prev) => [...prev, duplicate]);
     setSelectedId(newId);
+    setMultiSelectedIds([newId]);
   };
 
   // Delete Selected Shape
   const handleDelete = () => {
     if (!selectedId) return;
     setShapes((prev) => prev.filter((s) => s.id !== selectedId));
+    setMultiSelectedIds((prev) => prev.filter((id) => id !== selectedId));
     setSelectedId(null);
   };
+
+  // Scene Objects checklist: tick 2+ parts on a tablet without Shift+Click
+  const toggleObjectChecked = (id) => {
+    if (multiSelectedIds.includes(id)) {
+      const remaining = multiSelectedIds.filter((item) => item !== id);
+      setMultiSelectedIds(remaining);
+      if (selectedId === id) setSelectedId(remaining[remaining.length - 1] || null);
+    } else {
+      setMultiSelectedIds([...multiSelectedIds.filter((item) => shapes.some((s) => s.id === item)), id]);
+      setSelectedId(id);
+    }
+  };
+
+  const flashStatus = (msg, ms = 2500) => {
+    setStatusMessage(msg);
+    setTimeout(() => setStatusMessage(null), ms);
+  };
+
+  // Export dropdown: anchored to the button with fixed positioning so the header's overflow can't clip it
+  const toggleExportMenu = () => {
+    if (exportMenu) { setExportMenu(null); return; }
+    const r = exportBtnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    setExportMenu({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+  };
+
+  useEffect(() => {
+    if (!exportMenu) return undefined;
+    const onDown = (e) => {
+      if (exportMenuRef.current?.contains(e.target) || exportBtnRef.current?.contains(e.target)) return;
+      setExportMenu(null);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setExportMenu(null); };
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onDown);
+    return () => {
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onDown);
+    };
+  }, [exportMenu]);
 
   // Update properties on selected shape
   const updateSelected = (patch) => {
@@ -454,348 +883,544 @@ export function TinkerStudio({ onBack }) {
     if (!tpl) return;
     setShapes(tpl.shapes);
     setSelectedId(tpl.shapes[0]?.id || null);
+    setMultiSelectedIds(tpl.shapes[0] ? [tpl.shapes[0].id] : []);
     setProjectName(tpl.name);
   };
 
-  return (
-    <div
-      className={`sp-tinker-studio ${isFullscreen ? 'is-fullscreen' : ''}`}
-      style={
-        isFullscreen
-          ? {
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              zIndex: 100000,
-              background: '#090d16',
-              display: 'flex',
-              flexDirection: 'column',
-              boxSizing: 'border-box',
-              padding: '0.6rem 0.8rem',
-              gap: '0.45rem'
-            }
-          : {
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.45rem',
-              height: '100%',
-              width: '100%',
-              background: 'var(--gh-surface)',
-              borderRadius: '12px',
-              border: '1px solid var(--gh-border)',
-              padding: '0.6rem 0.8rem',
-              boxSizing: 'border-box',
-              overflow: 'hidden'
-            }
-      }
-    >
-      {/* Top Header & Actions Bar */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '0.5rem',
-          paddingBottom: '0.45rem',
-          borderBottom: '1px solid var(--gh-border)',
-          flexShrink: 0
-        }}
-      >
-        {/* Left: Back & Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                background: 'var(--gh-subtle)',
-                border: '1px solid var(--gh-border)',
-                padding: '0.3rem 0.65rem',
-                borderRadius: '8px',
-                color: 'var(--gh-text)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.82rem'
-              }}
-              title="Return to Personal Creative Space"
-            >
-              <ArrowLeft size={15} /> Back to My Space
-            </button>
-          )}
+  const canCombine = multiSelectedIds.length >= 2;
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Box size={20} color="#7c3aed" />
+  const loadKitShapes = (kit) => {
+    setShapes(kit.shapes);
+    setProjectName(kit.name);
+    setSelectedId(kit.shapes[0]?.id || null);
+    setMultiSelectedIds(kit.shapes[0] ? [kit.shapes[0].id] : []);
+    flashStatus(`✓ Loaded ${kit.name}`);
+  };
+
+  const addKitPart = (part) => {
+    const newId = `part_${Date.now().toString(36)}`;
+    const newShape = {
+      id: newId,
+      type: part.type,
+      name: part.name,
+      x: 0,
+      y: part.y ?? Math.round(part.h / 2),
+      z: 0,
+      w: part.w,
+      h: part.h,
+      d: part.d,
+      rotX: part.rotX || 0,
+      rotY: 0,
+      rotZ: 0,
+      color: part.color,
+      isHole: Boolean(part.isHole)
+    };
+    setShapes((prev) => [...prev, newShape]);
+    setSelectedId(newId);
+    setMultiSelectedIds([newId]);
+    flashStatus(`✓ Added ${part.name}`);
+  };
+
+  const setDimension = (key, value) => {
+    if (key === 'h') {
+      const deltaH = value - selectedShape.h;
+      updateSelected({ h: value, y: Math.max(Math.round(value / 2), Math.round(selectedShape.y + deltaH / 2)) });
+    } else {
+      updateSelected({ [key]: value });
+    }
+  };
+
+  const renderInspectorTab = () => (
+    <>
+      {selectedShape ? (
+        <>
+          <div className="tks-section">
+            <div className="tks-eyebrow"><span>Selected object</span><span>{selectedShape.type}</span></div>
             <input
               type="text"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              style={{
-                font: '700 0.95rem var(--gh-font)',
-                color: 'var(--gh-heading)',
-                background: 'transparent',
-                border: 'none',
-                borderBottom: '1px dashed var(--gh-border-strong)',
-                padding: '0 4px',
-                outline: 'none',
-                maxWidth: '220px'
-              }}
-              title="Click to rename design"
+              className="tks-field"
+              aria-label="Selected object name"
+              value={selectedShape.name}
+              onChange={(e) => updateSelected({ name: e.target.value })}
             />
+            <div className="tks-seg2" role="group" aria-label="Shape mode">
+              <button
+                type="button"
+                className="tks-btn"
+                aria-pressed={!selectedShape.isHole}
+                onClick={() => updateSelected({ isHole: false })}
+              >
+                Solid
+              </button>
+              <button
+                type="button"
+                className="tks-btn is-hole"
+                aria-pressed={Boolean(selectedShape.isHole)}
+                onClick={() => updateSelected({ isHole: true })}
+              >
+                Hole (Cutter)
+              </button>
+            </div>
+            {!selectedShape.isHole && (
+              <div className="tks-swatches" role="group" aria-label="PLA colour">
+                {PALETTE_COLORS.map((col) => (
+                  <button
+                    key={col}
+                    type="button"
+                    className="tks-swatch"
+                    aria-pressed={selectedShape.color === col}
+                    aria-label={`Colour ${col}`}
+                    title={col}
+                    onClick={() => updateSelected({ color: col })}
+                    style={{ background: col }}
+                  >
+                    {selectedShape.color === col && <Check size={11} color={col === '#ffffff' ? '#0f172a' : '#fff'} />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Center: Transform Gizmo Mode (Move W, Rotate E, Scale R) & Alignment */}
-        <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-          <button
-            type="button"
-            className="pt-chip"
-            aria-pressed={transformMode === 'translate'}
-            onClick={() => setTransformMode('translate')}
-            title="Move / Translate on Workplane (W key)"
-            style={{ fontSize: '0.78rem', padding: '0.3rem 0.6rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-          >
-            <Move size={13} /> Move <kbd style={{ fontSize: '0.65rem', opacity: 0.7 }}>W</kbd>
-          </button>
-          <button
-            type="button"
-            className="pt-chip"
-            aria-pressed={transformMode === 'rotate'}
-            onClick={() => setTransformMode('rotate')}
-            title="Rotate along X, Y, Z axes (E key)"
-            style={{ fontSize: '0.78rem', padding: '0.3rem 0.6rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-          >
-            <RotateCw size={13} /> Rotate <kbd style={{ fontSize: '0.65rem', opacity: 0.7 }}>E</kbd>
-          </button>
-          <button
-            type="button"
-            className="pt-chip"
-            aria-pressed={transformMode === 'scale'}
-            onClick={() => setTransformMode('scale')}
-            title="Resize / Scale from all directions (R key)"
-            style={{ fontSize: '0.78rem', padding: '0.3rem 0.6rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-          >
-            <Scaling size={13} /> Resize / Scale <kbd style={{ fontSize: '0.65rem', opacity: 0.7 }}>R</kbd>
-          </button>
+          <div className="tks-section">
+            <div className="tks-eyebrow"><span>Dimensions</span><span>mm</span></div>
+            {DIMENSIONS.map(({ key, label, axis }) => (
+              <div key={key} className="tks-dim">
+                <div className="tks-dim-row">
+                  <span className="tks-dim-label">{label} <b>{axis}</b></span>
+                  <div className="tks-stepper">
+                    <button type="button" className="tks-step" onClick={() => nudgeDimension(key, -5)} title={`${label} −5 mm`}>-5</button>
+                    <button type="button" className="tks-step" onClick={() => nudgeDimension(key, -1)} title={`${label} −1 mm`}>-1</button>
+                    <input
+                      type="number"
+                      className="tks-num-input"
+                      aria-label={`${label} in millimetres`}
+                      min="2"
+                      max="180"
+                      value={selectedShape[key]}
+                      onChange={(e) => setDimension(key, Number(e.target.value))}
+                    />
+                    <button type="button" className="tks-step" onClick={() => nudgeDimension(key, 1)} title={`${label} +1 mm`}>+1</button>
+                    <button type="button" className="tks-step" onClick={() => nudgeDimension(key, 5)} title={`${label} +5 mm`}>+5</button>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  aria-label={`${label} slider`}
+                  min="2"
+                  max="160"
+                  value={selectedShape[key]}
+                  onChange={(e) => setDimension(key, Number(e.target.value))}
+                />
+              </div>
+            ))}
 
-          <span style={{ width: '1px', height: '18px', background: 'var(--gh-border)', margin: '0 4px' }} />
+            <div className="tks-dim">
+              <div className="tks-dim-row">
+                <span className="tks-dim-label">Elevation</span>
+                <input
+                  type="number"
+                  className="tks-num-input"
+                  aria-label="Elevation in millimetres"
+                  min="0"
+                  max="180"
+                  value={selectedShape.y}
+                  onChange={(e) => updateSelected({ y: Number(e.target.value) })}
+                />
+              </div>
+              <input
+                type="range"
+                aria-label="Elevation slider"
+                min="0"
+                max="140"
+                value={selectedShape.y}
+                onChange={(e) => updateSelected({ y: Number(e.target.value) })}
+              />
+            </div>
 
-          <button
-            type="button"
-            className="pt-chip"
-            onClick={handleDuplicate}
-            disabled={!selectedShape}
-            title="Duplicate Selected Shape (Ctrl+D)"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.55rem' }}
-          >
-            <Copy size={13} /> Duplicate
-          </button>
+            <div className="tks-inline">
+              <span className="tks-hint" style={{ whiteSpace: 'nowrap' }}>Scale all</span>
+              <div className="tks-inline-wrap">
+                {[0.5, 0.8, 1.25, 1.5, 2].map((f) => (
+                  <button key={f} type="button" className="tks-step" style={{ width: 'auto', padding: '0 6px' }} onClick={() => scaleUniform(f)} title={`Scale ${Math.round(f * 100)}%`}>
+                    {f}×
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <button
-            type="button"
-            className="pt-chip"
-            onClick={handleDelete}
-            disabled={!selectedShape}
-            title="Delete Selected Shape (Del key)"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.55rem', color: '#ef4444' }}
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-
-        {/* Right: Save, Export STL, Fullscreen */}
-        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-          <button
-            type="button"
-            onClick={handleSaveProject}
-            className="pt-chip"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
-          >
-            <Save size={13} /> Save Space
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExportSTL}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'var(--gh-purple, #7c3aed)',
-              color: '#fff',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-            title="Download binary .STL for 3D printing"
-          >
-            <Download size={13} /> Export .STL
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            title={isFullscreen ? 'Exit Full Screen' : 'Toggle Full Screen Workspace'}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              padding: '0.35rem 0.6rem',
-              borderRadius: '8px',
-              border: '1px solid var(--gh-border)',
-              background: isFullscreen ? '#7c3aed' : 'var(--gh-subtle)',
-              color: isFullscreen ? '#fff' : 'var(--gh-text)',
-              cursor: 'pointer',
-              fontSize: '0.78rem',
-              fontWeight: 600
-            }}
-          >
-            {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-            <span>{isFullscreen ? 'Exit' : 'Full Screen'}</span>
-          </button>
-        </div>
-      </div>
-
-      {statusMessage && (
-        <div style={{ background: 'var(--gh-green-50)', color: 'var(--gh-green-text)', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, flexShrink: 0 }}>
-          {statusMessage}
+            <div className="tks-grid2">
+              <button
+                type="button"
+                className="tks-btn tks-btn--outline"
+                onClick={() => updateSelected({ y: Math.round(selectedShape.h / 2) })}
+                title="Drop shape flat on the workplane"
+              >
+                <ArrowDownToLine size={14} /> Drop to Bed
+              </button>
+              <button
+                type="button"
+                className="tks-btn tks-btn--outline"
+                onClick={() => updateSelected({ x: 0, z: 0 })}
+                title="Center shape at origin (0, 0)"
+              >
+                <Crosshair size={14} /> Center
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="tks-empty">
+          <Sparkles size={26} />
+          <p className="tks-hint">
+            Click a shape in the viewport or add one from the left rail. Drag the gizmo handles to move, rotate or resize; W / E / R switch tools.
+          </p>
         </div>
       )}
 
-      {/* Main Studio Work Area (Left Shelf | 3D Canvas | Right Inspector) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '84px minmax(0, 1fr) 290px',
-          gap: '0.55rem',
-          flex: 1,
-          minHeight: 0,
-          overflow: 'hidden'
-        }}
-      >
-        {/* Left: Primitives Shape Shelf (Like Tinkercad Left Shelf) */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.4rem',
-            background: 'var(--gh-subtle)',
-            padding: '0.5rem 0.35rem',
-            borderRadius: '12px',
-            border: '1px solid var(--gh-border)',
-            alignItems: 'center',
-            overflowY: 'auto'
-          }}
+      <div className="tks-section">
+        <div className="tks-eyebrow">
+          <span>Scene objects</span>
+          <span className="tks-num">{multiSelectedIds.length} checked</span>
+        </div>
+        {shapes.length ? (
+          <div className="tks-objects">
+            {shapes.map((s) => (
+              <label key={s.id} className={`tks-object${s.id === selectedId ? ' is-active' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={multiSelectedIds.includes(s.id)}
+                  onChange={() => toggleObjectChecked(s.id)}
+                />
+                <span className={`tks-object-dot${s.isHole ? ' is-hole' : ''}`} style={{ background: s.color }} />
+                <span className="tks-object-name">{s.name}</span>
+                <span className="tks-object-dims">{s.w}×{s.d}×{s.h}</span>
+              </label>
+            ))}
+          </div>
+        ) : (
+          <p className="tks-hint">The bed is empty.</p>
+        )}
+        <button
+          type="button"
+          className={`tks-btn tks-btn--block ${canCombine ? 'tks-btn--primary' : 'tks-btn--outline'}`}
+          disabled={!canCombine}
+          onClick={handleCombineSelected}
         >
-          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--gh-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Shapes
+          <Combine size={14} /> Combine {multiSelectedIds.length} checked
+        </button>
+      </div>
+    </>
+  );
+
+  const renderTrainingTab = () => (
+    <>
+      <div className="tks-section">
+        <div className="tks-eyebrow"><span>Training wheels</span></div>
+        <select
+          className="tks-select"
+          aria-label="Active Tinker Lesson"
+          value={activeLessonId}
+          onChange={(e) => setActiveLessonId(e.target.value)}
+        >
+          {Object.values(TINKER_LESSONS).map((l) => (
+            <option key={l.id} value={l.id}>{l.title}</option>
+          ))}
+        </select>
+        <p className="tks-hint">{activeLesson.hint}</p>
+      </div>
+
+      <div className="tks-section">
+        <div className="tks-eyebrow"><span>Unlocked bmesh tools</span></div>
+        {unlockedTools.map((tool) => {
+          const val = toolValues[tool.id] ?? tool.defaultVal;
+          return (
+            <div key={tool.id} className="tks-tool-row">
+              <span>{tool.label}</span>
+              <input
+                type="range"
+                aria-label={`${tool.label} amount`}
+                min={tool.min}
+                max={tool.max}
+                step={tool.step}
+                value={val}
+                onChange={(e) => setToolValues((prev) => ({ ...prev, [tool.id]: Number(e.target.value) }))}
+              />
+              <button
+                type="button"
+                className="tks-btn tks-btn--outline tks-btn--sm tks-num"
+                disabled={!selectedShape}
+                onClick={() => handleApplyUnlockedTool(tool)}
+                title={selectedShape ? `Apply ${tool.label} to ${selectedShape.name}` : 'Select an object first'}
+              >
+                {val}{tool.unit === 'cuts' ? '×' : ` ${tool.unit}`}
+              </button>
+            </div>
+          );
+        })}
+        {!selectedShape && <p className="tks-hint">Select an object to apply a tool.</p>}
+      </div>
+
+      <div className="tks-section">
+        <div className="tks-eyebrow"><span>Mesh check</span></div>
+        <div className="tks-grid2">
+          <button type="button" className="tks-btn tks-btn--outline tks-btn--cyan" onClick={handleCheckMesh}>
+            <ScanSearch size={14} /> Check Mesh
+          </button>
+          <button
+            type="button"
+            className="tks-btn tks-btn--emerald"
+            onClick={handleAutoFix}
+            disabled={!diagnostics || diagnostics.passed}
+            title="One-click fix for the issues found"
+          >
+            <WandSparkles size={14} /> Auto-Fix
+          </button>
+        </div>
+        {diagnostics && (
+          <>
+            <div className={`tks-score${diagnostics.passed ? ' is-pass' : ''}`}>
+              <span>{diagnostics.passed ? 'Print & WebGL ready' : 'Issues detected'}</span>
+              <span className="tks-score-badge">{diagnostics.score}/100</span>
+            </div>
+            <span className="tks-hint tks-num">{diagnostics.triangleCount} triangles</span>
+            {diagnostics.issues.length > 0 && (
+              <ul className="tks-issues">
+                {diagnostics.issues.map((iss, i) => (
+                  <li key={i} className={iss.severity === 'error' ? 'is-error' : ''}>
+                    <code>{iss.code}</code> {iss.explanation}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <div className={`tks sp-tinker-studio ${isFullscreen ? 'is-fullscreen' : ''}`}>
+      {/* ───── Single-row header ───── */}
+      <header className="tks-header">
+        <div className="tks-header-left">
+          {onBack && (
+            <button
+              type="button"
+              className="tks-btn tks-btn--icon"
+              onClick={onBack}
+              title="Back to My Space"
+              aria-label="Back to My Space"
+            >
+              <ArrowLeft size={17} />
+            </button>
+          )}
+          <input
+            type="text"
+            className="tks-title"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            aria-label="Project name"
+            title="Click to rename design"
+          />
+          <span className="tks-status-pill tks-hide-md" title="bpy scripts are AST-sandboxed; build plate is 200 × 200 mm">
+            <ShieldCheck size={12} /> AST Sandboxed <span className="tks-sep">·</span> <span className="tks-num">200×200 mm</span>
           </span>
+        </div>
+
+        <div className="tks-header-center">
+          <div className="tks-segmented" role="group" aria-label="Transform tool">
+            <button
+              type="button"
+              className="tks-btn"
+              aria-pressed={transformMode === 'translate'}
+              onClick={() => setTransformMode('translate')}
+              title="Move on the workplane (W)"
+            >
+              <Move size={14} /> <span className="tks-hide-md">Move</span> <kbd className="tks-hide-lg">W</kbd>
+            </button>
+            <button
+              type="button"
+              className="tks-btn"
+              aria-pressed={transformMode === 'rotate'}
+              onClick={() => setTransformMode('rotate')}
+              title="Rotate around X, Y, Z (E)"
+            >
+              <RotateCw size={14} /> <span className="tks-hide-md">Rotate</span> <kbd className="tks-hide-lg">E</kbd>
+            </button>
+            <button
+              type="button"
+              className="tks-btn"
+              aria-pressed={transformMode === 'scale'}
+              onClick={() => setTransformMode('scale')}
+              title="Resize from all directions (R)"
+            >
+              <Scaling size={14} /> <span className="tks-hide-md">Resize</span> <kbd className="tks-hide-lg">R</kbd>
+            </button>
+          </div>
+
+          <span className="tks-divider" />
 
           <button
             type="button"
-            onClick={() => handleAddPrimitive('box')}
-            className="pt-chip"
-            title="Add 3D Solid Box"
-            style={{ width: '64px', height: '56px', padding: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}
+            className="tks-btn"
+            onClick={() => setShowSketchModal(true)}
+            title="Draw a 2D sketch and extrude it to 3D"
           >
-            <Box size={22} color="#ef4444" />
-            <span style={{ fontSize: '0.64rem', fontWeight: 600 }}>Box</span>
+            <PenTool size={14} /> <span className="tks-hide-lg">Sketch 3D</span>
           </button>
-
           <button
             type="button"
-            onClick={() => handleAddPrimitive('cylinder')}
-            className="pt-chip"
-            title="Add 3D Cylinder"
-            style={{ width: '64px', height: '56px', padding: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}
+            className={`tks-btn ${canCombine ? 'tks-btn--primary' : ''}`}
+            disabled={!canCombine}
+            onClick={handleCombineSelected}
+            title="Combine 2+ checked objects (Shift+Click or tick them in Scene objects)"
           >
-            <Circle size={22} color="#3b82f6" />
-            <span style={{ fontSize: '0.64rem', fontWeight: 600 }}>Cylinder</span>
+            <Combine size={14} /> <span className="tks-hide-lg">Combine</span> <span className="tks-count">{multiSelectedIds.length}</span>
           </button>
-
+          {selectedShape?.type === 'composite' && (
+            <button
+              type="button"
+              className="tks-btn"
+              onClick={handleUngroupSelected}
+              title="Ungroup the combined object back into parts"
+            >
+              <Ungroup size={14} /> <span className="tks-hide-lg">Ungroup</span>
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => handleAddPrimitive('sphere')}
-            className="pt-chip"
-            title="Add 3D Sphere"
-            style={{ width: '64px', height: '56px', padding: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}
+            className="tks-btn tks-btn--icon"
+            onClick={handleDuplicate}
+            disabled={!selectedShape}
+            title="Duplicate (Ctrl+D)"
+            aria-label="Duplicate selected object"
           >
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#10b981' }} />
-            <span style={{ fontSize: '0.64rem', fontWeight: 600 }}>Sphere</span>
+            <Copy size={15} />
           </button>
-
           <button
             type="button"
-            onClick={() => handleAddPrimitive('roof')}
-            className="pt-chip"
-            title="Add Triangular Roof"
-            style={{ width: '64px', height: '56px', padding: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}
+            className="tks-btn tks-btn--icon tks-btn--danger"
+            onClick={handleDelete}
+            disabled={!selectedShape}
+            title="Delete (Del)"
+            aria-label="Delete selected object"
           >
-            <Triangle size={20} color="#f59e0b" />
-            <span style={{ fontSize: '0.64rem', fontWeight: 600 }}>Roof</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleAddPrimitive('cone')}
-            className="pt-chip"
-            title="Add Cone / Pyramid"
-            style={{ width: '64px', height: '56px', padding: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}
-          >
-            <Flame size={20} color="#ec4899" />
-            <span style={{ fontSize: '0.64rem', fontWeight: 600 }}>Cone</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleAddPrimitive('torus')}
-            className="pt-chip"
-            title="Add Torus Ring"
-            style={{ width: '64px', height: '56px', padding: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}
-          >
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '4px solid #8b5cf6' }} />
-            <span style={{ fontSize: '0.64rem', fontWeight: 600 }}>Torus</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleAddPrimitive('wedge')}
-            className="pt-chip"
-            title="Add Wedge Ramp"
-            style={{ width: '64px', height: '56px', padding: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}
-          >
-            <Layers size={20} color="#06b6d4" />
-            <span style={{ fontSize: '0.64rem', fontWeight: 600 }}>Wedge</span>
+            <Trash2 size={15} />
           </button>
         </div>
 
-        {/* Center: 3D Workplane Canvas */}
+        <div className="tks-header-right">
+          <button
+            type="button"
+            className="tks-btn tks-btn--cyan"
+            aria-pressed={showBlueprint}
+            onClick={() => setShowBlueprint(true)}
+            title="Open the orthographic engineering drawing"
+          >
+            <Ruler size={15} /> <span className="tks-hide-lg">Blueprint</span>
+          </button>
+          <button type="button" className="tks-btn" onClick={handleSaveProject} title="Save to your Creative Space">
+            <Save size={15} /> <span className="tks-hide-lg">Save</span>
+          </button>
+          <div className="tks-menu-wrap">
+            <button
+              ref={exportBtnRef}
+              type="button"
+              className="tks-btn tks-btn--primary"
+              aria-haspopup="menu"
+              aria-expanded={Boolean(exportMenu)}
+              onClick={toggleExportMenu}
+            >
+              <Download size={15} /> Export <ChevronDown size={14} />
+            </button>
+          </div>
+          <button
+            type="button"
+            className="tks-btn tks-btn--icon"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            title={isFullscreen ? 'Exit full screen' : 'Full screen workspace'}
+            aria-label={isFullscreen ? 'Exit full screen' : 'Full screen workspace'}
+            aria-pressed={isFullscreen}
+          >
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </button>
+        </div>
+      </header>
+
+      {exportMenu && (
         <div
-          style={{
-            position: 'relative',
-            background: '#0a0f1d',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            border: '1px solid var(--gh-border-strong)',
-            minHeight: 0
-          }}
+          ref={exportMenuRef}
+          className="tks-menu"
+          role="menu"
+          style={{ top: exportMenu.top, right: exportMenu.right }}
+        >
+          <button type="button" role="menuitem" className="tks-menu-item" onClick={() => { setExportMenu(null); handleExportSTL(); }}>
+            <Download size={15} />
+            <span>.STL<small>Binary mesh for 3D printing</small></span>
+          </button>
+          <button type="button" role="menuitem" className="tks-menu-item" onClick={() => { setExportMenu(null); handleExportAr('glb'); }}>
+            <Smartphone size={15} />
+            <span>.GLB (AR)<small>For AR viewers and WebXR</small></span>
+          </button>
+          <button type="button" role="menuitem" className="tks-menu-item" onClick={() => { setExportMenu(null); handleExportAr('usdz'); }}>
+            <Box size={15} />
+            <span>.USDZ<small>Apple AR Quick Look (needs bpy worker)</small></span>
+          </button>
+        </div>
+      )}
+
+      {/* ───── Rail | Viewport | Inspector ───── */}
+      <div className="tks-body">
+        <nav className="tks-panel tks-rail" aria-label="Add shapes">
+          <span className="tks-rail-label">Shapes</span>
+          {PRIMITIVES.map((prim) => (
+            <button
+              key={prim.type}
+              type="button"
+              className="tks-rail-btn"
+              onClick={() => handleAddPrimitive(prim.type)}
+              title={prim.title}
+              aria-label={prim.title}
+            >
+              <PrimitiveIcon type={prim.type} />
+              <span>{prim.label}</span>
+            </button>
+          ))}
+          <span className="tks-rail-spacer" />
+          <span className="tks-rail-sep" />
+          <button
+            type="button"
+            className="tks-rail-btn"
+            onClick={() => setShowSketchModal(true)}
+            title="Draw a 2D sketch and extrude it to 3D"
+          >
+            <PenTool size={20} />
+            <span>Sketch</span>
+          </button>
+          <button
+            type="button"
+            className="tks-rail-btn"
+            aria-pressed={rightTab === 'solar'}
+            onClick={() => setRightTab('solar')}
+            title="Solar Car engineering kits, chassis and tires"
+          >
+            <Car size={20} />
+            <span>Solar Kit</span>
+          </button>
+        </nav>
+
+        <div
+          className="tks-viewport"
           onPointerDown={(e) => {
             if (e.target === e.currentTarget) setSelectedId(null);
           }}
         >
-          <Suspense fallback={<div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#94a3b8' }}>Loading 3D Workplane...</div>}>
+          <Suspense fallback={<div className="tks-viewport-loading">Loading 3D Workplane…</div>}>
             <Canvas
               shadows
               camera={{ position: [0, 140, 180], fov: 48 }}
               style={{ width: '100%', height: '100%' }}
+              onPointerMissed={() => { setSelectedId(null); setMultiSelectedIds([]); }}
             >
               <ambientLight intensity={0.75} />
               <directionalLight position={[100, 180, 100]} intensity={1.35} castShadow />
@@ -803,14 +1428,13 @@ export function TinkerStudio({ onBack }) {
 
               <WorkplaneGrid snapMm={snapGrid} />
 
-              {/* Render Shape Primitives */}
               <group>
                 {shapes.map((s) => (
                   <ShapeObject
                     key={s.id}
                     shape={s}
-                    isSelected={s.id === selectedId}
-                    onSelect={(id) => setSelectedId(id)}
+                    isSelected={s.id === selectedId || multiSelectedIds.includes(s.id)}
+                    onSelect={handleSelectShape}
                     transformMode={transformMode}
                     snapGrid={snapGrid}
                     onTransformChange={(patch) => updateSelected(patch)}
@@ -818,6 +1442,16 @@ export function TinkerStudio({ onBack }) {
                   />
                 ))}
               </group>
+
+              {/* 3D Diagnostic Error Highlight Markers */}
+              {diagnostics?.issues?.flatMap((issue, idx) =>
+                (issue.coordinates || []).map((coord, cIdx) => (
+                  <mesh key={`diag_${idx}_${cIdx}`} position={coord}>
+                    <sphereGeometry args={[2.5, 16, 16]} />
+                    <meshBasicMaterial color={issue.severity === 'error' ? '#ef4444' : '#f59e0b'} />
+                  </mesh>
+                ))
+              )}
 
               <OrbitControls
                 ref={controlsRef}
@@ -830,427 +1464,125 @@ export function TinkerStudio({ onBack }) {
             </Canvas>
           </Suspense>
 
-          {/* Top-Left: Workplane Info Badges */}
-          <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '6px', pointerEvents: 'none' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', background: 'rgba(59, 130, 246, 0.9)', color: '#fff' }}>
-              Workplane: 200 × 200 mm
-            </span>
-            <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '3px 8px', borderRadius: '5px', background: 'rgba(15, 23, 42, 0.85)', color: '#cbd5e1' }}>
-              {shapes.length} Objects on Bed
-            </span>
+          {/* Top-left HUD */}
+          <div className="tks-hud tks-glass" aria-live="polite">
+            <span className="tks-hud-item tks-hud-item--cyan tks-num">200 × 200 mm</span>
+            <span className="tks-hud-sep" />
+            <span className="tks-hud-item tks-num">{shapes.length} {shapes.length === 1 ? 'object' : 'objects'}</span>
+            {selectedShape && (
+              <>
+                <span className="tks-hud-sep" />
+                <span className="tks-hud-item tks-hud-item--amber tks-num">
+                  {selectedShape.name}: {selectedShape.w} × {selectedShape.d} × {selectedShape.h} mm
+                </span>
+              </>
+            )}
           </div>
 
-          {/* Top-Right: Camera Presets (View Cube / Angle buttons) */}
-          <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '3px', background: 'rgba(15, 23, 42, 0.85)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <button
-              type="button"
-              onClick={() => setCameraView('iso')}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.68rem', fontWeight: 600, padding: '2px 6px', cursor: 'pointer' }}
-              title="Isometric 3D View"
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              onClick={() => setCameraView('top')}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.68rem', fontWeight: 600, padding: '2px 6px', cursor: 'pointer' }}
-              title="Top View"
-            >
-              Top
-            </button>
-            <button
-              type="button"
-              onClick={() => setCameraView('front')}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.68rem', fontWeight: 600, padding: '2px 6px', cursor: 'pointer' }}
-              title="Front View"
-            >
-              Front
-            </button>
-            <button
-              type="button"
-              onClick={() => setCameraView('right')}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.68rem', fontWeight: 600, padding: '2px 6px', cursor: 'pointer' }}
-              title="Right Side View"
-            >
-              Right
-            </button>
+          {/* Top-right view cube */}
+          <div className="tks-viewcube tks-glass" role="group" aria-label="Camera view">
+            <button type="button" className="tks-btn" onClick={() => setCameraView('iso')} title="Isometric 3D view">Home</button>
+            <button type="button" className="tks-btn" onClick={() => setCameraView('top')} title="Top view">Top</button>
+            <button type="button" className="tks-btn" onClick={() => setCameraView('front')} title="Front view">Front</button>
+            <button type="button" className="tks-btn" onClick={() => setCameraView('right')} title="Right side view">Right</button>
           </div>
 
-          {/* Floating On-Canvas Quick Mode Switcher for Selected Object */}
-          {selectedShape && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '50px',
-                left: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                background: 'rgba(15, 23, 42, 0.92)',
-                backdropFilter: 'blur(8px)',
-                padding: '4px 8px',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.4)'
-              }}
-            >
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', marginRight: '4px' }}>
-                {selectedShape.name}:
-              </span>
-              <button
-                type="button"
-                onClick={() => setTransformMode('translate')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '2px',
-                  background: transformMode === 'translate' ? '#3b82f6' : 'rgba(255,255,255,0.08)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '5px',
-                  padding: '3px 7px',
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-                title="Move along X, Y, Z (W key)"
-              >
-                <Move size={12} /> Move
-              </button>
-              <button
-                type="button"
-                onClick={() => setTransformMode('rotate')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '2px',
-                  background: transformMode === 'rotate' ? '#8b5cf6' : 'rgba(255,255,255,0.08)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '5px',
-                  padding: '3px 7px',
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-                title="Rotate around axes (E key)"
-              >
-                <RotateCw size={12} /> Rotate
-              </button>
-              <button
-                type="button"
-                onClick={() => setTransformMode('scale')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '2px',
-                  background: transformMode === 'scale' ? '#10b981' : 'rgba(255,255,255,0.08)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '5px',
-                  padding: '3px 7px',
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-                title="Resize dimensions from all directions (R key)"
-              >
-                <Scaling size={12} /> Resize
-              </button>
-            </div>
-          )}
+          {statusMessage && <div className="tks-toast" role="status">{statusMessage}</div>}
 
-          {/* Bottom Help Hint */}
-          <div style={{ position: 'absolute', bottom: '8px', left: '10px', fontSize: '0.68rem', color: '#94a3b8', pointerEvents: 'none', background: 'rgba(15, 23, 42, 0.75)', padding: '2px 8px', borderRadius: '4px' }}>
-            🖱️ Click any shape to select • Drag gizmo handles to move/rotate/resize • W/E/R hotkeys
-          </div>
+          {/* Bottom-centre AI Co-Pilot command bar */}
+          <AiCopilotDrawer
+            liveCode={liveCode}
+            onRunPrompt={(promptText, res) => {
+              setLiveCode(res.code);
+              if (res.shapes) {
+                setShapes(res.shapes);
+                setSelectedId(res.shapes[0]?.id || null);
+                setMultiSelectedIds(res.shapes[0] ? [res.shapes[0].id] : []);
+              }
+              flashStatus(`✓ AI Co-Pilot executed: "${promptText}"`, 3000);
+            }}
+            onCloudRender={(engine) => flashStatus(`${engine} cloud render queued`)}
+          />
         </div>
 
-        {/* Right: Shape Property Inspector & Solid/Hole Toggle */}
-        <div
-          style={{
-            background: 'var(--gh-surface)',
-            padding: '0.75rem',
-            borderRadius: '12px',
-            border: '1px solid var(--gh-border)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.65rem',
-            overflowY: 'auto'
-          }}
-        >
-          {selectedShape ? (
-            <>
-              {/* Shape Title */}
-              <div>
-                <span style={{ fontSize: '0.68rem', color: 'var(--gh-text-3)', textTransform: 'uppercase', fontWeight: 700 }}>
-                  Selected Object
-                </span>
-                <input
-                  type="text"
-                  value={selectedShape.name}
-                  onChange={(e) => updateSelected({ name: e.target.value })}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    font: '700 0.92rem var(--gh-font)',
-                    color: 'var(--gh-heading)',
-                    background: 'var(--gh-subtle)',
-                    border: '1px solid var(--gh-border)',
-                    borderRadius: '6px',
-                    padding: '0.3rem 0.5rem',
-                    marginTop: '2px'
-                  }}
-                />
-              </div>
-
-              {/* Solid vs Hole Cutter Mode (Tinkercad Feature) */}
-              <div style={{ background: 'var(--gh-subtle)', padding: '0.45rem', borderRadius: '8px', border: '1px solid var(--gh-border)' }}>
-                <span style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--gh-heading)', display: 'block', marginBottom: '0.35rem' }}>
-                  Shape Mode
-                </span>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
-                  <button
-                    type="button"
-                    className="pt-chip"
-                    aria-pressed={!selectedShape.isHole}
-                    onClick={() => updateSelected({ isHole: false })}
-                    style={{ justifyContent: 'center', fontSize: '0.76rem', fontWeight: 600 }}
-                  >
-                    🎨 Solid
-                  </button>
-                  <button
-                    type="button"
-                    className="pt-chip"
-                    aria-pressed={selectedShape.isHole}
-                    onClick={() => updateSelected({ isHole: true })}
-                    style={{ justifyContent: 'center', fontSize: '0.76rem', fontWeight: 600 }}
-                  >
-                    🕳️ Hole (Cutter)
-                  </button>
-                </div>
-              </div>
-
-              {/* Color Swatches if Solid */}
-              {!selectedShape.isHole && (
-                <div>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--gh-text-3)', fontWeight: 600 }}>Solid PLA Color</span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.25rem' }}>
-                    {PALETTE_COLORS.map((col) => (
-                      <button
-                        key={col}
-                        type="button"
-                        onClick={() => updateSelected({ color: col })}
-                        style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: col,
-                          border: selectedShape.color === col ? '2px solid #fff' : '1px solid var(--gh-border)',
-                          boxShadow: selectedShape.color === col ? '0 0 0 2px #7c3aed' : 'none',
-                          cursor: 'pointer',
-                          display: 'grid',
-                          placeItems: 'center'
-                        }}
-                      >
-                        {selectedShape.color === col && <Check size={12} color={col === '#ffffff' ? '#000' : '#fff'} />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Directional Resize Calipers (X, Y, Z mm) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--gh-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>
-                    Dimensions & Resize (mm)
-                  </span>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--gh-text-3)' }}>
-                    All Directions
-                  </span>
-                </div>
-
-                {/* Width X with Directional Nudges */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--gh-text-2)' }}>Width (X)</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <button type="button" onClick={() => nudgeDimension('w', -5)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Shrink Width by 5mm">-5</button>
-                      <button type="button" onClick={() => nudgeDimension('w', -1)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Shrink Width by 1mm">-1</button>
-                      <input
-                        type="number"
-                        min="2"
-                        max="180"
-                        value={selectedShape.w}
-                        onChange={(e) => updateSelected({ w: Number(e.target.value) })}
-                        style={{ width: '48px', fontSize: '0.75rem', padding: '2px 3px', textAlign: 'center', borderRadius: '4px', border: '1px solid var(--gh-border)' }}
-                      />
-                      <button type="button" onClick={() => nudgeDimension('w', 1)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Expand Width by 1mm">+1</button>
-                      <button type="button" onClick={() => nudgeDimension('w', 5)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Expand Width by 5mm">+5</button>
-                    </div>
-                  </div>
-                  <input
-                    type="range"
-                    min="2"
-                    max="160"
-                    value={selectedShape.w}
-                    onChange={(e) => updateSelected({ w: Number(e.target.value) })}
-                  />
-                </div>
-
-                {/* Height Y with Directional Nudges */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--gh-text-2)' }}>Height (Y)</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <button type="button" onClick={() => nudgeDimension('h', -5)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Shrink Height by 5mm">-5</button>
-                      <button type="button" onClick={() => nudgeDimension('h', -1)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Shrink Height by 1mm">-1</button>
-                      <input
-                        type="number"
-                        min="2"
-                        max="180"
-                        value={selectedShape.h}
-                        onChange={(e) => updateSelected({ h: Number(e.target.value) })}
-                        style={{ width: '48px', fontSize: '0.75rem', padding: '2px 3px', textAlign: 'center', borderRadius: '4px', border: '1px solid var(--gh-border)' }}
-                      />
-                      <button type="button" onClick={() => nudgeDimension('h', 1)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Expand Height by 1mm">+1</button>
-                      <button type="button" onClick={() => nudgeDimension('h', 5)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Expand Height by 5mm">+5</button>
-                    </div>
-                  </div>
-                  <input
-                    type="range"
-                    min="2"
-                    max="160"
-                    value={selectedShape.h}
-                    onChange={(e) => {
-                      const newH = Number(e.target.value);
-                      const deltaH = newH - selectedShape.h;
-                      updateSelected({ h: newH, y: Math.max(Math.round(newH / 2), Math.round(selectedShape.y + deltaH / 2)) });
-                    }}
-                  />
-                </div>
-
-                {/* Length Z with Directional Nudges */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--gh-text-2)' }}>Length (Z)</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <button type="button" onClick={() => nudgeDimension('d', -5)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Shrink Length by 5mm">-5</button>
-                      <button type="button" onClick={() => nudgeDimension('d', -1)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Shrink Length by 1mm">-1</button>
-                      <input
-                        type="number"
-                        min="2"
-                        max="180"
-                        value={selectedShape.d}
-                        onChange={(e) => updateSelected({ d: Number(e.target.value) })}
-                        style={{ width: '48px', fontSize: '0.75rem', padding: '2px 3px', textAlign: 'center', borderRadius: '4px', border: '1px solid var(--gh-border)' }}
-                      />
-                      <button type="button" onClick={() => nudgeDimension('d', 1)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Expand Length by 1mm">+1</button>
-                      <button type="button" onClick={() => nudgeDimension('d', 5)} className="pt-chip" style={{ padding: '1px 4px', fontSize: '0.65rem' }} title="Expand Length by 5mm">+5</button>
-                    </div>
-                  </div>
-                  <input
-                    type="range"
-                    min="2"
-                    max="160"
-                    value={selectedShape.d}
-                    onChange={(e) => updateSelected({ d: Number(e.target.value) })}
-                  />
-                </div>
-
-                {/* Quick Uniform Scale Multipliers */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '0.2rem' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--gh-text-3)', fontWeight: 600 }}>Scale All:</span>
-                  <button type="button" onClick={() => scaleUniform(0.5)} className="pt-chip" style={{ fontSize: '0.68rem', padding: '1px 5px' }} title="Scale 50%">0.5×</button>
-                  <button type="button" onClick={() => scaleUniform(0.8)} className="pt-chip" style={{ fontSize: '0.68rem', padding: '1px 5px' }} title="Scale 80%">0.8×</button>
-                  <button type="button" onClick={() => scaleUniform(1.25)} className="pt-chip" style={{ fontSize: '0.68rem', padding: '1px 5px' }} title="Scale 125%">1.25×</button>
-                  <button type="button" onClick={() => scaleUniform(1.5)} className="pt-chip" style={{ fontSize: '0.68rem', padding: '1px 5px' }} title="Scale 150%">1.5×</button>
-                  <button type="button" onClick={() => scaleUniform(2.0)} className="pt-chip" style={{ fontSize: '0.68rem', padding: '1px 5px' }} title="Double Size (200%)">2×</button>
-                </div>
-
-                {/* Elevation Above Workplane */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', marginTop: '0.3rem' }}>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--gh-text-2)', width: '60px' }}>Elevation</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="140"
-                    value={selectedShape.y}
-                    onChange={(e) => updateSelected({ y: Number(e.target.value) })}
-                    style={{ flex: 1 }}
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max="180"
-                    value={selectedShape.y}
-                    onChange={(e) => updateSelected({ y: Number(e.target.value) })}
-                    style={{ width: '48px', fontSize: '0.75rem', padding: '2px 3px', textAlign: 'center', borderRadius: '4px', border: '1px solid var(--gh-border)' }}
-                  />
-                </div>
-
-                {/* Quick Bed Alignment Actions */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem', marginTop: '0.35rem' }}>
-                  <button
-                    type="button"
-                    className="pt-chip"
-                    onClick={() => updateSelected({ y: Math.round(selectedShape.h / 2) })}
-                    style={{ fontSize: '0.7rem', padding: '0.25rem 0.4rem', justifyContent: 'center' }}
-                    title="Drop shape flat on the workplane"
-                  >
-                    Drop to Bed (0 mm)
-                  </button>
-                  <button
-                    type="button"
-                    className="pt-chip"
-                    onClick={() => updateSelected({ x: 0, z: 0 })}
-                    style={{ fontSize: '0.7rem', padding: '0.25rem 0.4rem', justifyContent: 'center' }}
-                    title="Center shape at origin (0, 0)"
-                  >
-                    Center on Grid
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            /* No Selection Empty State */
-            <div style={{ display: 'grid', placeItems: 'center', height: '100%', textAlign: 'center', color: 'var(--gh-text-3)', padding: '1rem 0.5rem' }}>
-              <Sparkles size={32} color="#7c3aed" style={{ opacity: 0.8 }} />
-              <p style={{ fontSize: '0.82rem', margin: '0.5rem 0' }}>Click any 3D shape or add one from the left shelf to inspect & sculpt.</p>
-            </div>
-          )}
-        </div>
+        <aside className="tks-panel tks-inspector" aria-label="Engineering inspector">
+          <div className="tks-tabs" role="tablist" aria-label="Inspector panels">
+            {RIGHT_TABS.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                id={`tks-tab-${id}`}
+                aria-selected={rightTab === id}
+                aria-controls={`tks-panel-${id}`}
+                className="tks-tab"
+                onClick={() => setRightTab(id)}
+              >
+                <Icon size={15} />
+                {label}
+              </button>
+            ))}
+          </div>
+          <div
+            className="tks-tabpanel"
+            role="tabpanel"
+            id={`tks-panel-${rightTab}`}
+            aria-labelledby={`tks-tab-${rightTab}`}
+          >
+            {rightTab === 'inspector' && renderInspectorTab()}
+            {rightTab === 'training' && renderTrainingTab()}
+            {rightTab === 'geonodes' && (
+              <GeoNodesPanel
+                onApplyToWorkplane={(generated) => {
+                  setShapes(generated);
+                  setSelectedId(generated[0]?.id || null);
+                  setMultiSelectedIds(generated[0] ? [generated[0].id] : []);
+                  flashStatus(`✓ Applied ${generated.length} parametric GeoNode objects`);
+                }}
+              />
+            )}
+            {rightTab === 'solar' && (
+              <SolarCarKitPanel onLoadKit={loadKitShapes} onAddPart={addKitPart} />
+            )}
+          </div>
+        </aside>
       </div>
 
-      {/* Bottom Starter Templates Tray with Safe Right-Margin for Chat Bubble */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          paddingTop: '0.35rem',
-          borderTop: '1px solid var(--gh-border)',
-          overflowX: 'auto',
-          flexShrink: 0,
-          marginRight: '80px' /* Safe margin away from floating Ask Spark widget */
-        }}
-      >
-        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--gh-text-3)', whiteSpace: 'nowrap' }}>
-          Starter Templates:
-        </span>
+      {/* ───── Starter templates strip ───── */}
+      <div className="tks-templates">
+        <span className="tks-templates-label"><LayoutTemplate size={13} /> Templates:</span>
         {Object.entries(TEMPLATES).map(([k, tpl]) => (
           <button
             key={k}
             type="button"
-            className="pt-chip"
+            className="tks-chip"
             onClick={() => handleLoadTemplate(k)}
-            style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem', whiteSpace: 'nowrap' }}
+            title={tpl.name}
           >
-            {tpl.name}
+            {tpl.label}
           </button>
         ))}
       </div>
+
+      {showBlueprint && (
+        <EngineeringDrawingModal
+          projectName={projectName}
+          shapes={shapes}
+          onClose={() => setShowBlueprint(false)}
+        />
+      )}
+
+      {showSketchModal && (
+        <SketchTo3DModal
+          onExtrude={(newShape) => {
+            setShapes((prev) => [...prev, newShape]);
+            setSelectedId(newShape.id);
+            setMultiSelectedIds([newShape.id]);
+            flashStatus(`✓ Extruded "${newShape.name}" (${newShape.w}×${newShape.d}×${newShape.h} mm)`, 3000);
+          }}
+          onClose={() => setShowSketchModal(false)}
+        />
+      )}
     </div>
   );
 }
