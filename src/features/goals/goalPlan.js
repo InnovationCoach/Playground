@@ -104,6 +104,49 @@ export const RECHARGE = [
   { id: 'quiet', label: 'Quiet time on my own' }
 ];
 
+/**
+ * Goal-setting tracks aligned with Coach/School Workspace domains
+ * (academic, pbl, steam) plus student-led personal quests.
+ */
+export const GOAL_TRACKS = [
+  {
+    id: 'academic',
+    label: 'Academy / Academic',
+    shortLabel: 'Academy',
+    description: 'Core subjects, Edmentum mastery, study habits & academic growth',
+    placeholder: 'e.g. master quadratic equations, finish Unit 4 in Science, strengthen essay structure',
+    subjects: ['Mathematics', 'Science', 'English & Writing', 'Edmentum Course', 'Languages', 'Humanities', 'Study Mastery'],
+    ideas: ['Finish my next Edmentum unit with 85%+', 'Master fractions and algebra equations', 'Write a clear persuasive essay outline']
+  },
+  {
+    id: 'pbl',
+    label: 'PBL Studio',
+    shortLabel: 'PBL',
+    description: 'Project-Based Learning missions, prototypes, research & real-world impact',
+    placeholder: 'e.g. design a cooling plan for Townsville, build a working solar car prototype',
+    subjects: ['Urban Heat Battle', 'Solar Car', 'Bio-Inspired Robotics', 'Bangkok Coastal Challenge', 'Bunker Survival', 'Entrepreneurship', 'Custom PBL'],
+    ideas: ['Prototype a cooler city block in Urban Heat Battle', 'Test two gear ratios on my Solar Car', 'Interview 3 people for my PBL research']
+  },
+  {
+    id: 'steam',
+    label: 'STEAM & Makerspace',
+    shortLabel: 'STEAM',
+    description: '3D design, coding, robotics, science labs & creative technology',
+    placeholder: 'e.g. model a 3D print part in TinkerStudio, code a Micro:bit sensor game',
+    subjects: ['3D TinkerStudio', 'Python & Micro:bit', 'Science Lab', 'Digital Art & Canva', 'Robotics'],
+    ideas: ['Design and inspect a 3D printable model', 'Build a Python mini-game with a score counter', 'Run a controlled plant-growth experiment']
+  },
+  {
+    id: 'personal',
+    label: 'Personal & Curiosity',
+    shortLabel: 'Personal',
+    description: 'Passion projects, creative skills, leadership & independent exploration',
+    placeholder: 'e.g. compose a beat, draw a 6-panel comic, learn chess openings',
+    subjects: ['Creative Art', 'Music & Audio', 'Game Design', 'Writing & Comics', 'Leadership & Community'],
+    ideas: ['Draw a 4-panel comic strip from scratch', 'Learn one full song on my instrument', 'Organise a mini tournament with classmates']
+  }
+];
+
 const ids = (list) => new Set(list.map((x) => x.id));
 const STRENGTH_IDS = ids(STRENGTHS);
 const SUPPORT_IDS = ids(SUPPORTS);
@@ -111,6 +154,7 @@ const SHOW_IDS = ids(SHOW_HOW);
 const SKILL_IDS = ids(FOCUS_SKILLS);
 const PHRASE_IDS = ids(PHRASES);
 const RECHARGE_IDS = ids(RECHARGE);
+const TRACK_IDS = ids(GOAL_TRACKS);
 
 const str = (v, max) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '');
 const pick = (v, allowed) => [...new Set(Array.isArray(v) ? v.filter((x) => allowed.has(x)) : [])];
@@ -153,6 +197,8 @@ export function firstStepOptions(explore, showHow = null) {
 let seq = 0;
 export const newId = (prefix) => `${prefix}_${Date.now().toString(36)}${(seq++).toString(36)}`;
 
+export const trackById = (id) => GOAL_TRACKS.find((t) => t.id === id) || GOAL_TRACKS[GOAL_TRACKS.length - 1];
+
 function cleanGoal(g) {
   if (!g || typeof g !== 'object') return null;
   const explore = str(g.explore, LIMITS.text);
@@ -160,8 +206,14 @@ function cleanGoal(g) {
   const steps = (Array.isArray(g.steps) ? g.steps : []).map((s) => (s && typeof s === 'object' ? {
     id: str(s.id, 40) || newId('s'), text: str(s.text, LIMITS.text), done: s.done === true
   } : null)).filter((s) => s && s.text).slice(0, LIMITS.steps);
+  const track = TRACK_IDS.has(g.track) ? g.track : (TRACK_IDS.has(g.domain) ? g.domain : 'personal');
+  const subject = str(g.subject, 60);
+  const targetDate = typeof g.targetDate === 'string' && isDay(g.targetDate) ? g.targetDate : null;
   return {
     id: str(g.id, 40) || newId('g'),
+    track,
+    ...(subject ? { subject } : {}),
+    ...(targetDate ? { targetDate } : {}),
     explore,
     showHow: SHOW_IDS.has(g.showHow) ? g.showHow : null,
     supports: pick(g.supports, SUPPORT_IDS),
@@ -248,7 +300,7 @@ export function todayItems(plan, day = dayKey()) {
   for (const g of plan.goals) {
     if (g.done) continue;
     const next = g.steps.find((s) => ticked.has(`step:${g.id}:${s.id}`)) || g.steps.find((s) => !s.done);
-    if (next) items.push({ id: `step:${g.id}:${next.id}`, kind: 'step', text: next.text, goal: g.explore, goalId: g.id, stepId: next.id });
+    if (next) items.push({ id: `step:${g.id}:${next.id}`, kind: 'step', text: next.text, goal: g.explore, goalId: g.id, stepId: next.id, track: g.track || 'personal' });
   }
   if (plan.recharge.length) {
     items.push({ id: 'recharge', kind: 'recharge', text: `Recharge break: ${labelOf(RECHARGE, plan.recharge[0]).toLowerCase()}` });
@@ -301,6 +353,9 @@ export function coachGoalDocs(plan, now = Date.now()) {
       title: g.explore,
       summary: goalSentence(g),
       kind: 'big-goal',
+      domain: g.track || 'personal',
+      ...(g.subject ? { subject: g.subject } : {}),
+      ...(g.targetDate ? { targetDate: g.targetDate } : {}),
       status: g.done ? 'achieved' : 'on_track',
       completed: g.done,
       progress: g.done ? 1 : (total ? Math.round((done / total) * 100) / 100 : 0),
