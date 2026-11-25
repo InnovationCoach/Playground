@@ -21,6 +21,9 @@ import { LearnerPathway } from '../quest/LearnerPathway.jsx';
 import { W2eCoachSupportPanel } from './W2eCoachSupportPanel.jsx';
 import './schoolWorkspace.css';
 import { CALENDAR_REFERENCE } from './calendarReference.js';
+import { CoachAcademicBoard, CoachGoalsBoard, BoardEmpty } from './coach/CoachBoards.jsx';
+import { addDays, upcomingWeeks } from './coach/coachBoardModel.js';
+import './coach/coachBoards.css';
 const areas = [
   ['home', 'Studio Home', Sparkles],
   ['programs', 'PBL Programs', BookOpen],
@@ -86,7 +89,8 @@ export function SchoolLearningPanel({
   initialArea = 'programs',
   hideTabs = false,
   classScope = 'all',
-  learnerName = ''
+  learnerName = '',
+  variant = 'default'
 }) {
   const context = useSchoolResource('/api/learning-context');
   const [schoolId, setSchoolId] = useState(''),
@@ -97,18 +101,28 @@ export function SchoolLearningPanel({
     school = schools.find(s => s.id === schoolId) || schools[0];
   const classes = (context.data?.classes || []).filter(c => c.schoolId === school?.id && (classScope === 'all' || c.id === classScope)),
     role = context.data?.role;
-  return <section className="sw-panel gh-app" aria-label="School learning workspace">
-    <header className="sw-heading"><div><span className="sw-kicker">WELEARN · SCHOOL LEARNING</span><h2>{areaLabel(area, role)}</h2></div><div className="sw-actions">{schools.length > 1 && <Field label="School"><select value={school?.id || ''} onChange={e => setSchoolId(e.target.value)}>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}<button className="gh-btn gh-btn-ghost" onClick={context.reload}><RefreshCw size={16} />Check access</button></div></header>
+  const coachView = variant === 'coach';
+  const isStaffRole = ['admin', 'supervisor', 'teacher', 'coach'].includes(role);
+  const schoolSelect = schools.length > 1 && <Field label="School"><select value={school?.id || ''} onChange={e => setSchoolId(e.target.value)}>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>;
+  return <section className={`sw-panel gh-app${coachView ? ' sw-coach' : ''}`} aria-label="School learning workspace">
+    {coachView ? <header className="sw-coach-bar"><div><h2>{areaLabel(area, role)}</h2><p>{school ? `${school.name} · ${classes.length} assigned ${classes.length === 1 ? 'class' : 'classes'}` : 'School learning'}</p></div><div className="sw-actions">{schoolSelect}<button className="gh-btn gh-btn-ghost" onClick={context.reload}><RefreshCw size={16} />Refresh</button></div></header>
+      : <header className="sw-heading"><div><span className="sw-kicker">WELEARN · SCHOOL LEARNING</span><h2>{areaLabel(area, role)}</h2></div><div className="sw-actions">{schoolSelect}<button className="gh-btn gh-btn-ghost" onClick={context.reload}><RefreshCw size={16} />Check access</button></div></header>}
     {!hideTabs && <nav className="sw-tabs" aria-label="School learning sections">{areas.map(([id, , Icon]) => <button key={id} aria-current={area === id ? 'page' : undefined} onClick={() => setArea(id)}><Icon size={16} />{areaLabel(id, role)}</button>)}</nav>}
     {context.loading && <p role="status">Checking your school access…</p>}{message(context.error)}
-    {!context.loading && !context.error && !school && <p>Your verified school membership needs checking. Ask the administrator to assign your school and classes.</p>}
+    {!context.loading && !context.error && !school && (coachView
+      ? <BoardEmpty icon={GraduationCap} title="Your account is not linked to a school yet" action={<button className="gh-btn gh-btn-primary" onClick={context.reload}>Check again</button>}><p>{areaLabel(area, role)} uses the school's records. Your coach account can see its classes, but an administrator still needs to add your school to your account before goals, academic observations and the school calendar can load.</p><p className="cb-muted">Checking again does not change permissions.</p></BoardEmpty>
+      : <p>Your verified school membership needs checking. Ask the administrator to assign your school and classes.</p>)}
     {school && !context.error && <div key={`${school.id}-${role}-${classScope}`}>
-      <p className="sw-muted">{school.name} · {role === 'admin' ? 'School administration' : role === 'parent' ? 'Your linked children' : role === 'student' ? 'Your learning' : 'Your assigned classes'}</p>
+      {!coachView && <p className="sw-muted">{school.name} · {role === 'admin' ? 'School administration' : role === 'parent' ? 'Your linked children' : role === 'student' ? 'Your learning' : 'Your assigned classes'}</p>}
       {area === 'home' && (role === 'parent' ? <ParentOverview school={school} onNavigate={setArea}/> : role === 'student' ? <QuestArea school={school} classes={classes} learnerName={learnerName} onNavigate={setArea} onJoined={context.reload} onChooseProgram={id => { setProgramChoice(id); setArea('programs'); }} /> : ['admin','supervisor','teacher','coach'].includes(role) ? <W2eCoachSupportPanel school={school} classes={classes} /> : null)}
       {area === 'programs' && (role==='parent' ? <ParentProgramProgress school={school}/> : <Programs school={school} classes={classes} role={role} onJoined={programId=>{setProgramChoice(programId||'');context.reload();}} initialProgram={programChoice} />)}
-      {area === 'goals' && <Goals school={school} classes={classes} role={role} />}
-      {area === 'academic' && <Academic school={school} classes={classes} role={role} />}
-      {area === 'calendar' && <SchoolCalendar school={school} role={role} />}
+      {area === 'goals' && (coachView && isStaffRole
+        ? <CoachGoalsBoard school={school} classes={classes} today={today()} renderDetail={uid => <Goals school={school} classes={classes} role={role} fixedLearnerUid={uid} />} />
+        : <Goals school={school} classes={classes} role={role} />)}
+      {area === 'academic' && (coachView && isStaffRole
+        ? <CoachAcademicBoard school={school} classes={classes} today={today()} renderDetail={uid => <Academic school={school} classes={classes} role={role} fixedLearnerUid={uid} />} />
+        : <Academic school={school} classes={classes} role={role} />)}
+      {area === 'calendar' && <SchoolCalendar school={school} role={role} defaultView={coachView ? 'upcoming' : 'year'} />}
     </div>}
   </section>;
 }
@@ -403,10 +417,11 @@ function LearnerSelect({
 function Goals({
   school,
   classes,
-  role
+  role,
+  fixedLearnerUid = ''
 }) {
   const learners = useSchoolResource(schoolPath(school.id, 'learners'));
-  const [learnerUid, setLearnerUid] = useState(''),
+  const [learnerUid, setLearnerUid] = useState(fixedLearnerUid),
     [classId, setClassId] = useState(''),
     [target, setTarget] = useState(''),
     [domain, setDomain] = useState('pbl'),
@@ -419,10 +434,36 @@ function Goals({
   const path = selected ? schoolPath(school.id, `learner-goals?learnerUid=${encodeURIComponent(selected.id)}${isStaff ? `&classId=${encodeURIComponent(selectedClass?.id || '')}` : ''}`) : null;
   const goals = useSchoolResource(path,true),
     [state, run] = useMutation(goals.reload);
-  return <div>{message(learners.error)}{learners.loading && <p role="status">Loading learners…</p>}{choices.length > 0 && <LearnerSelect learners={choices} value={selected?.id || ''} onChange={v => {
+  return <div>{message(learners.error)}{learners.loading && <p role="status">Loading learners…</p>}{fixedLearnerUid && selected && <h3 className="sw-learner-title">{selected.displayName} · Learning goals</h3>}{!fixedLearnerUid && choices.length > 0 && <LearnerSelect learners={choices} value={selected?.id || ''} onChange={v => {
       setLearnerUid(v);
       setClassId('');
     }} />}{!learners.loading && !learners.error && !choices.length && <p>No learners are available in your assigned scope.</p>}
+    {fixedLearnerUid ? <>
+    {message(goals.error)}{goals.loading && <p role="status">Loading goals…</p>}{goals.data?.items.length === 0 && <p>No coach goals recorded for this learner yet.</p>}
+    {(goals.data?.items || []).filter(g => role === 'parent' || g.source !== 'competency-pathway').map(g => <article className="sw-card" key={g.id}><small>{g.domain.toUpperCase()} · {g.dueDate ? `Due ${g.dueDate} · ` : ''}{g.state}</small><p>{g.target}</p><small>{g.acknowledged ? 'Learner acknowledged' : 'Awaiting learner acknowledgement'}</small>{isStaff && g.state !== 'archived' && <div className="sw-actions">{['active', 'achieved', 'archived'].filter(s => s !== g.state).map(s => <button className="gh-btn gh-btn-ghost" disabled={state.busy} key={s} onClick={() => run(() => mutateSchool('PATCH', schoolPath(school.id, `learner-goals/${g.id}`), {
+          state: s,
+          revision: g.revision
+        }), `Goal ${s}.`)}>{s === 'achieved' ? 'Confirm achieved' : s === 'archived' ? 'Archive goal' : 'Reopen goal'}</button>)}</div>}{role === 'student' && !g.acknowledged && <button className="gh-btn gh-btn-ghost" disabled={state.busy} onClick={() => run(() => mutateSchool('PATCH', schoolPath(school.id, `learner-goals/${g.id}`), {
+        revision: g.revision
+      }), 'Goal acknowledged.')}>I understand this goal</button>}</article>)}      {isStaff && selected && <section className="sw-card cb-assign"><h4>Assign a goal</h4>
+      <form className="sw-form" onSubmit={async e => {
+      e.preventDefault();
+      const result = await run(() => mutateSchool('POST', schoolPath(school.id, 'learner-goals'), {
+        learnerUid: selected.id,
+        classId: selectedClass?.id,
+        target,
+        domain,
+        dueDate
+      }), 'Goal assigned and saved.');
+      if (result) setTarget('');
+    }}><ClassSelect classes={scopedClasses} value={selectedClass?.id || ''} onChange={setClassId} /><Field label="Learning area"><select value={domain} onChange={e => setDomain(e.target.value)}><option value="pbl">PBL Studio</option><option value="steam">STEAM activities</option><option value="academic">Academic learning</option></select></Field><Field label="Measurable goal and evidence of success"><textarea required maxLength={1000} value={target} onChange={e => setTarget(e.target.value)} placeholder="For example: test two prototype designs and compare the recorded results." /></Field><Field label="Due date"><input required type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></Field><button className="gh-btn gh-btn-primary" disabled={state.busy || !selectedClass}>Assign goal</button></form>
+      </section>}<Feedback state={state} />
+      {selected && <details className="sw-card"><summary>Quest progress and learning pathway</summary>
+    {role !== 'student' && selected && <QuestSummary key={`${selected.id}-${selectedClass?.id || ''}`} school={school} learner={selected} classId={isStaff ? selectedClass?.id : undefined} role={role} />}
+    {role === 'student' && scopedClasses.length > 1 && <ClassSelect classes={scopedClasses} value={selectedClass?.id || ''} onChange={setClassId} />}
+    {(isStaff || role === 'student') && selected && selectedClass && <LearnerPathway key={`${school.id}-${selected.id}-${selectedClass.id}-${role}`} school={school} learnerUid={selected.id} classId={selectedClass.id} role={role} onSaved={goals.reload} />}
+      </details>}
+    </> : <>
     {role !== 'student' && selected && <QuestSummary key={`${selected.id}-${selectedClass?.id || ''}`} school={school} learner={selected} classId={isStaff ? selectedClass?.id : undefined} role={role} />}
     {role === 'student' && scopedClasses.length > 1 && <ClassSelect classes={scopedClasses} value={selectedClass?.id || ''} onChange={setClassId} />}
     {(isStaff || role === 'student') && selected && selectedClass && <LearnerPathway key={`${school.id}-${selected.id}-${selectedClass.id}-${role}`} school={school} learnerUid={selected.id} classId={selectedClass.id} role={role} onSaved={goals.reload} />}
@@ -444,15 +485,17 @@ function Goals({
         }), `Goal ${s}.`)}>{s === 'achieved' ? 'Confirm achieved' : s === 'archived' ? 'Archive goal' : 'Reopen goal'}</button>)}</div>}{role === 'student' && !g.acknowledged && <button className="gh-btn gh-btn-ghost" disabled={state.busy} onClick={() => run(() => mutateSchool('PATCH', schoolPath(school.id, `learner-goals/${g.id}`), {
         revision: g.revision
       }), 'Goal acknowledged.')}>I understand this goal</button>}</article>)}<Feedback state={state} />
+    </>}
   </div>;
 }
 function Academic({
   school,
   classes,
-  role
+  role,
+  fixedLearnerUid = ''
 }) {
   const learners = useSchoolResource(schoolPath(school.id, 'learners')),
-    [learnerUid, setLearnerUid] = useState(''),
+    [learnerUid, setLearnerUid] = useState(fixedLearnerUid),
     [classId, setClassId] = useState(''),
     [provider, setProvider] = useState('all'),
     [courseFilter, setCourseFilter] = useState('all');
@@ -477,7 +520,7 @@ function Academic({
     const key = JSON.stringify([r.provider, r.curriculum, r.course]);
     if (!latest.has(key)) latest.set(key, r);
   });
-  return <div><p className="sw-notice">CambriLearn and Edmentum automatic connections: access pending. Records entered here are coach observations, not a live provider feed.</p>{message(learners.error)}{choices.length > 0 && <LearnerSelect learners={choices} value={selected?.id || ''} onChange={v => {
+  return <div>{fixedLearnerUid ? selected && <h3 className="sw-learner-title">{selected.displayName} · Academic observations</h3> : <p className="sw-notice">CambriLearn and Edmentum automatic connections: access pending. Records entered here are coach observations, not a live provider feed.</p>}{message(learners.error)}{!fixedLearnerUid && choices.length > 0 && <LearnerSelect learners={choices} value={selected?.id || ''} onChange={v => {
       setLearnerUid(v);
       setClassId('');
       setCourseFilter('all');
@@ -488,7 +531,7 @@ function Academic({
         }}><option value="all">All providers</option><option value="cambrilearn">CambriLearn</option><option value="edmentum">Edmentum</option></select></Field><Field label="Course"><select value={courseFilter} onChange={e => setCourseFilter(e.target.value)}><option value="all">All courses</option>{courses.map(c => <option key={c} value={c}>{c}</option>)}</select></Field></div>
     {message(records.error)}{records.loading && <p role="status">Loading academic records…</p>}{selected && !records.loading && !records.error && !(records.data?.items || []).length && <p>No academic observations recorded yet. Missing data is not zero progress.</p>}
     {[...latest.values()].filter(r => (provider === 'all' || r.provider === provider) && (courseFilter === 'all' || r.course === courseFilter)).map(r => <article className="sw-card" key={r.id}><small>{r.provider === 'cambrilearn' ? 'CambriLearn' : 'Edmentum'} · {r.curriculum}</small><h3>{r.course}</h3><p>{r.completed} of {r.total} units observed complete</p><progress value={r.completed} max={r.total} aria-label={`${r.course}: ${r.completed} of ${r.total} units`} /><p className="sw-muted">Source: {r.sourceMethod === 'coach_recorded' ? 'Coach-recorded observation' : r.sourceMethod} · Observed {r.dataAsOf} · Saved {r.importedAt?.slice(0, 10)}</p></article>)}
-    {isStaff && selected && <details className="sw-card"><summary>Record a dated academic observation</summary><form className="sw-form" onSubmit={async e => {
+    {isStaff && selected && <details className="sw-card" open={!!fixedLearnerUid && !records.loading && !(records.data?.items || []).length}><summary>Record a dated academic observation</summary><form className="sw-form" onSubmit={async e => {
         e.preventDefault();
         const result = await run(() => mutateSchool('POST', schoolPath(school.id, 'academic-progress'), {
           ...draft,
@@ -517,17 +560,20 @@ function Academic({
           })} /></Field><button disabled={state.busy || !selectedClass} className="gh-btn gh-btn-primary">Save observation</button></form></details>}<Feedback state={state} />
   </div>;
 }
+const CALENDAR_VIEWS = [['upcoming', 'Next 8 weeks'], ['month', 'Month'], ['year', 'Year']];
 function SchoolCalendar({
   school,
-  role
+  role,
+  defaultView = 'year'
 }) {
   const [month, setMonth] = useState(today().slice(0, 7)),
-    [view, setView] = useState('year');
+    [view, setView] = useState(defaultView),
+    [formOpen, setFormOpen] = useState(false);
   const canManage = ['admin', 'teacher', 'coach'].includes(role);
   const year = Number(month.slice(0, 4)),
     index = Number(month.slice(5)) - 1;
-  const from = view === 'year' ? `${year}-01-01` : `${month}-01`,
-    to = view === 'year' ? `${year}-12-31` : `${month}-${String(new Date(year, index + 1, 0).getDate()).padStart(2, '0')}`;
+  const from = view === 'upcoming' ? today() : view === 'year' ? `${year}-01-01` : `${month}-01`,
+    to = view === 'upcoming' ? addDays(today(), 55) : view === 'year' ? `${year}-12-31` : `${month}-${String(new Date(year, index + 1, 0).getDate()).padStart(2, '0')}`;
   const base = schoolPath(school.id, 'calendar-events'),
     events = useSchoolResource(`${base}?from=${from}&to=${to}`, false);
   const blank = {
@@ -551,13 +597,20 @@ function SchoolCalendar({
       [key]: value
     })),
     list = events.data?.items || [];
-  return <div><div className="sw-inline-form"><Field label="Calendar month"><input type="month" required value={month} onChange={e => {
+  const openForm = () => { setDraft(blank); setEditId(null); setFormOpen(true); };
+  useEffect(() => { if (formOpen) document.getElementById('sw-event-form')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }); }, [formOpen, editId]);
+  const weeks = view === 'upcoming' ? upcomingWeeks(list, today()) : [];
+  const upcomingCount = weeks.reduce((n, w) => n + w.events.length, 0);
+  return <div className="cb-board"><div className="cb-viewbar"><div className="cb-segmented" role="group" aria-label="Calendar view">{CALENDAR_VIEWS.map(([id, label]) => <button type="button" key={id} aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>)}</div>{view !== 'upcoming' && <Field label={view === 'year' ? 'Year shown' : 'Calendar month'}><input type="month" required value={month} onChange={e => {
           if (e.target.value) setMonth(e.target.value);
-        }} /></Field><Field label="View"><select value={view} onChange={e => setView(e.target.value)}><option value="year">Year</option><option value="agenda">Agenda</option><option value="month">Month</option></select></Field></div><p className="sw-muted">School timezone: {school.timezone}. {canManage ? 'You can manage school events.' : 'School events are managed by coaches and the admin.'}</p>
+        }} /></Field>}{canManage && <button type="button" className="gh-btn gh-btn-primary" onClick={openForm}>Add school event</button>}</div><p className="sw-muted">School timezone: {school.timezone}. {canManage ? 'Events you add appear on every learner, parent and coach dashboard.' : 'School events are managed by coaches and the admin.'}</p>
     {role === 'admin' && <details className="sw-card"><summary>Review and import the school’s 2026–2027 calendar</summary><p>Confirm these supplied school dates before importing. Existing reference entries and admin edits will be preserved.</p><ul>{CALENDAR_REFERENCE.map(event => <li key={event.id}>{event.startDate}{event.endDate !== event.startDate ? ` – ${event.endDate}` : ''} · {event.title}</li>)}</ul><button disabled={state.busy} className="gh-btn gh-btn-primary" onClick={() => run(() => mutateSchool('POST', schoolPath(school.id, 'calendar-reference/import'), {
         confirmYear: '2026-2027'
       }), 'Reference calendar imported. Existing entries were preserved.')}>Confirm and import reference dates</button></details>}
     {message(events.error)}{events.loading && <p role="status">Loading school calendar…</p>}
+    {view === 'upcoming' && !events.loading && !events.error && (upcomingCount === 0
+      ? <BoardEmpty icon={CalendarDays} title="Nothing on the school calendar for the next 8 weeks" action={canManage && <button type="button" className="gh-btn gh-btn-primary" onClick={openForm}>Add the first event</button>}><p>{role === 'admin' ? 'Import the reference school calendar below, or add events one at a time.' : canManage ? 'Add project deadlines, exhibitions and trips so learners and families can plan ahead. The school term dates are imported by an administrator.' : 'Your coaches have not added any events for this period yet.'}</p></BoardEmpty>
+      : <div className="cb-weeks">{weeks.filter(w => w.isCurrent || w.events.length).map(w => <section key={w.start} className={`cb-week${w.isCurrent ? ' cb-week-current' : ''}`} aria-label={`Week of ${w.start}`}><h3>{w.isCurrent && <span className="cb-badge">This week</span>}{new Date(`${w.start}T00:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'short', timeZone: 'UTC' })} – {new Date(`${w.end}T00:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</h3>{!w.events.length ? <p className="cb-week-empty">No events this week.</p> : <ul className="cb-events">{w.events.map(event => { const d = new Date(`${event.startDate}T00:00:00Z`); return <li key={event.id} className={`cb-event${event.status === 'cancelled' ? ' cb-event-cancelled' : ''}`}><span className="cb-date" aria-hidden="true"><small>{d.toLocaleDateString('en', { month: 'short', timeZone: 'UTC' })}</small><strong>{d.getUTCDate()}</strong></span><span className="cb-event-body"><strong className="cb-event-title">{event.title}{event.status === 'cancelled' ? ' · Cancelled' : ''}</strong><small>{event.startDate}{event.endDate !== event.startDate ? ` – ${event.endDate}` : ''} · {event.allDay ? 'All day' : `${event.startTime}–${event.endTime}`}{event.category ? ` · ${event.category}` : ''}{event.location ? ` · ${event.location}` : ''}</small></span>{canManage && <button type="button" className="gh-btn gh-btn-ghost" onClick={() => { setDraft(event); setEditId(event.id); setFormOpen(true); }}>Edit</button>}</li>; })}</ul>}</section>)}</div>)}
     {view === 'year' && <div className="sw-year">{Array.from({length: 12}, (_, monthIndex) => {
       const prefix = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
       return <section className="sw-year-month" key={prefix}><h3><button type="button" className="gh-btn gh-btn-ghost" onClick={() => { setMonth(prefix); setView('month'); }}>{new Date(Date.UTC(year, monthIndex, 1)).toLocaleString('en', {month: 'long', timeZone: 'UTC'})}</button></h3><div className="sw-year-grid" role="list" aria-label={`School calendar ${prefix}`}>
@@ -578,24 +631,26 @@ function SchoolCalendar({
           const day = `${month}-${String(i + 1).padStart(2, '0')}`;
           return <div role="listitem" className="sw-day" key={day}><strong>{i + 1}</strong>{list.filter(e => e.startDate <= day && e.endDate >= day).map(e => <span key={e.id}>{e.status === 'cancelled' ? 'Cancelled: ' : ''}{e.title}</span>)}</div>;
         })}</div></div>}
-    {!events.loading && !events.error && !list.length && <p>No school events recorded for this calendar range.</p>}
-    <div className="sw-agenda">{list.map(event => <article className="sw-card" key={event.id}><small>{event.startDate}{event.endDate !== event.startDate ? ` – ${event.endDate}` : ''} · {event.allDay ? 'All day' : `${event.startTime}–${event.endTime}`} · {event.category}</small><h3>{event.title}{event.status === 'cancelled' ? ' · Cancelled' : ''}</h3>{event.location && <p>{event.location}</p>}{event.description && <p className="sw-preserve">{event.description}</p>}{canManage && <div className="sw-actions"><button className="gh-btn gh-btn-ghost" onClick={() => {
+    {view !== 'upcoming' && !events.loading && !events.error && !list.length && <BoardEmpty icon={CalendarDays} title="No school events in this range" action={canManage && <button type="button" className="gh-btn gh-btn-primary" onClick={openForm}>Add school event</button>} />}
+    {view !== 'upcoming' && <div className="sw-agenda">{list.map(event => <article className="sw-card" key={event.id}><small>{event.startDate}{event.endDate !== event.startDate ? ` – ${event.endDate}` : ''} · {event.allDay ? 'All day' : `${event.startTime}–${event.endTime}`} · {event.category}</small><h3>{event.title}{event.status === 'cancelled' ? ' · Cancelled' : ''}</h3>{event.location && <p>{event.location}</p>}{event.description && <p className="sw-preserve">{event.description}</p>}{canManage && <div className="sw-actions"><button className="gh-btn gh-btn-ghost" onClick={() => {
             setDraft(event);
             setEditId(event.id);
-          }}>Edit event</button><button className="gh-btn gh-btn-ghost" onClick={() => setConfirmDelete(event)} disabled={state.busy}>Delete event</button></div>}</article>)}</div>
+            setFormOpen(true);
+          }}>Edit event</button><button className="gh-btn gh-btn-ghost" onClick={() => setConfirmDelete(event)} disabled={state.busy}>Delete event</button></div>}</article>)}</div>}
     {confirmDelete && <div className="sw-notice" role="alert"><p>Delete “{confirmDelete.title}” from the school calendar?</p><div className="sw-actions"><button className="gh-btn gh-btn-primary" disabled={state.busy} onClick={async () => {
           const result = await run(() => mutateSchool('DELETE', `${base}/${confirmDelete.id}`, {
             revision: confirmDelete.revision
           }), 'Event deleted.');
           if (result) setConfirmDelete(null);
         }}>Confirm delete</button><button className="gh-btn gh-btn-ghost" onClick={() => setConfirmDelete(null)}>Keep event</button></div></div>}
-    {canManage && <details className="sw-card" open={!!editId}><summary>{editId ? 'Edit school event' : 'Add school event'}</summary><form className="sw-form" onSubmit={async e => {
+    {canManage && <details id="sw-event-form" className="sw-card" open={formOpen || !!editId} onToggle={e => setFormOpen(e.currentTarget.open)}><summary>{editId ? 'Edit school event' : 'Add school event'}</summary><form className="sw-form" onSubmit={async e => {
         e.preventDefault();
         const result = await run(() => mutateSchool(editId ? 'PATCH' : 'POST', editId ? `${base}/${editId}` : base, draft), 'School event saved. All dashboards use this calendar.');
         if (result) {
           setMonth(draft.startDate.slice(0, 7));
           setDraft(blank);
           setEditId(null);
+          setFormOpen(false);
         }
       }}><Field label="Event title"><input required maxLength={200} value={draft.title} onChange={e => update('title', e.target.value)} /></Field><div className="sw-inline-form"><Field label="Start date"><input required type="date" value={draft.startDate} onChange={e => {
               update('startDate', e.target.value);

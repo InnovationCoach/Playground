@@ -3,6 +3,15 @@ import { onPostsChanged } from './communityAPI.js';
 import { PostCreator } from './PostCreator.jsx';
 import { PostCard } from './PostCard.jsx';
 import '../admin/admin.css';
+import '../school/coach/coachBoards.css';
+
+// Starters only fill the box; the coach edits before posting.
+const COACH_PROMPTS = [
+  ['This week', 'This week in our projects: \n• \nRemember to '],
+  ['Celebrate work', 'Shout-out to everyone who '],
+  ['Deadline reminder', 'Reminder: please add your evidence for  by '],
+  ['Ask the class', 'Question for the class: ']
+];
 
 const DEV_FALLBACK_POSTS = [
   {
@@ -40,7 +49,9 @@ const DEV_FALLBACK_POSTS = [
   }
 ];
 
-export function CommunityFeed() {
+export function CommunityFeed({ variant = 'default' }) {
+  const coachView = variant === 'coach';
+  const [seed, setSeed] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -96,21 +107,41 @@ export function CommunityFeed() {
     }
   };
 
-  return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '1.75rem 16px' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '0.5rem' }}>Posts for students</h1>
-        <p style={{ color: 'var(--gh-text-2)', fontSize: '0.9rem' }}>School-wide updates, project guidelines, and collaborative STEAM announcements</p>
-      </div>
+  const showingSamples = posts.some(p => p.id.startsWith('dev-post-'));
+  const emptyText = coachView ? 'No posts yet. Your learners will see what you share here, so start with this week’s plan or a shout-out.' : 'No posts yet. Be the first to share!';
 
-      <PostCreator onPostCreated={handlePostCreated} />
+  return (
+    <div className={coachView ? 'cb-posts' : undefined} style={coachView ? undefined : { maxWidth: 720, margin: '0 auto', padding: '1.75rem 16px' }}>
+      {coachView ? (
+        <div className="cb-posts-head">
+          <div>
+            <h2>Posts for students</h2>
+            <p>Updates, reminders and celebrations your learners see in their feed.</p>
+          </div>
+          {showingSamples && <span className="cb-sample">Sample posts · local preview only</span>}
+        </div>
+      ) : (
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '0.5rem' }}>Posts for students</h1>
+          <p style={{ color: 'var(--gh-text-2)', fontSize: '0.9rem' }}>School-wide updates, project guidelines, and collaborative STEAM announcements</p>
+          {showingSamples && <span className="cb-sample">Sample posts · local preview only</span>}
+        </div>
+      )}
+
+      {coachView && (
+        <div className="cb-prompts" role="group" aria-label="Post starters">
+          {COACH_PROMPTS.map(([label, text]) => <button type="button" key={label} onClick={() => setSeed({ text, at: Date.now() })}>{label}</button>)}
+        </div>
+      )}
+
+      <PostCreator onPostCreated={handlePostCreated} seed={seed} />
 
       {error ? (
         <div className="gh-alert gh-alert-error">Could not load posts: {error}</div>
       ) : loading ? (
         <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-text-2)' }}>Loading posts…</div>
       ) : posts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-text-2)' }}>No posts yet. Be the first to share!</div>
+        <div className={coachView ? 'cb-empty' : undefined} style={coachView ? undefined : { textAlign: 'center', padding: '2rem', color: 'var(--gh-text-2)' }}>{coachView ? <><h3>Nothing posted yet</h3><div className="cb-empty-text"><p>{emptyText}</p></div></> : emptyText}</div>
       ) : (
         <div style={{ display: 'grid', gap: '1rem' }}>
           {posts.map(post => (
