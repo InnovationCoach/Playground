@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import {
   House, Search, LayoutDashboard, BookOpen, Rocket, Target, Sparkles, Users, Printer, HeartHandshake,
   GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2, Palette, Award,
-  ClipboardCheck, CalendarOff, Boxes, LayoutGrid, School, Route, UserRound, MessageSquare
+  ClipboardCheck, CalendarOff, FolderOpen, Boxes, LayoutGrid, School, Route, UserRound, MessageSquare
 } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';
@@ -57,6 +57,7 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
         { key: 'admin:staff-attendance', icon: ClipboardCheck, label: 'nav.staffAttendance', href: '#/admin/staff-attendance' },
         { key: 'admin:student-attendance', icon: ClipboardCheck, label: 'nav.studentAttendance', href: '#/admin/student-attendance' },
         { key: 'admin:leave', icon: CalendarOff, label: 'nav.leaveRequests', href: '#/admin/leave' },
+        { key: 'admin:records', icon: FolderOpen, label: 'nav.learnerRecords', href: hrefFor.learnerRecords() },
         { key: 'admin:inventory', icon: Boxes, label: 'nav.inventory', href: '#/admin/inventory' },
         { key: 'admin:billing', icon: CreditCard, label: 'nav.financials', href: hrefFor.billing() },
         { key: 'admin:materials', icon: PackageCheck, label: 'nav.materials', href: hrefFor.materials() }

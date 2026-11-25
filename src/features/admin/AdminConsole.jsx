@@ -16,6 +16,7 @@ import { InventoryList } from './inventory/InventoryList.jsx';
 import { AssetDetail } from './inventory/AssetDetail.jsx';
 import { AssetForm } from './inventory/AssetForm.jsx';
 import { SettingsPage } from '../settings/SettingsPage.jsx';
+import { LearnerRecordsPanel } from '../records/LearnerRecordsPanel.jsx';
 import './admin.css';
 import { AttendancePanel, LeavePanel, InventoryPanel, PilotHome } from './pilot/PilotOperations.jsx';
 
@@ -57,6 +58,8 @@ export function AdminConsole({ route, role, user, profile, navigate, embedded = 
     body = <AttendancePanel key={route.page} kind={route.page === 'staff-attendance' ? 'staff' : 'students'} canEdit={role === 'admin'} />;
   } else if (route.page === 'leave') {
     body = <LeavePanel admin canEdit={role === 'admin'} />;
+  } else if (route.page === 'records') {
+    body = <LearnerRecordsPanel admin canEdit={role === 'admin'} />;
   } else if (route.page === 'pilot') {
     body = <PilotHome />;
   } else if (route.page === 'inventory') {

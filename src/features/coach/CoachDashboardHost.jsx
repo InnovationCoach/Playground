@@ -1,6 +1,7 @@
 import { LeavePanel } from '../admin/pilot/PilotOperations.jsx';
+import { LearnerRecordsPanel } from '../records/LearnerRecordsPanel.jsx';
 import { useState } from 'react';
-import { Sparkles, Eye, Sun, Moon, Users, KeyRound, Compass, CalendarOff } from 'lucide-react';
+import { Sparkles, Eye, Sun, Moon, Users, KeyRound, Compass, CalendarOff, FolderUp } from 'lucide-react';
 import { StudentInviteDialog } from './StudentInviteDialog.jsx';
 import { CoachWorkspace } from './CoachWorkspace.jsx';
 import { ClassProgramsPanel } from './ClassProgramsPanel.jsx';
@@ -13,6 +14,7 @@ const HOST_TABS = [
   ['learners', 'Learners', Users],
   ['classes', 'Classes & join codes', KeyRound],
   ['reviews', 'Mission reviews', Compass],
+  ['records', 'Portfolios & transcripts', FolderUp],
   ['leave', 'Day-off requests', CalendarOff]
 ];
 
@@ -100,6 +102,11 @@ export function CoachDashboardHost({ coachUser, orgId = null }) {
 
       {tab === 'classes' && <ClassProgramsPanel coachUser={coachUser} />}
       {tab === 'reviews' && <CoachUniverseSubmissions coachUser={coachUser} orgId={effectiveOrgId} />}
+      {tab === 'records' && (
+        <div className="gh-card" style={{ margin: '16px auto', padding: '1rem 1.25rem', maxWidth: 1360 }}>
+          <LearnerRecordsPanel />
+        </div>
+      )}
       {tab === 'leave' && (
         <div className="gh-card" style={{ margin: '16px auto', padding: '1rem 1.25rem', maxWidth: 1360 }}>
           <LeavePanel />

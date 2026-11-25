@@ -4,6 +4,7 @@
  *   #/admin/staff | #/admin/students | #/admin/parents   account lists
  *   #/admin/users/<uid>                                  one account
  *   #/admin/new/<kind>                                   create
+ *   #/admin/records                                      portfolio & transcript files coaches upload
  *   #/spark                                              SPARK Home: every role's landing page
  *   #/coach/dashboard                                    Coach Dashboard (teachers)
  *   #/settings   #/courses   #/parent  #/parent/:childUid[/:section]  everyone else
@@ -44,6 +45,7 @@ export function parseRoute(hash) {
     if (a === 'billing') return { screen: 'admin', page: 'billing' };
     if (a === 'materials') return { screen: 'admin', page: 'materials' };
     if (a === 'learning') return { screen: 'admin', page: 'learning' };
+    if (a === 'records') return { screen: 'admin', page: 'records' };
     if (a === 'inventory') {
       if (b === 'new') return { screen: 'admin', page: 'inventory', subpage: 'new' };
       if (b) return { screen: 'admin', page: 'inventory', subpage: 'detail', assetId: b };
@@ -97,6 +99,7 @@ export const hrefFor = {
   staffAttendance: () => '#/admin/staff-attendance',
   studentAttendance: () => '#/admin/student-attendance',
   leave: () => '#/admin/leave',
+  learnerRecords: () => '#/admin/records',
   detail: (uid) => `#/admin/users/${encodeURIComponent(uid)}`,
   create: (kind) => `#/admin/new/${kind}`,
   settings: () => '#/settings',

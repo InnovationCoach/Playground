@@ -79,12 +79,9 @@ export const SPARK_ROLES = {
     tone: 'navy',
     cards: [
       card('admin.platform', 'Users', 'navy', 'live', hrefFor.list('students'), 'pendingAccounts'),
-      card('admin.studio', 'Layers', 'purple', 'live', hrefFor.pbl('programs')),
-      card('admin.projects', 'Rocket', 'lime', 'live', hrefFor.pbl('project')),
-      card('admin.competencies', 'Award', 'magenta', 'live', hrefFor.pbl('competencies')),
       card('admin.inventory', 'Boxes', 'lime', 'live', hrefFor.inventory()),
       card('admin.attendanceLeave', 'ClipboardCheck', 'purple', 'live', hrefFor.staffAttendance()),
-      card('admin.portfolio', 'FolderOpen', 'purple', 'soon'),
+      card('admin.portfolio', 'FolderOpen', 'purple', 'live', hrefFor.learnerRecords()),
       card('admin.reports', 'FileText', 'navy', 'soon'),
       card('admin.insights', 'ChartLine', 'lime', 'soon'),
       card('admin.operations', 'Settings', 'navy', 'live', hrefFor.billing())
