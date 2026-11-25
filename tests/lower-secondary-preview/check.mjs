@@ -169,7 +169,7 @@ try {
   await check('progress parity: dashboard and learning show the same record', async () => {
     await open('goals=none');
     await page.waitForFunction(() => document.querySelector('.ls-hero')?.textContent.includes('2 of 6 sessions marked complete'));
-    assert.equal(await page.$eval('.ls-hero a', (el) => el.getAttribute('href')), '#/pbl/programs/fixture-river-study/plan');
+    assert.equal(await page.$eval('.ls-hero a', (el) => el.getAttribute('href')), '#/pbl/programs/robo-buddy-companion-2026/plan');
     await page.click('.ls-nav a[href="#/dashboard/learning"]');
     await page.waitForSelector('.ls-courses');
     assert(await hasText('.ls-courses', '2 of 6 sessions marked complete'));
@@ -179,7 +179,7 @@ try {
   await check('continuation links use the real course id', async () => {
     await open('state=empty');
     await open('', SECTIONS.universe);
-    assert.equal(await page.$eval('.ls-continue-item', (el) => el.getAttribute('href')), '#/pbl/programs/fixture-river-study/plan');
+    assert.equal(await page.$eval('.ls-continue-item', (el) => el.getAttribute('href')), '#/pbl/programs/robo-buddy-companion-2026/plan');
   });
 
   await check('portfolio: real items, audiences, view, private reflection, empty and error', async () => {

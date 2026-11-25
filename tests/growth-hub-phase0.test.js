@@ -323,7 +323,7 @@ describe('Legacy router preserves private dashboard and portfolio routes', () =>
   it('leaves these React screens intact for students and coaches', () => {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
     const source = html.match(/    function handleHashRouting\(\) \{[\s\S]*?\n    \}/)[0];
-    for (const role of ['student', 'teacher']) for (const hash of ['#/space', '#/portfolio', '#/portfolio/learner', '#/programs', '#/journey']) {
+    for (const role of ['student', 'teacher']) for (const hash of ['#/space', '#/space/3d', '#/tinker', '#/portfolio', '#/portfolio/learner', '#/programs', '#/journey']) {
       const views = [];
       const handler = new Function('firebase', 'window', 'switchPhase', `${source}; return handleHashRouting;`)({auth:()=>({currentUser:{uid:'test'}})}, {currentUserRole:role,location:{hash}}, view=>views.push(view));
       handler(); expect(views).toEqual([]);
