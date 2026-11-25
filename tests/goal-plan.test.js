@@ -168,3 +168,33 @@ describe('game layer', () => {
     expect(questStations(p, '2026-10-23').next).toBe('focus');
   });
 });
+
+describe('Academy and PBL goal tracks', () => {
+  it('validates track, subject, and targetDate, defaulting unknown tracks to personal', () => {
+    const p = hydratePlan({
+      goals: [
+        goal({ id: 'a1', track: 'academic', subject: 'Mathematics', targetDate: '2026-12-10' }),
+        goal({ id: 'p1', track: 'pbl', subject: 'Solar Car', targetDate: 'not-a-date' }),
+        goal({ id: 'u1', track: 'invalid-track' })
+      ]
+    });
+    expect(p.goals[0]).toMatchObject({ id: 'a1', track: 'academic', subject: 'Mathematics', targetDate: '2026-12-10' });
+    expect(p.goals[1]).toMatchObject({ id: 'p1', track: 'pbl', subject: 'Solar Car' });
+    expect(p.goals[1]).not.toHaveProperty('targetDate');
+    expect(p.goals[2].track).toBe('personal');
+  });
+
+  it('propagates track to todayItems and mirrors domain/subject/targetDate to coachGoalDocs', () => {
+    const p = hydratePlan({
+      goals: [
+        goal({ id: 'a1', track: 'academic', subject: 'Edmentum Course', targetDate: '2026-12-15' }),
+        goal({ id: 'p1', track: 'pbl', subject: 'Urban Heat Battle' })
+      ]
+    });
+    const items = todayItems(p);
+    expect(items.map((i) => i.track)).toEqual(['academic', 'pbl']);
+    const docs = coachGoalDocs(p, 10);
+    expect(docs[0]).toMatchObject({ goalId: 'plan_a1', domain: 'academic', subject: 'Edmentum Course', targetDate: '2026-12-15' });
+    expect(docs[1]).toMatchObject({ goalId: 'plan_p1', domain: 'pbl', subject: 'Urban Heat Battle' });
+  });
+});

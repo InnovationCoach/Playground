@@ -20,6 +20,9 @@ import {
 import { hrefFor } from '../../app/routes.js';
 import { ArchetypeRadar } from './ArchetypeRadar.jsx';
 import { DailyBountyBoard } from './DailyBountyBoard.jsx';
+import { QuestEnergyBar } from './QuestEnergyBar.jsx';
+import { playSfx } from './soundEffects.js';
+import { triggerSparkParticles } from './confetti.js';
 import { GoalFlow } from './GoalFlow.jsx';
 import { GoalCoach } from './GoalCoach.jsx';
 import { AcademicPlanner } from './AcademicPlanner.jsx';
@@ -649,6 +652,12 @@ function TodayCard({ plan, update, metrics, onGoQuests, onGoToolkit }) {
 
       {items.length > 0 ? (
         <>
+          <QuestEnergyBar
+            current={done}
+            total={items.length}
+            title="Today’s Momentum Energy"
+          />
+
           <ul className="gl-task-list">
             {items.map((it) => {
               const on = checked.has(it.id);
@@ -668,7 +677,11 @@ function TodayCard({ plan, update, metrics, onGoQuests, onGoToolkit }) {
                     type="button"
                     className={`gl-task-item ${on ? 'is-checked' : ''}`}
                     aria-pressed={on}
-                    onClick={() => update((p) => toggleToday(p, it))}
+                    onClick={(e) => {
+                      triggerSparkParticles(e.currentTarget, on ? 10 : 22);
+                      playSfx(!on && done + 1 === items.length ? 'levelup' : 'step');
+                      update((p) => toggleToday(p, it));
+                    }}
                   >
                     <span className="gl-checkbox">
                       {on ? (
@@ -1033,6 +1046,7 @@ function BigGoalsSection({
             addGoal(g);
             buzz([10, 40, 10]);
             confetti({ big: true });
+            playSfx('levelup');
           }}
         />
       ) : showFlow ? (
@@ -1266,15 +1280,26 @@ function QuestCard({ goal, patch, onEdit, remove }) {
         </div>
       </div>
 
-      {/* Progress Bar & Milestone Steps Checklist */}
+      {/* Teen Quest energy bar & waypoint map (clicking a waypoint ticks that step) */}
+      <QuestEnergyBar
+        current={doneCount}
+        total={steps.length || 1}
+        steps={steps}
+        title="Quest Charge & Waypoints"
+        onToggleStep={(stepId) =>
+          patch((g) => ({
+            ...g,
+            steps: g.steps.map((x) => (x.id === stepId ? { ...x, done: !x.done } : x))
+          }))
+        }
+      />
+
+      {/* Milestone Steps Checklist */}
       <div className="gl-quest-steps-wrapper">
         <div className="gl-steps-header">
           <span className="gl-steps-count">
             <strong>{doneCount} of {steps.length}</strong> steps done ({progressPct}%)
           </span>
-          <div className="gl-quest-mini-progress" role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100}>
-            <div className="gl-quest-bar-fill" style={{ width: `${progressPct}%` }} />
-          </div>
         </div>
 
         <ul className="gl-quest-step-list">
@@ -1284,12 +1309,14 @@ function QuestCard({ goal, patch, onEdit, remove }) {
                 type="button"
                 className={`gl-step-check ${s.done ? 'is-done' : ''}`}
                 aria-pressed={s.done}
-                onClick={() =>
+                onClick={(e) => {
+                  triggerSparkParticles(e.currentTarget, s.done ? 8 : 18);
+                  playSfx(s.done ? 'step' : 'bounty');
                   patch((g) => ({
                     ...g,
                     steps: g.steps.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x))
-                  }))
-                }
+                  }));
+                }}
               >
                 {s.done ? <CheckCircle2 size={18} className="gl-check-icon" /> : <Circle size={18} />}
                 <span className="gl-step-text">{s.text}</span>
@@ -1343,7 +1370,13 @@ function QuestCard({ goal, patch, onEdit, remove }) {
           <button
             type="button"
             className={`gh-btn gh-btn-sm ${isGoalFinished ? 'gh-btn-ghost' : 'gh-btn-accent'}`}
-            onClick={() => patch((g) => ({ ...g, done: !g.done }))}
+            onClick={(e) => {
+              if (!isGoalFinished) {
+                triggerSparkParticles(e.currentTarget, 35);
+                playSfx('levelup');
+              }
+              patch((g) => ({ ...g, done: !g.done }));
+            }}
           >
             {isGoalFinished ? (
               <>

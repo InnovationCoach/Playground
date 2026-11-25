@@ -74,6 +74,65 @@ export const GOAL_CATEGORIES = [
   }
 ];
 
+/**
+ * Goal tracks (from main's Teen Quest work), aligned with the Coach/School
+ * Workspace domains (academic, pbl, steam). Categories above stay the stored
+ * model; a track is an alias kept in step with the category via
+ * TRACK_TO_CATEGORY / CATEGORY_TO_TRACK, so goals saved on live (category only)
+ * and goals saved with a track (no category) both read correctly.
+ */
+export const GOAL_TRACKS = [
+  {
+    id: 'academic',
+    label: 'Academy / Academic',
+    shortLabel: 'Academy',
+    description: 'Core subjects, Edmentum mastery, study habits & academic growth',
+    placeholder: 'e.g. master quadratic equations, finish Unit 4 in Science, strengthen essay structure',
+    subjects: ['Mathematics', 'Science', 'English & Writing', 'Edmentum Course', 'Languages', 'Humanities', 'Study Mastery'],
+    ideas: ['Finish my next Edmentum unit with 85%+', 'Master fractions and algebra equations', 'Write a clear persuasive essay outline']
+  },
+  {
+    id: 'pbl',
+    label: 'PBL Studio',
+    shortLabel: 'PBL',
+    description: 'Project-Based Learning missions, prototypes, research & real-world impact',
+    placeholder: 'e.g. design a cooling plan for Townsville, build a working solar car prototype',
+    subjects: ['Urban Heat Battle', 'Solar Car', 'Bio-Inspired Robotics', 'Bangkok Coastal Challenge', 'Bunker Survival', 'Entrepreneurship', 'Custom PBL'],
+    ideas: ['Prototype a cooler city block in Urban Heat Battle', 'Test two gear ratios on my Solar Car', 'Interview 3 people for my PBL research']
+  },
+  {
+    id: 'steam',
+    label: 'STEAM & Makerspace',
+    shortLabel: 'STEAM',
+    description: '3D design, coding, robotics, science labs & creative technology',
+    placeholder: 'e.g. model a 3D print part in TinkerStudio, code a Micro:bit sensor game',
+    subjects: ['3D TinkerStudio', 'Python & Micro:bit', 'Science Lab', 'Digital Art & Canva', 'Robotics'],
+    ideas: ['Design and inspect a 3D printable model', 'Build a Python mini-game with a score counter', 'Run a controlled plant-growth experiment']
+  },
+  {
+    id: 'personal',
+    label: 'Personal & Curiosity',
+    shortLabel: 'Personal',
+    description: 'Passion projects, creative skills, leadership & independent exploration',
+    placeholder: 'e.g. compose a beat, draw a 6-panel comic, learn chess openings',
+    subjects: ['Creative Art', 'Music & Audio', 'Game Design', 'Writing & Comics', 'Leadership & Community'],
+    ideas: ['Draw a 4-panel comic strip from scratch', 'Learn one full song on my instrument', 'Organise a mini tournament with classmates']
+  }
+];
+
+export const TRACK_TO_CATEGORY = { academic: 'academic', pbl: 'pbl', steam: 'skills', personal: 'personal' };
+export const CATEGORY_TO_TRACK = { academic: 'academic', pbl: 'pbl', skills: 'steam', personal: 'personal' };
+
+export const trackById = (id) => GOAL_TRACKS.find((t) => t.id === id) || GOAL_TRACKS[GOAL_TRACKS.length - 1];
+
+/** A goal's track: explicit track, else coach `domain`, else derived from its category, else personal. */
+export function trackForGoal(g) {
+  if (!g) return 'personal';
+  if (TRACK_TO_CATEGORY[g.track]) return g.track;
+  if (TRACK_TO_CATEGORY[g.domain]) return g.domain;
+  return CATEGORY_TO_TRACK[g.category] || 'personal';
+}
+
 export const STEP_FREQUENCIES = [
   { id: 'daily', label: 'Daily action' },
   { id: 'weekly', label: 'Weekly milestone' },
@@ -274,6 +333,13 @@ function cleanGoal(g) {
 
   // Optional extended fields (omitted when absent so legacy unit tests match exact shapes)
   if (g.category && CATEGORY_IDS.has(g.category)) out.category = g.category;
+  // Tracks: only goals that carry a track, domain or category get one, so legacy
+  // uncategorised goals keep their exact shape. A track with no category also
+  // sets the matching category, so the category views show the goal.
+  if (g.track !== undefined || g.domain !== undefined || out.category) {
+    out.track = trackForGoal({ ...g, category: out.category });
+    if (!out.category) out.category = TRACK_TO_CATEGORY[out.track];
+  }
   if (g.goalType && SUBTYPE_IDS.has(g.goalType)) out.goalType = g.goalType;
   if (g.subject && str(g.subject, 80)) out.subject = str(g.subject, 80);
   if (g.projectId && str(g.projectId, 80)) out.projectId = str(g.projectId, 80);
@@ -506,6 +572,7 @@ export function todayItems(plan, day = dayKey()) {
         stepId: next.id
       };
       if (g.category) item.category = g.category;
+      if (g.track) item.track = g.track;
       if (g.subject) item.subject = g.subject;
       if (g.projectTitle) item.projectTitle = g.projectTitle;
       if (g.targetDate) item.targetDate = g.targetDate;
@@ -573,6 +640,8 @@ export function coachGoalDocs(plan, now = Date.now()) {
       source: 'goals-page'
     };
     if (g.category) doc.category = g.category;
+    // Coach and School Workspace goals use `domain` (academic | pbl | steam | personal).
+    if (g.track) doc.domain = g.track;
     if (g.goalType) doc.goalType = g.goalType;
     if (g.subject) doc.subject = g.subject;
     if (g.projectId) doc.projectId = g.projectId;
