@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Languages, LockKeyhole, UserRound, Sun, Moon, Monitor, Flag } from 'lucide-react';
+import { Languages, LockKeyhole, UserRound, Sun, Moon, Monitor, Flag, Sparkles } from 'lucide-react';
 import { useSchoolResource, mutateSchool, schoolPath, serviceMessage } from '../school/useSchoolWorkspace.js';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
+import { useAuth } from '../../app/AuthProvider.jsx';
 import { LOCALES } from '../../app/i18n/messages.js';
 import { changePassword, saveLocale, saveThemePreference, linkWithMicrosoft } from '../../auth.js';
 import { useTheme } from '../../app/theme/ThemeProvider.jsx';
 import { Field, Alert } from '../admin/ui/bits.jsx';
 import { Avatar } from '../shell/Avatar.jsx';
+import { ProfileEditorModal } from '../shell/ProfileEditorModal.jsx';
 import '../admin/admin.css';
 
 const MIN_PASSWORD = 8;
@@ -18,6 +20,8 @@ const MIN_PASSWORD = 8;
  */
 export function SettingsPage({ user, profile, role, embedded }) {
   const { t } = useLocale();
+  const { refreshProfile } = useAuth();
+  const [editingProfile, setEditingProfile] = useState(false);
   const name = profile?.displayName || user.email;
   const content = (
     <>
@@ -29,15 +33,29 @@ export function SettingsPage({ user, profile, role, embedded }) {
       </div>
       <div className="gh-card">
         <CardHead icon={UserRound} title={t('settings.account')} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
-          <Avatar name={name} seed={user.uid} size={52} />
-          <div style={{ minWidth: 0 }}>
-            <div className="gh-person-name" style={{ fontSize: '1rem' }}>{name}</div>
-            <div className="gh-person-sub">{user.email}</div>
-            {role && <span className="gh-badge gh-badge-role" style={{ marginTop: '0.4rem' }}>{t(`role.${role}`)}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.9rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem', minWidth: 0 }}>
+            <Avatar name={name} seed={user.uid} size={52} avatar={profile?.avatar || null} />
+            <div style={{ minWidth: 0 }}>
+              <div className="gh-person-name" style={{ fontSize: '1rem' }}>{name}</div>
+              <div className="gh-person-sub">{user.email}</div>
+              {role && <span className="gh-badge gh-badge-role" style={{ marginTop: '0.4rem' }}>{t(`role.${role}`)}</span>}
+            </div>
           </div>
+          <button type="button" className="gh-btn gh-btn-accent" onClick={() => setEditingProfile(true)}>
+            <Sparkles size={15} aria-hidden="true" /> Edit Name &amp; Avatar
+          </button>
         </div>
       </div>
+      {editingProfile && (
+        <ProfileEditorModal
+          uid={user.uid}
+          initialName={profile?.displayName || ''}
+          initialAvatar={profile?.avatar || null}
+          onClose={() => setEditingProfile(false)}
+          onSaved={refreshProfile}
+        />
+      )}
       <ThemeCard uid={user.uid} />
       <LanguageCard uid={user.uid} />
       <PasswordCard />
