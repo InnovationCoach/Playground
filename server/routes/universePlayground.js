@@ -4,6 +4,7 @@ import { sendUniverseError } from '../lib/universe/http.js';
 import { isSafeId } from '../lib/universe/missions.js';
 import {
   PLAYGROUND_VERSION,
+  GOAL_REWARDS,
   claimPlanet,
   initialPlaygroundState,
   runWeeklyUniverseEvent,
@@ -23,8 +24,82 @@ import { simulateSpaceshipDesign } from '../../src/features/universe/lab/spacesh
 const MAX_PLANETS = 32;
 const MAX_LOG_ENTRIES = 30;
 
+const KNOWN_PARTS = {
+  hull: new Set(['lightweight-alloy', 'composite-frame', 'titanium-hull']),
+  propulsion: new Set(['ion-thruster', 'chemical-booster', 'plasma-drive']),
+  power: new Set(['solar-array', 'rtg-core', 'fusion-microcell']),
+  shield: new Set(['thermal-shield', 'radiation-canopy', 'oxygen-scrubber'])
+};
+
+const GOAL_CREDIT_MAP = new Map(GOAL_REWARDS.map((g) => [g.id, g.credits]));
+
 function playgroundDocRef(db, orgId, uid) {
   return db.collection('orgs').doc(orgId).collection('universePlayground').doc(uid);
+}
+
+function sanitizeSavedShips(rawShips) {
+  if (!Array.isArray(rawShips)) return [];
+  const sanitized = [];
+  for (const ship of rawShips) {
+    if (!ship || typeof ship !== 'object' || Array.isArray(ship)) continue;
+    if (!isSafeId(ship.id) || ship.id.length > 80) continue;
+    if (!Number.isInteger(ship.version) || ship.version < 1) continue;
+    if (typeof ship.name !== 'string' || !ship.name.trim() || ship.name.length > 80) continue;
+    if (typeof ship.purpose !== 'string' || ship.purpose.length > 120) continue;
+    if (!Number.isInteger(ship.passengers) || ship.passengers < 1 || ship.passengers > 12) continue;
+
+    const parts = ship.parts;
+    if (!parts || typeof parts !== 'object' || Array.isArray(parts)) continue;
+    if (!KNOWN_PARTS.hull.has(parts.hull)) continue;
+    if (!KNOWN_PARTS.propulsion.has(parts.propulsion)) continue;
+    if (!KNOWN_PARTS.power.has(parts.power)) continue;
+    if (!KNOWN_PARTS.shield.has(parts.shield)) continue;
+
+    const sim = ship.simulation;
+    if (!sim || typeof sim !== 'object' || Array.isArray(sim)) continue;
+    const diagnostics = Array.isArray(sim.diagnostics)
+      ? sim.diagnostics.slice(0, 6).filter((d) => typeof d === 'string').map((d) => d.slice(0, 200))
+      : [];
+    const metrics = (sim.metrics && typeof sim.metrics === 'object' && !Array.isArray(sim.metrics)) ? {
+      totalMassKg: Number(sim.metrics.totalMassKg) || 0,
+      thrustToWeightRatio: Number(sim.metrics.thrustToWeightRatio) || 0,
+      powerOutputKw: Number(sim.metrics.powerOutputKw) || 0,
+      powerDrawKw: Number(sim.metrics.powerDrawKw) || 0,
+      powerBalanceKw: Number(sim.metrics.powerBalanceKw) || 0,
+      deltaVKms: Number(sim.metrics.deltaVKms) || 0,
+      shieldRating: Number(sim.metrics.shieldRating) || 0,
+      maxSafePassengers: Number(sim.metrics.maxSafePassengers) || 0
+    } : {};
+
+    const reflection = typeof ship.reflection === 'string' ? ship.reflection.slice(0, 500) : '';
+    const savedAt = typeof ship.savedAt === 'string' && !isNaN(Date.parse(ship.savedAt))
+      ? ship.savedAt
+      : new Date().toISOString();
+
+    sanitized.push({
+      id: ship.id,
+      version: ship.version,
+      name: ship.name.trim(),
+      purpose: ship.purpose,
+      passengers: ship.passengers,
+      parts: {
+        hull: parts.hull,
+        propulsion: parts.propulsion,
+        power: parts.power,
+        shield: parts.shield
+      },
+      simulation: {
+        passed: Boolean(sim.passed),
+        metrics,
+        diagnostics
+      },
+      reflection,
+      savedAt
+    });
+
+    if (sanitized.length >= 20) break;
+  }
+  return sanitized;
 }
 
 function sanitizePlaygroundState(raw) {
@@ -36,16 +111,29 @@ function sanitizePlaygroundState(raw) {
   if (!raw.planets || typeof raw.planets !== 'object' || Array.isArray(raw.planets)) return null;
   if (Object.keys(raw.planets).length > MAX_PLANETS) return null;
 
+  let cleanCompletedGoals = [];
+  if (Array.isArray(raw.completedGoals)) {
+    const seenGoalIds = new Set();
+    for (const g of raw.completedGoals) {
+      const gid = typeof g === 'string' ? g : g?.goalId;
+      if (!gid || typeof gid !== 'string' || !isSafeId(gid)) return null;
+      if (seenGoalIds.has(gid)) return null; // Reject duplicate goalId
+      seenGoalIds.add(gid);
+    }
+    cleanCompletedGoals = raw.completedGoals.slice(-100);
+  }
+
   return {
     version: PLAYGROUND_VERSION,
     credits: raw.credits,
     claimedPlanetId: raw.claimedPlanetId,
-    completedGoals: Array.isArray(raw.completedGoals) ? raw.completedGoals.slice(-100) : [],
+    completedGoals: cleanCompletedGoals,
     syncedSparkGoalIds: Array.isArray(raw.syncedSparkGoalIds) ? raw.syncedSparkGoalIds.slice(-100) : [],
     aidedThisWeek: Array.isArray(raw.aidedThisWeek) ? raw.aidedThisWeek.slice(0, 10) : [],
     week: raw.week,
     weeklyBulletin: Array.isArray(raw.weeklyBulletin) ? raw.weeklyBulletin.slice(0, 10) : [],
     captainsLog: Array.isArray(raw.captainsLog) ? raw.captainsLog.slice(0, MAX_LOG_ENTRIES) : [],
+    savedShips: sanitizeSavedShips(raw.savedShips),
     planets: raw.planets
   };
 }
@@ -93,9 +181,41 @@ export function createUniversePlaygroundRouter({ getDb = getFirestore } = {}) {
       const ref = playgroundDocRef(db, caller.orgId, caller.uid);
       const existingSnap = await ref.get();
       const existing = existingSnap.exists ? existingSnap.data() : {};
+
+      // Server-authoritative credit capping (B2)
+      const prevCredits = typeof existing.credits === 'number' ? existing.credits : 100;
+      const existingGoalIds = new Set(
+        (Array.isArray(existing.completedGoals) ? existing.completedGoals : [])
+          .map((g) => (typeof g === 'string' ? g : g?.goalId))
+          .filter(Boolean)
+      );
+
+      let newlyAddedGoalRewards = 0;
+      for (const g of clean.completedGoals) {
+        const gid = typeof g === 'string' ? g : g?.goalId;
+        if (gid && !existingGoalIds.has(gid)) {
+          const reward = GOAL_CREDIT_MAP.get(gid) ?? (typeof g.credits === 'number' && g.credits > 0 ? g.credits : 0);
+          newlyAddedGoalRewards += reward;
+        }
+      }
+
+      const existingSparkIds = new Set(
+        Array.isArray(existing.syncedSparkGoalIds) ? existing.syncedSparkGoalIds : []
+      );
+      const newlySyncedSparkCount = clean.syncedSparkGoalIds.filter((id) => !existingSparkIds.has(id)).length;
+      const sparkCredits = newlySyncedSparkCount * 50;
+
+      const existingAided = new Set(Array.isArray(existing.aidedThisWeek) ? existing.aidedThisWeek : []);
+      const newlyAidedCount = clean.aidedThisWeek.filter((id) => !existingAided.has(id)).length;
+      const aidCredits = newlyAidedCount * 10;
+
+      const maxAllowedCredits = prevCredits + newlyAddedGoalRewards + sparkCredits + aidCredits;
+      const authorizedCredits = Math.max(0, Math.min(clean.credits, maxAllowedCredits));
+
       // Server-authoritative progression fields cannot be forged via PUT /state
       const merged = {
         ...clean,
+        credits: authorizedCredits,
         unlockedFacilities: Array.isArray(existing.unlockedFacilities) ? existing.unlockedFacilities : [],
         completedMissionIds: Array.isArray(existing.completedMissionIds) ? existing.completedMissionIds : [],
         verifiedCompetencies: Array.isArray(existing.verifiedCompetencies) ? existing.verifiedCompetencies : [],
