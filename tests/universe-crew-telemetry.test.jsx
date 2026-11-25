@@ -260,3 +260,27 @@ describe('Spaceship blueprints: save, load and persistence', () => {
     }
   });
 });
+
+describe('Goal credits are paid once per goal', () => {
+  it('ignores a second claim and shows the goal as claimed', async () => {
+    const { isGoalClaimed } = await import('../src/features/universe/playground/playgroundModel.js');
+    let state = initialPlaygroundState('thalassa');
+    state = completeGoal(state, 'goal-stem-lab');
+    expect(state.credits).toBe(160);
+    expect(isGoalClaimed(state, 'goal-stem-lab')).toBe(true);
+    const again = completeGoal(state, 'goal-stem-lab');
+    expect(again).toBe(state);
+    expect(again.credits).toBe(160);
+
+    let current = state;
+    render(<PlaygroundPanel cosmos={cosmos} state={current} onChange={(next) => { current = next; }} onClose={() => {}} />);
+    const card = [...host.querySelectorAll('.upg-item')].find((li) => li.textContent.includes('Complete a STEM Investigation'));
+    const button = card.querySelector('button');
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toBe('Claimed ✓');
+    const other = [...host.querySelectorAll('.upg-item')].find((li) => li.textContent.includes('Log 3 Biosignature Scans')).querySelector('button');
+    expect(other.disabled).toBe(false);
+    act(() => other.click());
+    expect(current.credits).toBe(205);
+  });
+});

@@ -18,6 +18,7 @@ import {
   getNextMission,
   getPlanetRecord,
   hasProducerSpecies,
+  isGoalClaimed,
   investigatePlanet,
   resolveHazardWithDilemma,
   runWeeklyUniverseEvent,
@@ -171,6 +172,10 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
   };
 
   const handleGoal = (goal) => {
+    if (isGoalClaimed(state, goal.id)) {
+      notify(`"${goal.title}" credits are already claimed.`);
+      return;
+    }
     onChange(completeGoal(state, goal.id));
     notify(`+${goal.credits} Credits earned for "${goal.title}"!`);
   };
@@ -480,7 +485,7 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
               </p>
               <ul className="upg-list">
                 {GOAL_REWARDS.map((goal) => {
-                  const claimedCount = goalClaimCounts[goal.id] || 0;
+                  const claimed = (goalClaimCounts[goal.id] || 0) > 0;
                   return (
                     <li className="upg-item" key={goal.id}>
                       <div className="upg-item-row">
@@ -489,12 +494,14 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
                       </div>
                       <p className="upg-muted">{goal.description}</p>
                       <div className="upg-item-row">
-                        <button type="button" className="upg-btn upg-btn-primary" onClick={() => handleGoal(goal)}>
-                          Claim Goal Credit
+                        <button
+                          type="button"
+                          className={`upg-btn${claimed ? ' upg-btn-complete' : ' upg-btn-primary'}`}
+                          disabled={claimed}
+                          onClick={() => handleGoal(goal)}
+                        >
+                          {claimed ? 'Claimed ✓' : 'Claim Goal Credit'}
                         </button>
-                        {claimedCount > 0 && (
-                          <span className="upg-tag">Claimed ×{claimedCount}</span>
-                        )}
                       </div>
                     </li>
                   );

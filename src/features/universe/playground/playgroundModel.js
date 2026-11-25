@@ -207,9 +207,18 @@ export function claimPlanet(state, planetId) {
   };
 }
 
+/** True once the learner has claimed this goal's credits. */
+export function isGoalClaimed(state, goalId) {
+  return (state?.completedGoals || []).some((g) => g.goalId === goalId);
+}
+
+/**
+ * Pays a goal's credits once. Claiming again returns the same state, so the
+ * button cannot be pressed repeatedly to farm credits.
+ */
 export function completeGoal(state, goalId) {
   const goal = GOAL_REWARDS.find((g) => g.id === goalId);
-  if (!goal) return state;
+  if (!goal || isGoalClaimed(state, goalId)) return state;
   return {
     ...state,
     credits: state.credits + goal.credits,
