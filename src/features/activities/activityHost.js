@@ -12,9 +12,6 @@
 
 export const LEGACY_ACTIVITIES = [
   { id: 'home', containerId: 'home-container', label: '🏠 Home Portal' },
-  { id: 'phase1', containerId: 'phase1-container', label: '🌴 Activity 1: Urban Heat',
-    description: 'Cool a tropical city: trees, cool roofs and budgets.',
-    keywords: 'urban heat island climate city temperature trees budget' },
   { id: 'bunker', containerId: 'bunker-container', label: '🛡️ Activity 2: Bunker Survival',
     description: 'Engineer a shelter that survives an extreme disaster.',
     keywords: 'bunker survival disaster shelter engineering heatwave flood' },
@@ -31,6 +28,13 @@ export const LEGACY_ACTIVITIES = [
 // remaining four still live in index.html - see the note above. Activity 6
 // (SO₂ → Sulfate) was born in React and never had a legacy container.
 export const REACT_ACTIVITIES = [
+  // Activity 1 left index.html on 2026-11-25: learners now choose a Townsville
+  // district and redesign it block by block (features/activities/urbanHeat).
+  // The id stays 'phase1' because programme catalogues, the NGSS rubric and
+  // activity icons are keyed by it.
+  { id: 'phase1', label: '🌴 Activity 1: Urban Heat',
+    description: 'Choose a Townsville district and redesign it to beat the heat.',
+    keywords: 'urban heat island climate city temperature trees budget townsville design shade cool roof' },
   { id: 'solar', label: '☀️ Activity 5: Solar Car',
     description: 'Measure your real model car and predict its speed.',
     keywords: 'solar car energy engineering gears speed physics stem' },
@@ -57,10 +61,15 @@ export const REACT_ACTIVITIES = [
  * implementation detail of this file. Driving the nav off LEGACY_ACTIVITIES
  * directly meant porting an activity silently removed it from the menu.
  */
+const NAV_ORDER = ['home', 'phase1', 'bunker', 'coding', 'bangkok', 'solar', 'so2', 'plants', 'hexgrid', 'junior'];
+
 export const ACTIVITY_NAV = [
   ...LEGACY_ACTIVITIES.map(({ id, label, description, keywords }) => ({ id, label, description, keywords })),
   ...REACT_ACTIVITIES
-];
+].sort((a, b) => {
+  const ia = NAV_ORDER.indexOf(a.id); const ib = NAV_ORDER.indexOf(b.id);
+  return (ia < 0 ? NAV_ORDER.length : ia) - (ib < 0 ? NAV_ORDER.length : ib);
+});
 
 const byId = new Map(LEGACY_ACTIVITIES.map((a) => [a.id, a]));
 

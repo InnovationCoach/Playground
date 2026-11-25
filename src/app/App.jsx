@@ -32,6 +32,7 @@ import { CanvaPage } from '../features/canva/CanvaPage.jsx';
 import { EdmentumIntegrationConsole } from '../features/edmentum/EdmentumIntegrationConsole.jsx';
 import { StudentOnboardingModal } from '../components/Onboarding/StudentOnboardingModal.jsx';
 import { showActivity, hideAllActivities, isLegacyActivity, isReactActivity, trackActivityOpen, ACTIVITY_NAV } from '../features/activities/activityHost.js';
+import { UrbanHeatDesigner } from '../features/activities/urbanHeat/UrbanHeatDesigner.jsx';
 import { SolarCarChallenge } from '../features/activities/solarCar/SolarCarChallenge.jsx';
 import { So2SulfateSimulation } from '../features/activities/so2Sulfate/So2SulfateSimulation.jsx';
 import { PlantMicroscopeLab } from '../features/activities/plantLab/PlantMicroscopeLab.jsx';
@@ -192,8 +193,8 @@ export function App() {
   }, [status, role, view]);
 
   // Growth Hub and Coach screens follow effectiveTheme; legacy activity scenes
-  // (solar, so2, plants, hexgrid) remain dark.
-  const isLegacyDarkScene = role === 'student' && !route?.screen && ['solar', 'so2', 'plants', 'hexgrid'].includes(view);
+  // (phase1, solar, so2, plants, hexgrid) remain dark.
+  const isLegacyDarkScene = role === 'student' && !route?.screen && ['phase1', 'solar', 'so2', 'plants', 'hexgrid'].includes(view);
   const isCoachScreen = role === 'teacher' || role === 'coach';
   const isLightCapableScreen = !isLegacyDarkScene && (
     status !== 'ready'
@@ -585,6 +586,7 @@ export function App() {
           {role === 'student' && view === 'home' && (
             <StudentDashboard profile={profile} uid={user?.uid} onProfileChanged={refreshProfile} />
           )}
+          {view === 'phase1' && <UrbanHeatDesigner uid={user.uid} />}
           {view === 'solar' && <SolarCarChallenge uid={user.uid} />}
           {view === 'so2' && <So2SulfateSimulation uid={user.uid} />}
           {view === 'plants' && <PlantMicroscopeLab uid={user.uid} />}
