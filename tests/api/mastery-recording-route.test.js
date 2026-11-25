@@ -275,6 +275,7 @@ describe('API: Mastery Recording Route & Controlled Failure Adapter', () => {
       const createEvidenceSpy = vi.spyOn(masteryClient, 'createEvidence');
       const attachSpy = vi.spyOn(masteryClient, 'attachCompetenciesToEvidence').mockResolvedValueOnce({});
       const updateCreditSpy = vi.spyOn(masteryClient, 'updateLearnerCredit').mockResolvedValueOnce({});
+      const updateStatusSpy = vi.spyOn(masteryClient, 'updateEvidenceStatus').mockResolvedValueOnce({ id: 7001, status: 'APPROVED' });
       const addCommentSpy = vi.spyOn(masteryClient, 'addEvidenceComment').mockRejectedValueOnce(
         new Error('Simulated network failure on formative comment')
       );
@@ -288,17 +289,20 @@ describe('API: Mastery Recording Route & Controlled Failure Adapter', () => {
       expect(createEvidenceSpy).not.toHaveBeenCalled();
       expect(attachSpy).toHaveBeenCalledWith(7001, expect.any(Array));
       expect(updateCreditSpy).toHaveBeenCalledWith(377, 1372, { status: 'EARNED' });
+      expect(updateStatusSpy).toHaveBeenCalledWith(7001, { status: 'APPROVED' });
 
-      // Partial success truthfully reported: creditAwarded: true, commentPosted: false
+      // Partial success truthfully reported: creditAwarded: true, evidenceApproved: true, commentPosted: false
       expect(res.status).toBe(200);
       expect(res.body.mastery.creditAwarded).toBe(true);
+      expect(res.body.mastery.evidenceApproved).toBe(true);
       expect(res.body.mastery.commentPosted).toBe(false);
       expect(res.body.mastery.canRetryComment).toBe(true);
 
-      // Verify Firestore state has evidenceId and creditAwarded: true
+      // Verify Firestore state has evidenceId, evidenceApproved: true and creditAwarded: true
       const savedDoc = (await env.db.collection('submissions').doc(subE2E).get()).data();
       expect(savedDoc.mastery.evidenceId).toBe(7001);
       expect(savedDoc.mastery.creditAwarded).toBe(true);
+      expect(savedDoc.mastery.evidenceApproved).toBe(true);
       expect(savedDoc.mastery.commentPosted).toBe(false);
     });
 
@@ -306,6 +310,7 @@ describe('API: Mastery Recording Route & Controlled Failure Adapter', () => {
       // Student already has creditAwarded: true from previous test, but commentPosted: false
       const attachSpy = vi.spyOn(masteryClient, 'attachCompetenciesToEvidence');
       const updateCreditSpy = vi.spyOn(masteryClient, 'updateLearnerCredit');
+      const updateStatusSpy = vi.spyOn(masteryClient, 'updateEvidenceStatus');
       const addCommentSpy = vi.spyOn(masteryClient, 'addEvidenceComment').mockResolvedValueOnce({ id: 'comm-1' });
 
       const res = await env.request('POST', `/api/mastery/evaluations/${subE2E}/record`, {
@@ -313,9 +318,10 @@ describe('API: Mastery Recording Route & Controlled Failure Adapter', () => {
         body: { competency: '1.1.1 Goal Setting', feedback: 'Formative feedback retry' }
       });
 
-      // Credit and evidence calls must NOT be repeated!
+      // Credit, evidence creation, and status approval calls must NOT be repeated!
       expect(attachSpy).not.toHaveBeenCalled();
       expect(updateCreditSpy).not.toHaveBeenCalled();
+      expect(updateStatusSpy).not.toHaveBeenCalled();
 
       // Comment must be called with existing evidence 7001
       expect(addCommentSpy).toHaveBeenCalledWith(7001, { content: 'Formative feedback retry' });

@@ -99,6 +99,13 @@ describe('MTC Phase 2: Live Sandbox Recording, Replay Safety & Read-Back', () =>
     console.log('   ✓ Awarded credit 1372 to learner 377 with status EARNED');
   });
 
+  it('approves evidence container status to APPROVED', async () => {
+    assert.ok(createdEvidenceId);
+    const statusRes = await masteryClient.updateEvidenceStatus(createdEvidenceId, { status: 'APPROVED' });
+    assert.ok(statusRes !== undefined);
+    console.log('   ✓ Transitioned evidence', createdEvidenceId, 'status to APPROVED');
+  });
+
   it('adds coach formative feedback comment to evidence', async () => {
     assert.ok(createdEvidenceId);
     const commentRes = await masteryClient.addEvidenceComment(createdEvidenceId, {
