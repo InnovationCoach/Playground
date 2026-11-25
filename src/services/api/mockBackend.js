@@ -225,7 +225,16 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
       auth: { lastSignInAt: null, createdAt, disabled: false, hasPassword }
     };
     if (body.role === 'student') {
-      Object.assign(user, { cohortId: body.cohortId, ageBand: body.ageBand, yearLevel: body.yearLevel || null, dateOfBirth: body.dateOfBirth || null, consent: null });
+      const derivedCohort = body.cohortId === 'cohort-wls' ? 'lower-secondary' : body.cohortId === 'cohort-whs' ? 'higher-secondary' : body.cohortId === 'cohort-wpr' ? 'primary' : body.cohort;
+      Object.assign(user, {
+        cohortId: body.cohortId,
+        cohort: derivedCohort || body.cohort || null,
+        ageBand: body.ageBand || (body.cohortId === 'cohort-wpr' ? 'primary' : body.cohortId === 'cohort-wls' ? '13-15' : '16-18'),
+        yearLevel: body.yearLevel || null,
+        gradeLevel: body.gradeLevel || null,
+        dateOfBirth: body.dateOfBirth || null,
+        consent: null
+      });
     }
     db.users.push(user);
     saveUser(user);
@@ -383,7 +392,16 @@ export function createMockBackend({ seed, latencyMs = LATENCY_MS } = {}) {
     const rows = query.schoolId ? db.classes.filter((c) => c.schoolId === query.schoolId) : db.classes;
     return ok({ items: rows, nextPageToken: null, total: rows.length });
   });
-  route('GET', '/api/admin/cohorts', CONSOLE, () => ok({ items: db.cohorts, nextPageToken: null, total: db.cohorts.length }));
+  route('GET', '/api/admin/cohorts', CONSOLE, () => {
+    const active = db.cohorts.filter((c) => {
+      const code = (c.code || '').toUpperCase();
+      const id = (c.cohortId || '').toLowerCase();
+      // Age-based primary cohorts are retired; WeLearn Primary (WPR, Grades 1–5) is offered.
+      if (code === 'LPRI' || code === 'HPRI' || id.includes('primary')) return false;
+      return true;
+    });
+    return ok({ items: active, nextPageToken: null, total: active.length });
+  });
   route('GET', '/api/admin/programmes', CONSOLE, () => ok({ items: db.programmes, nextPageToken: null, total: db.programmes.length }));
 
   // --- Student Billing routes ---

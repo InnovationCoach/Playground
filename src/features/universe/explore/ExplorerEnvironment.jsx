@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { fbm } from './proceduralTextures.js';
-import { Sky, Beacon, Equipment } from './environmentKit.jsx';
+import { Sky, Beacon, Equipment, PlaygroundStructures } from './environmentKit.jsx';
 
 /**
  * Thalassa Research Station: the spike's one enterable environment, loaded as
@@ -102,7 +102,7 @@ function Vent({ x, z }) {
   </group>;
 }
 
-export default function ExplorerEnvironment({ environment, selected, onSelect, motion, low, equipment = null }) {
+export default function ExplorerEnvironment({ environment, selected, onSelect, motion, low, equipment = null, playgroundFeatures = [], unlockedFacilities = [], activeHazard = null }) {
   const byId = Object.fromEntries(environment.locations.map((l) => [l.id, l]));
   // Planned equipment rests on the platform deck, on land, or on a small float at the waterline.
   const deck = byId.platform.position, onDeck = (x, z) => Math.hypot(x - deck[0], z - deck[2]) < 6.5;
@@ -121,5 +121,6 @@ export default function ExplorerEnvironment({ environment, selected, onSelect, m
     <Vent x={byId.vent.position[0]} z={byId.vent.position[2]} />
     {environment.locations.map((l) => <Beacon key={l.id} location={l} selected={selected === l.id} onSelect={onSelect} groundAt={heightAt} />)}
     <Equipment equipment={equipment} standAt={standAt} water={water} motion={motion} />
+    <PlaygroundStructures features={playgroundFeatures} unlockedFacilities={unlockedFacilities} anchor={[deck[0], 0.8, deck[2]]} activeHazard={activeHazard} />
   </group>;
 }

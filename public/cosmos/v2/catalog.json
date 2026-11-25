@@ -1,0 +1,1851 @@
+{
+  "catalogVersion": "2.1.0-playground",
+  "generatedAt": "2026-11-25T09:55:00Z",
+  "note": "My Universe Learner Playground catalog: 3 galaxies, 6 star systems, 15 distinct exoplanets.",
+  "galaxies": [
+    {
+      "id": "lyra-spiral",
+      "name": "Lyra Spiral",
+      "type": "spiral",
+      "position": [
+        -16,
+        1,
+        0
+      ],
+      "tilt": 0.45,
+      "colors": {
+        "core": "#fff1d6",
+        "arm": "#b98ee0",
+        "dust": "#e0589c"
+      },
+      "summary": "A barred spiral with bright violet arms, two charted star systems, and five diverse exoplanets.",
+      "systems": [
+        "lyra-prime",
+        "lyra-beacon"
+      ],
+      "uncharted": 2
+    },
+    {
+      "id": "aurora-elliptical",
+      "name": "Aurora Elliptical",
+      "type": "elliptical",
+      "position": [
+        15,
+        4,
+        -8
+      ],
+      "tilt": 0.2,
+      "colors": {
+        "core": "#fff6dc",
+        "arm": "#e8c37a",
+        "dust": "#ffd9a0"
+      },
+      "summary": "An ancient golden elliptical galaxy rich in mineral worlds and deep-core thermal vents.",
+      "systems": [
+        "aurora-core",
+        "aurora-halo"
+      ],
+      "uncharted": 2
+    },
+    {
+      "id": "cygnus-nebula",
+      "name": "Cygnus Vortex",
+      "type": "spiral",
+      "position": [
+        0,
+        -5,
+        16
+      ],
+      "tilt": -0.38,
+      "colors": {
+        "core": "#dff8ff",
+        "arm": "#5cc8d7",
+        "dust": "#96d700"
+      },
+      "summary": "A bioluminescent cyan spiral galaxy teeming with young stars, ice moons, and frontier exoplanets.",
+      "systems": [
+        "cygnus-alpha",
+        "cygnus-beta"
+      ],
+      "uncharted": 3
+    }
+  ],
+  "systems": [
+    {
+      "id": "lyra-prime",
+      "galaxyId": "lyra-spiral",
+      "name": "Lyra Prime",
+      "starClass": "Yellow dwarf (G-type)",
+      "starColor": "#ffe9a8",
+      "summary": "A warm yellow star hosting three temperate and volcanic worlds.",
+      "planets": [
+        "thalassa",
+        "ignis",
+        "boreas"
+      ]
+    },
+    {
+      "id": "lyra-beacon",
+      "galaxyId": "lyra-spiral",
+      "name": "Lyra Beacon",
+      "starClass": "Orange dwarf (K-type)",
+      "starColor": "#ffb974",
+      "summary": "A steady orange dwarf with two tide-locked frontier exoplanets.",
+      "planets": [
+        "pelagos",
+        "cinder"
+      ]
+    },
+    {
+      "id": "aurora-core",
+      "galaxyId": "aurora-elliptical",
+      "name": "Aurora Core",
+      "starClass": "Blue-white star (A-type)",
+      "starColor": "#cfe6ff",
+      "summary": "A luminous blue-white star with three high-energy planetary orbits.",
+      "planets": [
+        "aurelia",
+        "glaciera",
+        "pyros"
+      ]
+    },
+    {
+      "id": "aurora-halo",
+      "galaxyId": "aurora-elliptical",
+      "name": "Aurora Halo",
+      "starClass": "Red dwarf (M-type)",
+      "starColor": "#ff7d66",
+      "summary": "A quiet red dwarf on the galaxy rim, ideal for extremophile research.",
+      "planets": [
+        "umbrion",
+        "veridia"
+      ]
+    },
+    {
+      "id": "cygnus-alpha",
+      "galaxyId": "cygnus-nebula",
+      "name": "Cygnus Alpha",
+      "starClass": "White main-sequence (F-type)",
+      "starColor": "#f3f7ff",
+      "summary": "A crisp white star surrounded by three ocean and cryo-volcanic worlds.",
+      "planets": [
+        "nyxara",
+        "koralis",
+        "frostholm"
+      ]
+    },
+    {
+      "id": "cygnus-beta",
+      "galaxyId": "cygnus-nebula",
+      "name": "Cygnus Beta",
+      "starClass": "Binary pair (G/K-type)",
+      "starColor": "#ffd89e",
+      "summary": "A twin-star system with turbulent winds and obsidian plateaus.",
+      "planets": [
+        "zephyria",
+        "obsidian-reach"
+      ]
+    }
+  ],
+  "planets": [
+    {
+      "id": "thalassa",
+      "systemId": "lyra-prime",
+      "name": "Thalassa",
+      "kind": "ocean",
+      "orbit": 7,
+      "angle": 0.6,
+      "radius": 1.1,
+      "colors": {
+        "base": "#1d5f8a",
+        "deep": "#0b2f52",
+        "light": "#7cc7e8",
+        "cloud": "#eaf6ff",
+        "atmosphere": "#9bd2ff"
+      },
+      "summary": "A warm ocean world with volcanic headlands and steady trade winds.",
+      "facts": [
+        {
+          "text": "Deep basalt trenches warm coastal waters, creating ideal conditions for bioluminescent kelp.",
+          "tag": "fictional-world",
+          "annotation": "Thalassa planetary survey"
+        },
+        {
+          "text": "Orbits Lyra Prime (Yellow dwarf (G-type)) in a warm trade-wind archipelago and floating research shelf regime.",
+          "tag": "fictional-world",
+          "annotation": "Thalassa orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "thalassa-surface"
+    },
+    {
+      "id": "ignis",
+      "systemId": "lyra-prime",
+      "name": "Ignis",
+      "kind": "basalt",
+      "orbit": 11.2,
+      "angle": 2.4,
+      "radius": 0.85,
+      "colors": {
+        "base": "#4d4440",
+        "deep": "#231d1c",
+        "light": "#85766c",
+        "glow": "#ff7a2e",
+        "atmosphere": "#ffb27a"
+      },
+      "summary": "A dark basalt world crossed by glowing geothermal fissures.",
+      "facts": [
+        {
+          "text": "Tectonic heat powers colony generators while thermophile mats line the cooler rift walls.",
+          "tag": "fictional-world",
+          "annotation": "Ignis planetary survey"
+        },
+        {
+          "text": "Orbits Lyra Prime (Yellow dwarf (G-type)) in a active magma-fissure plains and sulfur vents regime.",
+          "tag": "fictional-world",
+          "annotation": "Ignis orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "ignis-surface"
+    },
+    {
+      "id": "boreas",
+      "systemId": "lyra-prime",
+      "name": "Boreas",
+      "kind": "ice",
+      "orbit": 15.4,
+      "angle": 4.2,
+      "radius": 1.28,
+      "colors": {
+        "base": "#79a8c9",
+        "deep": "#3c5d80",
+        "light": "#dff3ff",
+        "ring": "#c7dceb",
+        "atmosphere": "#a8d8ff"
+      },
+      "rings": true,
+      "summary": "A ringed ice giant with sub-glacial brine oceans and aurora bands.",
+      "facts": [
+        {
+          "text": "Ice-crystal rings scatter pale blue starlight over salty liquid pockets beneath the crust.",
+          "tag": "fictional-world",
+          "annotation": "Boreas planetary survey"
+        },
+        {
+          "text": "Orbits Lyra Prime (Yellow dwarf (G-type)) in a ringed sub-glacial brine sea and aurora ice shelf regime.",
+          "tag": "fictional-world",
+          "annotation": "Boreas orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "boreas-surface"
+    },
+    {
+      "id": "pelagos",
+      "systemId": "lyra-beacon",
+      "name": "Pelagos",
+      "kind": "ocean",
+      "orbit": 6.4,
+      "angle": 1.1,
+      "radius": 1.02,
+      "colors": {
+        "base": "#1c7a7c",
+        "deep": "#0c3a40",
+        "light": "#7ae8d5",
+        "cloud": "#e6fffb",
+        "atmosphere": "#7ef0e0"
+      },
+      "summary": "A turquoise archipelago world rich in mineral reefs and tidal currents.",
+      "facts": [
+        {
+          "text": "High-salinity lagoons precipitate crystalline reefs that shelter filter-feeding jellies.",
+          "tag": "fictional-world",
+          "annotation": "Pelagos planetary survey"
+        },
+        {
+          "text": "Orbits Lyra Beacon (Orange dwarf (K-type)) in a turquoise mineral-reef lagoons and tidal atolls regime.",
+          "tag": "fictional-world",
+          "annotation": "Pelagos orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "pelagos-surface"
+    },
+    {
+      "id": "cinder",
+      "systemId": "lyra-beacon",
+      "name": "Cinder",
+      "kind": "basalt",
+      "orbit": 10.6,
+      "angle": 3.8,
+      "radius": 0.91,
+      "colors": {
+        "base": "#593b36",
+        "deep": "#291716",
+        "light": "#996a5d",
+        "glow": "#ff5226",
+        "atmosphere": "#ff966e"
+      },
+      "summary": "A young volcanic exoplanet with obsidian ridges and active vents.",
+      "facts": [
+        {
+          "text": "One hemisphere faces Lyra Beacon permanently, driving fierce thermal winds across the terminator.",
+          "tag": "fictional-world",
+          "annotation": "Cinder planetary survey"
+        },
+        {
+          "text": "Orbits Lyra Beacon (Orange dwarf (K-type)) in a tide-locked obsidian ridges and ash-cloud canyons regime.",
+          "tag": "fictional-world",
+          "annotation": "Cinder orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "cinder-surface"
+    },
+    {
+      "id": "aurelia",
+      "systemId": "aurora-core",
+      "name": "Aurelia",
+      "kind": "ocean",
+      "orbit": 8.1,
+      "angle": 0.4,
+      "radius": 1.16,
+      "colors": {
+        "base": "#2c6e91",
+        "deep": "#133752",
+        "light": "#95d9f0",
+        "cloud": "#f2faff",
+        "ring": "#d9ecff",
+        "atmosphere": "#b0e2ff"
+      },
+      "rings": true,
+      "summary": "A ringed golden-lit ocean planet with floating kelp-like colonies.",
+      "facts": [
+        {
+          "text": "Intense A-type starlight supercharges solar arrays and drives rapid surface photosynthesis.",
+          "tag": "fictional-world",
+          "annotation": "Aurelia planetary survey"
+        },
+        {
+          "text": "Orbits Aurora Core (Blue-white star (A-type)) in a high-uv golden-lit kelp sea under silken ice rings regime.",
+          "tag": "fictional-world",
+          "annotation": "Aurelia orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "aurelia-surface"
+    },
+    {
+      "id": "glaciera",
+      "systemId": "aurora-core",
+      "name": "Glaciera",
+      "kind": "ice",
+      "orbit": 12.3,
+      "angle": 2.7,
+      "radius": 1.07,
+      "colors": {
+        "base": "#8bb8d9",
+        "deep": "#46698c",
+        "light": "#eef9ff",
+        "atmosphere": "#bde5ff"
+      },
+      "summary": "A crystalline ice world where thermal geysers carve blue canyons.",
+      "facts": [
+        {
+          "text": "Subsurface water plumes erupt every 14 hours, seeding the thin air with water vapor.",
+          "tag": "fictional-world",
+          "annotation": "Glaciera planetary survey"
+        },
+        {
+          "text": "Orbits Aurora Core (Blue-white star (A-type)) in a crystalline blue ice canyons and pressurized geyser basins regime.",
+          "tag": "fictional-world",
+          "annotation": "Glaciera orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "glaciera-surface"
+    },
+    {
+      "id": "pyros",
+      "systemId": "aurora-core",
+      "name": "Pyros",
+      "kind": "basalt",
+      "orbit": 16.2,
+      "angle": 4.9,
+      "radius": 0.94,
+      "colors": {
+        "base": "#4a3d3b",
+        "deep": "#1f1818",
+        "light": "#87726d",
+        "glow": "#ff9933",
+        "atmosphere": "#ffc280"
+      },
+      "summary": "A dense silicate planet heated by tidal flexing and magma tubes.",
+      "facts": [
+        {
+          "text": "Iron-rich basalt spires act as natural lightning rods during Aurora Core solar storms.",
+          "tag": "fictional-world",
+          "annotation": "Pyros planetary survey"
+        },
+        {
+          "text": "Orbits Aurora Core (Blue-white star (A-type)) in a tidal-flexed silicate plateaus and amber magma tubes regime.",
+          "tag": "fictional-world",
+          "annotation": "Pyros orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "pyros-surface"
+    },
+    {
+      "id": "umbrion",
+      "systemId": "aurora-halo",
+      "name": "Umbrion",
+      "kind": "basalt",
+      "orbit": 5.9,
+      "angle": 1.9,
+      "radius": 0.87,
+      "colors": {
+        "base": "#383b4a",
+        "deep": "#1a1c26",
+        "light": "#6e738c",
+        "glow": "#8d7aff",
+        "atmosphere": "#a99cff"
+      },
+      "summary": "A twilight world bathed in soft red starlight and bioluminescent vents.",
+      "facts": [
+        {
+          "text": "Low stellar UV lets delicate violet-glowing microbes flourish on exposed rock faces.",
+          "tag": "fictional-world",
+          "annotation": "Umbrion planetary survey"
+        },
+        {
+          "text": "Orbits Aurora Halo (Red dwarf (M-type)) in a twilight violet-vent badlands under dim red starlight regime.",
+          "tag": "fictional-world",
+          "annotation": "Umbrion orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "umbrion-surface"
+    },
+    {
+      "id": "veridia",
+      "systemId": "aurora-halo",
+      "name": "Veridia",
+      "kind": "ocean",
+      "orbit": 9.8,
+      "angle": 4.5,
+      "radius": 1.09,
+      "colors": {
+        "base": "#25705d",
+        "deep": "#0e362e",
+        "light": "#7ad6b0",
+        "cloud": "#e8fff5",
+        "atmosphere": "#8ce6bf"
+      },
+      "summary": "A lush emerald-sea exoplanet with dense oxygenating spore clouds.",
+      "facts": [
+        {
+          "text": "Floating aerial spores tint the upper cloud deck emerald and rapidly enrich atmospheric oxygen.",
+          "tag": "fictional-world",
+          "annotation": "Veridia planetary survey"
+        },
+        {
+          "text": "Orbits Aurora Halo (Red dwarf (M-type)) in a emerald-green photosynthetic seas and dense spore clouds regime.",
+          "tag": "fictional-world",
+          "annotation": "Veridia orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "veridia-surface"
+    },
+    {
+      "id": "nyxara",
+      "systemId": "cygnus-alpha",
+      "name": "Nyxara",
+      "kind": "ice",
+      "orbit": 7.6,
+      "angle": 0.9,
+      "radius": 1.13,
+      "colors": {
+        "base": "#5c78a6",
+        "deep": "#27395c",
+        "light": "#cbe0ff",
+        "ring": "#99b8e6",
+        "atmosphere": "#94bfff"
+      },
+      "rings": true,
+      "summary": "A deep-indigo ice world with magnetic rings and cryo-plumes.",
+      "facts": [
+        {
+          "text": "Strong planetary magnetism deflects cosmic ion storms better than most rocky worlds.",
+          "tag": "fictional-world",
+          "annotation": "Nyxara planetary survey"
+        },
+        {
+          "text": "Orbits Cygnus Alpha (White main-sequence (F-type)) in a magnetized indigo ice sheet and cryo-plume trenches regime.",
+          "tag": "fictional-world",
+          "annotation": "Nyxara orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "nyxara-surface"
+    },
+    {
+      "id": "koralis",
+      "systemId": "cygnus-alpha",
+      "name": "Koralis",
+      "kind": "ocean",
+      "orbit": 11.7,
+      "angle": 3.1,
+      "radius": 1.04,
+      "colors": {
+        "base": "#1e6694",
+        "deep": "#0b2b4a",
+        "light": "#78d2f5",
+        "cloud": "#eaf9ff",
+        "atmosphere": "#87d8ff"
+      },
+      "summary": "A coral-shelf ocean world ideal for marine bio-engineering.",
+      "facts": [
+        {
+          "text": "Warm shallow shelves host layered microbial reefs that naturally scrub excess carbon dioxide.",
+          "tag": "fictional-world",
+          "annotation": "Koralis planetary survey"
+        },
+        {
+          "text": "Orbits Cygnus Alpha (White main-sequence (F-type)) in a shallow carbonate coral shelves and calm azure currents regime.",
+          "tag": "fictional-world",
+          "annotation": "Koralis orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "koralis-surface"
+    },
+    {
+      "id": "frostholm",
+      "systemId": "cygnus-alpha",
+      "name": "Frostholm",
+      "kind": "ice",
+      "orbit": 15.8,
+      "angle": 5.2,
+      "radius": 0.92,
+      "colors": {
+        "base": "#7aa6bd",
+        "deep": "#395569",
+        "light": "#e8f7ff",
+        "atmosphere": "#b3e0f7"
+      },
+      "summary": "A frozen frontier moon-planet with subsurface geothermal pockets.",
+      "facts": [
+        {
+          "text": "Cryo-tardigrades hibernate inside fractured ice-basalt caverns until thermal vents thaw them.",
+          "tag": "fictional-world",
+          "annotation": "Frostholm planetary survey"
+        },
+        {
+          "text": "Orbits Cygnus Alpha (White main-sequence (F-type)) in a frozen basalt-ice crust with warm geothermal pockets regime.",
+          "tag": "fictional-world",
+          "annotation": "Frostholm orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "frostholm-surface"
+    },
+    {
+      "id": "zephyria",
+      "systemId": "cygnus-beta",
+      "name": "Zephyria",
+      "kind": "ocean",
+      "orbit": 8.6,
+      "angle": 2,
+      "radius": 1.19,
+      "colors": {
+        "base": "#2b6a99",
+        "deep": "#123254",
+        "light": "#8ad4ff",
+        "cloud": "#f0f9ff",
+        "atmosphere": "#9cd8ff"
+      },
+      "summary": "A high-wind ocean world where twin suns drive dramatic jetstreams.",
+      "facts": [
+        {
+          "text": "Dual-star heating generates perpetual trade swells ideal for kinetic wave turbines.",
+          "tag": "fictional-world",
+          "annotation": "Zephyria planetary survey"
+        },
+        {
+          "text": "Orbits Cygnus Beta (Binary pair (G/K-type)) in a twin-sun jetstream ocean and high-swell research rigs regime.",
+          "tag": "fictional-world",
+          "annotation": "Zephyria orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "zephyria-surface"
+    },
+    {
+      "id": "obsidian-reach",
+      "systemId": "cygnus-beta",
+      "name": "Obsidian Reach",
+      "kind": "basalt",
+      "orbit": 13.4,
+      "angle": 4.4,
+      "radius": 0.97,
+      "colors": {
+        "base": "#3d3942",
+        "deep": "#1c1921",
+        "light": "#756f80",
+        "glow": "#38e8b0",
+        "atmosphere": "#70f5cc"
+      },
+      "summary": "A mineral-rich basalt world with emerald plasma fissures.",
+      "facts": [
+        {
+          "text": "Copper-rich magma vents glow bright emerald and yield rare conductive silicates.",
+          "tag": "fictional-world",
+          "annotation": "Obsidian Reach planetary survey"
+        },
+        {
+          "text": "Orbits Cygnus Beta (Binary pair (G/K-type)) in a glass-black obsidian plateaus and emerald plasma rifts regime.",
+          "tag": "fictional-world",
+          "annotation": "Obsidian Reach orbital telemetry"
+        }
+      ],
+      "access": "public",
+      "environmentId": "obsidian-reach-surface"
+    }
+  ],
+  "environments": [
+    {
+      "id": "thalassa-surface",
+      "planetId": "thalassa",
+      "name": "Thalassa Outpost",
+      "biome": "Warm trade-wind archipelago and floating research shelf",
+      "summary": "A warm ocean world with volcanic headlands and steady trade winds.",
+      "sceneKind": "ocean-station",
+      "locations": [
+        {
+          "id": "platform",
+          "name": "Thalassa Central Deck",
+          "purpose": "Floating habitat hub anchored in Thalassa's ocean basin.",
+          "position": [
+            8,
+            0.8,
+            6
+          ],
+          "view": [
+            22,
+            9,
+            20
+          ],
+          "observations": [
+            "Primary crew quarters and Thalassa telemetry dock."
+          ]
+        },
+        {
+          "id": "tide-gauge",
+          "name": "Thalassa Biosignature Buoy",
+          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Thalassa.",
+          "position": [
+            -4,
+            0.2,
+            12
+          ],
+          "view": [
+            10,
+            6,
+            22
+          ],
+          "observations": [
+            "Tracks Thalassa ocean chemistry in real time."
+          ]
+        },
+        {
+          "id": "weather-mast",
+          "name": "Thalassa Storm Mast",
+          "purpose": "Measures upper-air wind shear and storm charge over Thalassa.",
+          "position": [
+            -14,
+            7.5,
+            -5
+          ],
+          "view": [
+            4,
+            14,
+            12
+          ],
+          "observations": [
+            "Early-warning mast for weekly Universe Creator storms."
+          ]
+        },
+        {
+          "id": "vent",
+          "name": "Thalassa Thermal Vent",
+          "purpose": "Deep mineral plume supporting extremophile life on Thalassa.",
+          "position": [
+            -20,
+            4.2,
+            -10
+          ],
+          "view": [
+            -6,
+            10,
+            4
+          ],
+          "observations": [
+            "Warm chemical gradient feeding Thalassa producers."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ignis-surface",
+      "planetId": "ignis",
+      "name": "Ignis Outpost",
+      "biome": "Active magma-fissure plains and sulfur vents",
+      "summary": "A dark basalt world crossed by glowing geothermal fissures.",
+      "sceneKind": "basalt-fissures",
+      "locations": [
+        {
+          "id": "sensor-station",
+          "name": "Ignis Command Lander",
+          "purpose": "Shielded basalt outpost and AI crew hub on Ignis.",
+          "position": [
+            10,
+            1.5,
+            8
+          ],
+          "view": [
+            24,
+            10,
+            22
+          ],
+          "observations": [
+            "Reinforced lander anchored to Ignis bedrock."
+          ]
+        },
+        {
+          "id": "fissure",
+          "name": "Ignis Geothermal Rift",
+          "purpose": "Glowing fissure hosting mineral deposits and thermophiles on Ignis.",
+          "position": [
+            -6,
+            0.5,
+            4
+          ],
+          "view": [
+            8,
+            8,
+            18
+          ],
+          "observations": [
+            "Subsurface heat source powering Ignis modules."
+          ]
+        },
+        {
+          "id": "columns",
+          "name": "Ignis Basalt Pillars",
+          "purpose": "Natural rock columns providing radiation shelter on Ignis.",
+          "position": [
+            -16,
+            2.5,
+            -8
+          ],
+          "view": [
+            -2,
+            10,
+            8
+          ],
+          "observations": [
+            "Dense silicate columns blunt solar flare exposure."
+          ]
+        },
+        {
+          "id": "gas-vent",
+          "name": "Ignis Outgassing Vent",
+          "purpose": "Trace-gas vent used to balance Ignis atmospheric chemistry.",
+          "position": [
+            4,
+            1,
+            -14
+          ],
+          "view": [
+            18,
+            8,
+            -2
+          ],
+          "observations": [
+            "Samples CO₂ and nitrogen reserves on Ignis."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boreas-surface",
+      "planetId": "boreas",
+      "name": "Boreas Outpost",
+      "biome": "Ringed sub-glacial brine sea and aurora ice shelf",
+      "summary": "A ringed ice giant with sub-glacial brine oceans and aurora bands.",
+      "sceneKind": "ocean-station",
+      "locations": [
+        {
+          "id": "platform",
+          "name": "Boreas Central Deck",
+          "purpose": "Floating habitat hub anchored in Boreas's ice basin.",
+          "position": [
+            8,
+            0.8,
+            6
+          ],
+          "view": [
+            22,
+            9,
+            20
+          ],
+          "observations": [
+            "Primary crew quarters and Boreas telemetry dock."
+          ]
+        },
+        {
+          "id": "tide-gauge",
+          "name": "Boreas Biosignature Buoy",
+          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Boreas.",
+          "position": [
+            -4,
+            0.2,
+            12
+          ],
+          "view": [
+            10,
+            6,
+            22
+          ],
+          "observations": [
+            "Tracks Boreas ocean chemistry in real time."
+          ]
+        },
+        {
+          "id": "weather-mast",
+          "name": "Boreas Storm Mast",
+          "purpose": "Measures upper-air wind shear and storm charge over Boreas.",
+          "position": [
+            -14,
+            7.5,
+            -5
+          ],
+          "view": [
+            4,
+            14,
+            12
+          ],
+          "observations": [
+            "Early-warning mast for weekly Universe Creator storms."
+          ]
+        },
+        {
+          "id": "vent",
+          "name": "Boreas Thermal Vent",
+          "purpose": "Deep mineral plume supporting extremophile life on Boreas.",
+          "position": [
+            -20,
+            4.2,
+            -10
+          ],
+          "view": [
+            -6,
+            10,
+            4
+          ],
+          "observations": [
+            "Warm chemical gradient feeding Boreas producers."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pelagos-surface",
+      "planetId": "pelagos",
+      "name": "Pelagos Outpost",
+      "biome": "Turquoise mineral-reef lagoons and tidal atolls",
+      "summary": "A turquoise archipelago world rich in mineral reefs and tidal currents.",
+      "sceneKind": "ocean-station",
+      "locations": [
+        {
+          "id": "platform",
+          "name": "Pelagos Central Deck",
+          "purpose": "Floating habitat hub anchored in Pelagos's ocean basin.",
+          "position": [
+            8,
+            0.8,
+            6
+          ],
+          "view": [
+            22,
+            9,
+            20
+          ],
+          "observations": [
+            "Primary crew quarters and Pelagos telemetry dock."
+          ]
+        },
+        {
+          "id": "tide-gauge",
+          "name": "Pelagos Biosignature Buoy",
+          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Pelagos.",
+          "position": [
+            -4,
+            0.2,
+            12
+          ],
+          "view": [
+            10,
+            6,
+            22
+          ],
+          "observations": [
+            "Tracks Pelagos ocean chemistry in real time."
+          ]
+        },
+        {
+          "id": "weather-mast",
+          "name": "Pelagos Storm Mast",
+          "purpose": "Measures upper-air wind shear and storm charge over Pelagos.",
+          "position": [
+            -14,
+            7.5,
+            -5
+          ],
+          "view": [
+            4,
+            14,
+            12
+          ],
+          "observations": [
+            "Early-warning mast for weekly Universe Creator storms."
+          ]
+        },
+        {
+          "id": "vent",
+          "name": "Pelagos Thermal Vent",
+          "purpose": "Deep mineral plume supporting extremophile life on Pelagos.",
+          "position": [
+            -20,
+            4.2,
+            -10
+          ],
+          "view": [
+            -6,
+            10,
+            4
+          ],
+          "observations": [
+            "Warm chemical gradient feeding Pelagos producers."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cinder-surface",
+      "planetId": "cinder",
+      "name": "Cinder Outpost",
+      "biome": "Tide-locked obsidian ridges and ash-cloud canyons",
+      "summary": "A young volcanic exoplanet with obsidian ridges and active vents.",
+      "sceneKind": "basalt-fissures",
+      "locations": [
+        {
+          "id": "sensor-station",
+          "name": "Cinder Command Lander",
+          "purpose": "Shielded basalt outpost and AI crew hub on Cinder.",
+          "position": [
+            10,
+            1.5,
+            8
+          ],
+          "view": [
+            24,
+            10,
+            22
+          ],
+          "observations": [
+            "Reinforced lander anchored to Cinder bedrock."
+          ]
+        },
+        {
+          "id": "fissure",
+          "name": "Cinder Geothermal Rift",
+          "purpose": "Glowing fissure hosting mineral deposits and thermophiles on Cinder.",
+          "position": [
+            -6,
+            0.5,
+            4
+          ],
+          "view": [
+            8,
+            8,
+            18
+          ],
+          "observations": [
+            "Subsurface heat source powering Cinder modules."
+          ]
+        },
+        {
+          "id": "columns",
+          "name": "Cinder Basalt Pillars",
+          "purpose": "Natural rock columns providing radiation shelter on Cinder.",
+          "position": [
+            -16,
+            2.5,
+            -8
+          ],
+          "view": [
+            -2,
+            10,
+            8
+          ],
+          "observations": [
+            "Dense silicate columns blunt solar flare exposure."
+          ]
+        },
+        {
+          "id": "gas-vent",
+          "name": "Cinder Outgassing Vent",
+          "purpose": "Trace-gas vent used to balance Cinder atmospheric chemistry.",
+          "position": [
+            4,
+            1,
+            -14
+          ],
+          "view": [
+            18,
+            8,
+            -2
+          ],
+          "observations": [
+            "Samples CO₂ and nitrogen reserves on Cinder."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "aurelia-surface",
+      "planetId": "aurelia",
+      "name": "Aurelia Outpost",
+      "biome": "High-UV golden-lit kelp sea under silken ice rings",
+      "summary": "A ringed golden-lit ocean planet with floating kelp-like colonies.",
+      "sceneKind": "ocean-station",
+      "locations": [
+        {
+          "id": "platform",
+          "name": "Aurelia Central Deck",
+          "purpose": "Floating habitat hub anchored in Aurelia's ocean basin.",
+          "position": [
+            8,
+            0.8,
+            6
+          ],
+          "view": [
+            22,
+            9,
+            20
+          ],
+          "observations": [
+            "Primary crew quarters and Aurelia telemetry dock."
+          ]
+        },
+        {
+          "id": "tide-gauge",
+          "name": "Aurelia Biosignature Buoy",
+          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Aurelia.",
+          "position": [
+            -4,
+            0.2,
+            12
+          ],
+          "view": [
+            10,
+            6,
+            22
+          ],
+          "observations": [
+            "Tracks Aurelia ocean chemistry in real time."
+          ]
+        },
+        {
+          "id": "weather-mast",
+          "name": "Aurelia Storm Mast",
+          "purpose": "Measures upper-air wind shear and storm charge over Aurelia.",
+          "position": [
+            -14,
+            7.5,
+            -5
+          ],
+          "view": [
+            4,
+            14,
+            12
+          ],
+          "observations": [
+            "Early-warning mast for weekly Universe Creator storms."
+          ]
+        },
+        {
+          "id": "vent",
+          "name": "Aurelia Thermal Vent",
+          "purpose": "Deep mineral plume supporting extremophile life on Aurelia.",
+          "position": [
+            -20,
+            4.2,
+            -10
+          ],
+          "view": [
+            -6,
+            10,
+            4
+          ],
+          "observations": [
+            "Warm chemical gradient feeding Aurelia producers."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "glaciera-surface",
+      "planetId": "glaciera",
+      "name": "Glaciera Outpost",
+      "biome": "Crystalline blue ice canyons and pressurized geyser basins",
+      "summary": "A crystalline ice world where thermal geysers carve blue canyons.",
+      "sceneKind": "ocean-station",
+      "locations": [
+        {
+          "id": "platform",
+          "name": "Glaciera Central Deck",
+          "purpose": "Floating habitat hub anchored in Glaciera's ice basin.",
+          "position": [
+            8,
+            0.8,
+            6
+          ],
+          "view": [
+            22,
+            9,
+            20
+          ],
+          "observations": [
+            "Primary crew quarters and Glaciera telemetry dock."
+          ]
+        },
+        {
+          "id": "tide-gauge",
+          "name": "Glaciera Biosignature Buoy",
+          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Glaciera.",
+          "position": [
+            -4,
+            0.2,
+            12
+          ],
+          "view": [
+            10,
+            6,
+            22
+          ],
+          "observations": [
+            "Tracks Glaciera ocean chemistry in real time."
+          ]
+        },
+        {
+          "id": "weather-mast",
+          "name": "Glaciera Storm Mast",
+          "purpose": "Measures upper-air wind shear and storm charge over Glaciera.",
+          "position": [
+            -14,
+            7.5,
+            -5
+          ],
+          "view": [
+            4,
+            14,
+            12
+          ],
+          "observations": [
+            "Early-warning mast for weekly Universe Creator storms."
+          ]
+        },
+        {
+          "id": "vent",
+          "name": "Glaciera Thermal Vent",
+          "purpose": "Deep mineral plume supporting extremophile life on Glaciera.",
+          "position": [
+            -20,
+            4.2,
+            -10
+          ],
+          "view": [
+            -6,
+            10,
+            4
+          ],
+          "observations": [
+            "Warm chemical gradient feeding Glaciera producers."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pyros-surface",
+      "planetId": "pyros",
+      "name": "Pyros Outpost",
+      "biome": "Tidal-flexed silicate plateaus and amber magma tubes",
+      "summary": "A dense silicate planet heated by tidal flexing and magma tubes.",
+      "sceneKind": "basalt-fissures",
+      "locations": [
+        {
+          "id": "sensor-station",
+          "name": "Pyros Command Lander",
+          "purpose": "Shielded basalt outpost and AI crew hub on Pyros.",
+          "position": [
+            10,
+            1.5,
+            8
+          ],
+          "view": [
+            24,
+            10,
+            22
+          ],
+          "observations": [
+            "Reinforced lander anchored to Pyros bedrock."
+          ]
+        },
+        {
+          "id": "fissure",
+          "name": "Pyros Geothermal Rift",
+          "purpose": "Glowing fissure hosting mineral deposits and thermophiles on Pyros.",
+          "position": [
+            -6,
+            0.5,
+            4
+          ],
+          "view": [
+            8,
+            8,
+            18
+          ],
+          "observations": [
+            "Subsurface heat source powering Pyros modules."
+          ]
+        },
+        {
+          "id": "columns",
+          "name": "Pyros Basalt Pillars",
+          "purpose": "Natural rock columns providing radiation shelter on Pyros.",
+          "position": [
+            -16,
+            2.5,
+            -8
+          ],
+          "view": [
+            -2,
+            10,
+            8
+          ],
+          "observations": [
+            "Dense silicate columns blunt solar flare exposure."
+          ]
+        },
+        {
+          "id": "gas-vent",
+          "name": "Pyros Outgassing Vent",
+          "purpose": "Trace-gas vent used to balance Pyros atmospheric chemistry.",
+          "position": [
+            4,
+            1,
+            -14
+          ],
+          "view": [
+            18,
+            8,
+            -2
+          ],
+          "observations": [
+            "Samples CO₂ and nitrogen reserves on Pyros."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "umbrion-surface",
+      "planetId": "umbrion",
+      "name": "Umbrion Outpost",
+      "biome": "Twilight violet-vent badlands under dim red starlight",
+      "summary": "A twilight world bathed in soft red starlight and bioluminescent vents.",
+      "sceneKind": "basalt-fissures",
+      "locations": [
+        {
+          "id": "sensor-station",
+          "name": "Umbrion Command Lander",
+          "purpose": "Shielded basalt outpost and AI crew hub on Umbrion.",
+          "position": [
+            10,
+            1.5,
+            8
+          ],
+          "view": [
+            24,
+            10,
+            22
+          ],
+          "observations": [
+            "Reinforced lander anchored to Umbrion bedrock."
+          ]
+        },
+        {
+          "id": "fissure",
+          "name": "Umbrion Geothermal Rift",
+          "purpose": "Glowing fissure hosting mineral deposits and thermophiles on Umbrion.",
+          "position": [
+            -6,
+            0.5,
+            4
+          ],
+          "view": [
+            8,
+            8,
+            18
+          ],
+          "observations": [
+            "Subsurface heat source powering Umbrion modules."
+          ]
+        },
+        {
+          "id": "columns",
+          "name": "Umbrion Basalt Pillars",
+          "purpose": "Natural rock columns providing radiation shelter on Umbrion.",
+          "position": [
+            -16,
+            2.5,
+            -8
+          ],
+          "view": [
+            -2,
+            10,
+            8
+          ],
+          "observations": [
+            "Dense silicate columns blunt solar flare exposure."
+          ]
+        },
+        {
+          "id": "gas-vent",
+          "name": "Umbrion Outgassing Vent",
+          "purpose": "Trace-gas vent used to balance Umbrion atmospheric chemistry.",
+          "position": [
+            4,
+            1,
+            -14
+          ],
+          "view": [
+            18,
+            8,
+            -2
+          ],
+          "observations": [
+            "Samples CO₂ and nitrogen reserves on Umbrion."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "veridia-surface",
+      "planetId": "veridia",
+      "name": "Veridia Outpost",
+      "biome": "Emerald-green photosynthetic seas and dense spore clouds",
+      "summary": "A lush emerald-sea exoplanet with dense oxygenating spore clouds.",
+      "sceneKind": "ocean-station",
+      "locations": [
+        {
+          "id": "platform",
+          "name": "Veridia Central Deck",
+          "purpose": "Floating habitat hub anchored in Veridia's ocean basin.",
+          "position": [
+            8,
+            0.8,
+            6
+          ],
+          "view": [
+            22,
+            9,
+            20
+          ],
+          "observations": [
+            "Primary crew quarters and Veridia telemetry dock."
+          ]
+        },
+        {
+          "id": "tide-gauge",
+          "name": "Veridia Biosignature Buoy",
+          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Veridia.",
+          "position": [
+            -4,
+            0.2,
+            12
+          ],
+          "view": [
+            10,
+            6,
+            22
+          ],
+          "observations": [
+            "Tracks Veridia ocean chemistry in real time."
+          ]
+        },
+        {
+          "id": "weather-mast",
+          "name": "Veridia Storm Mast",
+          "purpose": "Measures upper-air wind shear and storm charge over Veridia.",
+          "position": [
+            -14,
+            7.5,
+            -5
+          ],
+          "view": [
+            4,
+            14,
+            12
+          ],
+          "observations": [
+            "Early-warning mast for weekly Universe Creator storms."
+          ]
+        },
+        {
+          "id": "vent",
+          "name": "Veridia Thermal Vent",
+          "purpose": "Deep mineral plume supporting extremophile life on Veridia.",
+          "position": [
+            -20,
+            4.2,
+            -10
+          ],
+          "view": [
+            -6,
+            10,
+            4
+          ],
+          "observations": [
+            "Warm chemical gradient feeding Veridia producers."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nyxara-surface",
+      "planetId": "nyxara",
+      "name": "Nyxara Outpost",
+      "biome": "Magnetized indigo ice sheet and cryo-plume trenches",
+      "summary": "A deep-indigo ice world with magnetic rings and cryo-plumes.",
+      "sceneKind": "ocean-station",
+      "locations": [
+        {
+          "id": "platform",
+          "name": "Nyxara Central Deck",
+          "purpose": "Floating habitat hub anchored in Nyxara's ice basin.",
+          "position": [
+            8,
+            0.8,
+            6
+          ],
+          "view": [
+            22,
+            9,
+            20
+          ],
+          "observations": [
+            "Primary crew quarters and Nyxara telemetry dock."
+          ]
+        },
+        {
+          "id": "tide-gauge",
+          "name": "Nyxara Biosignature Buoy",
+          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Nyxara.",
+          "position": [
+            -4,
+            0.2,
+            12
+          ],
+          "view": [
+            10,
+            6,
+            22
+          ],
+          "observations": [
+            "Tracks Nyxara ocean chemistry in real time."
+          ]
+        },
+        {
+          "id": "weather-mast",
+          "name": "Nyxara Storm Mast",
+          "purpose": "Measures upper-air wind shear and storm charge over Nyxara.",
+          "position": [
+            -14,
+            7.5,
+            -5
+          ],
+          "view": [
+            4,
+            14,
+            12
+          ],
+          "observations": [
+            "Early-warning mast for weekly Universe Creator storms."
+          ]
+        },
+        {
+          "id": "vent",
+          "name": "Nyxara Thermal Vent",
+          "purpose": "Deep mineral plume supporting extremophile life on Nyxara.",
+          "position": [
+            -20,
+            4.2,
+            -10
+          ],
+          "view": [
+            -6,
+            10,
+            4
+          ],
+          "observations": [
+            "Warm chemical gradient feeding Nyxara producers."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "koralis-surface",
+      "planetId": "koralis",
+      "name": "Koralis Outpost",
+      "biome": "Shallow carbonate coral shelves and calm azure currents",
+      "summary": "A coral-shelf ocean world ideal for marine bio-engineering.",
+      "sceneKind": "ocean-station",
+      "locations": [
+        {
+          "id": "platform",
+          "name": "Koralis Central Deck",
+          "purpose": "Floating habitat hub anchored in Koralis's ocean basin.",
+          "position": [
+            8,
+            0.8,
+            6
+          ],
+          "view": [
+            22,
+            9,
+            20
+          ],
+          "observations": [
+            "Primary crew quarters and Koralis telemetry dock."
+          ]
+        },
+        {
+          "id": "tide-gauge",
+          "name": "Koralis Biosignature Buoy",
+          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Koralis.",
+          "position": [
+            -4,
+            0.2,
+            12
+          ],
+          "view": [
+            10,
+            6,
+            22
+          ],
+          "observations": [
+            "Tracks Koralis ocean chemistry in real time."
+          ]
+        },
+        {
+          "id": "weather-mast",
+          "name": "Koralis Storm Mast",
+          "purpose": "Measures upper-air wind shear and storm charge over Koralis.",
+          "position": [
+            -14,
+            7.5,
+            -5
+          ],
+          "view": [
+            4,
+            14,
+            12
+          ],
+          "observations": [
+            "Early-warning mast for weekly Universe Creator storms."
+          ]
+        },
+        {
+          "id": "vent",
+          "name": "Koralis Thermal Vent",
+          "purpose": "Deep mineral plume supporting extremophile life on Koralis.",
+          "position": [
+            -20,
+            4.2,
+            -10
+          ],
+          "view": [
+            -6,
+            10,
+            4
+          ],
+          "observations": [
+            "Warm chemical gradient feeding Koralis producers."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "frostholm-surface",
+      "planetId": "frostholm",
+      "name": "Frostholm Outpost",
+      "biome": "Frozen basalt-ice crust with warm geothermal pockets",
+      "summary": "A frozen frontier moon-planet with subsurface geothermal pockets.",
+      "sceneKind": "basalt-fissures",
+      "locations": [
+        {
+          "id": "sensor-station",
+          "name": "Frostholm Command Lander",
+          "purpose": "Shielded basalt outpost and AI crew hub on Frostholm.",
+          "position": [
+            10,
+            1.5,
+            8
+          ],
+          "view": [
+            24,
+            10,
+            22
+          ],
+          "observations": [
+            "Reinforced lander anchored to Frostholm bedrock."
+          ]
+        },
+        {
+          "id": "fissure",
+          "name": "Frostholm Geothermal Rift",
+          "purpose": "Glowing fissure hosting mineral deposits and thermophiles on Frostholm.",
+          "position": [
+            -6,
+            0.5,
+            4
+          ],
+          "view": [
+            8,
+            8,
+            18
+          ],
+          "observations": [
+            "Subsurface heat source powering Frostholm modules."
+          ]
+        },
+        {
+          "id": "columns",
+          "name": "Frostholm Basalt Pillars",
+          "purpose": "Natural rock columns providing radiation shelter on Frostholm.",
+          "position": [
+            -16,
+            2.5,
+            -8
+          ],
+          "view": [
+            -2,
+            10,
+            8
+          ],
+          "observations": [
+            "Dense silicate columns blunt solar flare exposure."
+          ]
+        },
+        {
+          "id": "gas-vent",
+          "name": "Frostholm Outgassing Vent",
+          "purpose": "Trace-gas vent used to balance Frostholm atmospheric chemistry.",
+          "position": [
+            4,
+            1,
+            -14
+          ],
+          "view": [
+            18,
+            8,
+            -2
+          ],
+          "observations": [
+            "Samples CO₂ and nitrogen reserves on Frostholm."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zephyria-surface",
+      "planetId": "zephyria",
+      "name": "Zephyria Outpost",
+      "biome": "Twin-sun jetstream ocean and high-swell research rigs",
+      "summary": "A high-wind ocean world where twin suns drive dramatic jetstreams.",
+      "sceneKind": "ocean-station",
+      "locations": [
+        {
+          "id": "platform",
+          "name": "Zephyria Central Deck",
+          "purpose": "Floating habitat hub anchored in Zephyria's ocean basin.",
+          "position": [
+            8,
+            0.8,
+            6
+          ],
+          "view": [
+            22,
+            9,
+            20
+          ],
+          "observations": [
+            "Primary crew quarters and Zephyria telemetry dock."
+          ]
+        },
+        {
+          "id": "tide-gauge",
+          "name": "Zephyria Biosignature Buoy",
+          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Zephyria.",
+          "position": [
+            -4,
+            0.2,
+            12
+          ],
+          "view": [
+            10,
+            6,
+            22
+          ],
+          "observations": [
+            "Tracks Zephyria ocean chemistry in real time."
+          ]
+        },
+        {
+          "id": "weather-mast",
+          "name": "Zephyria Storm Mast",
+          "purpose": "Measures upper-air wind shear and storm charge over Zephyria.",
+          "position": [
+            -14,
+            7.5,
+            -5
+          ],
+          "view": [
+            4,
+            14,
+            12
+          ],
+          "observations": [
+            "Early-warning mast for weekly Universe Creator storms."
+          ]
+        },
+        {
+          "id": "vent",
+          "name": "Zephyria Thermal Vent",
+          "purpose": "Deep mineral plume supporting extremophile life on Zephyria.",
+          "position": [
+            -20,
+            4.2,
+            -10
+          ],
+          "view": [
+            -6,
+            10,
+            4
+          ],
+          "observations": [
+            "Warm chemical gradient feeding Zephyria producers."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "obsidian-reach-surface",
+      "planetId": "obsidian-reach",
+      "name": "Obsidian Reach Outpost",
+      "biome": "Glass-black obsidian plateaus and emerald plasma rifts",
+      "summary": "A mineral-rich basalt world with emerald plasma fissures.",
+      "sceneKind": "basalt-fissures",
+      "locations": [
+        {
+          "id": "sensor-station",
+          "name": "Obsidian Reach Command Lander",
+          "purpose": "Shielded basalt outpost and AI crew hub on Obsidian Reach.",
+          "position": [
+            10,
+            1.5,
+            8
+          ],
+          "view": [
+            24,
+            10,
+            22
+          ],
+          "observations": [
+            "Reinforced lander anchored to Obsidian Reach bedrock."
+          ]
+        },
+        {
+          "id": "fissure",
+          "name": "Obsidian Reach Geothermal Rift",
+          "purpose": "Glowing fissure hosting mineral deposits and thermophiles on Obsidian Reach.",
+          "position": [
+            -6,
+            0.5,
+            4
+          ],
+          "view": [
+            8,
+            8,
+            18
+          ],
+          "observations": [
+            "Subsurface heat source powering Obsidian Reach modules."
+          ]
+        },
+        {
+          "id": "columns",
+          "name": "Obsidian Reach Basalt Pillars",
+          "purpose": "Natural rock columns providing radiation shelter on Obsidian Reach.",
+          "position": [
+            -16,
+            2.5,
+            -8
+          ],
+          "view": [
+            -2,
+            10,
+            8
+          ],
+          "observations": [
+            "Dense silicate columns blunt solar flare exposure."
+          ]
+        },
+        {
+          "id": "gas-vent",
+          "name": "Obsidian Reach Outgassing Vent",
+          "purpose": "Trace-gas vent used to balance Obsidian Reach atmospheric chemistry.",
+          "position": [
+            4,
+            1,
+            -14
+          ],
+          "view": [
+            18,
+            8,
+            -2
+          ],
+          "observations": [
+            "Samples CO₂ and nitrogen reserves on Obsidian Reach."
+          ]
+        }
+      ]
+    }
+  ]
+}

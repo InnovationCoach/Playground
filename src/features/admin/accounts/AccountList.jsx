@@ -42,7 +42,16 @@ export function AccountList({ kind, perms, onOpen, onCreate }) {
 
   const list = usePagedList(listUsers, query);
 
-  const cohortCode = (id) => ref.cohorts.find((c) => c.cohortId === id)?.code || '';
+  const cohortCode = (id) => {
+    if (!id) return '';
+    const found = ref.cohorts.find((c) => c.cohortId === id);
+    if (found?.code) return found.code;
+    if (id === 'cohort-whs' || id === 'whs') return 'WHS';
+    if (id === 'cohort-wls' || id === 'wls') return 'WLS';
+    if (id === 'cohort-wpr' || id === 'wpr') return 'WPR';
+    if (id === 'cohort-lower-primary' || id === 'cohort-higher-primary') return 'Primary';
+    return id.replace(/^cohort-/, '').toUpperCase();
+  };
   const columns = [
     { key: 'name', label: t('accounts.col.name'), sortKey: 'surname', render: (u) => (
       <div className="gh-person">
@@ -56,7 +65,7 @@ export function AccountList({ kind, perms, onOpen, onCreate }) {
     { key: 'publicId', label: t('accounts.col.id'), sortKey: 'publicId', mono: true },
     ...(kind === 'staff' ? [{ key: 'role', label: t('accounts.col.role'), sortKey: 'role', render: (u) => <RoleBadge role={u.role} /> }] : []),
     ...(kind === 'students' ? [
-      { key: 'cohort', label: t('accounts.col.cohort'), render: (u) => <span className="gh-badge gh-badge-plain">{cohortCode(u.cohortId)}</span> },
+      { key: 'cohort', label: t('accounts.col.cohort'), render: (u) => <span className="gh-badge gh-badge-plain">{cohortCode(u.cohortId) || (u.cohort ? String(u.cohort).toUpperCase() : '—')}</span> },
       { key: 'yearLevel', label: t('accounts.col.yearLevel'), nowrap: true }
     ] : []),
     ...(kind === 'parents' ? [{ key: 'childCount', label: t('accounts.col.children') }] : []),
@@ -86,7 +95,11 @@ export function AccountList({ kind, perms, onOpen, onCreate }) {
           <span style={srOnly}>{t('accounts.col.cohort')}</span>
           <select className="gh-select" value={cohortId} onChange={(e) => setCohortId(e.target.value)}>
             <option value="">{t('accounts.allCohorts')}</option>
-            {ref.cohorts.map((c) => <option key={c.cohortId} value={c.cohortId}>{localName(c.name, locale)}</option>)}
+            {ref.cohorts.map((c) => (
+              <option key={c.cohortId} value={c.cohortId}>
+                {c.code && !localName(c.name, locale).startsWith(c.code) ? `${c.code} – ${localName(c.name, locale)}` : localName(c.name, locale)}
+              </option>
+            ))}
           </select>
         </label>
       )}

@@ -22,7 +22,7 @@ import {
 import { DETOUR_TOPICS } from './detour.js';
 
 export class SparkTutorEngine {
-  constructor({ adapter = null, modelName = 'gemini-3.6-flash' } = {}) {
+  constructor({ adapter = null, modelName = 'gemini-3.5-flash-lite' } = {}) {
     this.adapter = adapter;
     this.modelName = modelName;
   }

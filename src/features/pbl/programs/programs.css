@@ -1055,3 +1055,25 @@ button.pg-choice:hover { border-color: var(--gh-purple); }
 .pb-ai-alert.is-success { background: var(--gh-green-50); color: var(--gh-green-text); }
 
 
+
+/* Remove and Trash (programTrash.js) */
+.pg-library-tools { display: flex; gap: 0.5rem; align-items: flex-start; flex-wrap: wrap; }
+.pg-trash-open { margin-bottom: 1rem; }
+.pg-card-wrap { position: relative; }
+/* Make room for the remove button beside the Draft / Outline tag. */
+.pg-card-wrap:has(.pg-card-remove) .pg-card-cover .pg-outline-tag { right: 3.4rem; top: 1rem; }
+.pg-card-remove { position: absolute; z-index: 3; top: 0.55rem; right: 0.55rem; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; border: 1px solid rgba(0, 0, 0, 0.08); background: rgba(255, 255, 255, 0.94); color: var(--gh-red); cursor: pointer; box-shadow: var(--gh-shadow-sm); opacity: 0.85; transition: opacity 0.15s, background 0.15s; }
+.pg-card-remove:hover, .pg-card-remove:focus-visible { opacity: 1; background: #fff; }
+.pg-card-remove:focus-visible { outline: 2px solid var(--gh-purple); outline-offset: 2px; }
+.pg-trash-notice { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+.pg-trash-back { margin: 0 0 0.5rem -0.6rem; }
+.pg-trash-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.pg-trash-row { display: flex; align-items: center; gap: 1rem; padding: 0.85rem 1rem; border: 1px solid var(--gh-border); border-radius: 12px; background: var(--gh-surface); }
+.pg-trash-row strong { display: block; }
+.pg-trash-when { display: block; font-size: 0.82rem; color: var(--gh-text-2); margin-top: 0.15rem; }
+.pg-remove-dialog { position: fixed; inset: 0; margin: auto; height: fit-content; min-height: 0; max-height: calc(100vh - 32px); border: none; border-radius: 16px; padding: 1.5rem; width: min(460px, calc(100vw - 32px)); background: var(--gh-surface); color: var(--gh-text); box-shadow: 0 12px 32px rgba(16, 24, 40, 0.18); }
+.pg-remove-dialog::backdrop { background: rgba(15, 25, 45, 0.45); }
+.pg-remove-dialog h2 { font-size: 1.1rem; font-weight: 700; margin: 0 0 0.4rem; }
+.pg-remove-dialog p { color: var(--gh-text-2); font-size: 0.9rem; margin: 0; }
+.pg-remove-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 0.9rem; background: #fcecec; color: #ae3435; }
+.pg-remove-foot { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem; flex-wrap: wrap; }

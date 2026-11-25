@@ -60,7 +60,10 @@ export function useGoalPlan(uid) {
 
   useEffect(() => {
     if (!plan.updatedAt) return undefined;
-    try { localStorage.setItem(planStorageKey(uid), JSON.stringify(plan)); } catch { /* quota or private mode */ }
+    try {
+      localStorage.setItem(planStorageKey(uid), JSON.stringify(plan));
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('goalPlanUpdated', { detail: { uid } }));
+    } catch { /* quota or private mode */ }
     if (!uid) return undefined;
     clearTimeout(cloudTimer.current);
     cloudTimer.current = setTimeout(async () => {

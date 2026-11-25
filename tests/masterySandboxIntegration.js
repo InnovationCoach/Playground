@@ -145,12 +145,13 @@ async function runTestSuite() {
     console.log('\n--- Step 8: Record Test Competency Achievement ---');
     try {
       await client.updateLearnerCredit(testLearnerId, targetCreditId, { status: 'EARNED' });
+      await client.updateEvidenceStatus(testEvidenceId, { status: 'APPROVED' });
       await client.addEvidenceComment(testEvidenceId, {
         content: 'Coach review complete: Outstanding mastery demonstrated in life support telemetry modeling. Proficient level verified.'
       });
-      record(8, 'Record test competency achievement', true, `Updated credit ${targetCreditId} to EARNED and added coach evaluation comment.`);
+      record(8, 'Record test competency achievement and approve evidence', true, `Updated credit ${targetCreditId} to EARNED, approved evidence status to APPROVED, and added coach evaluation comment.`);
     } catch (err) {
-      record(8, 'Record test competency achievement', false, err.message);
+      record(8, 'Record test competency achievement and approve evidence', false, err.message);
     }
 
     // 9. Verify resulting data through the API
@@ -159,8 +160,9 @@ async function runTestSuite() {
       const creditsReport = await client.getLearnerCredits(testLearnerId);
       const earnedItem = creditsReport?.items?.[0]?.credits?.find(c => c.id === targetCreditId);
       const ev = await client.getEvidence(testEvidenceId);
-      const passed = earnedItem?.status === 'EARNED' && ev?.commentsCount >= 1;
-      record(9, 'Verify resulting data through API', passed, `Credit status in learner profile is "${earnedItem?.status}" and Evidence has ${ev?.commentsCount} comment(s).`);
+      const isApproved = String(ev?.status || '').toUpperCase() === 'APPROVED';
+      const passed = earnedItem?.status === 'EARNED' && isApproved && ev?.commentsCount >= 1;
+      record(9, 'Verify resulting data through API', passed, `Credit status in learner profile is "${earnedItem?.status}", Evidence status is "${ev?.status}", and Evidence has ${ev?.commentsCount} comment(s).`);
     } catch (err) {
       record(9, 'Verify resulting data through API', false, err.message);
     }

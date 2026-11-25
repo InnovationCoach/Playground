@@ -4,3 +4,4 @@ export const usingEmulators = false;
 export const doc = () => null;
 export const getDoc = async () => ({ exists: () => false, data: () => null });
 export const setDoc = async () => {};
+export const auth = { currentUser: null, onAuthStateChanged: () => () => {} };

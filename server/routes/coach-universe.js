@@ -38,6 +38,7 @@ import {
   universeTransportGuard
 } from '../lib/universe/http.js';
 import { requireUniverseAuth } from '../lib/universe/auth.js';
+import { createUniverseManagementRouter } from './universeManagement.js';
 
 const STAFF_ROLES = ['teacher', 'coach', 'admin', 'supervisor'];
 const ADMIN_ROLES = ['admin', 'supervisor'];
@@ -56,6 +57,7 @@ export function createCoachUniverseRouter({ getRegistry = () => PUBLISHED_RELEAS
 
   router.use(universeTransportGuard);
   router.use(requireUniverseAuth);
+  router.use('/management', createUniverseManagementRouter());
 
   /**
    * GET /api/coach/universe/submissions?status=submitted&limit=...&cursor=...

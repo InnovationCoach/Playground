@@ -1,5 +1,6 @@
 import { PROGRAM_CATALOGUE, programById } from '../../features/pbl/content/programCatalogue.js';
 import { CALENDAR_REFERENCE } from '../../features/school/calendarReference.js';
+import { handleLearnerRecordsFallback } from './learnerRecordsFallback.js';
 
 let offeringsStore = [
   {
@@ -192,6 +193,9 @@ let supportRequestsStore = [
 ];
 
 export function handleSchoolFallback(method, path, body, callerRole = 'student') {
+  const records = handleLearnerRecordsFallback(method, path, body, callerRole);
+  if (records !== undefined) return records;
+
   // Support mutations for dev/offline testing
   if (method === 'POST') {
     if (path.includes('/learner-goals')) {

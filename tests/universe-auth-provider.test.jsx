@@ -10,7 +10,8 @@ vi.mock('../src/auth.js', () => ({
   subscribeToAuth: (cb, options) => { h.observer = cb; h.options = options; return () => { h.observer = null; }; },
   // Each read waits until the test resolves it, so ordering is under test control.
   getUserProfile: (uid) => new Promise((resolve) => h.profiles.push({ uid, resolve })),
-  logoutUser: (...a) => h.logout(...a)
+  logoutUser: (...a) => h.logout(...a),
+  isMicrosoftOnlyUser: () => false
 }));
 vi.mock('../src/utils/timeTracker.js', () => ({ startTimeTracking: (uid) => h.tracking.push(['start', uid]), stopTimeTracking: () => h.tracking.push(['stop']) }));
 vi.mock('../src/utils/deviceData.js', () => ({ purgeUnscopedUserData: () => {}, purgeUserDataFor: () => {} }));

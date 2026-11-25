@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ImagePlus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../app/AuthProvider.jsx';
 import { createPost } from './communityAPI.js';
@@ -11,13 +11,15 @@ const ALLOWED_TYPES = {
 };
 const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
 
-export function PostCreator({ onPostCreated }) {
+export function PostCreator({ onPostCreated, seed = null }) {
   const { user, profile, role } = useAuth();
   const { t } = useLocale();
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // A starter prompt from the feed fills the box; the coach still writes and sends it.
+  useEffect(() => { if (seed?.text) setText(seed.text); }, [seed]);
 
   const handleFileSelect = (e) => {
     const selected = Array.from(e.target.files || []);

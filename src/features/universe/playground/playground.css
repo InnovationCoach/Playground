@@ -1,0 +1,810 @@
+.upg-drawer {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  height: calc(100% - 32px);
+  width: min(440px, calc(100vw - 32px));
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  /* No backdrop-filter here: it would make this drawer the containing block for the
+     position:fixed Spaceship Builder and trap the "full-screen" modal inside 440px. */
+  background: rgba(11, 18, 32, 0.97);
+  border: 1px solid rgba(150, 215, 0, 0.28);
+  border-radius: 16px;
+  color: #edf4ff;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  font-family: inherit;
+}
+
+.mx-actions button.upg-toggle-btn {
+  background: #96d700;
+  border-color: #96d700;
+  color: #0b1220;
+  font-weight: 700;
+}
+
+.mx-actions button.upg-toggle-btn:hover {
+  background: #aaf007;
+}
+
+.upg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 30, 52, 0.7);
+}
+
+.upg-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.upg-title-wrap h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.upg-subtitle {
+  font-size: 0.75rem;
+  color: #9bb4d4;
+  display: block;
+}
+
+.upg-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upg-credit-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(150, 215, 0, 0.16);
+  border: 1px solid rgba(150, 215, 0, 0.45);
+  color: #c9f752;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.upg-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #dbe9ff;
+  border-radius: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upg-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.upg-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(8, 13, 24, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.upg-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 44px;
+  padding: 7px 4px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #9bb4d4;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.upg-tab.is-active {
+  background: rgba(150, 215, 0, 0.14);
+  border-color: rgba(150, 215, 0, 0.35);
+  color: #d6ff6b;
+}
+
+.upg-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 215, 0, 0.45) rgba(255, 255, 255, 0.06);
+}
+
+.upg-body > * {
+  flex-shrink: 0;
+}
+
+.upg-card {
+  flex: 0 0 auto;
+  overflow: visible;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upg-card h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f4f8ff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.upg-muted {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #a8bdd8;
+  line-height: 1.45;
+}
+
+.upg-drawer select.upg-select,
+.upg-drawer input.upg-select,
+.upg-drawer .upg-select,
+.upg-onboard-modal .upg-select,
+.upg-lab-modal select.upg-select,
+.upg-lab-modal input.upg-select,
+.upg-lab-modal .upg-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(155, 210, 255, 0.32) !important;
+  background-color: #0b1628 !important;
+  background-image: none !important;
+  color: #f4f8ff !important;
+  -webkit-text-fill-color: #f4f8ff !important;
+  color-scheme: dark;
+  font-size: 0.86rem;
+}
+
+.upg-drawer select.upg-select option,
+.upg-lab-modal select.upg-select option {
+  background-color: #0b1628;
+  color: #f4f8ff;
+}
+
+.upg-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.upg-stat {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.upg-stat-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: #b7cae3;
+  margin-bottom: 5px;
+}
+
+.upg-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.upg-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5cc8d7, #96d700);
+}
+
+.upg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #eef5ff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.upg-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.upg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upg-btn-complete,
+.upg-btn-complete:disabled {
+  opacity: 1;
+  background: rgba(150, 215, 0, 0.14);
+  border-color: rgba(150, 215, 0, 0.45);
+  color: #d6ff6b;
+  cursor: default;
+}
+
+.upg-btn-primary {
+  background: #96d700;
+  border-color: #96d700;
+  color: #0b1220;
+}
+
+.upg-btn-primary:hover:not(:disabled) {
+  background: #aaf007;
+}
+
+.upg-btn-danger {
+  background: rgba(255, 92, 92, 0.2);
+  border-color: rgba(255, 92, 92, 0.5);
+  color: #ffb3b3;
+}
+
+.upg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.upg-item {
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.upg-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.upg-tag {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(92, 200, 215, 0.16);
+  color: #8ee8f5;
+  font-weight: 600;
+}
+
+.upg-alert {
+  background: rgba(235, 68, 90, 0.14);
+  border: 1px solid rgba(235, 68, 90, 0.45);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upg-alert h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #ff9aa8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.upg-toast {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(150, 215, 0, 0.14);
+  border: 1px solid rgba(150, 215, 0, 0.4);
+  color: #d6ff6b;
+  font-size: 0.82rem;
+}
+
+.upg-onboard-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(5, 10, 20, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.upg-onboard-modal {
+  width: min(640px, 100%);
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  background: #0b1220;
+  border: 1px solid rgba(150, 215, 0, 0.35);
+  border-radius: 18px;
+  color: #edf4ff;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.75);
+  overflow: hidden;
+}
+
+.upg-video-stage {
+  position: relative;
+  height: 210px;
+  border-radius: 12px;
+  background: radial-gradient(circle at 30% 35%, #1b3863 0%, #070e1c 75%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.upg-video-orbit {
+  width: 78px;
+  height: 78px;
+  border-radius: 999px;
+  border: 2px dashed rgba(150, 215, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  animation: upg-spin 12s linear infinite;
+}
+
+@keyframes upg-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.upg-video-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.upg-video-progress {
+  height: 5px;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.upg-video-progress > span {
+  display: block;
+  height: 100%;
+  background: #96d700;
+  transition: width 0.25s ease;
+}
+
+/* Phase 2: Pinned toast bar, credit delta indicator, and centered 2-column Spaceship Lab */
+.upg-credit-delta {
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.upg-credit-delta.is-pos {
+  background: #96d700;
+  color: #0b1220;
+}
+
+.upg-credit-delta.is-neg {
+  background: rgba(242, 184, 75, 0.25);
+  color: #fde8be;
+}
+
+.upg-toast-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px 8px 16px;
+  background: rgba(150, 215, 0, 0.14);
+  border-bottom: 1px solid rgba(150, 215, 0, 0.35);
+  color: #d6ff6b;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.upg-toast-dismiss {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(150, 215, 0, 0.3);
+  background: transparent;
+  color: #d6ff6b;
+  cursor: pointer;
+}
+
+.upg-toast-dismiss:hover {
+  background: rgba(150, 215, 0, 0.2);
+}
+
+.upg-lab-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(5, 10, 20, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.upg-lab-modal {
+  width: min(880px, 100%);
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  background: #0b1220;
+  border: 1px solid rgba(150, 215, 0, 0.35);
+  border-radius: 18px;
+  color: #edf4ff;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.75);
+  overflow: hidden;
+}
+
+.upg-lab-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.upg-lab-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .upg-lab-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Phase 3: Next Mission focus card, trophic tiers, Feature Forge filters & stat pills */
+.upg-focus-card {
+  background: linear-gradient(135deg, rgba(150, 215, 0, 0.14), rgba(92, 200, 215, 0.08));
+  border-color: rgba(150, 215, 0, 0.45);
+}
+
+.upg-tag-focus {
+  background: rgba(150, 215, 0, 0.22);
+  color: #d6ff6b;
+}
+
+.upg-lab-hero {
+  background: linear-gradient(135deg, rgba(92, 200, 215, 0.12), rgba(130, 80, 160, 0.14));
+  border-color: rgba(92, 200, 215, 0.38);
+}
+
+.upg-trophic-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.upg-trophic-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8ee8f5;
+}
+
+.upg-trophic-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #fde8be;
+  background: rgba(242, 184, 75, 0.12);
+  border: 1px solid rgba(242, 184, 75, 0.35);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.upg-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.upg-filter-chip {
+  min-height: 36px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #c2d4ea;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.upg-filter-chip:hover {
+  border-color: rgba(150, 215, 0, 0.5);
+  color: #ffffff;
+}
+
+.upg-filter-chip.is-active {
+  background: rgba(150, 215, 0, 0.18);
+  border-color: rgba(150, 215, 0, 0.6);
+  color: #d6ff6b;
+}
+
+.upg-effect-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.upg-effect-pill {
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(150, 215, 0, 0.12);
+  border: 1px solid rgba(150, 215, 0, 0.3);
+  color: #d6ff6b;
+}
+
+.upg-effect-pill.is-star {
+  background: rgba(242, 184, 75, 0.16);
+  border-color: rgba(242, 184, 75, 0.4);
+  color: #fde8be;
+}
+
+/* 2e Sensory Guardrails: respect Calm mode (.mx-root.is-still) and OS reduced motion */
+.mx-root.is-still .upg-video-orbit {
+  animation: none;
+}
+
+.mx-root.is-still .upg-video-progress > span {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upg-video-orbit {
+    animation: none;
+  }
+  .upg-video-progress > span {
+    transition: none;
+  }
+}
+
+/* ── Phase 4: character-driven AI crew ─────────────────────────────── */
+.upg-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.upg-avatar {
+  --crew-color: #96d700;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #0b1424;
+  background: var(--crew-color);
+  box-shadow: 0 0 0 2px rgba(11, 20, 36, 0.9), 0 0 0 3px var(--crew-color);
+}
+.upg-avatar.is-sm { width: 26px; height: 26px; font-size: 0.62rem; }
+.upg-avatar.is-xs { width: 18px; height: 18px; font-size: 0.5rem; box-shadow: none; margin-right: 5px; }
+
+.upg-speaker-tag { display: inline-flex; align-items: center; }
+
+.upg-crew-strip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.upg-crew-strip li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--crew-color) 45%, transparent);
+  background: color-mix(in srgb, var(--crew-color) 9%, transparent);
+  min-width: 0;
+}
+.upg-crew-strip li > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.upg-crew-strip strong { font-size: 0.78rem; color: #e8f1ff; }
+.upg-crew-strip small {
+  font-size: 0.64rem;
+  color: #9fb3cf;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.upg-thread { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.upg-exchange { display: flex; flex-direction: column; gap: 6px; }
+.upg-bubble-row { display: flex; align-items: flex-start; gap: 8px; }
+.upg-bubble {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 4px 12px 12px 12px;
+  background: color-mix(in srgb, var(--crew-color) 11%, rgba(255, 255, 255, 0.03));
+  border-left: 3px solid var(--crew-color);
+}
+.upg-bubble-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 0.74rem; }
+.upg-bubble-head strong { color: var(--crew-color); }
+.upg-bubble p { margin: 3px 0 0; font-size: 0.82rem; line-height: 1.45; color: #dbe7f7; }
+.upg-source {
+  margin-left: auto;
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #b7cae3;
+}
+.upg-source.is-gemini { background: rgba(150, 215, 0, 0.16); color: #c4ef5c; }
+.upg-you-said {
+  align-self: flex-end;
+  max-width: 85%;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 12px 4px 12px 12px;
+  background: rgba(92, 200, 215, 0.16);
+  color: #d9f6fb;
+  font-size: 0.8rem;
+}
+
+.upg-quick-asks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+.upg-crew-card { border-left: 3px solid var(--crew-color); }
+.upg-crew-name { display: inline-flex; align-items: center; gap: 8px; }
+.upg-vitals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.upg-vital .upg-stat-top { font-size: 0.72rem; }
+
+/* Collapsible hazard banner: one line on other tabs, full dilemma on AI Crew. */
+.upg-alert h3 { flex-wrap: wrap; }
+.upg-alert-title { flex: 1; min-width: 0; }
+.upg-alert-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 154, 168, 0.55);
+  background: transparent;
+  color: #ffc2cb;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.upg-alert-toggle:hover, .upg-alert-toggle:focus-visible { background: rgba(235, 68, 90, 0.22); }
+.upg-alert.is-collapsed { padding: 8px 12px; }
+.upg-alert-detail { display: flex; flex-direction: column; gap: 8px; }
+
+/* ── Phase 4: Spaceship Builder live meters ─────────────────────────── */
+.upg-tag-warn { background: rgba(255, 181, 71, 0.16); color: #ffcf85; }
+.upg-meter-bar { position: relative; height: 9px; overflow: visible; }
+.upg-meter-bar > span { transition: width 0.25s ease; }
+.upg-meter-mark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: #ffffff;
+  border-radius: 1px;
+  box-shadow: 0 0 0 1px rgba(11, 20, 36, 0.8);
+}
+.upg-meter-note { font-size: 0.66rem; color: #8fa3c0; }
+.upg-checklist {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.76rem;
+}
+.upg-checklist li { display: flex; align-items: center; gap: 6px; color: #c9d7ea; }
+.upg-checklist li.is-ok svg { color: #96d700; }
+.upg-checklist li.is-warn svg { color: #ffb547; }
+
+@media (prefers-reduced-motion: reduce) {
+  .upg-meter-bar > span { transition: none; }
+}
+@media (max-width: 520px) {
+  .upg-crew-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Telemetry states referenced since Phase 3 but previously unstyled. */
+.upg-telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.upg-val-ok { color: #b6ec3a; }
+.upg-val-warn { color: #ffb547; }
+.upg-bar > span.is-warn { background: linear-gradient(90deg, #ff8a3d, #ffb547); }
+.upg-certified-card {
+  border-color: rgba(150, 215, 0, 0.6) !important;
+  background: linear-gradient(135deg, rgba(150, 215, 0, 0.14), rgba(92, 200, 215, 0.08)) !important;
+}
+.upg-certified-card h3 { color: #d4f57e; }
+@media (max-width: 520px) {
+  .upg-telemetry-grid { grid-template-columns: 1fr; }
+}
+
+/* Spaceship Builder: the blueprint currently loaded into the lab */
+.upg-item.is-loaded { border-color: rgba(150, 215, 0, 0.6); box-shadow: inset 3px 0 0 #96d700; }

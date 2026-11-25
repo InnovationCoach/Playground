@@ -21,8 +21,12 @@ import { DashboardDeck } from './DashboardDeck.jsx';
 import { DailyLearningSlide, ProgressLearningSlide, useLearningCourses } from './LearningHub.jsx';
 import { useSchoolResource } from '../school/useSchoolWorkspace.js';
 import { providerStatus } from '../edmentum/providerState.js';
+import { useEdmentumDashboard } from '../edmentum/useEdmentumDashboard.js';
+import { StudentEdmentumCards } from '../edmentum/EdmentumDashboardCards.jsx';
 import { FindQuestSlide } from './FindQuestSlide.jsx';
 import { ACCENTS, COVERS, MAX_INTERESTS, MAX_TAGLINE, loadSignals, academicProgress, badgeStatus, goalSummary, skillOfTheWeek, dayKey, streakDays } from './dashboardModel.js';
+import { buildDashboardAssistantContext } from './dashboardAssistantContext.js';
+import { db, collection, getDocs, query, orderBy, limit } from '../../firebase.js';
 import { useDashboardPrefs, useCloudProject, saveMood, deviceStorage, logVisit } from './dashboardStore.js';
 import { CheckinWidget, PickedWidget, BadgesWidget, ReadinessWidget, SkillWidget } from './DashboardWidgets.jsx';
 import '../admin/admin.css';
@@ -36,7 +40,7 @@ import './dashboardScenes.css';
 
 export function MyDashboard(props) { return <StudentDashboard key={props.uid || 'signed-out'} {...props} />; }
 
-function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined, onOpenActivity }) {
+function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined, onOpenActivity, isPrimary = false }) {
   const { prefs, update, syncState } = useDashboardPrefs(uid);
   const { plan, update: updatePlan, syncState: goalSync, loaded: goalsLoaded } = useGoalPlan(uid);
   const cloudProject = useCloudProject(uid);
@@ -47,6 +51,39 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
   // School course connection state from the school service only (O0); never assumed connected.
   const learningContext = useSchoolResource(uid ? '/api/learning-context' : null);
   const edmentumStatus = providerStatus(learningContext.data?.providerStatus?.edmentum, learningContext);
+  const edmentumDashboard = useEdmentumDashboard('student', {}, { enabled: Boolean(uid) });
+  const [coachFeedback, setCoachFeedback] = useState([]);
+  useEffect(() => {
+    let active = true;
+    if (!uid) {
+      setCoachFeedback([]);
+      return undefined;
+    }
+    (async () => {
+      try {
+        const fbQuery = query(collection(db, 'users', uid, 'feedback'), orderBy('timestamp', 'desc'), limit(5));
+        const notifQuery = query(collection(db, 'users', uid, 'notifications'), orderBy('timestamp', 'desc'), limit(5));
+        const [fbSnap, notifSnap] = await Promise.all([
+          getDocs(fbQuery).catch(() => null),
+          getDocs(notifQuery).catch(() => null)
+        ]);
+        if (!active) return;
+        const items = [];
+        fbSnap?.forEach((d) => items.push({ id: d.id, ...d.data() }));
+        notifSnap?.forEach((d) => {
+          const data = d.data();
+          if (data?.type === 'coach_message' && data?.message) {
+            items.push({ id: d.id, ...data, type: 'coach_message', feedbackText: data.message, coachName: data.from || 'Coach' });
+          }
+        });
+        items.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        setCoachFeedback(items.slice(0, 5));
+      } catch {
+        if (active) setCoachFeedback([]);
+      }
+    })();
+    return () => { active = false; };
+  }, [uid]);
   useEffect(() => {
     const visits = logVisit(uid, dayKey(new Date()));
     setSignals((state) => ({ ...state, visits }));
@@ -64,6 +101,31 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
   const focusState = useFocus();
   const focusText = focusState.timer.phase !== 'idle' ? fmt(remainingMs(focusState.timer, focusState.now)) : null;
   const stats = dockStats({ focus: focusText, playing: focusState.playing });
+  const firstName = profile?.displayName?.split(' ')[0] || '';
+  useEffect(() => {
+    window.__CURRENT_ACTIVITY_CONTEXT__ = buildDashboardAssistantContext({
+      activeSlide,
+      studentName: firstName,
+      profile,
+      prefs,
+      data,
+      project,
+      plan,
+      model,
+      signals,
+      edmentum: edmentumDashboard?.data,
+      edmentumStatus,
+      learningContext: learningContext?.data,
+      coachFeedback,
+      goalsLoaded,
+      focusText
+    });
+    return () => {
+      if (window.__CURRENT_ACTIVITY_CONTEXT__?.activity === 'student-dashboard') {
+        delete window.__CURRENT_ACTIVITY_CONTEXT__;
+      }
+    };
+  }, [activeSlide, firstName, profile, prefs, data, project, plan, model, signals, edmentumDashboard?.data, edmentumStatus, learningContext?.data, coachFeedback, goalsLoaded, focusText]);
   const cover = COVERS.find((c) => c.id === prefs.cover) || COVERS[0];
   const accent = (ACCENTS.find((a) => a.id === prefs.accent) || ACCENTS[0]).value;
   function openTarget(target) {
@@ -110,12 +172,13 @@ function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined,
   }
 
   function renderSlide(id) {
-    if (id === 'daily') return <DailyLearningSlide data={data} model={model} plan={plan} project={project} firstName={profile?.displayName?.split(' ')[0]} goalsLoaded={goalsLoaded} goalSync={goalSync} edmentumStatus={edmentumStatus}
+    if (id === 'daily') return <DailyLearningSlide data={data} model={model} plan={plan} project={project} firstName={profile?.displayName?.split(' ')[0]} goalsLoaded={goalsLoaded} goalSync={goalSync} edmentumStatus={edmentumStatus} edmentum={edmentumDashboard}
       onToggle={(item) => updatePlan((state) => toggleToday(state, item, signals.today))} onOpenActivity={onOpenActivity}
       joinPanel={uid && classIds.length === 0 ? <JoinClassPanel uid={uid} classIds={classIds} onJoined={onJoined} /> : null} />;
     if (id === 'find') return <FindQuestSlide uid={uid} data={data} plan={plan} interests={prefs.interests} started={signals.started} onOpenActivity={onOpenActivity} />;
-    if (id === 'progress') return <ProgressLearningSlide data={data} project={project} plan={plan} goalsLoaded={goalsLoaded} goalSync={goalSync}
-      renderReadiness={() => <WorkspaceTools prefs={prefs} slide="progress" renderWidget={renderWidget} />} />;
+    if (id === 'progress') return <ProgressLearningSlide data={data} project={project} plan={plan} goalsLoaded={goalsLoaded} goalSync={goalSync} edmentum={edmentumDashboard}
+      renderReadiness={() => <WorkspaceTools prefs={prefs} slide="progress" renderWidget={renderWidget} />}
+      renderExtras={<StudentEdmentumCards edmentum={edmentumDashboard} />} />;
     if (id === 'creative') return <PersonalSpace prefs={prefs} update={update} renderWidget={renderWidget} />;
     return <SparkUniverse prefs={prefs} plan={plan} uid={uid} orgId={orgId} active={activeSlide === 'universe'} onPersonalise={() => setPanelOpen(true)} onOpenActivity={onOpenActivity} />;
   }

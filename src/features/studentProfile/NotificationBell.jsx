@@ -14,7 +14,19 @@ export function NotificationBell({ uid }) {
 
   const refresh = () => listNotifications(uid).then(setData).catch(() => setData({ items: [], unreadCount: 0 }));
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [uid]);
+  useEffect(() => {
+    refresh();
+    const onUpdate = () => refresh();
+    window.addEventListener('storage', onUpdate);
+    window.addEventListener('goalPlanUpdated', onUpdate);
+    window.addEventListener('hashchange', onUpdate);
+    return () => {
+      window.removeEventListener('storage', onUpdate);
+      window.removeEventListener('goalPlanUpdated', onUpdate);
+      window.removeEventListener('hashchange', onUpdate);
+    };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [uid]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -58,6 +70,11 @@ export function NotificationBell({ uid }) {
             {data.items.map((n) => (
               <li key={n.id}>
                 <button type="button" className={`sp-bell-item${n.readAt ? '' : ' is-unread'}`} onClick={() => openItem(n)}>
+                  {n.category && (
+                    <span className={`sp-bell-cat sp-bell-cat-${n.category}`} style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: n.category === 'pbl' ? '#7c3aed' : '#0284c7' }}>
+                      {n.category === 'pbl' ? 'PBL' : n.category === 'academic' ? 'Academic' : 'Goal'}
+                    </span>
+                  )}
                   <span>{n.title}</span>
                   {n.body && <span className="sp-muted">{n.body}</span>}
                   <span className="sp-muted">{new Date(n.createdAt).toLocaleDateString()}</span>

@@ -7,11 +7,20 @@ import {
   PERSONAS,
   buildPersonaInstruction,
   buildSystemInstruction,
+  buildDashboardAssistantInstruction,
   resolveAgeBand,
   resolveCohort,
   wrapStudentInput,
   extractText
 } from './safety.js';
+import {
+  classifyTutorIntent,
+  selectTutorContext,
+  sanitizeConversationHistory,
+  isSafeguardingMessage,
+  SAFEGUARDING_REPLY,
+  logTutorAudit
+} from './lib/ai/tutorIntent.js';
 import { initAdmin, requireAuth, logConversation, flagForReview } from './auth.js';
 import { sendError } from './lib/errors.js';
 import {
@@ -53,8 +62,9 @@ import masteryRouter from './routes/mastery.js';
 import accessRequestsRouter from './routes/access-requests.js';
 import print3dRouter from './routes/print3d.js';
 import tinkerProxyRouter from './routes/tinkerProxy.js';
+import edmentumRouter from './routes/edmentum.js';
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 const MODEL_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/;
 const REQUEST_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
 const THINKING_OFF = { thinkingBudget: 0 };
@@ -65,7 +75,9 @@ const THINKING_OFF = { thinkingBudget: 0 };
  * Never substitutes a dummy key.
  */
 export function resolveGeminiConfig(options = {}) {
-  const rawKey = options.geminiApiKey !== undefined ? options.geminiApiKey : process.env.GEMINI_API_KEY;
+  const rawKey = options.geminiApiKey !== undefined
+    ? options.geminiApiKey
+    : (process.env.GEMINI_API_KEY || process.env.SCHOOL_GEMINI_API_KEY);
   const apiKey = typeof rawKey === 'string' ? rawKey.trim() : '';
   const hasValidKey = Boolean(apiKey && apiKey !== 'NOT_CONFIGURED' && apiKey !== 'dev-dummy-key');
 
@@ -104,7 +116,7 @@ export function createApp(options = {}) {
   const auditTimeoutMs = Number(options.auditTimeoutMs) > 0 ? Number(options.auditTimeoutMs) : 2500;
   const retryBackoffMs = Number(options.retryBackoffMs) >= 0 ? Number(options.retryBackoffMs) : 1000;
 
-  const FALLBACK_GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  const FALLBACK_GEMINI_MODELS = ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite'];
   let genAI = null;
   let sdkModel = null;
   if (!customAdapter && geminiConfig.configured) {
@@ -242,22 +254,44 @@ export function createApp(options = {}) {
   app.use('/api/mastery', masteryRouter);
   app.use('/api/3dprint', print3dRouter);
   app.use('/api/tinker', tinkerProxyRouter);
+  app.use('/api/edmentum', edmentumRouter);
 
   function generationConfigFor(modelName, maxOutputTokens) {
     const cfg = { maxOutputTokens, temperature: 0.7, topP: 0.9 };
-    if (String(modelName || '').startsWith('gemini-2.5')) {
-      cfg.thinkingConfig = THINKING_OFF;
-    }
     return cfg;
   }
 
   // ============= EXISTING AI ENDPOINTS =============
   async function callGemini(prompt, maxOutputTokens = 256, opts = {}) {
-    const { cohort, ageBand, uid, endpoint = 'unknown', systemExtra = '' } = opts;
+    const {
+      cohort,
+      ageBand,
+      uid,
+      endpoint = 'unknown',
+      systemExtra = '',
+      systemInstructionOverride = null,
+      history = [],
+      image = null
+    } = opts;
     const band = resolveCohort(cohort || ageBand);
     const activeModel = getActiveModel();
-    const systemInstruction = { parts: [{ text: buildSystemInstruction(band, systemExtra) }] };
-    const contents = [{ role: 'user', parts: [{ text: prompt }] }];
+    const systemText = typeof systemInstructionOverride === 'string' && systemInstructionOverride.trim()
+      ? systemInstructionOverride
+      : buildSystemInstruction(band, systemExtra);
+    const systemInstruction = { parts: [{ text: systemText }] };
+    const historyTurns = Array.isArray(history)
+      ? history
+        .filter((h) => h && typeof h.text === 'string' && h.text.trim())
+        .map((h) => ({
+          role: h.role === 'model' ? 'model' : 'user',
+          parts: [{ text: h.text }]
+        }))
+      : [];
+    const userParts = [{ text: prompt }];
+    if (image?.base64 && image?.mimeType) {
+      userParts.push({ inlineData: { mimeType: image.mimeType, data: image.base64 } });
+    }
+    const contents = [...historyTurns, { role: 'user', parts: userParts }];
 
     let result;
     try {
@@ -315,7 +349,7 @@ export function createApp(options = {}) {
       () => activeModel.generateContent({
         contents: [{ role: 'user', parts }],
         systemInstruction: { parts: [{ text: buildSystemInstruction(band, systemExtra) }] },
-        generationConfig: { maxOutputTokens, temperature: 0.6, topP: 0.9, thinkingConfig: THINKING_OFF }
+        generationConfig: { maxOutputTokens, temperature: 0.6, topP: 0.9 }
       }),
       1,
       retryBackoffMs
@@ -567,30 +601,253 @@ export function createApp(options = {}) {
   app.post('/api/tutor', requireAuth, forbidParents, async (req, res) => {
     const requestId = assignRequestId(req, res);
     const startedAt = Date.now();
+    let detectedIntent = 'unknown';
+    let contextCategories = [];
+    let historyCount = 0;
+
     try {
       const userId = req.user.uid;
-      const ageBand = resolveAgeBand(req.body.ageBand);
-      const { message, activityContext = '' } = req.body;
+      const ageBand = resolveAgeBand(req.body?.ageBand);
+      const {
+        message,
+        activityContext = '',
+        dashboardContext = null,
+        history = [],
+        action = 'custom_question',
+        image = null
+      } = req.body || {};
 
-      if (!message || typeof message !== 'string' || !message.trim()) {
-        return res.status(400).json({ error: 'Message is required', requestId });
+      if (image !== null && image !== undefined) {
+        if (!image || typeof image !== 'object' || !image.base64 || !image.mimeType || !/^image\/(jpeg|png|webp)$/.test(image.mimeType)) {
+          return res.status(400).json({ error: 'Unsupported image format. Please attach a PNG, JPEG, or WebP screenshot.', requestId });
+        }
+        if (typeof image.base64 !== 'string' || image.base64.length > 6_000_000) {
+          return res.status(413).json({ error: 'That screenshot is too large. Try a smaller image.', requestId });
+        }
       }
+
+      const hasImage = Boolean(image?.base64 && image?.mimeType);
+      const rawMessage = typeof message === 'string' ? message.trim() : '';
+      if (!rawMessage && !hasImage) {
+        return res.status(400).json({ error: 'Message or screenshot is required', requestId });
+      }
+      const cleanMessage = rawMessage || 'Please look at this screenshot and help me with it.';
+
+      // Safeguarding check runs before rate limiting or context injection
+      if (isSafeguardingMessage(cleanMessage)) {
+        await flagForReview({ uid: userId, reason: 'SAFEGUARDING', prompt: cleanMessage.slice(0, 200), endpoint: 'tutor' }).catch(() => {});
+        logTutorAudit({
+          requestId,
+          uid: userId,
+          intent: 'safeguarding',
+          contextCategories: ['safeguarding_referral'],
+          historyCount: 0,
+          model: geminiConfig.modelName,
+          status: 'safeguarding_flagged',
+          latencyMs: Date.now() - startedAt
+        });
+        return res.json({
+          reply: SAFEGUARDING_REPLY,
+          ageBand,
+          intent: 'safeguarding',
+          contextCategories: ['safeguarding_referral'],
+          requestId,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       if (!checkRateLimit(`${userId}-tutor`, 20, 60000)) {
         return res.status(429).json({ error: "You're asking very fast! Give me a moment to catch up.", requestId });
       }
 
+      const cleanHistory = sanitizeConversationHistory(history, 8);
+      historyCount = cleanHistory.length;
+      const activeActivity = dashboardContext?.activity || 'student-dashboard';
+      const classification = classifyTutorIntent(cleanMessage, cleanHistory, {
+        activity: activeActivity,
+        action
+      });
+      detectedIntent = classification.intent;
+
+      const selected = selectTutorContext({
+        intent: detectedIntent,
+        dashboardContext,
+        activityContext,
+        history: cleanHistory
+      });
+      contextCategories = selected.contextCategories;
+
+      const systemInstructionOverride = selected.useDashboardAssistantMode
+        ? buildDashboardAssistantInstruction(ageBand, {
+            intent: detectedIntent,
+            contextBlock: selected.contextBlock
+          })
+        : null;
+
       const reply = await withTimeout(
-        callGemini(wrapStudentInput(message), 400, {
+        callGemini(wrapStudentInput(cleanMessage), 800, {
           ageBand,
           uid: userId,
           endpoint: 'tutor',
-          systemExtra: String(activityContext).slice(0, 800)
+          systemExtra: selected.useDashboardAssistantMode ? '' : String(activityContext).slice(0, 800),
+          systemInstructionOverride,
+          history: cleanHistory,
+          image: hasImage ? image : null
         }),
-        12000
+        20000
       );
-      res.json({ reply, ageBand, requestId, timestamp: new Date().toISOString() });
+
+      logTutorAudit({
+        requestId,
+        uid: userId,
+        intent: detectedIntent,
+        contextCategories,
+        historyCount,
+        model: geminiConfig.modelName,
+        status: 'ok',
+        latencyMs: Date.now() - startedAt
+      });
+
+      res.json({
+        reply,
+        ageBand,
+        intent: detectedIntent,
+        contextCategories,
+        requestId,
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
+      logTutorAudit({
+        requestId,
+        uid: req.user?.uid,
+        intent: detectedIntent,
+        contextCategories,
+        historyCount,
+        model: geminiConfig.modelName,
+        status: 'error',
+        latencyMs: Date.now() - startedAt,
+        errorCode: error?.code || 'INTERNAL'
+      });
       handleAiError(res, error, 'tutor', 'The tutor is unavailable right now.', {
+        requestId,
+        model: geminiConfig.modelName,
+        startedAt
+      });
+    }
+  });
+
+  app.post('/api/goals/suggest', requireAuth, forbidParents, async (req, res) => {
+    const requestId = assignRequestId(req, res);
+    const startedAt = Date.now();
+    try {
+      const userId = req.user.uid;
+      const ageBand = resolveAgeBand(req.body?.ageBand);
+      const {
+        category = 'academic',
+        goalType = '',
+        explore = '',
+        subject = '',
+        projectTitle = '',
+        gradeLevel = '',
+        measurableOutcome = '',
+        targetDate = ''
+      } = req.body || {};
+
+      const cleanExplore = typeof explore === 'string' ? explore.trim().slice(0, 160) : '';
+      if (!cleanExplore) {
+        return res.status(400).json({ error: 'Goal description is required.', code: 'VALIDATION', requestId });
+      }
+      if (!checkRateLimit(`${userId}-goal-suggest`, 15, 60000)) {
+        return res.status(429).json({ error: 'Too many suggestion requests. Please wait a moment.', code: 'RATE_LIMITED', requestId });
+      }
+
+      const contextLines = [
+        `Category: ${String(category).slice(0, 40)}`,
+        goalType ? `Goal Type: ${String(goalType).slice(0, 60)}` : '',
+        subject ? `Academic Subject: ${String(subject).slice(0, 80)}` : '',
+        projectTitle ? `PBL Project: ${String(projectTitle).slice(0, 120)}` : '',
+        gradeLevel ? `Grade / Level: ${String(gradeLevel).slice(0, 40)}` : '',
+        measurableOutcome ? `Draft Outcome: ${String(measurableOutcome).slice(0, 200)}` : '',
+        targetDate ? `Target Date: ${String(targetDate).slice(0, 20)}` : ''
+      ].filter(Boolean).join('\n');
+
+      const prompt = [
+        'You are an encouraging educational coach helping a student break a goal into small, concrete daily and weekly steps.',
+        contextLines,
+        `Student Goal: ${wrapStudentInput(cleanExplore)}`,
+        '',
+        'Respond ONLY with a valid JSON object matching this exact schema (no markdown fences):',
+        '{"measurableOutcome":"One clear, measurable sentence describing what success looks like (max 160 chars)","steps":[{"text":"Concrete actionable step (max 120 chars)","frequency":"daily|weekly|once"}]}',
+        'Provide 4 to 5 practical steps (mix of daily and weekly actions).'
+      ].join('\n');
+
+      let parsed = null;
+      try {
+        const raw = await withTimeout(
+          callGemini(prompt, 450, {
+            ageBand,
+            uid: userId,
+            endpoint: 'goals-suggest'
+          }),
+          10000
+        );
+        const jsonMatch = String(raw || '').match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const candidate = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(candidate?.steps) && candidate.steps.length > 0) {
+            parsed = {
+              measurableOutcome: typeof candidate.measurableOutcome === 'string'
+                ? candidate.measurableOutcome.trim().slice(0, 200)
+                : '',
+              steps: candidate.steps
+                .map((s) => ({
+                  text: String(s?.text || '').trim().slice(0, 150),
+                  frequency: ['daily', 'weekly', 'once'].includes(s?.frequency) ? s.frequency : 'daily',
+                  aiSuggested: true
+                }))
+                .filter((s) => s.text.length > 0)
+                .slice(0, 5),
+              aiGenerated: true
+            };
+          }
+        }
+      } catch {
+        // Fall through to structured scaffold fallback so student flow never breaks
+      }
+
+      if (!parsed || !parsed.steps.length) {
+        const ctxName = subject || projectTitle || cleanExplore;
+        const isPbl = category === 'pbl';
+        parsed = {
+          measurableOutcome: measurableOutcome || (
+            isPbl
+              ? `Complete and document my prototype/deliverable for ${ctxName} with coach feedback.`
+              : `Master the core concepts in ${ctxName} and complete all practice checkpoints on time.`
+          ),
+          steps: isPbl
+            ? [
+                { text: `Define my key research question and success criteria for ${cleanExplore}`, frequency: 'once', aiSuggested: true },
+                { text: `Spend 20 focused minutes building or testing my next prototype iteration`, frequency: 'daily', aiSuggested: true },
+                { text: `Log 1 piece of project evidence or data observation in my portfolio`, frequency: 'daily', aiSuggested: true },
+                { text: `Review milestone progress and next deliverables with my team or coach`, frequency: 'weekly', aiSuggested: true }
+              ]
+            : [
+                { text: `Break ${cleanExplore} into 3 specific topics or units to cover`, frequency: 'once', aiSuggested: true },
+                { text: `Complete 20 minutes of focused practice or active recall in ${ctxName}`, frequency: 'daily', aiSuggested: true },
+                { text: `Write down any questions where I get stuck to ask my coach`, frequency: 'daily', aiSuggested: true },
+                { text: `Complete a weekly self-check quiz to measure my progress`, frequency: 'weekly', aiSuggested: true }
+              ],
+          aiGenerated: false
+        };
+      }
+
+      res.json({
+        ...parsed,
+        requestId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      handleAiError(res, error, 'goals-suggest', 'Could not generate goal suggestions right now.', {
         requestId,
         model: geminiConfig.modelName,
         startedAt

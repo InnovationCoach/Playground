@@ -21,6 +21,20 @@ const SERVER_FIELD = { schoolIds: 'schoolId', classIds: 'classId' };
  * profile (`user` given). Role, email and tenancy are not edited here - they
  * have their own audited endpoints, reached from the detail page.
  */
+/**
+ * Learning age bands an admin may pick for a cohort. WeLearn Primary (WPR)
+ * only takes 'primary'; secondary cohorts never do.
+ */
+export function bandsForCohort(cohort, cohortId) {
+  const isPrimary = cohort?.code === 'WPR' || cohortId === 'cohort-wpr' || cohortId === 'wpr';
+  const listed = (cohort?.ageBands || []).filter((b) => isPrimary ? b === 'primary' : b !== 'primary');
+  if (listed.length) return listed;
+  if (isPrimary) return ['primary'];
+  if (cohortId === 'cohort-wls' || cohortId === 'wls') return ['13-15'];
+  if (cohortId === 'cohort-whs' || cohortId === 'whs') return ['13-15', '16-18'];
+  return [];
+}
+
 export function AccountForm({ kind, user, onDone, onCancel }) {
   const { t, locale } = useLocale();
   const ref = useReferenceData();
@@ -53,7 +67,7 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
 
   const isStudent = form.role === 'student';
   const cohort = ref.cohorts.find((c) => c.cohortId === form.cohortId);
-  const ageBands = cohort?.ageBands || [];
+  const ageBands = bandsForCohort(cohort, form.cohortId);
   const classOptions = useMemo(() => ref.classes.filter((c) => (!form.schoolId || c.schoolId === form.schoolId)
     && (!isStudent || !form.cohortId || c.cohortId === form.cohortId)), [ref.classes, form.schoolId, form.cohortId, isStudent]);
 
@@ -61,10 +75,10 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
     const value = e.target.value;
     setForm((f) => {
       const next = { ...f, [key]: value };
-      // A cohort's age bands differ (WPR is primary only), so a stale band is cleared.
       if (key === 'cohortId') {
-        const bands = ref.cohorts.find((c) => c.cohortId === value)?.ageBands || [];
-        if (!bands.includes(f.ageBand)) next.ageBand = bands.length === 1 ? bands[0] : '';
+        const selectedCohort = ref.cohorts.find((c) => c.cohortId === value);
+        const bands = bandsForCohort(selectedCohort, value);
+        if (!bands.includes(f.ageBand)) next.ageBand = bands.length === 1 ? bands[0] : (bands[0] || '');
         next.classId = '';
       }
       if (key === 'schoolId') next.classId = '';
@@ -101,6 +115,13 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
     setFormError(null);
     if (!validate()) return;
     setBusy(true);
+    let parsedGrade = null;
+    if (form.yearLevel.trim()) {
+      const m = form.yearLevel.match(/\b([1-9]|1[0-2])\b/);
+      if (m) parsedGrade = Number(m[1]);
+    }
+    const derivedCohortName = form.cohortId === 'cohort-wls' ? 'lower-secondary' : form.cohortId === 'cohort-whs' ? 'higher-secondary' : form.cohortId === 'cohort-wpr' ? 'primary' : undefined;
+
     const profile = {
       salutation: form.salutation || null,
       givenNames: form.givenNames.trim(),
@@ -108,8 +129,13 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
       phone: form.phone.trim() || null,
       gender: form.gender || null,
       ...(isStudent ? {
-        cohortId: form.cohortId, ageBand: form.ageBand, yearLevel: form.yearLevel.trim() || null,
-        programmeIds: form.programmeIds, dateOfBirth: form.dateOfBirth || null
+        cohortId: form.cohortId,
+        ...(derivedCohortName ? { cohort: derivedCohortName } : {}),
+        ageBand: form.ageBand,
+        yearLevel: form.yearLevel.trim() || null,
+        ...(parsedGrade ? { gradeLevel: parsedGrade } : {}),
+        programmeIds: form.programmeIds,
+        dateOfBirth: form.dateOfBirth || null
       } : {})
     };
     try {
@@ -276,23 +302,45 @@ export function AccountForm({ kind, user, onDone, onCancel }) {
             )}
             {isStudent && (
               <>
+                {editing && user?.publicId && (
+                  <Field id="f-student-id" label={t('accounts.col.id')}>
+                    {() => <input className="gh-input gh-mono" value={user.publicId} disabled readOnly />}
+                  </Field>
+                )}
                 <Field id="f-cohort" label={t('form.cohort')} error={errors.cohortId}>
                   {(a) => (
                     <select className="gh-select" value={form.cohortId} onChange={set('cohortId')} {...a}>
-                      <option value="">{t('form.choose')}</option>
-                      {ref.cohorts.map((c) => <option key={c.cohortId} value={c.cohortId}>{localName(c.name, locale)}</option>)}
+                      {ref.cohorts.length === 0 ? (
+                        <option value="">{t('form.noCohortsAvailable') || 'No cohorts available'}</option>
+                      ) : (
+                        <option value="">{t('form.choose')}</option>
+                      )}
+                      {ref.cohorts.map((c) => (
+                        <option key={c.cohortId} value={c.cohortId}>
+                          {c.code && !localName(c.name, locale).startsWith(c.code) ? `${c.code} – ${localName(c.name, locale)}` : localName(c.name, locale)}
+                        </option>
+                      ))}
                     </select>
                   )}
                 </Field>
+                {ref.cohorts.length === 0 && !ref.loading && (
+                  <p className="gh-field-hint" style={{ color: 'var(--gh-warn, #b45309)', gridColumn: 'span 2' }}>
+                    {t('form.noCohortsHint') || 'No eligible cohorts are available in the database. Ensure WPR, WLS and WHS cohorts are configured.'}
+                  </p>
+                )}
                 <Field id="f-age" label={t('form.ageBand')} error={errors.ageBand}>
                   {(a) => (
                     <select className="gh-select" value={form.ageBand} onChange={set('ageBand')} disabled={!ageBands.length} {...a}>
                       <option value="">{t('form.choose')}</option>
-                      {ageBands.map((b) => <option key={b} value={b}>{b === 'primary' ? t('form.ageBand.primary') : b}</option>)}
+                      {ageBands.map((b) => (
+                        <option key={b} value={b}>
+                          {b === '13-15' ? '13–15 (Lower Secondary)' : b === '16-18' ? '16–18 (Higher Secondary)' : b === 'primary' ? 'Primary (Grades 1–5)' : b}
+                        </option>
+                      ))}
                     </select>
                   )}
                 </Field>
-                <Field id="f-year" label={t('form.yearLevel')} optional>{input('yearLevel', { placeholder: 'Year 7' })}</Field>
+                <Field id="f-year" label={t('form.yearLevel')} optional>{input('yearLevel', { placeholder: 'e.g. Grade 3, Grade 7' })}</Field>
                 {!editing && (
                   <Field id="f-class" label={t('form.class')} optional>
                     {(a) => (

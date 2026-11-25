@@ -58,8 +58,59 @@ router.get('/classes', requireClaims, requireConsoleAccess, async (req, res) => 
 // GET /api/admin/cohorts
 router.get('/cohorts', requireClaims, requireConsoleAccess, async (req, res) => {
   const db = getFirestore();
-  const snap = await db.collection('cohorts').where('orgId', '==', req.caller.orgId || 'org-welearn').get();
-  const items = snap.docs.map((d) => ({ cohortId: d.id, ...d.data() }));
+  const targetOrg = req.caller.orgId || 'org-welearn';
+  const snap = await db.collection('cohorts').get();
+  let items = snap.docs
+    .map((d) => ({ cohortId: d.id, ...d.data() }))
+    .filter((c) => {
+      if (c.orgId && c.orgId !== targetOrg) return false;
+      if (c.hidden || c.status === 'hidden' || c.status === 'inactive') return false;
+      const code = (c.code || '').toUpperCase();
+      const id = (c.cohortId || '').toLowerCase();
+      // Primary cohorts are retired in WeLearn Spark active workflows
+      if (code === 'LPRI' || code === 'HPRI' || code === 'WPR' || id.includes('primary') || id === 'cohort-wpr') return false;
+      return true;
+    });
+
+  // Normalize metadata for active secondary cohorts (WLS & WHS)
+  items = items.map((c) => {
+    const code = (c.code || (c.cohortId === 'cohort-whs' ? 'WHS' : c.cohortId === 'cohort-wls' ? 'WLS' : '')).toUpperCase();
+    if (code === 'WLS' || c.cohortId === 'cohort-wls') {
+      return {
+        ...c,
+        cohortId: c.cohortId || 'cohort-wls',
+        code: 'WLS',
+        name: typeof c.name === 'string' ? { en: c.name } : (c.name || { en: 'WeLearn Lower Secondary' }),
+        ageBands: Array.isArray(c.ageBands) && c.ageBands.length ? c.ageBands.filter((b) => b !== 'primary') : ['13-15'],
+        grades: c.grades || [6, 8]
+      };
+    }
+    if (code === 'WHS' || c.cohortId === 'cohort-whs') {
+      return {
+        ...c,
+        cohortId: c.cohortId || 'cohort-whs',
+        code: 'WHS',
+        name: typeof c.name === 'string' ? { en: c.name } : (c.name || { en: 'WeLearn Higher Secondary' }),
+        ageBands: Array.isArray(c.ageBands) && c.ageBands.length ? c.ageBands.filter((b) => b !== 'primary') : ['13-15', '16-18'],
+        grades: c.grades || [9, 12]
+      };
+    }
+    return c;
+  });
+
+  items.sort((a, b) => {
+    if (a.code === 'WLS') return -1;
+    if (b.code === 'WLS') return 1;
+    return (a.code || '').localeCompare(b.code || '');
+  });
+
+  if (items.length === 0) {
+    items = [
+      { cohortId: 'cohort-wls', code: 'WLS', name: { en: 'WeLearn Lower Secondary' }, ageBands: ['13-15'], grades: [6, 8], status: 'active' },
+      { cohortId: 'cohort-whs', code: 'WHS', name: { en: 'WeLearn Higher Secondary' }, ageBands: ['13-15', '16-18'], grades: [9, 12], status: 'active' }
+    ];
+  }
+
   return res.json(paginateArray(items, req.query.pageToken, req.query.pageSize));
 });
 

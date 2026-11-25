@@ -1,4 +1,5 @@
-import { ArrowLeft, Box, ChevronRight, Lock, Star, DoorOpen } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Box, ChevronRight, Hammer, Lock, Star, DoorOpen } from 'lucide-react';
+import { FEATURE_CATALOG } from '../playground/playgroundModel.js';
 import { planetAccess, canLand, STATUS_LABEL } from './explorerModel.js';
 import { FACT_TAGS } from './cosmosCatalog.js';
 import { MissionList } from '../missions/MissionList.jsx';
@@ -20,11 +21,28 @@ export function FactList({ facts }) {
 }
 
 /**
+ * Text parity for what the 3D scene shows from the Learner Playground: a red ring
+ * for an active hazard, a cyan ring for built features. Renders nothing when the
+ * playground is off or the planet has neither.
+ */
+export function PlaygroundBadges({ record, detailed = false }) {
+  if (!record) return null;
+  const hazard = record.activeHazard;
+  const features = (record.features || []).map((id) => FEATURE_CATALOG.find((f) => f.id === id)).filter(Boolean);
+  if (!hazard && !features.length) return null;
+  return <span className="mx-pg-badges">
+    {hazard && <span className="mx-pg-badge is-hazard"><AlertTriangle size={12} aria-hidden="true" />Hazard: {hazard.name}</span>}
+    {features.length > 0 && <span className="mx-pg-badge is-built"><Hammer size={12} aria-hidden="true" />
+      {detailed ? `Built: ${features.map((f) => f.name).join(', ')}` : `${features.length} feature${features.length > 1 ? 's' : ''} built`}</span>}
+  </span>;
+}
+
+/**
  * The non-3D view: every destination, status and detail the 3D scene offers,
  * as plain headings and lists. Used when WebGL 2 is missing or lost, or when a
  * learner simply prefers it. It never shows the old island as "3D".
  */
-export function ExplorerTextView({ cosmos, opts, canUse3d, notice, onShow3d, header, onOpenMission, onOpenActivity, onLand }) {
+export function ExplorerTextView({ cosmos, opts, canUse3d, notice, onShow3d, header, onOpenMission, onOpenActivity, onLand, playgroundPlanets = null }) {
   const show = (level, id, label) => canUse3d && <button type="button" className="mx-show3d" onClick={() => onShow3d(level, id)}><Box size={14} aria-hidden="true" />Show {label} in 3D</button>;
   return <div className="mx-text">
     {notice && <p className="mx-notice" role="status">{notice}</p>}
@@ -39,7 +57,7 @@ export function ExplorerTextView({ cosmos, opts, canUse3d, notice, onShow3d, hea
         <p>{s.summary}</p>{show('system', sid, s.name)}
         {s.planets.map((pid) => { const p = cosmos.planetById(pid), access = planetAccess(p, opts), env = p.environmentId && cosmos.environmentById(p.environmentId);
           return <details key={pid} className="mx-text-planet">
-            <summary><strong>{p.name}</strong> <StatusChip access={access} /></summary>
+            <summary><strong>{p.name}</strong> <StatusChip access={access} /> <PlaygroundBadges record={playgroundPlanets?.[pid]} /></summary>
             <p>{p.summary}</p>
             <FactList facts={p.facts} />
             {access.status === 'locked' && <p className="mx-req"><Lock size={14} aria-hidden="true" />{access.requirementText}</p>}
@@ -64,7 +82,7 @@ export function ExplorerTextView({ cosmos, opts, canUse3d, notice, onShow3d, hea
  * Text view of one surface the learner has landed on: its places one at a time, with the same
  * arrival card as 3D. It never lists the other planets as if the learner were still in orbit.
  */
-export function SurfaceTextView({ cosmos, environment, opts, selected, onSelect, onBack, canUse3d, onShow3d, notice, headingRef, arrivalCard, onOpenMission, onOpenActivity }) {
+export function SurfaceTextView({ cosmos, environment, opts, selected, onSelect, onBack, canUse3d, onShow3d, notice, headingRef, arrivalCard, onOpenMission, onOpenActivity, playgroundRecord = null }) {
   const planet = cosmos.planetById(environment.planetId);
   const place = environment.locations.find((l) => l.id === selected);
   return <div className="mx-text">
@@ -73,6 +91,7 @@ export function SurfaceTextView({ cosmos, environment, opts, selected, onSelect,
       <span className="mx-eyebrow">Surface · {planet?.name}</span>
       <h2 ref={headingRef} tabIndex={-1}>{environment.name}</h2>
       <p>{environment.biome}. {environment.summary}</p>
+      <PlaygroundBadges record={playgroundRecord} detailed />
     </div>
     {arrivalCard}
     <section className="mx-text-surface" aria-labelledby="mx-places-title">

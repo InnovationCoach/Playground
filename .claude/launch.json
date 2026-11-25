@@ -88,6 +88,16 @@
         "--strictPort"
       ],
       "port": 5177
+    },
+    {
+      "name": "universe-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "tests/universe-preview/vite.config.js"
+      ],
+      "port": 5192
     }
   ]
 }

@@ -222,6 +222,9 @@ export const PLATFORM_NOTES = [
 export const COACH_PLATFORM_NOTES = PLATFORM_NOTES.filter((n) => !n.internal);
 PLATFORM_NOTES.filter((n) => n.internal).forEach((n) => console.info('[pbl] internal note:', n.text));
 
+/** Programs that ship with the app (Don's prototype and the library). Coaches cannot move these to Trash. */
+export const BUILT_IN_PROGRAM_IDS = new Set([...PROGRAMS.map((p) => p.id), ...LIBRARY_PROGRAMS.map((p) => p.id)]);
+
 export const programById = (id) => {
   if (!id) return null;
   const custom = getCustomProgramById(id);
@@ -233,6 +236,7 @@ export const programById = (id) => {
   return null;
 };
 
+/** Every program in the library, without the ones a coach moved to Trash. */
 export function getAllPrograms() {
   const custom = Object.values(getCustomPrograms());
   const customNormalized = custom.map(normaliseProgram).filter(Boolean);

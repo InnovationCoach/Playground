@@ -9,19 +9,22 @@ import {
   buildLtiResourceLinkLaunchToken
 } from '../lib/lti.js';
 import { sendError } from '../lib/errors.js';
+import { requireClaims } from '../middleware/auth.js';
+import { edmentumClient } from '../lib/edmentumClient.js';
 
 const router = Router();
 
-// Server-authoritative fail-closed containment:
-// Edmentum LTI integration is prototype/incomplete and unconditionally excluded from the pilot candidate.
-// Even if EDMENTUM_LTI_ENABLED is accidentally set, requests fail-closed with 503 PILOT_EXCLUDED.
-router.use((req, res) => {
-  return sendError(
-    res,
-    503,
-    'PILOT_EXCLUDED',
-    'Edmentum LTI 1.3 integration is incomplete and unconditionally disabled for the pilot candidate.'
-  );
+// Fail closed unless EDMENTUM_LTI_ENABLED=true is explicitly configured.
+router.use((req, res, next) => {
+  if (process.env.EDMENTUM_LTI_ENABLED !== 'true') {
+    return sendError(
+      res,
+      503,
+      'PILOT_EXCLUDED',
+      'Edmentum LTI 1.3 integration is disabled unless EDMENTUM_LTI_ENABLED=true.'
+    );
+  }
+  return next();
 });
 
 /**
@@ -63,55 +66,175 @@ router.get('/jwks', (req, res) => {
  * POST or GET /api/lti/login_initiations
  * OpenID Connect Third-Party Login Initiation endpoint
  */
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const handleLoginInitiation = (req, res) => {
   const params = req.method === 'POST' ? req.body : req.query;
-  const { iss, login_hint, target_link_uri, lti_message_hint, client_id, deployment_id } = params || {};
+  const {
+    login_hint,
+    target_link_uri,
+    lti_message_hint,
+    client_id,
+    state,
+    nonce,
+    redirect_uri,
+    response_type
+  } = params || {};
+
+  // Standard LTI 1.3 OIDC Auth Request from Edmentum (/lti/login -> Spark /api/lti/login_initiations)
+  if (response_type === 'id_token' || (state && nonce && redirect_uri)) {
+    const hint = lti_message_hint ? verifyLtiJwt(lti_message_hint) : null;
+    if (!hint || !hint.uid || (hint.exp && hint.exp < Math.floor(Date.now() / 1000))) {
+      return sendError(res, 401, 'INVALID_HINT', 'Invalid or expired LTI login session. Please launch again from Spark.');
+    }
+
+    const allowedRedirect = LTI_CONFIG.launchUrl;
+    const postAction = redirect_uri && redirect_uri.startsWith('https://public.apps.elf.edmentum.com/')
+      ? redirect_uri
+      : allowedRedirect;
+
+    const roles = hint.role === 'teacher' || hint.role === 'coach'
+      ? ['http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor']
+      : ['http://purl.imsglobal.org/vocab/lis/v2/membership#Learner'];
+
+    const idToken = buildLtiResourceLinkLaunchToken({
+      user: {
+        uid: hint.uid,
+        displayName: hint.displayName,
+        email: hint.email
+      },
+      course: {
+        id: hint.courseId,
+        title: hint.courseTitle
+      },
+      targetLinkUri: postAction,
+      roles,
+      nonce
+    });
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(`<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Launching Edmentum...</title></head>
+<body>
+  <p>Opening your Edmentum course...</p>
+  <form id="lti-post" method="POST" action="${escapeHtml(postAction)}">
+    <input type="hidden" name="id_token" value="${escapeHtml(idToken)}" />
+    <input type="hidden" name="state" value="${escapeHtml(state)}" />
+  </form>
+  <script>document.getElementById('lti-post').submit();</script>
+</body>
+</html>`);
+  }
 
   if (!login_hint) {
     return sendError(res, 400, 'INVALID_REQUEST', 'Missing required parameter: login_hint');
   }
 
-  // Construct standard OIDC Auth Request Redirect to Edmentum
-  const state = `state-${Date.now()}`;
-  const nonce = `nonce-${Math.random().toString(36).slice(2)}`;
-
   const authUrl = new URL(LTI_CONFIG.authLoginUrl);
-  authUrl.searchParams.set('response_type', 'id_token');
-  authUrl.searchParams.set('scope', 'openid');
-  authUrl.searchParams.set('response_mode', 'form_post');
+  authUrl.searchParams.set('iss', LTI_CONFIG.issuer);
   authUrl.searchParams.set('client_id', client_id || LTI_CONFIG.clientId);
-  authUrl.searchParams.set('redirect_uri', target_link_uri || 'https://ple.platoweb.com/EdmentumCourseware');
   authUrl.searchParams.set('login_hint', login_hint);
-  authUrl.searchParams.set('state', state);
-  authUrl.searchParams.set('nonce', nonce);
-  authUrl.searchParams.set('prompt', 'none');
-
+  authUrl.searchParams.set('target_link_uri', target_link_uri || LTI_CONFIG.launchUrl);
+  authUrl.searchParams.set('lti_deployment_id', LTI_CONFIG.deploymentId);
   if (lti_message_hint) authUrl.searchParams.set('lti_message_hint', lti_message_hint);
 
   res.json({
     status: 'success',
-    redirectUrl: authUrl.toString(),
-    parameters: {
-      client_id: client_id || LTI_CONFIG.clientId,
-      login_hint,
-      state,
-      nonce
-    }
+    redirectUrl: authUrl.toString()
   });
 };
 
 router.post('/login_initiations', handleLoginInitiation);
 router.get('/login_initiations', handleLoginInitiation);
 
+import crypto from 'node:crypto';
+
+let cachedToolJwks = { keys: [], fetchedAt: 0 };
+
+async function fetchToolJwks() {
+  const now = Date.now();
+  if (cachedToolJwks.keys.length > 0 && now - cachedToolJwks.fetchedAt < 300_000) {
+    return cachedToolJwks.keys;
+  }
+  const res = await fetch(LTI_CONFIG.toolJwksUrl);
+  if (!res.ok) throw new Error(`Failed to fetch tool JWKS (${res.status})`);
+  const data = await res.json();
+  const keys = Array.isArray(data?.keys) ? data.keys : [];
+  cachedToolJwks = { keys, fetchedAt: now };
+  return keys;
+}
+
+async function verifyEdmentumClientAssertion(assertion) {
+  if (typeof assertion !== 'string') return null;
+  const parts = assertion.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (!payload.exp || payload.exp <= nowSec) return null;
+    if (payload.sub !== LTI_CONFIG.clientId && payload.iss !== LTI_CONFIG.clientId) return null;
+
+    const keys = await fetchToolJwks();
+    const jwk = header.kid ? keys.find((k) => k.kid === header.kid) : keys[0];
+    if (!jwk) return null;
+
+    const publicKey = crypto.createPublicKey({ key: jwk, format: 'jwk' });
+    const verifier = crypto.createVerify('RSA-SHA256');
+    verifier.update(`${parts[0]}.${parts[1]}`);
+    const sig = Buffer.from(parts[2], 'base64url');
+    return verifier.verify(publicKey, sig) ? payload : null;
+  } catch {
+    return null;
+  }
+}
+
+function requireAgsScope(requiredScope) {
+  return (req, res, next) => {
+    const header = req.headers?.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+    if (!token) {
+      return sendError(res, 401, 'UNAUTHENTICATED', 'Missing Bearer access token for LTI AGS.');
+    }
+    const payload = verifyLtiJwt(token);
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (!payload || !payload.exp || payload.exp <= nowSec || payload.aud !== LTI_CONFIG.clientId) {
+      return sendError(res, 401, 'UNAUTHENTICATED', 'Invalid or expired LTI AGS access token.');
+    }
+    const scopes = String(payload.scopes || payload.scope || '').split(/\s+/);
+    if (requiredScope && !scopes.includes(requiredScope)) {
+      return sendError(res, 403, 'FORBIDDEN', `Missing required AGS scope: ${requiredScope}`);
+    }
+    req.agsToken = payload;
+    return next();
+  };
+}
+
 /**
  * POST /api/lti/token
  * OAuth 2.0 access token endpoint for Edmentum backend services (AGS)
  */
-router.post('/token', (req, res) => {
+router.post('/token', async (req, res) => {
   const { grant_type, client_assertion_type, client_assertion, scope } = req.body || {};
 
   if (grant_type !== 'client_credentials') {
     return sendError(res, 400, 'UNSUPPORTED_GRANT_TYPE', 'Only client_credentials grant type is supported');
+  }
+  if (client_assertion_type !== 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer' || !client_assertion) {
+    return sendError(res, 401, 'INVALID_CLIENT', 'Valid JWT client_assertion is required.');
+  }
+
+  const verifiedAssertion = await verifyEdmentumClientAssertion(client_assertion);
+  if (!verifiedAssertion) {
+    return sendError(res, 401, 'INVALID_CLIENT', 'client_assertion signature or claims could not be verified.');
   }
 
   // Generate OAuth 2.0 Access Token with requested scopes
@@ -139,39 +262,42 @@ router.post('/token', (req, res) => {
  * GET /api/lti/ags/lineitems
  * Lists assignment line items registered for Edmentum grade return
  */
-router.get('/ags/lineitems', (req, res) => {
-  const lineItems = [
-    {
-      id: `${LTI_CONFIG.agsUrl}/lineitems/edmentum-bio-01`,
-      scoreMaximum: 100,
-      label: 'Biology Unit 1: Cellular Energetics Assessment',
-      resourceId: 'edmentum-bio-01',
-      tag: 'edmentum_unit_test'
-    },
-    {
-      id: `${LTI_CONFIG.agsUrl}/lineitems/edmentum-alg-02`,
-      scoreMaximum: 100,
-      label: 'Algebra II: Quadratic Systems Mastery Test',
-      resourceId: 'edmentum-alg-02',
-      tag: 'edmentum_mastery_test'
-    },
-    {
-      id: `${LTI_CONFIG.agsUrl}/lineitems/edmentum-eng-03`,
-      scoreMaximum: 100,
-      label: 'English 10: Literary Analysis and Rhetoric',
-      resourceId: 'edmentum-eng-03',
-      tag: 'edmentum_courseware_final'
-    }
-  ];
+router.get('/ags/lineitems', requireAgsScope('https://purl.imsglobal.org/spec/lti-ags/scope/lineitem'), async (req, res) => {
+  if (!edmentumClient.isConfigured()) {
+    return res.json([]);
+  }
 
-  res.json(lineItems);
+  try {
+    const programsRaw = await edmentumClient.getPrograms();
+    const programs = Array.isArray(programsRaw) ? programsRaw : (programsRaw?.Results || programsRaw?.Data || []);
+    const targetProgramId = req.query?.programId || edmentumClient.defaultProgramId || programs[0]?.ProgramId;
+    if (!targetProgramId) {
+      return res.json([]);
+    }
+
+    const classesRaw = await edmentumClient.getProgramClasses(targetProgramId, { pageSize: 100 });
+    const classes = Array.isArray(classesRaw) ? classesRaw : (classesRaw?.Results || classesRaw?.Data || []);
+    const lineItems = classes
+      .filter((c) => c && c.ClassId != null && c.IsActive !== false)
+      .map((c) => ({
+        id: `${LTI_CONFIG.agsUrl}/lineitems/${c.ClassId}`,
+        scoreMaximum: 100,
+        label: c.Name || c.CourseName || `Edmentum Class ${c.ClassId}`,
+        resourceId: String(c.ClassId),
+        tag: 'edmentum_courseware'
+      }));
+
+    return res.json(lineItems);
+  } catch (err) {
+    return sendError(res, err.status || 502, err.code || 'EDMENTUM_API_ERROR', err.message || 'Unable to load Edmentum AGS line items.');
+  }
 });
 
 /**
  * POST /api/lti/ags/lineitems/:lineItemId/scores
  * Edmentum Assignment and Grade Services (AGS) Score Passback Endpoint
  */
-router.post('/ags/lineitems/:lineItemId/scores', async (req, res) => {
+router.post('/ags/lineitems/:lineItemId/scores', requireAgsScope('https://purl.imsglobal.org/spec/lti-ags/scope/score'), async (req, res) => {
   const { lineItemId } = req.params;
   const { userId, scoreGiven, scoreMaximum, comment, timestamp, activityProgress, gradingProgress } = req.body || {};
 
@@ -216,24 +342,27 @@ router.post('/ags/lineitems/:lineItemId/scores', async (req, res) => {
  * POST /api/lti/launch/:courseId
  * Generates an authenticated 1-click LTI 1.3 launch token for a student
  */
-router.post('/launch/:courseId', (req, res) => {
+router.post('/launch/:courseId', requireClaims, (req, res) => {
   const { courseId } = req.params;
-  const { uid, displayName, email, role, targetLinkUri } = req.body || {};
+  const caller = req.caller || {};
+  const profile = req.callerUserData || {};
+  const { targetLinkUri } = req.body || {};
 
   const user = {
-    uid: uid || 'student-demo',
-    displayName: displayName || 'WeLearn Student',
-    email: email || 'student@welearn.local'
+    uid: caller.uid,
+    displayName: profile.displayName || caller.email || 'WeLearn Student',
+    email: caller.email || profile.email || ''
   };
 
+  const launchTarget = targetLinkUri || LTI_CONFIG.launchUrl;
   const course = {
     id: courseId,
     title: req.body?.courseTitle || `Edmentum Course (${courseId})`,
     description: req.body?.courseDescription || 'Edmentum online courseware curriculum',
-    targetLinkUri: targetLinkUri || 'https://ple.platoweb.com/EdmentumCourseware'
+    targetLinkUri: launchTarget
   };
 
-  const roles = role === 'teacher' || role === 'coach'
+  const roles = caller.role === 'teacher' || caller.role === 'coach'
     ? ['http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor']
     : ['http://purl.imsglobal.org/vocab/lis/v2/membership#Learner'];
 
@@ -244,8 +373,29 @@ router.post('/launch/:courseId', (req, res) => {
     roles
   });
 
+  const now = Math.floor(Date.now() / 1000);
+  const messageHint = signLtiJwt({
+    uid: user.uid,
+    displayName: user.displayName,
+    email: user.email,
+    role: caller.role || 'student',
+    courseId: course.id,
+    courseTitle: course.title,
+    exp: now + 300,
+    iat: now
+  });
+
+  const oidcUrl = new URL(LTI_CONFIG.authLoginUrl);
+  oidcUrl.searchParams.set('iss', LTI_CONFIG.issuer);
+  oidcUrl.searchParams.set('login_hint', user.uid);
+  oidcUrl.searchParams.set('target_link_uri', LTI_CONFIG.launchUrl);
+  oidcUrl.searchParams.set('lti_message_hint', messageHint);
+  oidcUrl.searchParams.set('client_id', LTI_CONFIG.clientId);
+  oidcUrl.searchParams.set('lti_deployment_id', LTI_CONFIG.deploymentId);
+
   res.json({
-    launchUrl: course.targetLinkUri,
+    launchUrl: LTI_CONFIG.launchUrl,
+    oidcStartUrl: oidcUrl.toString(),
     id_token: launchToken,
     state: `state-${Date.now()}`,
     courseTitle: course.title

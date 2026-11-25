@@ -16,6 +16,7 @@ import {
 } from './lib/universe/missions.js';
 
 dotenv.config();
+dotenv.config({ path: '.env.edmentum', override: false });
 
 const projectId = getActiveProjectId();
 
@@ -36,7 +37,7 @@ process.env.ALLOW_DRAFT_MISSIONS = process.env.ALLOW_DRAFT_MISSIONS || 'true';
 const PORT = process.env.PORT || 3001;
 initAdmin();
 const app = createApp({ universeRegistry: FIXTURE_RELEASES });
-const geminiConfig = app.locals.geminiConfig || { model: 'gemini-2.5-flash', configured: false };
+const geminiConfig = app.locals.geminiConfig || { model: 'gemini-3.5-flash-lite', configured: false };
 
 const server = app.listen(PORT, '127.0.0.1', () => {
   console.log(`🚀 HearIsland Emulator Server running on http://localhost:${PORT} (project: ${projectId})`);

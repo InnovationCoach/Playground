@@ -189,6 +189,39 @@ export class MasteryApiClient {
   }
 
   /**
+   * 5b. Evidence Status Approval / Transition
+   * Transitions evidence container status (e.g. 'DRAFT' -> 'APPROVED').
+   * Ref: https://docs.mastery.org/evidence#change-evidence-status
+   */
+  async updateEvidenceStatus(evidenceId, { status = 'APPROVED' } = {}) {
+    const formattedStatus = String(status || 'APPROVED').trim().toUpperCase();
+    try {
+      const res = await this._request(`/evidences/${encodeURIComponent(evidenceId)}/status`, {
+        method: 'PUT',
+        body: { status: formattedStatus }
+      });
+      return res?.data || res;
+    } catch (err) {
+      if (err.status === 404 || err.status === 405) {
+        try {
+          const patchRes = await this._request(`/evidences/${encodeURIComponent(evidenceId)}/status`, {
+            method: 'PATCH',
+            body: { status: formattedStatus }
+          });
+          return patchRes?.data || patchRes;
+        } catch {
+          const directRes = await this._request(`/evidences/${encodeURIComponent(evidenceId)}`, {
+            method: 'PUT',
+            body: { status: formattedStatus }
+          });
+          return directRes?.data || directRes;
+        }
+      }
+      throw err;
+    }
+  }
+
+  /**
    * 6. Competency Association & Status Tracking
    * credits: [{ id: creditId, status: 'REQUESTED' | 'IN_PROGRESS' | 'EARNED' }]
    */
@@ -221,13 +254,34 @@ export class MasteryApiClient {
 
   /**
    * 7. Coach Feedback Comments
+   * Ref: https://docs.mastery.org/evidence-comments
    */
   async addEvidenceComment(evidenceId, { content }) {
-    const res = await this._request(`/evidences/${encodeURIComponent(evidenceId)}/comment`, {
-      method: 'POST',
-      body: { content: String(content || '').trim() }
-    });
-    return res?.data;
+    const cleanContent = String(content || '').trim();
+    try {
+      const res = await this._request(`/evidences/${encodeURIComponent(evidenceId)}/comment`, {
+        method: 'POST',
+        body: { content: cleanContent }
+      });
+      return res?.data || res;
+    } catch (err) {
+      if (err.status === 404) {
+        try {
+          const altRes = await this._request('/evidence-comments', {
+            method: 'POST',
+            body: { evidenceId, content: cleanContent }
+          });
+          return altRes?.data || altRes;
+        } catch {
+          const commentsRes = await this._request(`/evidences/${encodeURIComponent(evidenceId)}/comments`, {
+            method: 'POST',
+            body: { content: cleanContent }
+          });
+          return commentsRes?.data || commentsRes;
+        }
+      }
+      throw err;
+    }
   }
 }
 

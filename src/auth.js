@@ -367,3 +367,22 @@ export async function saveLocale(uid, locale) {
 export async function saveThemePreference(uid, themePreference) {
   await setDoc(doc(db, "users", uid), { themePreference, updatedAt: serverTimestamp() }, { merge: true });
 }
+
+/**
+ * Save the learner's display name and custom avatar config to users/{uid}.
+ * Firestore rules permit owners to update non-privileged profile fields.
+ */
+export async function saveUserProfile(uid, { displayName, avatar }) {
+  const { sanitizeDisplayName, sanitizeAvatarConfig } = await import("./features/shell/avatarModel.js");
+  const patch = { updatedAt: serverTimestamp() };
+  if (typeof displayName === "string") {
+    const cleanName = sanitizeDisplayName(displayName);
+    if (!cleanName) throw new Error("Please enter a display name.");
+    patch.displayName = cleanName;
+  }
+  if (avatar !== undefined) {
+    patch.avatar = avatar ? sanitizeAvatarConfig(avatar) : null;
+  }
+  await setDoc(doc(db, "users", uid), patch, { merge: true });
+  return patch;
+}

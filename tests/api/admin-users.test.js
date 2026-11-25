@@ -90,6 +90,28 @@ describe('API: Admin Users Management', () => {
       expect(res.status).toBe(200);
       expect(res.body.items.every((u) => u.role === 'student' || u.role === 'supervisor')).toBe(true);
     });
+
+    it('handles user documents without a uid field gracefully using doc.id', async () => {
+      await env.db.collection('users').doc('user_no_uid').set({
+        email: 'no.uid@welearn.test',
+        role: 'student',
+        givenNames: 'Missing',
+        surname: 'Uid',
+        displayName: 'Missing Uid',
+        status: 'active',
+        orgId: 'org-welearn',
+        schoolIds: ['sch-bkk'],
+        classIds: [],
+        createdAt: '2026-09-01T00:00:00.000Z'
+      });
+
+      const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+      const res = await env.request('GET', '/api/admin/users', { token });
+      expect(res.status).toBe(200);
+      const missingDoc = res.body.items.find((u) => u.email === 'no.uid@welearn.test');
+      expect(missingDoc).toBeDefined();
+      expect(missingDoc.uid).toBe('user_no_uid');
+    });
   });
 
   describe('POST /api/admin/users', () => {
@@ -167,6 +189,14 @@ describe('API: Admin Users Management', () => {
       const token = await env.getIdToken('sup_bkk', { role: 'supervisor', orgId: 'org-welearn', schoolIds: ['sch-bkk'] });
       const res = await env.request('GET', '/api/admin/users/student_online', { token });
       expect(res.status).toBe(404);
+    });
+
+    it('returns full record for user document missing uid field', async () => {
+      const token = await env.getIdToken('admin_user', { role: 'admin', orgId: 'org-welearn' });
+      const res = await env.request('GET', '/api/admin/users/user_no_uid', { token });
+      expect(res.status).toBe(200);
+      expect(res.body.uid).toBe('user_no_uid');
+      expect(res.body.email).toBe('no.uid@welearn.test');
     });
   });
 
@@ -441,6 +471,19 @@ describe('API: Admin Users Management', () => {
       const res = await env.request('POST', '/api/admin/users/student_bkk/assign-public-id', { token: await adminToken() });
       expect(res.status).toBe(200);
       expect(res.body.publicId).toBe('STU-0011-2233-4455');
+    });
+
+    it('assigns ID successfully to learner document missing uid field', async () => {
+      await env.db.collection('users').doc('learner_no_uid').set({
+        email: 'learner.no.uid@welearn.test', role: 'student', givenNames: 'Learner', surname: 'NoUid',
+        status: 'active', orgId: 'org-welearn', schoolIds: ['sch-bkk'], classIds: [], createdAt: '2026-09-01T00:00:00.000Z'
+      });
+      const res = await env.request('POST', '/api/admin/users/learner_no_uid/assign-public-id', { token: await adminToken() });
+      expect(res.status).toBe(200);
+      expect(res.body.publicId).toBeDefined();
+      const reserved = await env.db.collection('publicIds').doc(res.body.publicId).get();
+      expect(reserved.exists).toBe(true);
+      expect(reserved.data().uid).toBe('learner_no_uid');
     });
 
     it('refuses non-admins, non-learners and unknown accounts', async () => {

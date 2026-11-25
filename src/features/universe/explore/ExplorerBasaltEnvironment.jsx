@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { fbm, glowTexture, seeded } from './proceduralTextures.js';
-import { Sky, Beacon, Equipment } from './environmentKit.jsx';
+import { Sky, Beacon, Equipment, PlaygroundStructures } from './environmentKit.jsx';
 
 /**
  * Ignis basalt fissure field (sceneKind 'basalt-fissures'): a dark lava plain cut
@@ -138,8 +138,9 @@ function Station({ x, z }) {
   </group>;
 }
 
-export default function ExplorerBasaltEnvironment({ environment, selected, onSelect, motion, low, equipment = null }) {
+export default function ExplorerBasaltEnvironment({ environment, selected, onSelect, motion, low, equipment = null, playgroundFeatures = [], unlockedFacilities = [], activeHazard = null }) {
   const byId = Object.fromEntries(environment.locations.map((l) => [l.id, l]));
+  const st = byId['sensor-station'].position;
   return <group>
     <fog attach="fog" args={['#8a5a3f', 70, 280]} />
     <hemisphereLight args={['#f2c9a0', '#2a1d18', 0.75]} />
@@ -149,8 +150,9 @@ export default function ExplorerBasaltEnvironment({ environment, selected, onSel
     <Columns low={low} />
     <Fissure motion={motion} />
     <GasVent x={byId['gas-vent'].position[0]} z={byId['gas-vent'].position[2]} motion={motion} />
-    <Station x={byId['sensor-station'].position[0]} z={byId['sensor-station'].position[2]} />
+    <Station x={st[0]} z={st[2]} />
     {environment.locations.map((l) => <Beacon key={l.id} location={l} selected={selected === l.id} onSelect={onSelect} groundAt={heightAt} />)}
     <Equipment equipment={equipment} standAt={heightAt} motion={motion} />
+    <PlaygroundStructures features={playgroundFeatures} unlockedFacilities={unlockedFacilities} anchor={[st[0], heightAt(st[0], st[2]), st[2]]} activeHazard={activeHazard} />
   </group>;
 }

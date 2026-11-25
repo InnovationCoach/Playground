@@ -214,7 +214,8 @@ export async function updateProfile(learnerUid, patch, { actorUid, role }) {
   return structuredClone(p);
 }
 
-/* ---------- Notifications (contract §3) ---------- */
+/* ---------- Notifications (contract §3 + Goal Setting bridge) ---------- */
+import { getStoredGoalNotifications, saveGoalNotifRead } from '../goals/goalNotifications.js';
 
 function notifyParents(profile, what) {
   for (const parentUid of profile.parentUids) {
@@ -233,21 +234,39 @@ function notifyParents(profile, what) {
   }
 }
 
+function mergedNotificationsFor(uid) {
+  const base = notifications.get(uid) || [];
+  const goalItems = getStoredGoalNotifications(uid);
+  const byId = new Map();
+  for (const item of [...base, ...goalItems]) {
+    if (item?.id && !byId.has(item.id)) byId.set(item.id, item);
+  }
+  return [...byId.values()].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
 export async function listNotifications(uid, { limit = 20 } = {}) {
   await delay(60);
-  const list = notifications.get(uid) || [];
+  const list = mergedNotificationsFor(uid);
   return { items: list.slice(0, limit), unreadCount: list.filter((n) => !n.readAt).length };
 }
 
 export async function markNotificationRead(uid, id) {
   await delay(40);
+  const now = Date.now();
   const n = (notifications.get(uid) || []).find((x) => x.id === id);
-  if (n && !n.readAt) n.readAt = Date.now();
+  if (n && !n.readAt) n.readAt = now;
+  if (String(id || '').startsWith('goal_notif_')) {
+    saveGoalNotifRead(uid, id, now);
+  }
 }
 
 export async function markAllRead(uid) {
   await delay(40);
-  for (const n of notifications.get(uid) || []) if (!n.readAt) n.readAt = Date.now();
+  const now = Date.now();
+  for (const n of notifications.get(uid) || []) if (!n.readAt) n.readAt = now;
+  for (const g of getStoredGoalNotifications(uid)) {
+    if (!g.readAt) saveGoalNotifRead(uid, g.id, now);
+  }
 }
 
 /** Test helper: lets a test reset the in-memory store. */

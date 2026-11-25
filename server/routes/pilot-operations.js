@@ -1,8 +1,11 @@
+import path from 'node:path';
 import { Router } from 'express';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { requireClaims } from '../middleware/auth.js';
 import { sendError } from '../lib/errors.js';
+import { writeAuditLog } from '../lib/audit.js';
 
 export const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
 const DEFAULT_ORG = 'org-welearn';
@@ -173,4 +176,373 @@ router.get('/inventory/:id/history', consoleOnly, async (req, res) => {
   const history = await ref.collection('history').get();
   res.json({ items: history.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) });
 });
+
+// ---------------------------------------------------------------------------
+// Learner Records: portfolios, transcripts, progress reports (L1–L7)
+// ---------------------------------------------------------------------------
+const getRecordsBucket = () => {
+  const bucketName = process.env.STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || undefined;
+  return getStorage().bucket(bucketName);
+};
+
+const ALLOWED_RECORD_TYPES = ['portfolio', 'transcript', 'report', 'other'];
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+];
+
+function validateMagicBytes(buf, mime) {
+  if (!buf || buf.length < 4) return false;
+  const lower = (mime || '').toLowerCase();
+  if (lower === 'application/pdf') {
+    return buf.subarray(0, 5).toString('ascii') === '%PDF-';
+  }
+  if (lower === 'image/png') {
+    return buf.length >= 8 &&
+           buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47 &&
+           buf[4] === 0x0D && buf[5] === 0x0A && buf[6] === 0x1A && buf[7] === 0x0A;
+  }
+  if (lower === 'image/jpeg' || lower === 'image/jpg') {
+    return buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF;
+  }
+  if (lower === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    return buf[0] === 0x50 && buf[1] === 0x4B && (buf[2] === 0x03 || buf[2] === 0x05 || buf[2] === 0x07);
+  }
+  return false;
+}
+
+const stripRecord = ({ storagePath, fileData, ...rest } = {}) => rest;
+
+// L1: List assigned learners for coach/teacher
+router.get('/learner-records/learners', async (req, res) => {
+  const coachClassIds = Array.isArray(req.caller.signedClaims?.classIds)
+    ? req.caller.signedClaims.classIds
+    : (Array.isArray(req.caller.classIds) ? req.caller.classIds : []);
+
+  const isConsole = ['admin', 'supervisor'].includes(req.pilotRole);
+  if (!isConsole && coachClassIds.length === 0) {
+    return res.json({ items: [] });
+  }
+
+  const db = getFirestore();
+  const usersSnap = await db.collection('users').where('role', '==', 'student').get();
+
+  const items = usersSnap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(u => {
+      if ((u.orgId || DEFAULT_ORG) !== org(req)) return false;
+      if (isConsole && coachClassIds.length === 0) return true;
+      const uClassIds = Array.isArray(u.classIds) ? u.classIds : [];
+      return uClassIds.some(cid => coachClassIds.includes(cid));
+    })
+    .map(u => ({
+      id: u.id,
+      displayName: u.displayName || `${u.givenNames || ''} ${u.surname || ''}`.trim() || u.email || u.id
+    }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+  res.json({ items });
+});
+
+// L2: List records (coach sees own uploads; admin/supervisor sees all in org)
+router.get('/learner-records', async (req, res) => {
+  const db = getFirestore();
+  const isConsole = ['admin', 'supervisor'].includes(req.pilotRole);
+  let query = db.collection('learnerRecords').where('orgId', '==', org(req));
+  if (!isConsole) {
+    query = query.where('coachUid', '==', req.caller.uid);
+  }
+  const snap = await query.get();
+  const items = snap.docs
+    .map(d => ({ id: d.id, ...stripRecord(d.data()) }))
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+  res.json({ items });
+});
+
+// L3: Upload a learner record (teacher/coach)
+router.post('/learner-records', async (req, res) => {
+  if (!['teacher', 'coach'].includes(req.pilotRole)) {
+    return sendError(res, 403, 'FORBIDDEN', 'Teacher or coach access required.');
+  }
+
+  const { learnerUid, type, title, term = '', note = '', fileName, contentType, fileData } = req.body || {};
+
+  if (!learnerUid || typeof learnerUid !== 'string') {
+    return fail(res, 'Choose a learner.');
+  }
+  if (!type || !ALLOWED_RECORD_TYPES.includes(type)) {
+    return fail(res, 'Choose what kind of file this is.');
+  }
+  if (typeof title !== 'string' || !title.trim() || title.trim().length > 120) {
+    return fail(res, 'Give the file a title (up to 120 characters).');
+  }
+  if (term !== undefined && term !== null && (typeof term !== 'string' || term.trim().length > 40)) {
+    return fail(res, 'Keep the term under 40 characters.');
+  }
+  if (note !== undefined && note !== null && (typeof note !== 'string' || note.trim().length > 500)) {
+    return fail(res, 'Keep the note under 500 characters.');
+  }
+  if (typeof fileName !== 'string' || !fileName.trim()) {
+    return fail(res, 'Choose a file to upload.');
+  }
+
+  const normContentType = (contentType || '').toLowerCase();
+  if (!ALLOWED_MIME_TYPES.includes(normContentType)) {
+    return fail(res, 'Upload a PDF, Word (.docx), PNG or JPG file.');
+  }
+
+  if (typeof fileData !== 'string' || !fileData.startsWith('data:')) {
+    return fail(res, 'Invalid file data.');
+  }
+  const commaIndex = fileData.indexOf(',');
+  if (commaIndex === -1) {
+    return fail(res, 'Invalid file data.');
+  }
+  const header = fileData.slice(0, commaIndex);
+  if (!header.includes(';base64')) {
+    return fail(res, 'File data must be base64 encoded.');
+  }
+  const base64Str = fileData.slice(commaIndex + 1);
+  const buffer = Buffer.from(base64Str, 'base64');
+  const MAX_FILE_BYTES = 5 * 1024 * 1024;
+  if (buffer.length === 0) {
+    return fail(res, 'The file is empty.');
+  }
+  if (buffer.length > MAX_FILE_BYTES) {
+    return fail(res, 'The file is larger than 5 MB. Export a smaller file and try again.');
+  }
+  if (!validateMagicBytes(buffer, normContentType)) {
+    return fail(res, 'The file content does not match the chosen file type.');
+  }
+
+  const db = getFirestore();
+  const coachClassIds = Array.isArray(req.caller.signedClaims?.classIds)
+    ? req.caller.signedClaims.classIds
+    : (Array.isArray(req.caller.classIds) ? req.caller.classIds : []);
+
+  const learnerDoc = await db.collection('users').doc(learnerUid).get();
+  if (!learnerDoc.exists) {
+    return fail(res, 'Choose a learner from your classes.');
+  }
+  const learner = learnerDoc.data();
+  if (learner.role !== 'student' || (learner.orgId || DEFAULT_ORG) !== org(req)) {
+    return fail(res, 'Choose a learner from your classes.');
+  }
+  const learnerClasses = Array.isArray(learner.classIds) ? learner.classIds : [];
+  if (!learnerClasses.some(cid => coachClassIds.includes(cid))) {
+    return fail(res, 'Choose a learner from your classes.');
+  }
+  const learnerName = learner.displayName || `${learner.givenNames || ''} ${learner.surname || ''}`.trim() || learner.email || learnerUid;
+
+  const ref = db.collection('learnerRecords').doc();
+  const recordId = ref.id;
+  const safeBase = path.basename(fileName).replace(/[^a-zA-Z0-9._-]/g, '_') || 'record';
+  const storagePath = `learnerRecords/${org(req)}/${learnerUid}/${recordId}/${safeBase}`;
+
+  const bucket = getRecordsBucket();
+  const file = bucket.file(storagePath);
+  await file.save(buffer, {
+    metadata: {
+      contentType: normContentType,
+      metadata: {
+        orgId: org(req),
+        learnerUid,
+        recordId,
+        uploadedBy: req.caller.uid
+      }
+    }
+  });
+
+  const record = {
+    orgId: org(req),
+    learnerUid,
+    learnerName,
+    coachUid: req.caller.uid,
+    coachName: req.caller.displayName || req.caller.name || 'Coach',
+    type,
+    title: title.trim(),
+    term: (term || '').trim(),
+    note: (note || '').trim(),
+    fileName: fileName.trim(),
+    contentType: normContentType,
+    size: buffer.length,
+    storagePath,
+    status: 'submitted',
+    response: '',
+    sharedWithParents: false,
+    sharedAt: null,
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    await ref.set(record);
+  } catch (err) {
+    try { await file.delete({ ignoreNotFound: true }); } catch {}
+    throw err;
+  }
+
+  res.status(201).json({ id: recordId });
+});
+
+// L4: Download URL (signed URL, 5 min)
+router.get('/learner-records/:id/download', async (req, res) => {
+  const ref = getFirestore().collection('learnerRecords').doc(req.params.id);
+  const snap = await ref.get();
+  if (!snap.exists || !belongs(req, snap.data())) {
+    return sendError(res, 404, 'NOT_FOUND', 'Record not found.');
+  }
+  const record = snap.data();
+  const isConsole = ['admin', 'supervisor'].includes(req.pilotRole);
+  if (!isConsole && record.coachUid !== req.caller.uid) {
+    return sendError(res, 403, 'FORBIDDEN', 'You can only download your own uploads.');
+  }
+
+  const downloadFileName = record.fileName || 'learner-record';
+  const bucket = getRecordsBucket();
+  const file = bucket.file(record.storagePath);
+
+  let url;
+  try {
+    [url] = await file.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 5 * 60 * 1000,
+      responseDisposition: `attachment; filename="${downloadFileName.replace(/["\r\n]/g, '_')}"`
+    });
+  } catch (err) {
+    if (process.env.STORAGE_EMULATOR_HOST) {
+      const host = process.env.STORAGE_EMULATOR_HOST.startsWith('http')
+        ? process.env.STORAGE_EMULATOR_HOST
+        : `http://${process.env.STORAGE_EMULATOR_HOST}`;
+      url = `${host}/v0/b/${bucket.name}/o/${encodeURIComponent(record.storagePath)}?alt=media`;
+    } else {
+      throw err;
+    }
+  }
+
+  res.json({ url, fileName: downloadFileName });
+});
+
+// L5 & L6: Review & Share (admin only)
+router.patch('/learner-records/:id', adminOnly, async (req, res) => {
+  const { status, response, sharedWithParents } = req.body || {};
+  if (status === undefined && typeof sharedWithParents !== 'boolean') {
+    return fail(res, 'Provide a status or sharing update.');
+  }
+
+  const db = getFirestore();
+  const ref = db.collection('learnerRecords').doc(req.params.id);
+
+  let auditEvent = null;
+  let updatedRecord = null;
+
+  const result = await db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || !belongs(req, snap.data())) return 404;
+    const current = snap.data();
+    const patch = { ...stamp(req) };
+
+    if (status !== undefined) {
+      if (!['approved', 'returned'].includes(status)) {
+        return { error: 400, message: 'Status must be approved or returned.' };
+      }
+      if (current.status !== 'submitted') {
+        return { error: 409, message: 'Only files awaiting review can be reviewed.' };
+      }
+      if (status === 'returned' && (typeof response !== 'string' || !response.trim())) {
+        return { error: 400, message: 'Provide a response note when returning a file to the coach.' };
+      }
+      if (response !== undefined && (typeof response !== 'string' || response.trim().length > 500)) {
+        return { error: 400, message: 'Keep the response under 500 characters.' };
+      }
+      patch.status = status;
+      patch.response = (response || '').trim();
+      auditEvent = {
+        action: status === 'approved' ? 'LEARNER_RECORD_APPROVED' : 'LEARNER_RECORD_RETURNED',
+        summary: `Learner record ${snap.id} (${current.title}) ${status === 'approved' ? 'approved' : 'returned to coach'}`
+      };
+    }
+
+    if (typeof sharedWithParents === 'boolean') {
+      const effectiveStatus = patch.status || current.status;
+      if (effectiveStatus !== 'approved') {
+        return { error: 409, message: 'Only approved records can be shared with parents.' };
+      }
+      patch.sharedWithParents = sharedWithParents;
+      patch.sharedAt = sharedWithParents ? new Date().toISOString() : null;
+      if (!auditEvent) {
+        auditEvent = {
+          action: sharedWithParents ? 'LEARNER_RECORD_SHARED' : 'LEARNER_RECORD_UNSHARED',
+          summary: `Learner record ${snap.id} (${current.title}) ${sharedWithParents ? 'shared with parents' : 'unmarked shared with parents'}`
+        };
+      }
+    }
+
+    tx.update(ref, patch);
+    updatedRecord = { ...current, ...patch, id: snap.id };
+    return 200;
+  });
+
+  if (result !== 200) {
+    if (result === 404) return sendError(res, 404, 'NOT_FOUND', 'Record not found.');
+    return sendError(res, result.error, result.error === 409 ? 'CONFLICT' : 'VALIDATION', result.message);
+  }
+
+  if (auditEvent) {
+    try {
+      await writeAuditLog(db, {
+        caller: req.caller,
+        subjectUid: updatedRecord.learnerUid,
+        action: auditEvent.action,
+        summary: auditEvent.summary,
+        details: { recordId: updatedRecord.id, title: updatedRecord.title }
+      });
+    } catch (err) {
+      console.warn('Failed to write audit log for learner record update', err.message);
+    }
+  }
+
+  res.json(stripRecord(updatedRecord));
+});
+
+// L7: Withdraw record (owning coach only, while submitted)
+router.delete('/learner-records/:id', async (req, res) => {
+  const db = getFirestore();
+  const ref = db.collection('learnerRecords').doc(req.params.id);
+
+  let storagePathToDelete = null;
+
+  const result = await db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || !belongs(req, snap.data())) return 404;
+    const current = snap.data();
+    if (current.coachUid !== req.caller.uid) return 403;
+    if (current.status !== 'submitted') return 409;
+    storagePathToDelete = current.storagePath;
+    tx.delete(ref);
+    return 200;
+  });
+
+  if (result !== 200) {
+    if (result === 404) return sendError(res, 404, 'NOT_FOUND', 'Record not found.');
+    if (result === 403) return sendError(res, 403, 'FORBIDDEN', 'You can only withdraw your own uploads.');
+    if (result === 409) return sendError(res, 409, 'CONFLICT', 'Only files awaiting review can be withdrawn.');
+  }
+
+  if (storagePathToDelete) {
+    try {
+      const bucket = getRecordsBucket();
+      await bucket.file(storagePathToDelete).delete({ ignoreNotFound: true });
+    } catch (err) {
+      console.warn('Failed to delete storage object', storagePathToDelete, err.message);
+    }
+  }
+
+  res.json({ ok: true });
+});
+
 export default router;
+

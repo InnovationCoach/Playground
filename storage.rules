@@ -210,5 +210,11 @@ service firebase.storage {
       allow read: if isOwner(ownerUid);
       allow write: if false; // written only by Admin SDK / server
     }
+
+    // Learner Records (portfolios & transcripts, server-managed only)
+    match /learnerRecords/{allPaths=**} {
+      allow read, write: if false;
+    }
   }
 }
+

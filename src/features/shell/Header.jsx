@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Settings, LogOut, Menu, Compass } from 'lucide-react';
+import { ChevronDown, Settings, LogOut, Menu, Compass, Sparkles } from 'lucide-react';
 import { SparkWordmark } from '../spark/SparkMark.jsx';
 import { useLocale } from '../../app/i18n/LocaleProvider.jsx';
 import { hrefFor } from '../../app/routes.js';
 import { LOGO_URL } from '../../app/brand.js';
 import { Avatar } from './Avatar.jsx';
+import { ProfileEditorModal } from './ProfileEditorModal.jsx';
 import { NotificationBell } from '../studentProfile/NotificationBell.jsx';
 import { QuickTourButton } from '../../components/Onboarding/StudentOnboardingModal.jsx';
 
@@ -12,9 +13,10 @@ import { QuickTourButton } from '../../components/Onboarding/StudentOnboardingMo
  * Top bar for every signed-in screen: logo on the left, the account menu on
  * the right (name, role, Settings, Sign out). Signed out, it shows the logo only.
  */
-export function Header({ email, displayName, role, uid, onSignOut, onHome, onMenu, menuOpen = false }) {
+export function Header({ email, displayName, avatar = null, onProfileSaved, role, uid, onSignOut, onHome, onMenu, menuOpen = false }) {
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
   const wrapRef = useRef(null);
   const name = displayName || email?.split('@')[0] || '';
@@ -48,20 +50,33 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome, onMen
           {uid && <NotificationBell uid={uid} />}
           <button type="button" className="gh-user-btn" aria-haspopup="menu" aria-expanded={open}
                   onClick={() => setOpen((o) => !o)}>
-            <Avatar name={name} seed={uid || email} size={30} />
+            <Avatar name={name} seed={uid || email} size={30} avatar={avatar} />
             <span className="gh-user-name">{name}</span>
             <ChevronDown size={16} aria-hidden="true" />
           </button>
           {open && (
             <div className="gh-menu" role="menu">
               <div className="gh-menu-head">
-                <Avatar name={name} seed={uid || email} size={36} />
+                <Avatar name={name} seed={uid || email} size={36} avatar={avatar} />
                 <div style={{ minWidth: 0 }}>
                   <strong>{name}</strong>
                   <span>{email}</span>
                   {role && <span>{t(`role.${role}`)}</span>}
                 </div>
               </div>
+              {uid && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="gh-menu-item"
+                  onClick={() => {
+                    setOpen(false);
+                    setEditingProfile(true);
+                  }}
+                >
+                  <Sparkles size={17} aria-hidden="true" />Edit Profile &amp; Avatar
+                </button>
+              )}
               {role === 'student' && (
                 <button
                   type="button"
@@ -84,6 +99,15 @@ export function Header({ email, displayName, role, uid, onSignOut, onHome, onMen
             </div>
           )}
         </div>
+      )}
+      {editingProfile && uid && (
+        <ProfileEditorModal
+          uid={uid}
+          initialName={displayName || name}
+          initialAvatar={avatar}
+          onClose={() => setEditingProfile(false)}
+          onSaved={onProfileSaved}
+        />
       )}
     </header>
   );

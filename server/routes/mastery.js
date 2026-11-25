@@ -578,6 +578,7 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
 
   // 8. Associate Credit & Award Competency
   let creditAwarded = false;
+  let evidenceApproved = existingMastery.evidenceApproved || false;
   try {
     await masteryClient.attachCompetenciesToEvidence(evidenceId, [
       { id: credit.id, status: 'IN_PROGRESS' }
@@ -587,6 +588,19 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
       status: 'EARNED'
     });
     creditAwarded = true;
+
+    // 8b. Auto-Approve Evidence in Mastery (transitions DRAFT -> APPROVED)
+    // As confirmed by Mastery.org, because work is reviewed in Spark prior to transmission,
+    // approving evidence upon creation immediately displays it on the student's learning record.
+    if (!evidenceApproved) {
+      try {
+        await masteryClient.updateEvidenceStatus(evidenceId, { status: 'APPROVED' });
+        evidenceApproved = true;
+      } catch (statusErr) {
+        console.warn(`[Mastery] Evidence status update to APPROVED failed for evidence ${evidenceId}:`, statusErr.message);
+        evidenceApproved = false;
+      }
+    }
 
     // 9. Post Coach Formative Feedback
     let commentPosted = false;
@@ -623,12 +637,13 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
       evidenceId,
       learnerId: masteryLearnerId,
       creditAwarded: true,
+      evidenceApproved,
       commentPosted,
       fenceToken,
       recordedAt: Date.now(),
       recordedBy: caller.uid,
       phases: {
-        evidence: { status: 'created', evidenceId, title: deterministicTitle },
+        evidence: { status: 'created', evidenceId, title: deterministicTitle, approved: evidenceApproved },
         credit: { status: 'earned', creditId: credit.id, awardedAt: Date.now() },
         comment: { status: commentPosted ? 'posted' : 'none', postedAt: commentPosted ? Date.now() : null }
       },
@@ -645,6 +660,7 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
       mastery: {
         ...masteryRecord,
         evidenceCreated: true,
+        evidenceApproved,
         creditAwarded: true,
         canRetryComment: !commentPosted && Boolean(coachFeedback)
       }
@@ -659,6 +675,7 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
         learnerId: masteryLearnerId,
         creditId: credit.id,
         creditAwarded,
+        evidenceApproved,
         commentPosted: false,
         error: err.message,
         failedAt: Date.now()
@@ -672,6 +689,7 @@ router.post('/evaluations/:submissionId/record', route(async (req, res, caller) 
       partialSuccess: Boolean(evidenceId),
       evidenceId,
       creditAwarded,
+      evidenceApproved,
       commentPosted: false,
       canRetry: true
     });
