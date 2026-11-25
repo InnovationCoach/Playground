@@ -16,6 +16,7 @@ import { SessionGauge, UnavailableDial, StepMeter, Spark } from './Instruments.j
 import { phaseMilestones, phaseStages, goalSteps, gaugeReading } from './instrumentModel.js';
 import { COMPETENCY_DOMAINS } from '../pbl/content/competencies.js';
 import { providerStatus } from '../edmentum/providerState.js';
+import { openEdmentumLtiCourse } from '../edmentum/edmentumDashboardService.js';
 import './learningHub.css';
 
 /** One account-scoped read shared by the plan and progress slides. */
@@ -53,18 +54,85 @@ const EXAMPLES = [
   { id: 'maths', title: 'Patterns everywhere', subject: 'Mathematics', lesson: 'Find a pattern', prompt: 'Find a repeating pattern around you. Sketch its next three steps and explain your rule.' }
 ];
 
-function AcademicLearning({ status = providerStatus(undefined) }) {
+function AcademicLearning({ status = providerStatus(undefined), edmentum = null }) {
   const [examples, setExamples] = useState(false), [sample, setSample] = useState(null);
+  const edmData = edmentum?.data;
+  const edmLoading = Boolean(edmentum?.loading);
+  const courses = edmData?.enrolledClasses || [];
+  const portalUrl = edmData?.edmentumPortalUrl || 'https://f1.apps.elf.edmentum.com/courseware';
+  const connected = edmData?.providerStatus === 'connected';
+  const pillState = edmLoading ? 'unknown' : connected ? 'connected' : status.state;
+  const pillLabel = edmLoading ? 'Syncing…' : connected ? 'Connected' : status.label;
+
   return <div className="sd-academic">
     <div className="sd-empty ig-plate ig-plate-quiet">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-        <span className="ig-status-pill" data-state={status.state}><Unplug size={14} aria-hidden="true" /> {status.label}</span>
+        <span className="ig-status-pill" data-state={pillState}><Unplug size={14} aria-hidden="true" /> {pillLabel}</span>
         <span style={{ fontSize: '11px', color: 'var(--sp-sky-text)', fontWeight: 650 }}>Edmentum</span>
       </div>
       <h4>School courses</h4>
-      <p>{status.detail}</p>
+      {edmLoading ? (
+        <p role="status">Loading your Edmentum courses…</p>
+      ) : connected && courses.length > 0 ? (
+        <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {courses.map((course) => (
+            <li key={course.classId}>
+              <a
+                href={portalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openEdmentumLtiCourse(course, portalUrl);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  padding: '10px 12px',
+                  borderRadius: 12,
+                  background: 'var(--gh-surface, #fff)',
+                  border: '1px solid var(--gh-border, rgba(15,23,42,0.1))',
+                  textDecoration: 'none',
+                  color: 'inherit'
+                }}
+              >
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <strong style={{ fontSize: 14 }}>{course.courseName || course.name}</strong>
+                  <small style={{ fontSize: 12, color: 'var(--gh-text-2, #64748b)' }}>
+                    {course.progressPercent != null ? `${course.progressPercent}% complete` : 'In progress'}
+                    {course.currentGrade != null ? ` · Grade: ${course.currentGrade}%` : ''}
+                  </small>
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-sky-text, #0284c7)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  Open <ArrowRight size={14} />
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>{connected ? 'No active Edmentum courses found for your account yet.' : status.detail}</p>
+      )}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
         <a className="sd-link" href={hrefFor.courses()}>Open My Courses <ArrowRight size={16} /></a>
+        {connected && (
+          <a
+            className="sd-link"
+            href={portalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              if (courses.length > 0) {
+                e.preventDefault();
+                openEdmentumLtiCourse(courses[0], portalUrl);
+              }
+            }}
+          >
+            Open in Edmentum <ArrowRight size={16} />
+          </a>
+        )}
       </div>
     </div>
     <div style={{ marginTop: 12 }}>
@@ -100,7 +168,7 @@ function AcademicLearning({ status = providerStatus(undefined) }) {
  * three things close: real progress they can see (Your sky), what they're good at,
  * and a choice when a step feels too big. Everything here comes from their records.
  */
-export function DailyLearningSlide({ data, model, plan, project, firstName, onToggle, goalsLoaded, goalSync, onOpenActivity, joinPanel = null, edmentumStatus }) {
+export function DailyLearningSlide({ data, model, plan, project, firstName, onToggle, goalsLoaded, goalSync, onOpenActivity, joinPanel = null, edmentumStatus, edmentum = null }) {
   const [chosenId, setChosenId] = useState(null);
   const [justDone, setJustDone] = useState(false);
   const open = model.today.filter((item) => !model.ticked.has(item.id));
@@ -147,12 +215,12 @@ export function DailyLearningSlide({ data, model, plan, project, firstName, onTo
     {joinPanel}
     <details className="lh-full-plan">
       <summary>See my whole plan</summary>
-      <FullPlan data={data} model={model} plan={plan} onToggle={onToggle} goalsLoaded={goalsLoaded} goalSync={goalSync} onOpenActivity={onOpenActivity} edmentumStatus={edmentumStatus} />
+      <FullPlan data={data} model={model} plan={plan} onToggle={onToggle} goalsLoaded={goalsLoaded} goalSync={goalSync} onOpenActivity={onOpenActivity} edmentumStatus={edmentumStatus} edmentum={edmentum} />
     </details>
   </>;
 }
 
-function FullPlan({ data, model, plan, onToggle, goalsLoaded, goalSync, onOpenActivity, edmentumStatus }) {
+function FullPlan({ data, model, plan, onToggle, goalsLoaded, goalSync, onOpenActivity, edmentumStatus, edmentum = null }) {
   const [period, setPeriod] = useState('today');
   const { active: activeGoals, completed: achievedGoals } = splitGoals(plan);
   const completedTasks = plan.goals.flatMap((goal) => goal.steps.filter((s) => s.done).map((step) => ({ ...step, goal: goal.explore })));
@@ -237,7 +305,7 @@ function FullPlan({ data, model, plan, onToggle, goalsLoaded, goalSync, onOpenAc
     <div className="sd-learning-columns lh-columns">
       <section className="sd-learning-lane">
         <h3 id="lh-academic-title">School courses</h3>
-        <AcademicLearning status={edmentumStatus} />
+        <AcademicLearning status={edmentumStatus} edmentum={edmentum} />
       </section>
 
       <section className="sd-learning-lane">
@@ -408,8 +476,14 @@ function TermProjectPlate({ project, renderReadiness }) {
   </section>;
 }
 
-export function ProgressLearningSlide({ data, project, plan, goalsLoaded, goalSync, renderReadiness, renderExtras = null }) {
+export function ProgressLearningSlide({ data, project, plan, goalsLoaded, goalSync, renderReadiness, renderExtras = null, edmentum = null }) {
   const steps = goalSteps(splitGoals(plan).active);
+  const edmData = edmentum?.data;
+  const edmLoading = Boolean(edmentum?.loading);
+  const edmCourses = edmData?.enrolledClasses || [];
+  const edmConnected = edmData?.providerStatus === 'connected';
+  const portalUrl = edmData?.edmentumPortalUrl || 'https://f1.apps.elf.edmentum.com/courseware';
+
   return <>
     <p className="sd-intro">What you’ve finished so far. This shows what’s done, not how fast you are or how you compare with anyone.</p>
     <div className="ig-cluster">
@@ -436,9 +510,66 @@ export function ProgressLearningSlide({ data, project, plan, goalsLoaded, goalSy
       </section>
       <div className="ig-side">
         <section className="ig-plate ig-academic" aria-labelledby="ig-academic-title"><h3 id="ig-academic-title" className="ig-lane-title">School courses</h3>
-          <UnavailableDial label="School courses" status="Not connected" detail="This doesn’t mean zero" />
-          <p className="sd-caption">Your school courses and grades will show here once your school connects them.</p>
-          <a className="sd-link" href={hrefFor.courses()}>Open My Courses <ArrowRight size={16} /></a></section>
+          {edmLoading ? (
+            <p role="status" className="sd-caption">Loading your Edmentum subject progress…</p>
+          ) : edmConnected && edmCourses.length > 0 ? (
+            <ul style={{ listStyle: 'none', margin: '8px 0 12px', padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {edmCourses.map((sub) => (
+                <li key={sub.classId} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 13 }}>
+                    <strong>{sub.courseName || sub.name}</strong>
+                    <span>{sub.progressPercent != null ? `${sub.progressPercent}%` : '—'}</span>
+                  </div>
+                  <div style={{ width: '100%', height: 6, borderRadius: 999, background: 'rgba(15,23,42,0.08)', overflow: 'hidden' }} aria-hidden="true">
+                    <div style={{ width: `${sub.progressPercent ?? 0}%`, height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #0ea5e9, #10b981)' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--gh-text-2, #64748b)' }}>
+                    <span>{sub.activitiesCompleted != null && sub.activitiesTotal != null ? `${sub.activitiesCompleted}/${sub.activitiesTotal} activities` : 'In progress'}</span>
+                    <span>
+                      {sub.currentGrade != null ? `Grade: ${sub.currentGrade}%` : 'No grade yet'}
+                      {' · '}
+                      <a
+                        href={portalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openEdmentumLtiCourse(sub, portalUrl);
+                        }}
+                      >
+                        Open
+                      </a>
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <>
+              <UnavailableDial label="School courses" status={edmConnected ? 'No courses' : 'Not connected'} detail={edmConnected ? 'No active Edmentum sections' : 'This doesn’t mean zero'} />
+              <p className="sd-caption">{edmConnected ? 'No active Edmentum courses found for your account yet.' : 'Your school courses and grades will show here once your school connects them.'}</p>
+            </>
+          )}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <a className="sd-link" href={hrefFor.courses()}>Open My Courses <ArrowRight size={16} /></a>
+            {edmConnected && (
+              <a
+                className="sd-link"
+                href={portalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  if (edmCourses.length > 0) {
+                    e.preventDefault();
+                    openEdmentumLtiCourse(edmCourses[0], portalUrl);
+                  }
+                }}
+              >
+                Open in Edmentum <ArrowRight size={16} />
+              </a>
+            )}
+          </div>
+        </section>
         <section className="ig-plate ig-goal-plate" aria-labelledby="ig-goal-title"><h3 id="ig-goal-title" className="ig-lane-title">My goal steps</h3>
           {!goalsLoaded ? <p role="status" className="sd-caption">Loading your goals…</p> : steps.total ? <>
             <div className="ig-goal-readout"><strong>{steps.done}</strong><small>of {steps.total} steps ticked</small></div>

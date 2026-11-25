@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { schoolRequest } from '../../../services/api/apiClient.js';
 import './pilot.css';
+import { AdminEdmentumCards } from '../../edmentum/EdmentumDashboardCards.jsx';
 
 const request = (method, path, options) => schoolRequest(method, `/api/pilot${path}`, options);
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -597,6 +598,7 @@ export function PilotHome() {
           </a>
         ))}
       </div>
+      <AdminEdmentumCards />
       <p className="gh-muted" style={{ fontSize: '0.85rem' }}>Day-off requests refresh every 30 seconds while this dashboard is open.</p>
     </section>
   );
