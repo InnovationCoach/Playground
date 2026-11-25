@@ -10,7 +10,7 @@ import { HOME_HERO_URL } from '../../app/brand.js';
 import { buildCatalog, searchCatalog } from '../courses/catalog.js';
 import { useAddedCourses } from '../courses/useAddedCourses.js';
 import { CatalogCard } from '../courses/CatalogCard.jsx';
-import { getCustomPrograms, saveCustomProgram } from '../coach/programs/customProgramsStore.js';
+import { getCustomPrograms, saveCustomProgram, isProgramTrashed } from '../coach/programs/customProgramsStore.js';
 import { db, collection, query as firestoreQuery, where, getDocs } from '../../firebase.js';
 import { normaliseContractProgram } from '../../services/pblService.js';
 import { subscribeToPblTransfers } from '../coach/studio/pblTransferService.js';
@@ -124,6 +124,7 @@ export function HomeSearch({ uid, displayName, onOpenActivity, initialQuery = ''
     for (const p of LIBRARY_PROGRAMS) map.set(p.id, p);
     for (const p of customPrograms) map.set(p.id, p);
     for (const p of remotePrograms) map.set(p.id, p);
+    for (const [id, p] of map) if (isProgramTrashed(p)) map.delete(id);
     const allPrograms = Array.from(map.values());
     return buildCatalog({
       activities: ACTIVITY_NAV,

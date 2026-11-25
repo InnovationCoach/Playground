@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { KeyRound, Copy, Check, RefreshCw, Ban, Presentation, X, ExternalLink, Library, Users } from 'lucide-react';
 import { PROGRAMS, programById } from '../pbl/programs/catalog.js';
 import { LIBRARY_PROGRAMS } from '../pbl/programs/libraryProgramsData.js';
-import { getCustomPrograms } from './programs/customProgramsStore.js';
+import { getCustomPrograms, isProgramTrashed } from './programs/customProgramsStore.js';
 import { db, collection, getDocs } from '../../firebase.js';
 import { hrefFor } from '../../app/routes.js';
 import { loadClasses, issueCode, revokeCode, setClassProgram, explainError } from './classCodes.js';
@@ -58,7 +58,7 @@ export function ClassProgramsPanel({ coachUser }) {
         if (snap) {
           snap.forEach((d) => {
             const data = d.data();
-            if (!data) return;
+            if (!data || isProgramTrashed({ ...data, id: d.id })) return;
             const title = data.title || d.id;
             const key = norm(title);
             if (seenTitles.has(key)) return;

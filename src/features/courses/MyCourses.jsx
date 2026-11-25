@@ -17,7 +17,7 @@ import { useClassPrograms } from '../pbl/programs/useClassPrograms.js';
 import { buildCatalog, searchCatalog, countBySource, SOURCES } from './catalog.js';
 import { useAddedCourses } from './useAddedCourses.js';
 import { useProgramSummaries } from './useProgramSummaries.js';
-import { getCustomPrograms, saveCustomProgram } from '../coach/programs/customProgramsStore.js';
+import { getCustomPrograms, saveCustomProgram, isProgramTrashed } from '../coach/programs/customProgramsStore.js';
 import { subscribeToPblTransfers } from '../coach/studio/pblTransferService.js';
 import { getProgram } from '../../services/pblService.js';
 import { db, collection, query, where, getDocs } from '../../firebase.js';
@@ -180,6 +180,7 @@ export function MyCourses({ onOpenActivity, isPrimary, displayName, uid, classId
     for (const p of LIBRARY_PROGRAMS) map.set(p.id, p);
     for (const p of customPrograms) map.set(p.id, p);
     for (const p of remotePrograms) map.set(p.id, p);
+    for (const [id, p] of map) if (isProgramTrashed(p)) map.delete(id);
     return Array.from(map.values());
   }, [customPrograms, remotePrograms]);
 
