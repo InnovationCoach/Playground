@@ -69,7 +69,12 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
   const [localVersions, setLocalVersions] = useState([]);
   const [reflection, setReflection] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
+  // Bumped on every status so the same message (e.g. loading one blueprint twice) still re-announces.
+  const [statusKey, setStatusKey] = useState(0);
+  const [loadedId, setLoadedId] = useState(null);
   const headingRef = useRef(null);
+  const nameRef = useRef(null);
+  const announce = (msg) => { setStatusMsg(msg); setStatusKey((k) => k + 1); };
 
   const liveSim = useMemo(
     () => simulateSpaceshipDesign({ name, purpose, passengers, parts }),
@@ -100,7 +105,7 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
   const handleRunSim = () => {
     const res = simulateSpaceshipDesign({ name, purpose, passengers, parts });
     setSimResult(res);
-    setStatusMsg(res.passed ? 'Simulation passed! Ready to save or submit evidence.' : 'Simulation detected engineering issues to resolve.');
+    announce(res.passed ? 'Simulation passed! Ready to save or submit evidence.' : 'Simulation detected engineering issues to resolve.');
   };
 
   const handleSave = () => {
@@ -119,7 +124,8 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
     };
     if (savedShips.length === 0) setLocalVersions((prev) => [snapshot, ...prev]);
     onSaveProject?.(snapshot);
-    setStatusMsg(`Saved ${snapshot.name} (v${snapshot.version})!`);
+    setLoadedId(snapshot.id);
+    announce(`Saved ${snapshot.name} (v${snapshot.version})!`);
   };
 
   const loadVersion = (ship) => {
@@ -129,7 +135,14 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
     setParts(ship.parts);
     setReflection(ship.reflection || '');
     setSimResult(ship.simulation || null);
-    setStatusMsg(`Loaded ${ship.name} (v${ship.version}).`);
+    setLoadedId(ship.id);
+    announce(`Loaded ${ship.name} (v${ship.version}): name, parts and passengers restored.`);
+    // The restored fields sit at the top of the lab, often scrolled out of view on tablets
+    // and narrow windows; bring them back so the change is visible.
+    requestAnimationFrame(() => {
+      nameRef.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+      nameRef.current?.focus?.({ preventScroll: true });
+    });
   };
 
   return (
@@ -157,7 +170,7 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
         </div>
 
         {statusMsg && (
-          <div className="upg-toast-bar" role="status">
+          <div className="upg-toast-bar" role="status" key={statusKey}>
             <span>{statusMsg}</span>
             <button type="button" className="upg-toast-dismiss" onClick={() => setStatusMsg('')} aria-label="Dismiss status">
               <X size={14} aria-hidden="true" />
@@ -171,6 +184,7 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
               <section className="upg-card">
                 <h3><span>1. Mission Brief &amp; Crew</span><Cpu size={15} aria-hidden="true" /></h3>
                 <input
+                  ref={nameRef}
                   type="text"
                   className="upg-select"
                   value={name}
@@ -312,17 +326,25 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
                 <section className="upg-card">
                   <h3><span>Saved Blueprints</span><span className="upg-tag">{versions.length}</span></h3>
                   <ul className="upg-list">
-                    {versions.slice(0, 5).map((ship) => (
-                      <li className="upg-item" key={ship.id}>
-                        <div className="upg-item-row">
-                          <strong>{ship.name} (v{ship.version})</strong>
-                          <span className="upg-tag">{ship.simulation?.passed ? 'Flight-Certified' : 'Needs Tuning'}</span>
-                        </div>
-                        <button type="button" className="upg-btn" onClick={() => loadVersion(ship)}>
-                          Load Blueprint
-                        </button>
-                      </li>
-                    ))}
+                    {versions.slice(0, 5).map((ship) => {
+                      const isLoaded = loadedId === ship.id;
+                      return (
+                        <li className={`upg-item${isLoaded ? ' is-loaded' : ''}`} key={ship.id} aria-current={isLoaded ? 'true' : undefined}>
+                          <div className="upg-item-row">
+                            <strong>{ship.name} (v{ship.version})</strong>
+                            <span className="upg-tag">{ship.simulation?.passed ? 'Flight-Certified' : 'Needs Tuning'}</span>
+                          </div>
+                          <button
+                            type="button"
+                            className={`upg-btn${isLoaded ? ' upg-btn-complete' : ''}`}
+                            onClick={() => loadVersion(ship)}
+                            aria-label={`Load blueprint ${ship.name} version ${ship.version}`}
+                          >
+                            {isLoaded ? 'Loaded in the lab ✓ (load again)' : 'Load Blueprint'}
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </section>
               )}

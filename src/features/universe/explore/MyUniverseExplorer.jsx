@@ -24,7 +24,7 @@ import { MissionList } from '../missions/MissionList.jsx';
 import { Workstations } from '../missions/Workstations.jsx';
 import { PlaygroundPanel } from '../playground/PlaygroundPanel.jsx';
 import { UniverseOnboardingModal, hasSeenUniverseIntro } from '../playground/UniverseOnboardingModal.jsx';
-import { loadPlaygroundState, savePlaygroundState, syncAchievedGoals } from '../playground/playgroundModel.js';
+import { loadPlaygroundState, mergeRemotePlaygroundState, savePlaygroundState, syncAchievedGoals } from '../playground/playgroundModel.js';
 import { loadRemotePlaygroundState, saveRemotePlaygroundState } from '../playground/playgroundClient.js';
 import './explorer.css';
 
@@ -165,8 +165,11 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     let live = true;
     loadRemotePlaygroundState({ auth: firebase.auth, baseUrl: API_BASE }).then((remote) => {
       if (live && remote) {
-        setPlaygroundState(remote);
-        savePlaygroundState(viewer.uid, remote);
+        setPlaygroundState((prev) => {
+          const merged = mergeRemotePlaygroundState(prev, remote);
+          savePlaygroundState(viewer.uid, merged);
+          return merged;
+        });
       }
     });
     return () => { live = false; };

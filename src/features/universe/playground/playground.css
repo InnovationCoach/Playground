@@ -805,3 +805,6 @@
 @media (max-width: 520px) {
   .upg-telemetry-grid { grid-template-columns: 1fr; }
 }
+
+/* Spaceship Builder: the blueprint currently loaded into the lab */
+.upg-item.is-loaded { border-color: rgba(150, 215, 0, 0.6); box-shadow: inset 3px 0 0 #96d700; }

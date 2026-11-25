@@ -195,3 +195,68 @@ function withHazardOn(state, planetId) {
   const rec = getPlanetRecord(state, id);
   return { ...state, planets: { ...state.planets, [id]: { ...rec, activeHazard: { id: 'h1', name: 'Solar Flare', summary: 'Test hazard', damage: 10 } } } };
 }
+
+describe('Spaceship blueprints: save, load and persistence', () => {
+  const setValue = (el, v) => {
+    const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v);
+    el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+  };
+
+  it('Load Blueprint restores the saved design, marks it loaded and re-announces each time', () => {
+    window.HTMLElement.prototype.scrollIntoView = () => {};
+    render(<SpaceshipBuilderModal planetName="Thalassa" onClose={() => {}} />);
+    const nameInput = () => host.querySelector('input[aria-label="Spaceship name"]');
+    const selects = () => host.querySelectorAll('.upg-lab-modal select');
+    act(() => { setValue(nameInput(), 'Blueprint A'); setValue(selects()[1], 'plasma-drive'); });
+    act(() => byText('.upg-lab-modal button', 'Save Version').click());
+    act(() => { setValue(nameInput(), 'Changed B'); setValue(selects()[1], 'ion-thruster'); });
+    expect(nameInput().value).toBe('Changed B');
+
+    act(() => host.querySelector('button[aria-label^="Load blueprint Blueprint A"]').click());
+    expect(nameInput().value).toBe('Blueprint A');
+    expect(selects()[1].value).toBe('plasma-drive');
+    const item = host.querySelector('.upg-item.is-loaded');
+    expect(item.getAttribute('aria-current')).toBe('true');
+    expect(item.textContent).toContain('Loaded in the lab');
+    const first = host.querySelector('.upg-toast-bar');
+    expect(first.textContent).toContain('Loaded Blueprint A (v1)');
+
+    act(() => host.querySelector('button[aria-label^="Load blueprint Blueprint A"]').click());
+    expect(host.querySelector('.upg-toast-bar')).not.toBe(first); // remounted, so screen readers hear it again
+  });
+
+  it('keeps local blueprints when the server copy has none', async () => {
+    const { mergeRemotePlaygroundState, saveSpaceshipProject } = await import('../src/features/universe/playground/playgroundModel.js');
+    let local = initialPlaygroundState('thalassa');
+    local = saveSpaceshipProject(local, { id: 'ship-a', version: 1, name: 'A', savedAt: '2026-11-25T01:00:00.000Z' });
+    local = saveSpaceshipProject(local, { id: 'ship-b', version: 2, name: 'B', savedAt: '2026-11-25T02:00:00.000Z' });
+    const remote = { ...initialPlaygroundState('ignis'), credits: 300 };
+    delete remote.savedShips; // the server sanitizer drops this field today
+    const merged = mergeRemotePlaygroundState(local, remote);
+    expect(merged.credits).toBe(300);
+    expect(merged.claimedPlanetId).toBe('ignis');
+    expect(merged.savedShips.map((s) => s.id)).toEqual(['ship-b', 'ship-a']);
+    const both = mergeRemotePlaygroundState(local, { ...remote, savedShips: [{ id: 'ship-c', name: 'C', savedAt: '2026-11-25T03:00:00.000Z' }, { id: 'ship-a', name: 'A', savedAt: '2026-11-25T01:00:00.000Z' }] });
+    expect(both.savedShips.map((s) => s.id)).toEqual(['ship-c', 'ship-b', 'ship-a']);
+    expect(mergeRemotePlaygroundState(local, null)).toBe(local);
+  });
+
+  it('sends contractVersion with every playground save', async () => {
+    const { saveRemotePlaygroundState } = await import('../src/features/universe/playground/playgroundClient.js');
+    const { API_CONTRACT_VERSION } = await import('../shared/universe/index.js');
+    const calls = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (url, init) => { calls.push({ url, init }); return { ok: true }; };
+    try {
+      const ok = await saveRemotePlaygroundState({ auth: { currentUser: { getIdToken: async () => 'tok' } }, baseUrl: '', state: { version: 1 } });
+      expect(ok).toBe(true);
+      const body = JSON.parse(calls[0].init.body);
+      expect(body.contractVersion).toBe(API_CONTRACT_VERSION);
+      expect(body.state).toEqual({ version: 1 });
+      expect(calls[0].init.headers['X-Universe-Contract-Version']).toBe(API_CONTRACT_VERSION);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+});

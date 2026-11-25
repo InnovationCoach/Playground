@@ -583,6 +583,24 @@ export function saveSpaceshipProject(state, snapshot) {
 }
 
 /**
+ * Adopts the server copy of the playground without losing learner work the server does
+ * not store yet. Today the server's sanitizer drops `savedShips`, so a remote load would
+ * wipe every saved Spaceship blueprint; this keeps the union of both lists (by id, newest
+ * first, max 20). Everything else comes from the server copy.
+ */
+export function mergeRemotePlaygroundState(local, remote) {
+  if (!remote || typeof remote !== 'object') return local;
+  const byId = new Map();
+  for (const ship of [...(Array.isArray(remote.savedShips) ? remote.savedShips : []), ...(Array.isArray(local?.savedShips) ? local.savedShips : [])]) {
+    if (ship && ship.id && !byId.has(ship.id)) byId.set(ship.id, ship);
+  }
+  const savedShips = [...byId.values()]
+    .sort((a, b) => String(b.savedAt || '').localeCompare(String(a.savedAt || '')))
+    .slice(0, 20);
+  return { ...remote, savedShips };
+}
+
+/**
  * Computes the single highest-value next action for a learner on their active exoplanet.
  * Reduces executive-function friction by surfacing one clear step at a time.
  */

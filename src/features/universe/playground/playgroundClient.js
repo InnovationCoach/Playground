@@ -4,8 +4,14 @@
  * user is present; falls back silently to localStorage in offline/preview mode.
  */
 
+import { API_CONTRACT_VERSION } from '../../../../shared/universe/index.js';
+
+// The /api/universe transport guard rejects any PUT/POST without a matching contractVersion
+// (400 CONTRACT_VERSION_UNSUPPORTED), so every save must carry it in the body and header.
+const CONTRACT_HEADER = 'X-Universe-Contract-Version';
+
 async function authHeaders(auth) {
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = { 'Content-Type': 'application/json', [CONTRACT_HEADER]: API_CONTRACT_VERSION };
   const token = await auth?.currentUser?.getIdToken?.();
   if (!token) return null;
   headers.Authorization = `Bearer ${token}`;
@@ -32,7 +38,7 @@ export async function saveRemotePlaygroundState({ auth, baseUrl = '', state } = 
     const res = await fetch(`${baseUrl}/api/universe/playground/state`, {
       method: 'PUT',
       headers,
-      body: JSON.stringify({ state })
+      body: JSON.stringify({ contractVersion: API_CONTRACT_VERSION, state })
     });
     return res.ok;
   } catch {
