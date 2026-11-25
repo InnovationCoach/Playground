@@ -3,12 +3,13 @@ import { createApp } from './app.js';
 import { initAdmin } from './auth.js';
 
 dotenv.config();
+dotenv.config({ path: '.env.edmentum', override: false });
 
 const PORT = process.env.PORT || 3001;
 
 const adminReady = initAdmin();
 const app = createApp();
-const geminiConfig = app.locals.geminiConfig || { model: 'gemini-2.5-flash', configured: false };
+const geminiConfig = app.locals.geminiConfig || { model: 'gemini-3.5-flash-lite', configured: false };
 
 let bannerTimer = null;
 const server = app.listen(PORT, () => {

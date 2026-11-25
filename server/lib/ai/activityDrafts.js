@@ -18,8 +18,8 @@ export function privacyCheck(values) {
 export function configuredAdapter(req) {
   // Test injection is held on the server, never accepted from a request body.
   if (req.app.locals.activityAdapterFactory) return req.app.locals.activityAdapterFactory();
-  const apiKey = process.env.SCHOOL_GEMINI_API_KEY || process.env['school-gemini-api-key'];
-  const model = process.env.COACH_ACTIVITY_GEMINI_MODEL || 'gemini-2.5-flash';
+  const apiKey = process.env.SCHOOL_GEMINI_API_KEY || process.env['school-gemini-api-key'] || process.env.GEMINI_API_KEY;
+  const model = process.env.COACH_ACTIVITY_GEMINI_MODEL || 'gemini-3.5-flash-lite';
   if (!apiKey || apiKey === 'NOT_CONFIGURED' || !model) fail(409, 'AI_NOT_CONFIGURED', 'The school AI connection is not configured. You can still create a manual activity.');
   return createAdapter({ apiKey, model });
 }

@@ -227,15 +227,28 @@ export const geminiApi = {
    * It now goes through the server, which holds the key and applies safety
    * settings, age banding and the safeguarding transcript.
    */
-  async generateContextualResponse(promptText, activityContext = '', ageBand = null) {
+  async generateContextualResponse(promptTextOrPayload, activityContext = '', ageBand = null) {
+    const isPayload = promptTextOrPayload && typeof promptTextOrPayload === 'object' && !Array.isArray(promptTextOrPayload);
+    const body = isPayload
+      ? {
+          message: promptTextOrPayload.message,
+          activityContext: promptTextOrPayload.activityContext ?? activityContext ?? '',
+          dashboardContext: promptTextOrPayload.dashboardContext ?? null,
+          history: Array.isArray(promptTextOrPayload.history) ? promptTextOrPayload.history : [],
+          action: promptTextOrPayload.action || 'custom_question',
+          ageBand: promptTextOrPayload.ageBand || ageBand || getAgeBand(),
+          ...(promptTextOrPayload.image ? { image: promptTextOrPayload.image } : {})
+        }
+      : {
+          message: promptTextOrPayload,
+          activityContext,
+          ageBand: ageBand || getAgeBand()
+        };
+
     const response = await fetch(`${API_BASE_URL}/api/tutor`, {
       method: 'POST',
       headers: await authHeaders(),
-      body: JSON.stringify({
-        message: promptText,
-        activityContext,
-        ageBand: ageBand || getAgeBand()
-      })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {

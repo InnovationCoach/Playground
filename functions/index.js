@@ -117,14 +117,14 @@ export const generateCoachCue = onCall(async (request) => {
   const studentSnap = await db.collection('users').doc(sub.studentId).get();
   const student = studentSnap.exists ? studentSnap.data() : {};
 
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.SCHOOL_GEMINI_API_KEY;
   let cueText = '';
 
   if (apiKey) {
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
 
       const prompt = `You are an expert pedagogical coach at WeLearn SPARK.
 Generate a concise, 1-2 sentence actionable coaching cue for the teacher reviewing this student submission.

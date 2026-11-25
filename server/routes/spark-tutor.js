@@ -50,7 +50,7 @@ export function createSparkTutorRouter(options = {}) {
   const router = Router();
   const engine = options.engine || new SparkTutorEngine({
     adapter: options.adapter || null,
-    modelName: options.modelName || process.env.GEMINI_MODEL || 'gemini-3.6-flash'
+    modelName: options.modelName || process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
   });
 
   const rateLimiter = options.rateLimiter || createRateLimiter({ maxEntries: 1000 });
