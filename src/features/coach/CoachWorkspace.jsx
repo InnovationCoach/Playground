@@ -9,6 +9,7 @@ import { TERM, PHASES } from '../pbl/content/pblModel.js';
 import { safeLink } from '../pbl/engine/pblProject.js';
 import { activityProgress, dateLabel, projectProgress, STEAM_ACTIVITIES } from './progressModel.js';
 import { isRosterLearner } from './learners/rosterFilter.js';
+import { COHORT_OPTIONS, COHORT_SCOPES, learnerCohortId } from './learners/learnerCohort.js';
 import '../admin/admin.css';
 import './coachWorkspace.css';
 import { CommunityFeed } from '../community/CommunityFeed.jsx';
@@ -19,6 +20,7 @@ import { SparkReviewDesk, SparkSafeguardingBanner } from '../sparkTutor/SparkRev
 import { useSparkSummaries } from '../sparkTutor/useSparkSummaries.js';
 import { sparkTutorUiEnabled } from '../sparkTutor/sparkTutorModel.js';
 import { LearnerSupervisionView } from './supervision/LearnerSupervisionView.jsx';
+import { CoachEdmentumCards } from '../edmentum/EdmentumDashboardCards.jsx';
 
 const SECTIONS = [['overview', 'Today', LayoutDashboard], ['supervision', 'Studio Supervision', Users], ['pbl', 'PBL programs', BookOpen], ['steam', 'STEAM Activities', FlaskConical], ['academic', 'Academic Progress', GraduationCap], ['goals', 'Learning Goals', FileText], ['calendar', 'School Calendar', LayoutDashboard], ['community', 'Posts for students', FileText]];
 // The Spark Review Desk appears only where the companion is switched on.
@@ -173,8 +175,8 @@ export function CoachWorkspace({ coachUser, onAddStudent, rosterVersion = 0, ini
 
   // Loaded once for every tab so a safeguarding concern is never hidden on the desk.
   const spark = useSparkSummaries(sparkTutorUiEnabled);
-  const scope = data.classes.some(c => c.id === classId) ? classId : 'all';
-  const classLearners = data.learners.filter(l => scope === 'all' || (scope.startsWith('cohort:') ? l.cohortId === scope.slice(7) : l.classIds?.includes(scope)));
+  const scope = COHORT_SCOPES.includes(classId) || data.classes.some(c => c.id === classId) ? classId : 'all';
+  const classLearners = data.learners.filter(l => scope === 'all' || (scope.startsWith('cohort:') ? learnerCohortId(l) === scope.slice(7) : l.classIds?.includes(scope)));
   const learners = classLearners.filter(l => `${l.displayName || ''} ${l.email || ''}`.toLowerCase().includes(search.trim().toLowerCase()));
   const selected = learners.find(l => l.uid === selectedId);
   const projects = classLearners.map(l => !l.recordError && projectProgress(l.records)).filter(Boolean);
@@ -184,14 +186,15 @@ export function CoachWorkspace({ coachUser, onAddStudent, rosterVersion = 0, ini
 
   return <main className="gh-app cw-app"><div className="cw-page">
     <div className="cw-heading"><div><span className="cw-eyebrow">YOUR COACHING WORKSPACE</span><h1>See the learning. Guide the next step.</h1><p>PBL projects, STEAM investigations and academic learning, in one place.</p></div><div className="cw-tools">{onAddStudent && <button className="gh-btn gh-btn-primary" onClick={onAddStudent}>Add a student</button>}<button className="gh-btn gh-btn-ghost" onClick={() => { setSection('pbl'); setSelectedId(null); }}>{t('openPrograms')}</button><button className="gh-btn gh-btn-ghost" disabled={data.state === 'loading'} onClick={() => setReload(n => n + 1)}><RefreshCw size={16} /> Refresh records</button></div></div>
-    <div className="cw-context"><div className="cw-class"><label htmlFor="cw-class">Class</label><select id="cw-class" className="gh-select" value={scope} onChange={e => { setClassId(e.target.value); onClassChange?.(e.target.value); setSelectedId(null); }}><option value="all">All · WLS · WHS</option><option value="cohort:cohort-wls">WLS · Grade 6–8</option><option value="cohort:cohort-whs">WHS · Grade 9–12</option>{data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div><strong>Legacy portfolio: {TERM.label}</strong><span className="cw-muted">{` · ${TERM.theme}`}</span></div><span className="cw-updated">{data.updatedAt ? `Loaded ${dateLabel(data.updatedAt)}` : 'Cloud records'}</span></div>
+    <div className="cw-context"><div className="cw-class"><label htmlFor="cw-class">Class</label><select id="cw-class" className="gh-select" value={scope} onChange={e => { setClassId(e.target.value); onClassChange?.(e.target.value); setSelectedId(null); }}><option value="all">All · WPR · WLS · WHS</option>{COHORT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}{data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div><strong>Legacy portfolio: {TERM.label}</strong><span className="cw-muted">{` · ${TERM.theme}`}</span></div><span className="cw-updated">{data.updatedAt ? `Loaded ${dateLabel(data.updatedAt)}` : 'Cloud records'}</span></div>
     {section !== 'spark' && <SparkSafeguardingBanner summaries={spark} onOpen={() => { setSection('spark'); setSelectedId(null); }} />}
     <nav className="cw-sections" aria-label="Coach progress sections">{VISIBLE_SECTIONS.map(([id, label, Icon]) => <button key={id} aria-current={section === id ? 'page' : undefined} onClick={() => { setSection(id); setSelectedId(null); }}><Icon size={18} />{label}</button>)}</nav>
     {data.state === 'loading' && <Empty title="Loading your classes" text="Checking access and retrieving learner records." />}
     {data.state === 'unassigned' && <Empty title="Your coach class access needs checking" text="You are signed in, but verified coach and class access is missing. Ask an administrator to check your account’s class assignments."><button className="gh-btn gh-btn-primary" onClick={() => setReload(n => n + 1)}>Check access again</button><small>This checks your current access. It does not change permissions.</small></Empty>}
     {data.state === 'error' && <div role="alert"><Empty title="Class records are unavailable" text={data.error}><button className="gh-btn gh-btn-primary" onClick={() => setReload(n => n + 1)}>Try again</button></Empty></div>}
+    {data.learners === FALLBACK_LEARNERS && <p className="cw-warning" role="status"><strong>Sample learners · local preview only.</strong> These are not real records. On the live site this roster shows only your assigned learners.</p>}
     {data.failedClassIds?.length > 0 && <p className="cw-warning" role="alert">Some class rosters could not be loaded. Learner totals and summaries are incomplete. Use Refresh records to try again.</p>}
-    {section === 'community' && <CommunityFeed />}
+    {section === 'community' && <CommunityFeed variant="coach" />}
     {section === 'spark' && <SparkReviewDesk summaries={spark} classes={data.classes} scope={scope} />}
     {section === 'supervision' && (
       <div style={{ marginTop: '1rem' }}>
@@ -208,7 +211,7 @@ export function CoachWorkspace({ coachUser, onAddStudent, rosterVersion = 0, ini
       </div>
     )}
     {section === 'pbl' && <div style={{ marginTop: '1rem' }}><ProgramLibrary isCoach={true} classIds={data.classes.map(c => c.id)} /></div>}
-    {['academic','goals','calendar'].includes(section) && <SchoolLearningPanel classScope={scope} hideTabs initialArea={section} />}
+    {['academic','goals','calendar'].includes(section) && <SchoolLearningPanel classScope={scope.startsWith('cohort:') ? 'all' : scope} hideTabs initialArea={section} variant="coach" />}
     {data.state === 'ready' && ['overview','steam'].includes(section) && <>
       {section === 'overview' && <>
         <div className="cw-today-grid" aria-label="Today focus areas">
@@ -279,6 +282,7 @@ export function CoachWorkspace({ coachUser, onAddStudent, rosterVersion = 0, ini
             <button key={id} onClick={() => { setSection(id); }}><span className={`cw-domain-icon cw-${id}`}><Icon size={22} /></span><strong>{title}</strong><p>{text}</p><span>{action}<ArrowUpRight size={16} /></span></button>
           )}
         </div>
+        <CoachEdmentumCards />
       </>}
       {unavailable > 0 && <p className="cw-warning" role="status">{unavailable} learner record sets could not be read. PBL summaries include only available records.</p>}
       <div className="cw-workspace"><section className="cw-roster"><div className="cw-roster-heading"><div><h2>{section === 'overview' ? 'Your learners' : section === 'pbl' ? 'Existing Sustainable Futures portfolios' : 'STEAM activity progress'}</h2><p>{learners.length} of {classLearners.length} learners · Select a learner to inspect work</p></div><label className="cw-search"><Search size={16} /><span className="cw-sr">Search learners</span><input type="search" placeholder="Search learners" value={search} onChange={e => setSearch(e.target.value)} /></label></div>

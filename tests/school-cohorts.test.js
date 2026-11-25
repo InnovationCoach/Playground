@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cohortForAge, SCHOOL_COHORTS } from '../src/utils/schoolCohorts.js';
+import { cohortForAge, cohortForGrade as cohortForSchoolGrade, SCHOOL_COHORTS } from '../src/utils/schoolCohorts.js';
 
 describe('programme cohort boundaries', () => {
   it.each([[6, 'LPRI'], [8, 'LPRI'], [9, 'HPRI'], [10, 'HPRI'], [11, 'WLS'], [14, 'WLS'], [15, 'WHS'], [18, 'WHS']])('assigns age %s to %s', (age, code) => {
@@ -10,7 +10,17 @@ describe('programme cohort boundaries', () => {
     expect(cohortForAge(age)).toBeNull();
   });
   it('lists cohorts in primary, then WLS, then WHS order', () => {
-    expect(SCHOOL_COHORTS.map(c => c.code)).toEqual(['LPRI', 'HPRI', 'WLS', 'WHS']);
+    expect(SCHOOL_COHORTS.map(c => c.code)).toEqual(['WPR', 'LPRI', 'HPRI', 'WLS', 'WHS']);
+  });
+  it.each([[1, 'WPR'], [5, 'WPR'], [6, 'WLS'], [8, 'WLS'], [9, 'WHS'], [12, 'WHS'], ['3', 'WPR']])('places grade %s in %s', (grade, code) => {
+    expect(cohortForSchoolGrade(grade)?.code).toBe(code);
+  });
+  it.each([0, 13, 2.5, 'abc', null])('places no cohort for grade %s', grade => {
+    expect(cohortForSchoolGrade(grade)).toBeNull();
+  });
+  it('keeps age placement on the age-based primary cohorts (WPR is grade-only)', () => {
+    expect(cohortForAge(7)?.code).toBe('LPRI');
+    expect(SCHOOL_COHORTS.find(c => c.code === 'WPR')).toMatchObject({ cohortId: 'cohort-wpr', grades: [1, 5], ageBands: ['primary'] });
   });
 });
 

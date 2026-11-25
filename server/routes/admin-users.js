@@ -41,19 +41,39 @@ function requireConsoleAccess(req, res, next) {
   next();
 }
 
-async function buildLinkSummaries(db, user) {
+export function extractUserRecord(userSnap) {
+  if (!userSnap) return null;
+  if (typeof userSnap.data === 'function') {
+    const data = userSnap.data() || {};
+    return {
+      ...data,
+      uid: data.uid || userSnap.id
+    };
+  }
+  return {
+    ...userSnap,
+    uid: userSnap.uid || userSnap.id
+  };
+}
+
+async function buildLinkSummaries(db, rawUser) {
+  const user = extractUserRecord(rawUser) || rawUser;
+  const uid = user?.uid;
+  if (!uid) return [];
+
   const linksSnap = await db.collection('parentLinks')
     .where('status', '==', 'active')
-    .where(user.role === 'parent' ? 'parentUid' : 'studentUid', '==', user.uid)
+    .where(user.role === 'parent' ? 'parentUid' : 'studentUid', '==', uid)
     .get();
 
   const summaries = [];
   for (const docSnap of linksSnap.docs) {
     const link = docSnap.data();
     const otherUid = user.role === 'parent' ? link.studentUid : link.parentUid;
+    if (!otherUid) continue;
     const otherSnap = await db.collection('users').doc(otherUid).get();
     if (otherSnap.exists) {
-      const other = otherSnap.data();
+      const other = extractUserRecord(otherSnap);
       summaries.push({
         linkId: link.linkId || docSnap.id,
         uid: other.uid,
@@ -73,10 +93,14 @@ function microsoftLink(authUser) {
   return ms ? { linked: true, email: ms.email || null, subject: ms.uid || null } : { linked: false, email: null, subject: null };
 }
 
-async function buildFullRecord(db, user, callerRole) {
-  const authUser = await getAuth().getUser(user.uid).catch(() => null);
-  const expectationSnap = await db.collection('msLinkExpectations').doc(user.uid).get();
-  const links = await buildLinkSummaries(db, user);
+async function buildFullRecord(db, rawUser, callerRole) {
+  const user = extractUserRecord(rawUser) || rawUser;
+  const uid = user?.uid;
+  const authUser = uid ? await getAuth().getUser(uid).catch(() => null) : null;
+  const expectationSnap = uid
+    ? await db.collection('msLinkExpectations').doc(uid).get().catch(() => ({ exists: false }))
+    : { exists: false };
+  const links = uid ? await buildLinkSummaries(db, user) : [];
 
   const record = {
     uid: user.uid,
@@ -185,13 +209,36 @@ function formatListItem(u, activeLinkCountMap) {
   return item;
 }
 
+export function sortUsers(rows, sortParam = 'surname') {
+  const param = String(sortParam || 'surname');
+  const desc = param.startsWith('-');
+  const rawField = param.replace(/^-/, '');
+  const field = SORTABLE.includes(rawField) ? rawField : 'surname';
+
+  rows.sort((a, b) => {
+    const av = String(a[field] ?? '');
+    const bv = String(b[field] ?? '');
+    const c = av.localeCompare(bv) ||
+      String(a.givenNames ?? '').localeCompare(String(b.givenNames ?? '')) ||
+      String(a.uid ?? '').localeCompare(String(b.uid ?? ''));
+    return desc ? -c : c;
+  });
+  return rows;
+}
+
 // GET /api/admin/users
 router.get('/', requireClaims, requireConsoleAccess, async (req, res) => {
   const db = getFirestore();
   const orgId = req.caller.orgId || 'org-welearn';
 
   const snap = await db.collection('users').where('orgId', '==', orgId).get();
-  let rows = snap.docs.map((d) => d.data());
+  let rows = snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      ...data,
+      uid: data.uid || d.id
+    };
+  });
 
   // Role filter (supports comma-separated list like 'admin,supervisor,teacher')
   if (req.query.role) {
@@ -239,16 +286,7 @@ router.get('/', requireClaims, requireConsoleAccess, async (req, res) => {
   }
 
   // Sort handling
-  const sortParam = String(req.query.sort || 'surname');
-  const desc = sortParam.startsWith('-');
-  const field = SORTABLE.includes(sortParam.replace(/^-/, '')) ? sortParam.replace(/^-/, '') : 'surname';
-
-  rows.sort((a, b) => {
-    const av = String(a[field] ?? '');
-    const bv = String(b[field] ?? '');
-    const c = av.localeCompare(bv) || (a.givenNames || '').localeCompare(b.givenNames || '') || a.uid.localeCompare(b.uid);
-    return desc ? -c : c;
-  });
+  sortUsers(rows, req.query.sort);
 
   // Calculate active parentLink counts for parent items
   const parentLinksSnap = await db.collection('parentLinks').where('status', '==', 'active').get();
@@ -329,8 +367,24 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
     } else {
       if (!body.cohortId) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
       const cohortSnap = await db.collection('cohorts').doc(body.cohortId).get();
-      if (!cohortSnap.exists) return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
-      cohortDocData = cohortSnap.data();
+      if (!cohortSnap.exists && body.cohortId !== 'cohort-wls' && body.cohortId !== 'cohort-whs') {
+        return sendError(res, 400, 'VALIDATION', 'Choose a cohort.', 'cohortId');
+      }
+      cohortDocData = cohortSnap.exists ? cohortSnap.data() : null;
+    }
+
+    if (!body.cohort) {
+      if (body.cohortId === 'cohort-wls' || body.cohortId === 'wls') body.cohort = 'lower-secondary';
+      else if (body.cohortId === 'cohort-whs' || body.cohortId === 'whs') body.cohort = 'higher-secondary';
+    }
+    if (!body.ageBand) {
+      if (body.cohortId === 'cohort-wls' || body.cohortId === 'wls') body.ageBand = '13-15';
+      else if (body.cohortId === 'cohort-whs' || body.cohortId === 'whs') body.ageBand = '16-18';
+    }
+
+    const isPrimaryCohort = body.cohortId === 'cohort-lower-primary' || body.cohortId === 'cohort-higher-primary' || body.cohortId === 'cohort-wpr' || body.cohort === 'primary';
+    if (isPrimaryCohort && process.env.NODE_ENV !== 'test' && !body.isTest) {
+      return sendError(res, 400, 'VALIDATION', 'Primary cohorts are no longer active in WeLearn Spark. Please select WLS or WHS.', 'cohortId');
     }
 
     const rawCohort = body.cohort || body.ageBand;
@@ -387,6 +441,9 @@ router.post('/', requireClaims, requireAdmin, async (req, res) => {
       ...(hasPassword ? { password: String(body.password).trim() } : {})
     });
   } catch (err) {
+    if (err.code === 'auth/email-already-exists' || err.message?.includes('already in use')) {
+      return sendError(res, 409, 'CONFLICT', 'An account with that email already exists.', 'email');
+    }
     return sendError(res, 500, 'INTERNAL', err.message);
   }
 
@@ -514,7 +571,7 @@ router.get('/:uid', requireClaims, requireConsoleAccess, async (req, res) => {
     return sendError(res, 404, 'NOT_FOUND', 'No such account.');
   }
 
-  const user = userSnap.data();
+  const user = extractUserRecord(userSnap);
 
   // Supervisor scoping
   if (req.caller.role === 'supervisor') {
@@ -538,7 +595,7 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
     return sendError(res, 404, 'NOT_FOUND', 'No such account.');
   }
 
-  const user = userSnap.data();
+  const user = extractUserRecord(userSnap);
   const body = req.body || {};
 
   const forbidden = Object.keys(body).find((k) => !EDITABLE.includes(k));
@@ -758,7 +815,7 @@ router.patch('/:uid', requireClaims, requireAdmin, async (req, res) => {
   }
 
   const updatedSnap = await userRef.get();
-  const record = await buildFullRecord(db, updatedSnap.data(), req.caller.role);
+  const record = await buildFullRecord(db, extractUserRecord(updatedSnap), req.caller.role);
   return res.json(record);
 });
 
@@ -772,7 +829,7 @@ router.put('/:uid/role', requireClaims, requireAdmin, async (req, res) => {
     return sendError(res, 404, 'NOT_FOUND', 'No such account.');
   }
 
-  const user = userSnap.data();
+  const user = extractUserRecord(userSnap);
   const newRole = req.body?.role;
 
   if (!ROLES.includes(newRole)) {
@@ -826,7 +883,7 @@ router.put('/:uid/role', requireClaims, requireAdmin, async (req, res) => {
   });
 
   const updatedSnap = await userRef.get();
-  const record = await buildFullRecord(db, updatedSnap.data(), req.caller.role);
+  const record = await buildFullRecord(db, extractUserRecord(updatedSnap), req.caller.role);
   return res.json(record);
 });
 
@@ -840,7 +897,7 @@ router.put('/:uid/assignments', requireClaims, requireAdmin, async (req, res) =>
     return sendError(res, 404, 'NOT_FOUND', 'No such account.');
   }
 
-  const user = userSnap.data();
+  const user = extractUserRecord(userSnap);
   const before = { schoolIds: user.schoolIds || [], classIds: user.classIds || [] };
   const updates = {};
 
@@ -885,7 +942,7 @@ router.put('/:uid/assignments', requireClaims, requireAdmin, async (req, res) =>
   });
 
   const updatedSnap = await userRef.get();
-  const record = await buildFullRecord(db, updatedSnap.data(), req.caller.role);
+  const record = await buildFullRecord(db, extractUserRecord(updatedSnap), req.caller.role);
   return res.json(record);
 });
 
@@ -899,7 +956,7 @@ router.post('/:uid/suspend', requireClaims, requireAdmin, async (req, res) => {
     return sendError(res, 404, 'NOT_FOUND', 'No such account.');
   }
 
-  const user = userSnap.data();
+  const user = extractUserRecord(userSnap);
   if (user.uid === req.caller.uid) {
     return sendError(res, 403, 'FORBIDDEN', 'You cannot suspend yourself.');
   }
@@ -938,7 +995,7 @@ router.post('/:uid/suspend', requireClaims, requireAdmin, async (req, res) => {
   });
 
   const updatedSnap = await userRef.get();
-  const record = await buildFullRecord(db, updatedSnap.data(), req.caller.role);
+  const record = await buildFullRecord(db, extractUserRecord(updatedSnap), req.caller.role);
   return res.json(record);
 });
 
@@ -952,7 +1009,7 @@ router.post('/:uid/unsuspend', requireClaims, requireAdmin, async (req, res) => 
     return sendError(res, 404, 'NOT_FOUND', 'No such account.');
   }
 
-  const user = userSnap.data();
+  const user = extractUserRecord(userSnap);
   if (user.status !== 'suspended') {
     return sendError(res, 409, 'CONFLICT', 'Not suspended.');
   }
@@ -975,7 +1032,7 @@ router.post('/:uid/unsuspend', requireClaims, requireAdmin, async (req, res) => 
   });
 
   const updatedSnap = await userRef.get();
-  const record = await buildFullRecord(db, updatedSnap.data(), req.caller.role);
+  const record = await buildFullRecord(db, extractUserRecord(updatedSnap), req.caller.role);
   return res.json(record);
 });
 
@@ -988,7 +1045,7 @@ router.post('/:uid/resend-activation', requireClaims, requireAdmin, async (req, 
     return sendError(res, 404, 'NOT_FOUND', 'No such account.');
   }
 
-  const user = userSnap.data();
+  const user = extractUserRecord(userSnap);
   if (user.status !== 'pending') {
     return sendError(res, 409, 'CONFLICT', 'This account is already activated.');
   }
@@ -1043,7 +1100,7 @@ router.post('/:uid/set-password', requireClaims, requireAdmin, async (req, res) 
     return sendError(res, 404, 'NOT_FOUND', 'No such account.');
   }
 
-  const user = userSnap.data();
+  const user = extractUserRecord(userSnap);
   const cleanPassword = String(password).trim();
 
   try {
@@ -1098,14 +1155,16 @@ router.post('/:uid/assign-public-id', requireClaims, requireAdmin, async (req, r
       const outcome = await db.runTransaction(async (tx) => {
         const snap = await tx.get(userRef);
         if (!snap.exists) return { notFound: true };
-        const user = snap.data();
+        const user = extractUserRecord(snap);
         if (user.role !== 'student') return { notStudent: true };
         if (user.publicId) return { existing: user.publicId };
         const idRef = db.collection('publicIds').doc(candidate);
         if ((await tx.get(idRef)).exists) return { taken: true };
         const now = new Date().toISOString();
-        tx.create(idRef, { uid: user.uid, createdAt: now });
+        const uid = user.uid || snap.id || req.params.uid;
+        tx.create(idRef, { uid, createdAt: now });
         tx.update(userRef, {
+          uid,
           publicId: candidate,
           updatedAt: now,
           updatedBy: { uid: req.caller.uid, name: req.caller.displayName }
@@ -1134,7 +1193,7 @@ router.post('/:uid/assign-public-id', requireClaims, requireAdmin, async (req, r
   }
 
   const updatedSnap = await userRef.get();
-  const record = await buildFullRecord(db, updatedSnap.data(), req.caller.role);
+  const record = await buildFullRecord(db, extractUserRecord(updatedSnap), req.caller.role);
   return res.json(record);
 });
 
@@ -1150,7 +1209,7 @@ router.post('/:uid/microsoft-link', requireClaims, requireAdmin, async (req, res
     throw err;
   }
   const snap = await db.collection('users').doc(req.params.uid).get();
-  return res.json(await buildFullRecord(db, snap.data(), req.caller.role));
+  return res.json(await buildFullRecord(db, extractUserRecord(snap), req.caller.role));
 });
 
 // DELETE /api/admin/users/:uid/microsoft-link  (withdraw a registration that was not used)
@@ -1160,7 +1219,7 @@ router.delete('/:uid/microsoft-link', requireClaims, requireAdmin, async (req, r
   if (!snap.exists) return sendError(res, 404, 'NOT_FOUND', 'No such account.');
   await db.collection('msLinkExpectations').doc(req.params.uid).delete();
   await writeAuditLog(db, { caller: req.caller, subjectUid: req.params.uid, action: 'MICROSOFT_LINK_WITHDRAWN', summary: 'Microsoft 365 registration withdrawn' });
-  return res.json(await buildFullRecord(db, snap.data(), req.caller.role));
+  return res.json(await buildFullRecord(db, extractUserRecord(snap), req.caller.role));
 });
 
 // GET /api/admin/users/:uid/history

@@ -292,6 +292,11 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
+.cp-cohort-wpr {
+  background: var(--gh-amber-50, #fff8c5);
+  color: var(--gh-amber-text, #7d4e00);
+  border: 1px solid rgba(125, 78, 0, 0.3);
+}
 .cp-cohort-wls {
   background: var(--gh-green-50, #dafbe1);
   color: var(--gh-green-text, #1a7f37);
