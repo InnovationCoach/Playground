@@ -93,3 +93,53 @@ export function Equipment({ equipment, standAt, water = () => false, motion }) {
     </group>}
   </group>;
 }
+
+/** 3D structures rendered on the planet surface when built or unlocked in the Learner's Playground. */
+export function PlaygroundStructures({ features = [], unlockedFacilities = [], anchor = [8, 0.8, 6], activeHazard = null }) {
+  if (!features.length && !unlockedFacilities.length && !activeHazard) return null;
+  const [ax, ay, az] = anchor;
+  return <group position={[ax, ay, az]}>
+    {features.includes('geodesic-biodome') && (
+      <group position={[5, 0, -4]}>
+        <mesh position={[0, 1.3, 0]}><sphereGeometry args={[2.1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#b8f0ff" transparent opacity={0.55} roughness={0.15} /></mesh>
+        <mesh position={[0, 0.15, 0]}><cylinderGeometry args={[2.2, 2.2, 0.3, 16]} /><meshStandardMaterial color="#4b5d6e" metalness={0.4} roughness={0.5} /></mesh>
+      </group>
+    )}
+    {features.includes('solar-float-array') && (
+      <group position={[-5, 0.8, -3]}>
+        <mesh rotation={[-0.35, 0.2, 0]}><boxGeometry args={[3.4, 0.08, 2.0]} /><meshStandardMaterial color="#1d4478" metalness={0.6} roughness={0.25} /></mesh>
+        <mesh position={[0, -0.45, 0]}><cylinderGeometry args={[0.12, 0.16, 0.9, 8]} /><meshStandardMaterial color="#b9c3cf" /></mesh>
+      </group>
+    )}
+    {features.includes('oxygenator-spire') && (
+      <group position={[3, 0, 5]}>
+        <mesh position={[0, 2.2, 0]}><cylinderGeometry args={[0.25, 0.55, 4.4, 10]} /><meshStandardMaterial color="#d8e6f0" metalness={0.3} roughness={0.4} /></mesh>
+        <mesh position={[0, 4.6, 0]}><sphereGeometry args={[0.45, 12, 10]} /><meshStandardMaterial color="#7ae8d5" emissive="#25b8a4" emissiveIntensity={1.6} /></mesh>
+      </group>
+    )}
+    {unlockedFacilities.includes('research-laboratory') && (
+      <group position={[-4, 0, 6]}>
+        <mesh position={[0, 1.0, 0]}><boxGeometry args={[2.8, 1.8, 2.2]} /><meshStandardMaterial color="#e2ecf5" metalness={0.25} roughness={0.45} /></mesh>
+        <mesh position={[0, 2.0, 0]}><cylinderGeometry args={[0.8, 1.0, 0.4, 12]} /><meshStandardMaterial color="#5cc8d7" emissive="#1c7a8c" emissiveIntensity={0.8} /></mesh>
+      </group>
+    )}
+    {unlockedFacilities.includes('space-exploration-station') && (
+      <group position={[0, 7.5, -8]}>
+        <mesh><torusGeometry args={[2.4, 0.18, 10, 32]} /><meshStandardMaterial color="#d9dfe6" metalness={0.5} roughness={0.35} /></mesh>
+        <mesh><sphereGeometry args={[0.8, 16, 12]} /><meshStandardMaterial color="#96d700" emissive="#4d7a00" emissiveIntensity={0.9} /></mesh>
+      </group>
+    )}
+    {(features.includes('ion-storm-deflector') || features.includes('radiation-shield-grid')) && (
+      <mesh position={[0, 3.8, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[6.8, 0.08, 8, 48]} />
+        <meshBasicMaterial color="#96d700" transparent opacity={0.55} />
+      </mesh>
+    )}
+    {activeHazard && (
+      <mesh position={[0, 4.4, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[7.4, 0.11, 8, 48]} />
+        <meshBasicMaterial color="#ff5c5c" transparent opacity={0.7} />
+      </mesh>
+    )}
+  </group>;
+}

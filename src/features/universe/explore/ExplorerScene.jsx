@@ -140,7 +140,7 @@ const ATMOSPHERE_VERT = 'varying vec3 vN; varying vec3 vV; void main(){ vec4 mv 
 const ATMOSPHERE_FRAG = 'uniform vec3 color; uniform float strength; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1.0 - max(dot(vN, vV), 0.0), 3.0); gl_FragColor = vec4(color, f * strength); }';
 
 /** A lit sphere with its own surface map, atmosphere rim, optional clouds and rings. */
-export function PlanetBody({ planet, size = 1, detail = false, low }) {
+export function PlanetBody({ planet, size = 1, detail = false, low, motion = true }) {
   const tex = useOwnedTextures(() => ({ ...planetTextures(planet, detail && !low ? 1024 : 256), ...(planet.rings ? { ring: ringTexture(planet.colors.ring) } : {}) }), [planet, detail, low]);
   const atmosphere = useMemo(() => new THREE.ShaderMaterial({ vertexShader: ATMOSPHERE_VERT, fragmentShader: ATMOSPHERE_FRAG, uniforms: { color: { value: new THREE.Color(planet.colors.atmosphere) }, strength: { value: 0.9 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), [planet]);
   useEffect(() => () => atmosphere.dispose(), [atmosphere]);
@@ -152,7 +152,7 @@ export function PlanetBody({ planet, size = 1, detail = false, low }) {
   }, [planet, size]);
   useEffect(() => () => ringGeo?.dispose(), [ringGeo]);
   const clouds = useRef();
-  useFrame((_, dt) => { if (clouds.current) clouds.current.rotation.y += dt * 0.01; });
+  useFrame((_, dt) => { if (motion && clouds.current) clouds.current.rotation.y += dt * 0.01; });
   const seg = detail && !low ? 96 : 40;
   return <group>
     <mesh rotation={[0, planet.angle, 0.12]}>
@@ -178,38 +178,45 @@ function StarBody({ color, radius = 1.6 }) {
 const planetPosition = (p) => [Math.cos(p.angle) * p.orbit, 0, Math.sin(p.angle) * p.orbit];
 export { planetPosition };
 
-function SystemLevel({ cosmos, systemId, selected, onSelect, low }) {
+function SystemLevel({ cosmos, systemId, selected, onSelect, low, motion = true, playgroundPlanets = null }) {
   const system = cosmos.systemById(systemId);
   const planets = childrenOf({ level: 'system', id: systemId }, cosmos).map((c) => c.item);
   return <group>
     <StarBody color={system.starColor} />
     <ambientLight intensity={0.05} />
-    {planets.map((p) => <group key={p.id}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[p.orbit - 0.02, p.orbit + 0.02, 128]} /><meshBasicMaterial color="#5c7aa8" transparent opacity={0.35} depthWrite={false} /></mesh>
-      <group position={planetPosition(p)}>
-        <PlanetBody planet={p} size={p.radius} low={low} />
-        <HitSphere radius={p.radius * 1.8} onPick={() => onSelect(p.id)} />
-        {selected === p.id && <Halo radius={p.radius * (p.rings ? 2.5 : 1.6)} />}
-        <Label position={[0, -p.radius - 0.9, 0]}>{p.name}</Label>
-      </group>
-    </group>)}
+    {planets.map((p) => {
+      const pg = playgroundPlanets?.[p.id];
+      const hasHazard = !!pg?.activeHazard;
+      const hasFeatures = (pg?.features?.length || 0) > 0;
+      return <group key={p.id}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[p.orbit - 0.02, p.orbit + 0.02, 128]} /><meshBasicMaterial color="#5c7aa8" transparent opacity={0.35} depthWrite={false} /></mesh>
+        <group position={planetPosition(p)}>
+          <PlanetBody planet={p} size={p.radius} low={low} motion={motion} />
+          <HitSphere radius={p.radius * 1.8} onPick={() => onSelect(p.id)} />
+          {selected === p.id && <Halo radius={p.radius * (p.rings ? 2.5 : 1.6)} />}
+          {hasHazard && <Halo radius={p.radius * (p.rings ? 2.75 : 1.9)} color="#ff5c5c" />}
+          {!hasHazard && hasFeatures && <Halo radius={p.radius * (p.rings ? 2.65 : 1.78)} color="#5cc8d7" />}
+          <Label position={[0, -p.radius - 0.9, 0]}>{p.name}</Label>
+        </group>
+      </group>;
+    })}
   </group>;
 }
 
-function PlanetLevel({ cosmos, planetId, low }) {
+function PlanetLevel({ cosmos, planetId, low, motion = true }) {
   const planet = cosmos.planetById(planetId);
   return <group>
     <directionalLight position={[-8, 3, 6]} intensity={2.4} color="#fff3d6" />
     <ambientLight intensity={0.04} />
-    <PlanetBody planet={planet} size={3} detail low={low} />
+    <PlanetBody planet={planet} size={3} detail low={low} motion={motion} />
   </group>;
 }
 
-export function SpaceLevel({ cosmos, entry, selected, onSelect, low }) {
+export function SpaceLevel({ cosmos, entry, selected, onSelect, low, motion = true, playgroundPlanets = null }) {
   if (entry.level === 'universe') return <UniverseLevel cosmos={cosmos} selected={selected} onSelect={onSelect} low={low} />;
   if (entry.level === 'galaxy') return <GalaxyLevel cosmos={cosmos} galaxyId={entry.id} selected={selected} onSelect={onSelect} low={low} />;
-  if (entry.level === 'system') return <SystemLevel cosmos={cosmos} systemId={entry.id} selected={selected} onSelect={onSelect} low={low} />;
-  if (entry.level === 'planet') return <PlanetLevel cosmos={cosmos} planetId={entry.id} low={low} />;
+  if (entry.level === 'system') return <SystemLevel cosmos={cosmos} systemId={entry.id} selected={selected} onSelect={onSelect} low={low} motion={motion} playgroundPlanets={playgroundPlanets} />;
+  if (entry.level === 'planet') return <PlanetLevel cosmos={cosmos} planetId={entry.id} low={low} motion={motion} />;
   return null;
 }
 
@@ -244,7 +251,7 @@ const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
  * input completes it at once. With reduced motion or Calm the cut is instant.
  * `api` exposes keyboard orbit/zoom/reset for the HTML controls.
  */
-export function CameraRig({ shot: baseShot, travel, motion, onTravel, onDragChange, panelOpen = true, api }) {
+export function CameraRig({ shot: baseShot, travel, motion, onTravel, onDragChange, panelOpen = true, rightRailWidth = null, api }) {
   const { camera, invalidate, size } = useThree();
   // Portrait screens see less sideways, so the same framing needs a longer lens distance.
   const portrait = size.width / size.height < 1.2 ? Math.min(2.1, 1.25 / (size.width / size.height)) : 1;
@@ -254,19 +261,20 @@ export function CameraRig({ shot: baseShot, travel, motion, onTravel, onDragChan
     return { ...baseShot, position: p.toArray(), max: baseShot.max * portrait };
   }, [baseShot, portrait]);
 
-  // When the details panel is open, centre the 3D view in the uncovered area of the stage.
+  // When a right-hand panel (Details dock or Playground drawer) is open, centre the 3D view in the uncovered area.
+  const activeRailWidth = rightRailWidth !== null ? rightRailWidth : (panelOpen ? 392 : 0);
   useEffect(() => {
-    if (!panelOpen) {
+    if (!activeRailWidth) {
       camera.clearViewOffset();
     } else if (size.width > 820) {
-      const panel = Math.min(392, size.width * 0.4);
+      const panel = Math.min(activeRailWidth, size.width * 0.42);
       camera.setViewOffset(size.width + panel, size.height, panel, 0, size.width, size.height);
     } else {
       const sheet = Math.min(200, Math.round(size.height * 0.24));
       camera.setViewOffset(size.width, size.height + sheet, 0, sheet, size.width, size.height);
     }
     camera.updateProjectionMatrix(); invalidate();
-  }, [camera, size.width, size.height, panelOpen, invalidate]);
+  }, [camera, size.width, size.height, activeRailWidth, invalidate]);
   const controls = useRef();
   const tween = useRef(null);
   const toVec = (a) => new THREE.Vector3(...a);

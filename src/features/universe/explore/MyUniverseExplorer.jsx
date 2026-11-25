@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas } from '@react-three/fiber';
-import { ArrowLeft, ChevronRight, ChevronDown, ChevronUp, List, Box, RotateCcw, LogOut, Lock, Sparkles, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronDown, ChevronUp, List, Box, RotateCcw, LogOut, Lock, PlayCircle, Sparkles, RefreshCw } from 'lucide-react';
 import { SpaceLevel, Starfield, Nebulae, CameraRig, SpikeMetrics, shotFor } from './ExplorerScene.jsx';
 import { CATALOG_URL, loadCosmos } from './cosmosCatalog.js';
 import * as firebase from '../../../firebase.js';
@@ -22,6 +22,10 @@ import { MissionSheet } from '../missions/MissionSheet.jsx';
 import { MISSIONS, visibleMission } from '../missions/registry.js';
 import { MissionList } from '../missions/MissionList.jsx';
 import { Workstations } from '../missions/Workstations.jsx';
+import { PlaygroundPanel } from '../playground/PlaygroundPanel.jsx';
+import { UniverseOnboardingModal, hasSeenUniverseIntro } from '../playground/UniverseOnboardingModal.jsx';
+import { loadPlaygroundState, savePlaygroundState, syncAchievedGoals } from '../playground/playgroundModel.js';
+import { loadRemotePlaygroundState, saveRemotePlaygroundState } from '../playground/playgroundClient.js';
 import './explorer.css';
 
 // Production uses only published releases (none yet) and the signed-in user's token.
@@ -81,8 +85,13 @@ const SCENE_LOADERS = {
 const defaultLoader = ({ fail, sceneKind }) => (fail ? Promise.reject(new Error('Simulated landing failure'))
   : SCENE_LOADERS[sceneKind] ? SCENE_LOADERS[sceneKind]() : Promise.reject(new Error(`No renderer for ${sceneKind}`)));
 
-/** Always visible: previews say they are samples; the live app still says the worlds are fictional and nothing is kept. */
-function Banner({ preview, missions = false }) {
+/** Always visible: previews say they are samples; the live app still says the worlds are fictional and clarifies what is saved. */
+function Banner({ preview, missions = false, playground = false }) {
+  if (playground) {
+    return <p className="mx-banner">{preview
+      ? 'Sample universe · fictional worlds · Playground progress is saved to your browser & account'
+      : 'Fictional worlds for exploring · Playground progress is saved to your account'}</p>;
+  }
   // With pilot missions, mission work can be saved to the learner's account; exploring itself still saves nothing.
   const saved = missions ? 'exploring saves nothing · mission work is saved only to your account' : 'nothing is saved';
   return <p className="mx-banner">{preview ? `Sample universe · fictional worlds · ${saved} · no XP, rewards or unlocks`
@@ -139,10 +148,40 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
  */
 function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader,
   missionRegistry = PUBLISHED_RELEASES, missionClient, viewer = null, initialMission = null, initialArrival = null, allowInReviewMissions = false,
-  arrivalVideos = ARRIVAL_VIDEOS, trustArrivalVideos = false, missionPlan = null }) {
+  arrivalVideos = ARRIVAL_VIDEOS, trustArrivalVideos = false, missionPlan = null, enablePlayground = false, achievedGoals = [] }) {
   // Mission service calls are bound to one learner in one verified organization. Until the host
   // supplies both, nothing is requested and no mission opens (fail closed).
   const viewerKey = scopeKey(viewer);
+  const [playgroundOpen, setPlaygroundOpen] = useState(false);
+  const [introOpen, setIntroOpen] = useState(() => enablePlayground && !hasSeenUniverseIntro(viewer?.uid));
+  const [playgroundState, setPlaygroundState] = useState(() => loadPlaygroundState(viewer?.uid, cosmos.planets[0]?.id || 'thalassa'));
+  const updatePlayground = useCallback((next) => {
+    setPlaygroundState(next);
+    savePlaygroundState(viewer?.uid, next);
+    if (viewer?.uid) saveRemotePlaygroundState({ auth: firebase.auth, baseUrl: API_BASE, state: next });
+  }, [viewer?.uid]);
+  useEffect(() => {
+    if (!enablePlayground || !viewer?.uid) return undefined;
+    let live = true;
+    loadRemotePlaygroundState({ auth: firebase.auth, baseUrl: API_BASE }).then((remote) => {
+      if (live && remote) {
+        setPlaygroundState(remote);
+        savePlaygroundState(viewer.uid, remote);
+      }
+    });
+    return () => { live = false; };
+  }, [enablePlayground, viewer?.uid]);
+  useEffect(() => {
+    if (!enablePlayground || !achievedGoals?.length) return;
+    setPlaygroundState((prev) => {
+      const synced = syncAchievedGoals(prev, achievedGoals);
+      if (synced.newlyAwarded > 0) {
+        savePlaygroundState(viewer?.uid, synced.state);
+        if (viewer?.uid) saveRemotePlaygroundState({ auth: firebase.auth, baseUrl: API_BASE, state: synced.state });
+      }
+      return synced.newlyAwarded > 0 ? synced.state : prev;
+    });
+  }, [enablePlayground, achievedGoals, viewer?.uid]);
   const base = missionClient || defaultClient();
   const client = useMemo(() => (viewerKey ? base.withScope({ uid: viewer.uid, orgId: viewer.orgId }) : null), [base, viewerKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // Access answers are tagged with the scope that asked; a different viewer never sees them, even for one render.
@@ -269,12 +308,16 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     preview: arrival.phase === 'placing' && arrival.siteId && arrival.siteId !== arrival.placedSiteId ? siteAt(arrival.siteId) : null
   } : null;
 
+  const playgroundOpenRef = useRef(playgroundOpen);
+  playgroundOpenRef.current = playgroundOpen;
+
   const go = useCallback((action) => setState((s) => {
     const next = reduce(s.nav, { ...action, opts, cosmos });
     if (next === s.nav) return s;
     const t = transitionBetween(s.nav, next);
     const landing = arrivesOn(next, cosmos) && !arrivesOn(s.nav, cosmos);
-    const open = landing ? false : action.quiet ? s.panelOpen : nextPanelOpen(s.panelOpen, s.nav, next, { dragging: dragging.current });
+    const open = playgroundOpenRef.current ? false
+      : landing ? false : action.quiet ? s.panelOpen : nextPanelOpen(s.panelOpen, s.nav, next, { dragging: dragging.current });
     const resetExpand = open && (!s.panelOpen || s.nav.path.length !== next.path.length || s.nav.selected !== next.selected);
     return {
       nav: next,
@@ -287,7 +330,17 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const togglePanel = useCallback(() => {
     setState((s) => {
       if (dragging.current) return s;
-      return { ...s, panelOpen: !s.panelOpen, sheetExpanded: false };
+      const nextOpen = !s.panelOpen;
+      if (nextOpen) setPlaygroundOpen(false);
+      return { ...s, panelOpen: nextOpen, sheetExpanded: false };
+    });
+  }, []);
+
+  const togglePlayground = useCallback(() => {
+    setPlaygroundOpen((prev) => {
+      const next = !prev;
+      if (next) setState((s) => (s.panelOpen ? { ...s, panelOpen: false, sheetExpanded: false } : s));
+      return next;
     });
   }, []);
 
@@ -401,7 +454,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
 
   function onKeyDown(e) {
     e.stopPropagation(); // the dashboard deck must not change slides underneath
-    if (mission || pilotEntry) return; // the mission sheet handles its own keys
+    if (mission || pilotEntry || introOpen || playgroundOpen) return; // active overlays handle their own keys
     if (e.target.closest?.('input, textarea, select')) return;
     const k = e.key;
     if (k === 'Escape') { if (nav.path.length > 1 || nav.selected) { e.preventDefault(); go({ type: 'back' }); } return; }
@@ -431,9 +484,9 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       frameloop={!active ? 'never' : running ? 'always' : 'demand'} camera={{ fov: 45, near: 0.1, far: 1200, position: shot.position }}
       onCreated={({ gl }) => registerCanvas(gl)}>
       <color attach="background" args={['#05101f']} />
-      {here.level !== 'environment' && <><Starfield low={low} /><Nebulae low={low} /><SpaceLevel cosmos={cosmos} entry={here} selected={nav.selected} onSelect={select} low={low} /></>}
-      {environment && env.status === 'ready' && env.kind === environment.sceneKind && <env.Comp environment={environment} selected={nav.selected} onSelect={select} motion={motion} low={low} equipment={equipment} />}
-      <CameraRig shot={shot} travel={travel} motion={motion} onTravel={setTraveling} onDragChange={onDragChange} panelOpen={panelOpen} api={api} />
+      {here.level !== 'environment' && <><Starfield low={low} /><Nebulae low={low} /><SpaceLevel cosmos={cosmos} entry={here} selected={nav.selected} onSelect={select} low={low} motion={motion} playgroundPlanets={enablePlayground ? playgroundState.planets : null} /></>}
+      {environment && env.status === 'ready' && env.kind === environment.sceneKind && <env.Comp environment={environment} selected={nav.selected} onSelect={select} motion={motion} low={low} equipment={equipment} playgroundFeatures={enablePlayground ? (playgroundState.planets?.[environment.planetId]?.features || []) : []} unlockedFacilities={enablePlayground ? (playgroundState.unlockedFacilities || []) : []} activeHazard={enablePlayground ? (playgroundState.planets?.[environment.planetId]?.activeHazard || null) : null} />}
+      <CameraRig shot={shot} travel={travel} motion={motion} onTravel={setTraveling} onDragChange={onDragChange} panelOpen={panelOpen} rightRailWidth={playgroundOpen ? 440 : panelOpen ? 392 : 0} api={api} />
       {showMetrics && <SpikeMetrics onSample={(m) => setMetrics((prev) => (prev && Object.keys(m).every((k) => prev[k] === m[k]) ? prev : m))} />}
     </Canvas>
   </div>;
@@ -490,20 +543,63 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
         {webgl && !contextLost && <button type="button" onClick={() => setView(in3d ? 'text' : '3d')} aria-pressed={!in3d}>{in3d ? <><List size={16} aria-hidden="true" />Text view</> : <><Box size={16} aria-hidden="true" />3D view</>}</button>}
         {in3d && <button type="button" onClick={() => api.current?.reset()}><RotateCcw size={16} aria-hidden="true" />Reset view</button>}
         {in3d && <button type="button" onClick={() => setLow((v) => !v)} aria-pressed={!low} title="Rendering detail">Detail: {low ? 'Standard' : 'High'}</button>}
+        {enablePlayground && (
+          <>
+            <button type="button" onClick={() => setIntroOpen(true)} title="Watch My Universe explainer">
+              <PlayCircle size={15} aria-hidden="true" />Guide
+            </button>
+            <button type="button" className="upg-toggle-btn" aria-pressed={playgroundOpen} onClick={togglePlayground}>
+              <Sparkles size={15} aria-hidden="true" />Playground · {playgroundState.credits} Cr
+            </button>
+          </>
+        )}
         <button type="button" className="mx-leave" onClick={leave}><LogOut size={16} aria-hidden="true" />Leave universe</button>
       </div>
     </header>
-    <Banner preview={preview} missions={missionRegistry.length > 0} />
-    <div className="mx-stage">
+    <Banner preview={preview} missions={missionRegistry.length > 0} playground={enablePlayground} />
+    <div className={`mx-stage${enablePlayground && playgroundOpen ? ' has-upg-drawer' : ''}`}>
       {scene}
       {in3d && <div className={`mx-fade${traveling ? '' : ' is-done'}`} key={`${nav.path.length}-${here.id || ''}`} aria-hidden="true" />}
       {!in3d && environment && <SurfaceTextView cosmos={cosmos} environment={environment} opts={opts} selected={nav.selected} onSelect={select} headingRef={heading}
         notice={noticeElement} canUse3d={webgl && !contextLost} onShow3d={() => setView('3d')} onBack={() => go({ type: 'back' })}
-        onOpenMission={openMission} onOpenActivity={onOpenActivity} arrivalCard={arrivalCard(true)} />}
+        onOpenMission={openMission} onOpenActivity={onOpenActivity} arrivalCard={arrivalCard(true)}
+        playgroundRecord={enablePlayground ? (playgroundState.planets?.[environment.planetId] || null) : null} />}
       {!in3d && !environment && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} onOpenMission={openMission} onOpenActivity={onOpenActivity} canUse3d={webgl && !contextLost}
-        notice={noticeElement} onLand={land}
+        notice={noticeElement} onLand={land} playgroundPlanets={enablePlayground ? playgroundState.planets : null}
         onShow3d={(level, id) => { const path = pathTo(level, id, cosmos); if (path) { go({ type: 'jump', path }); setView('3d'); } }} />}
       {in3d && arrivalCard(false)}
+      {enablePlayground && introOpen && (
+        <UniverseOnboardingModal
+          uid={viewer?.uid}
+          credits={playgroundState.credits}
+          motion={motion}
+          onOpenPlayground={() => {
+            setIntroOpen(false);
+            setState((s) => (s.panelOpen ? { ...s, panelOpen: false, sheetExpanded: false } : s));
+            setPlaygroundOpen(true);
+          }}
+          onClose={() => setIntroOpen(false)}
+        />
+      )}
+      {enablePlayground && playgroundOpen && (
+        <PlaygroundPanel
+          cosmos={cosmos}
+          state={playgroundState}
+          onChange={updatePlayground}
+          onFlyToPlanet={(planetId) => {
+            const p = cosmos.planetById(planetId);
+            const hasFeatures = (playgroundState.planets?.[planetId]?.features?.length || 0) > 0;
+            const path = p && hasFeatures && canLand(p, opts)
+              ? pathTo('environment', p.environmentId, cosmos)
+              : pathTo('planet', planetId, cosmos);
+            if (path) {
+              go({ type: 'jump', path });
+              if (webgl && !contextLost) setView('3d');
+            }
+          }}
+          onClose={() => setPlaygroundOpen(false)}
+        />
+      )}
       {in3d && <div className={`mx-panel-dock${panelOpen ? ' is-open' : ' is-collapsed'}${sheetExpanded ? ' is-expanded' : ''}`}>
         <div className="mx-panel-controls">
           {panelOpen && <button type="button" className="mx-sheet-size" aria-expanded={sheetExpanded} aria-controls="mx-panel" onClick={() => setState((s) => ({ ...s, sheetExpanded: !s.sheetExpanded }))}>

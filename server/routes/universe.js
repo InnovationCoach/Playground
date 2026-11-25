@@ -41,6 +41,7 @@ import {
   universeTransportGuard
 } from '../lib/universe/http.js';
 import { requireUniverseAuth } from '../lib/universe/auth.js';
+import { createUniversePlaygroundRouter } from './universePlayground.js';
 
 const LEARNER_ROLES = ['student', 'learner'];
 // Reserve worst-case review metadata overhead (4-byte UTF-8 1000-char note + reviewer fields + outcome)
@@ -168,6 +169,7 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
 
   router.use(universeTransportGuard);
   router.use(requireUniverseAuth);
+  router.use('/playground', createUniversePlaygroundRouter());
 
   /**
    * GET /api/universe/missions/:missionId/availability

@@ -58,7 +58,7 @@ export function UniversePage({ uid, orgId, courses, calm, onOpenActivity }) {
     <PageTitle title="My Universe" subtitle="Where will your curiosity take you?" />
     {explorer && <Suspense fallback={<Loading>Opening My Universe…</Loading>}>
       {/* The same preview flags as the existing dashboard's explorer; its own chrome says it is a preview. */}
-      <MyUniverseExplorer preview allowInReviewMissions missionRegistry={PILOT_RELEASES} initialArrival={explorer.arrival}
+      <MyUniverseExplorer preview enablePlayground catalogUrl="/cosmos/v2/catalog.json" allowInReviewMissions missionRegistry={PILOT_RELEASES} initialArrival={explorer.arrival}
         viewer={uid && orgId ? { uid, orgId } : null} calm={calm} active onClose={() => setExplorer(null)}
         onOpenActivity={onOpenActivity ? (id, options) => { setExplorer(null); onOpenActivity(id, options); } : undefined} />
     </Suspense>}

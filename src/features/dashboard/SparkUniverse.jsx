@@ -43,6 +43,9 @@ export function SparkUniverse({ prefs, plan, uid, orgId, onPersonalise, active =
     {explorerOpen && <Suspense fallback={<p role="status">Opening My Universe…</p>}>
       <MyUniverseExplorer
         preview={true}
+        enablePlayground={true}
+        catalogUrl="/cosmos/v2/catalog.json"
+        achievedGoals={achieved.map((g) => g.id || g.title)}
         allowInReviewMissions={true}
         missionRegistry={registry}
         initialArrival={arrival}
