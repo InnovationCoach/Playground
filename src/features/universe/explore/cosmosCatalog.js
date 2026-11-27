@@ -18,7 +18,8 @@ export const FACT_TAGS = { 'fictional-world': 'Fictional world', 'real-science':
 /** Environment renderers the client ships, with the location ids each scene places structures at. */
 export const SCENES = {
   'ocean-station': ['platform', 'tide-gauge', 'weather-mast', 'vent'],
-  'basalt-fissures': ['sensor-station', 'fissure', 'columns', 'gas-vent']
+  'basalt-fissures': ['sensor-station', 'fissure', 'columns', 'gas-vent'],
+  'ice-shelf': ['platform', 'tide-gauge', 'weather-mast', 'vent']
 };
 
 const isId = (v) => typeof v === 'string' && /^[a-z0-9][a-z0-9-]{0,63}$/.test(v);

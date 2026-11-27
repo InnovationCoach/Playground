@@ -787,7 +787,7 @@
       "name": "Boreas Outpost",
       "biome": "Ringed sub-glacial brine sea and aurora ice shelf",
       "summary": "A ringed ice giant with sub-glacial brine oceans and aurora bands.",
-      "sceneKind": "ocean-station",
+      "sceneKind": "ice-shelf",
       "locations": [
         {
           "id": "platform",
@@ -1115,7 +1115,7 @@
       "name": "Glaciera Outpost",
       "biome": "Crystalline blue ice canyons and pressurized geyser basins",
       "summary": "A crystalline ice world where thermal geysers carve blue canyons.",
-      "sceneKind": "ocean-station",
+      "sceneKind": "ice-shelf",
       "locations": [
         {
           "id": "platform",
@@ -1443,7 +1443,7 @@
       "name": "Nyxara Outpost",
       "biome": "Magnetized indigo ice sheet and cryo-plume trenches",
       "summary": "A deep-indigo ice world with magnetic rings and cryo-plumes.",
-      "sceneKind": "ocean-station",
+      "sceneKind": "ice-shelf",
       "locations": [
         {
           "id": "platform",

@@ -15,7 +15,7 @@
  *
  * All the physics is in urbanHeatModel.js. This file only draws it.
  */
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   COLS, TILE_TYPES, TILE_GROUPS, WEATHER, SOURCES, STRESS_BANDS, MODEL,
   COST_NOTE, WATER_NOTE, DEMOLITION_COST,
@@ -24,6 +24,8 @@ import {
 } from './urbanHeatModel.js';
 import { SCENARIOS, scenarioById } from './urbanHeatScenarios.js';
 import { useCityDesign, MAX_PLANS } from './useCityDesign.js';
+import { UrbanHeatBoard } from './UrbanHeatBoard.jsx';
+import { DistrictDiorama3D } from './DistrictDiorama3D.jsx';
 import './urbanHeat.css';
 
 const STAGES = [
@@ -52,62 +54,8 @@ function Tag({ kind }) {
 }
 
 // ---------------------------------------------------------------------------
-// The map
+// View controls & legend
 // ---------------------------------------------------------------------------
-
-function CityGrid({ grid, heat, view, focus, marks, unreachable, onPaint, onStrokeStart, onInspect, inspected, nightRef }) {
-  const painting = useRef(false);
-  const focusSet = useMemo(() => new Set(focus), [focus]);
-  const markSet = useMemo(() => new Set(marks || []), [marks]);
-  const unreachableSet = useMemo(() => new Set(unreachable || []), [unreachable]);
-
-  return (
-    <div className="uh-map-wrap">
-      <div className="uh-compass" aria-hidden="true"><span>N ↑</span><span className="uh-breeze">🌬️ sea breeze from the north-east ↙</span></div>
-      <div
-        className="uh-grid"
-        style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }}
-        onPointerLeave={() => { painting.current = false; }}
-        onPointerUp={() => { painting.current = false; }}
-        role="grid"
-        aria-label="District map, 8 by 6 blocks"
-      >
-        {grid.map((code, i) => {
-          const t = TILE_TYPES[code];
-          const h = heat?.tiles[i];
-          let bg = t.color; let label = null;
-          if (view === 'day' && h) { bg = stressBand(h.feelsDay).color; label = Math.round(h.feelsDay); }
-          if (view === 'night' && h) { bg = nightColour(h.airNight - nightRef); label = `+${Math.max(0, h.airNight - nightRef).toFixed(1)}`; }
-          if (view === 'surface' && h) { bg = h.surfaceDay >= 50 ? '#7f1d1d' : h.surfaceDay >= 42 ? '#dc2626' : h.surfaceDay >= 36 ? '#f97316' : h.surfaceDay >= 32 ? '#facc15' : '#22c55e'; label = Math.round(h.surfaceDay); }
-          const cls = ['uh-tile'];
-          if (focusSet.has(i)) cls.push('is-focus');
-          if (markSet.has(i)) cls.push('is-marked');
-          if (unreachableSet.has(i)) cls.push('is-cutoff');
-          if (inspected === i) cls.push('is-inspected');
-          if (view !== 'map') cls.push('is-heat');
-          const desc = `${t.label}${h ? `, feels ${deg(h.feelsDay)} at 3 pm` : ''}${focusSet.has(i) ? ', focus area' : ''}${unreachableSet.has(i) ? ', cut off from the streets' : ''}`;
-          return (
-            <button
-              key={i}
-              type="button"
-              className={cls.join(' ')}
-              style={{ background: bg }}
-              aria-label={desc}
-              title={desc}
-              onPointerDown={(e) => { e.preventDefault(); painting.current = true; onStrokeStart?.(); onPaint?.(i); onInspect?.(i); }}
-              onPointerEnter={() => { if (painting.current) onPaint?.(i); }}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStrokeStart?.(); onPaint?.(i); onInspect?.(i); } }}
-            >
-              <span className="uh-tile-emoji" aria-hidden="true">{t.emoji}</span>
-              {label !== null && <span className="uh-tile-num">{label}</span>}
-              {unreachableSet.has(i) && <span className="uh-tile-warn" aria-hidden="true">⚠️</span>}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function ViewSwitch({ view, setView, allowHeat = true }) {
   const views = [
@@ -196,7 +144,7 @@ function ChooseStage({ state, set, chooseScenario }) {
                 <li>👥 Room for at least {s.minPeople} people</li>
                 <li>🎯 Focus: {s.focusLabel}</li>
               </ul>
-              <MiniMap grid={s.start} focus={s.focus} />
+              <DistrictDiorama3D grid={s.start} focus={s.focus} scenarioId={s.id} label={s.name} />
               <button type="button" className="uh-btn" onClick={() => chooseScenario(s.id)}>
                 {started ? `Continue ${s.name} →` : `Redesign ${s.name} →`}
               </button>
@@ -251,8 +199,8 @@ function PredictStage({ scenario, project, patchProject, goTo }) {
 
       <div className="uh-two">
         <div>
-          <CityGrid grid={scenario.start} heat={pred.locked ? heat : null} view={pred.locked ? view : 'map'}
-            focus={scenario.focus} marks={pred.hotTiles} onPaint={toggleTile} nightRef={nightRef} />
+          <UrbanHeatBoard grid={scenario.start} heat={pred.locked ? heat : null} view={pred.locked ? view : 'map'}
+            weatherId="breeze" focus={scenario.focus} marks={pred.hotTiles} onPaint={toggleTile} nightRef={nightRef} />
           {pred.locked && <><ViewSwitch view={view} setView={setView} /><Legend view={view} nightRef={nightRef} /></>}
           <p className="uh-muted uh-small">Dashed outline = {scenario.focusLabel}. {pred.locked ? 'Your guesses have a ★.' : 'Tap 3 blocks.'}</p>
         </div>
@@ -485,7 +433,7 @@ function DesignStage({ scenario, project, patchProject, goTo, resetProject }) {
 
         <div className="uh-design-map">
           <ViewSwitch view={view} setView={setView} />
-          <CityGrid grid={grid} heat={evaln.heat} view={view} focus={scenario.focus}
+          <UrbanHeatBoard grid={grid} heat={evaln.heat} view={view} weatherId={weatherId} focus={scenario.focus}
             unreachable={evaln.unreachable} onPaint={paint} onStrokeStart={startStroke} onInspect={setInspected}
             inspected={inspected} nightRef={nightRef} />
           <Legend view={view} nightRef={nightRef} />

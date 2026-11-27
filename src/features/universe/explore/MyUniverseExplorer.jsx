@@ -80,7 +80,8 @@ export function nextPanelOpen(open, prevNav, nextNav, { dragging = false } = {})
 // Surface renderers by the catalog's environment sceneKind; each is its own lazy chunk.
 const SCENE_LOADERS = {
   'ocean-station': () => import('./ExplorerEnvironment.jsx'),
-  'basalt-fissures': () => import('./ExplorerBasaltEnvironment.jsx')
+  'basalt-fissures': () => import('./ExplorerBasaltEnvironment.jsx'),
+  'ice-shelf': () => import('./ExplorerIceEnvironment.jsx')
 };
 const defaultLoader = ({ fail, sceneKind }) => (fail ? Promise.reject(new Error('Simulated landing failure'))
   : SCENE_LOADERS[sceneKind] ? SCENE_LOADERS[sceneKind]() : Promise.reject(new Error(`No renderer for ${sceneKind}`)));

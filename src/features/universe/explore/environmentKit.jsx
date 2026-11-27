@@ -9,14 +9,92 @@ import { glowTexture } from './proceduralTextures.js';
 const SKY_VERT = 'varying vec3 vW; void main(){ vW = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }';
 const SKY_FRAG = 'varying vec3 vW; uniform vec3 top; uniform vec3 horizon; uniform vec3 below; void main(){ float h = vW.y; vec3 c = h > 0.0 ? mix(horizon, top, pow(h, 0.55)) : mix(horizon, below, min(1.0, -h * 6.0)); gl_FragColor = vec4(c, 1.0); }';
 
-export function Sky({ top, horizon, below, sun = 'rgba(255,250,232,1)', sunPosition = [160, 120, -260], sunScale = 90 }) {
+const AURORA_VERT = `
+  uniform float uTime;
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    vec3 p = position;
+    p.z += sin(p.x * 0.03 + uTime * 0.7) * 14.0 + cos(p.x * 0.015 - uTime * 0.45) * 9.0;
+    p.y += sin(p.x * 0.02 + uTime * 0.5) * 4.5;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+  }
+`;
+
+const AURORA_FRAG = `
+  uniform vec3 colorA;
+  uniform vec3 colorB;
+  uniform float uTime;
+  varying vec2 vUv;
+  void main() {
+    float wave = sin(vUv.x * 18.0 + uTime * 0.9) * 0.5 + 0.5;
+    float curtain = smoothstep(0.0, 0.28, vUv.y) * smoothstep(1.0, 0.15, vUv.y);
+    float edgeX = smoothstep(0.0, 0.16, vUv.x) * smoothstep(1.0, 0.84, vUv.x);
+    vec3 col = mix(colorA, colorB, vUv.y * 0.7 + wave * 0.3);
+    float alpha = curtain * edgeX * (0.28 + 0.25 * wave);
+    gl_FragColor = vec4(col, alpha);
+  }
+`;
+
+function AuroraCurtain({ colorA, colorB, motion }) {
+  const mat = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: AURORA_VERT,
+    fragmentShader: AURORA_FRAG,
+    transparent: true,
+    depthWrite: false,
+    fog: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    uniforms: {
+      uTime: { value: 0 },
+      colorA: { value: new THREE.Color(colorA) },
+      colorB: { value: new THREE.Color(colorB) }
+    }
+  }), [colorA, colorB]);
+  useEffect(() => () => mat.dispose(), [mat]);
+  useFrame(({ clock }) => {
+    if (motion) mat.uniforms.uTime.value = clock.elapsedTime;
+  });
+  return (
+    <group position={[0, 125, -195]} rotation={[0.15, 0.1, 0]}>
+      <mesh material={mat}><planeGeometry args={[420, 75, 48, 8]} /></mesh>
+      <mesh material={mat} position={[35, 18, 25]} rotation={[0, -0.22, 0.05]}><planeGeometry args={[360, 60, 40, 8]} /></mesh>
+    </group>
+  );
+}
+
+export function Sky({
+  top,
+  horizon,
+  below,
+  sun = 'rgba(255,250,232,1)',
+  sunPosition = [160, 120, -260],
+  sunScale = 90,
+  secondSun = null,
+  ringArc = null,
+  aurora = null,
+  motion = true
+}) {
   const mat = useMemo(() => new THREE.ShaderMaterial({ vertexShader: SKY_VERT, fragmentShader: SKY_FRAG, side: THREE.BackSide, depthWrite: false, fog: false,
     uniforms: { top: { value: new THREE.Color(top) }, horizon: { value: new THREE.Color(horizon) }, below: { value: new THREE.Color(below) } } }), [top, horizon, below]);
   const sunTex = useMemo(() => glowTexture(sun, sun.replace(/[\d.]+\)$/, '0)')), [sun]);
-  useEffect(() => () => { mat.dispose(); sunTex.dispose(); }, [mat, sunTex]);
+  const sun2Tex = useMemo(() => (secondSun ? glowTexture(secondSun.color, secondSun.color.replace(/[\d.]+\)$/, '0)')) : null), [secondSun]);
+  useEffect(() => () => { mat.dispose(); sunTex.dispose(); sun2Tex?.dispose(); }, [mat, sunTex, sun2Tex]);
   return <group>
     <mesh material={mat}><sphereGeometry args={[480, 32, 16]} /></mesh>
     <sprite position={sunPosition} scale={[sunScale, sunScale, 1]}><spriteMaterial map={sunTex} transparent depthWrite={false} fog={false} /></sprite>
+    {secondSun && sun2Tex && (
+      <sprite position={secondSun.position} scale={[secondSun.scale, secondSun.scale, 1]}>
+        <spriteMaterial map={sun2Tex} transparent depthWrite={false} fog={false} />
+      </sprite>
+    )}
+    {ringArc && (
+      <mesh position={[0, -40, 0]} rotation={[Math.PI * 0.38, 0.25, ringArc.tilt || 0.35]}>
+        <ringGeometry args={[280, 345, 72]} />
+        <meshBasicMaterial color={ringArc.color} transparent opacity={ringArc.opacity || 0.42} side={THREE.DoubleSide} depthWrite={false} fog={false} />
+      </mesh>
+    )}
+    {aurora && <AuroraCurtain colorA={aurora.colorA} colorB={aurora.colorB} motion={motion} />}
   </group>;
 }
 
