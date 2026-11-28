@@ -9,6 +9,7 @@ import { findPilotMission } from '../pilot/missionSession.js';
  * stay hidden outside labelled previews; unknown ids are never shown.
  */
 export function Workstations({ location, opts, onOpenMission, onOpenActivity }) {
+  const hasPublishedRegistry = Array.isArray(opts?.pilotRegistry) && opts.pilotRegistry.some((b) => b?.status === 'published');
   const items = (location.workstations || []).map((w) => {
     if (w.kind === 'mission') {
       const p = findPilotMission(opts.pilotRegistry, w.id);
@@ -16,8 +17,8 @@ export function Workstations({ location, opts, onOpenMission, onOpenActivity }) 
       const m = visibleMission(w.id, opts); return m && { key: `m-${m.id}`, kind: 'Mission', title: m.title, summary: m.drivingQuestion, draft: m.status === 'draft', Icon: Compass, open: () => onOpenMission(m.id) }; }
     if (w.kind === 'simulation') {
       const s = scenarioInfo(w.id);
-      if (!s || (s.status === 'draft' && !opts.preview)) return null;
-      return { key: `s-${s.id}`, kind: 'Simulation', title: s.title, summary: s.summary, draft: s.status === 'draft', Icon: FlaskConical, open: onOpenActivity ? () => onOpenActivity(s.activityId, { scenario: s.id }) : null };
+      if (!s || (s.status === 'draft' && !opts.preview && !hasPublishedRegistry)) return null;
+      return { key: `s-${s.id}`, kind: 'Simulation', title: s.title, summary: s.summary, draft: s.status === 'draft' && !hasPublishedRegistry, Icon: FlaskConical, open: onOpenActivity ? () => onOpenActivity(s.activityId, { scenario: s.id }) : null };
     }
     return null;
   }).filter(Boolean);

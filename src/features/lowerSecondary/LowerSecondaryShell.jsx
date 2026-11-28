@@ -97,7 +97,7 @@ function Shell({ uid, orgId = null, profile, classIds = [], isPrimary = false, s
     </header>
     <main id="ls-main" className="ls-main" tabIndex={-1} ref={heading}>
       {isPrimary
-        ? <PrimaryBody uid={uid} name={name} profile={profile} section={section} avatar={avatar} />
+        ? <PrimaryBody uid={uid} orgId={orgId} name={name} profile={profile} section={section} calm={calm} avatar={avatar} onOpenActivity={onOpenActivity} />
         : <SecondaryBody uid={uid} orgId={orgId} name={name} profile={profile} classIds={classIds} section={section} calm={calm} avatar={avatar} onOpenActivity={onOpenActivity} onJoined={onJoined} />}
     </main>
   </div>;
@@ -125,13 +125,12 @@ function SecondaryBody({ uid, orgId, name, profile, classIds, section, calm, ava
 }
 
 /**
- * A primary-classified account keeps every primary gate: Junior Explorers and
- * school learning, no secondary courses, quests, goals or activities. The layout
- * changes; what the account may reach does not.
+ * Primary learners keep Junior Explorers and primary course/quest gates while
+ * having full access to self-directed My Universe exploration.
  */
-function PrimaryBody({ uid, name, profile, section, avatar }) {
+function PrimaryBody({ uid, orgId, name, profile, section, calm, avatar, onOpenActivity }) {
   if (section === 'learning') return <PrimaryLearningPage uid={uid} profile={profile} />;
-  if (section === 'universe') return <PrimaryUniversePage />;
+  if (section === 'universe') return <PrimaryUniversePage uid={uid} orgId={orgId} calm={calm} onOpenActivity={onOpenActivity} />;
   if (section === 'portfolio') return <PortfolioPage uid={uid} name={name} profile={profile} avatar={avatar} progress={{ state: 'off' }} Avatar={Avatar} primary />;
   return <PrimaryDashboardPage name={name} />;
 }

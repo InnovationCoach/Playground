@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bot, Compass, Dna, Pause, Play, Rocket, Sparkles, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { useDialogFocus } from '../pilot/dialogFocus.js';
 
 const INTRO_KEY = (uid) => `spark_universe_intro_seen_v1_${uid || 'guest'}`;
 
@@ -51,6 +52,7 @@ export function UniverseOnboardingModal({ uid, credits = 100, motion = true, onO
   const [playing, setPlaying] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
   const headingRef = useRef(null);
+  const modalRef = useRef(null);
 
   const scene = ONBOARDING_SCENES[sceneIdx];
   const Icon = scene.icon;
@@ -102,17 +104,9 @@ export function UniverseOnboardingModal({ uid, credits = 100, motion = true, onO
 
   useEffect(() => {
     headingRef.current?.focus();
-    const onKey = (e) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        finish(false);
-      }
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const onDialogKeyDown = useDialogFocus(modalRef, () => finish(false), headingRef);
 
   return (
     <div
@@ -120,9 +114,10 @@ export function UniverseOnboardingModal({ uid, credits = 100, motion = true, onO
       role="dialog"
       aria-modal="true"
       aria-labelledby="upg-onboard-title"
+      onKeyDown={onDialogKeyDown}
       onClick={(e) => { if (e.target === e.currentTarget) finish(false); }}
     >
-      <div className="upg-onboard-modal">
+      <div className="upg-onboard-modal" ref={modalRef}>
         <div className="upg-head">
           <div className="upg-title-wrap">
             <Bot size={18} color="#96d700" aria-hidden="true" />

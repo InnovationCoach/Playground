@@ -100,5 +100,6 @@ export function PrimaryDashboardPage({ name }) {
         <div className="ls-hero-actions"><ArrowLink className="ls-primary" href={sectionHref('learning')}>Open my learning</ArrowLink></div></div>
       <div className="ls-hero-art"><DiscoveryArt /></div>
     </section>
+    <UniverseStrip />
   </div>;
 }

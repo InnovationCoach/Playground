@@ -140,26 +140,45 @@ function shiftAtmosphere(atmo = { o2: 12, co2: 28, n2: 60 }, deltaO2 = 0) {
 }
 
 export const CLASSROOM_STEWARDS = {
-  thalassa: 'Amira K.',
-  ignis: 'Mateo R.',
-  boreas: 'Priya S.',
-  pelagos: 'Noah T.',
-  cinder: 'Lina W.',
-  aurelia: 'Maya L.',
-  glaciera: 'Tariq H.',
-  pyros: 'Elena V.',
-  umbrion: 'Kenji N.',
-  veridia: 'Sofia M.',
-  nyxara: 'Devon C.',
-  koralis: 'Zara B.',
-  frostholm: 'Omar F.',
-  zephyria: 'Chloe D.',
-  'obsidian-reach': 'Lucas P.'
+  thalassa: 'SPARK Outpost · Lyra-1',
+  ignis: 'SPARK Outpost · Lyra-2',
+  boreas: 'SPARK Outpost · Lyra-3',
+  pelagos: 'SPARK Outpost · Beacon-1',
+  cinder: 'SPARK Outpost · Beacon-2',
+  aurelia: 'SPARK Outpost · Aurora-1',
+  glaciera: 'SPARK Outpost · Aurora-2',
+  pyros: 'SPARK Outpost · Aurora-3',
+  umbrion: 'SPARK Outpost · Halo-1',
+  veridia: 'SPARK Outpost · Halo-2',
+  nyxara: 'SPARK Outpost · Cygnus-1',
+  koralis: 'SPARK Outpost · Cygnus-2',
+  frostholm: 'SPARK Outpost · Cygnus-3',
+  zephyria: 'SPARK Outpost · Twin-1',
+  'obsidian-reach': 'SPARK Outpost · Twin-2'
 };
 
-export function stewardForPlanet(planetId, state) {
+/**
+ * Classroom Co-Op Privacy Mode: formats a learner's displayName to First Name + Last Initial
+ * (never exposing full surnames, emails, or UIDs).
+ */
+export function formatCoopStewardName(rawName, fallback = 'Explorer') {
+  if (typeof rawName !== 'string') return fallback;
+  const cleaned = rawName.replace(/\S+@\S+/g, '').trim();
+  if (!cleaned) return fallback;
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  const first = parts[0].slice(0, 24);
+  if (parts.length === 1) return first;
+  const lastInitial = parts[parts.length - 1][0]?.toUpperCase();
+  return lastInitial ? `${first} ${lastInitial}.` : first;
+}
+
+export function stewardForPlanet(planetId, state, peers = []) {
   if (state?.claimedPlanetId === planetId) return 'You';
-  return CLASSROOM_STEWARDS[planetId] || 'Unclaimed';
+  if (Array.isArray(peers) && peers.length > 0) {
+    const peer = peers.find((p) => p?.claimedPlanetId === planetId && p?.stewardName);
+    if (peer) return `${formatCoopStewardName(peer.stewardName)} (Classmate)`;
+  }
+  return CLASSROOM_STEWARDS[planetId] || 'SPARK Outpost';
 }
 
 export function initialPlaygroundState(defaultPlanetId = 'thalassa') {
@@ -169,6 +188,9 @@ export function initialPlaygroundState(defaultPlanetId = 'thalassa') {
     claimedPlanetId: defaultPlanetId,
     completedGoals: [],
     syncedSparkGoalIds: [],
+    completedMissionIds: [],
+    verifiedCompetencies: [],
+    unlockedFacilities: [],
     aidedThisWeek: [],
     week: 1,
     weeklyBulletin: [],
@@ -213,12 +235,60 @@ export function isGoalClaimed(state, goalId) {
 }
 
 /**
+ * Evaluates real inquiry progress for a Playground goal so credits reflect genuine STEM effort.
+ */
+export function getGoalEligibility(state, goalId) {
+  const planets = Object.values(state?.planets || {});
+  const totalScans = new Set(planets.flatMap((p) => p?.discoveredSpecies || [])).size;
+  const certifiedShips = (state?.savedShips || []).filter((s) => s?.simulation?.passed).length;
+  const completedMissions = (state?.completedMissionIds || []).length;
+  const syncedGoals = (state?.syncedSparkGoalIds || []).length;
+  const activeRecord = getPlanetRecord(state || {}, state?.claimedPlanetId || 'thalassa');
+  const activeCrewOnDuty = (activeRecord.crew || []).filter((m) => m.task && m.task !== 'rest').length;
+  const logCount = (state?.captainsLog || []).length;
+
+  switch (goalId) {
+    case 'goal-stem-lab': {
+      const done = completedMissions > 0 || certifiedShips > 0;
+      return {
+        eligible: done,
+        progressLabel: done ? 'Ready to claim' : 'Complete a mission or certify a spaceship (0/1)'
+      };
+    }
+    case 'goal-biosignature': {
+      const done = totalScans >= 3;
+      return {
+        eligible: done,
+        progressLabel: done ? 'Ready to claim (3/3 scans)' : `Scan ${3 - totalScans} more species (${totalScans}/3)`
+      };
+    }
+    case 'goal-pbl-milestone': {
+      const done = syncedGoals > 0 || completedMissions > 0;
+      return {
+        eligible: done,
+        progressLabel: done ? 'Ready to claim' : 'Mark a SPARK goal done or complete a mission'
+      };
+    }
+    case 'goal-hazard-drill': {
+      const done = logCount > 0 || (activeCrewOnDuty >= 4 && planets.some((p) => (p?.features?.length || 0) > 0));
+      return {
+        eligible: done,
+        progressLabel: done ? 'Ready to claim' : 'Resolve a crew dilemma or build 1 feature with all 4 crew on duty'
+      };
+    }
+    default:
+      return { eligible: false, progressLabel: 'Unknown goal' };
+  }
+}
+
+/**
  * Pays a goal's credits once. Claiming again returns the same state, so the
  * button cannot be pressed repeatedly to farm credits.
  */
-export function completeGoal(state, goalId) {
+export function completeGoal(state, goalId, { enforceEligibility = false } = {}) {
   const goal = GOAL_REWARDS.find((g) => g.id === goalId);
   if (!goal || isGoalClaimed(state, goalId)) return state;
+  if (enforceEligibility && !getGoalEligibility(state, goalId).eligible) return state;
   return {
     ...state,
     credits: state.credits + goal.credits,

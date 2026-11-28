@@ -158,9 +158,19 @@ function freezeDeep(value) {
   return value;
 }
 
-export const MISSION_LEARNING_DESIGNS = freezeDeep(designs.map(design => ({
-  presentationVersion: LEARNING_DESIGN_VERSION, bundleContentSha256: CONTENT_SHA, missionVersion: VERSION, ...design
-})));
+const BINDINGS = [
+  { missionVersion: VERSION, bundleContentSha256: CONTENT_SHA },
+  { missionVersion: '1.0.0', bundleContentSha256: 'faf14dc76251aada3a2e53614c12015b318048996e088d071a23b44a8400e1cf' }
+];
+
+export const MISSION_LEARNING_DESIGNS = freezeDeep(
+  BINDINGS.flatMap(binding => designs.map(design => ({
+    presentationVersion: LEARNING_DESIGN_VERSION,
+    bundleContentSha256: binding.bundleContentSha256,
+    missionVersion: binding.missionVersion,
+    ...design
+  })))
+);
 
 /** Require mission, route, version and reviewed content hash; unknown content falls back to its own authored copy. */
 export function getMissionLearningDesign(missionId, routeId, missionVersion, bundleContentSha256) {

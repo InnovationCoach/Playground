@@ -99,14 +99,17 @@ export async function fetchCrewAdvisorReply({ planet, system, record, question, 
   if (!useRemote) return localResult;
 
   try {
-    const prompt = [
-      `You are the AI NPC Crew aboard exoplanet "${planet?.name || 'Unknown'}" (${planet?.kind || 'ocean'} biome, star: ${system?.starClass || 'G-type'}).`,
-      `Current telemetry: Habitability ${record?.habitability}%, Biodiversity ${record?.biodiversity}%, Shielding ${record?.shielding}%, O2 ${record?.atmosphere?.o2 ?? 12}%, Active Hazard: ${record?.activeHazard?.name || 'None'}.`,
-      `Learner question: "${question || 'What should our crew prioritize next?'}"`,
-      'Reply in 2 concise sentences as ONE of the crew (Aria-7, Dr. Lyra Vance, Chief Kai Sato, or Lt. Soren Hale) with a helpful STEM tip.',
-      'Start your reply with the speaker name followed by a colon, for example "Chief Kai Sato: ...".'
+    const cleanQuestion = String(question || 'What should our crew prioritize next?').trim().slice(0, 300);
+    const activityContext = [
+      `AI NPC Crew Advisor aboard exoplanet "${planet?.name || 'Unknown'}" (${planet?.kind || 'ocean'} biome, star: ${system?.starClass || 'G-type'}).`,
+      `Telemetry: Habitability ${record?.habitability}%, Biodiversity ${record?.biodiversity}%, Shielding ${record?.shielding}%, O2 ${record?.atmosphere?.o2 ?? 12}%, Active Hazard: ${record?.activeHazard?.name || 'None'}.`,
+      'Reply in 2 concise Socratic sentences as ONE crew specialist (Aria-7, Dr. Lyra Vance, Chief Kai Sato, or Lt. Soren Hale). Never solve mission math directly.',
+      'Start your reply with the speaker name followed by a colon, e.g. "Chief Kai Sato: ...".'
     ].join(' ');
-    const res = await api.generateContextualResponse(prompt, 'my-universe-playground');
+    const res = await api.generateContextualResponse(
+      { message: cleanQuestion, activityContext, action: 'crew_advisor' },
+      activityContext
+    );
     const text = replyText(res);
     if (typeof text === 'string' && text.trim()) {
       const reply = text.trim();

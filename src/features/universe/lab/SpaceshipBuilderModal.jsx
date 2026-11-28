@@ -8,6 +8,7 @@ import {
   mentorHintForDesign,
   simulateSpaceshipDesign
 } from './spaceshipSim.js';
+import { useDialogFocus } from '../pilot/dialogFocus.js';
 
 const pct = (v) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -55,7 +56,7 @@ function TelemetryMeter({ id, label, value, ok, fill, mark, markLabel }) {
   );
 }
 
-export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = [], onSaveProject, onClose }) {
+export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = [], motion = true, onSaveProject, onClose }) {
   const [name, setName] = useState(`${planetName} Explorer I`);
   const [purpose, setPurpose] = useState('Atmospheric & biosignature survey');
   const [passengers, setPassengers] = useState(2);
@@ -73,6 +74,7 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
   const [statusKey, setStatusKey] = useState(0);
   const [loadedId, setLoadedId] = useState(null);
   const headingRef = useRef(null);
+  const modalRef = useRef(null);
   const nameRef = useRef(null);
   const announce = (msg) => { setStatusMsg(msg); setStatusKey((k) => k + 1); };
 
@@ -86,16 +88,9 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
 
   useEffect(() => {
     headingRef.current?.focus();
-    const onKey = (e) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose?.();
-      }
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [onClose]);
+  }, []);
+
+  const onDialogKeyDown = useDialogFocus(modalRef, onClose, headingRef);
 
   const updatePart = (slot, id) => {
     setParts((prev) => ({ ...prev, [slot]: id }));
@@ -139,8 +134,9 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
     announce(`Loaded ${ship.name} (v${ship.version}): name, parts and passengers restored.`);
     // The restored fields sit at the top of the lab, often scrolled out of view on tablets
     // and narrow windows; bring them back so the change is visible.
+    const reduced = !motion || Boolean(typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
     requestAnimationFrame(() => {
-      nameRef.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+      nameRef.current?.scrollIntoView?.({ block: 'center', behavior: reduced ? 'instant' : 'smooth' });
       nameRef.current?.focus?.({ preventScroll: true });
     });
   };
@@ -151,11 +147,12 @@ export function SpaceshipBuilderModal({ planetName = 'Thalassa', savedShips = []
       role="dialog"
       aria-modal="true"
       aria-labelledby="upg-lab-title"
+      onKeyDown={onDialogKeyDown}
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
       onWheel={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="upg-lab-modal">
+      <div className="upg-lab-modal" ref={modalRef}>
         <div className="upg-head">
           <div className="upg-title-wrap">
             <Rocket size={18} color="#96d700" aria-hidden="true" />

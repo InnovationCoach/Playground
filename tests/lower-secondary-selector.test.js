@@ -95,7 +95,7 @@ describe('page model', () => {
   });
   it('maps every world card to a real destination', () => {
     for (const world of WORLDS) expect(!!world.activity !== !!world.arrival).toBe(true);
-    expect(WORLDS.find((w) => w.id === 'science').preview).toBe(true);
+    expect(WORLDS.find((w) => w.id === 'science').preview).toBe(false);
     expect(JSON.stringify(WORLDS)).not.toMatch(/mars/i);
   });
   it('reports unknown progress as unknown, never as zero', () => {

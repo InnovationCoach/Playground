@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import {
   House, Search, LayoutDashboard, BookOpen, Rocket, Target, Sparkles, Users, Printer, HeartHandshake,
   GraduationCap, CreditCard, PackageCheck, Settings, PanelLeftClose, Pin, X, Link2, Palette, Award,
-  ClipboardCheck, CalendarOff, FolderOpen, Boxes, LayoutGrid, School, Route, UserRound, MessageSquare
+  ClipboardCheck, CalendarOff, FolderOpen, Boxes, LayoutGrid, School, Route, UserRound, MessageSquare, Orbit
 } from 'lucide-react';
 import { hrefFor } from '../../app/routes.js';
 import { ACTIVITY_NAV } from '../activities/activityHost.js';
@@ -90,6 +90,7 @@ export function menuFor(role, { onOpenCourses, onOpenGoals, onNavigate } = {}) {
   return [
     { items: [
       { key: 'dashboard', icon: LayoutDashboard, label: 'nav.myDashboard', href: hrefFor.dashboard() },
+      { key: 'universe', icon: Orbit, label: 'nav.myUniverse', href: '#/dashboard/universe' },
       { key: 'homeSearch', icon: Search, label: 'nav.searchPrograms', href: hrefFor.homeSearch() }
     ] },
     { label: 'nav.learning', items: [

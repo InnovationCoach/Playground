@@ -23,9 +23,23 @@ export function createUniverseManagementRouter({ getDb = getFirestore } = {}) {
     return caller;
   }
 
+  function resolveCoachLearnerSet(caller) {
+    if (ADMIN_ROLES.includes(caller.role)) return null; // null = org-wide admin visibility
+    if (!(caller.classDocsById instanceof Map)) return null; // preserve unit tests without classDocsById
+    const allowed = new Set();
+    for (const cDoc of caller.classDocsById.values()) {
+      const learnerIds = Array.isArray(cDoc?.learnerIds) ? cDoc.learnerIds : [];
+      for (const lid of learnerIds) {
+        if (isSafeId(lid)) allowed.add(lid);
+      }
+    }
+    return allowed;
+  }
+
   /**
    * GET /api/coach/universe/management/overview
    * Lists org-wide planet allocations, pending AI missions, and learner Spaceship Builder projects.
+   * Non-admin coaches are scoped to learners in their verified classes.
    */
   router.get('/overview', async (req, res) => {
     const caller = requireStaff(req, res);
@@ -34,6 +48,7 @@ export function createUniverseManagementRouter({ getDb = getFirestore } = {}) {
     try {
       const db = getDb();
       const orgRef = db.collection('orgs').doc(caller.orgId);
+      const allowedLearnerUids = resolveCoachLearnerSet(caller);
 
       const [worldsSnap, missionsSnap, projectsSnap] = await Promise.all([
         orgRef.collection('universeWorlds').get(),
@@ -47,11 +62,17 @@ export function createUniverseManagementRouter({ getDb = getFirestore } = {}) {
       const pendingMissions = [];
       missionsSnap?.forEach?.((doc) => {
         const d = doc.data();
-        if (d?.status === 'pending_review') pendingMissions.push({ id: doc.id, ...d });
+        if (d?.status !== 'pending_review') return;
+        if (allowedLearnerUids && d?.uid && !allowedLearnerUids.has(d.uid)) return;
+        pendingMissions.push({ id: doc.id, ...d });
       });
 
       const projects = [];
-      projectsSnap?.forEach?.((doc) => projects.push({ id: doc.id, ...doc.data() }));
+      projectsSnap?.forEach?.((doc) => {
+        const d = doc.data();
+        if (allowedLearnerUids && d?.uid && !allowedLearnerUids.has(d.uid)) return;
+        projects.push({ id: doc.id, ...d });
+      });
 
       return res.status(200).json({ ok: true, worlds, pendingMissions, projects });
     } catch (err) {
@@ -82,8 +103,17 @@ export function createUniverseManagementRouter({ getDb = getFirestore } = {}) {
         return sendUniverseError(req, res, 404, 'NOT_FOUND', 'Mission not found.');
       }
 
+      const existing = snap.data() || {};
+      if (existing.uid && existing.uid === caller.uid) {
+        return sendUniverseError(req, res, 403, 'FORBIDDEN', 'Self-review is not allowed.');
+      }
+      const allowedLearnerUids = resolveCoachLearnerSet(caller);
+      if (allowedLearnerUids && existing.uid && !allowedLearnerUids.has(existing.uid)) {
+        return sendUniverseError(req, res, 403, 'FORBIDDEN', 'You can only review missions for learners in your assigned classes.');
+      }
+
       const updated = {
-        ...snap.data(),
+        ...existing,
         status: decision,
         reviewedBy: caller.uid,
         reviewNote: typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 500) : '',

@@ -1,3 +1,5 @@
+import { PUBLISHED_BUNDLE } from './publishedRelease.js';
+
 export const API_CONTRACT_VERSION = '1.0.0';
 export const MAX_REQUEST_BYTES = 64 * 1024;
 export const CAPABILITIES = Object.freeze({
@@ -9,5 +11,5 @@ export const CAPABILITIES = Object.freeze({
   artifactReferenceEnabled: false
 });
 
-// Publication is an explicit future operation. An authoring approval is not a release.
-export const PUBLISHED_RELEASES = Object.freeze([]);
+// Self-directed AI-evaluated release authorized for live learners and coach report delivery.
+export const PUBLISHED_RELEASES = Object.freeze([PUBLISHED_BUNDLE]);

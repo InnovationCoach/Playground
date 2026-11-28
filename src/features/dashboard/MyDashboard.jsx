@@ -38,15 +38,22 @@ import './instrumentStudio.css';
 import './sparkBrand.css';
 import './dashboardScenes.css';
 
+const SECTION_SLIDE = { universe: 'universe', learning: 'daily', portfolio: 'creative' };
+
 export function MyDashboard(props) { return <StudentDashboard key={props.uid || 'signed-out'} {...props} />; }
 
-function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined, onOpenActivity, isPrimary = false }) {
+function StudentDashboard({ uid, orgId = null, profile, classIds = [], onJoined, onOpenActivity, isPrimary = false, initialSlide = null }) {
   const { prefs, update, syncState } = useDashboardPrefs(uid);
   const { plan, update: updatePlan, syncState: goalSync, loaded: goalsLoaded } = useGoalPlan(uid);
   const cloudProject = useCloudProject(uid);
   const [signals, setSignals] = useState(() => loadSignals(uid, deviceStorage()));
   const [panelOpen, setPanelOpen] = useState(false);
-  const [activeSlide, setActiveSlide] = useState('daily');
+  const [activeSlide, setActiveSlide] = useState(() => (initialSlide && SECTION_SLIDE[initialSlide]) || 'daily');
+  useEffect(() => {
+    if (initialSlide && SECTION_SLIDE[initialSlide]) {
+      setActiveSlide(SECTION_SLIDE[initialSlide]);
+    }
+  }, [initialSlide]);
   const data = useLearningCourses(uid, classIds, profile?.activeProgramId);
   // School course connection state from the school service only (O0); never assumed connected.
   const learningContext = useSchoolResource(uid ? '/api/learning-context' : null);

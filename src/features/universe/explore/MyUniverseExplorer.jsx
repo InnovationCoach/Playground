@@ -25,10 +25,16 @@ import { Workstations } from '../missions/Workstations.jsx';
 import { PlaygroundPanel } from '../playground/PlaygroundPanel.jsx';
 import { UniverseOnboardingModal, hasSeenUniverseIntro } from '../playground/UniverseOnboardingModal.jsx';
 import { loadPlaygroundState, mergeRemotePlaygroundState, savePlaygroundState, syncAchievedGoals } from '../playground/playgroundModel.js';
-import { loadRemotePlaygroundState, saveRemotePlaygroundState } from '../playground/playgroundClient.js';
+import {
+  loadClassmatePlanets,
+  loadRemotePlaygroundState,
+  saveRemotePlaygroundState,
+  sendCoopAidRemote,
+  visitClassmatePlanet
+} from '../playground/playgroundClient.js';
 import './explorer.css';
 
-// Production uses only published releases (none yet) and the signed-in user's token.
+// Production uses published self-directed releases and the signed-in user's token.
 let productionClient = null;
 const defaultClient = () => (productionClient ||= createDefaultUniverseClient({ auth: firebase.auth, baseUrl: API_BASE }));
 
@@ -90,7 +96,7 @@ function Banner({ preview, missions = false, playground = false }) {
   if (playground) {
     return <p className="mx-banner">{preview
       ? 'Sample universe · fictional worlds · Playground progress is saved to your browser & account'
-      : 'Fictional worlds for exploring · Playground progress is saved to your account'}</p>;
+      : 'Self-directed Universe · fictional worlds · AI mission reports & Playground progress save to your account'}</p>;
   }
   // With pilot missions, mission work can be saved to the learner's account; exploring itself still saves nothing.
   const saved = missions ? 'exploring saves nothing · mission work is saved only to your account' : 'nothing is saved';
@@ -142,49 +148,90 @@ export function MyUniverseExplorer({ catalogUrl = CATALOG_URL, loadCatalog = loa
 
 /**
  * The explorer itself: Universe → Galaxy → Star system → Planet → Surface, with a
- * complete text view. Catalog data only; no backend, saves, XP or unlocks.
- * Rendered in a full-viewport layer above the dashboard deck so camera gestures
- * never fight slide swipes or arrow keys.
+ * complete text view.
  */
 function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = true, calm = false, active = true, onClose, showMetrics = false, forceTextView = false, failLanding = false, loadEnvironment = defaultLoader,
-  missionRegistry = PUBLISHED_RELEASES, missionClient, viewer = null, initialMission = null, initialArrival = null, allowInReviewMissions = false,
+  missionRegistry = [], missionClient, coopClient = null, viewer = null, uid = null, initialMission = null, initialArrival = null, allowInReviewMissions = false,
   arrivalVideos = ARRIVAL_VIDEOS, trustArrivalVideos = false, missionPlan = null, enablePlayground = false, achievedGoals = [] }) {
   // Mission service calls are bound to one learner in one verified organization. Until the host
   // supplies both, nothing is requested and no mission opens (fail closed).
   const viewerKey = scopeKey(viewer);
+  const storageUid = viewer?.uid || uid || null;
+  const directMissionArrival = Boolean(initialMission?.id || initialArrival?.missionId);
   const [playgroundOpen, setPlaygroundOpen] = useState(false);
-  const [introOpen, setIntroOpen] = useState(() => enablePlayground && !hasSeenUniverseIntro(viewer?.uid));
-  const [playgroundState, setPlaygroundState] = useState(() => loadPlaygroundState(viewer?.uid, cosmos.planets[0]?.id || 'thalassa'));
+  const [introOpen, setIntroOpen] = useState(() => enablePlayground && !directMissionArrival && !hasSeenUniverseIntro(storageUid));
+  const [playgroundState, setPlaygroundState] = useState(() => loadPlaygroundState(storageUid, cosmos.planets[0]?.id || 'thalassa'));
+  const [classmatePeers, setClassmatePeers] = useState([]);
+  const [visitingPeer, setVisitingPeer] = useState(null);
+  const [remoteHydrated, setRemoteHydrated] = useState(!viewer?.uid);
+  const playgroundBtnRef = useRef(null);
+
   const updatePlayground = useCallback((next) => {
     setPlaygroundState(next);
-    savePlaygroundState(viewer?.uid, next);
+    savePlaygroundState(storageUid, next);
     if (viewer?.uid) saveRemotePlaygroundState({ auth: firebase.auth, baseUrl: API_BASE, state: next });
-  }, [viewer?.uid]);
+  }, [storageUid, viewer?.uid]);
+
+  const refreshRemotePlayground = useCallback(async () => {
+    if (!enablePlayground || !viewer?.uid) return null;
+    const remote = await loadRemotePlaygroundState({ auth: firebase.auth, baseUrl: API_BASE });
+    if (remote) {
+      setPlaygroundState((prev) => {
+        const merged = mergeRemotePlaygroundState(prev, remote);
+        savePlaygroundState(storageUid, merged);
+        return merged;
+      });
+    }
+    return remote;
+  }, [enablePlayground, viewer?.uid, storageUid]);
+
   useEffect(() => {
-    if (!enablePlayground || !viewer?.uid) return undefined;
+    if (!enablePlayground || !viewer?.uid) {
+      setRemoteHydrated(true);
+      return undefined;
+    }
     let live = true;
+    setRemoteHydrated(false);
     loadRemotePlaygroundState({ auth: firebase.auth, baseUrl: API_BASE }).then((remote) => {
-      if (live && remote) {
+      if (!live) return;
+      if (remote) {
         setPlaygroundState((prev) => {
           const merged = mergeRemotePlaygroundState(prev, remote);
-          savePlaygroundState(viewer.uid, merged);
+          savePlaygroundState(storageUid, merged);
           return merged;
         });
       }
+      setRemoteHydrated(true);
     });
     return () => { live = false; };
-  }, [enablePlayground, viewer?.uid]);
+  }, [enablePlayground, viewer?.uid, storageUid]);
+
   useEffect(() => {
-    if (!enablePlayground || !achievedGoals?.length) return;
+    if (!enablePlayground || !viewer?.uid) {
+      setClassmatePeers([]);
+      setVisitingPeer(null);
+      return undefined;
+    }
+    let live = true;
+    const loader = coopClient?.loadClassmates || loadClassmatePlanets;
+    loader({ auth: firebase.auth, baseUrl: API_BASE }).then((peers) => {
+      if (live && Array.isArray(peers)) setClassmatePeers(peers);
+    });
+    return () => { live = false; };
+  }, [enablePlayground, viewer?.uid, coopClient]);
+
+  useEffect(() => {
+    if (!enablePlayground || !achievedGoals?.length || !remoteHydrated) return;
     setPlaygroundState((prev) => {
       const synced = syncAchievedGoals(prev, achievedGoals);
       if (synced.newlyAwarded > 0) {
-        savePlaygroundState(viewer?.uid, synced.state);
+        savePlaygroundState(storageUid, synced.state);
         if (viewer?.uid) saveRemotePlaygroundState({ auth: firebase.auth, baseUrl: API_BASE, state: synced.state });
       }
       return synced.newlyAwarded > 0 ? synced.state : prev;
     });
-  }, [enablePlayground, achievedGoals, viewer?.uid]);
+  }, [enablePlayground, achievedGoals, remoteHydrated, storageUid, viewer?.uid]);
+
   const base = missionClient || defaultClient();
   const client = useMemo(() => (viewerKey ? base.withScope({ uid: viewer.uid, orgId: viewer.orgId }) : null), [base, viewerKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // Access answers are tagged with the scope that asked; a different viewer never sees them, even for one render.
@@ -353,12 +400,27 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
 
   useEffect(() => {
     mounted.current = true;
+    const opener = typeof document !== 'undefined' ? document.activeElement : null;
+    const appRoot = typeof document !== 'undefined' ? document.getElementById('root') : null;
+    const madeInert = Boolean(appRoot && (!root.current || !appRoot.contains(root.current)) && !appRoot.inert);
+    if (madeInert) appRoot.inert = true;
+
     const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     const sync = () => setReduced(!!mq?.matches); sync(); mq?.addEventListener?.('change', sync);
     const vis = () => setHidden(document.visibilityState === 'hidden'); vis(); document.addEventListener('visibilitychange', vis);
     const overflow = document.body.style.overflow; document.body.style.overflow = 'hidden';
     heading.current?.focus();
-    return () => { mounted.current = false; mq?.removeEventListener?.('change', sync); document.removeEventListener('visibilitychange', vis); document.body.style.overflow = overflow; document.body.style.cursor = ''; };
+    return () => {
+      mounted.current = false;
+      if (madeInert && appRoot) appRoot.inert = false;
+      mq?.removeEventListener?.('change', sync);
+      document.removeEventListener('visibilitychange', vis);
+      document.body.style.overflow = overflow;
+      document.body.style.cursor = '';
+      if (opener && typeof opener.focus === 'function' && document.contains(opener)) {
+        opener.focus();
+      }
+    };
   }, []);
 
   // Announce each new view, and keep keyboard focus inside the explorer when the focused button disappears.
@@ -384,18 +446,21 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     }
   }, [env.status, newer, here.level]);
 
-  // Destination access from the mission service. Any failed refresh (or a different signed-in
-  // learner) clears the previous answer: an old "available" is never authority for a new entry.
+  // Destination access from the mission service when conditional planets exist.
   const planetIds = useMemo(() => (cosmos.planets || []).map((p) => p.id), [cosmos]);
+  const hasRestrictedPlanets = useMemo(
+    () => (cosmos.planets || []).some((p) => p.access && p.access !== 'public'),
+    [cosmos]
+  );
   useEffect(() => {
     let alive = true;
     setAccessReply(null);
-    if (!planetIds.length || !client) return undefined;
+    if (!planetIds.length || !client || !hasRestrictedPlanets) return undefined;
     client.access(planetIds).then((res) => {
       if (alive) setAccessReply(res.state === 'loaded' && res.data?.destinations ? { key: viewerKey, destinations: res.data.destinations } : null);
     });
     return () => { alive = false; };
-  }, [planetIds, missionId, client, viewerKey]);
+  }, [planetIds, hasRestrictedPlanets, missionId, client, viewerKey]);
 
   // Session pinning: the visit keeps the catalog it opened with. Coming back to the overview checks quietly
   // for a newer published version and offers it; it is never swapped in mid-journey.
@@ -435,6 +500,89 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     closing.current = true; window.history.go(-histDepth.current);
     setTimeout(() => { if (closing.current) { closing.current = false; onCloseRef.current?.(); } }, 600);
   }, []);
+  const handleOpenActivity = useCallback((actId, actOpts) => {
+    if (!onOpenActivity) return;
+    histDepth.current = 0;
+    try { window.history.replaceState(null, ''); } catch { /* non-fatal */ }
+    onOpenActivity(actId, actOpts);
+  }, [onOpenActivity]);
+
+  const handleVisitPeer = useCallback(async (peer) => {
+    if (!peer?.peerId) return;
+    const visitFn = coopClient?.visitPeer || visitClassmatePlanet;
+    const remoteVisit = viewer?.uid
+      ? await visitFn({ auth: firebase.auth, baseUrl: API_BASE, peerId: peer.peerId, planetId: peer.claimedPlanetId })
+      : null;
+    const snapshot = remoteVisit || {
+      peerId: peer.peerId,
+      stewardName: peer.stewardName || 'Classmate',
+      planetId: peer.claimedPlanetId || 'thalassa',
+      record: peer.planet || { planetId: peer.claimedPlanetId || 'thalassa', habitability: 35, features: [] },
+      unlockedFacilities: peer.unlockedFacilities || []
+    };
+    setVisitingPeer(snapshot);
+    const p = cosmos.planetById(snapshot.planetId);
+    const path = p && canLand(p, opts)
+      ? pathTo('environment', p.environmentId, cosmos)
+      : pathTo('planet', snapshot.planetId, cosmos);
+    if (path) {
+      go({ type: 'jump', path });
+      if (webgl && !contextLost) setView('3d');
+    }
+    if (typeof window !== 'undefined' && window.innerWidth <= 820) {
+      setPlaygroundOpen(false);
+    }
+  }, [coopClient, viewer?.uid, cosmos, opts, go, webgl, contextLost]);
+
+  const handleExitVisit = useCallback(() => {
+    setVisitingPeer(null);
+    const ownId = playgroundState.claimedPlanetId || cosmos.planets[0]?.id;
+    const p = ownId ? cosmos.planetById(ownId) : null;
+    const path = p && canLand(p, opts)
+      ? pathTo('environment', p.environmentId, cosmos)
+      : (ownId ? pathTo('planet', ownId, cosmos) : null);
+    if (path) go({ type: 'jump', path });
+  }, [playgroundState.claimedPlanetId, cosmos, opts, go]);
+
+  const handleSendCoopAid = useCallback(async (peer) => {
+    if (!peer?.peerId || !peer?.claimedPlanetId) return { ok: false };
+    const sendFn = coopClient?.sendAid || sendCoopAidRemote;
+    const res = await sendFn({
+      auth: firebase.auth,
+      baseUrl: API_BASE,
+      targetPlanetId: peer.claimedPlanetId,
+      targetPeerId: peer.peerId
+    });
+    if (res?.ok && res.state) {
+      setPlaygroundState(res.state);
+      savePlaygroundState(storageUid, res.state);
+      setClassmatePeers((prev) => prev.map((item) => (
+        item.peerId === peer.peerId
+          ? {
+              ...item,
+              planet: {
+                ...(item.planet || {}),
+                habitability: Math.min(100, ((item.planet?.habitability) ?? 35) + 10),
+                activeHazard: null
+              }
+            }
+          : item
+      )));
+      setVisitingPeer((prev) => (
+        prev?.peerId === peer.peerId
+          ? {
+              ...prev,
+              record: {
+                ...(prev.record || {}),
+                habitability: Math.min(100, ((prev.record?.habitability) ?? 35) + 10),
+                activeHazard: null
+              }
+            }
+          : prev
+      ));
+    }
+    return res;
+  }, [coopClient, storageUid]);
 
   // The surface to prepare: the one we are on, or the landing site of the planet being inspected.
   const targetKind = (environment || (landable ? cosmos.environmentById(planet.environmentId) : null))?.sceneKind || null;
@@ -482,13 +630,27 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
   const select = (id) => { if (!dragging.current) go({ type: 'select', id }); };
   const selectQuietly = (id) => go({ type: 'select', id, quiet: true }); // a site chosen in the card frames it without reopening the dock
 
+  const activePlanetsMap = useMemo(() => {
+    if (!enablePlayground) return null;
+    if (!visitingPeer?.planetId || !visitingPeer?.record) return playgroundState.planets;
+    return { ...(playgroundState.planets || {}), [visitingPeer.planetId]: visitingPeer.record };
+  }, [enablePlayground, playgroundState.planets, visitingPeer]);
+
+  const isVisitingSurface = Boolean(visitingPeer && environment?.planetId === visitingPeer.planetId);
+  const surfaceRecord = enablePlayground
+    ? (isVisitingSurface ? visitingPeer.record : (playgroundState.planets?.[environment?.planetId] || null))
+    : null;
+  const surfaceFacilities = enablePlayground
+    ? (isVisitingSurface ? (visitingPeer.unlockedFacilities || []) : (playgroundState.unlockedFacilities || []))
+    : [];
+
   const scene = webgl && (in3d || contextLost) && <div className="mx-canvas" key={retryKey} style={!in3d ? { display: 'none' } : undefined}>
     <Canvas dpr={low ? [1, 1.25] : [1, 1.75]} gl={{ antialias: !low, powerPreference: 'high-performance' }}
       frameloop={!active ? 'never' : running ? 'always' : 'demand'} camera={{ fov: 45, near: 0.1, far: 1200, position: shot.position }}
       onCreated={({ gl }) => registerCanvas(gl)}>
       <color attach="background" args={['#05101f']} />
-      {here.level !== 'environment' && <><Starfield low={low} /><Nebulae low={low} /><SpaceLevel cosmos={cosmos} entry={here} selected={nav.selected} onSelect={select} low={low} motion={motion} playgroundPlanets={enablePlayground ? playgroundState.planets : null} /></>}
-      {environment && env.status === 'ready' && env.kind === environment.sceneKind && <env.Comp environment={environment} selected={nav.selected} onSelect={select} motion={motion} low={low} equipment={equipment} playgroundFeatures={enablePlayground ? (playgroundState.planets?.[environment.planetId]?.features || []) : []} unlockedFacilities={enablePlayground ? (playgroundState.unlockedFacilities || []) : []} activeHazard={enablePlayground ? (playgroundState.planets?.[environment.planetId]?.activeHazard || null) : null} />}
+      {here.level !== 'environment' && <><Starfield low={low} /><Nebulae low={low} /><SpaceLevel cosmos={cosmos} entry={here} selected={nav.selected} onSelect={select} low={low} motion={motion} playgroundPlanets={activePlanetsMap} /></>}
+      {environment && env.status === 'ready' && env.kind === environment.sceneKind && <env.Comp environment={environment} selected={nav.selected} onSelect={select} motion={motion} low={low} equipment={isVisitingSurface ? null : equipment} playgroundFeatures={surfaceRecord?.features || []} unlockedFacilities={surfaceFacilities} activeHazard={surfaceRecord?.activeHazard || null} />}
       <CameraRig shot={shot} travel={travel} motion={motion} onTravel={setTraveling} onDragChange={onDragChange} panelOpen={panelOpen} rightRailWidth={playgroundOpen ? 440 : panelOpen ? 392 : 0} api={api} />
       {showMetrics && <SpikeMetrics onSample={(m) => setMetrics((prev) => (prev && Object.keys(m).every((k) => prev[k] === m[k]) ? prev : m))} />}
     </Canvas>
@@ -519,7 +681,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
     const p = cosmos.planetById(planetId), path = canLand(p, opts) && pathTo('environment', p.environmentId, cosmos);
     if (path) go({ type: 'jump', path });
   };
-  const arrivalCard = (inline) => arrivalDesign && arrival && !missionOpen && <ArrivalCard key={`${viewerKey}|${arrivalPlanetId}`} inline={inline}
+  const arrivalCard = (inline) => !visitingPeer && arrivalDesign && arrival && !missionOpen && <ArrivalCard key={`${viewerKey}|${arrivalPlanetId}`} inline={inline}
     design={arrivalDesign} state={arrival} dispatch={arrivalDo} hold={arrivalHold}
     video={video} videoState={videoState} onVideo={(v) => setVideoStates((all) => ({ ...all, [visitKey]: v }))} planetName={cosmos.planetById(arrivalPlanetId)?.name} choices={choices}
     onSelectSite={selectQuietly} onStart={(c) => openMission(c.id, c.routeId ? { id: c.id, route: c.routeId } : null)} />;
@@ -551,7 +713,7 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
             <button type="button" onClick={() => setIntroOpen(true)} title="Watch My Universe explainer">
               <PlayCircle size={15} aria-hidden="true" />Guide
             </button>
-            <button type="button" className="upg-toggle-btn" aria-pressed={playgroundOpen} onClick={togglePlayground}>
+            <button ref={playgroundBtnRef} type="button" className="upg-toggle-btn" aria-pressed={playgroundOpen} onClick={togglePlayground}>
               <Sparkles size={15} aria-hidden="true" />Playground · {playgroundState.credits} Cr
             </button>
           </>
@@ -560,20 +722,28 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
       </div>
     </header>
     <Banner preview={preview} missions={missionRegistry.length > 0} playground={enablePlayground} />
+    {visitingPeer && (
+      <div className="mx-coop-visit-banner" role="region" aria-label="Classroom Co-Op planet visit">
+        <span>
+          <strong>Classroom Co-Op · Privacy Mode:</strong> Visiting <strong>{visitingPeer.stewardName}</strong>’s {cosmos.planetById(visitingPeer.planetId)?.name || visitingPeer.planetId} (Read-only · {visitingPeer.record?.habitability ?? 35}% Habitability · {(visitingPeer.record?.features || []).length} feature{(visitingPeer.record?.features || []).length === 1 ? '' : 's'} built)
+        </span>
+        <button type="button" className="mx-primary" onClick={handleExitVisit}>Return to My Planet</button>
+      </div>
+    )}
     <div className={`mx-stage${enablePlayground && playgroundOpen ? ' has-upg-drawer' : ''}`}>
       {scene}
       {in3d && <div className={`mx-fade${traveling ? '' : ' is-done'}`} key={`${nav.path.length}-${here.id || ''}`} aria-hidden="true" />}
       {!in3d && environment && <SurfaceTextView cosmos={cosmos} environment={environment} opts={opts} selected={nav.selected} onSelect={select} headingRef={heading}
         notice={noticeElement} canUse3d={webgl && !contextLost} onShow3d={() => setView('3d')} onBack={() => go({ type: 'back' })}
-        onOpenMission={openMission} onOpenActivity={onOpenActivity} arrivalCard={arrivalCard(true)}
-        playgroundRecord={enablePlayground ? (playgroundState.planets?.[environment.planetId] || null) : null} />}
-      {!in3d && !environment && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} onOpenMission={openMission} onOpenActivity={onOpenActivity} canUse3d={webgl && !contextLost}
-        notice={noticeElement} onLand={land} playgroundPlanets={enablePlayground ? playgroundState.planets : null}
+        onOpenMission={openMission} onOpenActivity={onOpenActivity ? handleOpenActivity : undefined} arrivalCard={arrivalCard(true)}
+        playgroundRecord={surfaceRecord} />}
+      {!in3d && !environment && <ExplorerTextView cosmos={cosmos} opts={opts} header={newerNotice} onOpenMission={openMission} onOpenActivity={onOpenActivity ? handleOpenActivity : undefined} canUse3d={webgl && !contextLost}
+        notice={noticeElement} onLand={land} playgroundPlanets={activePlanetsMap}
         onShow3d={(level, id) => { const path = pathTo(level, id, cosmos); if (path) { go({ type: 'jump', path }); setView('3d'); } }} />}
       {in3d && arrivalCard(false)}
       {enablePlayground && introOpen && (
         <UniverseOnboardingModal
-          uid={viewer?.uid}
+          uid={storageUid}
           credits={playgroundState.credits}
           motion={motion}
           onOpenPlayground={() => {
@@ -589,7 +759,14 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
           cosmos={cosmos}
           state={playgroundState}
           onChange={updatePlayground}
+          peers={classmatePeers}
+          visitingPeer={visitingPeer}
+          onVisitPeer={handleVisitPeer}
+          onExitVisit={handleExitVisit}
+          onSendCoopAid={handleSendCoopAid}
+          motion={motion}
           onFlyToPlanet={(planetId) => {
+            setVisitingPeer(null);
             const p = cosmos.planetById(planetId);
             const hasFeatures = (playgroundState.planets?.[planetId]?.features?.length || 0) > 0;
             const path = p && hasFeatures && canLand(p, opts)
@@ -599,8 +776,14 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
               go({ type: 'jump', path });
               if (webgl && !contextLost) setView('3d');
             }
+            if (typeof window !== 'undefined' && window.innerWidth <= 820) {
+              setPlaygroundOpen(false);
+            }
           }}
-          onClose={() => setPlaygroundOpen(false)}
+          onClose={() => {
+            setPlaygroundOpen(false);
+            playgroundBtnRef.current?.focus?.();
+          }}
         />
       )}
       {in3d && <div className={`mx-panel-dock${panelOpen ? ' is-open' : ' is-collapsed'}${sheetExpanded ? ' is-expanded' : ''}`}>
@@ -617,14 +800,14 @@ function ExplorerShell({ cosmos, checkNewer, onAdopt, onOpenActivity, preview = 
           <span className="mx-eyebrow">{LEVEL_LABEL[here.level]}</span>
           <h2 id="mx-panel-title" ref={heading} tabIndex={-1}>{here.level === 'universe' ? 'My Universe' : itemFor(here, cosmos)?.name}</h2>
           {here.level === 'universe' && newerNotice}
-          <Panel cosmos={cosmos} nav={nav} opts={opts} onOpenMission={openMission} onOpenActivity={onOpenActivity} go={go} select={select} env={env} onRetry={load} onTextView={() => setView('text')} />
+          <Panel cosmos={cosmos} nav={nav} opts={opts} onOpenMission={openMission} onOpenActivity={onOpenActivity ? handleOpenActivity : undefined} go={go} select={select} env={env} onRetry={load} onTextView={() => setView('text')} />
           <p className="mx-hint">Drag to look around · pinch or scroll to zoom · arrow keys rotate · D toggles details · Esc goes back · L for text view</p>
         </aside>
       </div>}
       {!in3d && !environment && <h2 className="mx-sr" ref={heading} tabIndex={-1}>My Universe text view</h2>}
       {mission && <MissionSheet mission={mission} onClose={() => setMissionId(null)} />}
       {pilotEntry && !client && <MissionSignInNotice mission={pilotEntry.mission} onClose={() => setMissionId(null)} />}
-      {pilotEntry && client && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={missionInitial?.id === pilotEntry.mission.id ? missionInitial : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} plan={missionPlan} onClose={() => setMissionId(null)} />}
+      {pilotEntry && client && <PilotMissionSheet key={`${viewerKey}|${pilotEntry.mission.id}`} entry={pilotEntry} initial={missionInitial?.id === pilotEntry.mission.id ? missionInitial : null} allowInReview={allowInReviewMissions} registry={missionRegistry} client={client} preview={preview} plan={missionPlan} onMissionApproved={() => { refreshRemotePlayground(); }} onClose={() => { setMissionId(null); refreshRemotePlayground(); }} />}
       {showMetrics && in3d && <div className="mx-metrics" aria-hidden="true">
         {metrics ? <>{metrics.at && performance.now() - metrics.at < 1600 ? `${metrics.fps} fps` : 'idle · renders on demand'} · {metrics.calls} draw calls · {metrics.triangles.toLocaleString()} tris · {metrics.geometries} geometries · {metrics.textures} textures · {low ? 'standard' : 'high'} detail</> : 'measuring…'}
       </div>}

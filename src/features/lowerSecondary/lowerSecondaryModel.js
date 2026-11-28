@@ -12,7 +12,7 @@ export const sectionHref = (section) => SECTION_HREF[section] || SECTION_HREF.da
 
 /** Science, design and technology cards point at destinations that exist, never concept worlds. */
 export const WORLDS = Object.freeze([
-  { id: 'science', label: 'Science', destination: 'Thalassa', title: 'Wind energy estimate', description: 'Help Thalassa choose a power plan.', preview: true,
+  { id: 'science', label: 'Science', destination: 'Thalassa', title: 'Wind energy estimate', description: 'Help Thalassa choose a power plan.', preview: false,
     arrival: { planetId: 'thalassa', missionId: 'thalassa-wind-survey', routeId: 'guided' }, action: 'Explore Thalassa' },
   { id: 'design', label: 'Design', destination: 'Project Hex-Grid', title: 'Floating city model', description: 'Test hypotheses in a floating-city model of Bangkok.', preview: false,
     activity: 'hexgrid', action: 'Open Hex-Grid' },

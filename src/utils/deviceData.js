@@ -15,7 +15,10 @@ const UNSCOPED_KEYS = [
   'firstTimeUser',
   'reminderSnoozedUntil',
   'hearisland.solarCar.build.v1',
-  'ageBand'
+  'ageBand',
+  'spark_universe_playground_v1_guest',
+  'spark_universe_intro_seen_v1_guest',
+  'spark.universe.builderPlan.guest'
 ];
 
 // Per-user keys, removed on sign-out so nothing personal stays on the device.
@@ -23,7 +26,10 @@ const USER_SCOPED_PREFIXES = [
   'userGoals_', 'firstTimeUser_', 'reminderSnoozedUntil_',
   // Goal plan (features/goals) and courses added from search (features/courses).
   // goalNudge_ (the daily notice's hidden-today date) is kept: it holds only a date.
-  'goalPlan_', 'hearisland.myPath.v1:'
+  'goalPlan_', 'hearisland.myPath.v1:',
+  'spark_universe_playground_v1_',
+  'spark_universe_intro_seen_v1_',
+  'spark.universe.builderPlan.'
 ];
 
 export function purgeUnscopedUserData() {

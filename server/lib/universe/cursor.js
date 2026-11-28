@@ -231,6 +231,7 @@ export function formatSubmissionItem(docId, data, { registry = [], overrideMap =
     reviewedAt: data.reviewedAtIso || reviewedParts.iso,
     availability,
     outcome: data.outcome ?? null,
+    aiReport: data.aiReport ?? null,
     legacyFormat: Boolean(isLegacy)
   };
 }

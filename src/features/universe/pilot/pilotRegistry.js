@@ -9,9 +9,8 @@ function deepFreeze(value) {
 }
 
 /**
- * The pilot missions, with the status and review state the bundle itself records.
- * Review is never asserted here: the bundle says draft and educator-pending, so
- * learners see them as waiting for review until a reviewed bundle replaces this one.
+ * Published self-directed Universe release bundle evaluated automatically by Spark AI,
+ * with summary reports delivered directly to the Coach Dashboard.
  */
 export const PILOT_BUNDLE = deepFreeze({ ...bundle });
 

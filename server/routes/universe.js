@@ -41,6 +41,9 @@ import {
   universeTransportGuard
 } from '../lib/universe/http.js';
 import { requireUniverseAuth } from '../lib/universe/auth.js';
+import { evaluateUniverseSubmissionWithAi } from '../lib/universe/aiEvaluator.js';
+import { computeDevelopmentStage } from '../lib/universe/livingProgression.js';
+import { initialPlaygroundState } from '../../src/features/universe/playground/playgroundModel.js';
 import { createUniversePlaygroundRouter } from './universePlayground.js';
 
 const LEARNER_ROLES = ['student', 'learner'];
@@ -164,7 +167,7 @@ function verifyPreviousSubmissionLink(prevSubSnap, caller, identity) {
   return prevData;
 }
 
-export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } = {}) {
+export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES, generateText = null } = {}) {
   const router = Router();
 
   router.use(universeTransportGuard);
@@ -576,7 +579,24 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
     // It is read/written with the new submission, without changing old evidence.
     const revisionLinkRef = prevSubRef ? db.collection('missionRevisionLinks').doc(prevSubRef.id) : null;
 
+    const isSelfDirectedAi = resolved.value.policy?.type === 'ai-self-directed';
+    const pgRef = db.collection('orgs').doc(caller.orgId).collection('universePlayground').doc(caller.uid);
+
     try {
+      let preEvaluatedAi = null;
+      if (isSelfDirectedAi) {
+        const prePgSnap = await pgRef.get();
+        const preCompleted = prePgSnap.exists && Array.isArray(prePgSnap.data()?.completedMissionIds)
+          ? prePgSnap.data().completedMissionIds
+          : [];
+        preEvaluatedAi = await evaluateUniverseSubmissionWithAi({
+          resolvedTask: resolved.value,
+          validatedSubmission: validatedSub,
+          alreadyCompletedMission: preCompleted.includes(identity.missionId),
+          generateText
+        });
+      }
+
       let statusCode = 201;
       let responsePayload = null;
 
@@ -585,9 +605,17 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
           transaction.get(overrideRef),
           transaction.get(idemRef),
           transaction.get(lockRef),
+          ...(isSelfDirectedAi ? [transaction.get(pgRef)] : []),
           ...(prevSubRef ? [transaction.get(prevSubRef), transaction.get(revisionLinkRef)] : [])
         ];
-        const [overrideSnap, idemSnap, lockSnap, prevSubSnap, revisionLinkSnap] = await Promise.all(reads);
+        const results = await Promise.all(reads);
+        const overrideSnap = results[0];
+        const idemSnap = results[1];
+        const lockSnap = results[2];
+        const pgSnap = isSelfDirectedAi ? results[3] : null;
+        const prevOffset = isSelfDirectedAi ? 4 : 3;
+        const prevSubSnap = prevSubRef ? results[prevOffset] : null;
+        const revisionLinkSnap = prevSubRef ? results[prevOffset + 1] : null;
 
         const nowTs = Timestamp.now();
         const nowIso = nowTs.toDate().toISOString();
@@ -671,6 +699,7 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
             coachNote: formattedItem.coachNote,
             availability,
             outcome: formattedItem.outcome,
+            aiReport: formattedItem.aiReport,
             auditEventId: liveSubData.auditEventId || null,
             idempotentReplay: true,
             submission: formattedItem
@@ -688,7 +717,7 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
 
         // 3. Enforce 1 open submission per [orgId, learnerUid, missionId] via collision-safe slot
         const lockData = lockSnap.exists ? lockSnap.data() : null;
-        if (lockData && lockData.status === 'open' && lockData.openSubmissionId) {
+        if (!isSelfDirectedAi && lockData && lockData.status === 'open' && lockData.openSubmissionId) {
           const err = new Error('You already have an open submission awaiting coach review for this mission.');
           err.statusCode = 409;
           err.code = 'SUBMISSION_ALREADY_OPEN';
@@ -718,10 +747,83 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
         const auditRef = db.collection('auditLogs').doc('universe').collection('events').doc();
 
         const { mission } = resolved.value;
+
+        let finalStatus = 'submitted';
+        let finalCoachUid = null;
+        let finalCoachNote = null;
+        let finalReviewedAt = null;
+        let finalReviewedAtIso = null;
+        let finalOutcome = null;
+        let finalAiReport = null;
+        let nextPgState = null;
+
+        if (isSelfDirectedAi && preEvaluatedAi) {
+          const currentPg = pgSnap?.exists ? pgSnap.data() : initialPlaygroundState(mission.planetIds?.[0] || 'thalassa');
+          const liveCompletedIds = Array.isArray(currentPg.completedMissionIds) ? currentPg.completedMissionIds : [];
+          const effectiveCredits = preEvaluatedAi.decision === 'approved' && !liveCompletedIds.includes(identity.missionId) ? 60 : 0;
+
+          finalStatus = preEvaluatedAi.decision;
+          finalCoachUid = 'spark-ai';
+          finalCoachNote = preEvaluatedAi.coachNote;
+          finalReviewedAt = nowTs;
+          finalReviewedAtIso = nowIso;
+          finalAiReport = {
+            ...preEvaluatedAi.aiReport,
+            creditsAwarded: effectiveCredits,
+            evaluatedAt: nowIso
+          };
+
+          if (preEvaluatedAi.decision === 'approved') {
+            const nextCompleted = liveCompletedIds.includes(identity.missionId)
+              ? liveCompletedIds
+              : [...liveCompletedIds, identity.missionId];
+            const nextCompetencies = Array.from(new Set([
+              ...(Array.isArray(currentPg.verifiedCompetencies) ? currentPg.verifiedCompetencies : []),
+              ...(preEvaluatedAi.competencies || [])
+            ]));
+            const unlockedFacilities = Array.isArray(currentPg.unlockedFacilities) ? [...currentPg.unlockedFacilities] : [];
+            if (!unlockedFacilities.includes('research-laboratory') && nextCompetencies.includes('scientific_reasoning')) {
+              unlockedFacilities.push('research-laboratory');
+            }
+            const devStage = computeDevelopmentStage(unlockedFacilities);
+            const historyEntry = {
+              id: `hist-${subRef.id}`,
+              type: 'mission_ai_approved',
+              missionId: identity.missionId,
+              routeId: identity.routeId,
+              title: mission.title,
+              planetId: mission.planetIds?.[0] || currentPg.claimedPlanetId || 'thalassa',
+              creditsAwarded: effectiveCredits,
+              competencies: preEvaluatedAi.competencies || [],
+              at: nowIso
+            };
+            nextPgState = {
+              ...initialPlaygroundState(currentPg.claimedPlanetId || mission.planetIds?.[0] || 'thalassa'),
+              ...currentPg,
+              credits: (typeof currentPg.credits === 'number' ? currentPg.credits : 100) + effectiveCredits,
+              completedMissionIds: nextCompleted,
+              verifiedCompetencies: nextCompetencies,
+              unlockedFacilities,
+              developmentStage: devStage.id,
+              developmentHistory: [historyEntry, ...(Array.isArray(currentPg.developmentHistory) ? currentPg.developmentHistory : [])].slice(0, 50),
+              updatedAt: nowIso
+            };
+            finalOutcome = {
+              type: 'ai-approved',
+              creditsAwarded: effectiveCredits,
+              competencies: preEvaluatedAi.competencies || [],
+              unlockedFacilities,
+              grantIds: [],
+              messageKey: 'universe.mission.aiApproved',
+              nextMissionIds: []
+            };
+          }
+        }
+
         const submissionRecord = {
           submissionId: subRef.id,
           id: subRef.id,
-          submissionRevision: 1,
+          submissionRevision: finalStatus === 'submitted' ? 1 : 2,
           attemptNumber,
           previousSubmissionId: validatedSub.previousSubmissionId ?? null,
           releaseId: identity.releaseId,
@@ -737,17 +839,18 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
           learnerDisplayName: caller.displayName,
           orgId: caller.orgId,
           classIds: caller.classIds,
-          status: 'submitted',
+          status: finalStatus,
           reflection: validatedSub.reflection,
           evidence: serializeEvidenceForFirestore(validatedSub.evidence),
           previousCoachNote,
-          coachUid: null,
-          coachNote: null,
+          coachUid: finalCoachUid,
+          coachNote: finalCoachNote,
           createdAt: nowTs,
           createdAtIso: nowIso,
-          reviewedAt: null,
-          reviewedAtIso: null,
-          outcome: null,
+          reviewedAt: finalReviewedAt,
+          reviewedAtIso: finalReviewedAtIso,
+          outcome: finalOutcome,
+          aiReport: finalAiReport,
           legacyFormat: false,
           auditEventId: auditRef.id
         };
@@ -755,7 +858,8 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
         const storedBytes = Buffer.byteLength(
           canonicalStringify({
             ...submissionRecord,
-            createdAt: nowIso
+            createdAt: nowIso,
+            reviewedAt: finalReviewedAtIso
           }),
           'utf8'
         );
@@ -768,8 +872,11 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
           throw err;
         }
 
-        // Atomically commit submission, open slot, audit event, and idempotency record
+        // Atomically commit submission, slot, Playground reward (if AI-approved), audit event, and idempotency record
         transaction.set(subRef, submissionRecord);
+        if (nextPgState) {
+          transaction.set(pgRef, nextPgState);
+        }
         if (revisionLinkRef) transaction.create(revisionLinkRef, {
           orgId: caller.orgId,
           learnerUid: caller.uid,
@@ -783,10 +890,10 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
           orgId: caller.orgId,
           learnerUid: caller.uid,
           missionId: identity.missionId,
-          status: 'open',
-          openSubmissionId: subRef.id,
+          status: finalStatus === 'submitted' ? 'open' : 'closed',
+          openSubmissionId: finalStatus === 'submitted' ? subRef.id : null,
           lastSubmissionId: subRef.id,
-          lastReturnedSubmissionId: lockData?.lastReturnedSubmissionId || null,
+          lastReturnedSubmissionId: finalStatus === 'returned' ? subRef.id : (lockData?.lastReturnedSubmissionId || null),
           attemptCount: attemptNumber,
           updatedAt: nowTs
         });
@@ -796,16 +903,19 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
           orgId: caller.orgId,
           schoolId: null,
           subjectUid: caller.uid,
-          action: 'universe.mission.submitted',
+          action: isSelfDirectedAi ? `universe.mission.ai_${finalStatus}` : 'universe.mission.submitted',
           actorUid: caller.uid,
           actorName: caller.displayName,
           actorPublicId: caller.publicId || null,
-          summary: `Learner ${caller.displayName} submitted mission ${identity.missionId} (${identity.routeId}/${identity.taskId}) attempt #${attemptNumber}`,
+          summary: isSelfDirectedAi
+            ? `Spark AI ${finalStatus} mission ${identity.missionId} (${identity.routeId}/${identity.taskId}) attempt #${attemptNumber} for ${caller.displayName}`
+            : `Learner ${caller.displayName} submitted mission ${identity.missionId} (${identity.routeId}/${identity.taskId}) attempt #${attemptNumber}`,
           details: {
             submissionId: subRef.id,
-            submissionRevision: 1,
+            submissionRevision: submissionRecord.submissionRevision,
             attemptNumber,
             previousSubmissionId: submissionRecord.previousSubmissionId,
+            status: finalStatus,
             ...identity
           },
           createdAt: nowTs
@@ -831,7 +941,7 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
         responsePayload = {
           contractVersion: API_CONTRACT_VERSION,
           submissionId: subRef.id,
-          submissionRevision: 1,
+          submissionRevision: submissionRecord.submissionRevision,
           attemptNumber,
           previousSubmissionId: submissionRecord.previousSubmissionId,
           releaseId: identity.releaseId,
@@ -843,10 +953,14 @@ export function createUniverseRouter({ getRegistry = () => PUBLISHED_RELEASES } 
           taskId: identity.taskId,
           supportMode: validatedSub.supportMode,
           policyVersion: identity.policyVersion,
-          status: 'submitted',
+          status: finalStatus,
           createdAt: nowIso,
+          reviewedAt: finalReviewedAtIso,
+          coachUid: finalCoachUid,
+          coachNote: finalCoachNote,
           availability,
-          outcome: null,
+          outcome: finalOutcome,
+          aiReport: finalAiReport,
           auditEventId: auditRef.id,
           idempotentReplay: false,
           submission: formattedItem

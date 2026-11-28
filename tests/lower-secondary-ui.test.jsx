@@ -156,10 +156,10 @@ describe('learning', () => {
 });
 
 describe('universe', () => {
-  it('opens real destinations and labels the preview', async () => {
+  it('opens real published destinations', async () => {
     const onOpenActivity = vi.fn();
     await render({ section: 'universe', onOpenActivity });
-    expect(host.querySelector('.ls-world').textContent).toContain('Preview');
+    expect(host.querySelector('.ls-world').textContent).not.toContain('Preview');
     const [science, design, technology] = host.querySelectorAll('.ls-world button');
     await act(async () => design.click());
     expect(onOpenActivity).toHaveBeenCalledWith('hexgrid');
@@ -168,7 +168,7 @@ describe('universe', () => {
     await act(async () => science.click());
     await flush();
     const explorer = host.querySelector('[data-testid=explorer]');
-    expect(explorer.dataset.preview).toBe('true');
+    expect(explorer.dataset.preview).toBe('false');
     expect(explorer.dataset.arrival).toBe('thalassa');
   });
   it('searches the real catalogue without claiming AI', async () => {
@@ -217,7 +217,7 @@ describe('portfolio', () => {
 });
 
 describe('primary account in the shell', () => {
-  it('keeps the primary gates: no courses, goals, quest, explorer or coach chat', async () => {
+  it('keeps primary course/quest/coach-chat gates while including primary learners in My Universe', async () => {
     await render({ isPrimary: true, profile: { displayName: 'Noor', ageBand: 'primary' } });
     expect(loadDashboardCourses).not.toHaveBeenCalled();
     expect(setDoc).not.toHaveBeenCalled();
@@ -229,7 +229,12 @@ describe('primary account in the shell', () => {
     await render({ isPrimary: true, section: 'learning' });
     expect(host.querySelector('[data-testid=junior]')).not.toBeNull();
     await render({ isPrimary: true, section: 'universe' });
-    expect(host.querySelector('.ls-world')).toBeNull();
-    expect(text()).toContain('Your explorations are in My Learning');
+    expect(host.querySelector('.ls-world')).not.toBeNull();
+    await act(async () => host.querySelector('.ls-world button').click());
+    await flush();
+    const explorer = host.querySelector('[data-testid=explorer]');
+    expect(explorer).not.toBeNull();
+    expect(explorer.dataset.preview).toBe('false');
+    expect(explorer.dataset.arrival).toBe('thalassa');
   });
 });

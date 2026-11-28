@@ -57,21 +57,41 @@ export function UniversePage({ uid, orgId, courses, calm, onOpenActivity }) {
   return <div className="ls-page">
     <PageTitle title="My Universe" subtitle="Where will your curiosity take you?" />
     {explorer && <Suspense fallback={<Loading>Opening My Universe…</Loading>}>
-      {/* The same preview flags as the existing dashboard's explorer; its own chrome says it is a preview. */}
-      <MyUniverseExplorer preview enablePlayground catalogUrl="/cosmos/v2/catalog.json" allowInReviewMissions missionRegistry={PILOT_RELEASES} initialArrival={explorer.arrival}
-        viewer={uid && orgId ? { uid, orgId } : null} calm={calm} active onClose={() => setExplorer(null)}
+      <MyUniverseExplorer preview={false} enablePlayground catalogUrl="/cosmos/v2/catalog.json" allowInReviewMissions={false} missionRegistry={PILOT_RELEASES} initialArrival={explorer.arrival}
+        uid={uid} viewer={uid && orgId ? { uid, orgId } : null} calm={calm} active onClose={() => setExplorer(null)}
         onOpenActivity={onOpenActivity ? (id, options) => { setExplorer(null); onOpenActivity(id, options); } : undefined} />
     </Suspense>}
     <ul className="ls-worlds">{WORLDS.map((world) => <WorldCard key={world.id} world={world} onOpen={open} />)}</ul>
     <div className="ls-universe-row"><NewAdventure /><ContinueExploring courses={courses} /></div>
-    <p className="ls-universe-all"><button type="button" className="ls-link" onClick={() => setExplorer({ arrival: null })}>Enter the full My Universe map (preview)<ArrowRight size={18} aria-hidden="true" /></button></p>
+    <p className="ls-universe-all"><button type="button" className="ls-link" onClick={() => setExplorer({ arrival: null })}>Enter the full My Universe map<ArrowRight size={18} aria-hidden="true" /></button></p>
   </div>;
 }
 
-/** Universe missions are secondary activities, so a primary-classified account isn't offered them. */
-export function PrimaryUniversePage() {
-  return <div className="ls-page"><PageTitle title="My Universe" subtitle="Where will your curiosity take you?" />
-    <section className="ls-card ls-adventure"><IdeaArt /><div><h2>Your explorations are in My Learning</h2><p>Universe missions open when you move on to secondary courses. Junior Explorers has hands-on investigations for you now.</p>
-      <ArrowLink className="ls-primary" href={sectionHref('learning')}>Open my learning</ArrowLink></div></section>
+/**
+ * Primary learners are included in My Universe (3D Explorer, Playground & self-directed AI missions)
+ * while keeping Junior Explorers linked and without querying secondary courses or quests.
+ */
+export function PrimaryUniversePage({ uid, orgId = null, calm = false, onOpenActivity }) {
+  const [explorer, setExplorer] = useState(null);
+  const thalassaWorld = WORLDS.find((w) => w.id === 'science') || WORLDS[0];
+  return <div className="ls-page">
+    <PageTitle title="My Universe" subtitle="Where will your curiosity take you?" />
+    {explorer && <Suspense fallback={<Loading>Opening My Universe…</Loading>}>
+      <MyUniverseExplorer preview={false} enablePlayground catalogUrl="/cosmos/v2/catalog.json" allowInReviewMissions={false} missionRegistry={PILOT_RELEASES} initialArrival={explorer.arrival}
+        uid={uid} viewer={uid && orgId ? { uid, orgId } : null} calm={calm} active onClose={() => setExplorer(null)}
+        onOpenActivity={onOpenActivity ? (id, options) => { setExplorer(null); onOpenActivity(id, options); } : undefined} />
+    </Suspense>}
+    <ul className="ls-worlds"><WorldCard world={thalassaWorld} onOpen={(w) => setExplorer({ arrival: w.arrival || null })} /></ul>
+    <section className="ls-card ls-adventure">
+      <IdeaArt />
+      <div>
+        <h2>Explore 3 galaxies &amp; build your exoplanet</h2>
+        <p>Fly through 15 exoplanets, scan for living species, and try self-directed investigations alongside Junior Explorers.</p>
+        <div className="ls-hero-actions" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button type="button" className="ls-primary" onClick={() => setExplorer({ arrival: null })}>Enter My Universe<ArrowRight size={18} aria-hidden="true" /></button>
+          <ArrowLink href={sectionHref('learning')}>Junior Explorers</ArrowLink>
+        </div>
+      </div>
+    </section>
   </div>;
 }

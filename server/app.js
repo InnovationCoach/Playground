@@ -238,7 +238,14 @@ export function createApp(options = {}) {
   app.use('/api/oneroster/v1p1', oneRosterRouter);
   app.use('/api/coach/learners', requireAuth, createLearnerRouter);
   app.use('/api/canva', canvaRouter);
-  app.use('/api/universe', createUniverseRouter({ getRegistry: () => universeRegistry }));
+  app.use('/api/universe', createUniverseRouter({
+    getRegistry: () => universeRegistry,
+    generateText: options.universeEvaluator || ((prompt) => (
+      app.locals.geminiConfig.configured
+        ? callGemini(prompt, 420, { endpoint: 'universe-ai-eval' })
+        : null
+    ))
+  }));
   app.use('/api/coach/universe', createCoachUniverseRouter({ getRegistry: () => universeRegistry }));
 
   app.use('/api', schoolWorkspaceRouter);

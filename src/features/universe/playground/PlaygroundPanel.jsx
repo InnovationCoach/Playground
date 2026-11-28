@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertTriangle, Award, Bot, ChevronDown, ChevronUp, Coins, Compass, Dna, Flame, Rocket, ShieldAlert, Sparkles, X, Zap
+  AlertTriangle, Award, Bot, ChevronDown, ChevronUp, Coins, Compass, Dna, Eye, Flame, Rocket, ShieldAlert, Sparkles, Users, X, Zap
 } from 'lucide-react';
 import {
   CREW_TASKS,
@@ -15,6 +15,7 @@ import {
   cultivateLife,
   fireRiskForRecord,
   generateCrewBriefing,
+  getGoalEligibility,
   getNextMission,
   getPlanetRecord,
   hasProducerSpecies,
@@ -35,7 +36,7 @@ const TABS = [
   { id: 'overview', label: 'Goals', icon: Award },
   { id: 'life', label: 'Life & Build', icon: Dna },
   { id: 'crew', label: 'AI Crew', icon: Bot },
-  { id: 'creator', label: 'Universe', icon: Zap }
+  { id: 'creator', label: 'Co-Op & Events', icon: Zap }
 ];
 
 const FEATURE_CATEGORIES = [
@@ -95,7 +96,19 @@ const EFFECT_LABEL = {
   research: 'Research'
 };
 
-export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClose }) {
+export function PlaygroundPanel({
+  cosmos,
+  state,
+  onChange,
+  onFlyToPlanet,
+  onClose,
+  peers = [],
+  visitingPeer = null,
+  onVisitPeer = null,
+  onExitVisit = null,
+  onSendCoopAid = null,
+  motion = true
+}) {
   const [tab, setTab] = useState('overview');
   const [featureCat, setFeatureCat] = useState('all');
   const [toast, setToast] = useState('');
@@ -106,9 +119,16 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
   const [advisorQ, setAdvisorQ] = useState('');
   const [advisorThread, setAdvisorThread] = useState([]);
   const [advisorBusy, setAdvisorBusy] = useState(false);
+  const [aidBusyPeerId, setAidBusyPeerId] = useState(null);
   // null = default for the tab (open on AI Crew, collapsed elsewhere); true/false = learner's choice.
   const [hazardOpen, setHazardOpen] = useState(null);
   const prevCreditsRef = useRef(state.credits);
+  const drawerHeadingRef = useRef(null);
+  const tabRefs = useRef({});
+
+  useEffect(() => {
+    drawerHeadingRef.current?.focus?.();
+  }, []);
 
   useEffect(() => {
     const diff = state.credits - prevCreditsRef.current;
@@ -278,7 +298,7 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
         <div className="upg-title-wrap">
           <Sparkles size={18} color="#96d700" aria-hidden="true" />
           <div>
-            <h2>Learner Playground</h2>
+            <h2 ref={drawerHeadingRef} tabIndex={-1}>Learner Playground</h2>
             <span className="upg-subtitle">
               {cosmos.galaxies.length} galaxies · {cosmos.systems.length} systems · {cosmos.planets.length} exoplanets
             </span>
@@ -308,19 +328,27 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
           const idx = TABS.findIndex((t) => t.id === tab);
           if (e.key === 'ArrowRight') {
             e.preventDefault();
-            changeTab(TABS[(idx + 1) % TABS.length].id);
+            const nextId = TABS[(idx + 1) % TABS.length].id;
+            changeTab(nextId);
+            tabRefs.current[nextId]?.focus?.();
           } else if (e.key === 'ArrowLeft') {
             e.preventDefault();
-            changeTab(TABS[(idx - 1 + TABS.length) % TABS.length].id);
+            const prevId = TABS[(idx - 1 + TABS.length) % TABS.length].id;
+            changeTab(prevId);
+            tabRefs.current[prevId]?.focus?.();
           }
         }}
       >
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
+            id={`upg-tab-${id}`}
+            ref={(el) => { tabRefs.current[id] = el; }}
             type="button"
             role="tab"
             aria-selected={tab === id}
+            aria-controls={`upg-panel-${id}`}
+            tabIndex={tab === id ? 0 : -1}
             className={`upg-tab${tab === id ? ' is-active' : ''}`}
             onClick={() => changeTab(id)}
           >
@@ -339,10 +367,10 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
         </div>
       )}
 
-      <div className="upg-body">
+      <div id={`upg-panel-${tab}`} className="upg-body" role="tabpanel" aria-labelledby={`upg-tab-${tab}`}>
 
         {record.activeHazard && dilemmaOptions && (
-          <div className={`upg-alert${hazardExpanded ? '' : ' is-collapsed'}`} role="alert">
+          <div className={`upg-alert${hazardExpanded ? '' : ' is-collapsed'}`} role="region" aria-label="Active planetary hazard">
             <h3>
               <AlertTriangle size={16} aria-hidden="true" />
               <span className="upg-alert-title">{record.activeHazard.name} on {activePlanet.name}</span>
@@ -449,7 +477,7 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
                 {cosmos.planets.map((p) => {
                   const sys = cosmos.systemById(p.systemId);
                   const gal = sys ? cosmos.galaxyById(sys.galaxyId) : null;
-                  const steward = stewardForPlanet(p.id, state);
+                  const steward = stewardForPlanet(p.id, state, peers);
                   return (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.kind}) — {gal?.name} / {sys?.name} · Steward: {steward}
@@ -486,6 +514,7 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
               <ul className="upg-list">
                 {GOAL_REWARDS.map((goal) => {
                   const claimed = (goalClaimCounts[goal.id] || 0) > 0;
+                  const eligibility = getGoalEligibility(state, goal.id);
                   return (
                     <li className="upg-item" key={goal.id}>
                       <div className="upg-item-row">
@@ -502,6 +531,9 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
                         >
                           {claimed ? 'Claimed ✓' : 'Claim Goal Credit'}
                         </button>
+                        {!claimed && eligibility.progressLabel && (
+                          <span className="upg-muted" style={{ fontSize: '0.76rem' }}>{eligibility.progressLabel}</span>
+                        )}
                       </div>
                     </li>
                   );
@@ -669,6 +701,7 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
           <SpaceshipBuilderModal
             planetName={activePlanet?.name}
             savedShips={state.savedShips || []}
+            motion={motion}
             onSaveProject={(snap) => {
               onChange(saveSpaceshipProject(state, snap));
               notify(`Saved ${snap.name} (v${snap.version}) — ${snap.simulation.passed ? 'Passed Physics' : 'Needs Tuning'}.`);
@@ -774,14 +807,26 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
                 {(!state.captainsLog || state.captainsLog.length === 0) && (
                   <li className="upg-item"><p className="upg-muted">No Captain&apos;s Log entries yet. Resolve a weekly hazard dilemma to record your scientific reasoning.</p></li>
                 )}
-                {(state.captainsLog || []).map((entry) => (
-                  <li className="upg-item" key={entry.id}>
-                    <div className="upg-item-row">
-                      <strong>Week {entry.week} · {entry.planetName}</strong>
-                      <span className="upg-tag">{entry.hazardName}</span>
-                    </div>
-                    <p className="upg-muted"><strong>{entry.choiceLabel}</strong></p>
-                    <p className="upg-muted">{entry.reasoning}</p>
+                {(state.captainsLog || []).map((entry, idx) => (
+                  <li className="upg-item" key={entry.id || `${entry.at || 'log'}-${idx}`}>
+                    {entry.choiceLabel ? (
+                      <>
+                        <div className="upg-item-row">
+                          <strong>Week {entry.week} · {entry.planetName}</strong>
+                          <span className="upg-tag">{entry.hazardName}</span>
+                        </div>
+                        <p className="upg-muted"><strong>{entry.choiceLabel}</strong></p>
+                        <p className="upg-muted">{entry.reasoning}</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="upg-item-row">
+                          <strong>Classroom Co-Op · {cosmos.planetById(entry.planetId)?.name || entry.planetId || 'Outpost'}</strong>
+                          <span className="upg-tag">Relief Pod</span>
+                        </div>
+                        <p className="upg-muted">{entry.note}</p>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -790,61 +835,148 @@ export function PlaygroundPanel({ cosmos, state, onChange, onFlyToPlanet, onClos
         )}
 
         {tab === 'creator' && (
-          <section className="upg-card">
-            <h3>
-              <span>Universe Creator: Weekly Events</span>
-              <span className="upg-tag">Week {state.week}</span>
-            </h3>
-            <p className="upg-muted">
-              Every week, the Universe Creator triggers random cosmic storms, lab fires, or radiation hazards across 3 random exoplanets.
-            </p>
-            <button type="button" className="upg-btn upg-btn-primary" onClick={handleWeeklyEvent}>
-              <Flame size={14} aria-hidden="true" /> Simulate Next Week (3 Random Planets)
-            </button>
-            <ul className="upg-list">
-              {state.weeklyBulletin.length === 0 && (
-                <li className="upg-item"><p className="upg-muted">No weekly events triggered yet. Click above to run the Universe Creator cycle.</p></li>
+          <>
+            <section className="upg-card" aria-label="Classroom Co-Op Planets">
+              <h3>
+                <span><Users size={15} aria-hidden="true" /> Classroom Co-Op · Privacy Mode</span>
+                <span className="upg-tag">{peers.length} classmate{peers.length === 1 ? '' : 's'}</span>
+              </h3>
+              <p className="upg-muted">
+                Privacy Mode active: classmates in your verified class appear by first name and initial only. Visit their exoplanets in 3D (read-only) or send an orbital relief pod (+10 Cr).
+              </p>
+              {visitingPeer && (
+                <div className="upg-item" style={{ borderColor: '#96d700' }}>
+                  <div className="upg-item-row">
+                    <strong>Visiting {visitingPeer.stewardName}’s {cosmos.planetById(visitingPeer.planetId)?.name || visitingPeer.planetId}</strong>
+                    <span className="upg-tag">Read-only 3D</span>
+                  </div>
+                  {onExitVisit && (
+                    <button type="button" className="upg-btn upg-btn-primary" onClick={onExitVisit}>
+                      Return to My Planet
+                    </button>
+                  )}
+                </div>
               )}
-              {state.weeklyBulletin.map((ev) => {
-                const p = cosmos.planetById(ev.planetId);
-                const steward = stewardForPlanet(ev.planetId, state);
-                const isOwn = state.claimedPlanetId === ev.planetId;
-                const aided = (state.aidedThisWeek || []).includes(ev.planetId);
-                return (
-                  <li className="upg-item" key={ev.id}>
-                    <div className="upg-item-row">
-                      <strong><ShieldAlert size={14} aria-hidden="true" /> {p?.name || ev.planetId}: {ev.name}</strong>
-                      <span className="upg-tag">-{ev.damage}% stability</span>
-                    </div>
-                    <p className="upg-muted">Steward: <strong>{steward}</strong> · {ev.summary}</p>
-                    <div className="upg-item-row">
-                      {onFlyToPlanet && (
-                        <button type="button" className="upg-btn" onClick={() => onFlyToPlanet(ev.planetId)}>
-                          Inspect {p?.name || ev.planetId}
-                        </button>
-                      )}
-                      {!isOwn && (
-                        <button
-                          type="button"
-                          className={`upg-btn${aided ? ' upg-btn-complete' : ' upg-btn-primary'}`}
-                          disabled={aided}
-                          onClick={() => {
-                            const res = sendPlanetaryAid(state, ev.planetId);
-                            if (res.ok) {
-                              onChange(res.state);
-                              notify(`Sent emergency aid to ${steward} on ${p?.name || ev.planetId}! (+10 Teamwork Cr)`);
-                            }
-                          }}
-                        >
-                          {aided ? 'Aid Sent ✓' : 'Send Aid (+10 Cr)'}
-                        </button>
-                      )}
-                    </div>
+              <ul className="upg-list">
+                {peers.length === 0 && (
+                  <li className="upg-item">
+                    <p className="upg-muted">When classmates in your class open My Universe, their exoplanets appear here so you can visit in 3D and send co-op relief pods.</p>
                   </li>
-                );
-              })}
-            </ul>
-          </section>
+                )}
+                {peers.map((peer) => {
+                  const pObj = cosmos.planetById(peer.claimedPlanetId);
+                  const pName = pObj?.name || peer.claimedPlanetId;
+                  const aidKey = `${peer.peerId}:${peer.claimedPlanetId}`;
+                  const alreadyAided = (state.aidedThisWeek || []).includes(aidKey);
+                  const isVisiting = visitingPeer?.peerId === peer.peerId;
+                  const hab = peer.planet?.habitability ?? 35;
+                  const featCount = (peer.planet?.features || []).length;
+                  const hasPeerHazard = Boolean(peer.planet?.activeHazard);
+                  return (
+                    <li className="upg-item" key={peer.peerId}>
+                      <div className="upg-item-row">
+                        <strong>{peer.stewardName} · {pName}</strong>
+                        <span className="upg-tag">{hasPeerHazard ? 'Hazard Active' : `${hab}% Hab`}</span>
+                      </div>
+                      <p className="upg-muted">
+                        {featCount} feature{featCount === 1 ? '' : 's'} built · {(peer.unlockedFacilities || []).length} facilit{(peer.unlockedFacilities || []).length === 1 ? 'y' : 'ies'} unlocked
+                        {peer.shipCount > 0 ? ` · ${peer.shipCount} spacecraft` : ''}
+                      </p>
+                      <div className="upg-item-row">
+                        {onVisitPeer && (
+                          <button
+                            type="button"
+                            className={`upg-btn${isVisiting ? ' upg-btn-complete' : ' upg-btn-primary'}`}
+                            onClick={() => onVisitPeer(peer)}
+                          >
+                            <Eye size={13} aria-hidden="true" /> {isVisiting ? 'Visiting Now ✓' : `Visit ${pName} in 3D`}
+                          </button>
+                        )}
+                        {onSendCoopAid && (
+                          <button
+                            type="button"
+                            className={`upg-btn${alreadyAided ? ' upg-btn-complete' : ''}`}
+                            disabled={alreadyAided || aidBusyPeerId === peer.peerId}
+                            onClick={async () => {
+                              setAidBusyPeerId(peer.peerId);
+                              try {
+                                const res = await onSendCoopAid(peer);
+                                if (res?.ok) {
+                                  notify(`Sent orbital relief pod to ${peer.stewardName}’s ${pName}! (+10 Co-Op Cr)`);
+                                } else {
+                                  notify(res?.error || 'Could not send relief pod right now.');
+                                }
+                              } finally {
+                                setAidBusyPeerId(null);
+                              }
+                            }}
+                          >
+                            {alreadyAided ? 'Pod Sent ✓' : aidBusyPeerId === peer.peerId ? 'Sending…' : 'Send Relief Pod (+10 Cr)'}
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            <section className="upg-card">
+              <h3>
+                <span>Universe Creator: Weekly Events</span>
+                <span className="upg-tag">Week {state.week}</span>
+              </h3>
+              <p className="upg-muted">
+                Every week, the Universe Creator triggers random cosmic storms, lab fires, or radiation hazards across 3 random exoplanets.
+              </p>
+              <button type="button" className="upg-btn upg-btn-primary" onClick={handleWeeklyEvent}>
+                <Flame size={14} aria-hidden="true" /> Simulate Next Week (3 Random Planets)
+              </button>
+              <ul className="upg-list">
+                {state.weeklyBulletin.length === 0 && (
+                  <li className="upg-item"><p className="upg-muted">No weekly events triggered yet. Click above to run the Universe Creator cycle.</p></li>
+                )}
+                {state.weeklyBulletin.map((ev) => {
+                  const p = cosmos.planetById(ev.planetId);
+                  const steward = stewardForPlanet(ev.planetId, state, peers);
+                  const isOwn = state.claimedPlanetId === ev.planetId;
+                  const aided = (state.aidedThisWeek || []).includes(ev.planetId);
+                  return (
+                    <li className="upg-item" key={ev.id}>
+                      <div className="upg-item-row">
+                        <strong><ShieldAlert size={14} aria-hidden="true" /> {p?.name || ev.planetId}: {ev.name}</strong>
+                        <span className="upg-tag">-{ev.damage}% stability</span>
+                      </div>
+                      <p className="upg-muted">Steward: <strong>{steward}</strong> · {ev.summary}</p>
+                      <div className="upg-item-row">
+                        {onFlyToPlanet && (
+                          <button type="button" className="upg-btn" onClick={() => onFlyToPlanet(ev.planetId)}>
+                            Inspect {p?.name || ev.planetId}
+                          </button>
+                        )}
+                        {!isOwn && (
+                          <button
+                            type="button"
+                            className={`upg-btn${aided ? ' upg-btn-complete' : ' upg-btn-primary'}`}
+                            disabled={aided}
+                            onClick={() => {
+                              const res = sendPlanetaryAid(state, ev.planetId);
+                              if (res.ok) {
+                                onChange(res.state);
+                                notify(`Sent emergency aid to ${steward} on ${p?.name || ev.planetId}! (+10 Teamwork Cr)`);
+                              }
+                            }}
+                          >
+                            {aided ? 'Aid Sent ✓' : 'Send Aid (+10 Cr)'}
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          </>
         )}
       </div>
     </aside>

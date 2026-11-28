@@ -8,6 +8,7 @@ import { GoalFlow } from '../src/features/goals/GoalFlow.jsx';
 import { firstStepOptions, LIMITS, newPlan } from '../src/features/goals/goalPlan.js';
 import { newQuests, questReason, plainTitle } from '../src/features/home/discoveryModel.js';
 import { PILOT_RELEASES } from '../src/features/universe/pilot/pilotRegistry.js';
+import { FIXTURE_RELEASES } from '../shared/universe/fixtures/index.js';
 import { DashboardDeck } from '../src/features/dashboard/DashboardDeck.jsx';
 import { toolGroups } from '../src/features/dashboard/allTools.js';
 import { buildSky, SKY } from '../src/features/dashboard/skyModel.js';
@@ -226,13 +227,18 @@ describe('My Universe', () => {
     expect(buttonIn(host, /Start this mission/)).toBeTruthy();
     expect(host.textContent).not.toMatch(/\bAI\b/);
   });
-  it('shows missions as pending and keeps Mission Builder locked until review is recorded', () => {
-    universe();
+  it('shows draft registries as pending while published self-directed releases unlock Mission Builder', () => {
+    universe(FIXTURE_RELEASES);
     expect(host.textContent).toContain('Teachers are still checking these missions');
     expect(host.textContent).toContain('Waiting for teacher review');
     expect(buttonIn(host, 'Make my plan')).toBeUndefined();
     expect(host.querySelectorAll('.uv-mission button').length).toBe(3);
-    expect(host.textContent).not.toMatch(/\bAI\b/);
+
+    act(() => root.unmount());
+    host.remove();
+    universe();
+    expect(host.textContent).not.toContain('Teachers are still checking these missions');
+    expect(buttonIn(host, 'Make my plan')).toBeTruthy();
   });
 });
 
@@ -281,7 +287,7 @@ describe('dashboard menu', () => {
     const dialog = host.querySelector('dialog.sd-tools');
     expect(dialog.getAttribute('aria-labelledby')).toBe('sd-tools-title');
     expect([...dialog.querySelectorAll('h3')].map((h) => h.textContent)).toEqual(['Learning', 'Goals and skills', 'Creating', 'People and settings']);
-    expect(dialog.querySelectorAll('a').length).toBe(12);
+    expect(dialog.querySelectorAll('a').length).toBe(13);
     act(() => dialog.querySelector('button[aria-label="Close All tools"]').click());
     expect(host.querySelector('dialog.sd-tools')).toBeNull();
   });
@@ -294,7 +300,7 @@ describe('All tools matches the sidebar', () => {
     expect(tools.map((t) => t.key).sort()).toEqual(sidebar.map((i) => i.key).filter((k) => k !== 'dashboard').sort());
   });
   it('matches the live student menu, in order, with no Coach programs', () => {
-    expect(sidebar.map((i) => i.label)).toEqual(['nav.myDashboard', 'nav.searchPrograms', 'nav.myCourses', 'nav.pbl', 'nav.myCompetencies', 'nav.canva', 'nav.goals', 'nav.futureSkills', 'nav.mySpace', 'nav.portfolioMaker', 'nav.home', 'nav.community', 'nav.settings']);
+    expect(sidebar.map((i) => i.label)).toEqual(['nav.myDashboard', 'nav.myUniverse', 'nav.searchPrograms', 'nav.myCourses', 'nav.pbl', 'nav.myCompetencies', 'nav.canva', 'nav.goals', 'nav.futureSkills', 'nav.mySpace', 'nav.portfolioMaker', 'nav.home', 'nav.community', 'nav.settings']);
     expect(tools.some((t) => t.key === 'programs')).toBe(false);
   });
   it('explains every tool and opens the same route as the sidebar, and that route exists', () => {

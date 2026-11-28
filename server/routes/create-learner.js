@@ -122,6 +122,8 @@ export async function createLearnerAccount({ email, displayName, classId, gradeL
   // Prepare Firestore writes
   const batch = db.batch();
 
+  const effectiveOrgId = classData.orgId || caller?.orgId || caller?.profile?.orgId || 'org-welearn';
+
   // 1. users/{uid} document strictly matching contract
   const userRef = db.collection('users').doc(newUid);
   batch.set(userRef, {
@@ -130,7 +132,7 @@ export async function createLearnerAccount({ email, displayName, classId, gradeL
     email: cleanEmail,
     role: 'learner',
     classIds: [cleanClassId],
-    orgId: caller?.profile?.orgId || 'org-welearn',
+    orgId: effectiveOrgId,
     status: 'active',
     isTest: false,
     createdAt: now,
@@ -143,6 +145,18 @@ export async function createLearnerAccount({ email, displayName, classId, gradeL
     learnerIds: FieldValue.arrayUnion(newUid),
     updatedAt: FieldValue.serverTimestamp()
   });
+
+  // 3. Provision server-controlled Universe membership authority matching class tenancy
+  const memberRef = db.collection('universeMemberships').doc(newUid);
+  batch.set(memberRef, {
+    uid: newUid,
+    displayName: cleanName,
+    role: 'learner',
+    orgId: effectiveOrgId,
+    classIds: [cleanClassId],
+    status: 'active',
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
 
   await batch.commit();
 

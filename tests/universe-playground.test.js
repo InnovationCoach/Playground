@@ -181,11 +181,14 @@ describe('Learner Playground Engine', () => {
   });
 
   it('syncs real SPARK goals idempotently and supports classroom co-op aid on weekly hazard planets', async () => {
-    const { syncAchievedGoals, sendPlanetaryAid, stewardForPlanet } = await import('../src/features/universe/playground/playgroundModel.js');
+    const { syncAchievedGoals, sendPlanetaryAid, stewardForPlanet, formatCoopStewardName } = await import('../src/features/universe/playground/playgroundModel.js');
 
     let state = initialPlaygroundState('thalassa');
     expect(stewardForPlanet('thalassa', state)).toBe('You');
-    expect(stewardForPlanet('aurelia', state)).toBe('Maya L.');
+    expect(stewardForPlanet('aurelia', state)).toBe('SPARK Outpost · Aurora-1');
+    expect(formatCoopStewardName('Ava Martinez')).toBe('Ava M.');
+    expect(formatCoopStewardName('ava.martinez@school.org', 'Classmate')).toBe('Classmate');
+    expect(stewardForPlanet('aurelia', state, [{ claimedPlanetId: 'aurelia', stewardName: 'Ava Martinez' }])).toBe('Ava M. (Classmate)');
 
     // Sync two real SPARK goals (+100 Cr total)
     const firstSync = syncAchievedGoals(state, ['goal-1', 'goal-2']);

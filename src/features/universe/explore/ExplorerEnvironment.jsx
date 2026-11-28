@@ -22,12 +22,15 @@ export function heightAt(x, z) {
   return island - 5 + n * (island > 0 ? 4.5 : 1.4) + (island > 2 ? ridge * 2.5 : 0);
 }
 
-function Terrain({ low }) {
+function Terrain({ low, icy = false }) {
   const geo = useMemo(() => {
     const seg = low ? 110 : 170, g = new THREE.PlaneGeometry(220, 220, seg, seg);
     g.rotateX(-Math.PI / 2);
     const pos = g.attributes.position, colors = new Float32Array(pos.count * 3);
-    const basalt = new THREE.Color('#2b2a2c'), moss = new THREE.Color('#41513a'), sand = new THREE.Color('#8f8064'), seabed = new THREE.Color('#2c4a55');
+    const basalt = new THREE.Color(icy ? '#3e546e' : '#2b2a2c');
+    const moss = new THREE.Color(icy ? '#e8f5ff' : '#41513a');
+    const sand = new THREE.Color(icy ? '#b8d7eb' : '#8f8064');
+    const seabed = new THREE.Color(icy ? '#1b354d' : '#2c4a55');
     const c = new THREE.Color();
     for (let i = 0; i < pos.count; i += 1) {
       const x = pos.getX(i), z = pos.getZ(i), h = heightAt(x, z);
@@ -40,13 +43,13 @@ function Terrain({ low }) {
     g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     g.computeVertexNormals();
     return g;
-  }, [low]);
+  }, [low, icy]);
   useEffect(() => () => geo.dispose(), [geo]);
-  return <mesh geometry={geo}><meshStandardMaterial vertexColors roughness={0.95} metalness={0} flatShading /></mesh>;
+  return <mesh geometry={geo}><meshStandardMaterial vertexColors roughness={icy ? 0.68 : 0.95} metalness={icy ? 0.08 : 0} flatShading /></mesh>;
 }
 
 /** A gently moving sea surface. With motion off it holds still. */
-function Ocean({ motion, low }) {
+function Ocean({ motion, low, icy = false }) {
   const ref = useRef();
   const geo = useMemo(() => { const g = new THREE.PlaneGeometry(400, 400, low ? 64 : 112, low ? 64 : 112); g.rotateX(-Math.PI / 2); return g; }, [low]);
   const base = useMemo(() => Float32Array.from(geo.attributes.position.array), [geo]);
@@ -60,7 +63,7 @@ function Ocean({ motion, low }) {
     }
     pos.needsUpdate = true; geo.computeVertexNormals();
   });
-  return <mesh ref={ref} geometry={geo}><meshStandardMaterial color="#1c6d93" transparent opacity={0.78} roughness={0.18} metalness={0.15} /></mesh>;
+  return <mesh ref={ref} geometry={geo}><meshStandardMaterial color={icy ? '#234d70' : '#1c6d93'} transparent opacity={0.78} roughness={0.18} metalness={0.15} /></mesh>;
 }
 
 /** Seven hexagonal modules on pontoons: the foundation site for a future floating-settlement project. */
@@ -104,17 +107,18 @@ function Vent({ x, z }) {
 
 export default function ExplorerEnvironment({ environment, selected, onSelect, motion, low, equipment = null, playgroundFeatures = [], unlockedFacilities = [], activeHazard = null }) {
   const byId = Object.fromEntries(environment.locations.map((l) => [l.id, l]));
+  const icy = /\b(ice|glaci|cryo|brine|aurora)\b/i.test(environment.biome || '');
   // Planned equipment rests on the platform deck, on land, or on a small float at the waterline.
   const deck = byId.platform.position, onDeck = (x, z) => Math.hypot(x - deck[0], z - deck[2]) < 6.5;
   const standAt = (x, z) => (onDeck(x, z) ? 0.76 : Math.max(heightAt(x, z), 0.1));
   const water = (x, z) => !onDeck(x, z) && heightAt(x, z) < 0.1;
   return <group>
-    <fog attach="fog" args={['#c9e4ef', 90, 330]} />
-    <hemisphereLight args={['#dff1ff', '#2a4a55', 0.9]} />
-    <directionalLight position={[80, 90, -60]} intensity={2.2} color="#fff4e0" />
-    <Sky top="#2e6fae" horizon="#c9e4ef" below="#2a6380" />
-    <Terrain low={low} />
-    <Ocean motion={motion} low={low} />
+    <fog attach="fog" args={[icy ? '#a9d4ee' : '#c9e4ef', 90, 330]} />
+    <hemisphereLight args={[icy ? '#ebf7ff' : '#dff1ff', icy ? '#1f3b54' : '#2a4a55', 0.9]} />
+    <directionalLight position={[80, 90, -60]} intensity={icy ? 1.85 : 2.2} color={icy ? '#e8f5ff' : '#fff4e0'} />
+    <Sky top={icy ? '#132c4e' : '#2e6fae'} horizon={icy ? '#a9d4ee' : '#c9e4ef'} below={icy ? '#1b3a59' : '#2a6380'} />
+    <Terrain low={low} icy={icy} />
+    <Ocean motion={motion} low={low} icy={icy} />
     <Platform position={[byId.platform.position[0], 0, byId.platform.position[2]]} />
     <Mast x={byId['weather-mast'].position[0]} z={byId['weather-mast'].position[2]} />
     <TideGauge x={byId['tide-gauge'].position[0]} z={byId['tide-gauge'].position[2]} />

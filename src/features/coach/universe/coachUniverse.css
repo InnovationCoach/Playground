@@ -443,6 +443,89 @@
   color: #cbd5e1;
 }
 
+.coach-universe-item-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.coach-badge.is-ai-report {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  background: rgba(130, 80, 160, 0.14);
+  border: 1px solid rgba(130, 80, 160, 0.35);
+  color: var(--gh-purple, #8250a0);
+}
+
+.coach-universe-ai-report {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(130, 80, 160, 0.08), rgba(14, 165, 233, 0.06));
+  border: 1px solid rgba(130, 80, 160, 0.25);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.coach-ai-report-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
+  color: var(--gh-heading, #0f2c4c);
+}
+
+.coach-ai-credits {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #059669;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.coach-ai-summary {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--gh-text, #14213a);
+}
+
+.coach-ai-strengths {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.84rem;
+  color: var(--gh-text-2, #4b5670);
+  display: grid;
+  gap: 0.2rem;
+}
+
+.coach-ai-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+[data-theme="dark"] .coach-badge.is-ai-report {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+[data-theme="dark"] .coach-universe-ai-report {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(139, 92, 246, 0.1));
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+[data-theme="dark"] .coach-ai-report-head { color: #f8fafc; }
+[data-theme="dark"] .coach-ai-summary { color: #e2e8f0; }
+[data-theme="dark"] .coach-ai-strengths { color: #cbd5e1; }
+[data-theme="dark"] .coach-ai-credits { color: #34d399; background: rgba(16, 185, 129, 0.18); }
+
 @media (max-width: 760px) {
   .coach-universe-card { padding: 0 1rem; }
   .coach-universe-header, .coach-universe-body { padding: 1rem; }

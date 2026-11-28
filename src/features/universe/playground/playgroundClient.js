@@ -45,3 +45,51 @@ export async function saveRemotePlaygroundState({ auth, baseUrl = '', state } = 
     return false;
   }
 }
+
+export async function loadClassmatePlanets({ auth, baseUrl = '' } = {}) {
+  try {
+    const headers = await authHeaders(auth);
+    if (!headers) return [];
+    const res = await fetch(`${baseUrl}/api/universe/playground/classmates`, { headers });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data?.peers) ? data.peers : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function visitClassmatePlanet({ auth, baseUrl = '', peerId } = {}) {
+  try {
+    if (!peerId) return null;
+    const headers = await authHeaders(auth);
+    if (!headers) return null;
+    const res = await fetch(`${baseUrl}/api/universe/playground/visit/${encodeURIComponent(peerId)}`, { headers });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.visit || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function sendCoopAidRemote({ auth, baseUrl = '', targetPlanetId, targetPeerId = null } = {}) {
+  try {
+    if (!targetPlanetId) return null;
+    const headers = await authHeaders(auth);
+    if (!headers) return null;
+    const res = await fetch(`${baseUrl}/api/universe/playground/aid`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        contractVersion: API_CONTRACT_VERSION,
+        targetPlanetId,
+        ...(targetPeerId ? { targetPeerId } : {})
+      })
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}

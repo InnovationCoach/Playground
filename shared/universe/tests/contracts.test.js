@@ -35,8 +35,14 @@ for (const example of REFERENCE_ARTIFACTS) {
   });
 }
 
-test('empty production registry cannot resolve a fixture, regardless of its prefix', () => {
-  assert.equal(PUBLISHED_RELEASES.length, 0);
+test('production registry resolves published release and rejects draft fixtures regardless of prefix', () => {
+  assert.equal(PUBLISHED_RELEASES.length, 1);
+  assert.equal(PUBLISHED_RELEASES[0].status, 'published');
+  assert.equal(PUBLISHED_RELEASES[0].policy.type, 'ai-self-directed');
+  const pubInputs = getBundleHashInputs(PUBLISHED_RELEASES[0]);
+  for (const input of pubInputs) {
+    assert.equal(createHash('sha256').update(input.canonical, 'utf8').digest('hex'), input.expected, input.id);
+  }
   assert.equal(resolveTask(PUBLISHED_RELEASES, identity).ok, false);
   const alternate = clone(PILOT_BUNDLE);
   alternate.releaseId = 'looks-published';
@@ -204,6 +210,6 @@ test('production entry graph contains no fixtures or external runtime dependenci
     }
   }
   visit(fileURLToPath(new URL('../index.js', import.meta.url)));
-  assert.equal(visited.size, 6);
+  assert.equal(visited.size, 7);
   assert.equal(validateEvidence([], route).ok, false);
 });

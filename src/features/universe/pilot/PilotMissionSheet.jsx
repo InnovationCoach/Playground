@@ -28,6 +28,7 @@ export function restorable(registry, identity, d) {
   return checkDraft(registry, identity, body).ok;
 }
 const STATUS_TEXT = { submitted: 'Sent · waiting for your coach', returned: 'Returned for revision', approved: 'Reviewed by your coach' };
+const AI_STATUS_TEXT = { submitted: 'Evaluating with Spark AI…', returned: 'Needs revision · Spark AI', approved: 'Approved by Spark AI' };
 
 export function timeMs(ts) {
   if (!ts) return NaN;
@@ -67,6 +68,12 @@ export const canSend = (a, allowInReview = false) => canWork(a, allowInReview) &
 
 export function outcomeText(item) {
   if (item.status !== 'approved') return null;
+  if (item.outcome?.type === 'ai-self-directed' || item.aiReport) {
+    const credits = item.outcome?.creditsAwarded || item.aiReport?.creditsAwarded || 0;
+    return credits > 0
+      ? `Approved by Spark AI (+${credits} Universe Credits) · AI evaluation report sent to your Coach Dashboard.`
+      : 'Approved by Spark AI · AI evaluation report sent to your Coach Dashboard.';
+  }
   if (item.outcome?.type === 'reviewed-only') return 'Your coach reviewed this attempt. A review records feedback only; it doesn’t open new places.';
   if (item.outcome?.type) return `Outcome: ${item.outcome.type}.`;
   return 'Your coach reviewed this attempt.';
@@ -78,8 +85,9 @@ export function outcomeText(item) {
  * sheet, signing out or switching account/organization discards it (the parent
  * re-keys this component), and late responses from a closed sheet are ignored.
  */
-export function PilotMissionSheet({ entry, registry, client, preview = false, onClose, initial = null, allowInReview = false, plan = null }) {
+export function PilotMissionSheet({ entry, registry, client, preview = false, onClose, onMissionApproved = null, initial = null, allowInReview = false, plan = null }) {
   const { bundle, mission } = entry;
+  const isAiSelfDirected = bundle?.policy?.type === 'ai-self-directed';
   const [routeId, setRouteId] = useState(null);
   const [view, setView] = useState('work');
   const [works, setWorks] = useState({});
@@ -239,7 +247,15 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
     setSend({ state: 'sending' });
     const res = await client.submit(identity.missionId, body, sendKey.current.key);
     if (!alive.current) return;
-    if (res.state === 'loaded') { setSend({ state: 'sent', data: res.data }); setReviseFrom(null); loadHistory(); return; }
+    if (res.state === 'loaded') {
+      setSend({ state: 'sent', data: res.data });
+      setReviseFrom(null);
+      loadHistory();
+      if (res.data?.status === 'approved' && typeof onMissionApproved === 'function') {
+        onMissionApproved(res.data);
+      }
+      return;
+    }
     setSend({ state: 'error', result: res });
     if (res.state === 'error' && ['SUBMISSION_ALREADY_OPEN', 'MISSION_WITHDRAWN', 'MISSION_NOT_OPEN', 'MISSION_RETIRED'].includes(res.code)) {
       loadHistory(); checkAvailability(identity, key);
@@ -283,6 +299,13 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
   savesNow.current = saves;
   const pendingKeys = (all = saves) => Object.keys(latest.current).filter((k) => edited.current[k] && (all[k]?.state || 'not-saved') !== 'saved');
   const unsavedKeys = pendingKeys();
+  const hasUnsaved = unsavedKeys.length > 0;
+  useEffect(() => {
+    if (!hasUnsaved || typeof window === 'undefined') return undefined;
+    const onBeforeUnload = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [hasUnsaved]);
   const routeNameOf = (k) => mission.routes.find((r) => identityKey(identityFor(bundle, mission, r)) === k)?.name || 'Another task';
   const requestClose = () => {
     if (closing) { setClosing(false); return; } // Escape on the close question means "keep working"
@@ -338,13 +361,13 @@ export function PilotMissionSheet({ entry, registry, client, preview = false, on
             <div><p>Your account has a different saved version of this task{save.currentDraft ? ` (saved ${formatTime(save.currentDraft.updatedAt)})` : ''}. Nothing has been overwritten.</p>
               <div className="px-row">{save.currentDraft && restorable(registry, identity, save.currentDraft) && <button type="button" className="px-ghost" onClick={() => resolveConflict(true)}>Load the account version</button>}
                 <button type="button" className="px-ghost" disabled={!open} onClick={() => resolveConflict(false)}>Keep this screen’s work and save it</button></div></div></div>}
-          {reviseFrom && view !== 'history' && <details className="px-note px-revising"><summary><strong>Revising attempt {reviseFrom.attemptNumber ?? ''}</strong>{reviseFrom.coachNote ? ' · your coach’s note' : ''}</summary>
+          {reviseFrom && view !== 'history' && <details className="px-note px-revising"><summary><strong>Revising attempt {reviseFrom.attemptNumber ?? ''}</strong>{reviseFrom.coachNote ? (isAiSelfDirected ? ' · Spark AI note' : ' · your coach’s note') : ''}</summary>
             {reviseFrom.coachNote && <p>“{reviseFrom.coachNote}”</p>}<p>Sending creates a new attempt linked to the returned one; the returned attempt stays as it was.</p></details>}
           {view === 'work' && work && <FocusWork bundle={bundle} mission={mission} route={route} design={design} actions={actions} at={at} go={go} headingRef={actionHeading}
-            work={work} setWork={setWork} open={open} partView={partView} onPartView={onPartView} onReview={() => { moved.current = true; setView('review'); }} />}
+            work={work} setWork={setWork} open={open} partView={partView} onPartView={onPartView} isAiSelfDirected={isAiSelfDirected} onReview={() => { moved.current = true; setView('review'); }} />}
           {view === 'review' && work && <ReviewView route={route} routeLabel={routeLabel} identity={identity} registry={registry} work={work} setWork={setWork} open={open} sendable={sendable} availability={availability} headingRef={actionHeading}
-            openAttempt={openAttempt} historyState={history.state} send={send} onSend={sendForReview} onJump={(partId) => { setView('work'); go(actions.findIndex((a) => a.partId === partId)); }} />}
-          {view === 'history' && <HistoryView bundle={bundle} mission={mission} history={history} onMore={() => loadHistory(history.nextCursor)} onRetry={() => loadHistory()} onRevise={revise} openAttempt={openAttempt} />}
+            openAttempt={openAttempt} historyState={history.state} send={send} onSend={sendForReview} isAiSelfDirected={isAiSelfDirected} onJump={(partId) => { setView('work'); go(actions.findIndex((a) => a.partId === partId)); }} />}
+          {view === 'history' && <HistoryView bundle={bundle} mission={mission} history={history} onMore={() => loadHistory(history.nextCursor)} onRetry={() => loadHistory()} onRevise={revise} openAttempt={openAttempt} isAiSelfDirected={isAiSelfDirected} />}
         </>}
       </div>
     </section>
@@ -439,7 +462,7 @@ function Support({ route, work, setWork }) {
 const ACTION_LABEL = { practice: 'Try it', part: 'Your notebook', read: 'Read' };
 
 /** The work view: exactly one action (a practice check or one notebook part) and its response, then Back / Next. */
-function FocusWork({ bundle, mission, route, design, actions, at, go, headingRef, work, setWork, open, partView, onPartView, onReview }) {
+function FocusWork({ bundle, mission, route, design, actions, at, go, headingRef, work, setWork, open, partView, onPartView, isAiSelfDirected = false, onReview }) {
   const a = actions[at];
   const step = route.steps[a.stepIndex];
   const copy = actionCopy(a, step, design);
@@ -471,9 +494,9 @@ function FocusWork({ bundle, mission, route, design, actions, at, go, headingRef
         {a.type === 'practice' && route.workedExample?.practiceStepId === step.id && <WorkedExample ex={route.workedExample} />}
         {a.type === 'practice' && (step.hints?.length > 0 || step.solution) && <details className="px-optional"><summary><Lightbulb size={15} aria-hidden="true" />Hints</summary><Help key={`h-${step.id}`} step={step} /></details>}
         {copy.reference && <details className="px-optional"><summary>Reference: what this means</summary><p>{copy.reference}</p></details>}
-        {rule && <details className="px-optional"><summary>What your coach reviews</summary><p>{rule.evidenceCriterion}</p></details>}
+        {rule && <details className="px-optional"><summary>{isAiSelfDirected ? 'What Spark AI checks' : 'What your coach reviews'}</summary><p>{rule.evidenceCriterion}</p></details>}
         {copy.action !== step.prompt && <details className="px-optional"><summary>Full task</summary><p>{step.prompt}</p></details>}
-        <details className="px-optional"><summary><BookOpen size={15} aria-hidden="true" />Evidence for this task</summary>
+        <details className="px-optional" open={isAiSelfDirected && a.stepIndex === 0 ? true : undefined}><summary><BookOpen size={15} aria-hidden="true" />Evidence for this task</summary>
           {routeDatasets(bundle, mission, route).map((d) => <DatasetView key={d.id} dataset={d} />)}
           {lab && <p className="px-note">The station’s Hex-Grid lab isn’t part of this assessed task yet. Use the plan cards and your table.</p>}
         </details>
@@ -541,7 +564,7 @@ function Help({ step }) {
   </>;
 }
 
-function ReviewView({ route, routeLabel, identity, registry, work, setWork, open, sendable, availability, openAttempt, historyState, send, onSend, onJump, headingRef }) {
+function ReviewView({ route, routeLabel, identity, registry, work, setWork, open, sendable, availability, openAttempt, historyState, send, onSend, onJump, headingRef, isAiSelfDirected = false }) {
   const statuses = route.requiredParts.map((r) => ({ rule: r, ...partStatus(route, r.partId, work.parts[r.partId]) }));
   const local = checkSubmission(registry, identity, submissionBody(route, identity, work));
   const reflectionOk = codePoints(work.reflection.trim()) >= 20 && codePoints(work.reflection) <= 2000;
@@ -565,21 +588,43 @@ function ReviewView({ route, routeLabel, identity, registry, work, setWork, open
       <button type="button" className="px-link" onClick={() => onJump(s.rule.partId)}>Go to this part</button>
     </li>)}</ul>
     <div className="px-field">
-      <label htmlFor="px-reflection">Reflection for your coach: what did you decide, and what would you check next?</label>
+      <label htmlFor="px-reflection">{isAiSelfDirected ? 'Your mission reflection: what did you decide, and what would you check next?' : 'Reflection for your coach: what did you decide, and what would you check next?'}</label>
       <textarea id="px-reflection" rows={4} value={work.reflection} disabled={!open} onChange={(e) => setWork((w) => ({ ...w, reflection: e.target.value }))} />
       <Counter value={work.reflection} min={20} />
     </div>
     <details className="px-optional"><summary>See everything you’ll send</summary><EvidenceView evidence={evidenceFromWork(route, work)} route={route} /></details>
     {blockers.length > 0 && <div className="px-blockers" role="status"><p><strong>Not ready to send yet:</strong></p><ul>{blockers.map((b) => <li key={b}>{b}</li>)}</ul></div>}
-    <p className="px-fine">Sending records your work for review. It doesn’t mark it correct or open new places.</p>
-    <button type="button" className="mx-primary" disabled={blockers.length > 0 || sending} onClick={onSend}><Send size={15} aria-hidden="true" />{sending ? 'Sending…' : work.previousSubmissionId ? 'Send revised work for review' : 'Send for review'}</button>
-    <SendResult send={send} />
+    <p className="px-fine">{isAiSelfDirected ? 'Spark AI evaluates your notebook evidence right away, awards Universe Credits on approval, and sends a summary report to your Coach Dashboard.' : 'Sending records your work for review. It doesn’t mark it correct or open new places.'}</p>
+    <button type="button" className="mx-primary" disabled={blockers.length > 0 || sending} onClick={onSend}><Send size={15} aria-hidden="true" />{sending ? (isAiSelfDirected ? 'Evaluating with Spark AI…' : 'Sending…') : work.previousSubmissionId ? (isAiSelfDirected ? 'Submit revised work for AI evaluation' : 'Send revised work for review') : (isAiSelfDirected ? 'Submit for AI evaluation' : 'Send for review')}</button>
+    <SendResult send={send} isAiSelfDirected={isAiSelfDirected} />
   </>;
 }
 
-function SendResult({ send }) {
+function SendResult({ send, isAiSelfDirected = false }) {
   if (send.state === 'sent') {
     const d = send.data;
+    if (isAiSelfDirected || d.aiReport || d.status === 'approved' || d.status === 'returned') {
+      const approved = d.status === 'approved';
+      const report = d.aiReport || {};
+      const credits = report.creditsAwarded || d.outcome?.creditsAwarded || 0;
+      if (approved) {
+        return <div className="mx-sub-status is-approved" role="status">
+          <strong>Approved by Spark AI{d.attemptNumber ? ` · attempt ${d.attemptNumber}` : ''}{credits > 0 ? ` · +${credits} Universe Credits` : ''}</strong>
+          <p>{report.learnerFeedback || d.coachNote || 'Your evidence and reflection met all mission criteria.'}</p>
+          {Array.isArray(report.strengths) && report.strengths.length > 0 && (
+            <ul className="px-ai-strengths">{report.strengths.map((st, idx) => <li key={idx}>{st}</li>)}</ul>
+          )}
+          {report.nextStep && <p className="px-fine"><strong>Next exploration:</strong> {report.nextStep}</p>}
+          <p className="px-fine">A summary report of your mission work has been sent to your Coach Dashboard.</p>
+        </div>;
+      }
+      if (d.status === 'returned') {
+        return <div className="mx-sub-status is-returned" role="status">
+          <strong>Needs one quick revision{d.attemptNumber ? ` · attempt ${d.attemptNumber}` : ''}</strong>
+          <p>{report.learnerFeedback || d.coachNote || 'Update your notebook blanks and resubmit right away.'}</p>
+        </div>;
+      }
+    }
     return <div className="mx-sub-status is-submitted" role="status"><strong>Sent to your coach{d.attemptNumber ? ` · attempt ${d.attemptNumber}` : ''}</strong>
       <p>The mission service recorded it{d.createdAt ? ` at ${formatTime(d.createdAt)}` : ''}. Your coach will review it; you’ll see their feedback in My attempts.</p></div>;
   }
@@ -592,7 +637,7 @@ function SendResult({ send }) {
   return null;
 }
 
-function HistoryView({ bundle, mission, history, onMore, onRetry, onRevise, openAttempt }) {
+function HistoryView({ bundle, mission, history, onMore, onRetry, onRevise, openAttempt, isAiSelfDirected = false }) {
   if (history.state === 'loading' || history.state === 'idle') return <p role="status">Loading your attempts…</p>;
   if (history.state === 'error') return <div className="px-alert" role="alert"><AlertTriangle size={16} aria-hidden="true" /><p>Your attempts couldn’t be loaded. {describeFailure(history.result)} <button type="button" className="px-link" onClick={onRetry}><RefreshCw size={14} aria-hidden="true" />Try again</button></p></div>;
   const more = history.nextCursor && <button type="button" className="px-ghost" disabled={history.state === 'more'} onClick={onMore}>{history.state === 'more' ? 'Loading…' : 'Show older attempts'}</button>;
@@ -605,11 +650,14 @@ function HistoryView({ bundle, mission, history, onMore, onRetry, onRevise, open
       const exact = !!r && sameIdentity(s, identityFor(bundle, mission, r));
       const superseded = history.items.some((x) => x.previousSubmissionId === s.submissionId);
       const canRevise = s.status === 'returned' && !s.legacyFormat && exact && !openAttempt && !superseded;
+      const aiEvaluated = isAiSelfDirected || Boolean(s.aiReport);
+      const statusLabel = (aiEvaluated ? AI_STATUS_TEXT[s.status] : STATUS_TEXT[s.status]) || s.status;
       return <li key={s.submissionId} className={`px-attempt is-${s.status}`}>
-        <header><strong>Attempt {s.attemptNumber ?? '?'}</strong><span className={`px-pill is-${s.status}`}>{STATUS_TEXT[s.status] || s.status}</span></header>
-        <p className="px-meta">{s.legacyFormat ? 'Earlier reflection-only format · ' : ''}Version {s.missionVersion} · {r?.name || s.routeId} · {s.supportMode === 'independent' ? 'Independent' : s.supportMode === 'guided' ? 'Guided' : 'help style not recorded'} help · sent {formatTime(s.createdAt)}{s.reviewedAt ? ` · reviewed ${formatTime(s.reviewedAt)}` : ''}</p>
+        <header><strong>Attempt {s.attemptNumber ?? '?'}</strong><span className={`px-pill is-${s.status}`}>{statusLabel}</span></header>
+        <p className="px-meta">{s.legacyFormat ? 'Earlier reflection-only format · ' : ''}Version {s.missionVersion} · {r?.name || s.routeId} · {s.supportMode === 'independent' ? 'Independent' : s.supportMode === 'guided' ? 'Guided' : 'help style not recorded'} help · sent {formatTime(s.createdAt)}{s.reviewedAt ? ` · ${aiEvaluated ? 'evaluated' : 'reviewed'} ${formatTime(s.reviewedAt)}` : ''}</p>
         {s.previousCoachNote && <p className="px-fine">Earlier feedback: “{s.previousCoachNote}”</p>}
-        {s.coachNote && <p className="mx-coach-note">Coach: “{s.coachNote}”</p>}
+        {s.coachNote && <p className="mx-coach-note">{aiEvaluated ? 'Spark AI' : 'Coach'}: “{s.coachNote}”</p>}
+        {s.aiReport?.nextStep && <p className="px-fine"><strong>Next step:</strong> {s.aiReport.nextStep}</p>}
         {outcomeText(s) && <p>{outcomeText(s)}</p>}
         {!exact && !s.legacyFormat && <p className="px-fine">This attempt used a different version of the task. It stays read-only.</p>}
         <details><summary>What was sent</summary><p className="px-pre">{s.reflection}</p>{!s.legacyFormat && <EvidenceView evidence={s.evidence} route={r} />}</details>

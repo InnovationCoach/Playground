@@ -1,7 +1,7 @@
 {
-  "catalogVersion": "2.1.0-playground",
-  "generatedAt": "2026-11-25T09:55:00Z",
-  "note": "My Universe Learner Playground catalog: 3 galaxies, 6 star systems, 15 distinct exoplanets.",
+  "catalogVersion": "2.2.0-self-directed",
+  "generatedAt": "2026-11-27T12:00:00Z",
+  "note": "My Universe catalog: 3 galaxies, 6 star systems, 15 exoplanets with Thalassa & Ignis workstations and Co-Op surfaces.",
   "galaxies": [
     {
       "id": "lyra-spiral",
@@ -77,7 +77,7 @@
       "name": "Lyra Prime",
       "starClass": "Yellow dwarf (G-type)",
       "starColor": "#ffe9a8",
-      "summary": "A warm yellow star hosting three temperate and volcanic worlds.",
+      "summary": "A warm yellow star hosting three temperate, volcanic, and ringed worlds.",
       "planets": [
         "thalassa",
         "ignis",
@@ -163,7 +163,7 @@
         "cloud": "#eaf6ff",
         "atmosphere": "#9bd2ff"
       },
-      "summary": "A warm ocean world with volcanic headlands and steady trade winds.",
+      "summary": "A warm ocean world with volcanic headlands and long, steady swells.",
       "facts": [
         {
           "text": "Deep basalt trenches warm coastal waters, creating ideal conditions for bioluminescent kelp.",
@@ -171,13 +171,18 @@
           "annotation": "Thalassa planetary survey"
         },
         {
-          "text": "Orbits Lyra Prime (Yellow dwarf (G-type)) in a warm trade-wind archipelago and floating research shelf regime.",
+          "text": "Orbits Lyra Prime (Yellow dwarf (G-type)) in a coastal ocean and volcanic headland regime.",
           "tag": "fictional-world",
           "annotation": "Thalassa orbital telemetry"
+        },
+        {
+          "text": "Wind power available to a turbine rises roughly with the cube of wind speed up to rated speed, so one average wind speed cannot replace a banded wind distribution.",
+          "tag": "real-science",
+          "source": "U.S. DOE Wind Energy Technologies Office — How Do Wind Turbines Work?"
         }
       ],
       "access": "public",
-      "environmentId": "thalassa-surface"
+      "environmentId": "thalassa-station"
     },
     {
       "id": "ignis",
@@ -194,7 +199,7 @@
         "glow": "#ff7a2e",
         "atmosphere": "#ffb27a"
       },
-      "summary": "A dark basalt world crossed by glowing geothermal fissures.",
+      "summary": "A dark basalt world crossed by glowing geothermal fissures. One fissure field is charted for landing.",
       "facts": [
         {
           "text": "Tectonic heat powers colony generators while thermophile mats line the cooler rift walls.",
@@ -205,10 +210,15 @@
           "text": "Orbits Lyra Prime (Yellow dwarf (G-type)) in a active magma-fissure plains and sulfur vents regime.",
           "tag": "fictional-world",
           "annotation": "Ignis orbital telemetry"
+        },
+        {
+          "text": "Solar irradiance decreases with the square of distance from a star, requiring larger solar collector arrays at wider orbital distances.",
+          "tag": "real-science",
+          "source": "NASA Science — Inverse Square Law of Light"
         }
       ],
       "access": "public",
-      "environmentId": "ignis-surface"
+      "environmentId": "ignis-fissure-field"
     },
     {
       "id": "boreas",
@@ -226,7 +236,7 @@
         "atmosphere": "#a8d8ff"
       },
       "rings": true,
-      "summary": "A ringed ice giant with sub-glacial brine oceans and aurora bands.",
+      "summary": "A ringed ice world with sub-glacial brine oceans and aurora bands.",
       "facts": [
         {
           "text": "Ice-crystal rings scatter pale blue starlight over salty liquid pockets beneath the crust.",
@@ -359,7 +369,7 @@
           "annotation": "Glaciera planetary survey"
         },
         {
-          "text": "Orbits Aurora Core (Blue-white star (A-type)) in a crystalline blue ice canyons and pressurized geyser basins regime.",
+          "text": "Orbits Aurora Core (Blue-white star (A-type)) in a crystalline blue ice canyons and cryo-geyser basins regime.",
           "tag": "fictional-world",
           "annotation": "Glaciera orbital telemetry"
         }
@@ -618,17 +628,17 @@
   ],
   "environments": [
     {
-      "id": "thalassa-surface",
+      "id": "thalassa-station",
       "planetId": "thalassa",
-      "name": "Thalassa Outpost",
-      "biome": "Warm trade-wind archipelago and floating research shelf",
-      "summary": "A warm ocean world with volcanic headlands and steady trade winds.",
+      "name": "Thalassa Research Station",
+      "biome": "Coastal ocean and volcanic headland",
+      "summary": "A warm ocean world with volcanic headlands and long, steady swells.",
       "sceneKind": "ocean-station",
       "locations": [
         {
           "id": "platform",
-          "name": "Thalassa Central Deck",
-          "purpose": "Floating habitat hub anchored in Thalassa's ocean basin.",
+          "name": "Research platform",
+          "purpose": "Floating hexagonal research station and Hex-Grid settlement lab.",
           "position": [
             8,
             0.8,
@@ -641,12 +651,18 @@
           ],
           "observations": [
             "Primary crew quarters and Thalassa telemetry dock."
+          ],
+          "workstations": [
+            {
+              "kind": "simulation",
+              "id": "thalassa-station"
+            }
           ]
         },
         {
           "id": "tide-gauge",
-          "name": "Thalassa Biosignature Buoy",
-          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Thalassa.",
+          "name": "Tide gauge",
+          "purpose": "Samples salinity, water level, and microbial blooms on Thalassa.",
           "position": [
             -4,
             0.2,
@@ -663,8 +679,8 @@
         },
         {
           "id": "weather-mast",
-          "name": "Thalassa Storm Mast",
-          "purpose": "Measures upper-air wind shear and storm charge over Thalassa.",
+          "name": "Weather mast",
+          "purpose": "Measures wind bands, temperature, and storm charge over Thalassa.",
           "position": [
             -14,
             7.5,
@@ -676,12 +692,18 @@
             12
           ],
           "observations": [
-            "Early-warning mast for weekly Universe Creator storms."
+            "Records wind speed bands for station power planning."
+          ],
+          "workstations": [
+            {
+              "kind": "mission",
+              "id": "thalassa-wind-survey"
+            }
           ]
         },
         {
           "id": "vent",
-          "name": "Thalassa Thermal Vent",
+          "name": "Vent overlook",
           "purpose": "Deep mineral plume supporting extremophile life on Thalassa.",
           "position": [
             -20,
@@ -700,17 +722,17 @@
       ]
     },
     {
-      "id": "ignis-surface",
+      "id": "ignis-fissure-field",
       "planetId": "ignis",
-      "name": "Ignis Outpost",
+      "name": "Ignis Fissure Field",
       "biome": "Active magma-fissure plains and sulfur vents",
-      "summary": "A dark basalt world crossed by glowing geothermal fissures.",
+      "summary": "A dark basalt world crossed by glowing geothermal fissures. One fissure field is charted for landing.",
       "sceneKind": "basalt-fissures",
       "locations": [
         {
           "id": "sensor-station",
-          "name": "Ignis Command Lander",
-          "purpose": "Shielded basalt outpost and AI crew hub on Ignis.",
+          "name": "Sensor station",
+          "purpose": "Shielded basalt outpost, solar array telemetry, and expedition hub on Ignis.",
           "position": [
             10,
             1.5,
@@ -723,11 +745,17 @@
           ],
           "observations": [
             "Reinforced lander anchored to Ignis bedrock."
+          ],
+          "workstations": [
+            {
+              "kind": "mission",
+              "id": "spacecraft-journey"
+            }
           ]
         },
         {
           "id": "fissure",
-          "name": "Ignis Geothermal Rift",
+          "name": "Geothermal fissure",
           "purpose": "Glowing fissure hosting mineral deposits and thermophiles on Ignis.",
           "position": [
             -6,
@@ -745,7 +773,7 @@
         },
         {
           "id": "columns",
-          "name": "Ignis Basalt Pillars",
+          "name": "Basalt columns",
           "purpose": "Natural rock columns providing radiation shelter on Ignis.",
           "position": [
             -16,
@@ -763,7 +791,7 @@
         },
         {
           "id": "gas-vent",
-          "name": "Ignis Outgassing Vent",
+          "name": "Sulfur vent",
           "purpose": "Trace-gas vent used to balance Ignis atmospheric chemistry.",
           "position": [
             4,
@@ -776,7 +804,7 @@
             -2
           ],
           "observations": [
-            "Samples CO₂ and nitrogen reserves on Ignis."
+            "Samples CO2 and nitrogen reserves on Ignis."
           ]
         }
       ]
@@ -786,7 +814,7 @@
       "planetId": "boreas",
       "name": "Boreas Outpost",
       "biome": "Ringed sub-glacial brine sea and aurora ice shelf",
-      "summary": "A ringed ice giant with sub-glacial brine oceans and aurora bands.",
+      "summary": "A ringed ice world with sub-glacial brine oceans and aurora bands.",
       "sceneKind": "ocean-station",
       "locations": [
         {
@@ -810,7 +838,7 @@
         {
           "id": "tide-gauge",
           "name": "Boreas Biosignature Buoy",
-          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Boreas.",
+          "purpose": "Samples salinity, water level, and microbial blooms on Boreas.",
           "position": [
             -4,
             0.2,
@@ -828,7 +856,7 @@
         {
           "id": "weather-mast",
           "name": "Boreas Storm Mast",
-          "purpose": "Measures upper-air wind shear and storm charge over Boreas.",
+          "purpose": "Measures wind bands, temperature, and storm charge over Boreas.",
           "position": [
             -14,
             7.5,
@@ -840,7 +868,7 @@
             12
           ],
           "observations": [
-            "Early-warning mast for weekly Universe Creator storms."
+            "Records wind speed bands for station power planning."
           ]
         },
         {
@@ -892,7 +920,7 @@
         {
           "id": "tide-gauge",
           "name": "Pelagos Biosignature Buoy",
-          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Pelagos.",
+          "purpose": "Samples salinity, water level, and microbial blooms on Pelagos.",
           "position": [
             -4,
             0.2,
@@ -910,7 +938,7 @@
         {
           "id": "weather-mast",
           "name": "Pelagos Storm Mast",
-          "purpose": "Measures upper-air wind shear and storm charge over Pelagos.",
+          "purpose": "Measures wind bands, temperature, and storm charge over Pelagos.",
           "position": [
             -14,
             7.5,
@@ -922,7 +950,7 @@
             12
           ],
           "observations": [
-            "Early-warning mast for weekly Universe Creator storms."
+            "Records wind speed bands for station power planning."
           ]
         },
         {
@@ -956,7 +984,7 @@
         {
           "id": "sensor-station",
           "name": "Cinder Command Lander",
-          "purpose": "Shielded basalt outpost and AI crew hub on Cinder.",
+          "purpose": "Shielded basalt outpost, solar array telemetry, and expedition hub on Cinder.",
           "position": [
             10,
             1.5,
@@ -1022,7 +1050,7 @@
             -2
           ],
           "observations": [
-            "Samples CO₂ and nitrogen reserves on Cinder."
+            "Samples CO2 and nitrogen reserves on Cinder."
           ]
         }
       ]
@@ -1056,7 +1084,7 @@
         {
           "id": "tide-gauge",
           "name": "Aurelia Biosignature Buoy",
-          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Aurelia.",
+          "purpose": "Samples salinity, water level, and microbial blooms on Aurelia.",
           "position": [
             -4,
             0.2,
@@ -1074,7 +1102,7 @@
         {
           "id": "weather-mast",
           "name": "Aurelia Storm Mast",
-          "purpose": "Measures upper-air wind shear and storm charge over Aurelia.",
+          "purpose": "Measures wind bands, temperature, and storm charge over Aurelia.",
           "position": [
             -14,
             7.5,
@@ -1086,7 +1114,7 @@
             12
           ],
           "observations": [
-            "Early-warning mast for weekly Universe Creator storms."
+            "Records wind speed bands for station power planning."
           ]
         },
         {
@@ -1113,7 +1141,7 @@
       "id": "glaciera-surface",
       "planetId": "glaciera",
       "name": "Glaciera Outpost",
-      "biome": "Crystalline blue ice canyons and pressurized geyser basins",
+      "biome": "Crystalline blue ice canyons and cryo-geyser basins",
       "summary": "A crystalline ice world where thermal geysers carve blue canyons.",
       "sceneKind": "ocean-station",
       "locations": [
@@ -1138,7 +1166,7 @@
         {
           "id": "tide-gauge",
           "name": "Glaciera Biosignature Buoy",
-          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Glaciera.",
+          "purpose": "Samples salinity, water level, and microbial blooms on Glaciera.",
           "position": [
             -4,
             0.2,
@@ -1156,7 +1184,7 @@
         {
           "id": "weather-mast",
           "name": "Glaciera Storm Mast",
-          "purpose": "Measures upper-air wind shear and storm charge over Glaciera.",
+          "purpose": "Measures wind bands, temperature, and storm charge over Glaciera.",
           "position": [
             -14,
             7.5,
@@ -1168,7 +1196,7 @@
             12
           ],
           "observations": [
-            "Early-warning mast for weekly Universe Creator storms."
+            "Records wind speed bands for station power planning."
           ]
         },
         {
@@ -1202,7 +1230,7 @@
         {
           "id": "sensor-station",
           "name": "Pyros Command Lander",
-          "purpose": "Shielded basalt outpost and AI crew hub on Pyros.",
+          "purpose": "Shielded basalt outpost, solar array telemetry, and expedition hub on Pyros.",
           "position": [
             10,
             1.5,
@@ -1268,7 +1296,7 @@
             -2
           ],
           "observations": [
-            "Samples CO₂ and nitrogen reserves on Pyros."
+            "Samples CO2 and nitrogen reserves on Pyros."
           ]
         }
       ]
@@ -1284,7 +1312,7 @@
         {
           "id": "sensor-station",
           "name": "Umbrion Command Lander",
-          "purpose": "Shielded basalt outpost and AI crew hub on Umbrion.",
+          "purpose": "Shielded basalt outpost, solar array telemetry, and expedition hub on Umbrion.",
           "position": [
             10,
             1.5,
@@ -1350,7 +1378,7 @@
             -2
           ],
           "observations": [
-            "Samples CO₂ and nitrogen reserves on Umbrion."
+            "Samples CO2 and nitrogen reserves on Umbrion."
           ]
         }
       ]
@@ -1384,7 +1412,7 @@
         {
           "id": "tide-gauge",
           "name": "Veridia Biosignature Buoy",
-          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Veridia.",
+          "purpose": "Samples salinity, water level, and microbial blooms on Veridia.",
           "position": [
             -4,
             0.2,
@@ -1402,7 +1430,7 @@
         {
           "id": "weather-mast",
           "name": "Veridia Storm Mast",
-          "purpose": "Measures upper-air wind shear and storm charge over Veridia.",
+          "purpose": "Measures wind bands, temperature, and storm charge over Veridia.",
           "position": [
             -14,
             7.5,
@@ -1414,7 +1442,7 @@
             12
           ],
           "observations": [
-            "Early-warning mast for weekly Universe Creator storms."
+            "Records wind speed bands for station power planning."
           ]
         },
         {
@@ -1466,7 +1494,7 @@
         {
           "id": "tide-gauge",
           "name": "Nyxara Biosignature Buoy",
-          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Nyxara.",
+          "purpose": "Samples salinity, water level, and microbial blooms on Nyxara.",
           "position": [
             -4,
             0.2,
@@ -1484,7 +1512,7 @@
         {
           "id": "weather-mast",
           "name": "Nyxara Storm Mast",
-          "purpose": "Measures upper-air wind shear and storm charge over Nyxara.",
+          "purpose": "Measures wind bands, temperature, and storm charge over Nyxara.",
           "position": [
             -14,
             7.5,
@@ -1496,7 +1524,7 @@
             12
           ],
           "observations": [
-            "Early-warning mast for weekly Universe Creator storms."
+            "Records wind speed bands for station power planning."
           ]
         },
         {
@@ -1548,7 +1576,7 @@
         {
           "id": "tide-gauge",
           "name": "Koralis Biosignature Buoy",
-          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Koralis.",
+          "purpose": "Samples salinity, water level, and microbial blooms on Koralis.",
           "position": [
             -4,
             0.2,
@@ -1566,7 +1594,7 @@
         {
           "id": "weather-mast",
           "name": "Koralis Storm Mast",
-          "purpose": "Measures upper-air wind shear and storm charge over Koralis.",
+          "purpose": "Measures wind bands, temperature, and storm charge over Koralis.",
           "position": [
             -14,
             7.5,
@@ -1578,7 +1606,7 @@
             12
           ],
           "observations": [
-            "Early-warning mast for weekly Universe Creator storms."
+            "Records wind speed bands for station power planning."
           ]
         },
         {
@@ -1612,7 +1640,7 @@
         {
           "id": "sensor-station",
           "name": "Frostholm Command Lander",
-          "purpose": "Shielded basalt outpost and AI crew hub on Frostholm.",
+          "purpose": "Shielded basalt outpost, solar array telemetry, and expedition hub on Frostholm.",
           "position": [
             10,
             1.5,
@@ -1678,7 +1706,7 @@
             -2
           ],
           "observations": [
-            "Samples CO₂ and nitrogen reserves on Frostholm."
+            "Samples CO2 and nitrogen reserves on Frostholm."
           ]
         }
       ]
@@ -1712,7 +1740,7 @@
         {
           "id": "tide-gauge",
           "name": "Zephyria Biosignature Buoy",
-          "purpose": "Samples salinity, dissolved gases, and microbial blooms on Zephyria.",
+          "purpose": "Samples salinity, water level, and microbial blooms on Zephyria.",
           "position": [
             -4,
             0.2,
@@ -1730,7 +1758,7 @@
         {
           "id": "weather-mast",
           "name": "Zephyria Storm Mast",
-          "purpose": "Measures upper-air wind shear and storm charge over Zephyria.",
+          "purpose": "Measures wind bands, temperature, and storm charge over Zephyria.",
           "position": [
             -14,
             7.5,
@@ -1742,7 +1770,7 @@
             12
           ],
           "observations": [
-            "Early-warning mast for weekly Universe Creator storms."
+            "Records wind speed bands for station power planning."
           ]
         },
         {
@@ -1776,7 +1804,7 @@
         {
           "id": "sensor-station",
           "name": "Obsidian Reach Command Lander",
-          "purpose": "Shielded basalt outpost and AI crew hub on Obsidian Reach.",
+          "purpose": "Shielded basalt outpost, solar array telemetry, and expedition hub on Obsidian Reach.",
           "position": [
             10,
             1.5,
@@ -1842,7 +1870,7 @@
             -2
           ],
           "observations": [
-            "Samples CO₂ and nitrogen reserves on Obsidian Reach."
+            "Samples CO2 and nitrogen reserves on Obsidian Reach."
           ]
         }
       ]

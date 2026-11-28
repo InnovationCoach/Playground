@@ -156,3 +156,19 @@
 
 .px-my-plan { margin-bottom: 12px; }
 .px-my-plan > ol { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; }
+
+.mx-sub-status.is-approved {
+  border-color: rgba(150, 215, 0, 0.6);
+  background: rgba(150, 215, 0, 0.12);
+}
+.mx-sub-status.is-returned {
+  border-color: rgba(242, 184, 75, 0.6);
+  background: rgba(242, 184, 75, 0.12);
+}
+.px-ai-strengths {
+  margin: 6px 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 13.5px;
+}

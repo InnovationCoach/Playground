@@ -233,6 +233,7 @@ export function App() {
     if (s === 'admin') return ['list', 'detail', 'create'].includes(route.page) ? `admin:${route.kind || 'students'}` : `admin:${route.page}`;
     if (s === 'worksheet' || s === 'guide') return 'resources';
     if (s === 'pbl' && route.tab === 'competencies' && role === 'student') return 'competencies';
+    if (s === 'dashboard' && route?.section === 'universe') return 'universe';
     if (s) return s;
     if (role === 'teacher' || role === 'coach') return 'coach';
     return view === 'home' ? null : view;
@@ -502,12 +503,13 @@ export function App() {
   // The lower-secondary layout replaces My Dashboard only, after the guarded
   // screens above. Off for every account until the verified contract ships.
   const lowerSecondary = shellSection({ layout: selectLayout({ role, contract: readLayoutContract() }).layout, route, isPrimary });
+  const effectiveOrgId = orgId || profile?.orgId || null;
   if (lowerSecondary) {
     return (
       <>
         {!isPrimary && <StudentOnboardingModal user={user} profile={profile} />}
         <Suspense fallback={<div className="gh-app" role="status" aria-label="Loading" />}>
-          <LowerSecondaryShell uid={user.uid} orgId={orgId} profile={profile} classIds={profile?.classIds || []} isPrimary={isPrimary} section={lowerSecondary}
+          <LowerSecondaryShell uid={user.uid} orgId={effectiveOrgId} profile={profile} classIds={profile?.classIds || []} isPrimary={isPrimary} section={lowerSecondary}
                                onOpenActivity={navigate} onJoined={refreshProfile} onSignOut={signOut} />
         </Suspense>
       </>
@@ -529,8 +531,8 @@ export function App() {
 
       {route?.screen === 'spark' ? spark
       : route?.screen === 'dashboard' && role === 'student' ? (
-        <MyDashboard key={user?.uid} uid={user?.uid} orgId={orgId} profile={profile} classIds={profile?.classIds || []} onJoined={refreshProfile}
-                     onOpenActivity={navigate} isPrimary={isPrimary} />
+        <MyDashboard key={user?.uid} uid={user?.uid} orgId={effectiveOrgId} profile={profile} classIds={profile?.classIds || []} onJoined={refreshProfile}
+                     onOpenActivity={navigate} isPrimary={isPrimary} initialSlide={route?.section} />
       ) : route?.screen === 'futureSkills' && role === 'student' ? (
         <FutureSkillsPage isPrimary={isPrimary} />
       ) : (route?.screen === 'pbl' || route?.screen === 'programs') && (role === 'student' || role === 'teacher' || role === 'coach') ? (
@@ -578,7 +580,7 @@ export function App() {
               classIds: classIds || profile?.classIds || [],
               role: profile?.role || role
             }}
-            orgId={orgId}
+            orgId={effectiveOrgId}
           />
         </div>
       ) : (
@@ -591,7 +593,7 @@ export function App() {
           {view === 'so2' && <So2SulfateSimulation uid={user.uid} />}
           {view === 'plants' && <PlantMicroscopeLab uid={user.uid} />}
           {view === 'hexgrid' && <ProjectHexGrid uid={user.uid} scenario={activityScenario}
-            onExit={activityScenario ? () => { setActivityScenario(null); setHash(hrefFor.dashboard()); } : undefined} />}
+            onExit={activityScenario ? () => { setActivityScenario(null); setHash('#/dashboard/universe'); } : undefined} />}
           {view === 'junior' && <JuniorExplorers uid={user.uid} displayName={profile?.displayName} />}
         </>
       )}

@@ -1,19 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { PILOT_RELEASES } from '../src/features/universe/pilot/pilotRegistry.js';
+import { FIXTURE_RELEASES } from '../shared/universe/fixtures/index.js';
 import { INTERESTS } from '../src/features/pbl/content/pblModel.js';
 import { TIME_OPTIONS, SUPPORT_LEVELS, MAX_HOOK, reviewedRoutes, isReviewedRelease, buildSittings, adaptMission, acceptableHook, withAiHook, restorePlan, routeTime } from '../src/features/universe/builder/missionBuilder.js';
 
-// The real pilot bundle is still awaiting review, so these tests use a copy marked as reviewed.
-const REVIEWED = [{ ...PILOT_RELEASES[0], status: 'published', reviewState: { technical: 'accepted', science: 'educator-approved', curriculum: 'educator-approved', publication: 'authorized' } }];
+const REVIEWED = PILOT_RELEASES;
 const routes = reviewedRoutes(REVIEWED);
 const entry = routes[0];
 const choices = { entry, interest: 'Music', minutes: 15, support: 'more' };
 
 describe('review state', () => {
-  it('keeps the bundle’s own pending state and never asserts approval', () => {
-    expect(PILOT_RELEASES[0].status).toBe('draft');
-    expect(PILOT_RELEASES[0].reviewState).toMatchObject({ science: 'educator-pending', curriculum: 'educator-pending', publication: 'not-authorized' });
-    expect(reviewedRoutes(PILOT_RELEASES)).toEqual([]);
+  it('blocks draft bundles awaiting approval while exposing published self-directed routes', () => {
+    expect(FIXTURE_RELEASES[0].status).toBe('draft');
+    expect(FIXTURE_RELEASES[0].reviewState).toMatchObject({ science: 'educator-pending', curriculum: 'educator-pending', publication: 'not-authorized' });
+    expect(reviewedRoutes(FIXTURE_RELEASES)).toEqual([]);
+
+    expect(PILOT_RELEASES[0].status).toBe('published');
+    expect(PILOT_RELEASES[0].policy.type).toBe('ai-self-directed');
+    expect(reviewedRoutes(PILOT_RELEASES)).toHaveLength(3);
   });
 });
 

@@ -203,6 +203,12 @@ export function buildDashboardAssistantContext({
       engagement,
       skillOfTheWeek: model?.skill?.title || null,
       focusTimer: focusText || null,
+      myUniverse: {
+        activeOnSlide: activeSlide === 'universe',
+        mode: 'self-directed-ai',
+        availableMissions: ['thalassa-wind-survey', 'spacecraft-journey'],
+        classroomCoopPrivacyMode: true
+      },
       nextRecommendedStep: recommended?.title
         ? { title: recommended.title, source: recommended.source || '' }
         : null
